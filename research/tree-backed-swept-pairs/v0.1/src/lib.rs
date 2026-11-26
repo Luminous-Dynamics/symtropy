@@ -13,8 +13,8 @@
 
 use directional_motion_envelopes::{Aabb as MotionAabb, ColliderIdentity};
 use incremental_aabb_tree_reference::{
-    Aabb as TreeAabb, BalancePolicy, IncrementalAabbTree, PairQueryStats, ProxyId, TreeError,
-    TreeStats,
+    Aabb as TreeAabb, BalancePolicy, IncrementalAabbTree, MaintenanceStats, PairQueryStats,
+    ProxyId, TreeError, TreeStats,
 };
 use std::collections::BTreeMap;
 use swept_pair_oracle::{
@@ -232,6 +232,8 @@ pub enum TreePairSetError {
     ProxyIdExhausted,
     MissingProxyIdentity,
     CandidateMismatch,
+    Poisoned,
+    HistoryTooLong,
 }
 
 impl From<PairSetError> for TreePairSetError {
@@ -407,6 +409,277 @@ pub fn verify_tree_swept_pair_set<const D: usize>(
     let mut registry = ProxyIdRegistry::from_snapshot(&receipt.registry)?;
     let replay = build_tree_swept_pair_set(proxies, &mut registry, receipt.config)?;
     if replay == *receipt {
+        Ok(())
+    } else {
+        Err(TreePairSetError::CandidateMismatch)
+    }
+}
+
+
+/// Per-frame deltas from the persistent tree's cumulative maintenance
+/// counters. These distinguish real tree updates from unchanged-proxy frames.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct TreeMaintenanceDelta {
+    pub inserts: u64,
+    pub removes: u64,
+    pub updates: u64,
+    pub fat_contained_updates: u64,
+    pub proxy_reinsertions: u64,
+    pub full_rebuilds: u64,
+}
+
+impl TreeMaintenanceDelta {
+    fn between(before: MaintenanceStats, after: MaintenanceStats) -> Self {
+        Self {
+            inserts: after.insert_operations.saturating_sub(before.insert_operations),
+            removes: after.remove_operations.saturating_sub(before.remove_operations),
+            updates: after.update_operations.saturating_sub(before.update_operations),
+            fat_contained_updates: after
+                .fat_contained_updates
+                .saturating_sub(before.fat_contained_updates),
+            proxy_reinsertions: after
+                .proxy_reinsertions
+                .saturating_sub(before.proxy_reinsertions),
+            full_rebuilds: after.full_rebuilds.saturating_sub(before.full_rebuilds),
+        }
+    }
+}
+
+/// A replay-complete receipt for one stateful broadphase frame. The complete
+/// canonical frame history is retained so the verifier can reconstruct the
+/// tree's exact insert/update/remove sequence and query counters.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TreeFrameReceipt<const D: usize> {
+    pub config: TreeBuildConfig,
+    pub tree_revision: String,
+    pub frame_index: u64,
+    pub input_history: Vec<Vec<Proxy<D>>>,
+    pub registry: ProxyIdRegistrySnapshot,
+    pub reference: PairSetReceipt<D>,
+    pub candidate_pairs: Vec<PairKey>,
+    pub fallback_pairs: Vec<PairKey>,
+    pub tree_stats: TreeStats,
+    pub pair_query_stats: PairQueryStats,
+    pub maintenance_delta: TreeMaintenanceDelta,
+    pub stats: TreePairSetStats,
+}
+
+/// Persistent incremental broadphase state. Unlike the one-shot qualification
+/// adapter, this keeps the tree alive and applies only the insert/update/remove
+/// operations required by the next frame. It is still an assurance reference:
+/// the independent O(n²) pair oracle is retained in each frame receipt.
+pub struct TreeBackedBroadphase<const D: usize> {
+    config: TreeBuildConfig,
+    tree: IncrementalAabbTree<D>,
+    registry: ProxyIdRegistry,
+    active_bounds: BTreeMap<ProxyId, MotionAabb<D>>,
+    input_history: Vec<Vec<Proxy<D>>>,
+    poisoned: bool,
+}
+
+impl<const D: usize> TreeBackedBroadphase<D> {
+    pub fn new(config: TreeBuildConfig) -> Result<Self, TreePairSetError> {
+        Ok(Self {
+            config,
+            tree: IncrementalAabbTree::<D>::new_with_balance_policy(
+                TREE_FAT_MARGIN,
+                config.balance_policy,
+            )?,
+            registry: ProxyIdRegistry::new(),
+            active_bounds: BTreeMap::new(),
+            input_history: Vec::new(),
+            poisoned: false,
+        })
+    }
+
+    #[must_use]
+    pub fn registry_snapshot(&self) -> ProxyIdRegistrySnapshot {
+        self.registry.snapshot()
+    }
+
+    #[must_use]
+    pub fn tree_stats(&self) -> TreeStats {
+        self.tree.stats()
+    }
+
+    #[must_use]
+    pub fn frame_count(&self) -> usize {
+        self.input_history.len()
+    }
+
+    /// Apply one frame to the persistent tree. Unsupported proxies are removed
+    /// from the tree and every eligible pair involving them is added from the
+    /// independent oracle as a fail-closed fallback.
+    ///
+    /// If an impossible tree/oracle disagreement or tree mutation error occurs,
+    /// the instance is marked poisoned and must be discarded. The current
+    /// frame receipt is committed only after exact candidate parity succeeds.
+    pub fn step(
+        &mut self,
+        proxies: &[Proxy<D>],
+    ) -> Result<TreeFrameReceipt<D>, TreePairSetError> {
+        if self.poisoned {
+            return Err(TreePairSetError::Poisoned);
+        }
+
+        let reference = build_swept_pair_set(proxies)?;
+        let mut working_registry = self.registry.clone();
+        working_registry.assign_batch(reference.proxies.iter().map(|proxy| &proxy.identity))?;
+
+        let before_maintenance = self.tree.stats().maintenance;
+        let mut desired_bounds = BTreeMap::<ProxyId, MotionAabb<D>>::new();
+        let mut metadata = BTreeMap::<ProxyId, (ColliderIdentity, u32, u32)>::new();
+        let mut unsupported_proxies = 0_usize;
+
+        for proxy in &reference.proxies {
+            let proxy_id = working_registry.proxy_id(&proxy.identity)?;
+            metadata.insert(
+                proxy_id,
+                (
+                    proxy.identity.clone(),
+                    proxy.collision_group,
+                    proxy.collision_mask,
+                ),
+            );
+            if let Some(bounds) = envelope(proxy) {
+                desired_bounds.insert(proxy_id, bounds);
+            } else {
+                unsupported_proxies = unsupported_proxies.saturating_add(1);
+            }
+        }
+
+        // Convert all new bounds before mutating the live tree. A conversion
+        // failure therefore cannot leave the tree half-updated.
+        let mut desired_tree_bounds = BTreeMap::<ProxyId, TreeAabb<D>>::new();
+        for (proxy_id, bounds) in &desired_bounds {
+            match tree_aabb(bounds) {
+                Ok(tree_bounds) => {
+                    desired_tree_bounds.insert(*proxy_id, tree_bounds);
+                }
+                Err(error) => {
+                    self.poisoned = true;
+                    return Err(error);
+                }
+            }
+        }
+
+        let removals = self
+            .active_bounds
+            .keys()
+            .filter(|proxy_id| !desired_bounds.contains_key(proxy_id))
+            .copied()
+            .collect::<Vec<_>>();
+        for proxy_id in removals {
+            if let Err(error) = self.tree.remove(proxy_id) {
+                self.poisoned = true;
+                return Err(TreePairSetError::Tree(error));
+            }
+        }
+
+        for (proxy_id, bounds) in &desired_tree_bounds {
+            match self.active_bounds.get(proxy_id) {
+                None => {
+                    if let Err(error) = self.tree.insert(*proxy_id, *bounds) {
+                        self.poisoned = true;
+                        return Err(TreePairSetError::Tree(error));
+                    }
+                }
+                Some(previous) if previous == desired_bounds.get(proxy_id).unwrap() => {}
+                Some(_) => {
+                    if let Err(error) = self.tree.update(*proxy_id, *bounds) {
+                        self.poisoned = true;
+                        return Err(TreePairSetError::Tree(error));
+                    }
+                }
+            }
+        }
+
+        let pair_query = self.tree.query_pairs();
+        let mut tree_candidates = Vec::with_capacity(pair_query.pairs.len());
+        for pair in &pair_query.pairs {
+            let (left, left_group, left_mask) = metadata
+                .get(&pair.0)
+                .ok_or(TreePairSetError::MissingProxyIdentity)?;
+            let (right, right_group, right_mask) = metadata
+                .get(&pair.1)
+                .ok_or(TreePairSetError::MissingProxyIdentity)?;
+
+            if same_body(left, right) {
+                continue;
+            }
+            if (left_group & right_mask == 0) || (right_group & left_mask == 0) {
+                continue;
+            }
+            tree_candidates.push(canonical_pair(left, right));
+        }
+        tree_candidates.sort_by(pair_cmp);
+        tree_candidates.dedup();
+
+        let mut fallback_pairs = reference.fallback_pairs.clone();
+        fallback_pairs.sort_by(pair_cmp);
+        fallback_pairs.dedup();
+
+        let mut candidate_pairs = tree_candidates.clone();
+        candidate_pairs.extend(fallback_pairs.iter().cloned());
+        candidate_pairs.sort_by(pair_cmp);
+        candidate_pairs.dedup();
+
+        if candidate_pairs != reference.candidate_pairs {
+            self.poisoned = true;
+            return Err(TreePairSetError::CandidateMismatch);
+        }
+
+        let after_stats = self.tree.stats();
+        let maintenance_delta =
+            TreeMaintenanceDelta::between(before_maintenance, after_stats.maintenance);
+        let stats = TreePairSetStats {
+            input_proxies: reference.proxies.len(),
+            supported_proxies: desired_bounds.len(),
+            unsupported_proxies,
+            raw_tree_pairs: pair_query.pairs.len(),
+            filtered_tree_pairs: tree_candidates.len(),
+            fallback_pairs: fallback_pairs.len(),
+            final_candidate_pairs: candidate_pairs.len(),
+        };
+
+        let frame_index =
+            u64::try_from(self.input_history.len()).map_err(|_| TreePairSetError::HistoryTooLong)?;
+        self.active_bounds = desired_bounds;
+        self.registry = working_registry;
+        self.input_history.push(reference.proxies.clone());
+
+        Ok(TreeFrameReceipt {
+            config: self.config,
+            tree_revision: TREE_REFERENCE_REVISION.to_owned(),
+            frame_index,
+            input_history: self.input_history.clone(),
+            registry: self.registry.snapshot(),
+            reference,
+            candidate_pairs,
+            fallback_pairs,
+            tree_stats: after_stats,
+            pair_query_stats: pair_query.stats,
+            maintenance_delta,
+            stats,
+        })
+    }
+}
+
+/// Rebuild and replay every frame captured by a stateful frame receipt. This
+/// verifies the exact pair population, registry evolution, maintenance deltas,
+/// tree topology-dependent query counters and cumulative tree statistics.
+pub fn verify_tree_frame_receipt<const D: usize>(
+    receipt: &TreeFrameReceipt<D>,
+) -> Result<(), TreePairSetError> {
+    if receipt.tree_revision != TREE_REFERENCE_REVISION {
+        return Err(TreePairSetError::CandidateMismatch);
+    }
+    let mut broadphase = TreeBackedBroadphase::<D>::new(receipt.config)?;
+    let mut replay = None;
+    for frame in &receipt.input_history {
+        replay = Some(broadphase.step(frame)?);
+    }
+    if replay.as_ref() == Some(receipt) {
         Ok(())
     } else {
         Err(TreePairSetError::CandidateMismatch)
