@@ -11,6 +11,8 @@ Can AERO combine independently evaluated assurance obligations without collapsin
 
 The gate accepts the outputs of existing owner-specific evaluators and composes them into one claim-level disposition. It does not duplicate observer discovery, receiver ledgers, source checkpoint ownership, trust roots, cryptographic receipt verification, model validation or the Symthaea action selector.
 
+**A critical composition invariant:** all component reports and every mandatory evidence reference must bind to the same claim identity, exact physical subject reference and canonical decision-context digest. The evaluator checks report-digest shape, component-report digest uniqueness, evaluator-profile presence and exact claim/subject/context agreement. It carries these bindings forward into its output. It does not recompute the report/context digests, authenticate the reports, or prove that the caller bound the correct underlying bytes; that remains an upstream receipt/verifier responsibility.
+
 ## 2. Paradigm shift: from record validation to claim-level admissibility
 
 AERO already has separate primitives for:
@@ -39,7 +41,23 @@ Precedence is fail-closed: integrity rejection dominates; scope limits remain ex
 
 The evaluator returns stable sorted reason codes. It does not compute a weighted score, posterior probability, confidence score, safety margin or EVSI. No failed critical obligation is averaged away.
 
-## 4. Evidence and authority boundaries
+## 4. Exact-context composition
+
+Each component supplies an `AssessmentBinding` containing:
+
+- exact claim ID;
+- physical article/subject reference;
+- SHA-256 digest of the canonical decision context;
+- SHA-256 digest of the component report;
+- exact evaluator profile/version.
+
+Coverage, causal-cut and effectivity bindings must agree on claim, subject and decision-context digest. Their component report digests must be well-formed and distinct. Every mandatory evidence reference separately carries the same decision-context digest. Any mismatch or malformed binding rejects the composite package; a valid binding shape is not cryptographic authentication.
+
+The composite output preserves the shared decision-context digest, all three report digests and a sorted set of required evidence references. This enables downstream review to retrieve the exact component reports and inspect the provenance chain rather than relying on an unanchored aggregate PASS.
+
+The caller still has to compute the canonical decision-context digest over a frozen, versioned serialization of the claim and its configuration, operating envelope, acquisition/time coordinates, policy and evidence requirements. The exact canonicalization profile must be included in the owner packet. A future production integration should make this a shared, independently implemented canonicalization contract and verify every report digest against the retained report bytes.
+
+## 5. Evidence and authority boundaries
 
 `ADMITTED` is an upstream owner/evidence-workflow disposition. This module does not cryptographically authenticate the receipt, verify a signature, establish source authority, qualify an observer, or prove that source discovery is complete. AERO must consume owner-native Mycelix/AeroCommons receipts and BASALT qualification; it must not mint a parallel evidence ledger.
 
