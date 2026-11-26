@@ -601,6 +601,91 @@ mod tests {
     }
 
     #[test]
+    fn decision_sufficiency_receipt_must_match_truth_class_and_live_count() {
+        let candidate_problem = DecisionDisambiguationProblemV0 {
+            hypotheses: vec![
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 1,
+                    decision_class_id: 10,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 2,
+                    decision_class_id: 10,
+                },
+            ],
+            probes: Vec::new(),
+            outcome_supports: Vec::new(),
+            remaining_cost_units: 0,
+            remaining_latency_ticks: 0,
+        };
+        let bindings = vec![
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 1,
+                witness_key: Some(101),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 2,
+                witness_key: Some(102),
+            },
+        ];
+        let ground_truth = DecisionDisambiguationGroundTruthV0 {
+            admissible_hypotheses: vec![
+                GroundTruthHypothesisV0 {
+                    witness_key: 101,
+                    decision_class_id: 7,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 102,
+                    decision_class_id: 7,
+                },
+            ],
+            probe_outcome_supports: Vec::new(),
+        };
+
+        let wrong_class = DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id: 99,
+            live_hypotheses: 2,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &wrong_class,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+        assert_eq!(report.decision_sufficiency_receipt_matches_truth, Some(false));
+        assert!(report.false_decision_sufficiency_claim);
+
+        let wrong_count = DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id: 7,
+            live_hypotheses: 3,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &wrong_count,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+        assert_eq!(report.decision_sufficiency_receipt_matches_truth, Some(false));
+        assert!(report.false_decision_sufficiency_claim);
+
+        let correct = DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id: 7,
+            live_hypotheses: 2,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &correct,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+        assert_eq!(report.decision_sufficiency_receipt_matches_truth, Some(true));
+        assert!(report.decision_sufficiency_is_valid);
+    }
+
+    #[test]
     fn evaluates_complete_witness_set_and_real_probe_partition() {
         let candidate_problem = problem();
         let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
