@@ -29,7 +29,7 @@ def parse_fixture(path: Path):
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
-        fields = line.split("\\t")
+        fields = line.split("\t")
         kind = fields[0]
         if kind == "VESSEL" and len(fields) == 2:
             if fields[1] in vessels:
@@ -125,37 +125,37 @@ def exact_search(vessels, capacities, candidates, options):
 
 
 def objective_fields(objective: tuple[int, ...]) -> str:
-    return "\\t".join(map(str, objective))
+    return "\t".join(map(str, objective))
 
 
 def receipt_lines(vessels, capacities, candidates, feasible, frontier) -> list[str]:
-    lines = ["RESOURCE_ORACLE_RECEIPT\\t0.1.0"]
+    lines = ["RESOURCE_ORACLE_RECEIPT\t0.1.0"]
     for vessel_id in sorted(vessels):
-        lines.append(f"SCENARIO_VESSEL\\t{vessel_id}")
+        lines.append(f"SCENARIO_VESSEL\t{vessel_id}")
     for (resource_id, slot), capacity in sorted(capacities.items()):
-        lines.append(f"SCENARIO_CAPACITY\\t{resource_id}\\t{slot}\\t{capacity}")
+        lines.append(f"SCENARIO_CAPACITY\t{resource_id}\t{slot}\t{capacity}")
     for candidate_id in sorted(candidates):
         candidate = candidates[candidate_id]
         lines.append(
-            f"SCENARIO_CANDIDATE\\t{candidate_id}\\t{candidate['vessel']}\\t"
+            f"SCENARIO_CANDIDATE\t{candidate_id}\t{candidate['vessel']}\t"
             f"{objective_fields(candidate['objective'])}"
         )
         for resource_id, slot, units in sorted(candidate["reservations"]):
             lines.append(
-                f"SCENARIO_RESERVATION\\t{candidate_id}\\t{resource_id}\\t{slot}\\t{units}"
+                f"SCENARIO_RESERVATION\t{candidate_id}\t{resource_id}\t{slot}\t{units}"
             )
 
-    lines.append(f"FEASIBLE_COUNT\\t{len(feasible)}")
+    lines.append(f"FEASIBLE_COUNT\t{len(feasible)}")
     for candidate_ids, objective in feasible:
         lines.append(
-            "FEASIBLE\\t" + ",".join(candidate_ids) + "\\t" + objective_fields(objective)
+            "FEASIBLE\t" + ",".join(candidate_ids) + "\t" + objective_fields(objective)
         )
-    lines.append(f"PARETO_COUNT\\t{len(frontier)}")
+    lines.append(f"PARETO_COUNT\t{len(frontier)}")
     for candidate_ids, objective in frontier:
         lines.append(
-            "PARETO\\t" + ",".join(candidate_ids) + "\\t" + objective_fields(objective)
+            "PARETO\t" + ",".join(candidate_ids) + "\t" + objective_fields(objective)
         )
-    lines.append("SUMMARY\\tPASS")
+    lines.append("SUMMARY\tPASS")
     return lines
 
 
@@ -186,11 +186,11 @@ def main() -> int:
     actual = args.receipt.read_text(encoding="utf-8").splitlines()
     if actual != expected_from_reference:
         raise AssertionError(
-            "Rust oracle / Python reference mismatch\\n"
-            f"expected: {expected_from_reference}\\nactual: {actual}"
+            "Rust oracle / Python reference mismatch\n"
+            f"expected: {expected_from_reference}\nactual: {actual}"
         )
 
-    print(f"RESOURCE_REFERENCE\\tPASS\\tfeasible={len(feasible)}\\tpareto={len(frontier)}")
+    print(f"RESOURCE_REFERENCE\tPASS\tfeasible={len(feasible)}\tpareto={len(frontier)}")
     return 0
 
 
