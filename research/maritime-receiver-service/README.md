@@ -29,7 +29,7 @@ A protected floor F passes only when the lower bound reaches F; it fails only wh
 
 The fixture has ten scenario cases: all-on-time, terminal-exit-only, late acceptance, censored bounds, confirmed non-acceptance, verified loss/damage, unverified acceptance, explicit separation of container and TEU groups, unit reconciliation failure, and acceptance after the measurement horizon.
 
-The dependency-free Rust reducer has 15 unit tests. A deterministic TSV receipt is compared with a separately implemented standard-library Python reference.
+The dependency-free Rust reducer has 16 unit tests. A deterministic TSV receipt is compared with a separately implemented standard-library Python reference.
 
 ## Run locally
 
@@ -62,3 +62,6 @@ The dedicated `maritime-receiver-service` workflow passed on commit `8628da80fff
 - Receipt artifact uploaded
 
 This establishes only the declared synthetic outcome arithmetic and state contract. It does not establish live cargo delivery, causal benefit or source authenticity.
+
+
+The Rust suite also rejects a protected-floor configuration that has no scheduled units in the corresponding (cohort, unit) group. A floor cannot disappear merely because its denominator is missing.
