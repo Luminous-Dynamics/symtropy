@@ -305,13 +305,7 @@ pub fn generate_scene<const D: usize>(
                     }
                 }
                 SceneFamily::TeleportChurn => next_between(&mut state, -0.02, 0.02),
-                SceneFamily::SleepingWakeups => {
-                    if slot % 64 == 0 {
-                        0.025 * (axis as f64 + 1.0)
-                    } else {
-                        0.0
-                    }
-                }
+                SceneFamily::SleepingWakeups => 0.0,
             };
         }
 
@@ -351,6 +345,12 @@ pub fn generate_scene<const D: usize>(
             let mut center = initial[slot];
             for axis in 0..D {
                 center[axis] += velocities[slot][axis] * frame_index as f64;
+                if family == SceneFamily::SleepingWakeups && slot % 64 == 0 {
+                    // Two bodies wake and change their bounds once every eight
+                    // frames, then remain stationary until the next wake.
+                    let wake_steps = frame_index / 8;
+                    center[axis] += wake_steps as f64 * 0.025 * (axis as f64 + 1.0);
+                }
                 if family == SceneFamily::TeleportChurn
                     && slot % 17 == 0
                     && frame_index > 0
@@ -1698,7 +1698,10 @@ mod tests {
                 *expected_current
             );
             assert_eq!(delta.frontier_proxy_visits, 0);
-            if frame_index > 0 {
+            if delta.dirty_proxies == 0 {
+                assert_eq!(delta.frontier_node_visits, 0);
+                assert_eq!(delta.frontier_leaf_tests, 0);
+            } else {
                 assert!(delta.frontier_node_visits > 0 || delta.frontier_leaf_tests > 0);
             }
         }
