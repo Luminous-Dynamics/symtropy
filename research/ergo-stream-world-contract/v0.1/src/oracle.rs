@@ -736,7 +736,10 @@ mod tests {
         assert_eq!(report.valid_node_mapping_count, 12);
         assert_eq!(report.valid_witness_class_count, 12);
         assert!(report.witness_count_complete);
-        assert_eq!(report.ambiguity_status, StructuralWitnessAmbiguityV0::Ambiguous);
+        assert_eq!(
+            report.ambiguity_status,
+            StructuralWitnessAmbiguityV0::Ambiguous
+        );
         assert!(report.correspondence.is_some());
     }
 
