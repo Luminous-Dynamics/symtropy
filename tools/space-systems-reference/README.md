@@ -127,6 +127,7 @@ Do not claim better-than-SOTA from a toy equation. Compare with matched boundari
 - Net acceleration after harvested drag, parasitic drag, conversion loss and thruster loss.
 - Full mass and power boundary: interaction field generator, superconductors/cryogenics, tether, storage, power electronics, thruster, propellant and thermal rejection.
 - Energy and momentum closure in the medium, vehicle and expelled-mass reference frames.
+- Explicit power-conversion loss, thruster loss and energy-chain residual; require the harvested-power ledger to close within declared numeric tolerance.
 - Useful mission service at matched departure state, payload, destination, arrival velocity, braking, time and reliability.
 - Medium-density and field-coupling uncertainty; do not fit the effective area to the same data used for validation.
 
