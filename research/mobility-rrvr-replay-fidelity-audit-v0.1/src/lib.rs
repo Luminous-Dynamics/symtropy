@@ -56,6 +56,7 @@ pub enum AuditStatus {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct DifficultyTrial {
+    pub attempt_id: String,
     pub policy_id: String,
     pub trial_index: u8,
     pub success: bool,
@@ -69,10 +70,41 @@ pub struct DifficultyScreen {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct SpotCheckSelectionRecord {
+    pub schema_version: String,
+    pub seed: u64,
+    pub selection_method_id: String,
+    pub selected_attempt_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpotCheckAttempt {
+    pub attempt_id: String,
+    pub end_effector: PoseComparison,
+    pub object_pose: PoseComparison,
+    pub final_frame_pairs: Vec<FramePairAsset>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SpotCheckManifest {
     pub seed: u64,
+    pub selection_method_id: String,
+    pub selection_record_path: String,
+    pub selection_record_sha256: String,
     pub selected_attempt_ids: Vec<String>,
+    pub attempts: Vec<SpotCheckAttempt>,
     pub manifest_sha256: String,
+}
+
+#[derive(Serialize)]
+struct SpotCheckManifestMaterial<'a> {
+    seed: u64,
+    selection_method_id: &'a str,
+    selection_record_sha256: &'a str,
+    selected_attempt_ids: &'a [String],
+    attempts: &'a [SpotCheckAttempt],
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -121,9 +153,6 @@ pub struct ReplayCandidate {
     pub action_prefix_receipt_sha256: String,
     pub difficulty_screen: DifficultyScreen,
     pub spot_check: SpotCheckManifest,
-    pub end_effector: PoseComparison,
-    pub object_pose: PoseComparison,
-    pub final_frame_pairs: Vec<FramePairAsset>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -158,12 +187,8 @@ pub struct FrameCheck {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct CandidateAudit {
-    pub scenario_id: String,
-    pub platform: Platform,
-    pub split: Split,
-    pub source_trajectory_id: String,
-    pub trajectory_cluster_id: String,
+pub struct SpotCheckAudit {
+    pub attempt_id: String,
     pub status: AuditStatus,
     pub end_effector: PoseCheck,
     pub object_pose: PoseCheck,
@@ -171,9 +196,21 @@ pub struct CandidateAudit {
     pub mean_final_five_ssim: Option<f64>,
     pub mean_ssim_threshold: f64,
     pub mean_ssim_passed: Option<bool>,
+    pub reason_codes: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CandidateAudit {
+    pub scenario_id: String,
+    pub platform: Platform,
+    pub split: Split,
+    pub source_trajectory_id: String,
+    pub trajectory_cluster_id: String,
+    pub status: AuditStatus,
     pub difficulty_success_n: usize,
     pub difficulty_trial_n: usize,
     pub spot_check_attempt_ids: Vec<String>,
+    pub spot_checks: Vec<SpotCheckAudit>,
     pub reason_codes: Vec<String>,
 }
 
