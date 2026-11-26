@@ -7,4 +7,8 @@ publish = false
 description = "Deterministic integer max-flow/min-cut kernel for validated single-commodity directed networks"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10"
+
+[dev-dependencies]
+serde_json = "1.0"
