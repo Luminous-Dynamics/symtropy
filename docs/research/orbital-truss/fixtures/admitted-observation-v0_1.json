@@ -1,0 +1,4266 @@
+{
+  "schema": "luminous.orbital-admitted-observation.corpus.v0.1",
+  "benchmark_id": "ORBITAL-ADMITTED-OBSERVATION-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_source_bound_attempt_outcome_composition_only",
+  "cases": [
+    {
+      "case_id": "AO-001-MEASUREMENT-AVAILABLE",
+      "campaign_id": "CAMPAIGN-AO-001-MEASUREMENT-AVAILABLE",
+      "attempt_id": "ATT-AO-001-MEASUREMENT-AVAILABLE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000412",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-001-MEASUREMENT-AVAILABLE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000413"
+      },
+      "action": {
+        "action_id": "ACT-AO-001-MEASUREMENT-AVAILABLE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000414",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-001-MEASUREMENT-AVAILABLE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000410",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000411",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e8"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e9"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003ea"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003eb"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003ec"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003ed"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003ee"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003ef"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003f0"
+        }
+      ],
+      "expected_disposition": "MEASUREMENT_ADMISSIBLE"
+    },
+    {
+      "case_id": "AO-002-NO-INDICATION",
+      "campaign_id": "CAMPAIGN-AO-002-NO-INDICATION",
+      "attempt_id": "ATT-AO-002-NO-INDICATION",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000476",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-002-NO-INDICATION",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000477"
+      },
+      "action": {
+        "action_id": "ACT-AO-002-NO-INDICATION",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000478",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-002-NO-INDICATION"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "NO_INDICATION",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000474",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000475",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000044c"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000044d"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000044e"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000044f"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000450"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000451"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000452"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000453"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000454"
+        }
+      ],
+      "expected_disposition": "MEASUREMENT_ADMISSIBLE"
+    },
+    {
+      "case_id": "AO-003-INDICATION-REPORTED",
+      "campaign_id": "CAMPAIGN-AO-003-INDICATION-REPORTED",
+      "attempt_id": "ATT-AO-003-INDICATION-REPORTED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004da",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-003-INDICATION-REPORTED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "00000000000000000000000000000000000000000000000000000000000004db"
+      },
+      "action": {
+        "action_id": "ACT-AO-003-INDICATION-REPORTED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004dc",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-003-INDICATION-REPORTED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "INDICATION_REPORTED",
+        "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000004d8",
+        "payload_sha256": "00000000000000000000000000000000000000000000000000000000000004d9",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b0"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b1"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b2"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b3"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b4"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b5"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b6"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b7"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000004b8"
+        }
+      ],
+      "expected_disposition": "MEASUREMENT_ADMISSIBLE"
+    },
+    {
+      "case_id": "AO-004-CALIBRATION-INVALID-MEASUREMENT",
+      "campaign_id": "CAMPAIGN-AO-004-CALIBRATION-INVALID-MEASUREMENT",
+      "attempt_id": "ATT-AO-004-CALIBRATION-INVALID-MEASUREMENT",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000053e",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-004-CALIBRATION-INVALID-MEASUREMENT",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "000000000000000000000000000000000000000000000000000000000000053f"
+      },
+      "action": {
+        "action_id": "ACT-AO-004-CALIBRATION-INVALID-MEASUREMENT",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000540",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-004-CALIBRATION-INVALID-MEASUREMENT"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "CALIBRATION_INVALID",
+        "outcome_record_sha256": "000000000000000000000000000000000000000000000000000000000000053c",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000514"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000515"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000516"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000517"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000518"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000519"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000051a"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000051b"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000051c"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-005-TIMING-UNASSOCIATED",
+      "campaign_id": "CAMPAIGN-AO-005-TIMING-UNASSOCIATED",
+      "attempt_id": "ATT-AO-005-TIMING-UNASSOCIATED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005a2",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-005-TIMING-UNASSOCIATED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "00000000000000000000000000000000000000000000000000000000000005a3"
+      },
+      "action": {
+        "action_id": "ACT-AO-005-TIMING-UNASSOCIATED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005a4",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-005-TIMING-UNASSOCIATED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "TRIGGER_OR_FRAME_UNASSOCIATED",
+        "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000005a0",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000578"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000579"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000057a"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000057b"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000057c"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000057d"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000057e"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000057f"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000580"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-006-OCCLUDED-MODELLED",
+      "campaign_id": "CAMPAIGN-AO-006-OCCLUDED-MODELLED",
+      "attempt_id": "ATT-AO-006-OCCLUDED-MODELLED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000606",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-006-OCCLUDED-MODELLED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000607"
+      },
+      "action": {
+        "action_id": "ACT-AO-006-OCCLUDED-MODELLED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000608",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-006-OCCLUDED-MODELLED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "OCCLUDED",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000604",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005dc"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005dd"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005de"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005df"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005e0"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005e1"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005e2"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005e3"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000005e4"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-007-MOTION-BUDGET-EXCEEDED",
+      "campaign_id": "CAMPAIGN-AO-007-MOTION-BUDGET-EXCEEDED",
+      "attempt_id": "ATT-AO-007-MOTION-BUDGET-EXCEEDED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000066a",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-007-MOTION-BUDGET-EXCEEDED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "000000000000000000000000000000000000000000000000000000000000066b"
+      },
+      "action": {
+        "action_id": "ACT-AO-007-MOTION-BUDGET-EXCEEDED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000066c",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-007-MOTION-BUDGET-EXCEEDED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MOTION_BUDGET_EXCEEDED",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000668",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000640"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000641"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000642"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000643"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000644"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000645"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000646"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000647"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000648"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-008-CAPTURE-DROPPED",
+      "campaign_id": "CAMPAIGN-AO-008-CAPTURE-DROPPED",
+      "attempt_id": "ATT-AO-008-CAPTURE-DROPPED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006ce",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-008-CAPTURE-DROPPED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "00000000000000000000000000000000000000000000000000000000000006cf"
+      },
+      "action": {
+        "action_id": "ACT-AO-008-CAPTURE-DROPPED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006d0",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-008-CAPTURE-DROPPED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "CAPTURE_DROPPED",
+        "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000006cc",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006a4"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006a5"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006a6"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006a7"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006a8"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006a9"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006aa"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006ab"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000006ac"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-009-OCCLUSION-UNMODELLED",
+      "campaign_id": "CAMPAIGN-AO-009-OCCLUSION-UNMODELLED",
+      "attempt_id": "ATT-AO-009-OCCLUSION-UNMODELLED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000732",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-009-OCCLUSION-UNMODELLED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000733"
+      },
+      "action": {
+        "action_id": "ACT-AO-009-OCCLUSION-UNMODELLED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000734",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-009-OCCLUSION-UNMODELLED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "CAPTURE_DROPPED"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "OCCLUDED",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000730",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000708"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000709"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000070a"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000070b"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000070c"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000070d"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000070e"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000070f"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000710"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-010-PHOTOMETRY-OUT-OF-PROFILE",
+      "campaign_id": "CAMPAIGN-AO-010-PHOTOMETRY-OUT-OF-PROFILE",
+      "attempt_id": "ATT-AO-010-PHOTOMETRY-OUT-OF-PROFILE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000796",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-010-PHOTOMETRY-OUT-OF-PROFILE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000797"
+      },
+      "action": {
+        "action_id": "ACT-AO-010-PHOTOMETRY-OUT-OF-PROFILE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000798",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-010-PHOTOMETRY-OUT-OF-PROFILE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "PHOTOMETRY_OUT_OF_PROFILE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000794",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000076c"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000076d"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000076e"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000076f"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000770"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000771"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000772"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000773"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000774"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-011-SENSOR-SATURATED",
+      "campaign_id": "CAMPAIGN-AO-011-SENSOR-SATURATED",
+      "attempt_id": "ATT-AO-011-SENSOR-SATURATED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007fa",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-011-SENSOR-SATURATED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "00000000000000000000000000000000000000000000000000000000000007fb"
+      },
+      "action": {
+        "action_id": "ACT-AO-011-SENSOR-SATURATED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007fc",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-011-SENSOR-SATURATED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "SENSOR_SATURATED",
+        "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000007f8",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d0"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d1"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d2"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d3"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d4"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d5"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d6"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d7"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000007d8"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-012-FEATURE-NOT-IDENTIFIABLE",
+      "campaign_id": "CAMPAIGN-AO-012-FEATURE-NOT-IDENTIFIABLE",
+      "attempt_id": "ATT-AO-012-FEATURE-NOT-IDENTIFIABLE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000085e",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-012-FEATURE-NOT-IDENTIFIABLE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "000000000000000000000000000000000000000000000000000000000000085f"
+      },
+      "action": {
+        "action_id": "ACT-AO-012-FEATURE-NOT-IDENTIFIABLE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000860",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-012-FEATURE-NOT-IDENTIFIABLE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "FEATURE_NOT_IDENTIFIABLE",
+        "outcome_record_sha256": "000000000000000000000000000000000000000000000000000000000000085c",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000834"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000835"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000836"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000837"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000838"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000839"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000083a"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000083b"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000083c"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-013-METROLOGY-INDETERMINATE-MEASUREMENT",
+      "campaign_id": "CAMPAIGN-AO-013-METROLOGY-INDETERMINATE-MEASUREMENT",
+      "attempt_id": "ATT-AO-013-METROLOGY-INDETERMINATE-MEASUREMENT",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008c2",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-013-METROLOGY-INDETERMINATE-MEASUREMENT",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "00000000000000000000000000000000000000000000000000000000000008c3"
+      },
+      "action": {
+        "action_id": "ACT-AO-013-METROLOGY-INDETERMINATE-MEASUREMENT",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008c4",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-013-METROLOGY-INDETERMINATE-MEASUREMENT"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000008c0",
+        "payload_sha256": "00000000000000000000000000000000000000000000000000000000000008c1",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000898"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000899"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000089a"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000089b"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000089c"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000089d"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "UNKNOWN",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000089e"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000089f"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008a0"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-014-ACTION-NOT-REALIZED",
+      "campaign_id": "CAMPAIGN-AO-014-ACTION-NOT-REALIZED",
+      "attempt_id": "ATT-AO-014-ACTION-NOT-REALIZED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000926",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-014-ACTION-NOT-REALIZED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000927"
+      },
+      "action": {
+        "action_id": "ACT-AO-014-ACTION-NOT-REALIZED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000928",
+        "realization": "NOT_REALIZED",
+        "realized_action_id": null
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "ACTION_NOT_REALIZED",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000924",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008fc"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008fd"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008fe"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000008ff"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000900"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000901"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000902"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000903"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000904"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-016-WRONG-REALIZED-ACTION",
+      "campaign_id": "CAMPAIGN-AO-016-WRONG-REALIZED-ACTION",
+      "attempt_id": "ATT-AO-016-WRONG-REALIZED-ACTION",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000098a",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-016-WRONG-REALIZED-ACTION",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "000000000000000000000000000000000000000000000000000000000000098b"
+      },
+      "action": {
+        "action_id": "ACT-AO-016-WRONG-REALIZED-ACTION",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000098c",
+        "realization": "VERIFIED",
+        "realized_action_id": "OTHER-AO-016-WRONG-REALIZED-ACTION"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000988",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000989",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000960"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000961"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000962"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000963"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000964"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000965"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000966"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000967"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000968"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "AO-017-AFTER-CUTOFF",
+      "campaign_id": "CAMPAIGN-AO-017-AFTER-CUTOFF",
+      "attempt_id": "ATT-AO-017-AFTER-CUTOFF",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009ee",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-017-AFTER-CUTOFF",
+        "sequence_watermark": 1,
+        "history_max_sequence": 1,
+        "history_sha256": "00000000000000000000000000000000000000000000000000000000000009ef"
+      },
+      "action": {
+        "action_id": "ACT-AO-017-AFTER-CUTOFF",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009f0",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-017-AFTER-CUTOFF"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "00000000000000000000000000000000000000000000000000000000000009ec",
+        "payload_sha256": "00000000000000000000000000000000000000000000000000000000000009ed",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009c4"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009c5"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009c6"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009c7"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009c8"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009c9"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009ca"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009cb"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000009cc"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "AO-019-SCOPE-MISMATCH",
+      "campaign_id": "CAMPAIGN-AO-019-SCOPE-MISMATCH",
+      "attempt_id": "ATT-AO-019-SCOPE-MISMATCH",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "OUT_OF_SCOPE",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a52",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-019-SCOPE-MISMATCH",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000a53"
+      },
+      "action": {
+        "action_id": "ACT-AO-019-SCOPE-MISMATCH",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a54",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-019-SCOPE-MISMATCH"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "SCOPE_MISMATCH",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000a50",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000a51",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a28"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a29"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a2a"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a2b"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a2c"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a2d"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a2e"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a2f"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a30"
+        }
+      ],
+      "expected_disposition": "INADMISSIBLE_MEASUREMENT"
+    },
+    {
+      "case_id": "AO-020-JOINT-CHANNEL-FAILURE",
+      "campaign_id": "CAMPAIGN-AO-020-JOINT-CHANNEL-FAILURE",
+      "attempt_id": "ATT-AO-020-JOINT-CHANNEL-FAILURE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ab6",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-020-JOINT-CHANNEL-FAILURE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000ab7"
+      },
+      "action": {
+        "action_id": "ACT-AO-020-JOINT-CHANNEL-FAILURE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ab8",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-020-JOINT-CHANNEL-FAILURE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "CAPTURE_DROPPED",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000ab4",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE",
+          "PROJECTOR-RETURN"
+        ],
+        "missing_channel_ids": [
+          "DEPTH-MAP",
+          "TRIGGER-ACK"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a8c"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a8d"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a8e"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a8f"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a90"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a91"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a92"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a93"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000a94"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-021-REVOKED-CALIBRATION",
+      "campaign_id": "CAMPAIGN-AO-021-REVOKED-CALIBRATION",
+      "attempt_id": "ATT-AO-021-REVOKED-CALIBRATION",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b1a",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-021-REVOKED-CALIBRATION",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000b1b"
+      },
+      "action": {
+        "action_id": "ACT-AO-021-REVOKED-CALIBRATION",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b1c",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-021-REVOKED-CALIBRATION"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000b18",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000b19",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af0"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af1"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af2"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "REVOKED",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af3"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af4"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af5"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af6"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af7"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000af8"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-022-UNKNOWN-OUTCOME",
+      "campaign_id": "CAMPAIGN-AO-022-UNKNOWN-OUTCOME",
+      "attempt_id": "ATT-AO-022-UNKNOWN-OUTCOME",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b7e",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-022-UNKNOWN-OUTCOME",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000b7f"
+      },
+      "action": {
+        "action_id": "ACT-AO-022-UNKNOWN-OUTCOME",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b80",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-022-UNKNOWN-OUTCOME"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "CAPTURE_DROPPED"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "UNREGISTERED_OUTCOME",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000b7c",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000b7d",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b54"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b55"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b56"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b57"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b58"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b59"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b5a"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b5b"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000b5c"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-023-BAD-OUTCOME-DIGEST",
+      "campaign_id": "CAMPAIGN-AO-023-BAD-OUTCOME-DIGEST",
+      "attempt_id": "ATT-AO-023-BAD-OUTCOME-DIGEST",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000be2",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-023-BAD-OUTCOME-DIGEST",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000be3"
+      },
+      "action": {
+        "action_id": "ACT-AO-023-BAD-OUTCOME-DIGEST",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000be4",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-023-BAD-OUTCOME-DIGEST"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "not-a-sha256",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000be1",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bb8"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bb9"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bba"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bbb"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bbc"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bbd"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bbe"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bbf"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000bc0"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "AO-024-DUPLICATE-CHANNEL",
+      "campaign_id": "CAMPAIGN-AO-024-DUPLICATE-CHANNEL",
+      "attempt_id": "ATT-AO-024-DUPLICATE-CHANNEL",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c46",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-024-DUPLICATE-CHANNEL",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000c47"
+      },
+      "action": {
+        "action_id": "ACT-AO-024-DUPLICATE-CHANNEL",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c48",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-024-DUPLICATE-CHANNEL"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000c44",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000c45",
+        "channel_ids": [
+          "CAMERA-IMAGE",
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c1c"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c1d"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c1e"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c1f"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c20"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c21"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c22"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c23"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c24"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "AO-025-OWNER-ORDER-PERMUTATION",
+      "campaign_id": "CAMPAIGN-AO-025-OWNER-ORDER-PERMUTATION",
+      "attempt_id": "ATT-AO-025-OWNER-ORDER-PERMUTATION",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000caa",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-025-OWNER-ORDER-PERMUTATION",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000cab"
+      },
+      "action": {
+        "action_id": "ACT-AO-025-OWNER-ORDER-PERMUTATION",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000cac",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-025-OWNER-ORDER-PERMUTATION"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000ca8",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000ca9",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c88"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c87"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c86"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c85"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c84"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c83"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c82"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c81"
+        },
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000c80"
+        }
+      ],
+      "expected_disposition": "MEASUREMENT_ADMISSIBLE"
+    },
+    {
+      "case_id": "AO-026-REQUIRED-OWNER-BYPASS",
+      "campaign_id": "CAMPAIGN-AO-026-REQUIRED-OWNER-BYPASS",
+      "attempt_id": "ATT-AO-026-REQUIRED-OWNER-BYPASS",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d0e",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-026-REQUIRED-OWNER-BYPASS",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000d0f"
+      },
+      "action": {
+        "action_id": "ACT-AO-026-REQUIRED-OWNER-BYPASS",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d10",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-026-REQUIRED-OWNER-BYPASS"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000d0c",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000d0d",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ce4"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ce5"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ce6"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": false,
+          "state": "NOT_REQUIRED",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ce7"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ce8"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ce9"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000cea"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ceb"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000cec"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "AO-027-STALE-KERNEL-PROFILE",
+      "campaign_id": "CAMPAIGN-AO-027-STALE-KERNEL-PROFILE",
+      "attempt_id": "ATT-AO-027-STALE-KERNEL-PROFILE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d72",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-027-STALE-KERNEL-PROFILE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000d73"
+      },
+      "action": {
+        "action_id": "ACT-AO-027-STALE-KERNEL-PROFILE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d74",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-027-STALE-KERNEL-PROFILE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "STALE",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000d70",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000d71",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d48"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d49"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d4a"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d4b"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d4c"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d4d"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d4e"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d4f"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000d50"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-028-BAD-KERNEL-DIGEST",
+      "campaign_id": "CAMPAIGN-AO-028-BAD-KERNEL-DIGEST",
+      "attempt_id": "ATT-AO-028-BAD-KERNEL-DIGEST",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000dd6",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-028-BAD-KERNEL-DIGEST",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000dd7"
+      },
+      "action": {
+        "action_id": "ACT-AO-028-BAD-KERNEL-DIGEST",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000dd8",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-028-BAD-KERNEL-DIGEST"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "bad-kernel-digest",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000dd4",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000dd5",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000dac"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000dad"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000dae"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000daf"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000db0"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000db1"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000db2"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000db3"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000db4"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    },
+    {
+      "case_id": "AO-029-OTHER-DECLARED-FAILURE",
+      "campaign_id": "CAMPAIGN-AO-029-OTHER-DECLARED-FAILURE",
+      "attempt_id": "ATT-AO-029-OTHER-DECLARED-FAILURE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e3a",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-029-OTHER-DECLARED-FAILURE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000e3b"
+      },
+      "action": {
+        "action_id": "ACT-AO-029-OTHER-DECLARED-FAILURE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e3c",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-029-OTHER-DECLARED-FAILURE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "OTHER_DECLARED_FAILURE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000e38",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e10"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e11"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e12"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e13"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e14"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e15"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e16"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e17"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e18"
+        }
+      ],
+      "expected_disposition": "MODELLED_OBSERVATION_PROCESS_OUTCOME"
+    },
+    {
+      "case_id": "AO-030-SCOPE-MISMATCH-OUTCOME",
+      "campaign_id": "CAMPAIGN-AO-030-SCOPE-MISMATCH-OUTCOME",
+      "attempt_id": "ATT-AO-030-SCOPE-MISMATCH-OUTCOME",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e9e",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-030-SCOPE-MISMATCH-OUTCOME",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000e9f"
+      },
+      "action": {
+        "action_id": "ACT-AO-030-SCOPE-MISMATCH-OUTCOME",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ea0",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-030-SCOPE-MISMATCH-OUTCOME"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "SCOPE_MISMATCH",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000e9c",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000e9d",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e74"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e75"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e76"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e77"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e78"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e79"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e7a"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e7b"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000e7c"
+        }
+      ],
+      "expected_disposition": "INADMISSIBLE_MEASUREMENT"
+    },
+    {
+      "case_id": "AO-031-UNKNOWN-MOTION-GATE",
+      "campaign_id": "CAMPAIGN-AO-031-UNKNOWN-MOTION-GATE",
+      "attempt_id": "ATT-AO-031-UNKNOWN-MOTION-GATE",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f02",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-031-UNKNOWN-MOTION-GATE",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000f03"
+      },
+      "action": {
+        "action_id": "ACT-AO-031-UNKNOWN-MOTION-GATE",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f04",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-031-UNKNOWN-MOTION-GATE"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000f00",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000f01",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ed8"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ed9"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "UNKNOWN",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000eda"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000edb"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000edc"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000edd"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ede"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000edf"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000ee0"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-032-READBACK-REQUIRED",
+      "campaign_id": "CAMPAIGN-AO-032-READBACK-REQUIRED",
+      "attempt_id": "ATT-AO-032-READBACK-REQUIRED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f66",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-032-READBACK-REQUIRED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000f67"
+      },
+      "action": {
+        "action_id": "ACT-AO-032-READBACK-REQUIRED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f68",
+        "realization": "UNKNOWN",
+        "realized_action_id": null
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000f64",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000f65",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f3c"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f3d"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f3e"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f3f"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f40"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f41"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f42"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f43"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000f44"
+        }
+      ],
+      "expected_disposition": "INADMISSIBLE_MEASUREMENT"
+    },
+    {
+      "case_id": "AO-033-MISSINGNESS-NOT-DECLARED",
+      "campaign_id": "CAMPAIGN-AO-033-MISSINGNESS-NOT-DECLARED",
+      "attempt_id": "ATT-AO-033-MISSINGNESS-NOT-DECLARED",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fca",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-033-MISSINGNESS-NOT-DECLARED",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "0000000000000000000000000000000000000000000000000000000000000fcb"
+      },
+      "action": {
+        "action_id": "ACT-AO-033-MISSINGNESS-NOT-DECLARED",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fcc",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-033-MISSINGNESS-NOT-DECLARED"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "CALIBRATION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": false,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "OCCLUDED",
+        "outcome_record_sha256": "0000000000000000000000000000000000000000000000000000000000000fc8",
+        "payload_sha256": null,
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": [
+          "CAMERA-IMAGE"
+        ]
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa0"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa1"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa2"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa3"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "FAIL",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa4"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa5"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa6"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa7"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000000fa8"
+        }
+      ],
+      "expected_disposition": "ABSTAIN_UNMODELLED_OUTCOME"
+    },
+    {
+      "case_id": "AO-034-KERNEL-OWNER-MISMATCH",
+      "campaign_id": "CAMPAIGN-AO-034-KERNEL-OWNER-MISMATCH",
+      "attempt_id": "ATT-AO-034-KERNEL-OWNER-MISMATCH",
+      "sequence_no": 1,
+      "campaign_attempt_count": 1,
+      "scope_disposition": "SCOPE_COHERENT",
+      "scope_receipt_sha256": "000000000000000000000000000000000000000000000000000000000000102e",
+      "cutoff": {
+        "cutoff_id": "CUT-AO-034-KERNEL-OWNER-MISMATCH",
+        "sequence_watermark": 1,
+        "history_max_sequence": 0,
+        "history_sha256": "000000000000000000000000000000000000000000000000000000000000102f"
+      },
+      "action": {
+        "action_id": "ACT-AO-034-KERNEL-OWNER-MISMATCH",
+        "policy_revision": "POLICY-REV-1",
+        "command_receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001030",
+        "realization": "VERIFIED",
+        "realized_action_id": "ACT-AO-034-KERNEL-OWNER-MISMATCH"
+      },
+      "kernel": {
+        "profile_id": "ORBITAL-SEQUENTIAL-KERNEL",
+        "profile_revision": "REV-7",
+        "receipt_sha256": "00000000000000000000000000000000000000000000000000000000000003e7",
+        "source_state": "CURRENT",
+        "allowed_outcomes": [
+          "MEASUREMENT_AVAILABLE",
+          "NO_INDICATION",
+          "INDICATION_REPORTED",
+          "OCCLUDED",
+          "CAPTURE_DROPPED",
+          "TRIGGER_OR_FRAME_UNASSOCIATED",
+          "SENSOR_SATURATED",
+          "PHOTOMETRY_OUT_OF_PROFILE",
+          "MOTION_BUDGET_EXCEEDED",
+          "CALIBRATION_INVALID",
+          "FEATURE_NOT_IDENTIFIABLE",
+          "METROLOGY_INDETERMINATE",
+          "ACTION_NOT_REALIZED",
+          "OTHER_DECLARED_FAILURE",
+          "SCOPE_MISMATCH"
+        ],
+        "required_owners": [
+          "CAPTURE",
+          "TIMING",
+          "MOTION",
+          "GEOMETRY",
+          "FEATURE",
+          "METROLOGY",
+          "PHOTOMETRY",
+          "DIVERSITY"
+        ],
+        "missingness_semantics_declared": true,
+        "action_realization_required": true
+      },
+      "outcome": {
+        "kind": "MEASUREMENT_AVAILABLE",
+        "outcome_record_sha256": "000000000000000000000000000000000000000000000000000000000000102c",
+        "payload_sha256": "000000000000000000000000000000000000000000000000000000000000102d",
+        "channel_ids": [
+          "CAMERA-IMAGE"
+        ],
+        "missing_channel_ids": []
+      },
+      "owner_bindings": [
+        {
+          "owner": "CAPTURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001004"
+        },
+        {
+          "owner": "TIMING",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001005"
+        },
+        {
+          "owner": "MOTION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001006"
+        },
+        {
+          "owner": "CALIBRATION",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001007"
+        },
+        {
+          "owner": "GEOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001008"
+        },
+        {
+          "owner": "FEATURE",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "0000000000000000000000000000000000000000000000000000000000001009"
+        },
+        {
+          "owner": "METROLOGY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000100a"
+        },
+        {
+          "owner": "PHOTOMETRY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000100b"
+        },
+        {
+          "owner": "DIVERSITY",
+          "required": true,
+          "state": "PASS",
+          "source_state": "CURRENT",
+          "receipt_sha256": "000000000000000000000000000000000000000000000000000000000000100c"
+        }
+      ],
+      "expected_disposition": "INVALID_INPUT"
+    }
+  ]
+}
