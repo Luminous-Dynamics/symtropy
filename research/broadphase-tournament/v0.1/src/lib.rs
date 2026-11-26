@@ -492,6 +492,9 @@ fn oracle_pairs<const D: usize>(
 fn oracle_pairs_sweep<const D: usize>(
     frame: &[ProxyFrame<D>],
 ) -> Result<BTreeSet<ProxyPair>, TournamentError> {
+    if D == 0 {
+        return Err(TournamentError::EmptyScene);
+    }
     validate_frame(frame)?;
     let mut ordered: Vec<_> = frame.iter().collect();
     ordered.sort_by(|left, right| {
@@ -1696,6 +1699,9 @@ pub fn run_scale_tournament<const D: usize>(
     scene: &TemporalScene<D>,
     config: TournamentConfig,
 ) -> Result<Vec<TournamentRow>, TournamentError> {
+    if D == 0 {
+        return Err(TournamentError::EmptyScene);
+    }
     if config.repetitions == 0 {
         return Err(TournamentError::InvalidRepetitions);
     }
