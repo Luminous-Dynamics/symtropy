@@ -75,7 +75,8 @@ pub use decision_refinement::{
 pub use joint_action_catalogue::{
     JointActionCandidate, JointActionCatalogueConfig, JointActionCatalogueError,
     JointActionCatalogueReport, JointActionOutcomeRecord, JointActionOutcomeState,
-    JointActionSelectionDisposition, MAX_JOINT_ACTIONS, canonical_joint_action_set_digest,
+    JointActionPortfolioEvidenceRecord, JointActionSelectionDisposition, MAX_JOINT_ACTIONS,
+    canonical_joint_action_set_digest, canonical_post_action_event_inventory_digest,
     evaluate_joint_action_catalogue,
 };
 pub use lebedev::{
