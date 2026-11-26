@@ -139,15 +139,15 @@ pub use pop_convergence::{
     PeakOverlapConvergenceObservation, PeakOverlapConvergenceReason, PeakOverlapConvergenceStatus,
     decide_peak_overlap_convergence,
 };
-pub use portfolio_selection::{
-    MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound, PortfolioConsequenceObservation,
-    PortfolioContrastConfidenceInterval, PortfolioSelectionError, SimultaneousPortfolioComparison,
-    SimultaneousPortfolioDraw, SimultaneousPortfolioSelectionReport,
-};
 pub use portfolio_proposal::{
     DefensiveProposalComponent, DefensiveProposalEvaluation, MAX_PORTFOLIO_PROPOSAL_COMPONENTS,
     MAX_PORTFOLIO_PROPOSAL_MODES, PortfolioDefensiveGaussianMixture, PortfolioEventModeKey,
     PortfolioProposalError,
+};
+pub use portfolio_selection::{
+    MAX_SIMULTANEOUS_PORTFOLIO_DRAWS, PortfolioConsequenceBound, PortfolioConsequenceObservation,
+    PortfolioContrastConfidenceInterval, PortfolioSelectionError, SimultaneousPortfolioComparison,
+    SimultaneousPortfolioDraw, SimultaneousPortfolioSelectionReport,
 };
 pub use predictable_empirical_bernstein::{
     AdaptiveImportanceSamplingPrPlEbSequence, DEFAULT_BET_FRACTION_CAP, PrPlEbConfidenceSequence,
