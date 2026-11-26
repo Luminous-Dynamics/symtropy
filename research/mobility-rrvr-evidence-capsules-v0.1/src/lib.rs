@@ -19,6 +19,13 @@ pub enum SourceRole {
     IndependentAdjudicator,
     Endpoint,
     NetworkMonitor,
+    ModelOracle,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvidenceDomain {
+    ProcessModel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -169,6 +176,8 @@ pub struct EvidenceBundle {
     pub benchmark: String,
     pub campaign_id: String,
     pub claim_ceiling: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_domain: Option<EvidenceDomain>,
     pub evidence: Vec<EvidenceCapsule>,
     pub claims: Vec<Claim>,
 }
@@ -196,6 +205,7 @@ pub struct EvidenceReport {
     pub schema_version: String,
     pub benchmark: String,
     pub campaign_id: String,
+    pub evidence_domain: Option<EvidenceDomain>,
     pub evidence_n: usize,
     pub claim_n: usize,
     pub qualified_n: usize,
@@ -211,6 +221,26 @@ pub fn evaluate_json(input: &str) -> Result<EvidenceReport, String> {
         serde_json::from_str(input).map_err(|error| format!("BUNDLE_JSON_INVALID: {error}"))?;
     validate_bundle(&bundle)?;
     Ok(evaluate_bundle(&bundle))
+}
+
+/// Seal capsule digests and claim evidence snapshots, then validate the complete bundle.
+///
+/// This is the supported construction path for downstream RRVR tools. It does not
+/// establish source authenticity, real-world independence, or physical truth.
+pub fn seal_bundle(bundle: &mut EvidenceBundle) -> Result<(), String> {
+    for capsule in &mut bundle.evidence {
+        capsule.content_sha256.clear();
+        capsule.content_sha256 = capsule_digest(capsule)?;
+    }
+    let by_id: BTreeMap<&str, &EvidenceCapsule> = bundle
+        .evidence
+        .iter()
+        .map(|capsule| (capsule.evidence_id.as_str(), capsule))
+        .collect();
+    for claim in &mut bundle.claims {
+        claim.evidence_snapshot_sha256 = snapshot_digest(&claim.evidence_ids, &by_id)?;
+    }
+    validate_bundle(bundle)
 }
 
 fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
@@ -235,6 +265,34 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
     }
     if bundle.claims.is_empty() {
         return Err("NO_CLAIMS".to_owned());
+    }
+    match bundle.evidence_domain {
+        Some(EvidenceDomain::ProcessModel) => {
+            if bundle.claims.iter().any(|claim| {
+                !matches!(
+                    claim.claim_type,
+                    ClaimType::EndpointFenced | ClaimType::TemporalClosure
+                )
+            }) {
+                return Err("PROCESS_MODEL_CLAIM_TYPE_FORBIDDEN".to_owned());
+            }
+            if bundle
+                .evidence
+                .iter()
+                .any(|capsule| capsule.source.role != SourceRole::ModelOracle)
+            {
+                return Err("PROCESS_MODEL_SOURCE_ROLE_MISMATCH".to_owned());
+            }
+        }
+        None => {
+            if bundle
+                .evidence
+                .iter()
+                .any(|capsule| capsule.source.role == SourceRole::ModelOracle)
+            {
+                return Err("MODEL_ORACLE_DOMAIN_REQUIRED".to_owned());
+            }
+        }
     }
 
     let mut by_id: BTreeMap<&str, &EvidenceCapsule> = BTreeMap::new();
@@ -266,7 +324,7 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
                 capsule.evidence_id
             ));
         }
-        validate_payload(capsule)?;
+        validate_payload(capsule, bundle.evidence_domain)?;
         if !ingest_sequences.insert(capsule.ingest_sequence) {
             return Err(format!(
                 "DUPLICATE_INGEST_SEQUENCE: {}",
@@ -370,7 +428,10 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_payload(capsule: &EvidenceCapsule) -> Result<(), String> {
+fn validate_payload(
+    capsule: &EvidenceCapsule,
+    evidence_domain: Option<EvidenceDomain>,
+) -> Result<(), String> {
     match &capsule.payload {
         EvidencePayload::FaultExecutionReceipt { fault_id, .. } => {
             require_text("fault_id", fault_id)?;
@@ -421,7 +482,10 @@ fn validate_payload(capsule: &EvidenceCapsule) -> Result<(), String> {
         }
         EvidencePayload::EndpointFenceReceipt { holder_id, .. } => {
             require_text("endpoint.holder_id", holder_id)?;
-            if capsule.source.role != SourceRole::Endpoint {
+            if capsule.source.role != SourceRole::Endpoint
+                && !(evidence_domain == Some(EvidenceDomain::ProcessModel)
+                    && capsule.source.role == SourceRole::ModelOracle)
+            {
                 return Err(format!(
                     "ENDPOINT_RECEIPT_SOURCE_ROLE_INVALID: {}",
                     capsule.evidence_id
@@ -440,7 +504,9 @@ fn validate_payload(capsule: &EvidenceCapsule) -> Result<(), String> {
             if !matches!(
                 capsule.source.role,
                 SourceRole::NetworkMonitor | SourceRole::Endpoint
-            ) {
+            ) && !(evidence_domain == Some(EvidenceDomain::ProcessModel)
+                && capsule.source.role == SourceRole::ModelOracle)
+            {
                 return Err(format!(
                     "EDGE_RECEIPT_SOURCE_ROLE_INVALID: {}",
                     capsule.evidence_id
@@ -455,7 +521,9 @@ fn validate_payload(capsule: &EvidenceCapsule) -> Result<(), String> {
             if !matches!(
                 capsule.source.role,
                 SourceRole::NetworkMonitor | SourceRole::IndependentAdjudicator
-            ) {
+            ) && !(evidence_domain == Some(EvidenceDomain::ProcessModel)
+                && capsule.source.role == SourceRole::ModelOracle)
+            {
                 return Err(format!(
                     "INVENTORY_SOURCE_ROLE_INVALID: {}",
                     capsule.evidence_id
@@ -644,6 +712,7 @@ fn evaluate_bundle(bundle: &EvidenceBundle) -> EvidenceReport {
         disputed_n: count(AssessmentStatus::Disputed),
         claim_assessments,
         claim_ceiling: bundle.claim_ceiling.clone(),
+        evidence_domain: bundle.evidence_domain,
     }
 }
 
@@ -878,7 +947,11 @@ fn endpoint_is_fenced(
             in_flight_n,
             terminal_actuator_fenced,
             ..
-        } if observed_holder == holder_id && capsule.source.role == SourceRole::Endpoint => Some(
+        } if observed_holder == holder_id
+            && matches!(
+                capsule.source.role,
+                SourceRole::Endpoint | SourceRole::ModelOracle
+            ) => Some(
             *accepted_epoch >= required_epoch
                 && *queue_generation == required_queue_generation
                 && accepted_high_water == retired_high_water
@@ -1005,7 +1078,7 @@ fn evaluate_temporal_closure(
                     && *queue_generation == required_queue_generation
                     && matches!(
                         capsule.source.role,
-                        SourceRole::NetworkMonitor | SourceRole::Endpoint
+                        SourceRole::NetworkMonitor | SourceRole::Endpoint | SourceRole::ModelOracle
                     ) =>
                 {
                     Some(*old_epoch_enqueue_closed)
@@ -1155,6 +1228,7 @@ mod tests {
             benchmark: BENCHMARK_NAME.to_owned(),
             campaign_id: "synthetic-capsule-test".to_owned(),
             claim_ceiling: "Synthetic validator behavior only; no physical evidence.".to_owned(),
+            evidence_domain: None,
             evidence,
             claims: Vec::new(),
         };
