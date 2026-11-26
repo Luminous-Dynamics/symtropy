@@ -103,4 +103,4 @@ The module reports nominal results and robust upper/lower bounds separately. It 
 
 The error radii must be simultaneous deterministic bounds. Standard deviations, typical datasheet curves and finite-scenario variation are not silently converted into hard bounds. The source IDs are identity links, not cryptographic authentication.
 
-The bounded module currently contains eleven authored unit tests, including an exact `asin(r/m)` field-direction control, sensor-frame rotation propagation and cross-candidate uncertainty-record uniqueness. Authored tests are not a test pass; the stacked PR's exact-head checks must establish formatting, Clippy and test results.
+The bounded module currently contains thirteen authored unit tests, including an exact `asin(r/m)` field-direction control, sensor-frame rotation propagation and source decomposition, high-magnitude finite-field stability, invalid sensor-frame bounds and cross-candidate uncertainty-record uniqueness. Authored tests are not a test pass; the stacked PR's exact-head checks must establish formatting, Clippy and test results.
