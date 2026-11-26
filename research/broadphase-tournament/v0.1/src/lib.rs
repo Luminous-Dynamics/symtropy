@@ -728,7 +728,7 @@ mod tests {
             .unwrap()
             .remove(0);
         assert_eq!(
-            row.csv_header().split(',').count(),
+            TournamentRow::csv_header().split(',').count(),
             row.to_csv().split(',').count()
         );
         assert_eq!(row.seed, scene.seed);
