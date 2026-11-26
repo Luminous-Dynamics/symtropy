@@ -1,0 +1,33 @@
+name: Contact Problem Comparability Receipts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/contact-problem-receipts/v0.1/**"
+      - ".github/workflows/contact-problem-receipts.yml"
+  push:
+    branches: [main, "research/contact-problem-receipts-v0.1"]
+    paths:
+      - "research/contact-problem-receipts/v0.1/**"
+      - ".github/workflows/contact-problem-receipts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Rust 1.96 contact receipt checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/contact-problem-receipts/v0.1/Cargo.toml -- --check
+      - name: Run tests
+        run: cargo test --manifest-path research/contact-problem-receipts/v0.1/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/contact-problem-receipts/v0.1/Cargo.toml --locked --all-targets -- -D warnings
