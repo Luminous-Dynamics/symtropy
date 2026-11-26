@@ -712,7 +712,6 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     for observation in &observations {
         let observation_id = field_str(observation, "id").unwrap_or("observation");
         let mut reasons = BTreeSet::new();
-        let acquired_at = field_u64(observation, "acquired_at_unix_ms");
         let acquisition_interval = match hard_time_interval(
             observation,
             "acquired_at_unix_ms",
@@ -1173,21 +1172,172 @@ mod tests {
     }
 
     #[test]
-    fn revocation_after_acquisition_is_preserved_and_blocks_positive_binding() {
+    fn revocation_definitely_after_acquisition_does_not_rewrite_historical_binding() {
         let mut case = fixture();
-        case["evaluated_at_unix_ms"] = Value::from(1_795_516_800_000u64);
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 10_000);
         case["calibration_events"] = serde_json::json!([{
-            "id": "EVENT-REVOKE-1",
+            "id": "EVENT-REVOKE-AFTER",
             "certificate_id": "CAL-A",
             "event_type": "revoked",
-            "effective_at_unix_ms": 1_795_516_200_000u64,
-            "recorded_at_unix_ms": 1_795_516_500_000u64,
+            "effective_at_unix_ms": acquired + 1_000,
+            "recorded_at_unix_ms": acquired + 2_000,
             "retroactive": false
         }]);
         let report = evaluate_binding_case(&case);
+        assert!(!has_blocker(&report, "CALIBRATION_REVOKED_PENDING_DISPOSITION"));
+        assert_eq!(
+            report.measurement_dispositions[0].status,
+            "METROLOGY_BINDING_CONSISTENT_ONLY"
+        );
+    }
+
+    #[test]
+    fn acquisition_hard_bounds_inside_calibration_validity_are_admitted_for_binding() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
+            Value::from(acquired - 50);
+        case["observations"][0]["acquisition_time_latest_unix_ms"] =
+            Value::from(acquired + 50);
+        let report = evaluate_binding_case(&case);
+        assert!(!has_blocker(
+            &report,
+            "CALIBRATION_VALIDITY_BOUNDARY_AMBIGUOUS"
+        ));
+        assert!(!has_blocker(
+            &report,
+            "CALIBRATION_OUTSIDE_VALIDITY_INTERVAL"
+        ));
+        assert_eq!(
+            report.measurement_dispositions[0].status,
+            "METROLOGY_BINDING_CONSISTENT_ONLY"
+        );
+    }
+
+    #[test]
+    fn acquisition_hard_bounds_crossing_calibration_start_abstain() {
+        let mut case = fixture();
+        let start = 1_795_510_800_000u64;
+        case["observations"][0]["acquired_at_unix_ms"] = Value::from(start);
+        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
+            Value::from(start - 1);
+        case["observations"][0]["acquisition_time_latest_unix_ms"] =
+            Value::from(start + 1);
+        let report = evaluate_binding_case(&case);
         assert!(has_blocker(
             &report,
-            "CALIBRATION_REVOKED_AFTER_ACQUISITION_PENDING_DISPOSITION"
+            "CALIBRATION_VALIDITY_BOUNDARY_AMBIGUOUS"
+        ));
+    }
+
+    #[test]
+    fn acquisition_interval_crossing_evaluation_snapshot_abstains() {
+        let mut case = fixture();
+        let evaluated = 1_795_516_800_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(evaluated);
+        case["observations"][0]["acquired_at_unix_ms"] = Value::from(evaluated);
+        case["observations"][0]["acquisition_time_earliest_unix_ms"] =
+            Value::from(evaluated - 1);
+        case["observations"][0]["acquisition_time_latest_unix_ms"] =
+            Value::from(evaluated + 1);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "ACQUISITION_TIME_BOUNDARY_AMBIGUOUS_AT_EVALUATION_SNAPSHOT"
+        ));
+    }
+
+    #[test]
+    fn event_effective_hard_bounds_before_acquisition_apply_revocation() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 10_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-REVOKE-BEFORE",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired - 1_000,
+            "effective_time_earliest_unix_ms": acquired - 1_100,
+            "effective_time_latest_unix_ms": acquired - 900,
+            "recorded_at_unix_ms": acquired + 2_000,
+            "retroactive": false
+        }]);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+        ));
+    }
+
+    #[test]
+    fn event_effective_hard_bounds_overlapping_acquisition_abstain() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 10_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-REVOKE-OVERLAP",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired,
+            "effective_time_earliest_unix_ms": acquired - 10,
+            "effective_time_latest_unix_ms": acquired + 10,
+            "recorded_at_unix_ms": acquired + 2_000,
+            "retroactive": false
+        }]);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_ACQUISITION"
+        ));
+    }
+
+    #[test]
+    fn event_effective_hard_bounds_overlapping_snapshot_abstain() {
+        let mut case = fixture();
+        let evaluated = 1_795_516_800_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(evaluated);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-REVOKE-SNAPSHOT-OVERLAP",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": evaluated,
+            "effective_time_earliest_unix_ms": evaluated - 10,
+            "effective_time_latest_unix_ms": evaluated + 10,
+            "recorded_at_unix_ms": evaluated - 1,
+            "retroactive": false
+        }]);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "CALIBRATION_EVENT_EFFECTIVITY_BOUNDARY_AMBIGUOUS_AT_SNAPSHOT"
+        ));
+    }
+
+    #[test]
+    fn incomplete_or_malformed_time_bounds_fail_closed() {
+        let mut incomplete = fixture();
+        incomplete["observations"][0]["acquisition_time_earliest_unix_ms"] =
+            Value::from(1_795_514_399_999u64);
+        assert!(has_blocker(
+            &evaluate_binding_case(&incomplete),
+            "TIME_BOUNDS_PAIR_INCOMPLETE"
+        ));
+
+        let mut reversed = fixture();
+        reversed["observations"][0]["acquisition_time_earliest_unix_ms"] =
+            Value::from(1_795_514_400_001u64);
+        reversed["observations"][0]["acquisition_time_latest_unix_ms"] =
+            Value::from(1_795_514_400_000u64);
+        assert!(has_blocker(
+            &evaluate_binding_case(&reversed),
+            "TIME_BOUNDS_START_AFTER_END"
+        ));
+
+        let mut outside = fixture();
+        outside["observations"][0]["acquisition_time_earliest_unix_ms"] =
+            Value::from(1_795_514_400_001u64);
+        outside["observations"][0]["acquisition_time_latest_unix_ms"] =
+            Value::from(1_795_514_400_010u64);
+        assert!(has_blocker(
+            &evaluate_binding_case(&outside),
+            "TIME_POINT_OUTSIDE_DECLARED_BOUNDS"
         ));
     }
 
