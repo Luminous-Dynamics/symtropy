@@ -743,7 +743,13 @@ pub fn report_json(report: &CampaignReport) -> String {
 mod tests {
     use super::*;
 
-    fn scenario(id: &'static str, effect: bool, observer: bool, coverage: bool, graph: bool) -> Scenario {
+    fn scenario(
+        id: &'static str,
+        effect: bool,
+        observer: bool,
+        coverage: bool,
+        graph: bool,
+    ) -> Scenario {
         Scenario {
             scenario_id: id,
             seed: 42,
