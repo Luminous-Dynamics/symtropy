@@ -126,10 +126,34 @@ def verify(doc):
     fail(c["lower_bound_verdict"]=="indeterminate_not_guaranteed","invalid final disposition")
     return low,high
 
+def restoration_threshold(scenario):
+    """Enumerate the smallest window-2 pump lower bound that clears both floors."""
+    pump=next(e for e in scenario["edges"] if e["id"]=="pump-physical-t1")
+    start=pump["capacity_lower"]
+    upper=pump["capacity_upper"]
+    for candidate in range(start, upper+1):
+        trial=copy.deepcopy(scenario)
+        gate=next(e for e in trial["edges"] if e["id"]=="pump-physical-t1")
+        gate["capacity_lower"]=candidate
+        flow,reachable,cut,cutcap,witness=solve(trial,"capacity_lower")
+        if flow >= sum(o["required_lower"] for o in trial["service_obligations"]):
+            return candidate,flow,cutcap,witness
+    return None
+
 def main():
     path=Path(sys.argv[1]) if len(sys.argv)>1 else Path(__file__).with_name("SAFRB_TWO_WINDOW_SHARED_PUMP_V0_1.json")
     doc=json.loads(path.read_text(encoding="utf-8"))
     low,high=verify(doc)
+    threshold=restoration_threshold(doc["scenario"])
+    require(threshold is not None,"no capacity-restoration threshold found in declared upper bound")
+    threshold_capacity,threshold_flow,threshold_cut,threshold_witness=threshold
+    require(threshold_capacity==6,"unexpected minimum qualified lower-bound pump capacity for window 2")
+    require(threshold_flow==threshold_cut==12,"restoration threshold lacks max-flow/min-cut equality")
+    require(threshold_witness["service-obligation-t1"]==6 and threshold_witness["service-obligation-t2"]==6,"restoration threshold does not meet each separate service window")
+    one_below=copy.deepcopy(doc["scenario"])
+    next(e for e in one_below["edges"] if e["id"]=="pump-physical-t1")["capacity_lower"]=threshold_capacity-1
+    below_flow=solve(one_below,"capacity_lower")[0]
+    require(below_flow==11,"one-tonne-below restoration control should leave a one-tonne service deficit")
     attacks=[]
     # Duplicate the one physical gate under a second edge ID.
     a=copy.deepcopy(doc); edge=copy.deepcopy(next(e for e in a["scenario"]["edges"] if e["id"]=="pump-physical-t0")); edge["id"]="pump-physical-t0-duplicate"; a["scenario"]["edges"].append(edge); a["certificate"]["scenario_sha256"]=hashlib.sha256(canonical(a["scenario"])).hexdigest(); attacks.append(a)
@@ -148,7 +172,7 @@ def main():
         try: verify(attack)
         except (AssertionError,KeyError,ValueError): rejected+=1
     fail(rejected==len(attacks),"a hostile mutation escaped independent verifier")
-    print(f"PASS: lower flow/cut={low[0]}/{low[3]} t; upper flow/cut={high[0]}/{high[3]} t; window deliveries=6 t, 3 t; shortfall=3 t; hostile mutations rejected={rejected}")
+    print(f"PASS: lower flow/cut={low[0]}/{low[3]} t; upper flow/cut={high[0]}/{high[3]} t; window deliveries=6 t, 3 t; shortfall=3 t; minimum window-2 pump lower-bound uplift=+{threshold_capacity-3} t to {threshold_capacity} t; one-below control flow={below_flow} t; hostile mutations rejected={rejected}")
 
 if __name__=="__main__":
     main()
