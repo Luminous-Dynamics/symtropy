@@ -148,25 +148,9 @@ def main() -> int:
         )
 
     print(f"INDEPENDENT_REFERENCE\tPASS\t{len(actual_rows)}/{len(expected_rows)}")
+    if args.temporal_receipt is not None:
+        verify_temporal_reference(args.temporal_receipt, args.temporal_fixture)
     return 0
-
-
-def temporal_reference(fields: list[str]) -> tuple[str, str, str]:
-    (
-        _case_id, physical_at, decision_at, audit_at, expected_subject,
-        _source_id, _event_id, _subject_id, _source_revision, _payload_digest,
-        _dependency_cluster, _valid_from, _valid_until, _published_at,
-        _retrieved_at, _rights_clear, _rights_valid_from, _rights_valid_until,
-        _adjudications, expected_selected, expected_audit, expected_error,
-    ) = fields
-    physical_i = int(physical_at)
-    decision_i = int(decision_at)
-    audit_i = int(audit_at)
-    grouped: dict[str, list[dict[str, object]]] = {}
-
-    # All records for a case are supplied to the function via a module-local
-    # active group to keep this reference independent from Rust data types.
-    raise RuntimeError("temporal_reference must be called through temporal_group_reference")
 
 
 def parse_adjudications(value: str) -> list[tuple[int, int, str]]:
