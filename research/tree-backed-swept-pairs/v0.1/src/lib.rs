@@ -50,7 +50,6 @@ impl IdentityKey {
             subshape_path: self.subshape_path.clone(),
         }
     }
-
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
