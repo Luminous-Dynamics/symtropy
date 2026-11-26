@@ -19,6 +19,7 @@ pub struct SearchPolicy {
     pub maximum_nodes: usize,
     pub maximum_depth: u32,
     pub minimum_design_widths: Vec<f64>,
+    pub compliance_expression_id: String,
     pub absolute_optimality_gap: f64,
     pub relative_optimality_gap: f64,
     /// Objective and margin scales make derivative contributions dimensionless.
@@ -76,6 +77,7 @@ pub struct FeasibleIncumbent {
 pub struct CertifiedSearchReport<const N: usize> {
     pub expression_id: String,
     pub objective_id: String,
+    pub compliance_expression_id: String,
     pub compliance_requirement_id: String,
     pub design_dimension: usize,
     pub total_parameter_ids: [String; N],
@@ -149,6 +151,7 @@ fn validate_policy(
     design_dimension: usize,
 ) -> Result<(), SearchError> {
     if policy.maximum_nodes == 0
+        || !nonempty(&policy.compliance_expression_id)
         || policy.minimum_design_widths.len() != design_dimension
         || policy
             .minimum_design_widths
@@ -160,6 +163,7 @@ fn validate_policy(
         || policy.relative_optimality_gap < 0.0
         || (policy.absolute_optimality_gap == 0.0
             && policy.relative_optimality_gap == 0.0)
+        || !(policy.absolute_optimality_gap + policy.relative_optimality_gap).is_finite()
         || !policy.objective_sensitivity_scale.is_finite()
         || policy.objective_sensitivity_scale <= 0.0
         || !policy.margin_sensitivity_scale.is_finite()
@@ -217,6 +221,7 @@ fn candidate_incumbent<const N: usize, O, G>(
     design_dimension: usize,
     objective: &O,
     compliance_margin: &G,
+    compliance_expression_id: &str,
 ) -> Result<Option<FeasibleIncumbent>, SearchError>
 where
     O: Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
@@ -227,13 +232,26 @@ where
     };
     let objective_domain =
         point_node_domain(root, node, design_dimension, &point, "incumbent-objective")?;
-    let margin_domain =
+    let mut margin_domain =
         point_node_domain(root, node, design_dimension, &point, "incumbent-margin")?;
-    let margin = certify_expression(&margin_domain, compliance_margin)?;
+    margin_domain.expression_id = compliance_expression_id.to_owned();
+    let margin = match certify_expression(&margin_domain, compliance_margin) {
+        Ok(result) => result,
+        Err(error) if is_recoverable_interval_error(&SearchError::IntervalAd(error)) => {
+            return Ok(None);
+        }
+        Err(error) => return Err(SearchError::IntervalAd(error)),
+    };
     if margin.value_enclosure.lower() < 0.0 {
         return Ok(None);
     }
-    let objective_record = certify_expression(&objective_domain, objective)?;
+    let objective_record = match certify_expression(&objective_domain, objective) {
+        Ok(result) => result,
+        Err(error) if is_recoverable_interval_error(&SearchError::IntervalAd(error)) => {
+            return Ok(None);
+        }
+        Err(error) => return Err(SearchError::IntervalAd(error)),
+    };
 
     Ok(Some(FeasibleIncumbent {
         node_id: node.node_id.clone(),
@@ -262,17 +280,19 @@ fn objective_lower_bound<const N: usize>(
     objective: &impl Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
 ) -> Result<ValidatedDerivativeEnclosure<N>, SearchError> {
     let domain = node_domain(root, node, design_dimension, "objective");
-    Ok(certify_expression(&domain, objective)?)
+    certify_expression(&domain, objective).map_err(SearchError::from)
 }
 
 fn margin_enclosure<const N: usize>(
     root: &ParameterDomain<N>,
     node: &WorkNode,
     design_dimension: usize,
+    compliance_expression_id: &str,
     margin: &impl Fn([IntervalDual<N>; N]) -> Result<IntervalDual<N>, IntervalAdError>,
 ) -> Result<ValidatedDerivativeEnclosure<N>, SearchError> {
-    let domain = node_domain(root, node, design_dimension, "compliance-margin");
-    Ok(certify_expression(&domain, margin)?)
+    let mut domain = node_domain(root, node, design_dimension, "compliance-margin");
+    domain.expression_id = compliance_expression_id.to_owned();
+    certify_expression(&domain, margin).map_err(SearchError::from)
 }
 
 fn validate_root<const N: usize>(
@@ -354,7 +374,13 @@ where
         explored_node_count += 1;
         let objective_result =
             objective_lower_bound(root, &node, design_dimension, &objective);
-        let margin_result = margin_enclosure(root, &node, design_dimension, &compliance_margin);
+        let margin_result = margin_enclosure(
+            root,
+            &node,
+            design_dimension,
+            &policy.compliance_expression_id,
+            &compliance_margin,
+        );
 
         let recoverable_error = objective_result
             .as_ref()
@@ -498,6 +524,7 @@ where
             design_dimension,
             &objective,
             &compliance_margin,
+            &policy.compliance_expression_id,
         )? {
             if incumbent.as_ref().is_none_or(|existing| {
                 candidate.worst_case_objective_upper_bound
@@ -695,6 +722,7 @@ where
     Ok(CertifiedSearchReport {
         expression_id: root.expression_id.clone(),
         objective_id: root.expression_id.clone(),
+        compliance_expression_id: policy.compliance_expression_id.clone(),
         compliance_requirement_id: root.requirement_id.clone(),
         design_dimension,
         total_parameter_ids: root.parameter_ids.clone(),
@@ -756,6 +784,7 @@ mod tests {
             maximum_nodes: 256,
             maximum_depth: 20,
             minimum_design_widths: vec![1.0e-3],
+            compliance_expression_id: "robust-margin-expression-v1".to_owned(),
             absolute_optimality_gap: gap,
             relative_optimality_gap: 0.0,
             objective_sensitivity_scale: 1.0,
