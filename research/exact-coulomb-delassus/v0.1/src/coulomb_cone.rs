@@ -550,9 +550,9 @@ mod tests {
             Some(CoulombConeError::NonFiniteInput)
         );
         assert_eq!(
-            CoulombCone::new(f64::MAX)
+            CoulombCone::new(1.0)
                 .unwrap()
-                .project(impulse(f64::MAX, [f64::MAX, 0.0]))
+                .project(impulse(0.0, [f64::MAX, f64::MAX]))
                 .err(),
             Some(CoulombConeError::NonFiniteResult)
         );
