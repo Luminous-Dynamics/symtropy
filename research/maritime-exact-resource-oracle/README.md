@@ -117,3 +117,22 @@ Public context:
 - Business Day, 25 November 2026: https://www.businessday.co.za/economy/2026-11-25-durban-port-backlog-to-last-into-january-transnet-says/
 
 The additional Rust-only regressions now cover sea–rail tracks, tide/mooring/bridge coupling and this DGT direct-vs-diversion structure. The separately compared receipt fixture remains the 4-feasible / 3-Pareto two-vessel port case; the added topology tests do not yet have independent TSV reference receipts.
+
+
+## Independently reproduced DGT recovery case
+
+The DGT direct-discharge vs Ngqura-feeder case has been promoted from a Rust-only regression into its own frozen TSV scenario and deterministic executable. The receipt is checked by a separate standard-library Python Cartesian enumerator.
+
+The expected synthetic result is:
+- exactly two feasible combinations: one vessel uses direct geared discharge at DGT Berth 102, the other diverts via Ngqura and feeder transfer; or the reverse;
+- both alternatives remain on the Pareto frontier because the fixture gives them equal aggregate objective vectors;
+- both Pier 2 candidates are excluded by zero-capacity availability;
+- attempting to use both direct berth slots, both Ngqura/feeder slots or a shared constrained rail slot exceeds declared capacity.
+
+This scenario is a discrete test of the route/resource logic inspired by public DGT recovery interventions. It is not reconstructed from Transnet vessel/cargo records and it does not measure actual berth 102, NCT, feeder or rail availability.
+
+The dedicated workflow now emits and checks two receipts:
+1. the primary micro-port receipt (4 feasible, 3 Pareto);
+2. the DGT recovery receipt (2 feasible, 2 Pareto).
+
+The DGT run is independently reproduced from `fixtures/dgt-recovery.tsv` by `scripts/dgt_reference.py`. Both receipts are uploaded as workflow artifacts. The new DGT fixture must pass its own exact-head run before this extension is considered qualified.
