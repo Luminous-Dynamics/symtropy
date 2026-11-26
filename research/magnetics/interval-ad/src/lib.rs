@@ -769,7 +769,7 @@ pub fn map_spatial_derivative_suprema<const N: usize>(
 ) -> Result<SpatialDerivativeSupremumEvidence, SpatialMappingError> {
     if expected_cell_id.trim().is_empty()
         || expected_requirement_id.trim().is_empty()
-        || length_unit.trim().is_empty()
+        || length_unit != "metre"
         || record.output_unit.trim().is_empty()
     {
         return Err(SpatialMappingError::InvalidExpectedIdentity);
@@ -989,6 +989,24 @@ mod tests {
             )
             .expect_err("duplicate axis identity"),
             SpatialMappingError::DuplicateSpatialAxisId
+        );
+    }
+
+    #[test]
+    fn spatial_handoff_rejects_non_metre_target_units() {
+        let scope = spatial_domain();
+        let enclosure = certify_expression_centered(&scope, spatial_expression)
+            .expect("valid spatial functional expression");
+        assert_eq!(
+            map_spatial_derivative_suprema(
+                &enclosure,
+                "spatial-cell-xyz",
+                "minimum-phase-margin",
+                ["x", "y", "z"],
+                "millimetre",
+            )
+            .expect_err("the spatial certifier's axis bounds are metres"),
+            SpatialMappingError::InvalidExpectedIdentity
         );
     }
 
