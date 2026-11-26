@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/paired-inference-manifest-v0.1.schema.json",
+  "title": "RRVR Paired Inference Manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark", "analysis_id", "preregistration", "scheduled_pair_ids", "excluded_pair_ids", "pairs"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "benchmark": { "const": "RRVR-PAIRED-INFERENCE" },
+    "analysis_id": { "type": "string", "minLength": 1 },
+    "preregistration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control_arm_id", "treatment_arm_id", "control_implementation_sha256", "treatment_implementation_sha256", "cluster_unit_id", "cluster_unit_profile_sha256", "bootstrap_draws", "bootstrap_seed", "alpha", "endpoint_specs"],
+      "properties": {
+        "control_arm_id": { "type": "string", "minLength": 1 },
+        "treatment_arm_id": { "type": "string", "minLength": 1 },
+        "control_implementation_sha256": { "$ref": "#/$defs/sha256" },
+        "treatment_implementation_sha256": { "$ref": "#/$defs/sha256" },
+        "cluster_unit_id": { "type": "string", "minLength": 1 },
+        "cluster_unit_profile_sha256": { "$ref": "#/$defs/sha256" },
+        "bootstrap_draws": { "type": "integer", "minimum": 1000, "maximum": 100000 },
+        "bootstrap_seed": { "type": "integer", "minimum": 0 },
+        "alpha": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 0.5 },
+        "endpoint_specs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["endpoint_id", "direction", "description"],
+            "properties": {
+              "endpoint_id": { "type": "string", "minLength": 1 },
+              "direction": { "enum": ["minimize_event", "maximize_success"] },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "scheduled_pair_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "excluded_pair_ids": { "type": "array", "maxItems": 0 },
+    "pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pair_id", "control_attempt_id", "treatment_attempt_id", "cluster_id", "control_cluster_id", "treatment_cluster_id", "frozen_input_sha256", "outcomes"],
+        "properties": {
+          "pair_id": { "type": "string", "minLength": 1 },
+          "control_attempt_id": { "type": "string", "minLength": 1 },
+          "treatment_attempt_id": { "type": "string", "minLength": 1 },
+          "cluster_id": { "type": "string", "minLength": 1 },
+          "control_cluster_id": { "type": "string", "minLength": 1 },
+          "treatment_cluster_id": { "type": "string", "minLength": 1 },
+          "frozen_input_sha256": { "$ref": "#/$defs/sha256" },
+          "outcomes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["endpoint_id", "control", "treatment"],
+              "properties": {
+                "endpoint_id": { "type": "string", "minLength": 1 },
+                "control": { "enum": ["event", "no_event", "unknown", "disputed"] },
+                "treatment": { "enum": ["event", "no_event", "unknown", "disputed"] }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}
