@@ -248,9 +248,8 @@ pub fn generate_scene<const D: usize>(
                     for _ in 0..axis {
                         divisor = divisor.saturating_mul(4);
                     }
-                    ((slot / divisor) % 4) as f64 * 0.85
-                        + next_between(&mut state, -0.01, 0.01)
-                },
+                    ((slot / divisor) % 4) as f64 * 0.85 + next_between(&mut state, -0.01, 0.01)
+                }
             };
 
             extent[axis] = match family {
@@ -296,7 +295,7 @@ pub fn generate_scene<const D: usize>(
                     } else {
                         0.0
                     }
-                },
+                }
             };
         }
 
@@ -348,9 +347,7 @@ pub fn generate_scene<const D: usize>(
     })
 }
 
-fn validate_proxy_sequence<const D: usize>(
-    frame: &[ProxyFrame<D>],
-) -> Result<(), TournamentError> {
+fn validate_proxy_sequence<const D: usize>(frame: &[ProxyFrame<D>]) -> Result<(), TournamentError> {
     let mut previous = None;
     for proxy in frame {
         if !proxy.bounds.is_valid() {
@@ -547,10 +544,7 @@ impl<const D: usize> PairDeltaCache<D> {
     }
 
     /// Safe default: detect changed identities from the complete snapshots.
-    pub fn step(
-        &mut self,
-        frame: &[ProxyFrame<D>],
-    ) -> Result<PairDeltaFrame, TournamentError> {
+    pub fn step(&mut self, frame: &[ProxyFrame<D>]) -> Result<PairDeltaFrame, TournamentError> {
         let dirty_ids = self.derive_dirty_proxy_ids(frame)?;
         self.apply_dirty_ids(frame, &dirty_ids, true)
     }
@@ -691,8 +685,7 @@ impl<const D: usize> PairDeltaCache<D> {
         for dirty_id in &dirty {
             match frame.binary_search_by_key(dirty_id, |proxy| proxy.id) {
                 Ok(index) => {
-                    self.previous_bounds
-                        .insert(*dirty_id, frame[index].bounds);
+                    self.previous_bounds.insert(*dirty_id, frame[index].bounds);
                 }
                 Err(_) => {
                     self.previous_bounds.remove(dirty_id);
@@ -814,8 +807,7 @@ fn morton_encode<const D: usize>(
     let mut code = 0_u64;
     for bit in 0..bits {
         for axis in 0..D {
-            let quantized =
-                morton_quantize(position[axis], world_min[axis], world_max[axis], bits);
+            let quantized = morton_quantize(position[axis], world_min[axis], world_max[axis], bits);
             code |= (u64::from((quantized >> bit) & 1)) << (bit * D + axis);
         }
     }
@@ -832,9 +824,7 @@ fn morton_find_split(codes: &[u64], first: usize, last: usize) -> usize {
     loop {
         step = step.div_ceil(2);
         let next_split = split + step;
-        if next_split < last
-            && (codes[first] ^ codes[next_split]).leading_zeros() > common_prefix
-        {
+        if next_split < last && (codes[first] ^ codes[next_split]).leading_zeros() > common_prefix {
             split = next_split;
         }
         if step <= 1 {
@@ -983,8 +973,7 @@ fn symtropy_morton_lbvh_aabb<const D: usize>(
                         let left = frame[sorted_indices[leaf_index]].id;
                         let right = frame[sorted_indices[other_index]].id;
                         pairs.push(
-                            ProxyPair::new(left, right)
-                                .expect("validated frame IDs are distinct"),
+                            ProxyPair::new(left, right).expect("validated frame IDs are distinct"),
                         );
                     }
                 }
@@ -1100,8 +1089,8 @@ fn run_backend<const D: usize>(
             | BackendKind::PairDeltaCache
             | BackendKind::MortonLbvhAabbAdapter => None,
         };
-        let mut pair_cache = (backend == BackendKind::PairDeltaCache)
-            .then(PairDeltaCache::<D>::new);
+        let mut pair_cache =
+            (backend == BackendKind::PairDeltaCache).then(PairDeltaCache::<D>::new);
         let mut previous_bounds = BTreeMap::<ProxyId, Aabb<D>>::new();
         let mut previous_maintenance = MaintenanceStats::default();
 
@@ -1245,8 +1234,7 @@ fn run_backend<const D: usize>(
                                 .map_err(|_| TournamentError::CounterOverflow)?,
                         )
                         .ok_or(TournamentError::CounterOverflow)?;
-                    counters.max_tree_nodes =
-                        counters.max_tree_nodes.max(work.internal_nodes);
+                    counters.max_tree_nodes = counters.max_tree_nodes.max(work.internal_nodes);
                 }
             }
 
@@ -1256,10 +1244,7 @@ fn run_backend<const D: usize>(
             // Pair-cache materialization and independent checks are outside
             // its timed pair-delta update interval.
             if let Some(delta) = pair_delta {
-                checked_add(
-                    &mut counters.pair_cache_dirty_proxies,
-                    delta.dirty_proxies,
-                )?;
+                checked_add(&mut counters.pair_cache_dirty_proxies, delta.dirty_proxies)?;
                 counters.pair_cache_overlap_tests = counters
                     .pair_cache_overlap_tests
                     .checked_add(delta.overlap_tests)
@@ -1452,7 +1437,11 @@ mod tests {
             assert_eq!(row.false_positives, 0, "{family:?} backend {}", row.backend);
             assert_eq!(row.false_negatives, 0, "{family:?} backend {}", row.backend);
             assert_eq!(row.mismatch_frames, 0, "{family:?} backend {}", row.backend);
-            assert_eq!(row.event_mismatch_frames, 0, "{family:?} backend {}", row.backend);
+            assert_eq!(
+                row.event_mismatch_frames, 0,
+                "{family:?} backend {}",
+                row.backend
+            );
             assert_eq!(row.oracle_pairs, row.candidate_pairs);
             assert!(row.frame_samples > 0);
         }
@@ -1599,9 +1588,7 @@ mod tests {
         let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
         assert_eq!(dirty, vec![ProxyId(1), ProxyId(3)]);
         assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
-        assert!(!cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(1)])
-            .unwrap());
+        assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
 
         assert_eq!(
             cache.step_with_dirty_ids(&next, &[ProxyId(3), ProxyId(1)]),
@@ -1663,12 +1650,18 @@ mod tests {
                 oracle[frame_index].difference(&previous).copied().collect();
             let expected_removed: BTreeSet<_> =
                 previous.difference(&oracle[frame_index]).copied().collect();
-            assert_eq!(delta.added.iter().copied().collect::<BTreeSet<_>>(), expected_added);
+            assert_eq!(
+                delta.added.iter().copied().collect::<BTreeSet<_>>(),
+                expected_added
+            );
             assert_eq!(
                 delta.removed.iter().copied().collect::<BTreeSet<_>>(),
                 expected_removed
             );
-            assert_eq!(cache.active_pairs().into_iter().collect::<BTreeSet<_>>(), oracle[frame_index]);
+            assert_eq!(
+                cache.active_pairs().into_iter().collect::<BTreeSet<_>>(),
+                oracle[frame_index]
+            );
             if frame_index > 0 {
                 assert!(delta.dirty_proxies <= 2);
                 assert!(delta.overlap_tests <= 2 * 128);
