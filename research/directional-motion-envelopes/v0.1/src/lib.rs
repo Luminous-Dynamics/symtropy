@@ -68,7 +68,7 @@ pub struct Aabb<const D: usize> {
 }
 
 impl<const D: usize> Aabb<D> {
-    pub fn new(min: [f64; D], max: [f64; D>) -> Result<Self, EnvelopeError> {
+    pub fn new(min: [f64; D], max: [f64; D]) -> Result<Self, EnvelopeError> {
         let value = Self { min, max };
         if D == 0 || !value.is_valid() {
             return Err(EnvelopeError::InvalidBounds);
