@@ -9,8 +9,6 @@
 use std::error::Error;
 use std::fmt;
 
-const DEFAULT_TOLERANCE: f64 = 1.0e-9;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ContactImpulse3 {
     pub normal: f64,
@@ -364,6 +362,8 @@ fn finite_velocity(value: ContactVelocity3) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const DEFAULT_TOLERANCE: f64 = 1.0e-9;
 
     fn impulse(normal: f64, tangent: [f64; 2]) -> ContactImpulse3 {
         ContactImpulse3 { normal, tangent }
