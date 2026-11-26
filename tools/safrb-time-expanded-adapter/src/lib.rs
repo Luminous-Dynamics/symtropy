@@ -190,13 +190,16 @@ fn path_exists_without_gates(
 ) -> bool {
     let mut seen = BTreeSet::new();
     let mut queue = vec![start.to_owned()];
+    let mut cursor = 0_usize;
     seen.insert(start.to_owned());
-    for node_id in queue.iter() {
+    while cursor < queue.len() {
+        let node_id = queue[cursor].clone();
+        cursor += 1;
         if node_id == target {
             return true;
         }
         for edge in parsed_edges.iter().filter(|edge| {
-            edge.from == *node_id
+            edge.from == node_id
                 && edge.upper > 0
                 && !gate_ids.contains(&edge.id)
         }) {
