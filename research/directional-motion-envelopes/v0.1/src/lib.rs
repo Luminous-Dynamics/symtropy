@@ -138,6 +138,7 @@ pub enum MotionKind {
 pub enum EnvelopeStatus {
     CertifiedFixedOrientationTranslation,
     UnsupportedRotation,
+    UnsupportedIntegratorState,
     UnboundedMotion,
 }
 
@@ -296,8 +297,15 @@ pub const Q16_16_HALF_STEP: f64 = 1.0 / 131_072.0;
 /// caller. The position update itself used the pre-quantized velocity, so the
 /// deterministic-net guard accounts for half a velocity quantum multiplied
 /// by dt as well as half a position quantum.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IntegrationParticipation {
+    AwakeDynamicBodyIntegrated,
+    SleepingOrNonDynamicBodySkipped,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct SemiImplicitEulerMotion<const D: usize> {
+    pub participation: IntegrationParticipation,
     pub post_linear_velocity: [f64; D],
     pub post_angular_velocity_norm_squared: f64,
     pub dt: f64,
@@ -334,6 +342,13 @@ pub fn build_semi_implicit_euler_envelope<const D: usize>(
 ) -> Result<IntegratorEnvelopeResult<D>, EnvelopeError> {
     identity.validate()?;
     context.validate()?;
+    if motion.participation == IntegrationParticipation::SleepingOrNonDynamicBodySkipped {
+        return Ok(IntegratorEnvelopeResult {
+            status: EnvelopeStatus::UnsupportedIntegratorState,
+            envelope: None,
+            receipt: None,
+        });
+    }
     if !tight_bounds.is_valid() {
         return Err(EnvelopeError::InvalidBounds);
     }
@@ -762,6 +777,7 @@ mod tests {
     fn semi_implicit_producer_sweeps_using_post_integrator_velocity() {
         let tight = Aabb::new([1.0, 2.0], [3.0, 4.0]).unwrap();
         let motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::AwakeDynamicBodyIntegrated,
             post_linear_velocity: [4.0, -2.0],
             post_angular_velocity_norm_squared: 0.0,
             dt: 0.25,
@@ -783,6 +799,7 @@ mod tests {
     fn deterministic_net_guard_covers_position_and_velocity_quantization() {
         let tight = Aabb::new([0.0, 0.0], [1.0, 1.0]).unwrap();
         let motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::AwakeDynamicBodyIntegrated,
             post_linear_velocity: [10.0, 0.0],
             post_angular_velocity_norm_squared: 0.0,
             dt: 0.5,
@@ -799,6 +816,7 @@ mod tests {
     #[test]
     fn post_integrator_rotation_forces_unsupported_fallback() {
         let motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::AwakeDynamicBodyIntegrated,
             post_linear_velocity: [1.0, 0.0],
             post_angular_velocity_norm_squared: SEMI_IMPLICIT_ROTATION_THRESHOLD_SQUARED * 2.0,
             dt: 0.1,
@@ -814,6 +832,7 @@ mod tests {
     #[test]
     fn semi_implicit_receipt_replay_binds_velocity_dt_and_quantization() {
         let motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::AwakeDynamicBodyIntegrated,
             post_linear_velocity: [1.5, -0.25],
             post_angular_velocity_norm_squared: 0.0,
             dt: 0.01,
@@ -853,8 +872,31 @@ mod tests {
     }
 
     #[test]
+    fn sleeping_or_nondynamic_integrator_paths_emit_no_translation_certificate() {
+        let motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::SleepingOrNonDynamicBodySkipped,
+            post_linear_velocity: [0.0, 0.0],
+            post_angular_velocity_norm_squared: 0.0,
+            dt: 0.1,
+            deterministic_net_q16_16: false,
+        };
+        let result = build_semi_implicit_euler_envelope(
+            identity(),
+            context(),
+            box2(),
+            motion,
+            0.0,
+        )
+        .unwrap();
+        assert_eq!(result.status, EnvelopeStatus::UnsupportedIntegratorState);
+        assert!(result.envelope.is_none());
+        assert!(result.receipt.is_none());
+    }
+
+    #[test]
     fn semi_implicit_invalid_timestep_angular_state_and_velocity_fail_closed() {
         let mut motion = SemiImplicitEulerMotion {
+            participation: IntegrationParticipation::AwakeDynamicBodyIntegrated,
             post_linear_velocity: [1.0, 0.0],
             post_angular_velocity_norm_squared: 0.0,
             dt: 0.0,
