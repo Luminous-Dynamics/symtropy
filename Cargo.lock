@@ -8571,6 +8571,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "safrb-time-expanded-adapter"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+ "single-commodity-flow-kernel",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
