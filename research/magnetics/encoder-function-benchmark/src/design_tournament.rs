@@ -523,24 +523,39 @@ mod tests {
         );
     }
 
-
     #[test]
     fn every_candidate_uses_the_same_ordered_operating_condition_set() {
-        let mut changed_condition =
-            candidate("changed-condition", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut changed_condition = candidate(
+            "changed-condition",
+            1.0,
+            0.01,
+            EvidenceKind::SyntheticScenario,
+        );
         changed_condition.scenarios[1].operating_condition_id = "easy-only".to_owned();
         assert_eq!(
-            rank_magnetic_designs("tournament-condition-set", &[changed_condition], &requirements())
-                .expect_err("condition set must be matched"),
+            rank_magnetic_designs(
+                "tournament-condition-set",
+                &[changed_condition],
+                &requirements()
+            )
+            .expect_err("condition set must be matched"),
             DesignTournamentError::OperatingConditionSetMismatch
         );
 
-        let mut missing_condition =
-            candidate("missing-condition", 1.0, 0.01, EvidenceKind::SyntheticScenario);
+        let mut missing_condition = candidate(
+            "missing-condition",
+            1.0,
+            0.01,
+            EvidenceKind::SyntheticScenario,
+        );
         missing_condition.scenarios.pop();
         assert_eq!(
-            rank_magnetic_designs("tournament-condition-count", &[missing_condition], &requirements())
-                .expect_err("missing operating corner must fail"),
+            rank_magnetic_designs(
+                "tournament-condition-count",
+                &[missing_condition],
+                &requirements()
+            )
+            .expect_err("missing operating corner must fail"),
             DesignTournamentError::OperatingConditionSetMismatch
         );
     }
