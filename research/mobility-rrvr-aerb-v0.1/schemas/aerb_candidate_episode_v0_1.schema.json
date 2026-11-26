@@ -131,7 +131,10 @@
         "endpoint_id",
         "endpoint_profile_sha256",
         "authority_epoch",
-        "queue_generation"
+        "queue_generation",
+        "execution_scope_id",
+        "system_boundary_manifest_sha256",
+        "effect_producing_inventory_profile_sha256"
       ],
       "properties": {
         "command_id": {
@@ -162,6 +165,16 @@
         "queue_generation": {
           "type": "integer",
           "minimum": 0
+        },
+        "execution_scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "system_boundary_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "effect_producing_inventory_profile_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
@@ -196,7 +209,8 @@
             "model_oracle",
             "operator",
             "coordinator_log",
-            "command_holder_inventory"
+            "command_holder_inventory",
+            "independent_inventory_adjudicator"
           ]
         },
         "quality": {
