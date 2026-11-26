@@ -897,13 +897,8 @@ mod tests {
             config("duplicate-id", 0.30, -0.30),
         ];
         assert_eq!(
-            synthesize_robust_configurations(
-                "set-006",
-                &[input],
-                &duplicates,
-                requirements(),
-            )
-            .expect_err("duplicate IDs are invalid"),
+            synthesize_robust_configurations("set-006", &[input], &duplicates, requirements(),)
+                .expect_err("duplicate IDs are invalid"),
             SynthesisError::DuplicateCandidateId
         );
     }
