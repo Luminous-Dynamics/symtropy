@@ -1345,8 +1345,7 @@ mod tests {
     fn invalid_axis_and_threshold_parameter_bounds_are_rejected() {
         let input = scenario("trace-invalid-parameter", "nominal", 0.01);
         let mut invalid_axis = parameter_candidate("candidate-invalid-axis", 0.0, 0.0, 0.0);
-        invalid_axis.parameter_bounds.channel_b_axis_angle_bound_rad =
-            std::f64::consts::PI + 0.01;
+        invalid_axis.parameter_bounds.channel_b_axis_angle_bound_rad = std::f64::consts::PI + 0.01;
         assert_eq!(
             synthesize_with_sensor_parameter_bounds(
                 "set-invalid-axis",
