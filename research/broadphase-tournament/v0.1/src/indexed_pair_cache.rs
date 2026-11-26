@@ -460,9 +460,14 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             .and_then(|count| count.checked_add(added.len()))
             .ok_or(TournamentError::CounterOverflow)?;
 
-        // Preflight every index operation before mutation. The old-bounds
-        // map is the cache's expected leaf-membership ledger; reject divergence
-        // before any tree or adjacency state is changed. Also validate every
+        // The old-bounds map is the cache's expected leaf-membership
+        // ledger. Check the global count as well as dirty leaves, so a stale
+        // non-dirty tree leaf cannot silently survive a commit.
+        if self.tree.len() != self.previous_bounds.len() {
+            return Err(TournamentError::PairCacheInvariant);
+        }
+
+        // Preflight every index operation before mutation. Also validate every
         // new fat AABB so user-data errors cannot arise halfway through commit.
         for dirty_id in &dirty {
             let existed_before = self.previous_bounds.contains_key(dirty_id);
