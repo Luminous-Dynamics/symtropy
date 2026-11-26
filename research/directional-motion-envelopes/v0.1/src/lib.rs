@@ -257,8 +257,8 @@ pub fn build_envelope<const D: usize>(
 
         let swept_min = (*tight_min).min(translated_min);
         let swept_max = (*tight_max).max(translated_max);
-        *out_min = outward_min(checked_sub(*swept_min, guard)?)?;
-        *out_max = outward_max(checked_add(*swept_max, guard)?)?;
+        *out_min = outward_min(checked_sub(swept_min, guard)?)?;
+        *out_max = outward_max(checked_add(swept_max, guard)?)?;
     }
 
     let envelope = Aabb::new(min, max)?;
