@@ -336,8 +336,14 @@ mod tests {
             let power_relative_error =
                 (result.kinetic_power_w - newtonian_power).abs() / newtonian_power;
 
-            assert!(thrust_relative_error < 1.0e-8, "beta={beta}, error={thrust_relative_error}");
-            assert!(power_relative_error < 1.0e-7, "beta={beta}, error={power_relative_error}");
+            assert!(
+                thrust_relative_error < 1.0e-8,
+                "beta={beta}, error={thrust_relative_error}"
+            );
+            assert!(
+                power_relative_error < 1.0e-7,
+                "beta={beta}, error={power_relative_error}"
+            );
         }
     }
 
@@ -364,12 +370,12 @@ mod tests {
             .unwrap();
 
         close(recovered.energy_j(), particle.energy_j(), 1e-6);
-        for axis in 0..3 {
-            close(
-                recovered.momentum_kg_m_s()[axis],
-                particle.momentum_kg_m_s()[axis],
-                1e-7,
-            );
+        for (actual, expected) in recovered
+            .momentum_kg_m_s()
+            .into_iter()
+            .zip(particle.momentum_kg_m_s())
+        {
+            close(actual, expected, 1e-7);
         }
     }
 
