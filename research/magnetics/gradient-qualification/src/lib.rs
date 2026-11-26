@@ -356,13 +356,20 @@ fn validate_trial(
     policy: GradientQualificationPolicy,
 ) -> Result<Vec<f64>, QualificationError> {
     if !nonempty(&trial.trial_id)
+        || !nonempty(&trial.base_observation_id)
         || !nonempty(&trial.forward_value_evaluator_id)
         || !nonempty(&trial.forward_value_record_id)
     {
         return Err(QualificationError::InvalidTrialIdentity);
     }
     validate_digest(&trial.input_sha256, "trial.input_sha256")?;
+    validate_digest(&trial.direction_sha256, "trial.direction_sha256")?;
     validate_reference(kernel, &trial.reference)?;
+    validate_reference_binding(
+        &trial.reference,
+        &trial.input_sha256,
+        &trial.direction_sha256,
+    )?;
 
     if trial.direction.len() != kernel.parameter_dimension {
         return Err(QualificationError::DirectionDimensionMismatch);
@@ -389,6 +396,14 @@ fn validate_trial(
     }
 
     let mut estimates = Vec::with_capacity(trial.central_difference.len());
+    let mut observation_ids = std::collections::HashSet::with_capacity(
+        trial.central_difference.len() * 2 + 1,
+    );
+    let mut perturbation_input_digests =
+        std::collections::HashSet::with_capacity(trial.central_difference.len() * 2);
+    if !observation_ids.insert(trial.base_observation_id.as_str()) {
+        return Err(QualificationError::DuplicateObservationId);
+    }
     let mut previous_step = f64::INFINITY;
     for (index, observation) in trial.central_difference.iter().enumerate() {
         if !observation.step_size.is_finite()
@@ -397,6 +412,29 @@ fn validate_trial(
             || observation.step_size >= previous_step
         {
             return Err(QualificationError::InvalidStepSweep { index });
+        }
+        if !nonempty(&observation.plus_observation_id)
+            || !nonempty(&observation.minus_observation_id)
+            || !observation_ids.insert(observation.plus_observation_id.as_str())
+            || !observation_ids.insert(observation.minus_observation_id.as_str())
+        {
+            return Err(QualificationError::DuplicateObservationId);
+        }
+        validate_digest(
+            &observation.plus_input_sha256,
+            "central_difference.plus_input_sha256",
+        )?;
+        validate_digest(
+            &observation.minus_input_sha256,
+            "central_difference.minus_input_sha256",
+        )?;
+        if observation.plus_input_sha256 == trial.input_sha256
+            || observation.minus_input_sha256 == trial.input_sha256
+            || observation.plus_input_sha256 == observation.minus_input_sha256
+            || !perturbation_input_digests.insert(observation.plus_input_sha256.as_str())
+            || !perturbation_input_digests.insert(observation.minus_input_sha256.as_str())
+        {
+            return Err(QualificationError::PerturbationInputIdentityMismatch);
         }
         if !observation.plus_objective_value.is_finite()
             || !observation.minus_objective_value.is_finite()
