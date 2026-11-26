@@ -496,7 +496,9 @@ fn score_arm(arm_id: ArmId, rows: &[&EpisodeRecord]) -> ArmScorecard {
         .collect::<Vec<_>>();
     let false_closed = metric_from_optional(
         closure_rows.len(),
-        closure_rows.iter().map(|row| row.assurance.closure_invalidated_by_old_effect),
+        closure_rows
+            .iter()
+            .map(|row| row.assurance.closure_invalidated_by_old_effect),
     );
 
     let one_shot_rows = rows
