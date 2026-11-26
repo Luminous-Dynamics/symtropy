@@ -720,10 +720,25 @@ mod tests {
     }
 
     #[test]
+    fn declared_calibration_failure_is_forwarded_as_modelled_missingness() {
+        let input = corpus();
+        let case = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == "AO-004-CALIBRATION-INVALID-MEASUREMENT")
+            .unwrap();
+        let result = evaluate_case(case);
+        assert_eq!(
+            result.disposition,
+            Disposition::ModelledObservationProcessOutcome
+        );
+        assert!(result.sequential_update_permitted);
+    }
+
+    #[test]
     fn unqualified_measurement_is_never_forwarded() {
         let input = corpus();
         for id in [
-            "AO-004-CALIBRATION-INVALID-MEASUREMENT",
             "AO-013-METROLOGY-INDETERMINATE-MEASUREMENT",
             "AO-016-WRONG-REALIZED-ACTION",
         ] {
@@ -790,7 +805,14 @@ mod tests {
             result.disposition,
             Disposition::ModelledObservationProcessOutcome
         );
-        assert_eq!(result.missing_channel_ids.len(), 2);
+        assert_eq!(
+            result.missing_channel_ids,
+            vec![
+                "CAMERA-IMAGE".to_owned(),
+                "DEPTH-MAP".to_owned(),
+                "TRIGGER-ACK".to_owned()
+            ]
+        );
     }
 
     #[test]
