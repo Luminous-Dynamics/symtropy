@@ -55,7 +55,7 @@ Larrouturou, Higgins & Greason (2022), *Dynamic soaring as a means to exceed the
 
 ### V0 calculation boundary
 
-This crate closes the first-order Newtonian arithmetic chain for beta <= 0.05:
+This crate closes the first-order Newtonian arithmetic chain for both relative speed and exhaust speed beta <= 0.05:
 - dynamic-pressure proxy;
 - effective harvesting drag;
 - harvested mechanical power;
