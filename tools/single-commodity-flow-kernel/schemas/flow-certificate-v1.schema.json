@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/single-commodity-flow-kernel/schemas/flow-certificate-v1.schema.json",
+  "$id": "urn:luminous:flow-certificate:v1",
   "title": "Luminous Flow Certificate Bundle v1",
   "description": "Portable graph-bound max-flow/min-cut evidence. A schema-valid document is not trusted until the graph/result pair passes the independent verifier.",
   "type": "object",
