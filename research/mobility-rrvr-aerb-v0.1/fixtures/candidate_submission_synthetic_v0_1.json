@@ -12,7 +12,8 @@
     "partial_effect",
     "duplicate_effect",
     "stale_authority_effect",
-    "unresolved_command_holder"
+    "unresolved_command_holder",
+    "open_world_residual"
   ],
   "disposition": "request_observation",
   "requested_probe_id": "read_endpoint_journal",
