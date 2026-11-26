@@ -442,6 +442,16 @@ def main() -> int:
     )
     args = parser.parse_args()
     instance_id, gamma, qc_weight, agv_weight, tasks, plans = parse_fixture(args.fixture)
+
+    # Independently check that a larger nested uncertainty set cannot lower
+    # the exact worst-case objective for any fixed plan.
+    for plan_id, plan_routes in sorted(plans.items()):
+        low = evaluate_plan(tasks, plan_routes, 0.25, qc_weight, agv_weight)
+        middle = evaluate_plan(tasks, plan_routes, 0.5, qc_weight, agv_weight)
+        high = evaluate_plan(tasks, plan_routes, 1.0, qc_weight, agv_weight)
+        if low["worst"] > middle["worst"] + TOL or middle["worst"] > high["worst"] + TOL:
+            raise AssertionError(f"{plan_id}: worst-case cost is not monotone in Gamma")
+
     expected = build_receipt(instance_id, gamma, qc_weight, agv_weight, tasks, plans)
     actual = args.receipt.read_text(encoding="utf-8").splitlines()
     if actual != expected:
