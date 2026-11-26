@@ -12,6 +12,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod evidence_binding_v0_2;
+pub mod evidence_gap_packet_v0_1;
 pub mod observer_coverage_v0_1;
 pub mod vector_watermark_v0_1;
 
