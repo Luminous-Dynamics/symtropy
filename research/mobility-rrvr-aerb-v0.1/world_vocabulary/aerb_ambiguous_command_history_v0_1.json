@@ -57,6 +57,14 @@
       "effect_state": "unknown",
       "authority_relation": "unresolved_holder",
       "acknowledgement_state": "unknown"
+    },
+    {
+      "world_id": "open_world_residual",
+      "description": "An unmodelled effect-producing path or system-boundary mismatch remains possible; the known execution-history taxonomy cannot yet be treated as exhaustive.",
+      "dispatch_state": "unknown",
+      "effect_state": "unknown",
+      "authority_relation": "unresolved_holder",
+      "acknowledgement_state": "unknown"
     }
   ]
 }
