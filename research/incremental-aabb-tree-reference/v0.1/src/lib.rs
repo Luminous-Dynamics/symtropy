@@ -156,10 +156,15 @@ impl ProxyPair {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct PairQueryStats {
+    /// Number of self-traversal roots started (zero for an empty tree).
     pub queries: usize,
+    /// Internal tree nodes entered and expanded.
     pub node_visits: usize,
+    /// Leaf nodes whose bounds participated in a node-pair test.
     pub leaf_tests: usize,
+    /// Distinct node-pair AABB overlap predicates evaluated.
     pub aabb_tests: usize,
+    /// Canonically ordered leaf pairs emitted.
     pub emitted_pairs: usize,
 }
 
@@ -400,28 +405,94 @@ impl<const D: usize> IncrementalAabbTree<D> {
         Ok(result)
     }
 
-    /// Emit each overlapping fat-proxy pair exactly once, in canonical order.
+    /// Emit each overlapping fat-proxy pair exactly once using a
+    /// self-pair traversal of the hierarchy.
+    ///
+    /// Unlike querying the tree once per leaf, this visits overlapping node
+    /// pairs directly. A diagonal branch pair (node,node) is decomposed into
+    /// left-left, left-right and right-right, so symmetric pairs are never
+    /// generated. For distinct branch pairs, the taller side is split first
+    /// (with min-proxy as a deterministic tie-breaker).
     pub fn query_pairs(&self) -> PairQueryResult {
         let mut result = PairQueryResult {
             pairs: Vec::new(),
             stats: PairQueryStats::default(),
         };
-        for (&proxy, &leaf) in &self.leaves {
-            let query = self
-                .query(self.node(leaf).aabb)
-                .expect("stored bounds are valid");
-            result.stats.queries += 1;
-            result.stats.node_visits += query.stats.node_visits;
-            result.stats.leaf_tests += query.stats.leaf_tests;
-            result.stats.aabb_tests += query.stats.aabb_tests;
-            for candidate in query.proxies {
-                if candidate > proxy {
-                    result
-                        .pairs
-                        .push(ProxyPair::new(proxy, candidate).expect("distinct proxy IDs"));
+        let Some(root) = self.root else {
+            return result;
+        };
+
+        result.stats.queries = 1;
+        let mut stack = Vec::with_capacity(64);
+        stack.push((root, root));
+
+        while let Some((left_index, right_index)) = stack.pop() {
+            if left_index == right_index {
+                let node = self.node(left_index);
+                if node.is_leaf() {
+                    continue;
                 }
+
+                result.stats.node_visits += 1;
+                let left = node.left.expect("branch left child");
+                let right = node.right.expect("branch right child");
+                // Push in reverse visitation order to keep the traversal stable.
+                stack.push((right, right));
+                stack.push((left, right));
+                stack.push((left, left));
+                continue;
+            }
+
+            let left_node = self.node(left_index);
+            let right_node = self.node(right_index);
+            result.stats.aabb_tests += 1;
+            if left_node.is_leaf() {
+                result.stats.leaf_tests += 1;
+            } else {
+                result.stats.node_visits += 1;
+            }
+            if right_node.is_leaf() {
+                result.stats.leaf_tests += 1;
+            } else {
+                result.stats.node_visits += 1;
+            }
+
+            if !left_node.aabb.overlaps(&right_node.aabb) {
+                continue;
+            }
+
+            if left_node.is_leaf() && right_node.is_leaf() {
+                let left_proxy = left_node.proxy.expect("left leaf proxy");
+                let right_proxy = right_node.proxy.expect("right leaf proxy");
+                result.pairs.push(
+                    ProxyPair::new(left_proxy, right_proxy).expect("distinct tree leaves"),
+                );
+                continue;
+            }
+
+            let split_left = if left_node.is_leaf() {
+                false
+            } else if right_node.is_leaf() {
+                true
+            } else if left_node.height != right_node.height {
+                left_node.height > right_node.height
+            } else {
+                left_node.min_proxy <= right_node.min_proxy
+            };
+
+            if split_left {
+                let left = left_node.left.expect("branch left child");
+                let right = left_node.right.expect("branch right child");
+                stack.push((right, right_index));
+                stack.push((left, right_index));
+            } else {
+                let left = right_node.left.expect("branch left child");
+                let right = right_node.right.expect("branch right child");
+                stack.push((left_index, right));
+                stack.push((left_index, left));
             }
         }
+
         result.pairs.sort_unstable();
         result.pairs.dedup();
         result.stats.emitted_pairs = result.pairs.len();
@@ -1108,9 +1179,29 @@ mod tests {
         let result = tree.query_pairs();
         assert_eq!(result.pairs, oracle);
         assert_eq!(result.stats.emitted_pairs, oracle.len());
-        assert_eq!(result.stats.queries, 256);
+        assert_eq!(result.stats.queries, 1);
         assert!(result.stats.aabb_tests > 0);
         assert!(tree.stats().height > 0);
+    }
+
+    #[test]
+    fn self_pair_traversal_prunes_disjoint_subtrees_without_repeated_leaf_queries() {
+        let mut tree = IncrementalAabbTree::<3>::new(0.0).unwrap();
+        for index in 0..256_u64 {
+            let x = index as f64 * 10.0;
+            tree.insert(
+                ProxyId(index + 1),
+                aabb([x, 0.0, 0.0], [x + 1.0, 1.0, 1.0]),
+            )
+            .unwrap();
+        }
+
+        let result = tree.query_pairs();
+        assert!(result.pairs.is_empty());
+        assert_eq!(result.stats.queries, 1);
+        assert!(result.stats.aabb_tests < (256 * 255) / 2);
+        assert!(result.stats.node_visits > 0);
+        assert_eq!(result.stats.emitted_pairs, 0);
     }
 
     #[test]
