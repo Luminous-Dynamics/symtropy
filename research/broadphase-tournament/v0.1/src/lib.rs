@@ -222,16 +222,29 @@ fn next_between(state: &mut u64, min: f64, max: f64) -> f64 {
     min + (max - min) * next_unit(state)
 }
 
-fn integer_grid_coordinate(
-    slot: usize,
-    axis: usize,
-    population: usize,
-    dimensions: usize,
-) -> f64 {
-    let side = (population as f64)
-        .powf(1.0 / dimensions as f64)
-        .ceil()
-        .max(1.0) as usize;
+fn integer_grid_side(population: usize, dimensions: usize) -> usize {
+    let target = population.max(1);
+    let mut low = 1_usize;
+    let mut high = target;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        let mut capacity = 1_usize;
+        for _ in 0..dimensions {
+            capacity = capacity.saturating_mul(middle);
+            if capacity >= target {
+                break;
+            }
+        }
+        if capacity >= target {
+            high = middle;
+        } else {
+            low = middle + 1;
+        }
+    }
+    low
+}
+
+fn integer_grid_coordinate(slot: usize, axis: usize, side: usize) -> f64 {
     let mut divisor = 1_usize;
     for _ in 0..axis {
         divisor = divisor.saturating_mul(side);
@@ -251,6 +264,8 @@ pub fn generate_scene<const D: usize>(
         return Err(TournamentError::EmptyScene);
     }
 
+    let sparse_grid_side = integer_grid_side(proxy_count, D);
+    let sleeping_pair_grid_side = integer_grid_side(proxy_count.div_ceil(2), D);
     let mut state = seed;
     let mut initial = Vec::with_capacity(proxy_count);
     let mut velocities = Vec::with_capacity(proxy_count);
@@ -264,7 +279,7 @@ pub fn generate_scene<const D: usize>(
         for axis in 0..D {
             center[axis] = match family {
                 SceneFamily::SparseCoherent | SceneFamily::StaticHeavy => {
-                    integer_grid_coordinate(slot, axis, proxy_count, D)
+                    integer_grid_coordinate(slot, axis, sparse_grid_side)
                         + next_between(&mut state, -0.1, 0.1)
                 }
                 SceneFamily::DenseClustered => next_between(&mut state, -4.0, 4.0),
@@ -273,13 +288,12 @@ pub fn generate_scene<const D: usize>(
                 SceneFamily::TeleportChurn => next_between(&mut state, -30.0, 30.0),
                 SceneFamily::SleepingWakeups => {
                     let pair_slot = slot / 2;
-                    let pair_population = proxy_count.div_ceil(2);
                     let pair_offset = if axis == 0 {
                         if slot % 2 == 0 { -0.25 } else { 0.25 }
                     } else {
                         0.0
                     };
-                    integer_grid_coordinate(pair_slot, axis, pair_population, D)
+                    integer_grid_coordinate(pair_slot, axis, sleeping_pair_grid_side)
                         + pair_offset
                         + next_between(&mut state, -0.01, 0.01)
                 }
