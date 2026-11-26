@@ -135,6 +135,7 @@ Use fixed-seed histories with controlled:
 - independent versus causally dependent events;
 - dependency fan-in and chain depth;
 - late arrivals and receiver offset delay;
+- event-effective-time uncertainty intervals versus physical acquisition-time intervals, including exact-point equality and ambiguous overlap;
 - missing predecessors, sequence gaps and forks;
 - partition retirement and stream reset;
 - duplicate delivery;
