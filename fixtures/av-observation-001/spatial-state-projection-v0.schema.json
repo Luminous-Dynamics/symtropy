@@ -1,0 +1,435 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/av-observation-001/spatial-state-projection-v0.schema.json",
+  "title": "Candidate Spatial State Projection v0",
+  "description": "Candidate-visible, source-indexed spatial state. It contains hypotheses and claims, not evaluator truth, canonical map IDs, verified physical coordinates, or action authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "projection_id",
+    "evidence_prefix_digest",
+    "producer_revision_digest",
+    "map_revision",
+    "observation_refs",
+    "coordinate_frames",
+    "transforms",
+    "entity_hypotheses",
+    "relation_claims",
+    "unresolved_constraints"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "spatial-state-projection-v0"
+    },
+    "projection_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "evidence_prefix_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "producer_revision_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "map_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "known_at_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observation_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation_ref"
+      }
+    },
+    "coordinate_frames": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coordinate_frame"
+      }
+    },
+    "transforms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transform"
+      }
+    },
+    "entity_hypotheses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entity_hypothesis"
+      }
+    },
+    "relation_claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation_claim"
+      }
+    },
+    "unresolved_constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unresolved_constraint"
+      }
+    },
+    "supersedes_projection_digest": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "quat_xyzw": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "number"
+      }
+    },
+    "observation_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "modality",
+        "artifact_digest",
+        "clock_domain_id",
+        "clock_generation",
+        "capture_start_ns",
+        "capture_end_ns",
+        "known_at_ns"
+      ],
+      "properties": {
+        "observation_id": {
+          "$ref": "#/$defs/id"
+        },
+        "modality": {
+          "enum": [
+            "video_frame",
+            "audio_chunk",
+            "rgbd_frame",
+            "stereo_pair",
+            "imu_interval",
+            "lidar_scan",
+            "other"
+          ]
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "clock_domain_id": {
+          "$ref": "#/$defs/id"
+        },
+        "clock_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "capture_end_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "known_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "frame_kind",
+        "units"
+      ],
+      "properties": {
+        "frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "frame_kind": {
+          "enum": [
+            "camera",
+            "sensor",
+            "body",
+            "candidate_world",
+            "local_map",
+            "unknown"
+          ]
+        },
+        "units": {
+          "enum": [
+            "meters",
+            "millimeters",
+            "pixels",
+            "unitless",
+            "unknown"
+          ]
+        },
+        "parent_frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "candidate_only": {
+          "const": true
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transform_id",
+        "source_frame_id",
+        "target_frame_id",
+        "translation",
+        "rotation_xyzw",
+        "translation_stddev",
+        "rotation_stddev_rad",
+        "source_observation_refs",
+        "transform_revision"
+      ],
+      "properties": {
+        "transform_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "target_frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "translation": {
+          "$ref": "#/$defs/vec3"
+        },
+        "rotation_xyzw": {
+          "$ref": "#/$defs/quat_xyzw"
+        },
+        "translation_stddev": {
+          "type": "number",
+          "minimum": 0
+        },
+        "rotation_stddev_rad": {
+          "type": "number",
+          "minimum": 0
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs",
+          "minItems": 1
+        },
+        "transform_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "epistemic_origin": {
+          "enum": [
+            "observed",
+            "inferred",
+            "remembered",
+            "predicted",
+            "simulated",
+            "counterfactual"
+          ]
+        }
+      }
+    },
+    "entity_hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_hypothesis_id",
+        "state",
+        "epistemic_origin",
+        "source_observation_refs"
+      ],
+      "properties": {
+        "entity_hypothesis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "candidate_label": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "active",
+            "occluded",
+            "lost",
+            "hypothesis",
+            "unknown",
+            "retracted"
+          ]
+        },
+        "epistemic_origin": {
+          "enum": [
+            "observed",
+            "inferred",
+            "remembered",
+            "predicted",
+            "simulated",
+            "counterfactual",
+            "unknown"
+          ]
+        },
+        "frame_id": {
+          "$ref": "#/$defs/id"
+        },
+        "position_m": {
+          "$ref": "#/$defs/vec3"
+        },
+        "position_stddev_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "geometry_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs"
+        }
+      }
+    },
+    "relation_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation_claim_id",
+        "subject_hypothesis_id",
+        "predicate",
+        "epistemic_origin",
+        "claim_state",
+        "source_observation_refs"
+      ],
+      "properties": {
+        "relation_claim_id": {
+          "$ref": "#/$defs/id"
+        },
+        "subject_hypothesis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "object_hypothesis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "predicate": {
+          "enum": [
+            "direct_adjacency",
+            "observed_traversal",
+            "inferred_connectivity",
+            "contains",
+            "inside",
+            "supports",
+            "occludes",
+            "same_place_hypothesis",
+            "visible_from",
+            "unknown_relation"
+          ]
+        },
+        "epistemic_origin": {
+          "enum": [
+            "observed",
+            "inferred",
+            "remembered",
+            "predicted",
+            "simulated",
+            "counterfactual",
+            "unknown"
+          ]
+        },
+        "claim_state": {
+          "enum": [
+            "proposed",
+            "active",
+            "contested",
+            "superseded",
+            "retracted",
+            "unknown"
+          ]
+        },
+        "derivation_rule_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs"
+        },
+        "supersedes_claim_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "unresolved_constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "constraint_id",
+        "constraint_type",
+        "candidate_alternatives",
+        "source_observation_refs"
+      ],
+      "properties": {
+        "constraint_id": {
+          "$ref": "#/$defs/id"
+        },
+        "constraint_type": {
+          "enum": [
+            "identity",
+            "transform",
+            "scale",
+            "topology",
+            "trajectory",
+            "temporal_order",
+            "visibility",
+            "other"
+          ]
+        },
+        "candidate_alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs"
+        },
+        "reopen_hint": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}
