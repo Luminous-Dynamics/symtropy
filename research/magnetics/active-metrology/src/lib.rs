@@ -654,7 +654,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn points_outside_the_declared_scan_volume_or_standoff_are_rejected() {
         let mut outside_position = candidate("outside-volume", 0.0, 0.02, 1.0, 0.001, 1.0);
