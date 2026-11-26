@@ -713,7 +713,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn sensitivity_interval_crossing_zero_is_not_ranked() {
         let mut point = candidate("nonmonotonic-margin", 0.0, 0.02, 1.0, 0.001, 1.0);
