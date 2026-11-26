@@ -61,6 +61,8 @@ The evaluator rejects any ordinary observation probe that drops `open_world_resi
 
 The evaluator deliberately does not calculate EVSI or robust minimax probe rankings. Symthaea's existing prior-free robust evaluator remains the decision-value calculation engine. The Rust package validates AERB contracts and scores candidate support/decision outcomes; it does not execute probes or robot commands.
 
+A deterministic corpus generator is also provided by the `aerb_generate` binary. It covers all eight world classes once per full eight-case cycle using a seed-shuffled order, and writes candidate and evaluator artifacts to disjoint directories. The seed and hidden-truth mapping are only stored in the evaluator output; neither is written to candidate-visible IDs or manifests. Balanced coverage is a design choice for stress testing, not a prior probability over real robot incidents.
+
 Input and output schemas:
 - `schemas/aerb_candidate_episode_v0_1.schema.json`
 - `schemas/aerb_candidate_submission_v0_1.schema.json`
