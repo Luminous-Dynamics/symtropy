@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/paired-inference-report-v0.1.schema.json",
+  "title": "RRVR Paired Inference Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark", "analysis_id", "control_arm_id", "treatment_arm_id", "cluster_unit_id", "bootstrap_profile_id", "scheduled_pair_n", "analyzed_pair_n", "excluded_pair_n", "cluster_n", "endpoint_reports", "claim_ceiling"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "benchmark": { "const": "RRVR-PAIRED-INFERENCE" },
+    "analysis_id": { "type": "string" },
+    "control_arm_id": { "type": "string" },
+    "treatment_arm_id": { "type": "string" },
+    "cluster_unit_id": { "type": "string" },
+    "bootstrap_profile_id": { "const": "RRVR-SPLITMIX64-CLUSTER-BOOTSTRAP-V0_1" },
+    "scheduled_pair_n": { "type": "integer", "minimum": 1 },
+    "analyzed_pair_n": { "type": "integer", "minimum": 1 },
+    "excluded_pair_n": { "const": 0 },
+    "cluster_n": { "type": "integer", "minimum": 1 },
+    "endpoint_reports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/endpoint_report" } },
+    "claim_ceiling": { "type": "string", "minLength": 40 }
+  },
+  "$defs": {
+    "bootstrap_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lower", "upper", "draws", "seed", "alpha", "cluster_n", "profile_id"],
+      "properties": {
+        "lower": { "type": "number" },
+        "upper": { "type": "number" },
+        "draws": { "type": "integer", "minimum": 1000 },
+        "seed": { "type": "integer", "minimum": 0 },
+        "alpha": { "type": "number" },
+        "cluster_n": { "type": "integer", "minimum": 2 },
+        "profile_id": { "type": "string" }
+      }
+    },
+    "endpoint_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint_id", "direction", "pair_n", "cluster_n", "control_event_n", "treatment_event_n", "control_unknown_n", "treatment_unknown_n", "control_disputed_n", "treatment_disputed_n", "control_adverse_cluster_n", "treatment_adverse_cluster_n", "episode_weighted_control_adverse_rate", "episode_weighted_treatment_adverse_rate", "episode_weighted_risk_difference", "cluster_weighted_control_adverse_rate", "cluster_weighted_treatment_adverse_rate", "cluster_weighted_risk_difference", "control_only_adverse_pair_n", "treatment_only_adverse_pair_n", "bootstrap_interval", "mcnemar", "treatment_zero_adverse_cluster_upper_bound", "status", "reason_codes"],
+      "properties": {
+        "endpoint_id": { "type": "string", "minLength": 1 },
+        "direction": { "enum": ["minimize_event", "maximize_success"] },
+        "pair_n": { "type": "integer", "minimum": 1 },
+        "cluster_n": { "type": "integer", "minimum": 1 },
+        "control_event_n": { "type": "integer", "minimum": 0 },
+        "treatment_event_n": { "type": "integer", "minimum": 0 },
+        "control_unknown_n": { "type": "integer", "minimum": 0 },
+        "treatment_unknown_n": { "type": "integer", "minimum": 0 },
+        "control_disputed_n": { "type": "integer", "minimum": 0 },
+        "treatment_disputed_n": { "type": "integer", "minimum": 0 },
+        "control_adverse_cluster_n": { "type": "integer", "minimum": 0 },
+        "treatment_adverse_cluster_n": { "type": "integer", "minimum": 0 },
+        "episode_weighted_control_adverse_rate": { "type": "number" },
+        "episode_weighted_treatment_adverse_rate": { "type": "number" },
+        "episode_weighted_risk_difference": { "type": "number" },
+        "cluster_weighted_control_adverse_rate": { "type": "number" },
+        "cluster_weighted_treatment_adverse_rate": { "type": "number" },
+        "cluster_weighted_risk_difference": { "type": "number" },
+        "control_only_adverse_pair_n": { "type": "integer", "minimum": 0 },
+        "treatment_only_adverse_pair_n": { "type": "integer", "minimum": 0 },
+        "bootstrap_interval": { "oneOf": [{ "$ref": "#/$defs/bootstrap_interval" }, { "type": "null" }] },
+        "mcnemar": { "type": ["object", "null"] },
+        "treatment_zero_adverse_cluster_upper_bound": { "type": ["number", "null"] },
+        "status": { "enum": ["inference_available", "descriptive_only"] },
+        "reason_codes": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
