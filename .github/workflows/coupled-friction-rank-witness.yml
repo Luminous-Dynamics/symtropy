@@ -1,0 +1,27 @@
+name: Semidefinite contact multiplier equivalence witness
+
+on:
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/src/lib.rs"
+      - "crates/core/symtropy-physics/src/coupled_friction_rank_witness.rs"
+      - "docs/research/COULOMB_SEMIDEFINITE_CONTACT_RANK_WITNESS_2026-11-01.md"
+      - ".github/workflows/coupled-friction-rank-witness.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semidefinite-contact-rank:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run exact redundant-contact rank and multiplier witness
+        run: cargo test -p symtropy-physics --lib coupled_friction_rank_witness --locked
