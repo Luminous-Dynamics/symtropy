@@ -1,0 +1,78 @@
+name: Orbital Inspection Chord-Tube Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-inspection-chord-tube-bench/**"
+      - ".github/workflows/orbital-inspection-chord-tube.yml"
+  push:
+    branches:
+      - "research/orbital-inspection-chord-tube-v0-1"
+    paths:
+      - "tools/orbital-inspection-chord-tube-bench/**"
+      - ".github/workflows/orbital-inspection-chord-tube.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Exact integer geometry and independent Fraction oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/orbital-inspection-chord-tube-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-inspection-chord-tube-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-inspection-chord-tube-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Bind frozen corpus digest
+        run: |
+          echo "CORPUS_SHA256=$(sha256sum tools/orbital-inspection-chord-tube-bench/fixtures/chord-tube-corpus-v0_1.csv | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Rust deterministic receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-inspection-chord-tube-bench/Cargo.toml --bin orbital-inspection-chord-tube-bench -- tools/orbital-inspection-chord-tube-bench/fixtures/chord-tube-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/chord-tube-rust.json
+          cargo run --quiet --locked --manifest-path tools/orbital-inspection-chord-tube-bench/Cargo.toml --bin orbital-inspection-chord-tube-bench -- tools/orbital-inspection-chord-tube-bench/fixtures/chord-tube-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/chord-tube-rust-replay.json
+          cmp /tmp/chord-tube-rust.json /tmp/chord-tube-rust-replay.json
+      - name: Independent Python Fraction oracle
+        run: |
+          python3 tools/orbital-inspection-chord-tube-bench/tests/reference_oracle.py tools/orbital-inspection-chord-tube-bench/fixtures/chord-tube-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/chord-tube-python.json
+      - name: Compare complete receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/chord-tube-rust.json").read_text())
+          oracle = json.loads(Path("/tmp/chord-tube-python.json").read_text())
+          assert rust == oracle
+          assert rust["case_count"] == 19
+          assert rust["claim_ready"] is False
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["authority_granted"] is False
+          assert rust["physical_validation"] == "NOT_ASSESSED"
+          dispositions = {item["case_id"]: item["disposition"] for item in rust["results"]}
+          assert dispositions["crossing_chord"] == "NOT_PROVEN"
+          assert dispositions["exact_tangent"] == "NOT_PROVEN"
+          assert dispositions["curvature_rejects_chord"] == "NOT_PROVEN"
+          assert dispositions["zero_duration"] == "INVALID_INPUT"
+          assert dispositions["integer_overflow"] == "OVERFLOW"
+          print("19 frozen cases: exact Rust/Python receipt equality")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-inspection-chord-tube-evidence
+          path: |
+            /tmp/chord-tube-rust.json
+            /tmp/chord-tube-python.json
+            tools/orbital-inspection-chord-tube-bench/fixtures/chord-tube-corpus-v0_1.csv
+          if-no-files-found: error
+          retention-days: 30
