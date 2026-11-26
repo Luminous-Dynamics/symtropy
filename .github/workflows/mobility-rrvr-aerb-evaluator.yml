@@ -1,0 +1,56 @@
+name: RRVR AERB Evaluator v0.1
+
+on:
+  push:
+    branches:
+      - research/mobility-rrvr-aerb-v0-1
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
+      - "research/mobility-rrvr-aerb-v0.1/schemas/**"
+      - "research/mobility-rrvr-aerb-v0.1/fixtures/**"
+      - ".github/workflows/mobility-rrvr-aerb-evaluator.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
+      - "research/mobility-rrvr-aerb-v0.1/schemas/**"
+      - "research/mobility-rrvr-aerb-v0.1/fixtures/**"
+      - ".github/workflows/mobility-rrvr-aerb-evaluator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aerb-evaluator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Validate evaluator schemas and public fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          jq empty "$ROOT/schemas/aerb_candidate_episode_v0_1.schema.json"
+          jq empty "$ROOT/schemas/aerb_candidate_submission_v0_1.schema.json"
+          jq empty "$ROOT/schemas/aerb_evaluator_world_pack_v0_1.schema.json"
+          jq empty "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
+          jq empty "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
+          jq empty "$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml -- --check
+
+      - name: Run evaluator known answers and mutation tests
+        run: cargo test --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Run synthetic candidate/evaluator fixture
+        run: |
+          cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --bin aerb_evaluate --             research/mobility-rrvr-aerb-v0.1/fixtures/candidate_episode_synthetic_v0_1.json             research/mobility-rrvr-aerb-v0.1/fixtures/candidate_submission_synthetic_v0_1.json             research/mobility-rrvr-aerb-v0.1/fixtures/evaluator_only/world_pack_synthetic_v0_1.json
