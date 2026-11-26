@@ -146,6 +146,38 @@ def validate_structure(tasks, plan_routes):
                 raise AssertionError("QC predecessor belongs to another crane")
         qc_pred[task["id"]] = predecessor
 
+    # Fixed QC precedence must form exactly one linear chain per crane.
+    qc_groups = {}
+    qc_successors = {}
+    qc_roots = {}
+    for task in tasks:
+        qc_groups.setdefault(task["qc"], []).append(task["id"])
+        predecessor = task["qc_pred"]
+        if predecessor is None:
+            qc_roots.setdefault(task["qc"], []).append(task["id"])
+        else:
+            qc_successors.setdefault(predecessor, []).append(task["id"])
+    for qc_id, group_tasks in qc_groups.items():
+        roots = qc_roots.get(qc_id, [])
+        if len(roots) != 1 or any(
+            len(qc_successors.get(task_id, [])) > 1 for task_id in group_tasks
+        ):
+            raise AssertionError(f"QC tasks do not form one linear order: {qc_id}")
+        visited = set()
+        current = roots[0]
+        while True:
+            if current in visited:
+                raise AssertionError(f"QC precedence cycle: {qc_id}")
+            visited.add(current)
+            next_tasks = qc_successors.get(current, [])
+            if not next_tasks:
+                break
+            if len(next_tasks) != 1:
+                raise AssertionError(f"branching QC precedence: {qc_id}")
+            current = next_tasks[0]
+        if len(visited) != len(group_tasks):
+            raise AssertionError(f"disconnected QC precedence: {qc_id}")
+
     indegree = {task["id"]: 0 for task in tasks}
     successors = {task["id"]: set() for task in tasks}
     for task in tasks:
@@ -387,7 +419,7 @@ def build_receipt(instance_id, gamma, qc_weight, agv_weight, tasks, plans):
             f"\t{fmt(result['qc_wait'])}\t{fmt(result['agv_wait'])}\t{fmt(result['makespan'])}\t{witness}"
         )
         lines.append(
-            f"PLAN_ENUMERATION\t{plan_id}\t{result['combinations']}\t{result['vertices']}"
+            f"PLAN_ENUMERATION\t{plan_id}\t{result['combinations']}\t{result['active_set_bases']}"
         )
         for event in result["events"]:
             task_id, qc_ready, agv_ready, start, finish, release, qc_wait, agv_wait = event
