@@ -97,10 +97,10 @@ Each sample carries:
 - a simultaneous Euclidean 3D field-vector error radius, tesla;
 - a simultaneous absolute mechanical-reference-angle error bound, radians.
 
-The same field-error radius conservatively bounds its in-plane projection and out-of-plane component. For nominal in-plane magnitude `m` and radius `r < m`, the maximum field-direction error is `asin(r/m)`. The total sample phase-error bound adds `pole_pairs * mechanical_angle_error_bound` and the independent absolute phase-zero error bound. If `r >= m`, zero in-plane field is admissible, so phase is unbounded and the scenario fails closed.
+The same field-error radius conservatively bounds its in-plane projection and out-of-plane component. For nominal in-plane magnitude `m` and radius `r < m`, the maximum field-direction error is `asin(r/m)`. The total sample phase-error bound adds `pole_pairs * mechanical_angle_error_bound`, the independent sensor/field-frame rotation bound, and the independent absolute phase-zero error bound. The per-scenario report keeps field-direction, mechanical-reference, sensor-frame and phase-zero contributions separate. If `r >= m`, zero in-plane field is admissible, so phase is unbounded and the scenario fails closed.
 
 The module reports nominal results and robust upper/lower bounds separately. It computes conservative peak/RMS/nearest-rank-p95 phase errors, minimum field lower bound, amplitude-ripple upper bound and RMS cross-axis-ratio upper bound. The latter two use adverse numerator/denominator bounds. Accepted robust designs are Pareto-ranked on these separate worst-case metrics; no weighted score or probability is inferred.
 
 The error radii must be simultaneous deterministic bounds. Standard deviations, typical datasheet curves and finite-scenario variation are not silently converted into hard bounds. The source IDs are identity links, not cryptographic authentication.
 
-The bounded module currently contains ten authored unit tests, including an exact `asin(r/m)` field-direction bound control and cross-candidate uncertainty-record uniqueness. Authored tests are not a test pass; the stacked PR's exact-head checks must establish formatting, Clippy and test results.
+The bounded module currently contains eleven authored unit tests, including an exact `asin(r/m)` field-direction control, sensor-frame rotation propagation and cross-candidate uncertainty-record uniqueness. Authored tests are not a test pass; the stacked PR's exact-head checks must establish formatting, Clippy and test results.
