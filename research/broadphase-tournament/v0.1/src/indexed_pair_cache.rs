@@ -128,7 +128,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
     ) -> Result<PairDeltaFrame, TournamentError> {
         let dirty = self.derive_dirty_proxy_ids(frame)?;
-        let snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
+        let mut snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
             .ok()
             .and_then(|previous| {
                 u64::try_from(frame.len())
@@ -140,7 +140,20 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
                     })
             })
             .ok_or(TournamentError::CounterOverflow)?;
-        self.apply_dirty_ids(frame, &dirty, true, true, snapshot_entries_visited)
+        if self.force_dirty {
+            let invalidation_entries = u64::try_from(self.previous_bounds.len())
+                .ok()
+                .and_then(|previous| {
+                    u64::try_from(frame.len())
+                        .ok()
+                        .and_then(|current| previous.checked_add(current))
+                })
+                .ok_or(TournamentError::CounterOverflow)?;
+            snapshot_entries_visited = snapshot_entries_visited
+                .checked_add(invalidation_entries)
+                .ok_or(TournamentError::CounterOverflow)?;
+        }
+        self.apply_dirty_ids(frame, &dirty, true, true, snapshot_entries_visited, 0)
     }
 
     pub(super) fn step_with_dirty_ids(
@@ -148,7 +161,16 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
-        self.apply_dirty_ids(frame, dirty_ids, false, false, 0)
+        let frame_validation_entries_visited =
+            u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
+        self.apply_dirty_ids(
+            frame,
+            dirty_ids,
+            false,
+            false,
+            0,
+            frame_validation_entries_visited,
+        )
     }
 
     fn apply_full_relation_reconciliation(
@@ -156,6 +178,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty: &BTreeSet<ProxyId>,
         dirty_snapshot_entries_visited: u64,
+        frame_validation_entries_visited: u64,
     ) -> Result<PairDeltaFrame, TournamentError> {
         // Build and qualify the replacement index off to the side. An error
         // cannot partially mutate the currently committed tree or adjacency.
@@ -244,6 +267,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             overlap_tests,
             active_pairs: self.active_pair_count,
             dirty_snapshot_entries_visited,
+            frame_validation_entries_visited,
             frontier_proxy_visits: 0,
             frontier_pair_candidates: candidate_count,
             frontier_unique_pairs: candidate_count,
@@ -263,6 +287,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         allow_full_invalidation: bool,
         frame_prevalidated: bool,
         dirty_snapshot_entries_visited: u64,
+        frame_validation_entries_visited: u64,
     ) -> Result<PairDeltaFrame, TournamentError> {
         if !frame_prevalidated {
             validate_proxy_sequence(frame)?;
@@ -299,6 +324,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
                 frame,
                 &dirty,
                 dirty_snapshot_entries_visited,
+                frame_validation_entries_visited,
             );
         }
 
@@ -527,6 +553,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             overlap_tests,
             active_pairs: self.active_pair_count,
             dirty_snapshot_entries_visited,
+            frame_validation_entries_visited,
             frontier_proxy_visits,
             frontier_pair_candidates,
             frontier_unique_pairs: u64::try_from(affected_pairs.len())
