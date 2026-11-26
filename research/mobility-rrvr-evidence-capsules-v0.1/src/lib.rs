@@ -355,7 +355,10 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
         }
         let expected_snapshot = snapshot_digest(&claim.evidence_ids, &by_id)?;
         if expected_snapshot != claim.evidence_snapshot_sha256 {
-            return Err(format!("CLAIM_SNAPSHOT_DIGEST_MISMATCH: {}", claim.claim_id));
+            return Err(format!(
+                "CLAIM_SNAPSHOT_DIGEST_MISMATCH: {}",
+                claim.claim_id
+            ));
         }
         validate_claim_shape(claim)?;
     }
