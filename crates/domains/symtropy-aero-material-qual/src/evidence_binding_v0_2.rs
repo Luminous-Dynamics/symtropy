@@ -1311,6 +1311,45 @@ mod tests {
     }
 
     #[test]
+    fn event_effective_exactly_at_acquisition_is_inclusive() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 10_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-REVOKE-EXACT",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired,
+            "recorded_at_unix_ms": acquired + 2_000,
+            "retroactive": false
+        }]);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "CALIBRATION_REVOKED_PENDING_DISPOSITION"
+        ));
+    }
+
+    #[test]
+    fn incomplete_event_effective_bounds_fail_closed() {
+        let mut case = fixture();
+        let acquired = 1_795_514_400_000u64;
+        case["evaluated_at_unix_ms"] = Value::from(acquired + 10_000);
+        case["calibration_events"] = serde_json::json!([{
+            "id": "EVENT-REVOKE-INCOMPLETE",
+            "certificate_id": "CAL-A",
+            "event_type": "revoked",
+            "effective_at_unix_ms": acquired - 1_000,
+            "effective_time_earliest_unix_ms": acquired - 1_100,
+            "recorded_at_unix_ms": acquired + 2_000,
+            "retroactive": false
+        }]);
+        assert!(has_blocker(
+            &evaluate_binding_case(&case),
+            "TIME_BOUNDS_PAIR_INCOMPLETE"
+        ));
+    }
+
+    #[test]
     fn incomplete_or_malformed_time_bounds_fail_closed() {
         let mut incomplete = fixture();
         incomplete["observations"][0]["acquisition_time_earliest_unix_ms"] =
