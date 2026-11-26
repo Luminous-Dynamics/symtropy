@@ -7,6 +7,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 type ResourceKey = (String, u32);
+type CapacityIndex = BTreeMap<ResourceKey, u32>;
+type CandidateIndex<'a> = BTreeMap<String, Vec<&'a CandidateAction>>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResourceCapacity {
@@ -137,8 +139,8 @@ fn validate_and_index<'a>(
 ) -> Result<
     (
         Vec<String>,
-        BTreeMap<ResourceKey, u32>,
-        BTreeMap<String, Vec<&'a CandidateAction>>,
+        CapacityIndex,
+        CandidateIndex<'a>,
     ),
     OracleError,
 > {
@@ -157,7 +159,7 @@ fn validate_and_index<'a>(
     }
     let vessel_ids: Vec<String> = vessel_set.into_iter().collect();
 
-    let mut capacities = BTreeMap::new();
+    let mut capacities: CapacityIndex = BTreeMap::new();
     for capacity in &scenario.capacities {
         if capacity.resource_id.is_empty() {
             return Err(OracleError::EmptyIdentifier);
@@ -172,7 +174,7 @@ fn validate_and_index<'a>(
     }
 
     let mut candidate_ids = BTreeSet::new();
-    let mut candidates_by_vessel: BTreeMap<String, Vec<&CandidateAction>> = BTreeMap::new();
+    let mut candidates_by_vessel: CandidateIndex<'a> = BTreeMap::new();
     for candidate in &scenario.candidates {
         if candidate.candidate_id.is_empty() || candidate.vessel_id.is_empty() {
             return Err(OracleError::EmptyIdentifier);
@@ -216,7 +218,7 @@ fn validate_and_index<'a>(
 
 fn can_apply(
     totals: &BTreeMap<ResourceKey, u32>,
-    capacities: &BTreeMap<ResourceKey, u32>,
+    capacities: &CapacityIndex,
     used: &BTreeMap<ResourceKey, u32>,
 ) -> Result<bool, OracleError> {
     for (key, units) in totals {
@@ -245,9 +247,12 @@ fn apply(totals: &BTreeMap<ResourceKey, u32>, used: &mut BTreeMap<ResourceKey, u
 
 fn undo(totals: &BTreeMap<ResourceKey, u32>, used: &mut BTreeMap<ResourceKey, u32>) {
     for (key, units) in totals {
-        let current = used.get_mut(key).expect("applied reservation must exist");
-        *current -= *units;
-        if *current == 0 {
+        let remove = {
+            let current = used.get_mut(key).expect("applied reservation must exist");
+            *current -= *units;
+            *current == 0
+        };
+        if remove {
             used.remove(key);
         }
     }
@@ -256,8 +261,8 @@ fn undo(totals: &BTreeMap<ResourceKey, u32>, used: &mut BTreeMap<ResourceKey, u3
 fn enumerate_recursive(
     vessel_index: usize,
     vessel_ids: &[String],
-    capacities: &BTreeMap<ResourceKey, u32>,
-    candidates_by_vessel: &BTreeMap<String, Vec<&CandidateAction>>,
+    capacities: &CapacityIndex,
+    candidates_by_vessel: &CandidateIndex<'_>,
     used: &mut BTreeMap<ResourceKey, u32>,
     chosen: &mut Vec<&CandidateAction>,
     output: &mut Vec<Plan>,
