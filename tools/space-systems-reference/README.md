@@ -94,7 +94,7 @@ Every value above is a synthetic input chosen to exercise the arithmetic. It is 
 
 ### Net-force margin — the important q-drive output
 
-In this synthetic case, the model computes about **1.347 GW** of bus power and **125.83 N** of ideal exhaust thrust, but approximately **123.58 N** is consumed by the harvesting drag and the assumed parasitic drag. The residual is only **2.25 N**, or about **1.82%** of the total opposing force. The chosen exhaust speed (0.05c) is also close to the model's break-even value (about 0.0509c). Small changes in conversion, thrust-vector alignment, drag coupling, medium density or parasitic loads can erase the positive result.
+In this synthetic case, the model computes about **1.347 GW** of bus power and **0.808 GW** of jet power, producing **125.41 N** of ideal exhaust thrust. Approximately **123.58 N** is consumed by harvesting drag and the assumed parasitic drag. The residual is only **1.83 N**, or about **1.48%** of the total opposing force. The chosen exhaust speed (0.043c) is close to the model's break-even value (about 0.04364c). Small changes in conversion, thrust-vector alignment, drag coupling, medium density or parasitic loads can erase the positive result.
 
 This is a sensitivity warning, not an estimate of achievable Q-drive performance. A confirmatory model must propagate uncertainty and demonstrate a robust positive lower bound on net acceleration, not merely a positive nominal value.
 
