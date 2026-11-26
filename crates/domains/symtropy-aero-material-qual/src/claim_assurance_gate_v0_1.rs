@@ -485,6 +485,7 @@ mod tests {
         EvidenceAdmissionState, RequiredEvidenceAdmission, compute_component_report_sha256,
         evaluate_claim_gate,
     };
+    use crate::decision_context_v0_1::{DecisionContextV0_1, compute_required_evidence_manifest_sha256};
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::vector_watermark_v0_1::{CutAssessment, CutStatus};
@@ -534,21 +535,49 @@ mod tests {
         }
     }
 
+    fn decision_context_for_refs(evidence_refs: &[String]) -> DecisionContextV0_1 {
+        DecisionContextV0_1 {
+            claim_id: "claim-wing-panel-001".to_owned(),
+            subject_ref: "part:wing-panel-001".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
+            operating_envelope_ref: "envelope:transport-normal".to_owned(),
+            acquisition_time_earliest_unix_ms: 1_795_514_399_900,
+            acquisition_time_latest_unix_ms: 1_795_514_400_100,
+            as_known_at_unix_ms: 1_795_516_800_000,
+            source_scope_manifest_sha256: "a".repeat(64),
+            evidence_knowledge_cut_sha256: "b".repeat(64),
+            trust_policy_sha256: "c".repeat(64),
+            claim_specification_sha256: "d".repeat(64),
+            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(evidence_refs)
+                .expect("evidence manifest serializes"),
+            risk_classification_sha256: "e".repeat(64),
+            model_applicability_profile_sha256: "f".repeat(64),
+        }
+    }
+
+    fn context_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> DecisionContextV0_1 {
+        let refs = evidence.iter().map(|item| item.evidence_ref.clone()).collect::<Vec<_>>();
+        decision_context_for_refs(&refs)
+    }
+
+    fn context_digest(context: &DecisionContextV0_1) -> String {
+        context.compute_sha256().expect("test decision context is valid")
+    }
+
     fn evidence(state: EvidenceAdmissionState, evidence_ref: &str) -> RequiredEvidenceAdmission {
+        let context = decision_context_for_refs(&[evidence_ref.to_owned()]);
         RequiredEvidenceAdmission {
             evidence_ref: evidence_ref.to_owned(),
-            decision_context_sha256:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            decision_context_sha256: context_digest(&context),
             state,
         }
     }
 
-    fn component_binding(profile: &str) -> AssessmentBinding {
+    fn component_binding(profile: &str, context: &DecisionContextV0_1) -> AssessmentBinding {
         AssessmentBinding {
-            claim_id: "claim-wing-panel-001".to_owned(),
-            subject_ref: "part:wing-panel-001".to_owned(),
-            decision_context_sha256:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            claim_id: context.claim_id.clone(),
+            subject_ref: context.subject_ref.clone(),
+            decision_context_sha256: context_digest(context),
             report_sha256: String::new(),
             evaluator_profile: profile.to_owned(),
         }
@@ -558,11 +587,12 @@ mod tests {
         coverage: &CoverageAssessment,
         causal_cut: &CutAssessment,
         effectivity: EffectivityRelation,
+        context: &DecisionContextV0_1,
     ) -> ClaimComponentBindings {
         let mut result = ClaimComponentBindings {
-            coverage: component_binding("basalt-coverage-v0.1"),
-            causal_cut: component_binding("aero-causal-cut-v0.1"),
-            effectivity: component_binding("aero-effectivity-v0.1"),
+            coverage: component_binding("basalt-coverage-v0.1", context),
+            causal_cut: component_binding("aero-causal-cut-v0.1", context),
+            effectivity: component_binding("aero-effectivity-v0.1", context),
         };
         result.coverage.report_sha256 =
             compute_component_report_sha256("OBSERVER_COVERAGE", &result.coverage, coverage)
@@ -577,12 +607,15 @@ mod tests {
     }
 
     fn positive_bindings() -> ClaimComponentBindings {
+        let evidence = all_admitted();
+        let context = context_for_evidence(&evidence);
         let coverage = coverage(CoverageStatus::QualifiedCompleteForScope);
         let causal_cut = cut(CutStatus::Closed);
         bindings_for(
             &coverage,
             &causal_cut,
             EffectivityRelation::DefinitelyEffective,
+            &context,
         )
     }
 
@@ -595,8 +628,10 @@ mod tests {
     ) -> super::ClaimAssuranceAssessment {
         let coverage = coverage(coverage_status);
         let cut = cut(cut_status);
+        let decision_context = context_for_evidence(evidence);
         evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
+            decision_context: &decision_context,
             bindings: component_bindings,
             coverage: &coverage,
             causal_cut: &cut,
@@ -613,7 +648,8 @@ mod tests {
     ) -> super::ClaimAssuranceAssessment {
         let coverage_result = coverage(coverage_status);
         let cut_result = cut(cut_status);
-        let component_bindings = bindings_for(&coverage_result, &cut_result, effectivity);
+        let decision_context = context_for_evidence(evidence);
+        let component_bindings = bindings_for(&coverage_result, &cut_result, effectivity, &decision_context);
         evaluate_with_bindings(
             coverage_status,
             cut_status,
@@ -624,10 +660,16 @@ mod tests {
     }
 
     fn all_admitted() -> Vec<RequiredEvidenceAdmission> {
-        vec![
+        let mut result = vec![
             evidence(EvidenceAdmissionState::Admitted, "receipt:inspection-01"),
             evidence(EvidenceAdmissionState::Admitted, "receipt:calibration-02"),
-        ]
+        ];
+        let context = context_for_evidence(&result);
+        let digest = context_digest(&context);
+        for item in &mut result {
+            item.decision_context_sha256 = digest.clone();
+        }
+        result
     }
 
     fn reviewable(result: &super::ClaimAssuranceAssessment) {
