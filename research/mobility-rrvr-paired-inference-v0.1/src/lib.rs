@@ -283,7 +283,10 @@ fn validate_manifest(manifest: &InferenceManifest) -> Result<(), String> {
             .scheduled_pair_ids
             .iter()
             .any(|pair_id| pair_id.trim().is_empty())
-        || manifest.scheduled_pair_ids.windows(2).any(|pair| pair[0] >= pair[1])
+        || manifest
+            .scheduled_pair_ids
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
     {
         return Err("SCHEDULED_PAIR_IDS_NOT_STRICTLY_SORTED".to_owned());
     }
@@ -348,10 +351,7 @@ fn validate_manifest(manifest: &InferenceManifest) -> Result<(), String> {
     Ok(())
 }
 
-fn endpoint_report(
-    spec: &EndpointSpec,
-    manifest: &InferenceManifest,
-) -> EndpointReport {
+fn endpoint_report(spec: &EndpointSpec, manifest: &InferenceManifest) -> EndpointReport {
     let pair_n = manifest.pairs.len();
     let cluster_unit_n = manifest
         .pairs
@@ -417,12 +417,22 @@ fn endpoint_report(
     let control_adverse_n = manifest
         .pairs
         .iter()
-        .filter(|pair| adverse(outcome_by_pair[pair.pair_id.as_str()].control, spec.direction))
+        .filter(|pair| {
+            adverse(
+                outcome_by_pair[pair.pair_id.as_str()].control,
+                spec.direction,
+            )
+        })
         .count();
     let treatment_adverse_n = manifest
         .pairs
         .iter()
-        .filter(|pair| adverse(outcome_by_pair[pair.pair_id.as_str()].treatment, spec.direction))
+        .filter(|pair| {
+            adverse(
+                outcome_by_pair[pair.pair_id.as_str()].treatment,
+                spec.direction,
+            )
+        })
         .count();
 
     let mut control_adverse_cluster_n = 0;
@@ -454,10 +464,7 @@ fn endpoint_report(
         cluster_control_means.iter().sum::<f64>() / cluster_unit_n as f64;
     let cluster_weighted_treatment_adverse_rate =
         cluster_treatment_means.iter().sum::<f64>() / cluster_unit_n as f64;
-    let endpoint_seed = endpoint_seed(
-        manifest.preregistration.bootstrap_seed,
-        &spec.endpoint_id,
-    );
+    let endpoint_seed = endpoint_seed(manifest.preregistration.bootstrap_seed, &spec.endpoint_id);
     let bootstrap_interval = cluster_bootstrap(
         &cluster_effects,
         manifest.preregistration.bootstrap_draws,
@@ -468,8 +475,13 @@ fn endpoint_report(
     // v0.1 deliberately withholds McNemar until an independent campaign
     // attestation and its assumptions are validated upstream.
     let mcnemar = None;
-    let treatment_zero_adverse_cluster_upper_bound = (treatment_adverse_cluster_n == 0)
-        .then(|| 1.0 - manifest.preregistration.alpha.powf(1.0 / cluster_unit_n as f64));
+    let treatment_zero_adverse_cluster_upper_bound =
+        (treatment_adverse_cluster_n == 0).then(|| {
+            1.0 - manifest
+                .preregistration
+                .alpha
+                .powf(1.0 / cluster_unit_n as f64)
+        });
 
     let mut reason_codes = vec![
         "CLUSTER_INDEPENDENCE_NOT_INDEPENDENTLY_VERIFIED".to_owned(),
@@ -480,9 +492,7 @@ fn endpoint_report(
         reason_codes.push("INSUFFICIENT_CLUSTERS_FOR_BOOTSTRAP_INTERVAL".to_owned());
     }
     if treatment_zero_adverse_cluster_upper_bound.is_some() {
-        reason_codes.push(
-            "ZERO_EVENT_BOUND_CONDITIONAL_ON_IID_INDEPENDENT_CLUSTERS".to_owned(),
-        );
+        reason_codes.push("ZERO_EVENT_BOUND_CONDITIONAL_ON_IID_INDEPENDENT_CLUSTERS".to_owned());
     }
     // Percentile cluster-bootstrap output remains visible as an exploratory
     // description. The current software has no simulation-validated minimum
@@ -517,7 +527,8 @@ fn endpoint_report(
         treatment_zero_adverse_cluster_upper_bound,
         bootstrap_interval_interpretation: "exploratory_descriptive_only".to_owned(),
         cluster_independence_status: "not_independently_verified".to_owned(),
-        zero_event_bound_assumption: "conditional_on_iid_independent_clusters_not_verified".to_owned(),
+        zero_event_bound_assumption: "conditional_on_iid_independent_clusters_not_verified"
+            .to_owned(),
         status: status.to_owned(),
         reason_codes,
     }
@@ -585,12 +596,14 @@ mod tests {
                     EndpointSpec {
                         endpoint_id: "false_safe".to_owned(),
                         direction: EndpointDirection::MinimizeEvent,
-                        description: "False-safe adjudication event or unresolved verdict".to_owned(),
+                        description: "False-safe adjudication event or unresolved verdict"
+                            .to_owned(),
                     },
                     EndpointSpec {
                         endpoint_id: "recovery_success".to_owned(),
                         direction: EndpointDirection::MaximizeSuccess,
-                        description: "Task recovery successful under independent adjudication".to_owned(),
+                        description: "Task recovery successful under independent adjudication"
+                            .to_owned(),
                     },
                 ],
             },
@@ -634,10 +647,38 @@ mod tests {
     #[test]
     fn known_answer_emits_separate_endpoints_without_composite_score() {
         let manifest = manifest_with(vec![
-            pair("p1", "c1", OutcomeState::Event, OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event),
-            pair("p2", "c2", OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event, OutcomeState::Event),
-            pair("p3", "c3", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::NoEvent),
-            pair("p4", "c4", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+            pair(
+                "p1",
+                "c1",
+                OutcomeState::Event,
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p2",
+                "c2",
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p3",
+                "c3",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::NoEvent,
+            ),
+            pair(
+                "p4",
+                "c4",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
         ]);
         let report = evaluate_manifest(&manifest).expect("known answer");
         assert_eq!(report.endpoint_reports.len(), 2);
@@ -647,16 +688,41 @@ mod tests {
         assert_eq!(false_safe.episode_weighted_risk_difference, 0.0);
         assert!(false_safe.mcnemar.is_none());
         assert_eq!(false_safe.status, "descriptive_only");
-        assert_eq!(false_safe.cluster_independence_status, "not_independently_verified");
-        assert_eq!(false_safe.bootstrap_interval_interpretation, "exploratory_descriptive_only");
-        assert!(false_safe.reason_codes.iter().any(|code| code == "CLUSTER_INDEPENDENCE_NOT_INDEPENDENTLY_VERIFIED"));
+        assert_eq!(
+            false_safe.cluster_independence_status,
+            "not_independently_verified"
+        );
+        assert_eq!(
+            false_safe.bootstrap_interval_interpretation,
+            "exploratory_descriptive_only"
+        );
+        assert!(
+            false_safe
+                .reason_codes
+                .iter()
+                .any(|code| code == "CLUSTER_INDEPENDENCE_NOT_INDEPENDENTLY_VERIFIED")
+        );
     }
 
     #[test]
     fn unknown_and_disputed_count_conservatively_for_safety_but_remain_visible() {
         let manifest = manifest_with(vec![
-            pair("p1", "c1", OutcomeState::NoEvent, OutcomeState::Unknown, OutcomeState::Event, OutcomeState::Unknown),
-            pair("p2", "c2", OutcomeState::NoEvent, OutcomeState::Disputed, OutcomeState::Event, OutcomeState::Disputed),
+            pair(
+                "p1",
+                "c1",
+                OutcomeState::NoEvent,
+                OutcomeState::Unknown,
+                OutcomeState::Event,
+                OutcomeState::Unknown,
+            ),
+            pair(
+                "p2",
+                "c2",
+                OutcomeState::NoEvent,
+                OutcomeState::Disputed,
+                OutcomeState::Event,
+                OutcomeState::Disputed,
+            ),
         ]);
         let report = evaluate_manifest(&manifest).expect("unknown states are valid data");
         let safety = &report.endpoint_reports[0];
@@ -668,9 +734,30 @@ mod tests {
     #[test]
     fn repeated_pairs_in_same_cluster_disable_independent_pair_mcnemar() {
         let manifest = manifest_with(vec![
-            pair("p1", "shared", OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event, OutcomeState::Event),
-            pair("p2", "shared", OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event, OutcomeState::Event),
-            pair("p3", "other", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+            pair(
+                "p1",
+                "shared",
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p2",
+                "shared",
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p3",
+                "other",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
         ]);
         let report = evaluate_manifest(&manifest).expect("clustered data");
         let safety = &report.endpoint_reports[0];
@@ -689,9 +776,30 @@ mod tests {
     #[test]
     fn cluster_bootstrap_is_deterministic_for_frozen_inputs() {
         let manifest = manifest_with(vec![
-            pair("p1", "c1", OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event, OutcomeState::Event),
-            pair("p2", "c2", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
-            pair("p3", "c3", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+            pair(
+                "p1",
+                "c1",
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p2",
+                "c2",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p3",
+                "c3",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
         ]);
         let first = evaluate_manifest(&manifest).expect("first run");
         let second = evaluate_manifest(&manifest).expect("second run");
@@ -709,8 +817,22 @@ mod tests {
     #[test]
     fn zero_adverse_treatment_clusters_emit_bound_using_cluster_denominator() {
         let manifest = manifest_with(vec![
-            pair("p1", "c1", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
-            pair("p2", "c2", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+            pair(
+                "p1",
+                "c1",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p2",
+                "c2",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
         ]);
         let report = evaluate_manifest(&manifest).expect("zero adverse clusters");
         let safety = &report.endpoint_reports[0];
@@ -719,9 +841,12 @@ mod tests {
             safety.zero_event_bound_assumption,
             "conditional_on_iid_independent_clusters_not_verified"
         );
-        assert!(safety.reason_codes.iter().any(|code| {
-            code == "ZERO_EVENT_BOUND_CONDITIONAL_ON_IID_INDEPENDENT_CLUSTERS"
-        }));
+        assert!(
+            safety
+                .reason_codes
+                .iter()
+                .any(|code| { code == "ZERO_EVENT_BOUND_CONDITIONAL_ON_IID_INDEPENDENT_CLUSTERS" })
+        );
         assert_eq!(
             safety.treatment_zero_adverse_cluster_upper_bound,
             Some(1.0 - 0.05_f64.powf(1.0 / 2.0))
@@ -746,8 +871,22 @@ mod tests {
     #[test]
     fn attempt_ids_cannot_be_reused_across_pairs() {
         let mut manifest = manifest_with(vec![
-            pair("p1", "c1", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
-            pair("p2", "c2", OutcomeState::NoEvent, OutcomeState::NoEvent, OutcomeState::Event, OutcomeState::Event),
+            pair(
+                "p1",
+                "c1",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
+            pair(
+                "p2",
+                "c2",
+                OutcomeState::NoEvent,
+                OutcomeState::NoEvent,
+                OutcomeState::Event,
+                OutcomeState::Event,
+            ),
         ]);
         manifest.pairs[1].control_attempt_id = manifest.pairs[0].control_attempt_id.clone();
         let error = evaluate_manifest(&manifest).expect_err("duplicate attempt ID");
