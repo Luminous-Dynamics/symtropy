@@ -11,7 +11,7 @@ This isolated Rust crate validates the provenance structure of RRVR evidence and
 
 ## Evidence model
 
-Each capsule binds a stable evidence ID and episode/attempt/command scope to a declared source, parent evidence IDs, interval-valued event and observation times, an ingest sequence, a typed payload, and a SHA-256 digest. Parents must exist, remain within the same attempt scope, and have a strictly earlier ingest sequence. This monotonic order rules out provenance cycles.
+Each capsule binds a stable evidence ID and episode/attempt/command scope to a declared source, parent evidence IDs, interval-valued event and observation times, an ingest sequence, a typed payload, and a SHA-256 digest. Parents must exist, remain within the same attempt scope, and have a strictly earlier ingest sequence. This monotonic order rules out provenance cycles. Event and observation intervals must use the same declared clock domain, and the earliest possible observation must be no earlier than the latest possible event. Cross-clock ordering is rejected in v0.1 until a separately validated clock-transform profile is supplied.
 
 The digest is computed over the deterministic Serde JSON representation of the capsule with `content_sha256` set to the empty string. The claim snapshot digest is SHA-256 over a lexicographically sorted array of `[evidence_id, content_sha256]` pairs. Struct field order is part of schema v0.1; changing it requires a schema-version change.
 
