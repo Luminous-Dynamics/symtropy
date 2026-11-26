@@ -145,15 +145,15 @@ def main():
     doc=json.loads(path.read_text(encoding="utf-8"))
     low,high=verify(doc)
     threshold=restoration_threshold(doc["scenario"])
-    require(threshold is not None,"no capacity-restoration threshold found in declared upper bound")
+    fail(threshold is not None,"no capacity-restoration threshold found in declared upper bound")
     threshold_capacity,threshold_flow,threshold_cut,threshold_witness=threshold
-    require(threshold_capacity==6,"unexpected minimum qualified lower-bound pump capacity for window 2")
-    require(threshold_flow==threshold_cut==12,"restoration threshold lacks max-flow/min-cut equality")
-    require(threshold_witness["service-obligation-t1"]==6 and threshold_witness["service-obligation-t2"]==6,"restoration threshold does not meet each separate service window")
+    fail(threshold_capacity==6,"unexpected minimum qualified lower-bound pump capacity for window 2")
+    fail(threshold_flow==threshold_cut==12,"restoration threshold lacks max-flow/min-cut equality")
+    fail(threshold_witness["service-obligation-t1"]==6 and threshold_witness["service-obligation-t2"]==6,"restoration threshold does not meet each separate service window")
     one_below=copy.deepcopy(doc["scenario"])
     next(e for e in one_below["edges"] if e["id"]=="pump-physical-t1")["capacity_lower"]=threshold_capacity-1
     below_flow=solve(one_below,"capacity_lower")[0]
-    require(below_flow==11,"one-tonne-below restoration control should leave a one-tonne service deficit")
+    fail(below_flow==11,"one-tonne-below restoration control should leave a one-tonne service deficit")
     attacks=[]
     # Duplicate the one physical gate under a second edge ID.
     a=copy.deepcopy(doc); edge=copy.deepcopy(next(e for e in a["scenario"]["edges"] if e["id"]=="pump-physical-t0")); edge["id"]="pump-physical-t0-duplicate"; a["scenario"]["edges"].append(edge); a["certificate"]["scenario_sha256"]=hashlib.sha256(canonical(a["scenario"])).hexdigest(); attacks.append(a)
