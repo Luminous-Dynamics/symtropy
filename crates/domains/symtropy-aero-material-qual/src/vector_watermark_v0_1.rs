@@ -250,7 +250,20 @@ pub fn validate_causal_cut(cut: &EvidenceCut) -> CutAssessment {
     }
 
     for event in &cut.events {
+        let mut seen_dependencies = BTreeSet::new();
         for dependency in &event.dependencies {
+            if !seen_dependencies.insert(dependency.event_ref.as_str()) {
+                invalid.push("DUPLICATE_CAUSAL_DEPENDENCY".to_owned());
+                continue;
+            }
+            if dependency.source_id == event.source_id
+                && dependency.partition_id == event.partition_id
+                && dependency.stream_epoch == event.stream_epoch
+                && dependency.sequence >= event.sequence
+            {
+                invalid.push("SAME_STREAM_DEPENDENCY_NOT_STRICTLY_PRIOR".to_owned());
+                continue;
+            }
             let Some(parent) = events_by_ref.get(&dependency.event_ref) else {
                 incomplete.push("CAUSAL_PREDECESSOR_MISSING_FROM_EVIDENCE_VIEW".to_owned());
                 continue;
@@ -370,6 +383,20 @@ pub fn compare_watermark_progress(
     let mut unverified = Vec::new();
     let mut incomplete = Vec::new();
 
+    for (vector_name, vector) in [("PREVIOUS", previous), ("CURRENT", current)] {
+        for watermark in vector {
+            if !nonempty(&watermark.source_id)
+                || !nonempty(&watermark.partition_id)
+                || !nonempty(&watermark.stream_epoch)
+            {
+                invalid.push(format!("{vector_name}_WATERMARK_IDENTITY_INVALID"));
+            }
+            if !valid_sha256(&watermark.checkpoint_digest_sha256) {
+                invalid.push(format!("{vector_name}_WATERMARK_DIGEST_INVALID"));
+            }
+        }
+    }
+
     for watermark in previous {
         let key = partition_key(&watermark.source_id, &watermark.partition_id);
         if old.insert(key, watermark).is_some() {
@@ -381,6 +408,10 @@ pub fn compare_watermark_progress(
         if new.insert(key, watermark).is_some() {
             invalid.push("CURRENT_VECTOR_HAS_DUPLICATE_PARTITION".to_owned());
         }
+    }
+
+    if !invalid.is_empty() {
+        return CutAssessment::new(CutStatus::Invalid, invalid, current.len(), 0, 0);
     }
 
     for (key, prior) in &old {
@@ -593,6 +624,77 @@ mod tests {
             ]
         }));
         assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Invalid);
+    }
+
+    #[test]
+    fn duplicate_dependency_edges_are_invalid() {
+        let evidence = cut(serde_json::json!({
+            "watermarks": [{
+                "source_id": "sensor-A", "partition_id": "0", "stream_epoch": "epoch-1",
+                "last_contiguous_sequence": 2, "receiver_inclusion_offset": 20,
+                "checkpoint_digest_sha256": DIGEST
+            }],
+            "events": [
+                {
+                    "event_ref": "event-A-1", "source_id": "sensor-A", "partition_id": "0",
+                    "stream_epoch": "epoch-1", "sequence": 1, "receiver_inclusion_offset": 10,
+                    "dependencies": []
+                },
+                {
+                    "event_ref": "event-A-2", "source_id": "sensor-A", "partition_id": "0",
+                    "stream_epoch": "epoch-1", "sequence": 2, "receiver_inclusion_offset": 20,
+                    "dependencies": [
+                        {
+                            "event_ref": "event-A-1", "source_id": "sensor-A", "partition_id": "0",
+                            "stream_epoch": "epoch-1", "sequence": 1
+                        },
+                        {
+                            "event_ref": "event-A-1", "source_id": "sensor-A", "partition_id": "0",
+                            "stream_epoch": "epoch-1", "sequence": 1
+                        }
+                    ]
+                }
+            ]
+        }));
+        assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Invalid);
+    }
+
+    #[test]
+    fn same_stream_event_cannot_depend_on_a_future_sequence() {
+        let evidence = cut(serde_json::json!({
+            "watermarks": [{
+                "source_id": "sensor-A", "partition_id": "0", "stream_epoch": "epoch-1",
+                "last_contiguous_sequence": 2, "receiver_inclusion_offset": 20,
+                "checkpoint_digest_sha256": DIGEST
+            }],
+            "events": [
+                {
+                    "event_ref": "event-A-1", "source_id": "sensor-A", "partition_id": "0",
+                    "stream_epoch": "epoch-1", "sequence": 1, "receiver_inclusion_offset": 10,
+                    "dependencies": [{
+                        "event_ref": "event-A-2", "source_id": "sensor-A", "partition_id": "0",
+                        "stream_epoch": "epoch-1", "sequence": 2
+                    }]
+                },
+                {
+                    "event_ref": "event-A-2", "source_id": "sensor-A", "partition_id": "0",
+                    "stream_epoch": "epoch-1", "sequence": 2, "receiver_inclusion_offset": 20,
+                    "dependencies": []
+                }
+            ]
+        }));
+        assert_eq!(validate_causal_cut(&evidence).status, CutStatus::Invalid);
+    }
+
+    #[test]
+    fn watermark_progress_rejects_malformed_checkpoint_digest() {
+        let mut current = watermark("sensor-A", "0", "epoch-1", 21, 210);
+        current.checkpoint_digest_sha256 = "bad".to_owned();
+        let previous = [watermark("sensor-A", "0", "epoch-1", 20, 200)];
+        assert_eq!(
+            compare_watermark_progress(&previous, &[current]).status,
+            CutStatus::Invalid
+        );
     }
 
     #[test]
