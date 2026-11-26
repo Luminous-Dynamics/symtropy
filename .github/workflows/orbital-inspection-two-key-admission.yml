@@ -44,9 +44,9 @@ jobs:
           Draft202012Validator.check_schema(schema)
           errors = list(Draft202012Validator(schema).iter_errors(fixture))
           assert not errors, errors
-          assert len(fixture["cases"]) == 23
-          assert len({case["case_id"] for case in fixture["cases"]}) == 23
-          print("23 two-key admission cases and Draft 2020-12 schema validated")
+          assert len(fixture["cases"]) == 24
+          assert len({case["case_id"] for case in fixture["cases"]}) == 24
+          print("24 two-key admission cases and Draft 2020-12 schema validated")
           PY
       - name: Format
         run: cargo fmt --manifest-path tools/orbital-inspection-two-key-admission-bench/Cargo.toml -- --check
@@ -70,7 +70,7 @@ jobs:
           rust = json.loads(Path("/tmp/two-key-rust-a.json").read_text())
           oracle = json.loads(Path("/tmp/two-key-python.json").read_text())
           assert rust == oracle
-          assert rust["expected_disposition_matches"] == 23
+          assert rust["expected_disposition_matches"] == 24
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["source_bytes_authenticated"] is False
           assert rust["authority_granted"] is False
@@ -84,7 +84,9 @@ jobs:
           assert cases["TK-021-PORTFOLIO-TRAJECTORY-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["TK-022-MEASUREMENT-VEHICLE-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["TK-023-MEASUREMENT-HORIZON-MISMATCH"]["disposition"] == "OUT_OF_SCOPE"
-          print("Rust and independent oracle agree on all 23 two-key admission cases")
+          assert cases["TK-024-OBSERVED-DECISION-EFFECT"]["disposition"] == "ELIGIBLE_INSPECTION"
+          assert cases["TK-024-OBSERVED-DECISION-EFFECT"]["decision_value_basis"] == "OBSERVED"
+          print("Rust and independent oracle agree on all 24 two-key admission cases")
           PY
       - name: Retain exact-head evidence
         if: success()
