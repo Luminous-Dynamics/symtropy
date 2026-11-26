@@ -805,6 +805,17 @@ mod tests {
         let mut result = candidate.solve().unwrap();
         result.min_cut.capacity += 1;
         assert!(candidate.verify_result(&result).is_err());
+
+        let mut result = candidate.solve().unwrap();
+        result.capacity_unit_ref = "different-unit".to_string();
+        assert!(candidate.verify_result(&result).is_err());
+
+        let mut different_contract = candidate.clone();
+        different_contract.quantity_boundary_ref = "different-boundary".to_string();
+        assert_ne!(
+            candidate.solve().unwrap().graph_sha256,
+            different_contract.solve().unwrap().graph_sha256
+        );
     }
 
     #[test]
@@ -812,6 +823,14 @@ mod tests {
         let mut candidate = graph(2, &[]);
         candidate.source = "n1".to_string();
         candidate.sink = "n1".to_string();
+        assert!(candidate.solve().is_err());
+
+        let mut candidate = graph(2, &[]);
+        candidate.commodity_ref.clear();
+        assert!(candidate.solve().is_err());
+
+        let mut candidate = graph(2, &[]);
+        candidate.capacity_unit_ref.clear();
         assert!(candidate.solve().is_err());
 
         let mut candidate = graph(2, &[]);
