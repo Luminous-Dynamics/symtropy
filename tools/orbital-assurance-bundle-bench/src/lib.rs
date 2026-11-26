@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
+pub mod coalition_consequence_binding;
 pub mod dependency_graph_adequacy;
 pub mod incumbent_adequacy;
 pub mod loss_model_universe_adequacy;

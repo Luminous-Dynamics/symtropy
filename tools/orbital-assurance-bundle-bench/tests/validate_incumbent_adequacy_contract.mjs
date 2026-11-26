@@ -84,7 +84,11 @@ for (const item of corpus.cases) {
     || !item.world_set_source_case_id
     || !/^[0-9a-f]{64}$/.test(item.world_set_receipt_sha256)
     || !/^[0-9a-f]{40}$/.test(modelSet.source_commit)
-    || !/^[0-9a-f]{64}$/.test(modelSet.source_receipt_sha256)
+    || (!/^[0-9a-f]{64}$/.test(modelSet.source_receipt_sha256)
+      && !(item.case_id === "loss_model_source_pin_malformed"
+        && item.expected?.disposition === "INVALID_INPUT"
+        && item.expected?.trigger_reason === "upstream world or loss-model receipt pins are malformed"
+        && modelSet.source_receipt_sha256 === "not-a-sha256"))
     || !/^[0-9a-f]{64}$/.test(modelSet.source_scenarios_sha256)
     || !/^[0-9a-f]{64}$/.test(modelSet.projected_scenarios_sha256)
     || typeof modelSet.source_loss_unit !== "string" || !modelSet.source_loss_unit
@@ -149,13 +153,41 @@ for (const item of corpus.cases) {
     }
   }
 
-  if (scenarioIds.size !== modelSet.expected_scenario_ids.length
-    || modelSet.expected_scenario_ids.some(id => !scenarioIds.has(id))) {
-    throw new Error("observed joint scenarios differ from planned inventory in " + item.case_id);
+  const missingPlannedScenarios = modelSet.expected_scenario_ids.filter(id => !scenarioIds.has(id));
+  const unexpectedObservedScenarios = [...scenarioIds].filter(id => !modelSet.expected_scenario_ids.includes(id));
+  const scenarioInventoryComplete = missingPlannedScenarios.length === 0
+    && unexpectedObservedScenarios.length === 0
+    && scenarioIds.size === modelSet.expected_scenario_ids.length;
+  if (!scenarioInventoryComplete) {
+    const isExactOmissionControl = item.case_id === "joint_scenario_omission"
+      && item.expected?.disposition === "INVALID_INPUT"
+      && item.expected?.trigger_reason === "observed joint scenarios do not match planned loss-model inventory"
+      && missingPlannedScenarios.length === 1
+      && unexpectedObservedScenarios.length === 0
+      && scenarioIds.size + 1 === modelSet.expected_scenario_ids.length;
+    if (!isExactOmissionControl) {
+      throw new Error("observed joint scenarios differ from planned inventory in " + item.case_id);
+    }
+  } else if (item.case_id === "joint_scenario_omission") {
+    throw new Error("joint-scenario omission negative control is no longer incomplete");
   }
-  if (worldIds.size !== item.expected_world_ids.length
-    || item.expected_world_ids.some(id => !worldIds.has(id))) {
-    throw new Error("joint scenarios do not cover exact physical-world inventory in " + item.case_id);
+  const missingPhysicalWorlds = item.expected_world_ids.filter(id => !worldIds.has(id));
+  const unexpectedPhysicalWorlds = [...worldIds].filter(id => !item.expected_world_ids.includes(id));
+  const physicalWorldInventoryComplete = missingPhysicalWorlds.length === 0
+    && unexpectedPhysicalWorlds.length === 0
+    && worldIds.size === item.expected_world_ids.length;
+  if (!physicalWorldInventoryComplete) {
+    const isExactPhysicalWorldOmissionControl = item.case_id === "physical_world_omission"
+      && item.expected?.disposition === "INVALID_INPUT"
+      && item.expected?.trigger_reason === "joint loss scenarios do not cover the exact surviving physical-world inventory"
+      && missingPhysicalWorlds.length === 1
+      && unexpectedPhysicalWorlds.length === 0
+      && worldIds.size + 1 === item.expected_world_ids.length;
+    if (!isExactPhysicalWorldOmissionControl) {
+      throw new Error("joint scenarios do not cover exact physical-world inventory in " + item.case_id);
+    }
+  } else if (item.case_id === "physical_world_omission") {
+    throw new Error("physical-world omission negative control is no longer incomplete");
   }
   if (projectedDigest(item.worlds) !== modelSet.projected_scenarios_sha256) {
     throw new Error("projected scenario digest mismatch in " + item.case_id);

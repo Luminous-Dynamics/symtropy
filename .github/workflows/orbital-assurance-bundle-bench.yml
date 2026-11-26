@@ -7,6 +7,7 @@ on:
       - "research/orbital-incumbent-adequacy-v0-1"
       - "research/orbital-incumbent-loss-model-bridge-v0-1"
       - "research/orbital-loss-model-universe-adequacy-v0-2"
+      - "research/orbital-coalition-consequence-binding-v0-1-2026-11-25"
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
       - "research/orbital/DECISION_ASSURANCE_COMPARATOR_PROTOCOL_V0_1.md"
@@ -21,6 +22,7 @@ on:
       - "research/orbital-dependency-graph-adequacy-v0-1"
       - "research/orbital-assurance-bundle-v0-1"
       - "research/orbital-incumbent-loss-model-bridge-v0-1"
+      - "research/orbital-loss-model-universe-adequacy-v0-2"
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "tools/orbital-assurance-bundle-bench/**"
@@ -242,3 +244,47 @@ jobs:
             loss-model-universe-oracle.json
           if-no-files-found: error
           retention-days: 30
+
+  coalition-consequence-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BENCHMARK_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact benchmark head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Generate standalone lockfile
+        run: cargo generate-lockfile --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml -- --check
+      - name: Run crate tests
+        run: cargo test --locked --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --all-targets
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Validate coalition corpus contract
+        run: node tools/orbital-assurance-bundle-bench/tests/validate_coalition_consequence_contract.mjs tools/orbital-assurance-bundle-bench/schema/v0.1/coalition-consequence-corpus.schema.json tools/orbital-assurance-bundle-bench/fixtures/v0.1/coalition-consequence-cases.json
+      - name: Generate coalition consequence receipt
+        run: |
+          actual_commit="$(git rev-parse HEAD)"
+          test "$actual_commit" = "$BENCHMARK_COMMIT"
+          cargo run --locked --quiet --manifest-path tools/orbital-assurance-bundle-bench/Cargo.toml --bin coalition-consequence-binding -- tools/orbital-assurance-bundle-bench/fixtures/v0.1/coalition-consequence-cases.json --source-commit "$actual_commit" > coalition-consequence-receipt.json
+          jq -e --arg expected_commit "$BENCHMARK_COMMIT" '.receipt_schema == "luminous.orbital-coalition-consequence-binding.receipt.v0.1" and .source_commit == $expected_commit and (.fixture_sha256 | test("^[0-9a-f]{64}$")) and .result == "pass" and .evaluation.summary.case_count == 1 and .evaluation.summary.expected_result_mismatches == 0 and .evaluation.summary.authority_grants == 0 and .authority_granted == false' coalition-consequence-receipt.json
+      - name: Run independent coalition consequence oracle
+        run: node tools/orbital-assurance-bundle-bench/tests/coalition_consequence_oracle.mjs tools/orbital-assurance-bundle-bench/fixtures/v0.1/coalition-consequence-cases.json > coalition-consequence-oracle.json
+      - name: Compare Rust receipt with independent oracle
+        run: node tools/orbital-assurance-bundle-bench/tests/compare_coalition_consequence.mjs coalition-consequence-receipt.json coalition-consequence-oracle.json
+      - name: Upload coalition evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-coalition-consequence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            coalition-consequence-receipt.json
+            coalition-consequence-oracle.json
