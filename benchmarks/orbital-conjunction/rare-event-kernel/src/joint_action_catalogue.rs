@@ -453,14 +453,16 @@ pub fn evaluate_joint_action_catalogue(
                     return Err(JointActionCatalogueError::InvalidReasonDigest);
                 }
                 report.infeasible_count += 1;
-                report.portfolio_evidence.push(JointActionPortfolioEvidenceRecord {
-                    action_ids: action_ids.clone(),
-                    action_set_digest: outcome.action_set_digest,
-                    resource_cost: *resource_cost,
-                    outcome_state: JointActionOutcomeState::Infeasible { reason_digest },
-                    post_action_event_inventory_digest: None,
-                    reconciliation: None,
-                });
+                report
+                    .portfolio_evidence
+                    .push(JointActionPortfolioEvidenceRecord {
+                        action_ids: action_ids.clone(),
+                        action_set_digest: outcome.action_set_digest,
+                        resource_cost: *resource_cost,
+                        outcome_state: JointActionOutcomeState::Infeasible { reason_digest },
+                        post_action_event_inventory_digest: None,
+                        reconciliation: None,
+                    });
             }
             JointActionOutcomeState::Unresolved { reason_digest } => {
                 if is_zero_digest(&reason_digest) {
@@ -468,14 +470,16 @@ pub fn evaluate_joint_action_catalogue(
                 }
                 report.unresolved_count += 1;
                 must_abstain = true;
-                report.portfolio_evidence.push(JointActionPortfolioEvidenceRecord {
-                    action_ids: action_ids.clone(),
-                    action_set_digest: outcome.action_set_digest,
-                    resource_cost: *resource_cost,
-                    outcome_state: JointActionOutcomeState::Unresolved { reason_digest },
-                    post_action_event_inventory_digest: None,
-                    reconciliation: None,
-                });
+                report
+                    .portfolio_evidence
+                    .push(JointActionPortfolioEvidenceRecord {
+                        action_ids: action_ids.clone(),
+                        action_set_digest: outcome.action_set_digest,
+                        resource_cost: *resource_cost,
+                        outcome_state: JointActionOutcomeState::Unresolved { reason_digest },
+                        post_action_event_inventory_digest: None,
+                        reconciliation: None,
+                    });
             }
             JointActionOutcomeState::Qualified {
                 post_action_snapshot,
@@ -519,19 +523,21 @@ pub fn evaluate_joint_action_catalogue(
                 )?;
                 let event_inventory_digest =
                     canonical_post_action_event_inventory_digest(&post_action_snapshot.events)?;
-                report.portfolio_evidence.push(JointActionPortfolioEvidenceRecord {
-                    action_ids: action_ids.clone(),
-                    action_set_digest: outcome.action_set_digest,
-                    resource_cost: *resource_cost,
-                    outcome_state: JointActionOutcomeState::Qualified {
-                        post_action_snapshot,
-                        consequence_model_digest,
-                        robust_consequence_avoided_ticks,
-                        coordination_digest,
-                    },
-                    post_action_event_inventory_digest: Some(event_inventory_digest),
-                    reconciliation: Some(reconciliation.clone()),
-                });
+                report
+                    .portfolio_evidence
+                    .push(JointActionPortfolioEvidenceRecord {
+                        action_ids: action_ids.clone(),
+                        action_set_digest: outcome.action_set_digest,
+                        resource_cost: *resource_cost,
+                        outcome_state: JointActionOutcomeState::Qualified {
+                            post_action_snapshot,
+                            consequence_model_digest,
+                            robust_consequence_avoided_ticks,
+                            coordination_digest,
+                        },
+                        post_action_event_inventory_digest: Some(event_inventory_digest),
+                        reconciliation: Some(reconciliation.clone()),
+                    });
 
                 // A catalog revision change makes consequence deltas incomparable,
                 // even when the post-action event inventory is itself complete.
@@ -715,13 +721,9 @@ mod tests {
     fn post_action_event_inventory_digest_is_order_invariant_and_content_bound() {
         let first = event(10, (1, 2_000_000), (2, 2_000_000));
         let second = event(11, (1, 3_000_000), (1, 3_000_000));
-        let forward = canonical_post_action_event_inventory_digest(&[
-            first.clone(),
-            second.clone(),
-        ])
-        .unwrap();
-        let reverse =
-            canonical_post_action_event_inventory_digest(&[second, first]).unwrap();
+        let forward =
+            canonical_post_action_event_inventory_digest(&[first.clone(), second.clone()]).unwrap();
+        let reverse = canonical_post_action_event_inventory_digest(&[second, first]).unwrap();
         let single = canonical_post_action_event_inventory_digest(&[event(
             10,
             (1, 2_000_000),
@@ -740,10 +742,7 @@ mod tests {
     fn post_action_event_inventory_digest_rejects_duplicate_event_identity() {
         let duplicate = event(10, (1, 2_000_000), (1, 2_000_000));
         assert_eq!(
-            canonical_post_action_event_inventory_digest(&[
-                duplicate.clone(),
-                duplicate,
-            ]),
+            canonical_post_action_event_inventory_digest(&[duplicate.clone(), duplicate,]),
             Err(JointActionCatalogueError::InvalidPortfolioEvidence)
         );
     }
@@ -753,10 +752,7 @@ mod tests {
         let a = [10; 32];
         let b = [11; 32];
         let report = evaluate_joint_action_catalogue(config(
-            vec![
-                candidate(11, 1, OPERATOR_A),
-                candidate(10, 1, OPERATOR_A),
-            ],
+            vec![candidate(11, 1, OPERATOR_A), candidate(10, 1, OPERATOR_A)],
             vec![
                 JointActionOutcomeRecord {
                     action_ids: vec![b],
@@ -779,7 +775,10 @@ mod tests {
 
         assert_eq!(report.expected_coalition_count, 3);
         assert_eq!(report.portfolio_evidence.len(), 3);
-        assert_eq!(report.portfolio_evidence[0].action_ids, Vec::<[u8; 32]>::new());
+        assert_eq!(
+            report.portfolio_evidence[0].action_ids,
+            Vec::<[u8; 32]>::new()
+        );
         assert_eq!(report.portfolio_evidence[1].action_ids, vec![a]);
         assert_eq!(report.portfolio_evidence[2].action_ids, vec![b]);
         assert!(report.portfolio_evidence[0].reconciliation.is_some());
