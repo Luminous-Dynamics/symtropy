@@ -479,10 +479,7 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
         }
         ClaimType::NoEffect => {
             if claim.observation_window.is_none() {
-                return Err(format!(
-                    "NO_EFFECT_REQUIRES_WINDOW: {}",
-                    claim.claim_id
-                ));
+                return Err(format!("NO_EFFECT_REQUIRES_WINDOW: {}", claim.claim_id));
             }
         }
         ClaimType::EndpointFenced => {
