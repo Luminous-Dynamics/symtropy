@@ -44,6 +44,8 @@ pub struct PortfolioScenarioRiskContract {
     pub event_inventory_digest: [u8; 32],
     /// Digest of the complete canonical MissionRiskEnvelope contents.
     pub risk_envelope_digest: [u8; 32],
+    /// Digest of the complete canonical MissionRiskEnvelope contents.
+    pub risk_envelope_digest: [u8; 32],
     /// Exact total integer mass expected for the finite target support.
     pub total_mass_ticks: u64,
     /// Exact rational mission-wide collision-risk budget for this scenario.
@@ -684,6 +686,74 @@ fn hash_exact_mass(hasher: &mut Sha256, mass: ExactMass) {
     hasher.update(mass.denominator.to_be_bytes());
 }
 
+
+/// Compute a canonical, domain-separated content digest for a mission-risk envelope.
+///
+/// The digest binds exact risk summaries, event identifiers and the diagnostic
+/// independence approximation. It is a content identity, not an issuer signature
+/// or proof that the underlying source universe is complete.
+pub fn mission_risk_envelope_digest(envelope: &MissionRiskEnvelope) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(b"luminous.orbital.mission-risk-envelope.v0.1\0");
+    hasher.update(envelope.manifest_digest);
+    hasher.update(envelope.target_measure_digest);
+    hasher.update(envelope.event_inventory_digest);
+    hasher.update(envelope.total_mass_ticks.to_be_bytes());
+    hasher.update((envelope.event_count as u64).to_be_bytes());
+    hasher.update((envelope.trajectory_atom_count as u64).to_be_bytes());
+
+    hasher.update((envelope.event_marginals.len() as u64).to_be_bytes());
+    for marginal in &envelope.event_marginals {
+        hash_string(&mut hasher, &marginal.event_id);
+        hash_exact_mass(&mut hasher, marginal.mass);
+    }
+
+    hasher.update((envelope.pairwise_intersections.len() as u64).to_be_bytes());
+    for pair in &envelope.pairwise_intersections {
+        hash_string(&mut hasher, &pair.left_event_id);
+        hash_string(&mut hasher, &pair.right_event_id);
+        hash_exact_mass(&mut hasher, pair.mass);
+    }
+
+    hasher.update((envelope.joint_signatures.len() as u64).to_be_bytes());
+    for signature in &envelope.joint_signatures {
+        hasher.update((signature.contacting_event_ids.len() as u64).to_be_bytes());
+        for event_id in &signature.contacting_event_ids {
+            hash_string(&mut hasher, event_id);
+        }
+        hash_exact_mass(&mut hasher, signature.mass);
+    }
+
+    hash_exact_mass(&mut hasher, envelope.pathwise_union_mass);
+    hash_exact_mass(&mut hasher, envelope.no_event_mass);
+    hasher.update(envelope.marginal_sum_ticks.to_be_bytes());
+    hash_exact_mass(&mut hasher, envelope.frechet_union_bounds.lower_bound);
+    hash_exact_mass(&mut hasher, envelope.frechet_union_bounds.upper_bound);
+    let independence_bits = if envelope.independence_union_approximation == 0.0 {
+        0.0_f64.to_bits()
+    } else {
+        envelope.independence_union_approximation.to_bits()
+    };
+    hasher.update(independence_bits.to_be_bytes());
+    hash_exact_mass(&mut hasher, envelope.risk_budget);
+    hasher.update([match envelope.budget_status {
+        MissionRiskBudgetStatus::WithinDeclaredFiniteSupportBudget => 0,
+        MissionRiskBudgetStatus::ExceedsDeclaredFiniteSupportBudget => 1,
+    }]);
+    hasher.update([u8::from(envelope.authority_granted)]);
+    hasher.finalize().into()
+}
+
+fn hash_string(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_be_bytes());
+    hasher.update(value.as_bytes());
+}
+
+fn hash_exact_mass(hasher: &mut Sha256, mass: ExactMass) {
+    hasher.update(mass.numerator.to_be_bytes());
+    hasher.update(mass.denominator.to_be_bytes());
+}
+
 fn validate_envelope(
     contract: &PortfolioScenarioRiskContract,
     envelope: &MissionRiskEnvelope,
@@ -694,6 +764,9 @@ fn validate_envelope(
         || envelope.total_mass_ticks != contract.total_mass_ticks
     {
         return Err(ScenarioMissionRiskGateError::RiskEnvelopeIdentityMismatch);
+    }
+    if mission_risk_envelope_digest(envelope) != contract.risk_envelope_digest {
+        return Err(ScenarioMissionRiskGateError::RiskEnvelopeDigestMismatch);
     }
     if mission_risk_envelope_digest(envelope) != contract.risk_envelope_digest {
         return Err(ScenarioMissionRiskGateError::RiskEnvelopeDigestMismatch);
@@ -876,47 +949,6 @@ fn compare_exact_mass(left: ExactMass, right: ExactMass) -> Result<Ordering, Sce
     Ok(left_scaled.cmp(&right_scaled))
 }
 
-fn exact_masses_sum_to_one(left: ExactMass, right: ExactMass) -> bool {
-    if !valid_probability_mass(left) || !valid_probability_mass(right) {
-        return false;
-    }
-    let left_scaled = u128::from(left.numerator) * u128::from(right.denominator);
-    let right_complement = u128::from(right.denominator - right.numerator)
-        * u128::from(left.denominator);
-    left_scaled == right_complement
-}
-
-fn add_exact_mass(
-    left: ExactMass,
-    right: ExactMass,
-) -> Result<ExactMass, ScenarioMissionRiskGateError> {
-    if !valid_probability_mass(left) || !valid_probability_mass(right) {
-        return Err(ScenarioMissionRiskGateError::InvalidExactMass);
-    }
-    let numerator = u128::from(left.numerator) * u128::from(right.denominator)
-        + u128::from(right.numerator) * u128::from(left.denominator);
-    let denominator = u128::from(left.denominator) * u128::from(right.denominator);
-    if numerator > denominator || numerator > u128::from(u64::MAX) || denominator > u128::from(u64::MAX) {
-        return Err(ScenarioMissionRiskGateError::NumericalFailure);
-    }
-    let numerator = numerator as u64;
-    let denominator = denominator as u64;
-    let divisor = gcd_u64(numerator, denominator);
-    Ok(ExactMass {
-        numerator: numerator / divisor,
-        denominator: denominator / divisor,
-    })
-}
-
-fn gcd_u64(mut left: u64, mut right: u64) -> u64 {
-    while right != 0 {
-        let remainder = left % right;
-        left = right;
-        right = remainder;
-    }
-    left.max(1)
-}
-
 fn close_enough(left: f64, right: f64) -> bool {
     left.is_finite()
         && right.is_finite()
@@ -1014,13 +1046,28 @@ mod tests {
                 (1_u8, PORTFOLIO_B),
                 (2_u8, PORTFOLIO_C),
             ] {
+                let union = if scenario_id == SCENARIO_B && portfolio_id == PORTFOLIO_C {
+                    exact(1, 2)
+                } else {
+                    exact(1, 10)
+                };
+                let manifest_digest = [base + offset; 32];
+                let event_inventory_digest = [base + 10 + offset; 32];
+                let risk = envelope(
+                    manifest_digest[0],
+                    target,
+                    event_inventory_digest[0],
+                    union,
+                    budget,
+                );
                 rows.push(PortfolioScenarioRiskContract {
                     scenario_id,
                     portfolio_id,
-                    manifest_digest: [base + offset; 32],
+                    manifest_digest,
                     target_measure_digest: target,
                     density_space_digest: density,
-                    event_inventory_digest: [base + 10 + offset; 32],
+                    event_inventory_digest,
+                    risk_envelope_digest: mission_risk_envelope_digest(&risk),
                     total_mass_ticks: 100,
                     risk_budget: budget,
                 });
@@ -1111,8 +1158,9 @@ mod tests {
         ]
     }
 
-    fn gate() -> ScenarioMissionRiskGate {
-        let mut contracts = contracts();
+    fn gate_with_contracts(
+        mut contracts: Vec<PortfolioScenarioRiskContract>,
+    ) -> ScenarioMissionRiskGate {
         contracts.reverse();
         ScenarioMissionRiskGate::new(
             0.05,
@@ -1122,6 +1170,27 @@ mod tests {
             contracts,
         )
         .unwrap()
+    }
+
+    fn gate() -> ScenarioMissionRiskGate {
+        gate_with_contracts(contracts())
+    }
+
+    fn contracts_matching_evidence(
+        evidence: &[PortfolioScenarioRiskEvidence],
+    ) -> Vec<PortfolioScenarioRiskContract> {
+        let mut contract_rows = contracts();
+        for contract in &mut contract_rows {
+            let row = evidence
+                .iter()
+                .find(|row| {
+                    row.scenario_id == contract.scenario_id
+                        && row.portfolio_id == contract.portfolio_id
+                })
+                .unwrap();
+            contract.risk_envelope_digest = mission_risk_envelope_digest(&row.envelope);
+        }
+        contract_rows
     }
 
     #[test]
@@ -1165,21 +1234,23 @@ mod tests {
             .iter_mut()
             .find(|row| row.scenario_id == SCENARIO_B && row.portfolio_id == PORTFOLIO_C)
             .unwrap();
+        let contract = contracts()
+            .into_iter()
+            .find(|contract| {
+                contract.scenario_id == SCENARIO_B && contract.portfolio_id == PORTFOLIO_C
+            })
+            .unwrap();
         row.envelope = envelope(
-            contracts()
-                .into_iter()
-                .find(|contract| {
-                    contract.scenario_id == SCENARIO_B && contract.portfolio_id == PORTFOLIO_C
-                })
-                .unwrap()
-                .manifest_digest[0],
+            contract.manifest_digest[0],
             TARGET_B,
-            92,
+            contract.event_inventory_digest[0],
             budget,
             budget,
         );
 
-        let report = gate().evaluate(&evidence, &consequence_reports()).unwrap();
+        let report = gate_with_contracts(contracts_matching_evidence(&evidence))
+            .evaluate(&evidence, &consequence_reports())
+            .unwrap();
         assert_eq!(report.eligible_portfolio_ids, vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C]);
         assert!(report.ineligible_portfolio_ids.is_empty());
     }
@@ -1227,8 +1298,10 @@ mod tests {
             exact(1, 5),
         );
 
-        let report = gate().evaluate(&evidence, &consequence_reports()).unwrap();
-        assert!(report.eligible_portfolio_ids.is_empty() || report.eligible_portfolio_ids.contains(&PORTFOLIO_A));
+        let report = gate_with_contracts(contracts_matching_evidence(&evidence))
+            .evaluate(&evidence, &consequence_reports())
+            .unwrap();
+        assert!(report.eligible_portfolio_ids.contains(&PORTFOLIO_A));
         assert!(report.ineligible_portfolio_ids.contains(&PORTFOLIO_B));
     }
 
@@ -1261,22 +1334,36 @@ mod tests {
         let mut rows = risk_evidence();
         rows[0].envelope.budget_status = MissionRiskBudgetStatus::ExceedsDeclaredFiniteSupportBudget;
         assert_eq!(
-            gate().evaluate(&rows, &consequence_reports()),
+            gate_with_contracts(contracts_matching_evidence(&rows))
+                .evaluate(&rows, &consequence_reports()),
             Err(ScenarioMissionRiskGateError::RiskBudgetStatusMismatch)
         );
 
         let mut rows = risk_evidence();
         rows[0].envelope.no_event_mass = exact(1, 10);
         assert_eq!(
-            gate().evaluate(&rows, &consequence_reports()),
+            gate_with_contracts(contracts_matching_evidence(&rows))
+                .evaluate(&rows, &consequence_reports()),
             Err(ScenarioMissionRiskGateError::UnionComplementMismatch)
         );
 
         let mut rows = risk_evidence();
         rows[0].envelope.authority_granted = true;
         assert_eq!(
-            gate().evaluate(&rows, &consequence_reports()),
+            gate_with_contracts(contracts_matching_evidence(&rows))
+                .evaluate(&rows, &consequence_reports()),
             Err(ScenarioMissionRiskGateError::UnexpectedAuthorityGrant)
+        );
+    }
+
+    #[test]
+    fn risk_envelope_content_is_bound_even_when_source_ids_are_unchanged() {
+        let mut rows = risk_evidence();
+        rows[0].envelope.pathwise_union_mass = exact(1, 2);
+
+        assert_eq!(
+            gate().evaluate(&rows, &consequence_reports()),
+            Err(ScenarioMissionRiskGateError::RiskEnvelopeDigestMismatch)
         );
     }
 
@@ -1323,7 +1410,9 @@ mod tests {
             );
         }
 
-        let report = gate().evaluate(&rows, &consequence_reports()).unwrap();
+        let report = gate_with_contracts(contracts_matching_evidence(&rows))
+            .evaluate(&rows, &consequence_reports())
+            .unwrap();
         assert!(report.eligible_portfolio_ids.is_empty());
         assert_eq!(
             report.ineligible_portfolio_ids,
