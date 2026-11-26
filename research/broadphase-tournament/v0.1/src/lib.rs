@@ -1891,7 +1891,16 @@ mod tests {
         let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
         assert_eq!(dirty, vec![ProxyId(1), ProxyId(2)]);
         assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
+        assert!(cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
+            .unwrap());
         assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        assert!(!cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
+            .unwrap());
+        assert!(!cache
+            .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
+            .unwrap());
         let moved = cache.step_with_dirty_ids(&next, &dirty).unwrap();
         assert_eq!(moved.revalidated.len(), 1);
         assert_eq!(moved.frontier_proxy_visits, 0);
