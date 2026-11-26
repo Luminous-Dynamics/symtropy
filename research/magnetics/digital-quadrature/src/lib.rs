@@ -1257,6 +1257,7 @@ pub fn analyze_channel_harmonics(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
 
     fn latch(axis_angle_rad: f64, initial_high: bool, bop: f64, brp: f64) -> HallLatchConfig {
         HallLatchConfig {
