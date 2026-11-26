@@ -115,7 +115,7 @@
         "exposure_budget_y_micro_px": 11000,
         "row_time_budget_x_micro_px": 12000,
         "row_time_budget_y_micro_px": 11000,
-        "combined_frame_budget_x_micro_px": 20000,
+        "combined_frame_budget_x_micro_px": 14999,
         "combined_frame_budget_y_micro_px": 20000,
         "kinematic_envelope_state": "PASS",
         "support_envelope_state": "PASS",
