@@ -75,3 +75,9 @@ This is an internal reference tournament, not an external industry comparison. I
 The p95 promotion target remains prospective: at least 20% lower total broadphase cost on two held-out temporal families with no more than 5% regression on the other declared families, with zero correctness failures and unchanged candidate/contact/solver-row denominators. Candidate-count reductions alone are not a speed win.
 
 A later cross-engine campaign must preserve the exact scenario and AABB population export, map each engine's contact/filter/lifecycle semantics, run on matched hardware and distinguish different physical laws. The public NYU CCD / analytic-TOI corpus belongs in a separate shape-level continuous-collision lane, not in this AABB overlap tournament.
+
+## Revision-bound contact freshness prototype
+
+The exported `contact_freshness` module separates three decisions that a single dirty bit conflates: manifold-geometry reuse, solver warm-start reuse, and solver-island reactivation. In particular, a wake-only epoch change requests island activation while preserving geometry and warm-start reuse when every other revision remains identical. Transform, shape, eligibility, motion-class, global collision-policy, narrowphase-config, material and solver-config changes are evaluated independently; generation reuse and revision rollback fail closed.
+
+The API and adversarial qualification plan are described in [CONTACT_FRESHNESS_PROTOCOL.md](CONTACT_FRESHNESS_PROTOCOL.md). This is a revision-decision prototype only: it is not wired to a live contact manager, authoritative world journal, receipt verifier, or solver. Its unit tests are authored but must still pass exact-head format/test/Clippy CI before any qualification claim. Do not interpret the wake-only optimization as a measured engine result.
