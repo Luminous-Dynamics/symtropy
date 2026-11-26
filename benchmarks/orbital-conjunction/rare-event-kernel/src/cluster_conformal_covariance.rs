@@ -16,8 +16,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::covariance_realism::{
-    CovarianceRealismError, CovarianceResidualObservation, chi_square_quantile,
-    whiten_residual,
+    CovarianceRealismError, CovarianceResidualObservation, chi_square_quantile, whiten_residual,
 };
 
 /// Maximum number of held-out calibration residual observations.
@@ -145,22 +144,44 @@ impl core::fmt::Display for ClusterConformalCalibrationError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::EmptyCalibrationSet => "cluster-conformal calibration set is empty",
-            Self::TooManyCalibrationObservations => "cluster-conformal calibration exceeds its observation limit",
+            Self::TooManyCalibrationObservations => {
+                "cluster-conformal calibration exceeds its observation limit"
+            }
             Self::InvalidIdentity => "calibration, evaluation or block-contract identity is zero",
-            Self::CalibrationEvaluationPartitionCollision => "calibration and evaluation partitions must differ",
+            Self::CalibrationEvaluationPartitionCollision => {
+                "calibration and evaluation partitions must differ"
+            }
             Self::InvalidBlockSize => "observations-per-cluster must be strictly positive",
-            Self::CalibrationPartitionMismatch => "residual does not belong to the frozen calibration partition",
+            Self::CalibrationPartitionMismatch => {
+                "residual does not belong to the frozen calibration partition"
+            }
             Self::BlockContractMismatch => "residual does not belong to the frozen block contract",
-            Self::InvalidAlpha => "conformal miscoverage alpha must lie strictly between zero and one",
-            Self::MixedCalibrationGroup => "calibration mixes density spaces, strata or residual dimensions",
-            Self::DuplicateObservationIdentity => "calibration residual observation identity is duplicated",
-            Self::ClusterExceedsBlockSize => "dependence cluster exceeds its frozen observation count",
-            Self::IncompleteCalibrationCluster => "dependence cluster is incomplete under the frozen block contract",
-            Self::NonZeroCovarianceReferenceMean => "covariance reference mean must be exactly zero",
+            Self::InvalidAlpha => {
+                "conformal miscoverage alpha must lie strictly between zero and one"
+            }
+            Self::MixedCalibrationGroup => {
+                "calibration mixes density spaces, strata or residual dimensions"
+            }
+            Self::DuplicateObservationIdentity => {
+                "calibration residual observation identity is duplicated"
+            }
+            Self::ClusterExceedsBlockSize => {
+                "dependence cluster exceeds its frozen observation count"
+            }
+            Self::IncompleteCalibrationCluster => {
+                "dependence cluster is incomplete under the frozen block contract"
+            }
+            Self::NonZeroCovarianceReferenceMean => {
+                "covariance reference mean must be exactly zero"
+            }
             Self::DimensionMismatch => "residual and covariance dimensions differ",
             Self::NonFiniteResidual => "residual contains a non-finite component",
-            Self::NumericalFailure => "cluster NIS or conformal quantile calculation failed numerically",
-            Self::CovarianceRealismFailure => "shared covariance-realism primitive rejected an input",
+            Self::NumericalFailure => {
+                "cluster NIS or conformal quantile calculation failed numerically"
+            }
+            Self::CovarianceRealismFailure => {
+                "shared covariance-realism primitive rejected an input"
+            }
         };
         formatter.write_str(message)
     }
@@ -197,7 +218,10 @@ pub fn calibrate_cluster_conformal_ellipsoid(
     config: ClusterConformalCalibrationConfig,
     observations: &[ClusterConformalResidualObservation],
 ) -> Result<ClusterConformalEllipsoidCalibration, ClusterConformalCalibrationError> {
-    if config.calibration_partition_id.iter().all(|byte| *byte == 0)
+    if config
+        .calibration_partition_id
+        .iter()
+        .all(|byte| *byte == 0)
         || config.evaluation_partition_id.iter().all(|byte| *byte == 0)
         || config.block_contract_id.iter().all(|byte| *byte == 0)
     {
@@ -227,7 +251,11 @@ pub fn calibrate_cluster_conformal_ellipsoid(
         if item.partition_id.iter().all(|byte| *byte == 0)
             || item.block_contract_id.iter().all(|byte| *byte == 0)
             || item.residual.observation_id.iter().all(|byte| *byte == 0)
-            || item.residual.correlation_cluster_id.iter().all(|byte| *byte == 0)
+            || item
+                .residual
+                .correlation_cluster_id
+                .iter()
+                .all(|byte| *byte == 0)
             || item.residual.stratum_id.iter().all(|byte| *byte == 0)
             || item.residual.density_space_id.iter().all(|byte| *byte == 0)
         {
@@ -250,7 +278,12 @@ pub fn calibrate_cluster_conformal_ellipsoid(
         if item.residual.residual.len() != dimension {
             return Err(ClusterConformalCalibrationError::DimensionMismatch);
         }
-        if item.residual.residual.iter().any(|value| !value.is_finite()) {
+        if item
+            .residual
+            .residual
+            .iter()
+            .any(|value| !value.is_finite())
+        {
             return Err(ClusterConformalCalibrationError::NonFiniteResidual);
         }
         if item
@@ -337,8 +370,8 @@ pub fn calibrate_cluster_conformal_ellipsoid(
     };
     let gaussian_reference_nis_threshold =
         chi_square_quantile(1.0 - config.alpha, group.dimension)?;
-    let quadratic_inflation_factor = calibrated_max_nis_threshold
-        .map(|threshold| threshold / gaussian_reference_nis_threshold);
+    let quadratic_inflation_factor =
+        calibrated_max_nis_threshold.map(|threshold| threshold / gaussian_reference_nis_threshold);
     let radius_inflation_factor = quadratic_inflation_factor.map(f64::sqrt);
 
     // Keep canonical identity order and scores for independent replay.
@@ -412,8 +445,7 @@ mod tests {
             observations.push(row(cluster * 2 - 1, cluster, f64::from(cluster).sqrt()));
             observations.push(row(cluster * 2, cluster, 0.25));
         }
-        let report =
-            calibrate_cluster_conformal_ellipsoid(config(0.1, 2), &observations).unwrap();
+        let report = calibrate_cluster_conformal_ellipsoid(config(0.1, 2), &observations).unwrap();
 
         assert_eq!(report.cluster_count, 9);
         assert_eq!(report.observation_count, 18);
@@ -429,8 +461,7 @@ mod tests {
         let observations = (1_u8..=9)
             .map(|cluster| row(cluster, cluster, f64::from(cluster)))
             .collect::<Vec<_>>();
-        let report =
-            calibrate_cluster_conformal_ellipsoid(config(0.05, 1), &observations).unwrap();
+        let report = calibrate_cluster_conformal_ellipsoid(config(0.05, 1), &observations).unwrap();
 
         assert_eq!(report.order_statistic_rank, 10);
         assert_eq!(report.calibrated_max_nis_threshold, None);
@@ -483,8 +514,7 @@ mod tests {
     #[test]
     fn all_rows_in_one_cluster_use_the_maximum_not_an_iid_row_quantile() {
         let observations = [row(1, 1, 1.0), row(2, 1, 5.0), row(3, 1, 2.0)];
-        let report =
-            calibrate_cluster_conformal_ellipsoid(config(0.1, 3), &observations).unwrap();
+        let report = calibrate_cluster_conformal_ellipsoid(config(0.1, 3), &observations).unwrap();
 
         assert_eq!(report.cluster_count, 1);
         assert_eq!(report.calibrated_max_nis_threshold, None);
