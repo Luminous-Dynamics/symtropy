@@ -1,0 +1,21 @@
+[package]
+name = "mobility-libero-recovery-corpus"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Artifact-backed importer and release reconciler for LIBERO-Recovery failure scenes"
+
+[dependencies]
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.150"
+sha2 = "=0.10.9"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "libero_recovery_import"
+path = "src/bin/libero_recovery_import.rs"
+
+[workspace]
