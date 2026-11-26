@@ -113,6 +113,7 @@ pub struct WorkCounters {
     pub fat_contained_updates: u64,
     pub proxy_reinsertions: u64,
     pub full_rebuilds: u64,
+    pub tree_rotations: u64,
     pub max_tree_height: usize,
     pub max_tree_nodes: usize,
     pub max_active_proxies: usize,
@@ -448,6 +449,7 @@ fn maintenance_delta(previous: MaintenanceStats, current: MaintenanceStats) -> M
             .proxy_reinsertions
             .saturating_sub(previous.proxy_reinsertions),
         full_rebuilds: current.full_rebuilds.saturating_sub(previous.full_rebuilds),
+        tree_rotations: current.tree_rotations.saturating_sub(previous.tree_rotations),
     }
 }
 
@@ -462,6 +464,7 @@ fn add_maintenance(counters: &mut WorkCounters, delta: MaintenanceStats) {
         .proxy_reinsertions
         .saturating_add(delta.proxy_reinsertions);
     counters.full_rebuilds = counters.full_rebuilds.saturating_add(delta.full_rebuilds);
+    counters.tree_rotations = counters.tree_rotations.saturating_add(delta.tree_rotations);
 }
 
 fn run_backend<const D: usize>(
@@ -635,7 +638,7 @@ pub fn run_tournament<const D: usize>(
     let oracle = scene
         .frames
         .iter()
-        .map(oracle_pairs)
+        .map(|frame| oracle_pairs(frame))
         .collect::<Result<Vec<_>, _>>()?;
 
     BackendKind::ALL
@@ -647,13 +650,13 @@ pub fn run_tournament<const D: usize>(
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,backend,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,max_tree_height,max_tree_nodes,max_active_proxies"
+        "family,dimension,backend,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,max_tree_height,max_tree_nodes,max_active_proxies"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.backend,
@@ -682,6 +685,7 @@ impl TournamentRow {
             self.counters.fat_contained_updates,
             self.counters.proxy_reinsertions,
             self.counters.full_rebuilds,
+            self.counters.tree_rotations,
             self.counters.max_tree_height,
             self.counters.max_tree_nodes,
             self.counters.max_active_proxies,
