@@ -1,0 +1,690 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/optical-channel-observations-001/research/physical-storage/optical_channel_observation_v0_1.schema.json",
+  "title": "Physical storage optical channel observation batch v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "evidence_class",
+    "partition",
+    "specimen",
+    "write_process",
+    "reader",
+    "coordinate_frame",
+    "symbol_alphabet",
+    "observations",
+    "evaluation_labels",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-storage-optical-channel-observations-v0.1"
+    },
+    "dataset_id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "published_reproduction",
+        "physical_measurement",
+        "model_derived"
+      ]
+    },
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "grouping",
+        "group_id",
+        "split_manifest_ref"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "training",
+            "calibration",
+            "validation",
+            "held_out"
+          ]
+        },
+        "grouping": {
+          "enum": [
+            "specimen",
+            "material_batch",
+            "writer",
+            "reader",
+            "specimen_and_reader"
+          ]
+        },
+        "group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "split_manifest_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "specimen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "specimen_id",
+        "material_id",
+        "material_name",
+        "supplier",
+        "grade",
+        "batch_id",
+        "dimensions_mm"
+      ],
+      "properties": {
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "supplier": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "grade": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "batch_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dimensions_mm": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "y": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "z": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      }
+    },
+    "write_process": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process_run_id",
+        "writer_id",
+        "wavelength_nm",
+        "pulse_duration_fs",
+        "pulse_energy_nj",
+        "repetition_rate_hz",
+        "scan_speed_um_s",
+        "voxel_pitch_um",
+        "layer_spacing_um",
+        "process_record_ref"
+      ],
+      "properties": {
+        "process_run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "writer_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wavelength_nm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "pulse_duration_fs": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "pulse_energy_nj": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "repetition_rate_hz": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "scan_speed_um_s": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "voxel_pitch_um": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            },
+            "y": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "layer_spacing_um": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "process_record_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "reader": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reader_id",
+        "instrument_model",
+        "detector_configuration",
+        "illumination_wavelength_nm",
+        "objective_na",
+        "calibration_status",
+        "calibration_id",
+        "calibration_record_ref",
+        "calibration_uncertainty"
+      ],
+      "properties": {
+        "reader_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "instrument_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detector_configuration": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "illumination_wavelength_nm": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "objective_na": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0,
+          "maximum": 2
+        },
+        "calibration_status": {
+          "enum": [
+            "current_traceable",
+            "expired",
+            "unavailable",
+            "synthetic_only"
+          ]
+        },
+        "calibration_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_record_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_uncertainty": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "measurement_repeatability",
+            "registration_sigma_um",
+            "photometric_sigma",
+            "units_ref"
+          ],
+          "properties": {
+            "measurement_repeatability": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "registration_sigma_um": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "photometric_sigma": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "units_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_id",
+        "length_unit",
+        "axis_order",
+        "registration_id",
+        "registration_uncertainty_um",
+        "transform_4x4"
+      ],
+      "properties": {
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "length_unit": {
+          "const": "um"
+        },
+        "axis_order": {
+          "const": "xyz"
+        },
+        "registration_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "registration_uncertainty_um": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "transform_4x4": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "symbol_alphabet": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "observation_id",
+          "layer_index",
+          "coordinate_um",
+          "read_status",
+          "raw_signal",
+          "hard_symbol",
+          "soft_information"
+        ],
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "layer_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "coordinate_um": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "x",
+              "y",
+              "z"
+            ],
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              },
+              "z": {
+                "type": "number"
+              }
+            }
+          },
+          "read_status": {
+            "enum": [
+              "readable",
+              "missing",
+              "saturated",
+              "invalid",
+              "unregistered"
+            ]
+          },
+          "raw_signal": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false,
+            "required": [
+              "channel_id",
+              "values",
+              "units"
+            ],
+            "properties": {
+              "channel_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "values": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "number"
+                }
+              },
+              "units": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "hard_symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "soft_information": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "method",
+              "symbol_probabilities",
+              "calibration_ref"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "unavailable",
+                  "illustrative_only",
+                  "uncalibrated",
+                  "calibrated"
+                ]
+              },
+              "method": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "symbol_probabilities": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "symbol",
+                    "probability"
+                  ],
+                  "properties": {
+                    "symbol": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "probability": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  }
+                }
+              },
+              "calibration_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "evaluation_labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "visibility",
+        "label_corpus_ref"
+      ],
+      "properties": {
+        "visibility": {
+          "enum": [
+            "none",
+            "separate_access_controlled_corpus",
+            "synthetic_inline_only"
+          ]
+        },
+        "label_corpus_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_timestamp",
+        "source_reference",
+        "raw_data_bundle_digest_sha256",
+        "instrument_log_ref",
+        "notes"
+      ],
+      "properties": {
+        "measurement_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "raw_data_bundle_digest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "instrument_log_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "synthetic_fixture"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reader": {
+            "properties": {
+              "calibration_status": {
+                "const": "synthetic_only"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evidence_class": {
+            "const": "physical_measurement"
+          }
+        },
+        "required": [
+          "evidence_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evaluation_labels": {
+            "properties": {
+              "visibility": {
+                "enum": [
+                  "none",
+                  "separate_access_controlled_corpus"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
