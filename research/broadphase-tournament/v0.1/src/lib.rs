@@ -614,11 +614,6 @@ impl<const D: usize> PairDeltaCache<D> {
 
         // Retain tombstone-free active adjacency, then update bounds only for
         // dirty identities. Unchanged identities incur no ordered-map writes.
-        self.neighbors
-            .retain(|proxy_id, _| frame.binary_search_by_key(proxy_id, |proxy| proxy.id).is_ok());
-        for proxy in frame {
-            self.neighbors.entry(proxy.id).or_default();
-        }
         for dirty_id in &dirty {
             match frame.binary_search_by_key(dirty_id, |proxy| proxy.id) {
                 Ok(index) => {
@@ -627,6 +622,7 @@ impl<const D: usize> PairDeltaCache<D> {
                 }
                 Err(_) => {
                     self.previous_bounds.remove(dirty_id);
+                    self.neighbors.remove(dirty_id);
                 }
             }
         }
