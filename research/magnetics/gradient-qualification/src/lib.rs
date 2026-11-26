@@ -784,4 +784,65 @@ mod tests {
             QualificationError::DuplicateTrialId
         );
     }
+
+    #[test]
+    fn cumulative_step_drift_is_not_accepted_as_a_plateau() {
+        let mut input = trial("case-cumulative-drift");
+        let mut strict_policy = policy();
+        strict_policy.step_stability_absolute_tolerance = 0.0;
+        strict_policy.step_stability_relative_tolerance = 0.1;
+        strict_policy.minimum_stable_step_count = 4;
+
+        for (observation, derivative) in input
+            .central_difference
+            .iter_mut()
+            .zip([1.0_f64, 1.09, 1.18, 1.27])
+        {
+            let delta = derivative * observation.step_size;
+            observation.plus_objective_value = 2.0 + delta;
+            observation.minus_objective_value = 2.0 - delta;
+        }
+
+        let result = qualify_directional_derivatives(&kernel(), &[input], strict_policy)
+            .expect("well-formed but drifting finite-difference evidence");
+        assert!(!result.trials[0].accepted);
+        assert!(result.trials[0].failure_reasons.contains(
+            &TrialFailureReason::NoStableFiniteDifferencePlateau
+        ));
+    }
+
+    #[test]
+    fn independent_reference_must_bind_the_same_input_and_direction() {
+        let mut input = trial("case-reference-binding");
+        input.reference.input_sha256 = DIGEST_A.to_owned();
+        assert_eq!(
+            qualify_directional_derivatives(&kernel(), &[input], policy())
+                .expect_err("reference input mismatch"),
+            QualificationError::ReferenceInputIdentityMismatch
+        );
+    }
+
+    #[test]
+    fn every_finite_difference_perturbation_requires_a_unique_input_identity() {
+        let mut input = trial("case-duplicate-perturbation");
+        input.central_difference[1].plus_input_sha256 =
+            input.central_difference[0].plus_input_sha256.clone();
+        assert_eq!(
+            qualify_directional_derivatives(&kernel(), &[input], policy())
+                .expect_err("duplicate perturbed input digest"),
+            QualificationError::PerturbationInputIdentityMismatch
+        );
+    }
+
+    #[test]
+    fn base_and_perturbation_observation_ids_must_be_unique() {
+        let mut input = trial("case-duplicate-observation");
+        input.central_difference[0].plus_observation_id = input.base_observation_id.clone();
+        assert_eq!(
+            qualify_directional_derivatives(&kernel(), &[input], policy())
+                .expect_err("duplicate observation id"),
+            QualificationError::DuplicateObservationId
+        );
+    }
+
 }
