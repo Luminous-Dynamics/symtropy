@@ -79,6 +79,11 @@
       "probe_id": "inventory_command_holders",
       "acquisition_cost_units": 1,
       "result_delay_steps": 3
+    },
+    {
+      "probe_id": "reconcile_effect_and_scope",
+      "acquisition_cost_units": 2,
+      "result_delay_steps": 5
     }
   ],
   "world_vocabulary_version": "aerb-ambiguous-command-history-v0.1"
