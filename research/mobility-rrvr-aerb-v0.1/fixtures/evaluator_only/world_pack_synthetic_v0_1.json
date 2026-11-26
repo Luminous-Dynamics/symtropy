@@ -324,5 +324,6 @@
         }
       ]
     }
-  ]
+  ],
+  "maximum_worst_case_loss": 0.45
 }
