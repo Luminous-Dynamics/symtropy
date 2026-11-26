@@ -31,7 +31,7 @@ jobs:
             jq empty "$file"
           done
 
-      - name: Validate candidate episode decision cut and identity invariants
+      - name: Validate candidate episode decision cut and scope identity
         shell: bash
         run: |
           set -euo pipefail
@@ -54,6 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           ROOT="research/mobility-rrvr-aerb-v0.1"
+
           jq -e '
             .vocabulary_id == "aerb-ambiguous-command-history-v0.1"
             and (.worlds | length == 8)
@@ -83,15 +84,42 @@ jobs:
           set -euo pipefail
           ROOT="research/mobility-rrvr-aerb-v0.1"
           PACK="$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"
-          jq -e --slurpfile episode "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json" '
+          EPISODE="$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
+
+          jq -e --slurpfile episode "$EPISODE" '
             . as $pack
             | ($pack.worlds | map(.world_id)) as $world_ids
             | ($episode[0].permitted_probes | map(.probe_id) | sort) as $permitted_probe_ids
             | ($pack.probe_outcome_supports | map(.probe_id) | sort) as $supported_probe_ids
-            | $permitted_probe_ids == $supported_probe_ids
+            | ($permitted_probe_ids == $supported_probe_ids)
+            and (($pack.worlds | map(.world_id) | length) == ($world_ids | unique | length))
+            and (($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null))
             and all($pack.probe_outcome_supports[];
               . as $probe
-              | all($probe.outcomes[]; all(.possible_world_ids[]; . as $state_id | ($world_ids | index($state_id)) != null))
+              | all($probe.outcomes[];
+                  . as $outcome
+                  | all($outcome.possible_world_ids[];
+                      . as $state_id | ($world_ids | index($state_id)) != null
+                    )
+                )
             )
-            and ($pack.hidden_truth_world_id as $truth | ($world_ids | index($truth)) != null)
-
+            and all($pack.probe_outcome_supports[];
+              . as $probe
+              | ($probe.outcomes | map(.possible_world_ids[]) | unique) as $covered
+              | all($world_ids[];
+                  . as $world_id | ($covered | index($world_id)) != null
+                )
+            )
+            and (
+              ["hold_reconcile","request_observation","abstain","recommend_fresh_attempt"] as $dispositions
+              | all($world_ids[];
+                  . as $world_id
+                  | all($dispositions[];
+                      . as $disposition
+                      | any($pack.decision_losses[];
+                          .world_id == $world_id and .disposition == $disposition
+                        )
+                    )
+                )
+            )
+          ' "$PACK"
