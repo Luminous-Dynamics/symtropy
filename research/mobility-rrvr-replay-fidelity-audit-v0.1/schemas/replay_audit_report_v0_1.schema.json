@@ -4,11 +4,12 @@
   "title": "RRVR Replay Fidelity Audit Report v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "benchmark", "profile_id", "campaign_id", "split_manifest_sha256", "candidate_n", "valid_n", "invalid_n", "unresolved_n", "candidate_audits", "claim_ceiling"],
+  "required": ["schema_version", "benchmark", "profile_id", "metric_profile_id", "campaign_id", "split_manifest_sha256", "candidate_n", "valid_n", "invalid_n", "unresolved_n", "candidate_audits", "claim_ceiling"],
   "properties": {
     "schema_version": { "const": "0.1" },
     "benchmark": { "const": "RRVR-REPLAY-FIDELITY" },
-    "profile_id": { "const": "RoboRecoverReplayV1" },
+    "profile_id": { "const": "RoboRecoverPublishedThresholdsV1" },
+    "metric_profile_id": { "const": "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1" },
     "campaign_id": { "type": "string", "minLength": 1 },
     "split_manifest_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
     "candidate_n": { "type": "integer", "minimum": 1 },
@@ -20,7 +21,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["scenario_id", "platform", "split", "source_trajectory_id", "trajectory_cluster_id", "status", "end_effector", "object_pose", "frame_checks", "mean_final_five_ssim", "mean_ssim_threshold", "mean_ssim_passed", "difficulty_success_n", "difficulty_trial_n", "spot_check_attempt_ids", "reason_codes"],
+        "required": ["scenario_id", "platform", "split", "source_trajectory_id", "trajectory_cluster_id", "status", "difficulty_success_n", "difficulty_trial_n", "selection_method_id", "spot_check_attempt_ids", "spot_checks", "reason_codes"],
         "properties": {
           "scenario_id": { "type": "string", "minLength": 1 },
           "platform": { "enum": ["robo_twin", "libero"] },
@@ -28,15 +29,11 @@
           "source_trajectory_id": { "type": "string", "minLength": 1 },
           "trajectory_cluster_id": { "type": "string", "minLength": 1 },
           "status": { "enum": ["valid", "invalid", "unresolved"] },
-          "end_effector": { "$ref": "#/$defs/pose_check" },
-          "object_pose": { "$ref": "#/$defs/pose_check" },
-          "frame_checks": { "type": "array", "items": { "$ref": "#/$defs/frame_check" } },
-          "mean_final_five_ssim": { "type": ["number", "null"] },
-          "mean_ssim_threshold": { "const": 0.99 },
-          "mean_ssim_passed": { "type": ["boolean", "null"] },
           "difficulty_success_n": { "type": "integer", "minimum": 0 },
           "difficulty_trial_n": { "type": "integer", "minimum": 0 },
-          "spot_check_attempt_ids": { "type": "array", "items": { "type": "string" } },
+          "selection_method_id": { "type": "string", "minLength": 1 },
+          "spot_check_attempt_ids": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "string" } },
+          "spot_checks": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/spot_check_audit" } },
           "reason_codes": { "type": "array", "items": { "type": "string" } }
         }
       }
@@ -67,6 +64,22 @@
         "replay_width": { "type": ["integer", "null"], "minimum": 1 },
         "replay_height": { "type": ["integer", "null"], "minimum": 1 },
         "ssim": { "type": ["number", "null"] }
+      }
+    },
+    "spot_check_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt_id", "status", "end_effector", "object_pose", "frame_checks", "mean_final_five_ssim", "mean_ssim_threshold", "mean_ssim_passed", "reason_codes"],
+      "properties": {
+        "attempt_id": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["valid", "invalid", "unresolved"] },
+        "end_effector": { "$ref": "#/$defs/pose_check" },
+        "object_pose": { "$ref": "#/$defs/pose_check" },
+        "frame_checks": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/frame_check" } },
+        "mean_final_five_ssim": { "type": ["number", "null"] },
+        "mean_ssim_threshold": { "const": 0.99 },
+        "mean_ssim_passed": { "type": ["boolean", "null"] },
+        "reason_codes": { "type": "array", "items": { "type": "string" } }
       }
     }
   }
