@@ -284,4 +284,64 @@ mod tests {
         let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 0, 1_000_000_000, 1_000_000));
         assert_eq!(result.disposition, Disposition::NotProven);
     }
+
+    #[test]
+    fn endpoint_reversal_and_axis_isometry_preserve_clearance() {
+        let original = case(
+            [2_000_000, 2_000_000, 1_000_000],
+            [2_000_000, -2_000_000, 1_000_000],
+            4_000_000,
+            1_000_000_000,
+            50_000,
+        );
+        let reversed = case(
+            original.end,
+            original.start,
+            original.acceleration_bound_scaled_per_s2,
+            original.duration_ns,
+            original.endpoint_error_bound_scaled,
+        );
+        // (x,y,z) -> (z,x,-y): an integer orthogonal transformation.
+        let transformed = case(
+            [1_000_000, 2_000_000, -2_000_000],
+            [1_000_000, 2_000_000, 2_000_000],
+            original.acceleration_bound_scaled_per_s2,
+            original.duration_ns,
+            original.endpoint_error_bound_scaled,
+        );
+        let baseline = verify(&original);
+        assert_eq!(verify(&reversed).disposition, baseline.disposition);
+        assert_eq!(verify(&transformed).disposition, baseline.disposition);
+        assert_eq!(verify(&reversed).curvature_error_scaled, baseline.curvature_error_scaled);
+        assert_eq!(verify(&transformed).total_tube_error_scaled, baseline.total_tube_error_scaled);
+    }
+
+    #[test]
+    fn enlarging_uncertainty_or_curvature_never_rescues_a_boundary_case() {
+        let base = case([1_100_000, 0, 0], [1_100_000, 0, 0], 0, 1_000_000_000, 0);
+        let with_endpoint_error = case(
+            base.start,
+            base.end,
+            0,
+            base.duration_ns,
+            100_000,
+        );
+        let with_curvature = case(
+            base.start,
+            base.end,
+            800_000,
+            base.duration_ns,
+            0,
+        );
+        assert_eq!(verify(&base).disposition, Disposition::ConditionalClear);
+        assert_eq!(verify(&with_endpoint_error).disposition, Disposition::NotProven);
+        assert_eq!(verify(&with_curvature).disposition, Disposition::NotProven);
+    }
+
+    #[test]
+    fn non_integral_curvature_remainder_is_rounded_outward() {
+        let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 1, 1_000_000_000, 0));
+        assert_eq!(result.curvature_error_scaled, Some(1));
+        assert_eq!(result.disposition, Disposition::ConditionalClear);
+    }
 }
