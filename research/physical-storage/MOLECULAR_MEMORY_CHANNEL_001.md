@@ -65,3 +65,32 @@ Synthetic fixtures test parsing and decoder interfaces only. Published reproduct
 ## Evidence boundary
 
 The accompanying v0.1 schema and fixture are data contracts, not a DNA storage implementation. The synthetic reads are illustrative sequence edits, not measured error rates. No commercial DNA archive, net density, cost advantage, lifetime, read/write speed or physical reliability is claimed. The molecular medium remains research-only and must not be ranked as production-qualified by the compiler.
+
+
+## 10. Updated 2026 coding and soft-decision baselines
+
+The DNA coding landscape now has two direct 2026 benchmark anchors beyond the general review.
+
+**Experimental codec tournament:** Gimpel et al., *Nature Communications* 17, 3963 (14 March 2026), compare six codecs in standardized in-silico and in-vitro scenarios. They test realistic read nonidealities with DT4DDS, read clustering and an in-vitro verification workflow. The study reports 43 EB/g for material-deposition synthesis and 13 EB/g for electrochemical synthesis; its realistic-workflow in-silico analysis reports feasibility up to 117 EB/g. The paper also reports isolated test scenarios tolerating up to 14% errors and up to 65% sequence loss. These are scenario-specific benchmark results, not general channel guarantees or commercial archive metrics.
+
+The six codec references are DNA-Aeon, DNA Fountain, DNA-RS, Goldman, HEDGES and Yin–Yang. Source: https://doi.org/10.1038/s41467-026-70548-3. Publication-associated benchmark code and data are at https://github.com/fml-ethz/dt4dds-benchmark, archived code DOI 10.5281/zenodo.17391326, notebooks DOI 10.5281/zenodo.17391328 and ENA accession PRJEB90546.
+
+**Soft-decision enhancement:** Ding et al., *Bioinformatics* 42(8), btag563 (3 August 2026), introduce Polus/SeqFormer. The system uses multi-read sequence context and Phred quality values to produce platform-specific per-base confidence scores, then tries progressively larger erasure sets after hard-decision/CRC failure. The paper reports, in its in-silico evaluation, a 38.9% reduction in DNA Fountain sequencing coverage for exact recovery, approximately 80% more effective physical density in that setup, and resolution of some YYC indel failures. It also describes targeted resequencing with lower read overhead.
+
+Source: https://doi.org/10.1093/bioinformatics/btag563. Code: https://github.com/dinglulu/Polus (observed commit 656b58008e196dbad42c9b09f8ec1bf350ee8614). SeqFormer repository: https://github.com/dinglulu/SeqFormer; its commit must be pinned before a reproduction is accepted.
+
+The Polus figures are in-silico results, not in-vitro demonstrations. The 2026 codec tournament's in-vitro density demonstrations are separate. Do not merge their evidence classes.
+
+## 11. Consequence for our programme
+
+Symtropy's biochemical channel should emit raw reads, quality values, molecule/read multiplicity, synthesis and sequencing lineage, and held-out partition identity. Symthaea should then:
+1. reproduce the six-codec DT4DDS tournament;
+2. reproduce the Polus/SeqFormer soft-decision pipeline, including the hard-decision ablation;
+3. test read clustering and per-base probability calibration on held-out libraries and platforms;
+4. identify sequencing-derived errors versus persistent synthesis errors before deciding whether resequencing can help;
+5. compare uniform deeper sequencing with confidence-targeted adaptive resequencing;
+6. accept a file only after byte-exact restoration and independent manifest verification.
+
+A useful new target is to outperform Polus by at least 10% in reads or sequencing cost on an independently held-out library/platform cohort, with identical exact-file recovery, code constraints and no synthesis-cost regression. This is a challenge target only; no such advantage is currently established.
+
+The software baselines can run in pinned, isolated containers. The trusted scoring/receipt layer should remain Rust-first and independent of model-provided labels. Polus/SeqFormer and legacy codec dependencies must not become production authority or leak into the physical-memory compiler's evidence gate.
