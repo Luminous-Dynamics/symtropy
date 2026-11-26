@@ -2,7 +2,7 @@ name: Physics VVUQ Reference Seed
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/physics-vvuq-reference-seed-2026-11-26]
     paths:
       - "crates/core/symtropy-physics/**"
       - "docs/research/SYMTROPY_PHYSICS_VVUQ_BENCHMARK_V0_1.md"
