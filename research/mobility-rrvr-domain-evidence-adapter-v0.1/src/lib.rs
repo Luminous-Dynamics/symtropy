@@ -274,8 +274,16 @@ fn adapt_arm(
     let fence_event = trace_event(&trace, "fence")?;
     let closure_event = trace_event(&trace, "temporal_closure")?;
 
-    // The process model exposes two abstract holders and one forwarding edge.
-    // These are model graph vertices, not an asserted physical robot inventory.
+    let capsule_scope = CapsuleScope {
+        episode_id: scenario.scenario_id,
+        attempt_id: &attempt_id,
+        command_id: &result.original_command_id,
+        profile_sha256: &profile_digest,
+        clock_id: &clock_id,
+    };
+
+    // These are vertices in the deterministic process model's abstract graph,
+    // not an asserted inventory of physical robot command paths.
     let holder_ids = vec!["actuator".to_owned(), "controller".to_owned()];
     let edge_ids = vec!["controller-to-actuator".to_owned()];
     let actuator_id = format!("{prefix}-endpoint-actuator");
@@ -294,84 +302,74 @@ fn adapt_arm(
         terminal_actuator_fenced: result.endpoint_fenced,
     };
 
+    let fence_source_id = format!(
+        "model-trace-event-{}-{}",
+        fence_event.sequence, fence_event.event
+    );
+    let closure_source_id = format!(
+        "model-trace-event-{}-{}",
+        closure_event.sequence, closure_event.event
+    );
+
     let actuator_receipt = capsule(
-        actuator_id.clone(),
-        scenario.scenario_id,
-        &attempt_id,
-        &result.original_command_id,
-        format!(
-            "model-trace-event-{}-{}",
-            fence_event.sequence, fence_event.event
-        ),
-        &profile_digest,
-        Vec::new(),
-        1,
-        fence_event.tick,
-        &clock_id,
-        endpoint_payload("actuator"),
-    );
-    let controller_receipt = capsule(
-        controller_id.clone(),
-        scenario.scenario_id,
-        &attempt_id,
-        &result.original_command_id,
-        format!(
-            "model-trace-event-{}-{}",
-            fence_event.sequence, fence_event.event
-        ),
-        &profile_digest,
-        Vec::new(),
-        2,
-        fence_event.tick,
-        &clock_id,
-        endpoint_payload("controller"),
-    );
-    let edge_receipt = capsule(
-        edge_evidence_id.clone(),
-        scenario.scenario_id,
-        &attempt_id,
-        &result.original_command_id,
-        format!(
-            "model-trace-event-{}-{}",
-            closure_event.sequence, closure_event.event
-        ),
-        &profile_digest,
-        vec![actuator_id.clone(), controller_id.clone()],
-        3,
-        closure_event.tick,
-        &clock_id,
-        EvidencePayload::EdgeClosureReceipt {
-            edge_id: edge_ids[0].clone(),
-            source_holder_id: "controller".to_owned(),
-            target_holder_id: "actuator".to_owned(),
-            authority_epoch: result.accepted_epoch,
-            queue_generation: result.queue_generation,
-            old_epoch_enqueue_closed: result.endpoint_fenced,
+        &capsule_scope,
+        CapsuleDraft {
+            evidence_id: actuator_id.clone(),
+            source_id: fence_source_id.clone(),
+            parent_evidence_ids: Vec::new(),
+            ingest_sequence: 1,
+            tick: fence_event.tick,
+            payload: endpoint_payload("actuator"),
         },
     );
-    let inventory_complete = scenario.holder_inventory_complete && scenario.edge_inventory_complete;
+    let controller_receipt = capsule(
+        &capsule_scope,
+        CapsuleDraft {
+            evidence_id: controller_id.clone(),
+            source_id: fence_source_id,
+            parent_evidence_ids: Vec::new(),
+            ingest_sequence: 2,
+            tick: fence_event.tick,
+            payload: endpoint_payload("controller"),
+        },
+    );
+    let edge_receipt = capsule(
+        &capsule_scope,
+        CapsuleDraft {
+            evidence_id: edge_evidence_id.clone(),
+            source_id: closure_source_id.clone(),
+            parent_evidence_ids: vec![actuator_id.clone(), controller_id.clone()],
+            ingest_sequence: 3,
+            tick: closure_event.tick,
+            payload: EvidencePayload::EdgeClosureReceipt {
+                edge_id: edge_ids[0].clone(),
+                source_holder_id: "controller".to_owned(),
+                target_holder_id: "actuator".to_owned(),
+                authority_epoch: result.accepted_epoch,
+                queue_generation: result.queue_generation,
+                old_epoch_enqueue_closed: result.endpoint_fenced,
+            },
+        },
+    );
+    let inventory_complete =
+        scenario.holder_inventory_complete && scenario.edge_inventory_complete;
     let inventory_receipt = capsule(
-        inventory_id,
-        scenario.scenario_id,
-        &attempt_id,
-        &result.original_command_id,
-        format!(
-            "model-trace-event-{}-{}",
-            closure_event.sequence, closure_event.event
-        ),
-        &profile_digest,
-        vec![
-            edge_evidence_id.clone(),
-            actuator_id.clone(),
-            controller_id.clone(),
-        ],
-        4,
-        closure_event.tick,
-        &clock_id,
-        EvidencePayload::HolderInventory {
-            complete: inventory_complete,
-            holder_ids: holder_ids.clone(),
-            edge_ids: edge_ids.clone(),
+        &capsule_scope,
+        CapsuleDraft {
+            evidence_id: inventory_id.clone(),
+            source_id: closure_source_id,
+            parent_evidence_ids: vec![
+                edge_evidence_id.clone(),
+                actuator_id.clone(),
+                controller_id.clone(),
+            ],
+            ingest_sequence: 4,
+            tick: closure_event.tick,
+            payload: EvidencePayload::HolderInventory {
+                complete: inventory_complete,
+                holder_ids: holder_ids.clone(),
+                edge_ids: edge_ids.clone(),
+            },
         },
     );
 
@@ -379,39 +377,44 @@ fn adapt_arm(
         actuator_id.clone(),
         controller_id.clone(),
         edge_evidence_id.clone(),
-        format!("{prefix}-inventory"),
+        inventory_id,
     ];
     evidence_ids.sort();
 
+    let claim_scope = ClaimScope {
+        episode_id: scenario.scenario_id,
+        attempt_id: &attempt_id,
+        command_id: &result.original_command_id,
+    };
     let endpoint_claim = make_claim(
-        format!("{prefix}-endpoint-fenced"),
-        scenario.scenario_id,
-        &attempt_id,
-        &result.original_command_id,
-        ClaimType::EndpointFenced,
-        result.endpoint_fenced,
-        "actuator",
-        Some(result.accepted_epoch),
-        Some(result.queue_generation),
-        Vec::new(),
-        Vec::new(),
-        4,
-        vec![actuator_id],
+        &claim_scope,
+        ClaimSpec {
+            claim_id: format!("{prefix}-endpoint-fenced"),
+            claim_type: ClaimType::EndpointFenced,
+            asserted_value: result.endpoint_fenced,
+            subject_id: "actuator".to_owned(),
+            required_epoch: Some(result.accepted_epoch),
+            required_queue_generation: Some(result.queue_generation),
+            expected_holder_ids: Vec::new(),
+            expected_edge_ids: Vec::new(),
+            decision_cutoff_ingest_sequence: 4,
+            evidence_ids: vec![actuator_id],
+        },
     );
     let closure_claim = make_claim(
-        format!("{prefix}-temporal-closure"),
-        scenario.scenario_id,
-        &attempt_id,
-        &result.original_command_id,
-        ClaimType::TemporalClosure,
-        result.temporal_closure_valid,
-        "old-epoch-command",
-        Some(result.accepted_epoch),
-        Some(result.queue_generation),
-        holder_ids,
-        edge_ids,
-        4,
-        evidence_ids,
+        &claim_scope,
+        ClaimSpec {
+            claim_id: format!("{prefix}-temporal-closure"),
+            claim_type: ClaimType::TemporalClosure,
+            asserted_value: result.temporal_closure_valid,
+            subject_id: "old-epoch-command".to_owned(),
+            required_epoch: Some(result.accepted_epoch),
+            required_queue_generation: Some(result.queue_generation),
+            expected_holder_ids: holder_ids,
+            expected_edge_ids: edge_ids,
+            decision_cutoff_ingest_sequence: 4,
+            evidence_ids,
+        },
     );
 
     let mut evidence_bundle = EvidenceBundle {
