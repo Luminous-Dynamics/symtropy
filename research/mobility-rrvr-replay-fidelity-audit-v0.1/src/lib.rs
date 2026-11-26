@@ -995,6 +995,9 @@ mod tests {
     }
 
     fn write_png(path: &Path, width: u32, height: u32, pixels: &[[u8; 3]]) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("PNG parent directory");
+        }
         let mut bytes = Vec::new();
         {
             let mut encoder = png::Encoder::new(&mut bytes, width, height);
@@ -1007,10 +1010,15 @@ mod tests {
         fs::write(path, bytes).expect("PNG artifact");
     }
 
-    fn frame_asset(root: &Path, index: u8, original: &[[u8; 3]], replay: &[[u8; 3]]) -> FramePairAsset {
-        let original_path = format!("frames/original-{index}.png");
-        let replay_path = format!("frames/replay-{index}.png");
-        fs::create_dir_all(root.join("frames")).expect("frames directory");
+    fn frame_asset(
+        root: &Path,
+        attempt_id: &str,
+        index: u8,
+        original: &[[u8; 3]],
+        replay: &[[u8; 3]],
+    ) -> FramePairAsset {
+        let original_path = format!("frames/{attempt_id}/original-{index}.png");
+        let replay_path = format!("frames/{attempt_id}/replay-{index}.png");
         write_png(&root.join(&original_path), 16, 16, original);
         write_png(&root.join(&replay_path), 16, 16, replay);
         let original_bytes = fs::read(root.join(&original_path)).expect("original read");
@@ -1024,8 +1032,111 @@ mod tests {
         }
     }
 
-    fn passing_candidate(root: &Path, scenario_id: &str, split: Split, leak_key: &str) -> ReplayCandidate {
+    fn difficulty_screen(scenario_id: &str) -> DifficultyScreen {
+        DifficultyScreen {
+            trials: (0..4)
+                .flat_map(|policy| {
+                    (0..5).map(move |trial| DifficultyTrial {
+                        attempt_id: format!("{scenario_id}-screen-{policy}-{trial}"),
+                        policy_id: format!("policy-{policy}"),
+                        trial_index: trial,
+                        success: policy == 0 && trial < 2,
+                    })
+                })
+                .collect(),
+        }
+    }
+
+    fn pose_comparison(offset_mm: f64) -> PoseComparison {
+        PoseComparison {
+            original: PositionMm {
+                coordinate_frame_id: "world".to_owned(),
+                x_mm: 100.0,
+                y_mm: 200.0,
+                z_mm: 300.0,
+            },
+            replayed: PositionMm {
+                coordinate_frame_id: "world".to_owned(),
+                x_mm: 100.0 + offset_mm,
+                y_mm: 200.0,
+                z_mm: 300.0,
+            },
+        }
+    }
+
+    fn write_selection_record(
+        root: &Path,
+        scenario_id: &str,
+        seed: u64,
+        method_id: &str,
+        attempt_ids: &[String],
+    ) -> (String, String) {
+        let record = SpotCheckSelectionRecord {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            seed,
+            selection_method_id: method_id.to_owned(),
+            selected_attempt_ids: attempt_ids.to_vec(),
+        };
+        let bytes = serde_json::to_vec_pretty(&record).expect("selection record serialization");
+        let relative_path = format!("metadata/{scenario_id}-selection.json");
+        let full_path = root.join(&relative_path);
+        fs::create_dir_all(full_path.parent().expect("metadata parent"))
+            .expect("metadata directory");
+        fs::write(&full_path, &bytes).expect("selection record write");
+        (relative_path, sha256_hex(&bytes))
+    }
+
+    fn spot_check_manifest(
+        root: &Path,
+        scenario_id: &str,
+        screen: &DifficultyScreen,
+    ) -> SpotCheckManifest {
         let pixels = vec![[100, 120, 140]; 16 * 16];
+        let selected_attempt_ids = vec![
+            screen.trials[0].attempt_id.clone(),
+            screen.trials[6].attempt_id.clone(),
+            screen.trials[12].attempt_id.clone(),
+        ];
+        let attempts: Vec<SpotCheckAttempt> = selected_attempt_ids
+            .iter()
+            .map(|attempt_id| SpotCheckAttempt {
+                attempt_id: attempt_id.clone(),
+                end_effector: pose_comparison(1.0),
+                object_pose: pose_comparison(1.0),
+                final_frame_pairs: (0..FRAME_PAIR_N as u8)
+                    .map(|index| frame_asset(root, attempt_id, index, &pixels, &pixels))
+                    .collect(),
+            })
+            .collect();
+        let selection_method_id = "upstream-exported-seed42-selection-v1".to_owned();
+        let (selection_record_path, selection_record_sha256) = write_selection_record(
+            root,
+            scenario_id,
+            SPOT_CHECK_SEED,
+            &selection_method_id,
+            &selected_attempt_ids,
+        );
+        let mut spot = SpotCheckManifest {
+            seed: SPOT_CHECK_SEED,
+            selection_method_id,
+            selection_record_path,
+            selection_record_sha256,
+            selected_attempt_ids,
+            attempts,
+            manifest_sha256: String::new(),
+        };
+        spot.manifest_sha256 = spot_check_manifest_digest(&spot).expect("spot manifest digest");
+        spot
+    }
+
+    fn passing_candidate(
+        root: &Path,
+        scenario_id: &str,
+        split: Split,
+        leak_key: &str,
+    ) -> ReplayCandidate {
+        let screen = difficulty_screen(scenario_id);
+        let spot = spot_check_manifest(root, scenario_id, &screen);
         ReplayCandidate {
             scenario_id: scenario_id.to_owned(),
             platform: Platform::RoboTwin,
@@ -1042,57 +1153,8 @@ mod tests {
             rendering_profile_sha256: "1".repeat(64),
             reset_receipt_sha256: "2".repeat(64),
             action_prefix_receipt_sha256: "3".repeat(64),
-            difficulty_screen: DifficultyScreen {
-                trials: (0..4)
-                    .flat_map(|policy| {
-                        (0..5).map(move |trial| DifficultyTrial {
-                            policy_id: format!("policy-{policy}"),
-                            trial_index: trial,
-                            success: policy == 0 && trial < 2,
-                        })
-                    })
-                    .collect(),
-            },
-            spot_check: SpotCheckManifest {
-                seed: SPOT_CHECK_SEED,
-                selected_attempt_ids: vec![
-                    format!("{scenario_id}-attempt-1"),
-                    format!("{scenario_id}-attempt-2"),
-                    format!("{scenario_id}-attempt-3"),
-                ],
-                manifest_sha256: "4".repeat(64),
-            },
-            end_effector: PoseComparison {
-                original: PositionMm {
-                    coordinate_frame_id: "world".to_owned(),
-                    x_mm: 0.0,
-                    y_mm: 0.0,
-                    z_mm: 0.0,
-                },
-                replayed: PositionMm {
-                    coordinate_frame_id: "world".to_owned(),
-                    x_mm: 1.0,
-                    y_mm: 0.0,
-                    z_mm: 0.0,
-                },
-            },
-            object_pose: PoseComparison {
-                original: PositionMm {
-                    coordinate_frame_id: "world".to_owned(),
-                    x_mm: 10.0,
-                    y_mm: 10.0,
-                    z_mm: 10.0,
-                },
-                replayed: PositionMm {
-                    coordinate_frame_id: "world".to_owned(),
-                    x_mm: 11.0,
-                    y_mm: 10.0,
-                    z_mm: 10.0,
-                },
-            },
-            final_frame_pairs: (0..FRAME_PAIR_N as u8)
-                .map(|index| frame_asset(root, index, &pixels, &pixels))
-                .collect(),
+            difficulty_screen: screen,
+            spot_check: spot,
         }
     }
 
@@ -1109,20 +1171,43 @@ mod tests {
     }
 
     #[test]
-    fn identical_replayed_frames_and_subthreshold_poses_qualify() {
+    fn all_three_seeded_spot_check_attempts_must_pass() {
         let root = temp_dir();
         let candidate = passing_candidate(&root, "scenario-1", Split::Test, &"a".repeat(64));
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.valid_n, 1);
         assert_eq!(report.invalid_n, 0);
-        assert!(report.candidate_audits[0]
-            .frame_checks
-            .iter()
-            .all(|frame| frame.ssim == Some(1.0)));
+        assert_eq!(report.candidate_audits[0].spot_checks.len(), SPOT_CHECK_N);
+        assert!(
+            report.candidate_audits[0]
+                .spot_checks
+                .iter()
+                .all(|attempt| attempt.status == AuditStatus::Valid
+                    && attempt.frame_checks.len() == FRAME_PAIR_N
+                    && attempt.mean_final_five_ssim == Some(1.0))
+        );
     }
 
     #[test]
-    fn five_frame_ssim_uses_the_published_mean_not_a_per_frame_minimum() {
+    fn one_failed_attempt_invalidates_the_scenario() {
+        let root = temp_dir();
+        let mut candidate = passing_candidate(&root, "scenario-2", Split::Test, &"a".repeat(64));
+        candidate.spot_check.attempts[1].end_effector = pose_comparison(2.0);
+        let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_audits[0].spot_checks[1].status,
+            AuditStatus::Invalid
+        );
+        assert!(
+            report.candidate_audits[0].spot_checks[1]
+                .reason_codes
+                .contains(&"END_EFFECTOR_POSE_ERROR_NOT_BELOW_2MM".to_owned())
+        );
+    }
+
+    #[test]
+    fn five_frame_ssim_uses_published_mean_per_attempt_not_a_per_frame_minimum() {
         let passing_mean = mean_final_five_ssim(&[
             Some(0.98),
             Some(1.0),
@@ -1149,48 +1234,82 @@ mod tests {
     }
 
     #[test]
-    fn two_millimetres_is_not_below_strict_threshold() {
+    fn exactly_two_millimetres_is_not_below_strict_threshold() {
         let root = temp_dir();
-        let mut candidate = passing_candidate(&root, "scenario-2", Split::Test, &"a".repeat(64));
-        candidate.end_effector.replayed.x_mm = 2.0;
+        let mut candidate = passing_candidate(&root, "scenario-3", Split::Test, &"a".repeat(64));
+        candidate.spot_check.attempts[0].object_pose = pose_comparison(2.0);
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
-        assert!(
-            report.candidate_audits[0]
-                .reason_codes
-                .contains(&"END_EFFECTOR_POSE_ERROR_NOT_BELOW_2MM".to_owned())
+        assert_eq!(
+            report.candidate_audits[0].spot_checks[0].status,
+            AuditStatus::Invalid
         );
     }
 
     #[test]
-    fn changed_black_to_white_frames_fail_ssim_threshold() {
+    fn changed_black_to_white_frames_fail_one_attempt_mean_ssim() {
         let root = temp_dir();
         let black = vec![[0, 0, 0]; 16 * 16];
         let white = vec![[255, 255, 255]; 16 * 16];
-        let mut candidate = passing_candidate(&root, "scenario-3", Split::Test, &"a".repeat(64));
-        candidate.final_frame_pairs = (0..FRAME_PAIR_N as u8)
-            .map(|index| frame_asset(&root, index, &black, &white))
+        let mut candidate = passing_candidate(&root, "scenario-4", Split::Test, &"a".repeat(64));
+        let attempt_id = candidate.spot_check.attempts[2].attempt_id.clone();
+        candidate.spot_check.attempts[2].final_frame_pairs = (0..FRAME_PAIR_N as u8)
+            .map(|index| frame_asset(&root, &attempt_id, index, &black, &white))
             .collect();
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_audits[0].spot_checks[2].status,
+            AuditStatus::Invalid
+        );
         assert!(
-            report.candidate_audits[0]
+            report.candidate_audits[0].spot_checks[2]
                 .reason_codes
                 .contains(&"MEAN_FINAL_FIVE_FRAME_SSIM_NOT_ABOVE_0_99".to_owned())
         );
     }
 
     #[test]
-    fn missing_frame_pair_invalidates_replay() {
+    fn missing_frame_in_any_attempt_invalidates_the_scenario() {
         let root = temp_dir();
-        let mut candidate = passing_candidate(&root, "scenario-4", Split::Test, &"a".repeat(64));
-        candidate.final_frame_pairs.pop();
+        let mut candidate = passing_candidate(&root, "scenario-5", Split::Test, &"a".repeat(64));
+        candidate.spot_check.attempts[1].final_frame_pairs.pop();
+        let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
+        assert_eq!(report.invalid_n, 1);
+        assert!(
+            report.candidate_audits[0].spot_checks[1]
+                .reason_codes
+                .contains(&"FINAL_FRAME_PAIR_COUNT_NOT_5".to_owned())
+        );
+    }
+
+    #[test]
+    fn spot_check_attempts_must_come_from_the_twenty_screening_trials() {
+        let root = temp_dir();
+        let mut candidate = passing_candidate(&root, "scenario-6", Split::Test, &"a".repeat(64));
+        candidate.spot_check.selected_attempt_ids[0] = "not-in-screening".to_owned();
+        candidate.spot_check.attempts[0].attempt_id = "not-in-screening".to_owned();
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
         assert!(
             report.candidate_audits[0]
                 .reason_codes
-                .contains(&"FINAL_FRAME_PAIR_COUNT_NOT_5".to_owned())
+                .contains(&"SPOT_CHECK_ATTEMPT_NOT_IN_SCREENING_TRIALS".to_owned())
+        );
+    }
+
+    #[test]
+    fn missing_one_of_three_spot_checks_invalidates_the_scenario() {
+        let root = temp_dir();
+        let mut candidate = passing_candidate(&root, "scenario-7", Split::Test, &"a".repeat(64));
+        candidate.spot_check.selected_attempt_ids.pop();
+        candidate.spot_check.attempts.pop();
+        let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
+        assert_eq!(report.invalid_n, 1);
+        assert!(
+            report.candidate_audits[0]
+                .reason_codes
+                .contains(&"SPOT_CHECK_SELECTION_INVALID".to_owned())
         );
     }
 
@@ -1212,24 +1331,28 @@ mod tests {
     }
 
     #[test]
-    fn unknown_coordinate_frame_remains_unresolved() {
+    fn unknown_coordinate_frame_remains_unresolved_for_attempt() {
         let root = temp_dir();
-        let mut candidate = passing_candidate(&root, "scenario-5", Split::Test, &"a".repeat(64));
-        candidate.end_effector.replayed.coordinate_frame_id = "camera".to_owned();
+        let mut candidate = passing_candidate(&root, "scenario-8", Split::Test, &"a".repeat(64));
+        candidate.spot_check.attempts[0]
+            .end_effector
+            .replayed
+            .coordinate_frame_id = "camera".to_owned();
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.unresolved_n, 1);
         assert!(
-            report.candidate_audits[0]
+            report.candidate_audits[0].spot_checks[0]
                 .reason_codes
                 .contains(&"POSE_COORDINATE_FRAME_UNRESOLVED".to_owned())
         );
     }
 
     #[test]
-    fn difficulty_screen_requires_twenty_trials_and_intermediate_success_count() {
+    fn difficulty_screen_requires_twenty_unique_attempts_and_intermediate_success_count() {
         let mut screen = DifficultyScreen {
             trials: (0..20)
                 .map(|i| DifficultyTrial {
+                    attempt_id: format!("attempt-{i}"),
                     policy_id: format!("policy-{}", i / 5),
                     trial_index: (i % 5) as u8,
                     success: i < 1,
@@ -1237,24 +1360,42 @@ mod tests {
                 .collect(),
         };
         let error = validate_difficulty_screen(&screen)
-            .expect_err("one success is too easy/hard filter fail");
+            .expect_err("one success is below the difficulty window");
         assert!(error.contains(&"DIFFICULTY_SUCCESS_COUNT_OUT_OF_RANGE".to_owned()));
         screen.trials[1].success = true;
         assert!(validate_difficulty_screen(&screen).is_ok());
         screen.trials.pop();
         let error = validate_difficulty_screen(&screen).expect_err("19 trials invalid");
         assert!(error.contains(&"DIFFICULTY_TRIAL_COUNT_NOT_20".to_owned()));
+        screen.trials.push(screen.trials[0].clone());
+        let error = validate_difficulty_screen(&screen).expect_err("duplicate attempt invalid");
+        assert!(error.contains(&"DIFFICULTY_ATTEMPT_IDENTITIES_INVALID".to_owned()));
     }
 
     #[test]
-    fn artifact_digest_tampering_invalidates_frame() {
+    fn selection_receipt_tampering_invalidates_spot_check() {
         let root = temp_dir();
-        let mut candidate = passing_candidate(&root, "scenario-6", Split::Test, &"a".repeat(64));
-        candidate.final_frame_pairs[0].original_sha256 = "0".repeat(64);
+        let candidate = passing_candidate(&root, "scenario-9", Split::Test, &"a".repeat(64));
+        let selection_path = root.join(&candidate.spot_check.selection_record_path);
+        fs::write(selection_path, br#"{"schema_version":"0.1"}"#).expect("overwrite selection record");
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
         assert!(
             report.candidate_audits[0]
+                .reason_codes
+                .contains(&"SPOT_CHECK_SELECTION_DIGEST_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
+    fn artifact_digest_tampering_invalidates_frame_in_any_attempt() {
+        let root = temp_dir();
+        let mut candidate = passing_candidate(&root, "scenario-10", Split::Test, &"a".repeat(64));
+        candidate.spot_check.attempts[1].final_frame_pairs[0].original_sha256 = "0".repeat(64);
+        let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
+        assert_eq!(report.invalid_n, 1);
+        assert!(
+            report.candidate_audits[0].spot_checks[1]
                 .reason_codes
                 .contains(&"FRAME_DIGEST_MISMATCH".to_owned())
         );
