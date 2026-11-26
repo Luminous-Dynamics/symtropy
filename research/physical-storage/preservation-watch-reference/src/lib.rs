@@ -187,7 +187,7 @@ fn action_plan(signal: WatchSignal) -> (WatchDisposition, Vec<ProposedAction>, V
             vec!["transitive dependency graph", "common-cause cut sets", "two-reader comparison"],
         ),
         S::TrustAnchor => (
-            D::Blocked,
+            D::Unknown,
             vec![A::ObtainTrustAnchor, A::HumanReview],
             vec!["out-of-band trust-root provenance", "trust policy version", "custody evidence"],
         ),
@@ -352,7 +352,7 @@ pub fn evaluate_watch(
                 latest_observation_id: None,
             });
             dispositions.push(WatchDisposition::Unknown);
-            let (base_disposition, actions, requirements) = action_plan(*signal);
+            let (_, actions, requirements) = action_plan(*signal);
             let placeholder = WatchObservation {
                 observation_id: "MISSING-OBSERVATION".into(),
                 target_id: target_id.into(),
@@ -370,7 +370,6 @@ pub fn evaluate_watch(
             if !missing_actions.contains(&ProposedAction::GatherFreshEvidence) {
                 missing_actions.push(ProposedAction::GatherFreshEvidence);
             }
-            let _ = base_disposition;
             proposals.extend(make_proposals(target_id, &placeholder, &missing_actions, &requirements));
             continue;
         };
