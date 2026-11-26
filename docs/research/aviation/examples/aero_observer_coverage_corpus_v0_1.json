@@ -32,7 +32,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-001-complete-reconciled"
+        "scope_note": "coverage-001-complete-reconciled",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -57,7 +60,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-002-missing-required-source"
+        "scope_note": "coverage-002-missing-required-source",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -82,7 +88,10 @@
         "stream_continuity_valid": false,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-003-middle-sequence-gap"
+        "scope_note": "coverage-003-middle-sequence-gap",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -107,7 +116,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-004-missing-final-event"
+        "scope_note": "coverage-004-missing-final-event",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -132,7 +144,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-005-drop-counter-nonzero"
+        "scope_note": "coverage-005-drop-counter-nonzero",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -157,7 +172,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-006-heartbeat-outage"
+        "scope_note": "coverage-006-heartbeat-outage",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -182,7 +200,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-007-source-count-mismatch"
+        "scope_note": "coverage-007-source-count-mismatch",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -207,7 +228,10 @@
         "stream_continuity_valid": false,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-008-forked-source-history"
+        "scope_note": "coverage-008-forked-source-history",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -232,7 +256,10 @@
         "stream_continuity_valid": false,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-009-unauthenticated-epoch-reset"
+        "scope_note": "coverage-009-unauthenticated-epoch-reset",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": false
       }
     },
     {
@@ -244,7 +271,7 @@
         "UNREGISTERED_SOURCE_DISCOVERED"
       ],
       "fixture": {
-        "scope_closed": false,
+        "scope_closed": true,
         "scope_manifest_digest_valid": true,
         "checkpoint_digest_valid": true,
         "receipt_present": true,
@@ -257,7 +284,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-010-unregistered-source"
+        "scope_note": "coverage-010-unregistered-source",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -282,7 +312,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-011-open-world-as-closed"
+        "scope_note": "coverage-011-open-world-as-closed",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -307,7 +340,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-012-critical-channel-excluded"
+        "scope_note": "coverage-012-critical-channel-excluded",
+        "requested_claim_in_scope": false,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -332,7 +368,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-013-partial-time-window"
+        "scope_note": "coverage-013-partial-time-window",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -357,7 +396,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": false,
-        "scope_note": "coverage-014-checkpoint-binding-mismatch"
+        "scope_note": "coverage-014-checkpoint-binding-mismatch",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -382,7 +424,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-015-self-attested-observer"
+        "scope_note": "coverage-015-self-attested-observer",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -407,7 +452,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-016-self-declared-complete"
+        "scope_note": "coverage-016-self-declared-complete",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -425,14 +473,17 @@
         "receipt_present": true,
         "receipt_digest_valid": true,
         "independently_qualified": true,
-        "source_roster_reconciled": false,
+        "source_roster_reconciled": true,
         "required_obligations_complete": true,
         "critical_channels_complete": true,
         "time_interval_complete": true,
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-017-namespace-alias"
+        "scope_note": "coverage-017-namespace-alias",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": false,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -457,7 +508,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-018-correlated-observers"
+        "scope_note": "coverage-018-correlated-observers",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -482,7 +536,10 @@
         "stream_continuity_valid": true,
         "retention_available": false,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-019-retention-bytes-missing"
+        "scope_note": "coverage-019-retention-bytes-missing",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -507,7 +564,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-020-valid-checkpoint-capture-omission"
+        "scope_note": "coverage-020-valid-checkpoint-capture-omission",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -532,7 +592,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-021-complete-noncritical-critical-missing"
+        "scope_note": "coverage-021-complete-noncritical-critical-missing",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -555,7 +618,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-022-positive-idempotent-duplicate"
+        "scope_note": "coverage-022-positive-idempotent-duplicate",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -578,7 +644,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-023-positive-independent-concurrent-sources"
+        "scope_note": "coverage-023-positive-independent-concurrent-sources",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     },
     {
@@ -601,7 +670,10 @@
         "stream_continuity_valid": true,
         "retention_available": true,
         "checkpoint_binding_valid": true,
-        "scope_note": "coverage-024-positive-authorized-exclusion"
+        "scope_note": "coverage-024-positive-authorized-exclusion",
+        "requested_claim_in_scope": true,
+        "source_identity_binding_valid": true,
+        "stream_epoch_binding_verified": true
       }
     }
   ]
