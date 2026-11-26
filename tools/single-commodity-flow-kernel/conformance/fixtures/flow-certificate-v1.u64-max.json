@@ -4,20 +4,13 @@
     "commodity_ref": "dimacs-single-commodity",
     "capacity_unit_ref": "integer-capacity",
     "quantity_boundary_ref": "u64-boundary",
-    "nodes": [
-      {
-        "id": "s"
-      },
-      {
-        "id": "t"
-      }
-    ],
+    "nodes": [{"id": "s"}, {"id": "t"}],
     "edges": [
       {
         "id": "arc-0000000000",
         "from": "s",
         "to": "t",
-        "capacity": 18446744073709552000,
+        "capacity": 18446744073709551615,
         "metadata_ref": null
       }
     ],
@@ -34,28 +27,26 @@
     "supported_model_class": "single_commodity_directed_integer_capacity",
     "source": "s",
     "sink": "t",
-    "max_flow": 18446744073709552000,
+    "max_flow": 18446744073709551615,
     "edge_flows": [
       {
         "id": "arc-0000000000",
         "from": "s",
         "to": "t",
-        "capacity": 18446744073709552000,
-        "flow": 18446744073709552000,
+        "capacity": 18446744073709551615,
+        "flow": 18446744073709551615,
         "metadata_ref": null
       }
     ],
-    "source_side_nodes": [
-      "s"
-    ],
+    "source_side_nodes": ["s"],
     "min_cut": {
-      "capacity": 18446744073709552000,
+      "capacity": 18446744073709551615,
       "edges": [
         {
           "id": "arc-0000000000",
           "from": "s",
           "to": "t",
-          "capacity": 18446744073709552000,
+          "capacity": 18446744073709551615,
           "metadata_ref": null
         }
       ]
