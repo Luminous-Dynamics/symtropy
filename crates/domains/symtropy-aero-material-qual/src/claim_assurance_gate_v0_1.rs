@@ -334,10 +334,10 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         &input.effectivity,
         &mut reasons,
     )
-            .unwrap_or_else(|| {
-                invalid = true;
-                input.bindings.coverage.decision_context_sha256.clone()
-            });
+    .unwrap_or_else(|| {
+        invalid = true;
+        input.bindings.coverage.decision_context_sha256.clone()
+    });
 
     component_reasons("COVERAGE", &input.coverage.reason_codes, &mut reasons);
     component_reasons("CAUSAL_CUT", &input.causal_cut.reason_codes, &mut reasons);
@@ -458,13 +458,12 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
 #[cfg(test)]
 mod tests {
     use super::{
-        compute_component_report_sha256, AssessmentBinding, ClaimComponentBindings, ClaimGateInput,
-        ClaimGateStatus, EvidenceAdmissionState, RequiredEvidenceAdmission, evaluate_claim_gate,
+        AssessmentBinding, ClaimComponentBindings, ClaimGateInput, ClaimGateStatus,
+        EvidenceAdmissionState, RequiredEvidenceAdmission, compute_component_report_sha256,
+        evaluate_claim_gate,
     };
     use crate::effectivity_interval_v0_1::EffectivityRelation;
-    use crate::observer_coverage_v0_1::{
-        CoverageAssessment, CoverageStatus, ReplayConsequence,
-    };
+    use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::vector_watermark_v0_1::{CutAssessment, CutStatus};
 
     fn coverage(status: CoverageStatus) -> CoverageAssessment {
@@ -515,7 +514,8 @@ mod tests {
     fn evidence(state: EvidenceAdmissionState, evidence_ref: &str) -> RequiredEvidenceAdmission {
         RequiredEvidenceAdmission {
             evidence_ref: evidence_ref.to_owned(),
-            decision_context_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            decision_context_sha256:
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             state,
         }
     }
@@ -715,7 +715,10 @@ mod tests {
     fn unverified_observer_or_cut_cannot_be_promoted_to_reviewable() {
         for (coverage_status, cut_status) in [
             (CoverageStatus::Unverified, CutStatus::Closed),
-            (CoverageStatus::QualifiedCompleteForScope, CutStatus::Unverified),
+            (
+                CoverageStatus::QualifiedCompleteForScope,
+                CutStatus::Unverified,
+            ),
         ] {
             let result = evaluate(
                 coverage_status,
@@ -843,7 +846,11 @@ mod tests {
             &component_bindings,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"CAUSAL_CUT_CLAIM_ID_MISMATCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CAUSAL_CUT_CLAIM_ID_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -858,7 +865,11 @@ mod tests {
             &component_bindings,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -873,7 +884,11 @@ mod tests {
             &component_bindings,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -888,7 +903,11 @@ mod tests {
             &malformed,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"COVERAGE_REPORT_DIGEST_INVALID".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COVERAGE_REPORT_DIGEST_INVALID".to_owned())
+        );
 
         let mut reused = positive_bindings();
         reused.effectivity.report_sha256 = reused.coverage.report_sha256.clone();
@@ -900,7 +919,11 @@ mod tests {
             &reused,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"COMPONENT_REPORT_DIGEST_REUSED".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COMPONENT_REPORT_DIGEST_REUSED".to_owned())
+        );
     }
 
     #[test]
@@ -914,7 +937,11 @@ mod tests {
             &wrong_context,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"REQUIRED_EVIDENCE_CONTEXT_MISMATCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REQUIRED_EVIDENCE_CONTEXT_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -928,7 +955,11 @@ mod tests {
             &component_bindings,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(&"COVERAGE_REPORT_DIGEST_MISMATCH".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COVERAGE_REPORT_DIGEST_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -940,7 +971,11 @@ mod tests {
             &all_admitted(),
         );
         assert_eq!(result.status, ClaimGateStatus::NotEffectiveAtSubjectTime);
-        assert!(result.reason_codes.contains(&"EVENT_NOT_YET_EFFECTIVE_AT_ACQUISITION".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"EVENT_NOT_YET_EFFECTIVE_AT_ACQUISITION".to_owned())
+        );
     }
 
     #[test]
