@@ -65,13 +65,21 @@
   ],
   "source_evidence": [
     {
-      "id": "SYNTHETIC::AERO-TEMPORAL-REPORT-001",
-      "kind": "temporal_replay_report",
+      "id": "SYNTHETIC::CALIBRATION-ISSUANCE-RECEIPT-001",
+      "kind": "calibration_event_receipt",
+      "state": "ADMITTED",
       "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
     {
-      "id": "SYNTHETIC::AERO-COVERAGE-RECEIPT-UNVERIFIED",
+      "id": "SYNTHETIC::RECEIVER-CHECKPOINT-001",
+      "kind": "receiver_checkpoint",
+      "state": "ADMITTED",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    {
+      "id": "SYNTHETIC::OBSERVER-COVERAGE-RECEIPT-UNVERIFIED",
       "kind": "observer_coverage_receipt",
+      "state": "UNVERIFIED",
       "sha256": null
     }
   ],
@@ -80,9 +88,9 @@
   "no_actuation": true,
   "authority_granted": false,
   "evidence_dependency_groups": {
-    "SYNTHETIC::SHARED-CAPTURE-PATH-001": [
-      "SYNTHETIC::AERO-TEMPORAL-REPORT-001",
-      "SYNTHETIC::AERO-COVERAGE-RECEIPT-UNVERIFIED"
+    "SYNTHETIC::SHARED-RECEIVER-REPLICATION-001": [
+      "SYNTHETIC::CALIBRATION-ISSUANCE-RECEIPT-001",
+      "SYNTHETIC::RECEIVER-CHECKPOINT-001"
     ]
   }
 }
