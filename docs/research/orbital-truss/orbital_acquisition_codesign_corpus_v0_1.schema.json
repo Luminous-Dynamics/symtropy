@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/orbital-acquisition-codesign-corpus-v0.1.schema.json",
+  "title": "Orbital Acquisition Co-Design Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "benchmark_id",
+    "evidence_class",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "luminous.orbital-acquisition-codesign.corpus.v0.1"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-ACQUISITION-CODESIGN-001"
+    },
+    "evidence_class": {
+      "const": "synthetic"
+    },
+    "claim_ceiling": {
+      "const": "synthetic_exact_finite_schedule_feasibility_and_pareto_frontier_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/Case"
+      }
+    }
+  },
+  "$defs": {
+    "GateEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_id",
+        "state",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN"
+          ]
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "SpeedChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "speed_id",
+        "duration_ms",
+        "motion_energy_mj",
+        "motion_profile_receipt_sha256"
+      ],
+      "properties": {
+        "speed_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "motion_energy_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "motion_profile_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "PathSegment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "segment_id",
+        "path_revision",
+        "speed_choices",
+        "path_feasibility_receipt_sha256"
+      ],
+      "properties": {
+        "segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "speed_choices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/SpeedChoice"
+          }
+        },
+        "path_feasibility_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "AcquisitionOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_id",
+        "segment_id",
+        "speed_id",
+        "exposure_ns",
+        "illumination_mode_id",
+        "dwell_ms",
+        "illumination_energy_mj",
+        "projector_energy_mj",
+        "retakes",
+        "gates"
+      ],
+      "properties": {
+        "option_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "speed_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exposure_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "illumination_mode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dwell_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "illumination_energy_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projector_energy_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retakes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/GateEvidence"
+          }
+        }
+      }
+    },
+    "AcquisitionEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "characteristic_id",
+        "required",
+        "options"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "characteristic_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AcquisitionOption"
+          }
+        }
+      }
+    },
+    "Transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_segment_id",
+        "from_speed_id",
+        "to_segment_id",
+        "to_speed_id",
+        "transition_receipt_sha256"
+      ],
+      "properties": {
+        "from_segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_speed_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_segment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_speed_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transition_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{64}$"
+        }
+      }
+    },
+    "Budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "robot_energy_capacity_mj",
+        "required_return_reserve_mj",
+        "illumination_energy_budget_mj",
+        "projector_energy_budget_mj"
+      ],
+      "properties": {
+        "robot_energy_capacity_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_return_reserve_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "illumination_energy_budget_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projector_energy_budget_mj": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "Case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "segments",
+        "events",
+        "allowed_transitions",
+        "budget",
+        "max_schedules",
+        "expected_status",
+        "expected_frontier_schedule_ids"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/PathSegment"
+          }
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/AcquisitionEvent"
+          }
+        },
+        "allowed_transitions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Transition"
+          }
+        },
+        "budget": {
+          "$ref": "#/$defs/Budget"
+        },
+        "max_schedules": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expected_status": {
+          "enum": [
+            "OPTIMAL_WITHIN_DECLARED_FINITE_UNIVERSE",
+            "INFEASIBLE",
+            "INDETERMINATE",
+            "SEARCH_LIMIT_NOT_PROVEN"
+          ]
+        },
+        "expected_frontier_schedule_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

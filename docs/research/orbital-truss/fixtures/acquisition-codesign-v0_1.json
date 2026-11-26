@@ -1,0 +1,955 @@
+{
+  "schema": "luminous.orbital-acquisition-codesign.corpus.v0.1",
+  "benchmark_id": "ORBITAL-ACQUISITION-CODESIGN-001",
+  "evidence_class": "synthetic",
+  "claim_ceiling": "synthetic_exact_finite_schedule_feasibility_and_pareto_frontier_only",
+  "cases": [
+    {
+      "case_id": "CD-001-EXACT-TIME-ENERGY-PARETO",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "FAST",
+              "duration_ms": 5,
+              "motion_energy_mj": 20,
+              "motion_profile_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "speed_id": "SLOW",
+              "duration_ms": 10,
+              "motion_energy_mj": 10,
+              "motion_profile_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-FAST",
+              "segment_id": "SEG-1",
+              "speed_id": "FAST",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 5,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            },
+            {
+              "option_id": "OPT-SLOW",
+              "segment_id": "SEG-1",
+              "speed_id": "SLOW",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 2,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 20,
+        "illumination_energy_budget_mj": 20,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "OPTIMAL_WITHIN_DECLARED_FINITE_UNIVERSE",
+      "expected_frontier_schedule_ids": [
+        "S[SEG-1=FAST]O[EV-1=OPT-FAST]",
+        "S[SEG-1=SLOW]O[EV-1=OPT-SLOW]"
+      ]
+    },
+    {
+      "case_id": "CD-002-GATE-FAIL-REJECTS-FAST",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "FAST",
+              "duration_ms": 5,
+              "motion_energy_mj": 20,
+              "motion_profile_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "speed_id": "SLOW",
+              "duration_ms": 10,
+              "motion_energy_mj": 10,
+              "motion_profile_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-FAST",
+              "segment_id": "SEG-1",
+              "speed_id": "FAST",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "FAIL",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            },
+            {
+              "option_id": "OPT-SLOW",
+              "segment_id": "SEG-1",
+              "speed_id": "SLOW",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 3,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 20,
+        "illumination_energy_budget_mj": 20,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "OPTIMAL_WITHIN_DECLARED_FINITE_UNIVERSE",
+      "expected_frontier_schedule_ids": [
+        "S[SEG-1=SLOW]O[EV-1=OPT-SLOW]"
+      ]
+    },
+    {
+      "case_id": "CD-003-UNKNOWN-GATE-ABSTAINS",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "ONLY",
+              "duration_ms": 5,
+              "motion_energy_mj": 5,
+              "motion_profile_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-UNKNOWN",
+              "segment_id": "SEG-1",
+              "speed_id": "ONLY",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "UNKNOWN",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 10,
+        "illumination_energy_budget_mj": 10,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "INDETERMINATE",
+      "expected_frontier_schedule_ids": []
+    },
+    {
+      "case_id": "CD-004-ALL-GATES-FAIL",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "ONLY",
+              "duration_ms": 5,
+              "motion_energy_mj": 5,
+              "motion_profile_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-FAIL",
+              "segment_id": "SEG-1",
+              "speed_id": "ONLY",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "FAIL",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 10,
+        "illumination_energy_budget_mj": 10,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "INFEASIBLE",
+      "expected_frontier_schedule_ids": []
+    },
+    {
+      "case_id": "CD-005-RETURN-RESERVE-BINDING",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "ONLY",
+              "duration_ms": 5,
+              "motion_energy_mj": 20,
+              "motion_profile_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-OK",
+              "segment_id": "SEG-1",
+              "speed_id": "ONLY",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 90,
+        "illumination_energy_budget_mj": 10,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "INFEASIBLE",
+      "expected_frontier_schedule_ids": []
+    },
+    {
+      "case_id": "CD-006-SCALARIZATION-TRAP",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "FAST",
+              "duration_ms": 5,
+              "motion_energy_mj": 20,
+              "motion_profile_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "speed_id": "SLOW",
+              "duration_ms": 10,
+              "motion_energy_mj": 10,
+              "motion_profile_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-FAST-INVALID",
+              "segment_id": "SEG-1",
+              "speed_id": "FAST",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 0,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "FAIL",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            },
+            {
+              "option_id": "OPT-SLOW-VALID",
+              "segment_id": "SEG-1",
+              "speed_id": "SLOW",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 5,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 10,
+        "illumination_energy_budget_mj": 10,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "OPTIMAL_WITHIN_DECLARED_FINITE_UNIVERSE",
+      "expected_frontier_schedule_ids": [
+        "S[SEG-1=SLOW]O[EV-1=OPT-SLOW-VALID]"
+      ]
+    },
+    {
+      "case_id": "CD-007-TRANSITION-MATRIX",
+      "segments": [
+        {
+          "segment_id": "SEG-A",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "A-FAST",
+              "duration_ms": 4,
+              "motion_energy_mj": 10,
+              "motion_profile_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            },
+            {
+              "speed_id": "A-SLOW",
+              "duration_ms": 8,
+              "motion_energy_mj": 5,
+              "motion_profile_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "segment_id": "SEG-B",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "B-FAST",
+              "duration_ms": 4,
+              "motion_energy_mj": 10,
+              "motion_profile_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+            },
+            {
+              "speed_id": "B-SLOW",
+              "duration_ms": 8,
+              "motion_energy_mj": 5,
+              "motion_profile_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-A",
+          "characteristic_id": "FEATURE-EV-A",
+          "required": true,
+          "options": [
+            {
+              "option_id": "AOPT-FAST",
+              "segment_id": "SEG-A",
+              "speed_id": "A-FAST",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            },
+            {
+              "option_id": "AOPT-SLOW",
+              "segment_id": "SEG-A",
+              "speed_id": "A-SLOW",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "EV-B",
+          "characteristic_id": "FEATURE-EV-B",
+          "required": true,
+          "options": [
+            {
+              "option_id": "BOPT-FAST",
+              "segment_id": "SEG-B",
+              "speed_id": "B-FAST",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            },
+            {
+              "option_id": "BOPT-SLOW",
+              "segment_id": "SEG-B",
+              "speed_id": "B-SLOW",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [
+        {
+          "from_segment_id": "SEG-A",
+          "from_speed_id": "A-FAST",
+          "to_segment_id": "SEG-B",
+          "to_speed_id": "B-FAST",
+          "transition_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+        },
+        {
+          "from_segment_id": "SEG-A",
+          "from_speed_id": "A-SLOW",
+          "to_segment_id": "SEG-B",
+          "to_speed_id": "B-SLOW",
+          "transition_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+        }
+      ],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 20,
+        "illumination_energy_budget_mj": 10,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1000,
+      "expected_status": "OPTIMAL_WITHIN_DECLARED_FINITE_UNIVERSE",
+      "expected_frontier_schedule_ids": [
+        "S[SEG-A=A-FAST;SEG-B=B-FAST]O[EV-A=AOPT-FAST;EV-B=BOPT-FAST]",
+        "S[SEG-A=A-SLOW;SEG-B=B-SLOW]O[EV-A=AOPT-SLOW;EV-B=BOPT-SLOW]"
+      ]
+    },
+    {
+      "case_id": "CD-008-SEARCH-CAP-NOT-PROVEN",
+      "segments": [
+        {
+          "segment_id": "SEG-1",
+          "path_revision": "rev-1",
+          "speed_choices": [
+            {
+              "speed_id": "FAST",
+              "duration_ms": 5,
+              "motion_energy_mj": 20,
+              "motion_profile_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+            },
+            {
+              "speed_id": "SLOW",
+              "duration_ms": 10,
+              "motion_energy_mj": 10,
+              "motion_profile_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            }
+          ],
+          "path_feasibility_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "EV-1",
+          "characteristic_id": "FEATURE-EV-1",
+          "required": true,
+          "options": [
+            {
+              "option_id": "OPT-FAST",
+              "segment_id": "SEG-1",
+              "speed_id": "FAST",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            },
+            {
+              "option_id": "OPT-SLOW",
+              "segment_id": "SEG-1",
+              "speed_id": "SLOW",
+              "exposure_ns": 1000000,
+              "illumination_mode_id": "LED-BASE",
+              "dwell_ms": 0,
+              "illumination_energy_mj": 1,
+              "projector_energy_mj": 0,
+              "retakes": 0,
+              "gates": [
+                {
+                  "gate_id": "calibration",
+                  "state": "PASS",
+                  "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                {
+                  "gate_id": "acquisition",
+                  "state": "PASS",
+                  "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                },
+                {
+                  "gate_id": "photometry",
+                  "state": "PASS",
+                  "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                },
+                {
+                  "gate_id": "sampling",
+                  "state": "PASS",
+                  "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+                },
+                {
+                  "gate_id": "feature",
+                  "state": "PASS",
+                  "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "allowed_transitions": [],
+      "budget": {
+        "robot_energy_capacity_mj": 100,
+        "required_return_reserve_mj": 10,
+        "illumination_energy_budget_mj": 10,
+        "projector_energy_budget_mj": 10
+      },
+      "max_schedules": 1,
+      "expected_status": "SEARCH_LIMIT_NOT_PROVEN",
+      "expected_frontier_schedule_ids": []
+    }
+  ]
+}
