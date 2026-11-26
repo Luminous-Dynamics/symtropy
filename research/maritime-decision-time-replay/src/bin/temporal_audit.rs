@@ -1,6 +1,6 @@
 use maritime_decision_time_replay::temporal::{
-    project_temporal_revision, select_decision_revisions, AdjudicationRevision, AdjudicationState,
-    AdjudicationAsOf, TemporalCutoffs, TemporalEvidenceRevision, TemporalError,
+    project_temporal_revision, select_decision_revisions, AdjudicationAsOf, AdjudicationRevision,
+    AdjudicationState, TemporalCutoffs, TemporalError, TemporalEvidenceRevision,
 };
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -131,13 +131,16 @@ fn audit_group(rows: &[FixtureRow]) -> Result<(String, String, String), Box<dyn 
     let first = rows.first().ok_or("empty temporal case group")?;
     let records: Vec<TemporalEvidenceRevision> =
         rows.iter().map(|row| row.record.clone()).collect();
-    let selected = match select_decision_revisions(
-        &records,
-        &first.expected_subject,
-        first.cutoffs,
-    ) {
+    let selected = match select_decision_revisions(&records, &first.expected_subject, first.cutoffs)
+    {
         Ok(value) => value,
-        Err(error) => return Ok(("-".to_owned(), "-".to_owned(), error_code(&error).to_owned())),
+        Err(error) => {
+            return Ok((
+                "-".to_owned(),
+                "-".to_owned(),
+                error_code(&error).to_owned(),
+            ))
+        }
     };
 
     let mut selected_values = Vec::new();
