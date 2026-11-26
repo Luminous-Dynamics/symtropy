@@ -42,6 +42,7 @@ def make_result(case, disposition, reason):
         "duration_ms": candidate["duration_ms"],
         "compute_us": candidate["compute_us"],
         "decision_value_milli": candidate["decision_value_milli"],
+        "decision_value_basis": candidate["decision_value_basis"],
         "physical_safety_receipt_sha256": safety["receipt_sha256"] if safety else None,
         "portfolio_receipt_sha256": portfolio["receipt_sha256"] if portfolio else None,
         "measurement_receipt_sha256": measurement["measurement_receipt_sha256"] if measurement else None,
