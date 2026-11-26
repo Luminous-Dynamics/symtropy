@@ -143,7 +143,7 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                 format!("node-{from:010}"),
                 format!("node-{to:010}"),
                 capacity,
-                Some(format!("dimacs-max-v1/line/{line_number}")),
+                Some(format!("dimacs-max-v1/arc/{index}")),
             )
         })
         .collect::<Vec<_>>();
