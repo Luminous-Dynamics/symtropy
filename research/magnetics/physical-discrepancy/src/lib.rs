@@ -538,4 +538,43 @@ mod tests {
             DiscrepancyError::InvalidIdentity
         );
     }
+
+    #[test]
+    fn certificate_retains_source_artifact_and_requirement_identities() {
+        let mut evidence = input();
+        evidence.evidence_role = EvidenceRole::BlindHoldout;
+        let result = certify_physical_field_discrepancy(&evidence)
+            .expect("holdout evidence may be evaluated independently");
+        assert_eq!(result.model_source_revision, "model-source-v1");
+        assert_eq!(result.model_implementation_id, "magnetostatic-model-v1");
+        assert_eq!(result.model_artifact_sha256, DIGEST_B);
+        assert_eq!(result.residual_jacobian_source_revision, "jacobian-source-v1");
+        assert_eq!(result.residual_jacobian_artifact_sha256, DIGEST_A);
+        assert_eq!(result.requirement_id, "minimum-field-reserve");
+        assert_eq!(result.evidence_role, EvidenceRole::BlindHoldout);
+    }
+
+    #[test]
+    fn invalid_solver_or_jacobian_artifact_digest_fails_closed() {
+        let mut model = input();
+        model.model_artifact_sha256 = "bad-digest".to_owned();
+        assert_eq!(
+            certify_physical_field_discrepancy(&model)
+                .expect_err("solver artifact identity"),
+            DiscrepancyError::InvalidSha256 {
+                field: "model_artifact_sha256"
+            }
+        );
+
+        let mut jacobian = input();
+        jacobian.residual_jacobian_artifact_sha256 = "bad-digest".to_owned();
+        assert_eq!(
+            certify_physical_field_discrepancy(&jacobian)
+                .expect_err("Jacobian artifact identity"),
+            DiscrepancyError::InvalidSha256 {
+                field: "residual_jacobian_artifact_sha256"
+            }
+        );
+    }
+
 }
