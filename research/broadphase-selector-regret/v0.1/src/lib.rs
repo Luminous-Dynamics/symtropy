@@ -340,10 +340,7 @@ fn ratio_basis_points(numerator: u128, denominator: u128) -> Result<Option<u128>
     ))
 }
 
-fn signed_ratio_basis_points(
-    actual: u128,
-    baseline: u128,
-) -> Result<Option<i128>, SelectorError> {
+fn signed_ratio_basis_points(actual: u128, baseline: u128) -> Result<Option<i128>, SelectorError> {
     if baseline == 0 {
         return Ok(None);
     }
@@ -364,7 +361,9 @@ fn nearest_rank_u64(values: &mut [u64], percentile: u8) -> Option<u64> {
         return None;
     }
     values.sort_unstable();
-    let rank = (values.len() * usize::from(percentile)).div_ceil(100).max(1);
+    let rank = (values.len() * usize::from(percentile))
+        .div_ceil(100)
+        .max(1);
     values.get(rank - 1).copied()
 }
 
@@ -373,7 +372,9 @@ fn nearest_rank_u128(values: &mut [u128], percentile: u8) -> Option<u128> {
         return None;
     }
     values.sort_unstable();
-    let rank = (values.len() * usize::from(percentile)).div_ceil(100).max(1);
+    let rank = (values.len() * usize::from(percentile))
+        .div_ceil(100)
+        .max(1);
     values.get(rank - 1).copied()
 }
 
@@ -382,7 +383,9 @@ fn nearest_rank_i128(values: &mut [i128], percentile: u8) -> Option<i128> {
         return None;
     }
     values.sort_unstable();
-    let rank = (values.len() * usize::from(percentile)).div_ceil(100).max(1);
+    let rank = (values.len() * usize::from(percentile))
+        .div_ceil(100)
+        .max(1);
     values.get(rank - 1).copied()
 }
 
@@ -435,11 +438,9 @@ fn best_fixed_backend(
             }
         }
 
-        let replace = best
-            .as_ref()
-            .is_none_or(|(best_id, best_cost)| {
-                total < *best_cost || (total == *best_cost && backend < *best_id)
-            });
+        let replace = best.as_ref().is_none_or(|(best_id, best_cost)| {
+            total < *best_cost || (total == *best_cost && backend < *best_id)
+        });
         if replace {
             best = Some((backend, total));
         }
@@ -483,13 +484,10 @@ fn offline_oracle_path(
                 continue;
             }
 
-            let previous_layer = layers
-                .last()
-                .ok_or(SelectorError::NoFeasibleOraclePath)?;
+            let previous_layer = layers.last().ok_or(SelectorError::NoFeasibleOraclePath)?;
             let mut best: Option<(u128, BackendId)> = None;
             for (previous_backend, previous_cell) in previous_layer {
-                let Some(switch_cost) =
-                    transition_lookup(transitions, previous_backend, backend)
+                let Some(switch_cost) = transition_lookup(transitions, previous_backend, backend)
                 else {
                     continue;
                 };
@@ -498,8 +496,7 @@ fn offline_oracle_path(
                     .checked_add(observation_cost)
                     .ok_or(SelectorError::CostOverflow)?;
                 let replace = best.as_ref().is_none_or(|(best_cost, best_previous)| {
-                    total < *best_cost
-                        || (total == *best_cost && previous_backend < best_previous)
+                    total < *best_cost || (total == *best_cost && previous_backend < best_previous)
                 });
                 if replace {
                     best = Some((total, previous_backend.clone()));
@@ -565,8 +562,7 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         return Err(SelectorError::EmptySequence);
     }
 
-    let mut grouped: BTreeMap<u64, BTreeMap<BackendId, &BackendFrameObservation>> =
-        BTreeMap::new();
+    let mut grouped: BTreeMap<u64, BTreeMap<BackendId, &BackendFrameObservation>> = BTreeMap::new();
     let mut known_backends = BTreeSet::new();
     let mut implementation_by_backend: BTreeMap<BackendId, (String, String)> = BTreeMap::new();
     let mut environment_digest: Option<String> = None;
@@ -725,17 +721,13 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         selected_broadphase_ns = add_cost(selected_broadphase_ns, observation.broadphase_ns)?;
         selected_full_step_samples.push(observation.full_step_ns);
         selected_broadphase_samples.push(observation.broadphase_ns);
-        selected_peak_memory_bytes =
-            selected_peak_memory_bytes.max(observation.peak_memory_bytes);
+        selected_peak_memory_bytes = selected_peak_memory_bytes.max(observation.peak_memory_bytes);
 
         if let Some(previous) = &previous_backend {
             if previous != &decision.selected_backend {
-                let transition = transition_lookup(
-                    &transition_map,
-                    previous,
-                    &decision.selected_backend,
-                )
-                .ok_or(SelectorError::MissingPolicySwitchCost)?;
+                let transition =
+                    transition_lookup(&transition_map, previous, &decision.selected_backend)
+                        .ok_or(SelectorError::MissingPolicySwitchCost)?;
                 transition_overhead_ns = add_cost(transition_overhead_ns, transition)?;
                 online_total_cost_ns = add_cost(online_total_cost_ns, transition)?;
                 selected_switches = selected_switches.saturating_add(1);
@@ -754,11 +746,7 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
         online_total_cost_ns - offline_oracle_cost_ns,
         offline_oracle_cost_ns,
     )?;
-    let fixed = best_fixed_backend(
-        &frames,
-        input.initial_backend.as_ref(),
-        &transition_map,
-    )?;
+    let fixed = best_fixed_backend(&frames, input.initial_backend.as_ref(), &transition_map)?;
     let (best_fixed_backend, best_fixed_cost_ns, regression_vs_best_fixed_basis_points) =
         match fixed {
             Some((backend, cost)) => (
@@ -768,13 +756,12 @@ pub fn evaluate_sequence(input: &SequenceInput) -> Result<SequenceScore, Selecto
             ),
             None => (None, None, None),
         };
-    let selector_and_switch_overhead_basis_points =
-        ratio_basis_points(
-            selector_overhead_ns
-                .checked_add(transition_overhead_ns)
-                .ok_or(SelectorError::CostOverflow)?,
-            selected_broadphase_ns,
-        )?;
+    let selector_and_switch_overhead_basis_points = ratio_basis_points(
+        selector_overhead_ns
+            .checked_add(transition_overhead_ns)
+            .ok_or(SelectorError::CostOverflow)?,
+        selected_broadphase_ns,
+    )?;
 
     Ok(SequenceScore {
         sequence_id: input.sequence_id.clone(),
@@ -944,26 +931,16 @@ pub fn evaluate_campaign(inputs: &[SequenceInput]) -> Result<CampaignSummary, Se
         families,
         median_regret_basis_points: nearest_rank_u128(&mut regrets, 50),
         p95_regret_basis_points: nearest_rank_u128(&mut regrets, 95),
-        p95_regression_vs_best_fixed_basis_points: nearest_rank_i128(
-            &mut fixed_regressions,
-            95,
-        ),
+        p95_regression_vs_best_fixed_basis_points: nearest_rank_i128(&mut fixed_regressions, 95),
         fixed_baseline_qualified_sequence_count,
         fixed_baseline_unavailable_sequence_count,
         regret_available_sequence_count,
-        regret_unavailable_sequence_count: sequences.len() as u64
-            - regret_available_sequence_count,
+        regret_unavailable_sequence_count: sequences.len() as u64 - regret_available_sequence_count,
         overhead_ratio_available_sequence_count,
         overhead_ratio_unavailable_sequence_count: sequences.len() as u64
             - overhead_ratio_available_sequence_count,
-        median_selector_and_switch_overhead_basis_points: nearest_rank_u128(
-            &mut overheads,
-            50,
-        ),
-        p95_selector_and_switch_overhead_basis_points: nearest_rank_u128(
-            &mut overheads,
-            95,
-        ),
+        median_selector_and_switch_overhead_basis_points: nearest_rank_u128(&mut overheads, 50),
+        p95_selector_and_switch_overhead_basis_points: nearest_rank_u128(&mut overheads, 95),
         aggregate_selector_and_switch_overhead_basis_points: ratio_basis_points(
             campaign_overhead_total,
             campaign_broadphase_total,
@@ -1027,13 +1004,11 @@ mod tests {
         }
     }
 
-    fn input(
-        choices: &[&str],
-        costs: &[(&str, &str, u64)],
-    ) -> SequenceInput {
+    fn input(choices: &[&str], costs: &[(&str, &str, u64)]) -> SequenceInput {
         let mut observations = Vec::new();
-        for (frame, (a_cost, b_cost)) in
-            [(100_u64, 50_u64), (100, 50), (100, 100)].into_iter().enumerate()
+        for (frame, (a_cost, b_cost)) in [(100_u64, 50_u64), (100, 50), (100, 100)]
+            .into_iter()
+            .enumerate()
         {
             for backend_id in ["A", "B"] {
                 let full = if backend_id == "A" { a_cost } else { b_cost };
@@ -1073,10 +1048,7 @@ mod tests {
 
     #[test]
     fn sequence_oracle_prices_switching_and_beats_framewise_minimum() {
-        let mut value = input(
-            &["A", "A", "A"],
-            &[("A", "B", 40), ("B", "A", 40)],
-        );
+        let mut value = input(&["A", "A", "A"], &[("A", "B", 40), ("B", "A", 40)]);
         // B is the cheaper backend on the first two frames; A wins the final
         // frame. The oracle must price the transition rather than switch for free.
         value.observations.iter_mut().for_each(|row| {
@@ -1086,7 +1058,10 @@ mod tests {
             }
         });
         let score = evaluate_sequence(&value).unwrap();
-        assert_eq!(score.offline_oracle_path, vec![backend("B"), backend("B"), backend("A")]);
+        assert_eq!(
+            score.offline_oracle_path,
+            vec![backend("B"), backend("B"), backend("A")]
+        );
         assert_eq!(score.offline_oracle_cost_ns, 240);
         assert_eq!(score.online_total_cost_ns, 300);
         assert_eq!(score.regret_basis_points, Some(2_500));
@@ -1112,7 +1087,12 @@ mod tests {
             }
         }
         let score = evaluate_sequence(&value).unwrap();
-        assert!(score.offline_oracle_path.iter().all(|backend| backend.as_str() == "A"));
+        assert!(
+            score
+                .offline_oracle_path
+                .iter()
+                .all(|backend| backend.as_str() == "A")
+        );
         value.decisions[0].selected_backend = backend("B");
         assert_eq!(
             evaluate_sequence(&value),
@@ -1131,10 +1111,12 @@ mod tests {
             }
         }
         let score = evaluate_sequence(&value).unwrap();
-        assert!(score
-            .offline_oracle_path
-            .iter()
-            .all(|backend| backend.as_str() == "A"));
+        assert!(
+            score
+                .offline_oracle_path
+                .iter()
+                .all(|backend| backend.as_str() == "A")
+        );
 
         for row in &mut value.observations {
             if row.backend.as_str() == "B" {
@@ -1142,11 +1124,13 @@ mod tests {
                 row.pair_evidence.unsupported_case_count = 1;
             }
         }
-        assert!(evaluate_sequence(&value)
-            .unwrap()
-            .offline_oracle_path
-            .iter()
-            .all(|backend| backend.as_str() == "A"));
+        assert!(
+            evaluate_sequence(&value)
+                .unwrap()
+                .offline_oracle_path
+                .iter()
+                .all(|backend| backend.as_str() == "A")
+        );
     }
 
     #[test]
@@ -1267,14 +1251,25 @@ mod tests {
         assert_eq!(report.families[0].workload_family, "clustered");
         assert_eq!(report.fixed_baseline_qualified_sequence_count, 2);
         assert_eq!(report.fixed_baseline_unavailable_sequence_count, 0);
-        assert_eq!(report.families[0].fixed_baseline_qualified_sequence_count, 2);
-        assert_eq!(report.families[0].fixed_baseline_unavailable_sequence_count, 0);
-        assert!(report.aggregate_selector_and_switch_overhead_basis_points.is_some());
-        assert!(report.families[0].aggregate_selector_and_switch_overhead_basis_points.is_some());
         assert_eq!(
-            report.sequences[0].sequence_id,
-            "heldout-01"
+            report.families[0].fixed_baseline_qualified_sequence_count,
+            2
         );
+        assert_eq!(
+            report.families[0].fixed_baseline_unavailable_sequence_count,
+            0
+        );
+        assert!(
+            report
+                .aggregate_selector_and_switch_overhead_basis_points
+                .is_some()
+        );
+        assert!(
+            report.families[0]
+                .aggregate_selector_and_switch_overhead_basis_points
+                .is_some()
+        );
+        assert_eq!(report.sequences[0].sequence_id, "heldout-01");
     }
 
     #[test]
@@ -1309,10 +1304,7 @@ mod tests {
     fn invalid_policy_digest_is_rejected() {
         let mut value = input(&["A", "A", "A"], &[]);
         value.policy_sha256 = "not-a-sha256".to_owned();
-        assert_eq!(
-            evaluate_sequence(&value),
-            Err(SelectorError::InvalidDigest)
-        );
+        assert_eq!(evaluate_sequence(&value), Err(SelectorError::InvalidDigest));
     }
 
     #[test]
@@ -1333,6 +1325,11 @@ mod tests {
         // The reverse A -> B transition is absent and is not inferred.
         let score = evaluate_sequence(&value).unwrap();
         assert_eq!(score.transition_overhead_ns, 60);
-        assert!(score.offline_oracle_path.iter().all(|id| id == &backend("B")));
+        assert!(
+            score
+                .offline_oracle_path
+                .iter()
+                .all(|id| id == &backend("B"))
+        );
     }
 }
