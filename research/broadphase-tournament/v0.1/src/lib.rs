@@ -13,6 +13,8 @@ use incremental_aabb_tree_reference::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
+pub mod contact_freshness;
+
 mod indexed_pair_cache;
 use indexed_pair_cache::IndexedPairDeltaCache;
 
