@@ -268,7 +268,6 @@ impl ScenarioRobustPortfolioSelection {
             .checked_add(1)
             .ok_or(ScenarioRobustSelectionError::InvalidBatchIndex)?;
         if batch.batch_index != expected_index || batch.batch_index > MAX_ROBUST_SCENARIO_BATCHES {
-        {
             return Err(ScenarioRobustSelectionError::InvalidBatchIndex);
         }
         if batch.batch_id.iter().all(|byte| *byte == 0)
