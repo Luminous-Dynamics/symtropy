@@ -1,0 +1,72 @@
+{
+  "schema_version": "luminous-dimacs-benchmark-receipt-v1",
+  "instance": {
+    "instance_id": "REPLACE_WITH_EXACT_INSTANCE_ID",
+    "family": "REPLACE_WITH_FAMILY",
+    "format_lane": "dimacs_max_32",
+    "generator": null,
+    "generator_version": null,
+    "parameters": null,
+    "seed": null,
+    "notes": null
+  },
+  "source": {
+    "source_url": "https://example.invalid/replace-with-authoritative-instance-source",
+    "archive_sha256": null,
+    "original_instance_sha256": null,
+    "translator": null,
+    "translator_version": null
+  },
+  "graph": {
+    "normalized_graph_sha256": null,
+    "node_count": null,
+    "arc_count": null,
+    "parallel_arc_count": null,
+    "capacity_min": null,
+    "capacity_max": null,
+    "capacity_distribution": null
+  },
+  "solver": {
+    "name": "single-commodity-flow-kernel",
+    "version": "0.1.0",
+    "algorithm": "deterministic Dinic",
+    "commit_or_release": null,
+    "configuration": null,
+    "warm_or_cold": "cold"
+  },
+  "environment": {
+    "os": "REPLACE",
+    "cpu": "REPLACE",
+    "memory_total_bytes": null,
+    "compiler": "rustc 1.96.0",
+    "toolchain": "Rust 1.96.0"
+  },
+  "status": "not_run",
+  "timings_ms": {
+    "parse": null,
+    "normalization": null,
+    "solve": null,
+    "bundle": null,
+    "verify": null,
+    "end_to_end": null,
+    "repetitions": null,
+    "p50_ms": null,
+    "p95_ms": null,
+    "p99_ms": null
+  },
+  "memory_bytes": {
+    "peak_rss": null,
+    "peak_allocated": null
+  },
+  "result": {
+    "flow_value": null,
+    "cut_value": null,
+    "certificate_status": "not_run",
+    "reference_flow_value": null,
+    "reference_cut_value": null,
+    "parity": "not_compared"
+  },
+  "failure_reason": null,
+  "unsupported_reason": null,
+  "receipt_claim_ceiling": "Graph algorithm and certificate performance only; no evidence authenticity, physical capacity, beneficiary service, legal, safety, or dispatch qualification."
+}
