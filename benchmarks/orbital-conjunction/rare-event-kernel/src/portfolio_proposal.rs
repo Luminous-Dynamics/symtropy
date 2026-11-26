@@ -592,8 +592,8 @@ mod tests {
         ])
         .unwrap();
         PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+            TARGET_MEASURE_ID,
+            DENSITY_SPACE_ID,
             target,
             0.2,
             vec![key(10, 1, 1), key(20, 1, 2)],
@@ -682,7 +682,7 @@ mod tests {
         assert_eq!(
             PortfolioDefensiveGaussianMixture::new(
                 TARGET_MEASURE_ID,
-                [0; 32],
+                DENSITY_SPACE_ID,
                 target,
                 0.1,
                 vec![key(10, 1, 1)],
@@ -792,8 +792,8 @@ mod tests {
         for epsilon in [0.0, 1.0, f64::NAN, f64::INFINITY] {
             assert_eq!(
                 PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+                    TARGET_MEASURE_ID,
+                    DENSITY_SPACE_ID,
                     target.clone(),
                     epsilon,
                     vec![key(10, 1, 1)],
@@ -862,8 +862,8 @@ mod tests {
         ])
         .unwrap();
         let a = PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+            TARGET_MEASURE_ID,
+            DENSITY_SPACE_ID,
             target_a,
             0.2,
             vec![key(10, 1, 1), key(20, 1, 2)],
@@ -874,8 +874,8 @@ mod tests {
         )
         .unwrap();
         let b = PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+            TARGET_MEASURE_ID,
+            DENSITY_SPACE_ID,
             target_b,
             0.2,
             vec![key(20, 1, 2), key(10, 1, 1)],
@@ -900,8 +900,8 @@ mod tests {
         ])
         .unwrap();
         let a = PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+            TARGET_MEASURE_ID,
+            DENSITY_SPACE_ID,
             target.clone(),
             0.2,
             vec![key(10, 1, 1)],
@@ -909,8 +909,8 @@ mod tests {
         )
         .unwrap();
         let b = PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+            TARGET_MEASURE_ID,
+            DENSITY_SPACE_ID,
             target.clone(),
             0.3,
             vec![key(10, 1, 1)],
@@ -918,8 +918,8 @@ mod tests {
         )
         .unwrap();
         let c = PortfolioDefensiveGaussianMixture::new(
-                TARGET_MEASURE_ID,
-                DENSITY_SPACE_ID,
+            TARGET_MEASURE_ID,
+            DENSITY_SPACE_ID,
             target.clone(),
             0.2,
             vec![key(10, 1, 1)],
@@ -937,7 +937,7 @@ mod tests {
         .unwrap();
         let e = PortfolioDefensiveGaussianMixture::new(
             TARGET_MEASURE_ID,
-            [93; 32],
+            DENSITY_SPACE_ID,
             target,
             0.2,
             vec![key(10, 1, 1)],
