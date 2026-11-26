@@ -72,7 +72,7 @@ The adapter uses the existing Symthaea contract; it does not redefine it.
 | unresolved claim_id | Scenario.target_claim_id / action target_claim_id |
 | AERO assessment, source receipts and report digests | Scenario.current_evidence_refs (references only; bytes and verification remain owner-native) |
 | owner-authored evidence requirements | Scenario.required_obligations and action expected outputs |
-| independently established dependency groups | Scenario.current_evidence_dependency_groups |
+| owner-native evidence dependency groups | Scenario.current_evidence_dependency_groups (the adapter preserves exact groups; it must not infer common-cause relationships) |
 | Mycelix #6219 change-impact receipt | Scenario.change_impact / EvidenceActionProposalV1.change_impact |
 | exact method, procedure and verifier | action method_ref, admissibility evidence and ExpectedOutput.verifier_ref |
 | owner-supplied component costs | Resources / resource_plan and remaining budget |
