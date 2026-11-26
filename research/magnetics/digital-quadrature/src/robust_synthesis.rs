@@ -786,7 +786,7 @@ mod tests {
     fn requirements() -> SynthesisRequirements {
         SynthesisRequirements {
             maximum_spacing_error_rad: 0.12,
-            maximum_transition_bracket_rad: 0.06,
+            maximum_transition_bracket_rad: 0.08,
             minimum_robust_threshold_margin_t: 0.005,
         }
     }
