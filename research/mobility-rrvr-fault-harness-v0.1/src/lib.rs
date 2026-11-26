@@ -476,9 +476,7 @@ impl<'a> Simulation<'a> {
                         "fresh_attempt_decision",
                         &format!(
                             "admitted={} unsafe={} false_hold={}",
-                            self.fresh_attempt_admitted,
-                            self.unsafe_admission,
-                            self.false_hold
+                            self.fresh_attempt_admitted, self.unsafe_admission, self.false_hold
                         ),
                     );
                     "fresh_attempt_decision"
