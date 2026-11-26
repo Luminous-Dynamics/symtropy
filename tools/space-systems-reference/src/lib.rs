@@ -359,8 +359,16 @@ mod tests {
     fn shade_rejects_invalid_optics_mass_and_non_finite_values() {
         let input = illustrative_sunshade_case();
         assert!(evaluate_sunshade(SunshadeInput { aperture_effectiveness: 0.0, ..input }).is_err());
-        assert!(evaluate_sunshade(SunshadeInput { locally_sourced_material_fraction: 1.1, ..input }).is_err());
-        assert!(evaluate_sunshade(SunshadeInput { installed_areal_density_kg_m2: f64::NAN, ..input }).is_err());
+        assert!(evaluate_sunshade(SunshadeInput {
+            locally_sourced_material_fraction: 1.1,
+            ..input
+        })
+        .is_err());
+        assert!(evaluate_sunshade(SunshadeInput {
+            installed_areal_density_kg_m2: f64::NAN,
+            ..input
+        })
+        .is_err());
     }
 
     #[test]
@@ -440,7 +448,11 @@ mod tests {
             ..input
         })
         .is_err());
-        assert!(evaluate_qdrive(QDriveInput { power_conversion_efficiency: 1.01, ..input }).is_err());
+        assert!(evaluate_qdrive(QDriveInput {
+            power_conversion_efficiency: 1.01,
+            ..input
+        })
+        .is_err());
         assert!(evaluate_qdrive(QDriveInput { plasma_mass_density_kg_m3: -1.0, ..input }).is_err());
         assert!(evaluate_qdrive(QDriveInput { exhaust_velocity_m_s: 0.0, ..input }).is_err());
     }
