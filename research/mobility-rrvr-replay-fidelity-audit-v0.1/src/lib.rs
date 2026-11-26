@@ -1387,7 +1387,8 @@ mod tests {
         let root = temp_dir();
         let candidate = passing_candidate(&root, "scenario-9", Split::Test, &"a".repeat(64));
         let selection_path = root.join(&candidate.spot_check.selection_record_path);
-        fs::write(selection_path, br#"{"schema_version":"0.1"}"#).expect("overwrite selection record");
+        fs::write(selection_path, br#"{"schema_version":"0.1"}"#)
+            .expect("overwrite selection record");
         let report = audit_manifest(&manifest(vec![candidate]), &root).expect("audit");
         assert_eq!(report.invalid_n, 1);
         assert!(
