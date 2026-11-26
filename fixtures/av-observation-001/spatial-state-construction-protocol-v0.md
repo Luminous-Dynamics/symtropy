@@ -259,3 +259,10 @@ A model can answer OVO-S questions well yet produce a geometrically inconsistent
 ## 14. Geometric validation counterfactuals
 
 The metadata-only [geometric validation matrix](./scenario-matrix-geometric-validation-v0.tsv) adds 20 cases in 10 paired controls/mutations: frame-transform direction, pose-graph cycle consistency, calibration revisions, monocular scale observability, loop closure under visual aliasing, dynamic-scene separation, late map revision/retraction, camera–IMU time alignment, ground-truth common-cause provenance and lifelong relocalization. The rows are structurally checked for 20 unique IDs, 10 complete control/mutated pairs and 10 fields. They are not rendered, replayed or scored.
+
+
+## 15. Candidate spatial-state interchange schema
+
+The candidate-visible map projection is now specified in [spatial-state-projection-v0.schema.json](./spatial-state-projection-v0.schema.json), with a [candidate-only example](./spatial-state-projection-v0.example.json). It carries source observation intervals, clock generations, candidate-only coordinate frames, transform revisions/uncertainty, entity hypotheses, relation claims and unresolved constraints with source references. It does not carry evaluator witness IDs, hidden map coordinates or verified truth.
+
+The example passed a local structural check against the schema's core keywords. Five negative mutations were rejected: evaluator-truth injection, malformed/prefixed digest, missing candidate-only frame marker, source-free inferred entity and malformed quaternion arity. This is not a full Draft 2020-12 conformance suite or a runtime validator. Cross-reference resolution, capture_start < capture_end, frame graph acyclicity/transform composition, quaternion normalization and map-edge admissibility still require runtime validation.
