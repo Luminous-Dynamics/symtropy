@@ -151,6 +151,7 @@ pub struct Claim {
     pub state: ClaimState,
     pub subject_id: String,
     pub required_epoch: Option<u64>,
+    pub required_queue_generation: Option<u64>,
     pub observation_window: Option<ObservationWindow>,
     pub expected_holder_ids: Vec<String>,
     pub expected_edge_ids: Vec<String>,
@@ -247,11 +248,15 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
         require_digest("source.profile_sha256", &capsule.source.profile_sha256)?;
         validate_time("event_time", &capsule.event_time)?;
         validate_time("observation_time", &capsule.observation_time)?;
-        if capsule.event_time.clock_id == capsule.observation_time.clock_id
-            && capsule.observation_time.latest_ns < capsule.event_time.earliest_ns
-        {
+        if capsule.event_time.clock_id != capsule.observation_time.clock_id {
             return Err(format!(
-                "OBSERVATION_PRECEDES_EVENT: {}",
+                "CLOCK_DOMAIN_MISMATCH: {}",
+                capsule.evidence_id
+            ));
+        }
+        if capsule.observation_time.earliest_ns < capsule.event_time.latest_ns {
+            return Err(format!(
+                "TIME_ORDER_UNCERTAIN: {}",
                 capsule.evidence_id
             ));
         }
@@ -479,7 +484,7 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
             }
         }
         ClaimType::EndpointFenced => {
-            if claim.required_epoch.is_none() {
+            if claim.required_epoch.is_none() || claim.required_queue_generation.is_none() {
                 return Err(format!(
                     "ENDPOINT_FENCE_REQUIRES_EPOCH: {}",
                     claim.claim_id
@@ -488,6 +493,7 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
         }
         ClaimType::TemporalClosure => {
             if claim.required_epoch.is_none()
+                || claim.required_queue_generation.is_none()
                 || claim.expected_holder_ids.is_empty()
                 || claim.expected_edge_ids.is_empty()
             {
@@ -513,6 +519,14 @@ fn validate_claim_shape(claim: &Claim) -> Result<(), String> {
     {
         return Err(format!(
             "UNEXPECTED_CLOSURE_INVENTORY_SCOPE: {}",
+            claim.claim_id
+        ));
+    }
+    if !matches!(claim.claim_type, ClaimType::EndpointFenced | ClaimType::TemporalClosure)
+        && claim.required_queue_generation.is_some()
+    {
+        return Err(format!(
+            "UNEXPECTED_QUEUE_GENERATION_SCOPE: {}",
             claim.claim_id
         ));
     }
@@ -828,11 +842,13 @@ fn endpoint_is_fenced(
     capsule: &EvidenceCapsule,
     holder_id: &str,
     required_epoch: u64,
+    required_queue_generation: u64,
 ) -> Option<bool> {
     match &capsule.payload {
         EvidencePayload::EndpointFenceReceipt {
             holder_id: observed_holder,
             accepted_epoch,
+            queue_generation,
             accepted_high_water,
             retired_high_water,
             outstanding_n,
@@ -842,6 +858,7 @@ fn endpoint_is_fenced(
         } if observed_holder == holder_id && capsule.source.role == SourceRole::Endpoint => {
             Some(
                 *accepted_epoch >= required_epoch
+                    && *queue_generation == required_queue_generation
                     && accepted_high_water == retired_high_water
                     && *outstanding_n == 0
                     && *in_flight_n == 0
@@ -856,12 +873,21 @@ fn evaluate_endpoint_fenced(
     claim: &Claim,
     evidence: &[&EvidenceCapsule],
 ) -> (AssessmentStatus, Vec<String>) {
-    let Some(required_epoch) = claim.required_epoch else {
-        return unresolved("ENDPOINT_FENCE_EPOCH_MISSING");
+    let (Some(required_epoch), Some(required_queue_generation)) =
+        (claim.required_epoch, claim.required_queue_generation)
+    else {
+        return unresolved("ENDPOINT_FENCE_PROFILE_INCOMPLETE");
     };
     let states: Vec<bool> = evidence
         .iter()
-        .filter_map(|capsule| endpoint_is_fenced(capsule, &claim.subject_id, required_epoch))
+        .filter_map(|capsule| {
+            endpoint_is_fenced(
+                capsule,
+                &claim.subject_id,
+                required_epoch,
+                required_queue_generation,
+            )
+        })
         .collect();
     if states.is_empty() {
         return unresolved("ENDPOINT_FENCE_RECEIPT_MISSING");
@@ -880,8 +906,10 @@ fn evaluate_temporal_closure(
     claim: &Claim,
     evidence: &[&EvidenceCapsule],
 ) -> (AssessmentStatus, Vec<String>) {
-    let Some(required_epoch) = claim.required_epoch else {
-        return unresolved("TEMPORAL_CLOSURE_EPOCH_MISSING");
+    let (Some(required_epoch), Some(required_queue_generation)) =
+        (claim.required_epoch, claim.required_queue_generation)
+    else {
+        return unresolved("TEMPORAL_CLOSURE_PROFILE_INCOMPLETE");
     };
     let inventories: Vec<(&EvidenceCapsule, bool, &Vec<String>, &Vec<String>)> = evidence
         .iter()
@@ -916,7 +944,14 @@ fn evaluate_temporal_closure(
     for holder_id in &claim.expected_holder_ids {
         let states: Vec<bool> = evidence
             .iter()
-            .filter_map(|capsule| endpoint_is_fenced(capsule, holder_id, required_epoch))
+            .filter_map(|capsule| {
+                endpoint_is_fenced(
+                    capsule,
+                    holder_id,
+                    required_epoch,
+                    required_queue_generation,
+                )
+            })
             .collect();
         if states.is_empty() {
             return unresolved("HOLDER_FENCE_RECEIPT_MISSING");
@@ -963,9 +998,10 @@ fn evaluate_temporal_closure(
         matches!(
             &capsule.payload,
             EvidencePayload::Observation {
+                subject_id,
                 finding: ObservationFinding::StaleEffectPresent,
                 ..
-            }
+            } if subject_id == &claim.subject_id
         )
     });
     let observed_closed = holder_states.iter().all(|state| *state)
@@ -1074,6 +1110,7 @@ mod tests {
             state: ClaimState::Asserted,
             subject_id: subject_id.to_owned(),
             required_epoch: None,
+            required_queue_generation: None,
             observation_window: None,
             expected_holder_ids: Vec::new(),
             expected_edge_ids: Vec::new(),
@@ -1342,6 +1379,7 @@ mod tests {
             ],
         );
         claim.required_epoch = Some(7);
+        claim.required_queue_generation = Some(3);
         claim.expected_holder_ids = vec!["actuator".to_owned(), "controller".to_owned()];
         claim.expected_edge_ids = vec!["edge-1".to_owned()];
         claim.decision_cutoff_ingest_sequence = 4;
