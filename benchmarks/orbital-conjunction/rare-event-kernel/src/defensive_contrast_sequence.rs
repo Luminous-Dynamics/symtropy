@@ -130,7 +130,9 @@ impl core::fmt::Display for DefensiveContrastSequenceError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
             Self::InvalidAlpha => "per-contrast alpha must lie strictly between zero and one",
-            Self::InvalidPortfolioPair => "portfolio contrast identity is invalid or absent from the mode universe",
+            Self::InvalidPortfolioPair => {
+                "portfolio contrast identity is invalid or absent from the mode universe"
+            }
             Self::InvalidConsequenceBounds => "frozen consequence bounds are invalid",
             Self::InvalidOrDuplicateDrawIdentity => "draw identity is zero or duplicated",
             Self::InvalidDrawIndex => "draw index is not the next consecutive sequence index",
@@ -242,8 +244,7 @@ impl DefensiveContrastConfidenceSequence {
         if draw.draw_index != expected_index || draw.draw_index > MAX_DEFENSIVE_CONTRAST_DRAWS {
             return Err(DefensiveContrastSequenceError::InvalidDrawIndex);
         }
-        if draw.draw_id.iter().all(|byte| *byte == 0)
-            || self.seen_draw_ids.contains(&draw.draw_id)
+        if draw.draw_id.iter().all(|byte| *byte == 0) || self.seen_draw_ids.contains(&draw.draw_id)
         {
             return Err(DefensiveContrastSequenceError::InvalidOrDuplicateDrawIdentity);
         }
@@ -391,9 +392,7 @@ fn next_up(value: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        DefensiveProposalComponent, Gaussian, GaussianComponent, GaussianMixture,
-    };
+    use crate::{DefensiveProposalComponent, Gaussian, GaussianComponent, GaussianMixture};
 
     const TARGET_MEASURE_ID: [u8; 32] = [90; 32];
     const DENSITY_SPACE_ID: [u8; 32] = [91; 32];
@@ -444,7 +443,12 @@ mod tests {
         .unwrap()
     }
 
-    fn draw(index: u64, draw_id: u8, difference: i64, mode_key: PortfolioEventModeKey) -> DefensiveContrastDraw {
+    fn draw(
+        index: u64,
+        draw_id: u8,
+        difference: i64,
+        mode_key: PortfolioEventModeKey,
+    ) -> DefensiveContrastDraw {
         DefensiveContrastDraw {
             draw_index: index,
             draw_id: [draw_id; 32],
@@ -457,15 +461,8 @@ mod tests {
     #[test]
     fn first_report_is_full_support_and_bound_to_frozen_proposal() {
         let process =
-            DefensiveContrastConfidenceSequence::new(
-                fixture(),
-                [10; 32],
-                [20; 32],
-                0.01,
-                -10,
-                10,
-            )
-            .unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10)
+                .unwrap();
         let report = process.report().unwrap();
 
         assert_eq!(report.left_portfolio_id, [10; 32]);
@@ -483,7 +480,8 @@ mod tests {
     #[test]
     fn observed_contribution_is_bounded_and_receipt_binds_the_full_proposal() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10)
+                .unwrap();
         let observation = process.observe(&draw(1, 1, 0, key(10, 1, 1))).unwrap();
 
         assert_eq!(observation.draw_index, 1);
@@ -498,7 +496,8 @@ mod tests {
     #[test]
     fn out_of_bound_consequence_and_bad_mode_do_not_mutate_the_sequence() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10)
+                .unwrap();
 
         assert_eq!(
             process.observe(&draw(1, 1, 11, key(10, 1, 1))),
@@ -517,7 +516,8 @@ mod tests {
     #[test]
     fn duplicate_draw_ids_and_reordered_indices_are_rejected() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10)
+                .unwrap();
         process.observe(&draw(1, 7, 0, key(10, 1, 1))).unwrap();
 
         assert_eq!(
@@ -534,15 +534,8 @@ mod tests {
     #[test]
     fn degenerate_consequence_bounds_are_exact() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(
-                fixture(),
-                [10; 32],
-                [20; 32],
-                0.01,
-                4,
-                4,
-            )
-            .unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, 4, 4)
+                .unwrap();
         let observation = process.observe(&draw(1, 1, 4, key(10, 1, 1))).unwrap();
         assert_eq!(observation.normalized_consequence_difference, 0.0);
         assert_eq!(observation.defensive_contribution, 0.0);
@@ -565,9 +558,7 @@ mod tests {
             i64::MAX,
         )
         .unwrap();
-        let observation = process
-            .observe(&draw(1, 1, 0, key(10, 1, 1)))
-            .unwrap();
+        let observation = process.observe(&draw(1, 1, 0, key(10, 1, 1))).unwrap();
         assert!((observation.normalized_consequence_difference - 0.5).abs() < 1.0e-15);
 
         let report = process.report().unwrap();
@@ -578,27 +569,13 @@ mod tests {
     #[test]
     fn contrast_is_bound_to_two_distinct_portfolio_identities() {
         assert_eq!(
-            DefensiveContrastConfidenceSequence::new(
-                fixture(),
-                [10; 32],
-                [10; 32],
-                0.01,
-                -10,
-                10,
-            )
-            .unwrap_err(),
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [10; 32], 0.01, -10, 10,)
+                .unwrap_err(),
             DefensiveContrastSequenceError::InvalidPortfolioPair
         );
         assert_eq!(
-            DefensiveContrastConfidenceSequence::new(
-                fixture(),
-                [10; 32],
-                [30; 32],
-                0.01,
-                -10,
-                10,
-            )
-            .unwrap_err(),
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [30; 32], 0.01, -10, 10,)
+                .unwrap_err(),
             DefensiveContrastSequenceError::InvalidPortfolioPair
         );
     }
@@ -606,27 +583,13 @@ mod tests {
     #[test]
     fn invalid_bounds_and_alpha_fail_before_any_draw() {
         assert_eq!(
-            DefensiveContrastConfidenceSequence::new(
-                fixture(),
-                [10; 32],
-                [20; 32],
-                0.0,
-                -1,
-                1,
-            )
-            .unwrap_err(),
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.0, -1, 1,)
+                .unwrap_err(),
             DefensiveContrastSequenceError::InvalidAlpha
         );
         assert_eq!(
-            DefensiveContrastConfidenceSequence::new(
-                fixture(),
-                [10; 32],
-                [20; 32],
-                0.01,
-                2,
-                1,
-            )
-            .unwrap_err(),
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, 2, 1,)
+                .unwrap_err(),
             DefensiveContrastSequenceError::InvalidConsequenceBounds
         );
     }
@@ -634,7 +597,8 @@ mod tests {
     #[test]
     fn transformed_interval_stays_inside_the_declared_target_support() {
         let mut process =
-            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10).unwrap();
+            DefensiveContrastConfidenceSequence::new(fixture(), [10; 32], [20; 32], 0.01, -10, 10)
+                .unwrap();
         for index in 1..=250 {
             process
                 .observe(&draw(index, (index % 250 + 1) as u8, 10, key(10, 1, 1)))
