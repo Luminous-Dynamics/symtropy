@@ -60,6 +60,8 @@ pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
 pub mod residual;
 pub mod sequential;
+/// Atomic simultaneous selection across portfolios under a defensive proposal.
+pub mod simultaneous_defensive_selection;
 pub mod space_time_partition;
 pub mod stats;
 pub mod trajectory;
@@ -175,6 +177,12 @@ pub use residual::{
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
+pub use simultaneous_defensive_selection::{
+    DefensivePortfolioDraw, DefensivePortfolioDrawReceipt, DefensivePortfolioPairInterval,
+    DefensivePortfolioPairObservation, MAX_SIMULTANEOUS_DEFENSIVE_DRAWS,
+    SimultaneousDefensivePortfolioReport, SimultaneousDefensivePortfolioSelection,
+    SimultaneousDefensiveSelectionError,
+};
 pub use space_time_partition::{
     NcEnvelopeReport, NonnegativeRationalInterval, Rational, SpaceTimeCellContribution,
     SpaceTimeHorizon, SpaceTimePartition, SpaceTimePartitionError, SpaceTimeRateCell,
