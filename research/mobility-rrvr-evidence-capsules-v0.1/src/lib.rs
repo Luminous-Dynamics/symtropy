@@ -251,18 +251,16 @@ fn validate_bundle(bundle: &EvidenceBundle) -> Result<(), String> {
         validate_time("event_time", &capsule.event_time)?;
         validate_time("observation_time", &capsule.observation_time)?;
         if capsule.event_time.clock_id != capsule.observation_time.clock_id {
-            return Err(format!(
-                "CLOCK_DOMAIN_MISMATCH: {}",
-                capsule.evidence_id
-            ));
+            return Err(format!("CLOCK_DOMAIN_MISMATCH: {}", capsule.evidence_id));
         }
         if capsule.observation_time.earliest_ns < capsule.event_time.latest_ns {
-            return Err(format!(
-                "TIME_ORDER_UNCERTAIN: {}",
-                capsule.evidence_id
-            ));
+            return Err(format!("TIME_ORDER_UNCERTAIN: {}", capsule.evidence_id));
         }
-        if capsule.parent_evidence_ids.windows(2).any(|pair| pair[0] >= pair[1]) {
+        if capsule
+            .parent_evidence_ids
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
+        {
             return Err(format!(
                 "PARENT_IDS_NOT_STRICTLY_SORTED: {}",
                 capsule.evidence_id
