@@ -34,6 +34,8 @@ pub mod conditional_velocity;
 pub mod coverage;
 pub mod decision_gate;
 pub mod decision_refinement;
+/// Anytime-valid paired contrast sequence under a frozen defensive proposal.
+pub mod defensive_contrast_sequence;
 pub mod hedged_capital_sequence;
 pub mod lebedev;
 /// Exact dependence-aware aggregation across a finite mission encounter set.
@@ -86,6 +88,11 @@ pub use decision_gate::{
 pub use decision_refinement::{
     DecisionRefinementDisposition, DecisionRefinementError, DecisionRefinementReport,
     plan_decision_refinement,
+};
+pub use defensive_contrast_sequence::{
+    DefensiveContrastConfidenceInterval, DefensiveContrastConfidenceSequence,
+    DefensiveContrastDraw, DefensiveContrastObservation, DefensiveContrastSequenceError,
+    MAX_DEFENSIVE_CONTRAST_DRAWS,
 };
 pub use hedged_capital_sequence::{
     AdaptiveImportanceSamplingHedgedSequence, DEFAULT_HEDGED_STAKE_CAP,
