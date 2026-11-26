@@ -29,6 +29,7 @@ pub enum Split {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ReplayManifest {
     schema_version: String,
     benchmark: String,
@@ -38,6 +39,7 @@ struct ReplayManifest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ReplayCandidate {
     scenario_id: String,
     platform: Platform,
@@ -57,11 +59,13 @@ struct ReplayCandidate {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct DifficultyScreen {
     trials: Vec<DifficultyTrial>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct DifficultyTrial {
     attempt_id: String,
     policy_id: String,
@@ -804,6 +808,7 @@ fn validate_candidate(
         return Err("ACTION_PREFIX_ATTEMPT_COUNT_NOT_THREE".to_owned());
     }
     let mut verified = 11usize; // source episode + instruction + index + four profiles + policy roster + two receipt bundles + selection record
+    let mut frame_asset_paths = BTreeSet::new();
     for (index, attempt_id) in selected.iter().enumerate() {
         let expected_policy = &selected_policies[index];
         let reset = &reset_bundle.attempts[index];
@@ -846,6 +851,12 @@ fn validate_candidate(
                 || !is_sha256(&frame_pair.replay_sha256)
             {
                 return Err("SPOT_CHECK_FRAME_PAIR_IDENTITY_INVALID".to_owned());
+            }
+            if frame_pair.original_path == frame_pair.replay_path
+                || !frame_asset_paths.insert(frame_pair.original_path.as_str())
+                || !frame_asset_paths.insert(frame_pair.replay_path.as_str())
+            {
+                return Err("SPOT_CHECK_FRAME_ASSET_PATH_DUPLICATED".to_owned());
             }
             let original_frame_ref = ArtifactRef {
                 relative_path: frame_pair.original_path.clone(),
@@ -1439,6 +1450,28 @@ mod tests {
         assert_eq!(
             report.candidate_reports[0].reason_codes[0],
             "SPOT_CHECK_FRAME_PAIR_IDENTITY_INVALID"
+        );
+    }
+
+    #[test]
+    fn duplicated_raw_frame_path_is_rejected_after_manifest_reseal() {
+        let (root, replay, provenance) = fixture();
+        let (replay, provenance) = reseal_spot_check(
+            &replay,
+            &provenance,
+            |spot| {
+                let first = spot["attempts"][0]["final_frame_pairs"][0].clone();
+                spot["attempts"][0]["final_frame_pairs"][1]["original_path"] =
+                    first["original_path"].clone();
+                spot["attempts"][0]["final_frame_pairs"][1]["original_sha256"] =
+                    first["original_sha256"].clone();
+            },
+        );
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "SPOT_CHECK_FRAME_ASSET_PATH_DUPLICATED"
         );
     }
 
