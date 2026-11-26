@@ -5,7 +5,8 @@ This isolated Rust crate provides an artifact-backed preflight for the existing 
 ## What it verifies
 
 - The raw split-manifest artifact matches the replay manifest's split-manifest digest. Candidate cluster identities and hashed leakage keys are checked; the same platform-specific leakage key or trajectory cluster cannot cross the train/test boundary.
-- Raw source episode bytes match the source-episode digest in the replay manifest.
+- The raw split-manifest artifact in the provenance sidecar is read and hash-checked against the replay manifest's `split_manifest_sha256`; campaign and data-provenance metadata are required.
+- Source trajectory and trajectory-cluster identities must match between the replay manifest and provenance sidecar.
 - Raw instruction and action-prefix-index bytes match the replay manifest digests. The three selected attempts each carry distinct raw action-prefix artifacts and step counts.
 - Raw original-state and replay-state snapshot files for all three selected attempts are read, hashed and checked for scenario, attempt ID, simulator-profile binding, finite positions and matching coordinate frames. The reset receipts' initial-state digests must match the original-state artifact bytes.
 - Simulator, robot-model, controller and rendering profile artifacts exist, hash correctly, and identify the expected profile kind.
