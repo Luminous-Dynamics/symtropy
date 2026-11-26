@@ -168,7 +168,6 @@ pub struct SensorEvaluation {
     pub metrics: QuadratureMetrics,
 }
 
-
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScenarioResult {
     pub trace_id: String,
@@ -196,7 +195,6 @@ pub struct ScenarioSetMetrics {
     pub worst_transition_bracket_rad: Option<f64>,
     pub scenarios: Vec<ScenarioResult>,
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CapturedQuadratureEdge {
@@ -379,8 +377,6 @@ fn classify_transition(
     }
 }
 
-
-
 /// Evaluate a finite, explicitly declared set of operating-condition traces
 /// against one fixed sensor and latch configuration.
 ///
@@ -430,8 +426,7 @@ pub fn evaluate_scenario_set(
                 .iter()
                 .zip(first.samples.iter())
                 .any(|(left, right)| {
-                    left.mechanical_angle_rad.to_bits()
-                        != right.mechanical_angle_rad.to_bits()
+                    left.mechanical_angle_rad.to_bits() != right.mechanical_angle_rad.to_bits()
                 })
         {
             return Err(EvaluationError::ScenarioGridCoordinatesMismatch);
@@ -449,20 +444,18 @@ pub fn evaluate_scenario_set(
             worst_missing_transition_count.max(metrics.missing_transition_count);
         worst_excess_transition_count =
             worst_excess_transition_count.max(metrics.excess_transition_count);
-        worst_illegal_two_bit_transition_count = worst_illegal_two_bit_transition_count
-            .max(metrics.illegal_two_bit_transitions);
+        worst_illegal_two_bit_transition_count =
+            worst_illegal_two_bit_transition_count.max(metrics.illegal_two_bit_transitions);
         worst_direction_reversal_count =
             worst_direction_reversal_count.max(metrics.direction_reversal_count);
         if let Some(value) = metrics.maximum_spacing_error_lower_bound_rad {
             worst_spacing_error_lower_bound_rad = Some(
-                worst_spacing_error_lower_bound_rad
-                    .map_or(value, |current| current.max(value)),
+                worst_spacing_error_lower_bound_rad.map_or(value, |current| current.max(value)),
             );
         }
         if let Some(value) = metrics.maximum_spacing_error_upper_bound_rad {
             worst_spacing_error_upper_bound_rad = Some(
-                worst_spacing_error_upper_bound_rad
-                    .map_or(value, |current| current.max(value)),
+                worst_spacing_error_upper_bound_rad.map_or(value, |current| current.max(value)),
             );
         }
         if let Some(value) = metrics.maximum_transition_bracket_rad {
@@ -498,7 +491,6 @@ pub fn evaluate_scenario_set(
         scenarios,
     })
 }
-
 
 /// Reconcile a timestamped hardware A/B capture against predicted Hall-latch
 /// transitions. The capture has its own identity and independent rotor/clock
@@ -548,8 +540,7 @@ pub fn reconcile_captured_output(
         || !capture.end_angle_rad.is_finite()
         || (capture.start_angle_rad - predicted.start_angle_rad).abs() > ANGLE_TOLERANCE_RAD
         || (capture.end_angle_rad - predicted.end_angle_rad).abs() > ANGLE_TOLERANCE_RAD
-        || (capture.end_angle_rad - capture.start_angle_rad - TAU).abs()
-            > ANGLE_TOLERANCE_RAD
+        || (capture.end_angle_rad - capture.start_angle_rad - TAU).abs() > ANGLE_TOLERANCE_RAD
     {
         return Err(EvaluationError::CaptureAngleWindowMismatch);
     }
@@ -601,10 +592,12 @@ pub fn reconcile_captured_output(
         }
         if let Some(previous) = previous_timestamp {
             let interval = edge.timestamp_ns - previous;
-            minimum_captured_edge_interval_ns =
-                Some(minimum_captured_edge_interval_ns.map_or(interval, |value| value.min(interval)));
-            maximum_captured_edge_interval_ns =
-                Some(maximum_captured_edge_interval_ns.map_or(interval, |value| value.max(interval)));
+            minimum_captured_edge_interval_ns = Some(
+                minimum_captured_edge_interval_ns.map_or(interval, |value| value.min(interval)),
+            );
+            maximum_captured_edge_interval_ns = Some(
+                maximum_captured_edge_interval_ns.map_or(interval, |value| value.max(interval)),
+            );
         }
 
         previous_state = edge.state_after;
@@ -670,14 +663,14 @@ pub fn reconcile_captured_output(
         let midpoint_residual = observed.mechanical_angle_rad - midpoint;
         signed_midpoint_residual_sum_rad += midpoint_residual;
         maximum_absolute_midpoint_residual_rad = Some(
-            maximum_absolute_midpoint_residual_rad
-                .map_or(midpoint_residual.abs(), |value| value.max(midpoint_residual.abs())),
+            maximum_absolute_midpoint_residual_rad.map_or(midpoint_residual.abs(), |value| {
+                value.max(midpoint_residual.abs())
+            }),
         );
     }
 
-    let mean_signed_midpoint_residual_rad = (matched_count > 0).then_some(
-        signed_midpoint_residual_sum_rad / matched_count as f64,
-    );
+    let mean_signed_midpoint_residual_rad =
+        (matched_count > 0).then_some(signed_midpoint_residual_sum_rad / matched_count as f64);
     let state_sequence_and_bracket_match = initial_state_match
         && missing_captured_transition_count == 0
         && extra_captured_transition_count == 0
@@ -896,8 +889,8 @@ pub fn evaluate_trace(
 
         let previous_sample = trace.samples[index - 1];
         let current_sample = trace.samples[index];
-        let bracket_width = current_sample.mechanical_angle_rad
-            - previous_sample.mechanical_angle_rad;
+        let bracket_width =
+            current_sample.mechanical_angle_rad - previous_sample.mechanical_angle_rad;
         minimum_transition_bracket_rad = minimum_transition_bracket_rad.min(bracket_width);
         maximum_transition_bracket_rad = maximum_transition_bracket_rad.max(bracket_width);
 
@@ -950,9 +943,8 @@ pub fn evaluate_trace(
 
     let (expected_transition_rate_hz, maximum_transition_rate_hz, within_edge_rate_policy) =
         if let Some(policy) = config.edge_rate_policy {
-            let expected_rate = expected_transitions_per_revolution as f64
-                * policy.rotational_speed_rpm
-                / 60.0;
+            let expected_rate =
+                expected_transitions_per_revolution as f64 * policy.rotational_speed_rpm / 60.0;
             if !expected_rate.is_finite() {
                 return Err(EvaluationError::InvalidTimingPolicy);
             }
@@ -965,9 +957,7 @@ pub fn evaluate_trace(
             (None, None, None)
         };
 
-
-    let expected_quadrature_spacing_rad =
-        TAU / expected_transitions_per_revolution as f64;
+    let expected_quadrature_spacing_rad = TAU / expected_transitions_per_revolution as f64;
     let valid_transition_indices = transitions
         .iter()
         .enumerate()
@@ -978,11 +968,8 @@ pub fn evaluate_trace(
     let mut quadrature_spacing_interval_count = 0_usize;
 
     let mut compare_spacing_interval = |lower: f64, upper: f64| {
-        let (error_lower, error_upper) = spacing_error_bounds(
-            lower,
-            upper,
-            expected_quadrature_spacing_rad,
-        );
+        let (error_lower, error_upper) =
+            spacing_error_bounds(lower, upper, expected_quadrature_spacing_rad);
         maximum_spacing_error_lower_bound_rad =
             maximum_spacing_error_lower_bound_rad.max(error_lower);
         maximum_spacing_error_upper_bound_rad =
@@ -1062,7 +1049,6 @@ pub fn evaluate_trace(
     })
 }
 
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum HallChannel {
     A,
@@ -1129,7 +1115,10 @@ pub fn analyze_channel_harmonics(
     let maximum_order = u64::from(pole_pairs)
         .checked_mul(u64::from(maximum_harmonic_multiple))
         .ok_or(EvaluationError::HarmonicOrderAboveNyquist)?;
-    if maximum_order.checked_mul(2).is_none_or(|twice| twice >= unique_count as u64) {
+    if maximum_order
+        .checked_mul(2)
+        .is_none_or(|twice| twice >= unique_count as u64)
+    {
         return Err(EvaluationError::HarmonicOrderAboveNyquist);
     }
 
@@ -1155,7 +1144,10 @@ pub fn analyze_channel_harmonics(
         if !value.is_finite() {
             return Err(EvaluationError::ProjectedFieldOverflow {
                 index,
-                channel: match channel { HallChannel::A => 'A', HallChannel::B => 'B' },
+                channel: match channel {
+                    HallChannel::A => 'A',
+                    HallChannel::B => 'B',
+                },
             });
         }
         if index < unique_count {
@@ -1176,10 +1168,10 @@ pub fn analyze_channel_harmonics(
     };
 
     let dc_offset_t = projected.iter().sum::<f64>() / unique_count as f64;
-    let total_rms_t = (projected.iter().map(|value| value * value).sum::<f64>()
-        / unique_count as f64)
-        .sqrt();
-    if !dc_offset_t.is_finite() || !total_rms_t.is_finite() || !endpoint_discontinuity_t.is_finite() {
+    let total_rms_t =
+        (projected.iter().map(|value| value * value).sum::<f64>() / unique_count as f64).sqrt();
+    if !dc_offset_t.is_finite() || !total_rms_t.is_finite() || !endpoint_discontinuity_t.is_finite()
+    {
         return Err(EvaluationError::SpectralNumericOverflow);
     }
 
@@ -1212,32 +1204,37 @@ pub fn analyze_channel_harmonics(
 
     let fundamental_amplitude_t = harmonics.first().map(|component| component.amplitude_t);
     let fundamental_phase_rad = harmonics.first().map(|component| component.phase_rad);
-    let residual_energy_t2 = (total_rms_t * total_rms_t
-        - dc_offset_t * dc_offset_t
-        - harmonic_energy_t2)
-        .max(0.0);
+    let residual_energy_t2 =
+        (total_rms_t * total_rms_t - dc_offset_t * dc_offset_t - harmonic_energy_t2).max(0.0);
     let unresolved_residual_rms_t = residual_energy_t2.sqrt();
 
-    let (total_harmonic_distortion_ratio, unresolved_spectral_residual_ratio, combined_nonfundamental_ratio) =
-        if let Some(fundamental) = fundamental_amplitude_t.filter(|amplitude| *amplitude > 0.0) {
-            let higher_harmonic_energy_t2 = harmonics
-                .iter()
-                .skip(1)
-                .map(|component| component.amplitude_t * component.amplitude_t / 2.0)
-                .sum::<f64>();
-            let fundamental_rms_t = fundamental / 2.0_f64.sqrt();
-            let thd = (higher_harmonic_energy_t2.sqrt()) / fundamental_rms_t;
-            let residual_ratio = unresolved_residual_rms_t / fundamental_rms_t;
-            let combined = (higher_harmonic_energy_t2 + residual_energy_t2).sqrt() / fundamental_rms_t;
-            (Some(thd), Some(residual_ratio), Some(combined))
-        } else {
-            (None, None, None)
-        };
+    let (
+        total_harmonic_distortion_ratio,
+        unresolved_spectral_residual_ratio,
+        combined_nonfundamental_ratio,
+    ) = if let Some(fundamental) = fundamental_amplitude_t.filter(|amplitude| *amplitude > 0.0) {
+        let higher_harmonic_energy_t2 = harmonics
+            .iter()
+            .skip(1)
+            .map(|component| component.amplitude_t * component.amplitude_t / 2.0)
+            .sum::<f64>();
+        let fundamental_rms_t = fundamental / 2.0_f64.sqrt();
+        let thd = (higher_harmonic_energy_t2.sqrt()) / fundamental_rms_t;
+        let residual_ratio = unresolved_residual_rms_t / fundamental_rms_t;
+        let combined = (higher_harmonic_energy_t2 + residual_energy_t2).sqrt() / fundamental_rms_t;
+        (Some(thd), Some(residual_ratio), Some(combined))
+    } else {
+        (None, None, None)
+    };
 
-    if [total_harmonic_distortion_ratio, unresolved_spectral_residual_ratio, combined_nonfundamental_ratio]
-        .into_iter()
-        .flatten()
-        .any(|value| !value.is_finite())
+    if [
+        total_harmonic_distortion_ratio,
+        unresolved_spectral_residual_ratio,
+        combined_nonfundamental_ratio,
+    ]
+    .into_iter()
+    .flatten()
+    .any(|value| !value.is_finite())
     {
         return Err(EvaluationError::SpectralNumericOverflow);
     }
@@ -1317,7 +1314,6 @@ mod tests {
         }
     }
 
-
     fn discrete_spatial_trace(
         trace_id: &str,
         pole_pairs: u32,
@@ -1353,7 +1349,6 @@ mod tests {
             samples,
         }
     }
-
 
     #[test]
     fn pure_fundamental_field_has_negligible_higher_harmonics() {
@@ -1397,15 +1392,14 @@ mod tests {
         );
     }
 
-
     #[test]
     fn finite_scenario_set_accepts_different_operating_conditions() {
         let nominal = sinusoidal_trace("nominal-gap", 10, 3601, 0.008, 1.0);
         let mut wider_gap = sinusoidal_trace("wider-gap", 10, 3601, 0.007, 1.0);
         wider_gap.operating_condition_id = "gap-4p0mm-temp-25C-v0".to_owned();
 
-        let result = evaluate_scenario_set("air-gap-sweep-v0", &[nominal, wider_gap], config(10))
-            .unwrap();
+        let result =
+            evaluate_scenario_set("air-gap-sweep-v0", &[nominal, wider_gap], config(10)).unwrap();
 
         assert_eq!(result.scenario_count, 2);
         assert_eq!(result.accepted_scenario_count, 2);
@@ -1420,9 +1414,12 @@ mod tests {
     fn finite_scenario_set_reports_worst_case_failure_without_yield() {
         let nominal = sinusoidal_trace("nominal", 10, 3601, 0.008, 1.0);
         let missing_signal = sinusoidal_trace("low-field", 10, 3601, 0.00001, 1.0);
-        let result =
-            evaluate_scenario_set("field-margin-sweep-v0", &[nominal, missing_signal], config(10))
-                .unwrap();
+        let result = evaluate_scenario_set(
+            "field-margin-sweep-v0",
+            &[nominal, missing_signal],
+            config(10),
+        )
+        .unwrap();
 
         assert_eq!(result.scenario_count, 2);
         assert_eq!(result.accepted_scenario_count, 1);
@@ -1480,10 +1477,7 @@ mod tests {
         );
     }
 
-
-    fn captured_trace_from_prediction(
-        prediction: &SensorEvaluation,
-    ) -> CapturedQuadratureTrace {
+    fn captured_trace_from_prediction(prediction: &SensorEvaluation) -> CapturedQuadratureTrace {
         CapturedQuadratureTrace {
             capture_id: "logic-analyzer-capture-001".to_owned(),
             source_field_trace_id: prediction.trace_id.clone(),
@@ -1510,15 +1504,13 @@ mod tests {
                 .enumerate()
                 .map(|(index, transition)| CapturedQuadratureEdge {
                     timestamp_ns: 1_000_000 + index as u64 * 100_000,
-                    mechanical_angle_rad: (transition.lower_angle_rad
-                        + transition.upper_angle_rad)
+                    mechanical_angle_rad: (transition.lower_angle_rad + transition.upper_angle_rad)
                         / 2.0,
                     state_after: transition.to,
                 })
                 .collect(),
         }
     }
-
 
     #[test]
     fn capture_reconciliation_reports_edge_outside_prediction_bracket() {
@@ -1530,7 +1522,12 @@ mod tests {
 
         let metrics = reconcile_captured_output(&prediction, &capture).unwrap();
         assert_eq!(metrics.captured_edges_outside_predicted_bracket_count, 1);
-        assert!(metrics.maximum_angle_distance_to_predicted_bracket_rad.unwrap() > 0.009);
+        assert!(
+            metrics
+                .maximum_angle_distance_to_predicted_bracket_rad
+                .unwrap()
+                > 0.009
+        );
         assert!(!metrics.state_sequence_and_bracket_match);
     }
 
@@ -1551,7 +1548,13 @@ mod tests {
 
     #[test]
     fn capture_reconciliation_rejects_missing_latency_or_clock_provenance() {
-        let trace = sinusoidal_trace("predicted-field-trace-missing-provenance", 1, 3601, 0.008, 1.0);
+        let trace = sinusoidal_trace(
+            "predicted-field-trace-missing-provenance",
+            1,
+            3601,
+            0.008,
+            1.0,
+        );
         let prediction = evaluate_trace(&trace, config(1)).unwrap();
         let mut capture = captured_trace_from_prediction(&prediction);
         capture.latency_calibration_record_id.clear();
@@ -1708,9 +1711,12 @@ mod tests {
         assert_eq!(result.metrics.expected_transitions_per_revolution, 4);
         assert_eq!(result.metrics.observed_valid_transitions, 4);
         assert_eq!(result.metrics.illegal_two_bit_transitions, 0);
-        assert!(result.transitions.iter().all(|edge| {
-            edge.direction == Some(TransitionDirection::Forward)
-        }));
+        assert!(
+            result
+                .transitions
+                .iter()
+                .all(|edge| { edge.direction == Some(TransitionDirection::Forward) })
+        );
     }
 
     #[test]
@@ -1727,9 +1733,12 @@ mod tests {
         let trace = sinusoidal_trace("reverse-direction-control", 3, 3601, 0.008, -1.0);
         let result = evaluate_trace(&trace, config(3)).unwrap();
         assert!(result.metrics.quadrature_sequence_valid);
-        assert!(result.transitions.iter().all(|edge| {
-            edge.direction == Some(TransitionDirection::Reverse)
-        }));
+        assert!(
+            result
+                .transitions
+                .iter()
+                .all(|edge| { edge.direction == Some(TransitionDirection::Reverse) })
+        );
     }
 
     #[test]
@@ -1742,7 +1751,10 @@ mod tests {
             state = latch_next_state(state, field, latch_config);
             output.push(state);
         }
-        assert_eq!(output, vec![false, false, false, true, true, true, true, false]);
+        assert_eq!(
+            output,
+            vec![false, false, false, true, true, true, true, false]
+        );
     }
 
     #[test]
@@ -1760,8 +1772,6 @@ mod tests {
         assert_eq!(a_edges, 20);
         assert_eq!(b_edges, 20);
     }
-
-
 
     #[test]
     fn discrete_latches_can_use_separate_spatial_field_traces() {
@@ -1786,13 +1796,24 @@ mod tests {
 
         let result = evaluate_trace(&trace, cfg).unwrap();
         assert_eq!(result.metrics.observed_valid_transitions, 40);
-        assert!(result.metrics.maximum_spacing_error_lower_bound_rad.unwrap() > 0.0);
         assert!(
-            result.metrics.maximum_spacing_error_upper_bound_rad.unwrap()
-                > result.metrics.maximum_spacing_error_lower_bound_rad.unwrap()
+            result
+                .metrics
+                .maximum_spacing_error_lower_bound_rad
+                .unwrap()
+                > 0.0
+        );
+        assert!(
+            result
+                .metrics
+                .maximum_spacing_error_upper_bound_rad
+                .unwrap()
+                > result
+                    .metrics
+                    .maximum_spacing_error_lower_bound_rad
+                    .unwrap()
         );
     }
-
 
     #[test]
     fn ti_twenty_pole_discrete_threshold_mismatch_challenge_is_near_4p9_degrees() {
@@ -1843,23 +1864,43 @@ mod tests {
         let mismatch = evaluate_trace(&trace, mismatch_config).unwrap();
 
         assert_eq!(baseline.metrics.expected_quadrature_spacing_rad, TAU / 40.0);
-        assert!(baseline.metrics.maximum_spacing_error_upper_bound_rad.is_some());
         assert!(
-            mismatch.metrics.maximum_spacing_error_upper_bound_rad.unwrap()
-                > baseline.metrics.maximum_spacing_error_upper_bound_rad.unwrap()
+            baseline
+                .metrics
+                .maximum_spacing_error_upper_bound_rad
+                .is_some()
+        );
+        assert!(
+            mismatch
+                .metrics
+                .maximum_spacing_error_upper_bound_rad
+                .unwrap()
+                > baseline
+                    .metrics
+                    .maximum_spacing_error_upper_bound_rad
+                    .unwrap()
         );
     }
 
     #[test]
     fn detects_simultaneous_two_bit_change_as_illegal() {
         let mut trace = sinusoidal_trace("illegal-transition", 1, 5, 0.008, 1.0);
-        trace.samples[0].channel_a_field = InPlaneField { radial_t: 0.0, tangential_t: 0.0 };
+        trace.samples[0].channel_a_field = InPlaneField {
+            radial_t: 0.0,
+            tangential_t: 0.0,
+        };
         trace.samples[0].channel_b_field = trace.samples[0].channel_a_field;
-        trace.samples[1].channel_a_field = InPlaneField { radial_t: 0.008, tangential_t: 0.0 };
+        trace.samples[1].channel_a_field = InPlaneField {
+            radial_t: 0.008,
+            tangential_t: 0.0,
+        };
         trace.samples[1].channel_b_field = trace.samples[1].channel_a_field;
         trace.samples[2].channel_a_field = trace.samples[1].channel_a_field;
         trace.samples[2].channel_b_field = trace.samples[2].channel_a_field;
-        trace.samples[3].channel_a_field = InPlaneField { radial_t: -0.008, tangential_t: 0.0 };
+        trace.samples[3].channel_a_field = InPlaneField {
+            radial_t: -0.008,
+            tangential_t: 0.0,
+        };
         trace.samples[3].channel_b_field = trace.samples[3].channel_a_field;
         trace.samples[4].channel_a_field = trace.samples[0].channel_a_field;
         trace.samples[4].channel_b_field = trace.samples[4].channel_a_field;
@@ -1875,7 +1916,10 @@ mod tests {
     fn reports_missing_edges_for_constant_field() {
         let mut trace = sinusoidal_trace("missing-edges", 1, 361, 0.0, 1.0);
         for sample in &mut trace.samples {
-            sample.channel_a_field = InPlaneField { radial_t: 0.0, tangential_t: 0.0 };
+            sample.channel_a_field = InPlaneField {
+                radial_t: 0.0,
+                tangential_t: 0.0,
+            };
             sample.channel_b_field = sample.channel_a_field;
         }
         let mut cfg = config(1);
