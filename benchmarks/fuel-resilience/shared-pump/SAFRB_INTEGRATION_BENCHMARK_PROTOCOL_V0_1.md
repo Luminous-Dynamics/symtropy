@@ -52,6 +52,31 @@ The graph algorithm itself is not a novel contribution claim. The v0 kernel uses
 
 Official references: OR-Tools maximum-flow API, including per-arc flow and min-cut access: https://developers.google.com/optimization/flow/maxflow. NetworkX flow algorithms and the `maximum_flow` default/selection semantics: https://networkx.org/documentation/stable/reference/algorithms/flow.html and https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.flow.maximum_flow.html.
 
+### 2.2.1 DIMACS Network Flows 2.0 compatibility track (2026–2027)
+
+The current 13th DIMACS Implementation Challenge is explicitly refreshing flow benchmarks because many historic instances have become too easy for modern implementations. Its goals include updated benchmark instances from real applications, new algorithm implementations and comparison of older/newer methods. Its max-flow reference page names HIPR4 as the principal baseline and also lists pseudoflow and EIBFS; it says no reference implementation universally dominates and recommends comparing against all relevant codes. SAFRB should adopt this as its external algorithm-performance track rather than treating a small NetworkX sample as SOTA evidence.
+
+**Required reference set and corpus mapping:**
+
+| External baseline / source | SAFRB use | Important scope boundary |
+|---|---|---|
+| HIPR4 v4.2 (highest-level push-relabel) | Principal mature max-flow reference on the DIMACS-compatible static corpus | Match DIMACS input and exact capacity semantics; isolate parser/translation cost from solver time |
+| Pseudoflow (C implementation) | Alternative algorithm family and practical performance comparison | Record DNF/timeouts; do not cherry-pick only easy cases |
+| EIBFS / incremental breadth-first-search enhancement of Boykov–Kolmogorov | Image/vision graph cases and incremental graph variants where its model applies | Its vision specialization means results must be stratified by graph family; do not generalize its performance to fuel/hydraulic topologies |
+| DIMACS max-flow core instances | Vision, segmentation, surface-fitting, stereo, punch, bisection and road-network partition families | Freeze dataset version, source URL, conversion tool and canonical digest for every instance |
+| DIMACS generators | RMF long/wide and Washington RLG long/wide | Pin exact generator source, parameters, seed and patched revision; publish the generated graph itself and its digest |
+
+The challenge's reference pages specify core instance families, including vision, PUNCH and bisection, and list Polygon Aggregation instances with 64-bit capacities even though the general format describes 32-bit capacities. This makes a 64-bit parser/runner lane particularly relevant to the kernel's u64 contract. Keep the ordinary DIMACS compatibility lane within the format's defined numeric range; run u64 boundary/Polygon cases in a separate, explicitly labelled extension lane. Some challenge datasets include incremental instances. Preserve those as a separate dynamic-update lane, not mixed into static one-shot solver timings.
+
+**Submission-style reporting:** publish all required core instance results; report DNF when a solver does not finish; include additional domain-relevant instances; give instance provenance and digests; report hardware, compiler, library and solver versions; provide per-case timing and memory, not just one aggregate score. For the SAFRB adapter, add the end-to-end graph construction, certificate verification and evidence-link resolution time alongside the bare solver result.
+
+**SOTA rule:** a faster max-flow value alone is not a new field-level result. The kernel must match the mature reference solvers on every supported instance while preserving exact edge identities and independently verifiable primal/dual certificates. SAFRB's differentiator is the evidence-bound service assurance layer—joint/individual semantics, physical-resource alias handling, evidence freshness and portable verification—not an unsupported claim to have invented a faster max-flow algorithm.
+
+Official challenge sources:
+- [Network Flows 2.0 challenge overview](https://coral.ise.lehigh.edu/flow-challenge-2-0/) — challenge motivation, goals and problem classes.
+- [Max-flow instances and generators](https://coral.ise.lehigh.edu/flow-challenge-2-0/max-flow-instances-and-generators/) — core real-world families, generators and 64-bit capacity note.
+- [Max-flow reference solvers](https://coral.ise.lehigh.edu/flow-challenge-2-0/max-flow-reference-solvers/) — HIPR4, pseudoflow and EIBFS reference programs and comparison guidance.
+
 **Graph equivalence is a benchmark precondition.** NetworkX documents that `MultiDiGraph` inputs are not supported by its maximum-flow functions. For parallel edges, either use a separately tested capacity-preserving node-splitting transformation with explicit reverse mapping, or exclude those cases from that comparator; never silently coalesce arc identities and then compare an identity-sensitive certificate. OR-Tools and the in-house kernel should retain distinct arc identities. Restrict cross-solver comparisons to the common exact integer range; exercise u64 overflow behavior separately in the Rust kernel's own tests.
 
 **Corpus.** Include (a) all small directed topologies through four nodes, (b) sparse and dense seeded graphs, (c) layered/time-expanded DAGs, (d) shared physical-resource capacity gates, (e) parallel and antiparallel arcs, (f) zero-capacity and disconnected cases, (g) high-capacity/skewed distributions, (h) long paths, and (i) adversarial alias/bypass mutations. Publish the seed, canonical graph digest, graph size, degree distribution, capacity distribution and model class for every case.
