@@ -99,6 +99,8 @@ pub struct ServiceReceipt {
     pub energy_millijoules: Option<u128>,
     pub energy_meter_id: Option<String>,
     pub energy_calibration_ref: Option<String>,
+    /// Digest of the raw meter samples/trace retained by the independent scorer.
+    pub energy_evidence_sha256: Option<String>,
     pub energy_boundary: Option<EnergyBoundary>,
     pub energy_sample_interval_ms: Option<u64>,
     pub candidate_claimed_full_success: bool,
@@ -138,6 +140,7 @@ pub enum ContractError {
     MeterPassWithoutEnergyValue,
     MissingEnergyBoundaryContract,
     MissingEnergyMeterMetadata,
+    InvalidEnergyEvidenceDigest,
     EnergyMeterBoundaryMismatch,
     ZeroEnergySampleInterval,
 }
@@ -246,10 +249,14 @@ pub fn score(
     if receipt.energy_meter_status == EvidenceStatus::Pass {
         if receipt.energy_meter_id.as_deref().is_none_or(str::is_empty)
             || receipt.energy_calibration_ref.as_deref().is_none_or(str::is_empty)
+            || receipt.energy_evidence_sha256.is_none()
             || receipt.energy_boundary.is_none()
             || receipt.energy_sample_interval_ms.is_none()
         {
             return Err(ContractError::MissingEnergyMeterMetadata);
+        }
+        if !is_sha256_hex(receipt.energy_evidence_sha256.as_deref().unwrap()) {
+            return Err(ContractError::InvalidEnergyEvidenceDigest);
         }
         if receipt.energy_boundary != contract.required_energy_boundary {
             return Err(ContractError::EnergyMeterBoundaryMismatch);
@@ -433,6 +440,7 @@ mod tests {
             energy_millijoules: Some(12_345),
             energy_meter_id: Some("meter-whole-service-A".into()),
             energy_calibration_ref: Some("calibration-record-2026-01".into()),
+            energy_evidence_sha256: Some("b".repeat(64)),
             energy_boundary: Some(EnergyBoundary::WholeService),
             energy_sample_interval_ms: Some(1_000),
             candidate_claimed_full_success: true,
@@ -552,6 +560,23 @@ mod tests {
     }
 
     #[test]
+    fn energy_pass_requires_a_valid_meter_evidence_digest() {
+        let mut missing_boundary = contract();
+        missing_boundary.required_energy_boundary = None;
+        assert_eq!(
+            score(&missing_boundary, &passing_receipt()),
+            Err(ContractError::MissingEnergyBoundaryContract)
+        );
+
+        let mut malformed_trace = passing_receipt();
+        malformed_trace.energy_evidence_sha256 = Some("not-a-digest".into());
+        assert_eq!(
+            score(&contract(), &malformed_trace),
+            Err(ContractError::InvalidEnergyEvidenceDigest)
+        );
+    }
+
+    #[test]
     fn missing_energy_measurement_is_incomplete() {
         let mut receipt = passing_receipt();
         receipt.energy_meter_status = EvidenceStatus::Incomplete;
@@ -601,6 +626,7 @@ mod tests {
         receipt.energy_millijoules = None;
         receipt.energy_meter_id = None;
         receipt.energy_calibration_ref = None;
+        receipt.energy_evidence_sha256 = None;
         receipt.energy_boundary = None;
         receipt.energy_sample_interval_ms = None;
         receipt.stage_observations.clear();
