@@ -29,6 +29,9 @@ jobs:
         run: |
           python3 -m json.tool benchmarks/fuel-resilience/shared-pump/SAFRB_SHARED_PUMP_KNOWN_ANSWER_V0_1.json > /dev/null
           python3 -m json.tool benchmarks/fuel-resilience/shared-pump/SAFRB_SHARED_PUMP_KNOWN_ANSWER_V0_1.schema.json > /dev/null
-      - name: Run independent standard-library verifier
+          python3 -m json.tool benchmarks/fuel-resilience/shared-pump/SAFRB_TWO_WINDOW_SHARED_PUMP_V0_1.json > /dev/null
+          python3 -m json.tool benchmarks/fuel-resilience/shared-pump/SAFRB_TWO_WINDOW_SHARED_PUMP_V0_1.schema.json > /dev/null
+      - name: Run independent standard-library verifiers
         run: |
           python3 benchmarks/fuel-resilience/shared-pump/verify_shared_pump.py benchmarks/fuel-resilience/shared-pump/SAFRB_SHARED_PUMP_KNOWN_ANSWER_V0_1.json
+          python3 benchmarks/fuel-resilience/shared-pump/verify_time_expanded.py benchmarks/fuel-resilience/shared-pump/SAFRB_TWO_WINDOW_SHARED_PUMP_V0_1.json
