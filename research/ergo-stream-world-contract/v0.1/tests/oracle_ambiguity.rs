@@ -5,7 +5,13 @@ use ergo_stream_microcosm::transfer::{
     NodeV0, RelationOrientationV0, RelationV0, StructureV0,
 };
 
-fn edge(id: u32, kind: u16, left: u32, right: u32, orientation: RelationOrientationV0) -> RelationV0 {
+fn edge(
+    id: u32,
+    kind: u16,
+    left: u32,
+    right: u32,
+    orientation: RelationOrientationV0,
+) -> RelationV0 {
     RelationV0 { id, kind, orientation, participants: vec![left, right] }
 }
 
@@ -78,5 +84,8 @@ fn duplicate_relation_instance_id_permutations_do_not_inflate_semantic_count() {
     let report = exhaustive_isomorphism_oracle(&source, &target).unwrap();
     assert_eq!(report.valid_node_mapping_count, 1);
     assert_eq!(report.valid_witness_class_count, 1);
-    assert_eq!(report.ambiguity_status, StructuralWitnessAmbiguityV0::UniqueUnderDeclaredEquivalence);
+    assert_eq!(
+        report.ambiguity_status,
+        StructuralWitnessAmbiguityV0::UniqueUnderDeclaredEquivalence
+    );
 }
