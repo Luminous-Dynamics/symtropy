@@ -321,6 +321,10 @@ pub fn generate_scene<const D: usize>(
     }
 
     let mut frames = Vec::with_capacity(frame_count);
+    // ProxyId is a generation-stable residency identity. Continuous proxies
+    // retain their ID; removal followed by reinsertion receives a fresh ID.
+    let mut proxy_ids_by_slot = vec![None::<ProxyId>; proxy_count];
+    let mut next_proxy_id = 1_u64;
     for frame_index in 0..frame_count {
         let mut frame = Vec::with_capacity(proxy_count);
         for slot in 0..proxy_count {
@@ -328,8 +332,21 @@ pub fn generate_scene<const D: usize>(
                 && slot != 0
                 && ((slot + frame_index.saturating_mul(7)) % 13 < 2)
             {
+                proxy_ids_by_slot[slot] = None;
                 continue;
             }
+
+            let proxy_id = match proxy_ids_by_slot[slot] {
+                Some(existing) => existing,
+                None => {
+                    let fresh = ProxyId(next_proxy_id);
+                    next_proxy_id = next_proxy_id
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    proxy_ids_by_slot[slot] = Some(fresh);
+                    fresh
+                }
+            };
 
             let mut center = initial[slot];
             for axis in 0..D {
@@ -347,7 +364,7 @@ pub fn generate_scene<const D: usize>(
             let max = std::array::from_fn(|axis| center[axis] + extents[slot][axis]);
             let bounds = Aabb::new(min, max).map_err(|_| TournamentError::InvalidBounds)?;
             frame.push(ProxyFrame {
-                id: ProxyId(slot as u64 + 1),
+                id: proxy_id,
                 bounds,
             });
         }
