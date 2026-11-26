@@ -665,9 +665,15 @@ fn assess_claim(
         .count();
 
     let (status, reason_codes) = if claim.state == ClaimState::Unknown {
-        (AssessmentStatus::Unresolved, vec!["CLAIM_STATE_UNKNOWN".to_owned()])
+        (
+            AssessmentStatus::Unresolved,
+            vec!["CLAIM_STATE_UNKNOWN".to_owned()],
+        )
     } else if claim.state == ClaimState::Disputed {
-        (AssessmentStatus::Disputed, vec!["CLAIM_STATE_DISPUTED".to_owned()])
+        (
+            AssessmentStatus::Disputed,
+            vec!["CLAIM_STATE_DISPUTED".to_owned()],
+        )
     } else {
         evaluate_asserted_claim(claim, &selected)
     };
