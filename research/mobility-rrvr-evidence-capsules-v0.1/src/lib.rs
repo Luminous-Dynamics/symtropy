@@ -1188,7 +1188,10 @@ mod tests {
         bundle.evidence.push(late);
         let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
         let report = evaluate_json(&serialized).expect("late evidence remains outside cutoff");
-        assert_eq!(report.claim_assessments[0].status, AssessmentStatus::Qualified);
+        assert_eq!(
+            report.claim_assessments[0].status,
+            AssessmentStatus::Qualified
+        );
         assert_eq!(report.claim_assessments[0].late_evidence_excluded_n, 1);
     }
 
