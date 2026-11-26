@@ -31,6 +31,8 @@ It binds:
 - optional owner-native change-impact receipt and its completeness state;
 - an explicit evidence-gap-only claim ceiling and no-actuation boundary.
 
+Source evidence references carry an explicit AERO replay-view state: `ADMITTED`, `UNVERIFIED`, `REJECTED` or `NOT_RECEIVED`. Only `ADMITTED` references are projected into Symthaea's current-evidence set. Other states remain visible as separate unresolved/rejected/not-received references; they must not be silently represented as available evidence. AERO admission state is not a cryptographic or physical truth claim.
+
 The packet deliberately does not contain:
 - recommended action rankings;
 - EVSI, expected information gain, entropy or decision regret;
@@ -70,12 +72,14 @@ The adapter uses the existing Symthaea contract; it does not redefine it.
 | decision_context.configuration_id | DecisionContext.configuration_id |
 | decision_context.icd_revision | DecisionContext.icd_revision |
 | unresolved claim_id | Scenario.target_claim_id / action target_claim_id |
-| AERO assessment, source receipts and report digests | Scenario.current_evidence_refs (references only; bytes and verification remain owner-native) |
+| AERO-admitted source evidence references | Scenario.current_evidence_refs (only the packet's ADMITTED references; other states are preserved separately) |
 | owner-authored evidence requirements | Scenario.required_obligations and action expected outputs |
-| owner-native evidence dependency groups | Scenario.current_evidence_dependency_groups (the adapter preserves exact groups; it must not infer common-cause relationships) |
+| owner-native evidence dependency groups | Scenario.current_evidence_dependency_groups (exact groups over admitted references; it must not infer common-cause relationships) |
 | Mycelix #6219 change-impact receipt | Scenario.change_impact / EvidenceActionProposalV1.change_impact |
 | exact method, procedure and verifier | action method_ref, admissibility evidence and ExpectedOutput.verifier_ref |
 | owner-supplied component costs | Resources / resource_plan and remaining budget |
+
+The projection also preserves `unverified_evidence_refs`, `rejected_evidence_refs` and `not_received_evidence_refs` separately. Dependency groups may only reference AERO-admitted source evidence; the owning system defines those groups, and the adapter checks referential consistency rather than inferring statistical independence.
 
 The packet does not make a candidate action admissible. Symtropy method/facility owners must provide the action's actual applicability, prerequisites, calibration, safety approval, expected output, verifier and resource vector. Symthaea's existing selector performs its own exact-context/admissibility/budget checks.
 
