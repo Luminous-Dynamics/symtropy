@@ -147,9 +147,7 @@ impl ProxyIdRegistry {
         }
     }
 
-    pub fn from_snapshot(
-        snapshot: &ProxyIdRegistrySnapshot,
-    ) -> Result<Self, TreePairSetError> {
+    pub fn from_snapshot(snapshot: &ProxyIdRegistrySnapshot) -> Result<Self, TreePairSetError> {
         if snapshot.next_proxy_id == 0 || snapshot.next_proxy_id == u64::MAX {
             return Err(TreePairSetError::InvalidRegistrySnapshot);
         }
@@ -165,12 +163,12 @@ impl ProxyIdRegistry {
                 .validate()
                 .map_err(|_| TreePairSetError::InvalidRegistrySnapshot)?;
             let key = IdentityKey::from_identity(&assignment.identity);
-            if previous_key.as_ref().is_some_and(|previous| previous >= &key)
+            if previous_key
+                .as_ref()
+                .is_some_and(|previous| previous >= &key)
                 || assignment.proxy_id.0 == 0
                 || assignment.proxy_id.0 == u64::MAX
-                || registry
-                    .by_proxy_id
-                    .contains_key(&assignment.proxy_id)
+                || registry.by_proxy_id.contains_key(&assignment.proxy_id)
             {
                 return Err(TreePairSetError::InvalidRegistrySnapshot);
             }
@@ -178,7 +176,9 @@ impl ProxyIdRegistry {
             registry
                 .by_identity
                 .insert(key.clone(), assignment.proxy_id);
-            registry.by_proxy_id.insert(assignment.proxy_id, key.clone());
+            registry
+                .by_proxy_id
+                .insert(assignment.proxy_id, key.clone());
             previous_key = Some(key);
         }
 
@@ -259,9 +259,7 @@ fn envelope<const D: usize>(proxy: &Proxy<D>) -> Option<MotionAabb<D>> {
     }
 }
 
-fn tree_aabb<const D: usize>(
-    bounds: &MotionAabb<D>,
-) -> Result<TreeAabb<D>, TreePairSetError> {
+fn tree_aabb<const D: usize>(bounds: &MotionAabb<D>) -> Result<TreeAabb<D>, TreePairSetError> {
     TreeAabb::new(*bounds.min(), *bounds.max()).map_err(TreePairSetError::Tree)
 }
 
@@ -306,10 +304,8 @@ pub fn build_tree_swept_pair_set<const D: usize>(
     let mut working_registry = registry.clone();
     working_registry.assign_batch(reference.proxies.iter().map(|proxy| &proxy.identity))?;
 
-    let mut tree = IncrementalAabbTree::<D>::new_with_balance_policy(
-        TREE_FAT_MARGIN,
-        config.balance_policy,
-    )?;
+    let mut tree =
+        IncrementalAabbTree::<D>::new_with_balance_policy(TREE_FAT_MARGIN, config.balance_policy)?;
 
     let mut metadata = BTreeMap::<ProxyId, (ColliderIdentity, u32, u32)>::new();
     let mut supported = Vec::<(ProxyId, MotionAabb<D>)>::new();
@@ -425,9 +421,7 @@ pub fn verify_tree_swept_pair_set<const D: usize>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use directional_motion_envelopes::{
-        Digest, DisplacementInterval, MotionKind, build_envelope,
-    };
+    use directional_motion_envelopes::{Digest, DisplacementInterval, MotionKind, build_envelope};
     use incremental_aabb_tree_reference::BalancePolicy;
     use swept_pair_oracle::{MotionEvidence, UnsupportedReason};
 
@@ -489,12 +483,8 @@ mod tests {
             proxy(3, [10.0, 10.0], [11.0, 11.0], [0.0, 0.0]),
         ];
         let mut registry = ProxyIdRegistry::new();
-        let receipt = build_tree_swept_pair_set(
-            &proxies,
-            &mut registry,
-            TreeBuildConfig::default(),
-        )
-        .unwrap();
+        let receipt =
+            build_tree_swept_pair_set(&proxies, &mut registry, TreeBuildConfig::default()).unwrap();
 
         assert_eq!(receipt.candidate_pairs, receipt.reference.candidate_pairs);
         assert_eq!(receipt.stats.supported_proxies, 3);
@@ -510,15 +500,10 @@ mod tests {
             proxy(1, [0.0, 0.0], [1.0, 1.0], [0.0, 0.0]),
             proxy(2, [100.0, 100.0], [101.0, 101.0], [0.0, 0.0]),
         ];
-        proxies[1].motion =
-            MotionEvidence::Unsupported(UnsupportedReason::Rotation);
+        proxies[1].motion = MotionEvidence::Unsupported(UnsupportedReason::Rotation);
         let mut registry = ProxyIdRegistry::new();
-        let receipt = build_tree_swept_pair_set(
-            &proxies,
-            &mut registry,
-            TreeBuildConfig::default(),
-        )
-        .unwrap();
+        let receipt =
+            build_tree_swept_pair_set(&proxies, &mut registry, TreeBuildConfig::default()).unwrap();
 
         assert_eq!(receipt.stats.supported_proxies, 1);
         assert_eq!(receipt.stats.unsupported_proxies, 1);
@@ -559,10 +544,7 @@ mod tests {
             unbalanced.candidate_pairs,
             unbalanced.reference.candidate_pairs
         );
-        assert_eq!(
-            balanced.candidate_pairs,
-            balanced.reference.candidate_pairs
-        );
+        assert_eq!(balanced.candidate_pairs, balanced.reference.candidate_pairs);
         assert_eq!(
             unbalanced.tree_stats.balance_policy,
             BalancePolicy::Disabled
@@ -580,12 +562,7 @@ mod tests {
             proxy(10, [0.0], [1.0], [0.0]),
             proxy(20, [2.0], [3.0], [0.0]),
         ];
-        build_tree_swept_pair_set(
-            &first,
-            &mut registry,
-            TreeBuildConfig::default(),
-        )
-        .unwrap();
+        build_tree_swept_pair_set(&first, &mut registry, TreeBuildConfig::default()).unwrap();
         let old_id = registry.proxy_id(&identity(20)).unwrap();
 
         let later = [
@@ -595,12 +572,9 @@ mod tests {
         ];
         let mut shuffled = later.clone();
         shuffled.reverse();
-        let receipt = build_tree_swept_pair_set(
-            &shuffled,
-            &mut registry,
-            TreeBuildConfig::default(),
-        )
-        .unwrap();
+        let receipt =
+            build_tree_swept_pair_set(&shuffled, &mut registry, TreeBuildConfig::default())
+                .unwrap();
 
         assert_eq!(registry.proxy_id(&identity(20)).unwrap(), old_id);
         assert!(verify_tree_swept_pair_set(&shuffled, &receipt).is_ok());
@@ -608,10 +582,7 @@ mod tests {
 
     #[test]
     fn tampered_registry_and_tree_policy_invalidate_receipt() {
-        let proxies = [
-            proxy(1, [0.0], [1.0], [0.0]),
-            proxy(2, [3.0], [4.0], [0.0]),
-        ];
+        let proxies = [proxy(1, [0.0], [1.0], [0.0]), proxy(2, [3.0], [4.0], [0.0])];
         let mut registry = ProxyIdRegistry::new();
         let receipt = build_tree_swept_pair_set(
             &proxies,
@@ -633,14 +604,20 @@ mod tests {
         let mut state = 0x9137_4f21_8a2d_6c5b_u64;
         (0..count)
             .map(|slot| {
-                state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+                state = state
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
                 let x = ((state >> 11) as f64 / ((1_u64 << 53) as f64)) * 30.0 - 15.0;
                 state = state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
                 let extent = 0.2 + ((state >> 11) as f64 / ((1_u64 << 53) as f64)) * 1.5;
                 let min = std::array::from_fn(|axis| x + axis as f64 * 2.0);
                 let max = std::array::from_fn(|axis| min[axis] + extent);
                 let displacement = std::array::from_fn(|axis| {
-                    if axis % 2 == 0 { extent * 0.5 } else { -extent * 0.25 }
+                    if axis % 2 == 0 {
+                        extent * 0.5
+                    } else {
+                        -extent * 0.25
+                    }
                 });
                 proxy(slot + 1, min, max, displacement)
             })
