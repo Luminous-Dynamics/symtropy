@@ -110,12 +110,8 @@ fn bool_field(fixture: &Value, key: &str) -> Option<bool> {
 
 fn consequence(status: CoverageStatus) -> ReplayConsequence {
     match status {
-        CoverageStatus::QualifiedCompleteForScope => {
-            ReplayConsequence::AllowScopedAbsenceInference
-        }
-        CoverageStatus::Incomplete | CoverageStatus::OutOfScope => {
-            ReplayConsequence::Abstain
-        }
+        CoverageStatus::QualifiedCompleteForScope => ReplayConsequence::AllowScopedAbsenceInference,
+        CoverageStatus::Incomplete | CoverageStatus::OutOfScope => ReplayConsequence::Abstain,
         CoverageStatus::Unverified => ReplayConsequence::TrustUnresolved,
         CoverageStatus::Invalid => ReplayConsequence::Reject,
     }
@@ -147,7 +143,11 @@ fn assessment(status: CoverageStatus, reasons: impl IntoIterator<Item = String>)
     CoverageAssessment {
         status,
         replay_consequence: consequence(status),
-        reason_codes: reasons.into_iter().collect::<BTreeSet<_>>().into_iter().collect(),
+        reason_codes: reasons
+            .into_iter()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect(),
     }
 }
 
@@ -260,7 +260,10 @@ mod tests {
     #[test]
     fn missing_coverage_fact_never_promotes_to_complete() {
         let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
-        fixture.as_object_mut().expect("fixture object").remove("source_roster_reconciled");
+        fixture
+            .as_object_mut()
+            .expect("fixture object")
+            .remove("source_roster_reconciled");
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Unverified);
         assert_eq!(actual.replay_consequence, ReplayConsequence::TrustUnresolved);
@@ -279,7 +282,10 @@ mod tests {
     fn invalid_checkpoint_binding_rejects_even_when_other_facts_are_missing() {
         let mut fixture = case_fixture(&corpus()["cases"][0]).clone();
         fixture["checkpoint_binding_valid"] = Value::Bool(false);
-        fixture.as_object_mut().expect("fixture object").remove("scope_closed");
+        fixture
+            .as_object_mut()
+            .expect("fixture object")
+            .remove("scope_closed");
         let actual = evaluate_coverage_fixture(&fixture);
         assert_eq!(actual.status, CoverageStatus::Invalid);
         assert_eq!(actual.replay_consequence, ReplayConsequence::Reject);
