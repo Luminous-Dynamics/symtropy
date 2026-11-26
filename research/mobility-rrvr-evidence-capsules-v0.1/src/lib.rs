@@ -1344,10 +1344,7 @@ mod tests {
         claim.expected_holder_ids = vec!["actuator".to_owned(), "controller".to_owned()];
         claim.expected_edge_ids = vec!["edge-1".to_owned()];
         claim.decision_cutoff_ingest_sequence = 4;
-        let mut bundle = bundle_with(
-            vec![controller, actuator, edge, inventory],
-            vec![claim],
-        );
+        let mut bundle = bundle_with(vec![controller, actuator, edge, inventory], vec![claim]);
         let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
         let complete = evaluate_json(&serialized).expect("complete closure should qualify");
         assert_eq!(complete.qualified_n, 1);
