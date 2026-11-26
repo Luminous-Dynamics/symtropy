@@ -254,3 +254,8 @@ Run RGB-only, RGB-D, stereo and stereo+IMU arms only where the dataset supports 
 - Symthaea VIS-012 #13855 owns the candidate spatial-state protocol and adapter; existing Vision Mind and HDC/dense comparison owners retain their subsystems.
 
 A model can answer OVO-S questions well yet produce a geometrically inconsistent map, or produce accurate trajectories but fail semantic long-horizon questions. Report both, separately. The intended research gain is a Pareto frontier over semantic spatial reasoning, geometric accuracy, topology, map revision, uncertainty and resource cost—not a pooled score.
+
+
+## 14. Geometric validation counterfactuals
+
+The metadata-only [geometric validation matrix](./scenario-matrix-geometric-validation-v0.tsv) adds 20 cases in 10 paired controls/mutations: frame-transform direction, pose-graph cycle consistency, calibration revisions, monocular scale observability, loop closure under visual aliasing, dynamic-scene separation, late map revision/retraction, camera–IMU time alignment, ground-truth common-cause provenance and lifelong relocalization. The rows are structurally checked for 20 unique IDs, 10 complete control/mutated pairs and 10 fields. They are not rendered, replayed or scored.
