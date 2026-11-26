@@ -682,10 +682,7 @@ mod tests {
             evaluate_case(finite).disposition,
             Disposition::SafetyClaimsComplete
         );
-        assert_eq!(
-            evaluate_case(terminal).disposition,
-            Disposition::OutOfScope
-        );
+        assert_eq!(evaluate_case(terminal).disposition, Disposition::OutOfScope);
     }
 
     #[test]
