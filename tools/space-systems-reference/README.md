@@ -24,9 +24,9 @@ It computes:
 \`\`\`
 A_earth = pi * R_earth^2
 A_eq,target = target_flux_reduction * A_earth / attenuation_effectiveness
-M_proxy = A_eq,target * scenario_areal_mass_density
-M_local = M_installed * local_material_fraction
-M_earth = M_installed - M_local
+M_proxy = A_eq,target * scenario_areal_mass_density (equivalent-area proxy only)
+M_local_proxy = M_proxy * local_material_fraction
+M_earth_proxy = M_proxy - M_local_proxy
 P_removed = solar_irradiance * target_flux_reduction * A_earth
 \`\`\`
 
@@ -40,10 +40,10 @@ The area is an **abstract target-plane attenuation equivalent**, not a physical 
 | Solar irradiance | 1,361 W/m² |
 | Target flux reduction | 1% |
 | Abstract target-plane attenuation effectiveness | 0.90 |
-| Installed areal density | 0.01 kg/m² |
+| Scenario areal mass density | 0.01 kg/m² |
 | Locally sourced material fraction | 50% |
 
-The 50% local-material fraction and 10 g/m² installed areal density are scenario inputs, not demonstrated lunar manufacturing capability or a selected design.
+The 50% local-material fraction and 10 g/m² scenario areal mass density are illustrative inputs, not demonstrated lunar manufacturing capability or a selected design.
 
 ### Mass sensitivity — why the membrane system boundary matters
 
