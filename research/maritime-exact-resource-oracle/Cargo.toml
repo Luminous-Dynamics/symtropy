@@ -15,6 +15,10 @@ path = "src/bin/resource_oracle_audit.rs"
 name = "dgt-recovery-audit"
 path = "src/bin/dgt_recovery_audit.rs"
 
+[[bin]]
+name = "qc-agv-sync-audit"
+path = "src/bin/qc_agv_sync_audit.rs"
+
 [dependencies]
 
 [workspace]
