@@ -349,7 +349,7 @@ fn validate_state_snapshot_artifact(
     attempt_id: &str,
     simulator_profile_sha256: &str,
     label: &str,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let reference = ArtifactRef {
         relative_path: relative_path.to_owned(),
         sha256: expected_sha256.to_owned(),
@@ -376,20 +376,27 @@ fn validate_state_snapshot_artifact(
         simulator_profile_sha256.to_owned(),
         "STATE_ARTIFACT_SIMULATOR_PROFILE_MISMATCH",
     )?;
+    let end_effector_frame = &snapshot.end_effector_position.coordinate_frame_id;
+    let object_frame = &snapshot.object_position.coordinate_frame_id;
+    if end_effector_frame.trim().is_empty()
+        || object_frame.trim().is_empty()
+        || end_effector_frame != object_frame
+    {
+        return Err("STATE_ARTIFACT_COORDINATE_FRAME_INVALID".to_owned());
+    }
     for position in [&snapshot.end_effector_position, &snapshot.object_position] {
-        if position.coordinate_frame_id.trim().is_empty()
-            || ![
-                position.x_mm,
-                position.y_mm,
-                position.z_mm,
-            ]
-            .iter()
-            .all(|value| value.is_finite())
+        if ![
+            position.x_mm,
+            position.y_mm,
+            position.z_mm,
+        ]
+        .iter()
+        .all(|value| value.is_finite())
         {
             return Err("STATE_ARTIFACT_POSITION_INVALID".to_owned());
         }
     }
-    Ok(())
+    Ok(end_effector_frame.clone())
 }
 
 fn validate_profile(
@@ -714,7 +721,7 @@ fn validate_candidate(
         let replay_attempt = &replay.spot_check.attempts[index];
         let expected_initial_state_sha = &replay_attempt.original_state_sha256;
 
-        validate_state_snapshot_artifact(
+        let original_frame = validate_state_snapshot_artifact(
             root,
             &replay_attempt.original_state_path,
             &replay_attempt.original_state_sha256,
@@ -723,7 +730,7 @@ fn validate_candidate(
             &replay.simulator_profile_sha256,
             "ORIGINAL_STATE",
         )?;
-        validate_state_snapshot_artifact(
+        let replay_frame = validate_state_snapshot_artifact(
             root,
             &replay_attempt.replay_state_path,
             &replay_attempt.replay_state_sha256,
@@ -731,6 +738,11 @@ fn validate_candidate(
             attempt_id,
             &replay.simulator_profile_sha256,
             "REPLAY_STATE",
+        )?;
+        assert_eq_field(
+            original_frame,
+            replay_frame,
+            "STATE_ARTIFACT_COORDINATE_FRAME_MISMATCH",
         )?;
         verified += 2;
 
@@ -1140,6 +1152,19 @@ mod tests {
         assert_eq!(report.invalid_n, 0);
         assert_eq!(report.candidate_reports[0].selected_attempt_n, 3);
         assert_eq!(report.candidate_reports[0].verified_artifact_n, 19);
+    }
+
+    #[test]
+    fn raw_replay_state_tampering_is_rejected() {
+        let (root, replay, provenance) = fixture();
+        fs::write(root.join("states/replay-attempt-1.json"), b"tampered")
+            .expect("tamper replay state");
+        let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
+        assert_eq!(report.invalid_n, 1);
+        assert_eq!(
+            report.candidate_reports[0].reason_codes[0],
+            "REPLAY_STATE_RAW_DIGEST_MISMATCH"
+        );
     }
 
     #[test]
