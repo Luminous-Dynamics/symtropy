@@ -21,9 +21,9 @@ The O(n²) reference is intentionally retained as an independent candidate oracl
 
 ## Tree implementation
 
-The tree is pinned to the exact balanced-reference PR #7524 commit:
+The branch includes the balanced-tree reference source snapshot from exact PR #7524 commit `fed9ba265485d495d9f6191f280ff826d255e648` at its canonical repository path `research/incremental-aabb-tree-reference/v0.1`. This allows the adapter to use an ordinary local Cargo path dependency. When #7524 lands, the same path and content should be shared rather than duplicated.
 
-- Revision: `fed9ba265485d495d9f6191f280ff826d255e648`
+- Source revision: `fed9ba265485d495d9f6191f280ff826d255e648`
 - Unbalanced policy: `BalancePolicy::Disabled`
 - Balanced policy: `BalancePolicy::HeightRotations`
 
