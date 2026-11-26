@@ -77,7 +77,7 @@ These are observation artifacts, not truth. The evaluator may join them to hidde
 
 ## Spatial decision-sufficiency extension v0
 
-`scenario-matrix-spatial-decision-v0.tsv` adds 20 metadata-only cases arranged as 10 paired controls/mutations. It extends the fixture matrix from audiovisual event association into persistent allocentric state and downstream decision sufficiency.
+`scenario-matrix-spatial-decision-v0.tsv` adds 22 metadata-only cases arranged as 11 paired controls/mutations. It extends the fixture matrix from audiovisual event association into persistent allocentric state and downstream decision sufficiency.
 
 ### New falsifiable case families
 
@@ -91,6 +91,7 @@ These are observation artifacts, not truth. The evaluator may join them to hidde
 - **Summary lineage:** compressed memory may index observed spatial relations but cannot upgrade sequential co-occurrence into direct adjacency.
 - **Observation-gap topology:** no path/edge may be inferred across unobserved intervals without supporting evidence.
 - **Loop closure:** repeated visual patterns must not merge distinct locations when route/geometric evidence conflicts.
+- **DecisionNeed change:** a certificate for one route query must not be reused when a later destination changes the decision-equivalence partition; retain source-linked residuals so the old distinction can be reopened.
 
 ### Evaluation and ownership
 
@@ -106,7 +107,7 @@ The new cases are not a sealed benchmark and do not prove physical spatial under
 
 ### Structural sanity check
 
-At source review, the TSV contains 20 unique case IDs, 10 pair IDs with exactly one `control` and one `mutated` case each, and 10 fields per data row. This is a text-structure check, not a renderer/replay or Rust workflow result.
+At source review, the TSV contains 22 unique case IDs, 11 pair IDs with exactly one `control` and one `mutated` case each, and 10 fields per data row. This is a text-structure check, not a renderer/replay or Rust workflow result.
 
 
 ## Decision-sufficiency adapter bridge
