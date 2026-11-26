@@ -73,3 +73,37 @@ The audiovisual rendering tranche must add modality-specific observation artifac
 - **Derived transform:** resample/downmix/resize/crop/encode pipeline identity and exact parent-artifact digest; derived observations never replace the raw source root.
 
 These are observation artifacts, not truth. The evaluator may join them to hidden world truth through a private scenario map; the agent receives only the artifact and permitted capture/transport metadata. Use #621's cross-clock transform evidence when comparing sensor domains; use #633 for modality-specific, dependence-aware fusion. The fixture pack does not create its own clock service or fusion likelihood model.
+
+
+## Spatial decision-sufficiency extension v0
+
+`scenario-matrix-spatial-decision-v0.tsv` adds 20 metadata-only cases arranged as 10 paired controls/mutations. It extends the fixture matrix from audiovisual event association into persistent allocentric state and downstream decision sufficiency.
+
+### New falsifiable case families
+
+- **Same endpoint, different path:** endpoint appearance cannot substitute for route history.
+- **Viewpoint invariance:** camera ego-motion must not be misread as world-map motion.
+- **Visual landmark aliasing:** similar appearance does not establish persistent identity.
+- **Decision-equivalent maps:** competing map witnesses may remain unresolved when every witness implies the same requested safe decision; the correct behavior is to stop unnecessary acquisition without claiming a unique map.
+- **Decision-changing maps:** one admissible blocked-route alternative invalidates decision sufficiency and requires a discriminating observation or abstention.
+- **Probe authority and deadline:** a denied or late viewpoint request is not admissible evidence.
+- **Late map correction:** valid-time and known-at time remain separate; correction revises the current map without rewriting historical knowledge.
+- **Summary lineage:** compressed memory may index observed spatial relations but cannot upgrade sequential co-occurrence into direct adjacency.
+- **Observation-gap topology:** no path/edge may be inferred across unobserved intervals without supporting evidence.
+- **Loop closure:** repeated visual patterns must not merge distinct locations when route/geometric evidence conflicts.
+
+### Evaluation and ownership
+
+The extension is a scenario specification only. It adds no renderer, spatial map implementation, evidence graph, memory store, sensor scheduler or route planner.
+
+- Symtropy #6183 owns the hidden-world scenario and independent evaluator fixture contract.
+- Symtropy #6675 owns sequential probe acquisition, deadlines and policy-oracle comparisons.
+- Symtropy #7555 / #7558 / #7577 own decision-sufficient candidate claims and evaluator-side qualification.
+- Symthaea #12837 owns consumer-side streaming audiovisual evaluation.
+- Symthaea #3934 / #9075 / #10644 / #9177 and MACE #13284 own their respective world-state, bitemporal, retrieval and memory-regret subsystems.
+
+The new cases are not a sealed benchmark and do not prove physical spatial understanding. Before any model comparison, bind them to versioned #1595 world manifests, ensure evaluator truth remains outside the candidate process, pass #5053 split checks, and use declared spatial geometry/pose contracts. Any benchmark claim must report per-family denominators, false-loop/false-adjacency rates, evidence-span lineage, decision regret, latency and measured resource cost.
+
+### Structural sanity check
+
+At source review, the TSV contains 20 unique case IDs, 10 pair IDs with exactly one `control` and one `mutated` case each, and 10 fields per data row. This is a text-structure check, not a renderer/replay or Rust workflow result.
