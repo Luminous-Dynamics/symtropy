@@ -5,7 +5,7 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
-    path::{Component, Path, PathBuf},
+    path::{Component, Path},
 };
 
 use serde::{Deserialize, Serialize};
@@ -281,7 +281,7 @@ fn read_artifact(
         return Err(format!("{label}_DIGEST_SYNTAX_INVALID"));
     }
     let relative = Path::new(&reference.relative_path);
-    if relative.is_absolute()
+    if reference.relative_path.trim().is_empty() || relative.is_absolute()
         || relative.components().any(|part| !matches!(part, Component::Normal(_)))
     {
         return Err(format!("{label}_PATH_UNSAFE"));
@@ -353,6 +353,10 @@ fn policy_map(candidate: &ReplayCandidate) -> Result<BTreeMap<String, String>, S
             return Err("DIFFICULTY_ATTEMPT_ID_DUPLICATED".to_owned());
         }
     }
+    let success_n = candidate.difficulty_screen.trials.iter().filter(|row| row.success).count();
+    if !(2..=18).contains(&success_n) {
+        return Err("DIFFICULTY_SCREEN_SUCCESS_COUNT_OUT_OF_RANGE".to_owned());
+    }
     let policies: BTreeSet<&str> = candidate
         .difficulty_screen
         .trials
@@ -380,6 +384,7 @@ fn policy_map(candidate: &ReplayCandidate) -> Result<BTreeMap<String, String>, S
 fn validate_candidate(
     replay: &ReplayCandidate,
     provenance: &ProvenanceCandidate,
+    policy_roster_profile_id: &str,
     root: &Path,
 ) -> Result<usize, String> {
     assert_eq_field(replay.scenario_id.clone(), provenance.scenario_id.clone(), "SCENARIO_ID_MISMATCH")?;
@@ -483,6 +488,11 @@ fn validate_candidate(
     if policy_roster.policy_roster_id.trim().is_empty() {
         return Err("POLICY_ROSTER_ID_MISSING".to_owned());
     }
+    assert_eq_field(
+        policy_roster.policy_roster_id,
+        policy_roster_profile_id.to_owned(),
+        "POLICY_ROSTER_PROFILE_ID_MISMATCH",
+    )?;
     let screen_attempts = policy_map(replay)?;
     let expected_policies: BTreeSet<String> = screen_attempts.values().cloned().collect();
     let actual_policies: BTreeSet<String> = policy_roster.policy_ids.iter().cloned().collect();
@@ -491,6 +501,12 @@ fn validate_candidate(
     }
 
     let selected = &replay.spot_check.selected_attempt_ids;
+    if replay.spot_check.selection_method_id.trim().is_empty()
+        || replay.spot_check.attempts.iter().any(|attempt| !is_sha256(&attempt.replay_state_sha256))
+        || replay.spot_check.attempts.iter().any(|attempt| !is_sha256(&attempt.original_state_sha256))
+    {
+        return Err("SPOT_CHECK_SELECTION_OR_STATE_DIGEST_INVALID".to_owned());
+    }
     if replay.spot_check.seed != 42
         || selected.len() != 3
         || replay.spot_check.attempts.len() != 3
@@ -622,7 +638,7 @@ fn validate_candidate(
     if action_index.attempts.len() != 3 || action_receipt.attempts.len() != 3 {
         return Err("ACTION_PREFIX_ATTEMPT_COUNT_NOT_THREE".to_owned());
     }
-    let mut verified = 9usize; // source episode + instruction + index + four profiles + policy roster
+    let mut verified = 10usize; // source episode + instruction + index + four profiles + policy roster + two receipt bundles
     for (index, attempt_id) in selected.iter().enumerate() {
         let expected_policy = &selected_policies[index];
         let reset = &reset_bundle.attempts[index];
@@ -689,6 +705,7 @@ pub fn validate_provenance_json(
     if replay.schema_version != SCHEMA_VERSION
         || replay.benchmark != "RRVR-REPLAY-FIDELITY"
         || replay.profile_id != "RoboRecoverPublishedThresholdsV1"
+        || replay.metric_profile_id != "RRVR-SSIM-GAUSSIAN11-SIGMA1_5-RGB8-V0_1"
     {
         return Err("REPLAY_MANIFEST_PROFILE_UNSUPPORTED".to_owned());
     }
@@ -719,7 +736,7 @@ pub fn validate_provenance_json(
         let replay_candidate = replay_candidates
             .get(candidate.scenario_id.as_str())
             .ok_or_else(|| format!("PROVENANCE_SCENARIO_NOT_IN_REPLAY_MANIFEST: {}", candidate.scenario_id))?;
-        match validate_candidate(replay_candidate, candidate, artifact_root) {
+        match validate_candidate(replay_candidate, candidate, &provenance.policy_roster_profile_id, artifact_root) {
             Ok(verified_artifact_n) => reports.push(CandidateProvenanceReport {
                 scenario_id: candidate.scenario_id.clone(),
                 status: "valid".to_owned(),
@@ -960,7 +977,7 @@ mod tests {
         assert_eq!(report.valid_n, 1);
         assert_eq!(report.invalid_n, 0);
         assert_eq!(report.candidate_reports[0].selected_attempt_n, 3);
-        assert_eq!(report.candidate_reports[0].verified_artifact_n, 12);
+        assert_eq!(report.candidate_reports[0].verified_artifact_n, 13);
     }
 
     #[test]
@@ -973,7 +990,7 @@ mod tests {
     }
 
     #[test]
-    fn wrong_scope_in_profile_is_rejected() {
+    fn profile_artifact_substitution_is_rejected() {
         let (root, replay, provenance) = fixture();
         fs::write(root.join("profiles/controller.json"), br#"{"schema_version":"0.1","artifact_kind":"controller_profile","profile_id":"controller-v1","execution_scope_id":"wrong-cell"}"#).expect("replace");
         let report = validate_provenance_json(&replay, &provenance, &root).expect("report");
