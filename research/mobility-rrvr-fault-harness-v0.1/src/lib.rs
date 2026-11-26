@@ -316,9 +316,7 @@ impl<'a> Simulation<'a> {
                         "dispatch",
                         &format!(
                             "{} epoch={} queue={}",
-                            self.original_command_id,
-                            ORIGINAL_EPOCH,
-                            ORIGINAL_QUEUE_GENERATION
+                            self.original_command_id, ORIGINAL_EPOCH, ORIGINAL_QUEUE_GENERATION
                         ),
                     );
                     "dispatch"
