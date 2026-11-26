@@ -1237,4 +1237,129 @@ mod tests {
         let error = evaluate_json(&serialized).expect_err("missing parent must reject");
         assert!(error.starts_with("PARENT_EVIDENCE_MISSING"));
     }
+    #[test]
+    fn fault_delivery_accepts_separate_injector_and_observer_domains() {
+        let receipt = base_capsule(
+            "fault-receipt",
+            SourceRole::FaultInjector,
+            "injector-domain",
+            1,
+            EvidencePayload::FaultExecutionReceipt {
+                fault_id: "fault-1".to_owned(),
+                delivered: true,
+            },
+        );
+        let mut observation = base_capsule(
+            "fault-observation",
+            SourceRole::PhysicalObserver,
+            "observer-domain",
+            2,
+            EvidencePayload::Observation {
+                subject_id: "fault-1".to_owned(),
+                finding: ObservationFinding::FaultPresent,
+                coverage: None,
+                coverage_complete: false,
+                raw_data_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+                calibration_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
+            },
+        );
+        observation.parent_evidence_ids = vec!["fault-receipt".to_owned()];
+        let mut claim = claim_for(
+            "fault-delivered",
+            ClaimType::FaultDelivered,
+            "fault-1",
+            true,
+            vec!["fault-observation".to_owned(), "fault-receipt".to_owned()],
+        );
+        claim.decision_cutoff_ingest_sequence = 2;
+        let bundle = bundle_with(vec![receipt, observation], vec![claim]);
+        let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
+        let report = evaluate_json(&serialized).expect("independent delivery evidence should qualify");
+        assert_eq!(report.qualified_n, 1);
+    }
+
+    #[test]
+    fn temporal_closure_requires_every_inventoried_holder() {
+        let endpoint = |id: &str, holder: &str, sequence| {
+            base_capsule(
+                id,
+                SourceRole::Endpoint,
+                &format!("endpoint-{holder}"),
+                sequence,
+                EvidencePayload::EndpointFenceReceipt {
+                    holder_id: holder.to_owned(),
+                    accepted_epoch: 7,
+                    queue_generation: 3,
+                    accepted_high_water: 12,
+                    retired_high_water: 12,
+                    outstanding_n: 0,
+                    in_flight_n: 0,
+                    terminal_actuator_fenced: true,
+                },
+            )
+        };
+        let controller = endpoint("ep-controller", "controller", 1);
+        let actuator = endpoint("ep-actuator", "actuator", 2);
+        let mut edge = base_capsule(
+            "edge-1",
+            SourceRole::NetworkMonitor,
+            "network-monitor-domain",
+            3,
+            EvidencePayload::EdgeClosureReceipt {
+                edge_id: "edge-1".to_owned(),
+                source_holder_id: "controller".to_owned(),
+                target_holder_id: "actuator".to_owned(),
+                old_epoch_enqueue_closed: true,
+            },
+        );
+        edge.parent_evidence_ids = vec!["ep-controller".to_owned()];
+        let mut inventory = base_capsule(
+            "inventory",
+            SourceRole::IndependentAdjudicator,
+            "inventory-audit-domain",
+            4,
+            EvidencePayload::HolderInventory {
+                complete: true,
+                holder_ids: vec!["actuator".to_owned(), "controller".to_owned()],
+                edge_ids: vec!["edge-1".to_owned()],
+            },
+        );
+        inventory.parent_evidence_ids = vec![
+            "edge-1".to_owned(),
+            "ep-actuator".to_owned(),
+            "ep-controller".to_owned(),
+        ];
+        let mut claim = claim_for(
+            "closure-claim",
+            ClaimType::TemporalClosure,
+            "old-epoch-6",
+            true,
+            vec![
+                "edge-1".to_owned(),
+                "ep-actuator".to_owned(),
+                "ep-controller".to_owned(),
+                "inventory".to_owned(),
+            ],
+        );
+        claim.required_epoch = Some(7);
+        claim.expected_holder_ids = vec!["actuator".to_owned(), "controller".to_owned()];
+        claim.expected_edge_ids = vec!["edge-1".to_owned()];
+        claim.decision_cutoff_ingest_sequence = 4;
+        let mut bundle = bundle_with(
+            vec![controller, actuator, edge, inventory],
+            vec![claim],
+        );
+        let serialized = serde_json::to_string(&bundle).expect("bundle serialization");
+        let complete = evaluate_json(&serialized).expect("complete closure should qualify");
+        assert_eq!(complete.qualified_n, 1);
+
+        bundle.claims[0]
+            .evidence_ids
+            .retain(|evidence_id| evidence_id != "ep-actuator");
+        reseal_bundle(&mut bundle);
+        let incomplete = serde_json::to_string(&bundle).expect("bundle serialization");
+        let report = evaluate_json(&incomplete).expect("missing holder evidence is unresolved");
+        assert_eq!(report.unresolved_n, 1);
+    }
+
 }
