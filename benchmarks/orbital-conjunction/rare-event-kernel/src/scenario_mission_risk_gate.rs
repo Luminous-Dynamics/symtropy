@@ -492,6 +492,10 @@ impl ScenarioMissionRiskGate {
                 .density_space_digest;
             if report.target_measure_id != scenario_target_measure
                 || report.density_space_id != scenario_density_space
+                || report.configuration_digest.iter().all(|byte| *byte == 0)
+                || !report.effective_defensive_fraction.is_finite()
+                || report.effective_defensive_fraction <= 0.0
+                || report.effective_defensive_fraction > 1.0
             {
                 return Err(ScenarioMissionRiskGateError::ConsequenceReportContractMismatch);
             }
@@ -742,7 +746,7 @@ fn validate_envelope(
     }
     if signature_total != envelope.total_mass_ticks
         || signature_union != union_ticks
-        || signature_no_event != Some(no_event_ticks)
+        || signature_no_event.unwrap_or(0) != no_event_ticks
     {
         return Err(ScenarioMissionRiskGateError::InvalidRiskEnvelopeShape);
     }
@@ -877,6 +881,19 @@ mod tests {
             denominator: union.denominator,
         };
         let within = compare_exact_mass(union, budget).unwrap() != Ordering::Greater;
+        let mut joint_signatures = Vec::new();
+        if no_event.numerator > 0 {
+            joint_signatures.push(JointEventSignatureMass {
+                contacting_event_ids: Vec::new(),
+                mass: no_event,
+            });
+        }
+        if union.numerator > 0 {
+            joint_signatures.push(JointEventSignatureMass {
+                contacting_event_ids: vec!["event-1".to_owned()],
+                mass: union,
+            });
+        }
         MissionRiskEnvelope {
             manifest_digest: [manifest; 32],
             target_measure_digest: target,
@@ -889,16 +906,7 @@ mod tests {
                 mass: union,
             }],
             pairwise_intersections: Vec::<PairwiseIntersectionMass>::new(),
-            joint_signatures: vec![
-                JointEventSignatureMass {
-                    contacting_event_ids: Vec::new(),
-                    mass: no_event,
-                },
-                JointEventSignatureMass {
-                    contacting_event_ids: vec!["event-1".to_owned()],
-                    mass: union,
-                },
-            ],
+            joint_signatures,
             pathwise_union_mass: union,
             no_event_mass: no_event,
             marginal_sum_ticks: u128::from(union.numerator) * 100 / u128::from(union.denominator),
@@ -1097,6 +1105,54 @@ mod tests {
         let report = gate().evaluate(&evidence, &consequence_reports()).unwrap();
         assert_eq!(report.eligible_portfolio_ids, vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C]);
         assert!(report.ineligible_portfolio_ids.is_empty());
+    }
+
+    #[test]
+    fn zero_and_unit_union_masses_allow_absent_zero_mass_signatures() {
+        let mut evidence = risk_evidence();
+        let contract = contracts()
+            .into_iter()
+            .find(|contract| {
+                contract.scenario_id == SCENARIO_A && contract.portfolio_id == PORTFOLIO_A
+            })
+            .unwrap();
+        let row = evidence
+            .iter_mut()
+            .find(|row| {
+                row.scenario_id == SCENARIO_A && row.portfolio_id == PORTFOLIO_A
+            })
+            .unwrap();
+        row.envelope = envelope(
+            contract.manifest_digest[0],
+            contract.target_measure_digest,
+            contract.event_inventory_digest[0],
+            exact(0, 1),
+            exact(1, 5),
+        );
+
+        let contract = contracts()
+            .into_iter()
+            .find(|contract| {
+                contract.scenario_id == SCENARIO_A && contract.portfolio_id == PORTFOLIO_B
+            })
+            .unwrap();
+        let row = evidence
+            .iter_mut()
+            .find(|row| {
+                row.scenario_id == SCENARIO_A && row.portfolio_id == PORTFOLIO_B
+            })
+            .unwrap();
+        row.envelope = envelope(
+            contract.manifest_digest[0],
+            contract.target_measure_digest,
+            contract.event_inventory_digest[0],
+            exact(1, 1),
+            exact(1, 5),
+        );
+
+        let report = gate().evaluate(&evidence, &consequence_reports()).unwrap();
+        assert!(report.eligible_portfolio_ids.is_empty() || report.eligible_portfolio_ids.contains(&PORTFOLIO_A));
+        assert!(report.ineligible_portfolio_ids.contains(&PORTFOLIO_B));
     }
 
     #[test]
