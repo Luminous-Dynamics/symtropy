@@ -115,8 +115,12 @@ pub enum ClusterConformalCalibrationError {
     CalibrationEvaluationPartitionCollision,
     /// Fixed observations-per-cluster count must be positive.
     InvalidBlockSize,
+    /// A residual component is not finite.
+    NonFiniteResidual,
     /// Observation is labelled with a different calibration partition.
     CalibrationPartitionMismatch,
+    /// Alpha is not finite or not strictly between zero and one.
+    InvalidAlpha,
     /// Observation is labelled with a different block contract.
     BlockContractMismatch,
     /// Observations mix density spaces, strata or residual dimensions.
@@ -147,12 +151,14 @@ impl core::fmt::Display for ClusterConformalCalibrationError {
             Self::InvalidBlockSize => "observations-per-cluster must be strictly positive",
             Self::CalibrationPartitionMismatch => "residual does not belong to the frozen calibration partition",
             Self::BlockContractMismatch => "residual does not belong to the frozen block contract",
+            Self::InvalidAlpha => "conformal miscoverage alpha must lie strictly between zero and one",
             Self::MixedCalibrationGroup => "calibration mixes density spaces, strata or residual dimensions",
             Self::DuplicateObservationIdentity => "calibration residual observation identity is duplicated",
             Self::ClusterExceedsBlockSize => "dependence cluster exceeds its frozen observation count",
             Self::IncompleteCalibrationCluster => "dependence cluster is incomplete under the frozen block contract",
             Self::NonZeroCovarianceReferenceMean => "covariance reference mean must be exactly zero",
             Self::DimensionMismatch => "residual and covariance dimensions differ",
+            Self::NonFiniteResidual => "residual contains a non-finite component",
             Self::NumericalFailure => "cluster NIS or conformal quantile calculation failed numerically",
             Self::CovarianceRealismFailure => "shared covariance-realism primitive rejected an input",
         };
@@ -204,7 +210,7 @@ pub fn calibrate_cluster_conformal_ellipsoid(
         return Err(ClusterConformalCalibrationError::InvalidBlockSize);
     }
     if !config.alpha.is_finite() || config.alpha <= 0.0 || config.alpha >= 1.0 {
-        return Err(ClusterConformalCalibrationError::NumericalFailure);
+        return Err(ClusterConformalCalibrationError::InvalidAlpha);
     }
     if observations.is_empty() {
         return Err(ClusterConformalCalibrationError::EmptyCalibrationSet);
@@ -243,6 +249,9 @@ pub fn calibrate_cluster_conformal_ellipsoid(
         }
         if item.residual.residual.len() != dimension {
             return Err(ClusterConformalCalibrationError::DimensionMismatch);
+        }
+        if item.residual.residual.iter().any(|value| !value.is_finite()) {
+            return Err(ClusterConformalCalibrationError::NonFiniteResidual);
         }
         if item
             .residual
