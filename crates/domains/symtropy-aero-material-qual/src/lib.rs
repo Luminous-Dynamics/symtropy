@@ -13,6 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub mod evidence_binding_v0_2;
 pub mod observer_coverage_v0_1;
+pub mod vector_watermark_v0_1;
 
 const PROFILE_ID: &str = "aero-material-process-qual-v0.1";
 const CLAIM_CEILING: &str = "synthetic_contract_test_only";
