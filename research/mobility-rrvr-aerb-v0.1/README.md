@@ -89,19 +89,24 @@ Do not implement a second minimax/EVSI engine.
 
 Reuse research/decision-predictability-benchmark/src/robust.rs as the robust decision-value calculation:
 
-For a declared set of possible worlds S, available dispositions A, and frozen loss L(a,w),
+For a declared set of possible worlds S, available dispositions A, frozen loss L(a,w), and evaluator-owned hard admissibility ceiling \(\tau\), define
 
 \[
-R(S)=\min_{a\in A}\max_{w\in S}L(a,w)
+A_{\tau}(S)=\left\{a\in A: \max_{w\in S}L(a,w)\leq\tau\right\}
 \]
-
-For probe p, its possible outcome z restricts the world set to S_z. The post-observation worst-case risk is
 
 \[
-R_p=\max_z R(S_z), \qquad \Delta_p=R(S)-R_p.
+R_{\tau}(S)=\min_{a\in A_{\tau}(S)}\max_{w\in S}L(a,w).
 \]
 
-\(\Delta_p\) is a guaranteed worst-case reduction under the supplied finite support model. It is **not** EVSI, mutual information or an expected risk reduction. Probe acquisition cost, result delay, permission and deadline remain separate dimensions. The evaluator's `maximum_worst_case_loss` is a hard admissibility ceiling over the declared loss model: decisions above it are excluded rather than compensated by utility. The v0.1 synthetic example uses 0.45 illustratively; it is not a universal robotics safety threshold. Do not subtract probe costs from task loss unless a defensible, preregistered common utility scale exists.
+If \(A_{\tau}(S)\) is empty, the decision problem is infeasible; it is not silently assigned a large score. For probe p, its possible outcome z restricts the world set to S_z. The post-observation worst-case risk is
+
+\[
+R_{p,\tau}=\max_z R_{\tau}(S_z), \qquad
+\Delta_{p,\tau}=R_{\tau}(S)-R_{p,\tau}.
+\]
+
+\(\Delta_{p,\tau}\) is a guaranteed worst-case reduction under the supplied finite support model. It is **not** EVSI, mutual information or an expected risk reduction. Probe acquisition cost, result delay, permission and deadline remain separate dimensions. The threshold \(\tau\) is frozen by the evaluator and is not selected by the candidate; its value must be justified for a real campaign, not copied from the synthetic fixture. The evaluator's `maximum_worst_case_loss` is a hard admissibility ceiling over the declared loss model: decisions above it are excluded rather than compensated by utility. The v0.1 synthetic example uses 0.45 illustratively; it is not a universal robotics safety threshold. Do not subtract probe costs from task loss unless a defensible, preregistered common utility scale exists.
 
 Use the Bayesian EVSI path only when prior probabilities and joint observation likelihoods are independently justified and frozen. Correlated evidence channels require a joint model or an explicitly justified conditional-independence contract. HDC cosine, covariance distance, Mahalanobis distance and raw prediction error are not probabilities.
 
