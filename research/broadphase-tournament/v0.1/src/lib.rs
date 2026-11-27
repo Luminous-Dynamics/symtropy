@@ -14,6 +14,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
 pub mod contact_freshness;
+pub mod contact_freshness_verifier;
 
 mod indexed_pair_cache;
 use indexed_pair_cache::IndexedPairDeltaCache;
