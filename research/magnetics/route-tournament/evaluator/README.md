@@ -34,3 +34,12 @@ The unit of comparison is the accepted as-built component—not nominal CAD, lit
 The evaluator validates supplied evidence identity, roles, declared scope and interval arithmetic. It does not calculate magnetic fields, propagate uncertainty, establish calibration competence, authenticate evidence producers, assess a manufacturing process, or issue product-release authority. A digest establishes content identity only.
 
 The initial fixtures are synthetic and do not establish physical superiority of any manufacturing route.
+
+
+## Exact joins and decision semantics
+
+Every observation binds the candidate's specimen, material lot, build/run, as-built geometry, geometry-inspection record, process genealogy, material state, post-build magnetization and cohort scope. The as-built geometry inspection record also carries a method, calibration digest and reference-chain identity.
+
+Hard-limit decisions use the complete supplied interval `[value - uncertainty_radius, value + uncertainty_radius]`. A limit definitely violated by the whole interval is FAIL; an interval crossing a hard limit is INDETERMINATE. A pass requires every hard limit to be safe.
+
+A robust minimization dominance requires the candidate's upper interval endpoint to be no greater than the other candidate's lower endpoint in every minimization dimension; maximization uses the inverse relation. At least one dimension must be strictly separated. Overlap means incomparable. This deliberately conservative definition may return larger Pareto sets rather than make unsupported rankings.
