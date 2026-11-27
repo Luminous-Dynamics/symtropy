@@ -95,5 +95,8 @@
       ]
     }
   ],
-  "claim_ceiling": "Synthetic split-integrity fixture only. Station-held-out design permits vehicle repetition across stations but forbids overlapping windows for the same vehicle."
+  "claim_ceiling": "Synthetic split-integrity fixture only. Station-held-out design permits vehicle repetition across stations but forbids overlapping windows for the same vehicle.",
+  "optional_leakage_keys": [
+    "event_id"
+  ]
 }
