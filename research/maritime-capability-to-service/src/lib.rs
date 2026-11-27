@@ -38,7 +38,9 @@ impl InspectionStatus {
             "PASS" => Ok(Self::Pass),
             "FAIL" => Ok(Self::Fail),
             "UNKNOWN" => Ok(Self::Unknown),
-            _ => Err(format!("line {line}: unsupported inspection status '{value}'")),
+            _ => Err(format!(
+                "line {line}: unsupported inspection status '{value}'"
+            )),
         }
     }
 
@@ -64,7 +66,9 @@ impl ReceiverStatus {
             "ACCEPTED" => Ok(Self::Accepted),
             "REJECTED" => Ok(Self::Rejected),
             "UNKNOWN" => Ok(Self::Unknown),
-            _ => Err(format!("line {line}: unsupported receiver status '{value}'")),
+            _ => Err(format!(
+                "line {line}: unsupported receiver status '{value}'"
+            )),
         }
     }
 
@@ -238,8 +242,7 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                 if dependency_ids.iter().any(String::is_empty) {
                     return Err(format!("line {line_number}: empty dependency in option"));
                 }
-                let unique: BTreeSet<&str> =
-                    dependency_ids.iter().map(String::as_str).collect();
+                let unique: BTreeSet<&str> = dependency_ids.iter().map(String::as_str).collect();
                 if unique.len() != dependency_ids.len() {
                     return Err(format!(
                         "line {line_number}: duplicate dependency in option '{}'",
@@ -272,14 +275,19 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
             }
             "INSPECTION" if fields.len() == 5 => {
                 if fields[1].is_empty() || fields[4].is_empty() {
-                    return Err(format!("line {line_number}: empty inspection option or revision"));
+                    return Err(format!(
+                        "line {line_number}: empty inspection option or revision"
+                    ));
                 }
                 let inspection = Inspection {
                     status: InspectionStatus::parse(fields[2], line_number)?,
                     qualified_units: parse_u64(fields[3], "qualified units", line_number)?,
                     revision: fields[4].to_owned(),
                 };
-                if inspections.insert(fields[1].to_owned(), inspection).is_some() {
+                if inspections
+                    .insert(fields[1].to_owned(), inspection)
+                    .is_some()
+                {
                     return Err(format!(
                         "line {line_number}: duplicate inspection record for '{}'",
                         fields[1]
@@ -362,7 +370,10 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
         }
 
         let receiver = receiver_acceptances.get(&option.id).ok_or_else(|| {
-            format!("option '{}' has no receiver-acceptance disposition", option.id)
+            format!(
+                "option '{}' has no receiver-acceptance disposition",
+                option.id
+            )
         })?;
         if receiver.revision != option.revision {
             return Err(format!(
@@ -386,7 +397,9 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
 
     for option_id in inspections.keys() {
         if !options.contains_key(option_id) {
-            return Err(format!("inspection references unknown option '{option_id}'"));
+            return Err(format!(
+                "inspection references unknown option '{option_id}'"
+            ));
         }
     }
     for option_id in receiver_acceptances.keys() {
@@ -465,21 +478,20 @@ fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
             } else {
                 0
             };
-            let receiver_accepted_units =
-                if receiver.status == ReceiverStatus::Accepted {
-                    receiver.accepted_units
-                } else {
-                    0
-                };
-            let on_time_accepted_units_with_shock =
-                if receiver_day_with_shock <= instance.service.deadline_day
-                    && inspection.status == InspectionStatus::Pass
-                    && receiver.status == ReceiverStatus::Accepted
-                {
-                    receiver.accepted_units
-                } else {
-                    0
-                };
+            let receiver_accepted_units = if receiver.status == ReceiverStatus::Accepted {
+                receiver.accepted_units
+            } else {
+                0
+            };
+            let on_time_accepted_units_with_shock = if receiver_day_with_shock
+                <= instance.service.deadline_day
+                && inspection.status == InspectionStatus::Pass
+                && receiver.status == ReceiverStatus::Accepted
+            {
+                receiver.accepted_units
+            } else {
+                0
+            };
 
             Ok(Outcome {
                 instance_id: instance.id.clone(),
@@ -535,8 +547,7 @@ pub fn compare_service_options(
         || baseline.expected_units != candidate.expected_units
     {
         return Err(
-            "service option comparison context does not match the frozen instance"
-                .to_owned(),
+            "service option comparison context does not match the frozen instance".to_owned(),
         );
     }
 
@@ -670,14 +681,10 @@ pub fn compare_recovery_regret(
         return Err(RECOVERY_CONTEXT_ERROR.to_owned());
     }
 
-    let candidate_late =
-        candidate.receiver_accepted_units - candidate.on_time_accepted_units;
-    let reference_late =
-        reference.receiver_accepted_units - reference.on_time_accepted_units;
-    let candidate_unmet =
-        candidate.expected_units - candidate.on_time_accepted_units;
-    let reference_unmet =
-        reference.expected_units - reference.on_time_accepted_units;
+    let candidate_late = candidate.receiver_accepted_units - candidate.on_time_accepted_units;
+    let reference_late = reference.receiver_accepted_units - reference.on_time_accepted_units;
+    let candidate_unmet = candidate.expected_units - candidate.on_time_accepted_units;
+    let reference_unmet = reference.expected_units - reference.on_time_accepted_units;
 
     Ok(RecoveryRegretVector {
         instance_id: candidate.instance_id.clone(),
@@ -689,21 +696,21 @@ pub fn compare_recovery_regret(
         expected_units: candidate.expected_units,
         candidate_policy_id: candidate.policy_id.clone(),
         reference_policy_id: reference.policy_id.clone(),
-        unmet_units_at_deadline_delta: i128::from(candidate_unmet)
-            - i128::from(reference_unmet),
+        unmet_units_at_deadline_delta: i128::from(candidate_unmet) - i128::from(reference_unmet),
         inspection_qualified_units_delta: i128::from(candidate.inspection_qualified_units)
             - i128::from(reference.inspection_qualified_units),
         receiver_accepted_units_delta: i128::from(candidate.receiver_accepted_units)
             - i128::from(reference.receiver_accepted_units),
-        late_accepted_units_delta: i128::from(candidate_late)
-            - i128::from(reference_late),
+        late_accepted_units_delta: i128::from(candidate_late) - i128::from(reference_late),
         unresolved_units_delta: i128::from(candidate.unresolved_units)
             - i128::from(reference.unresolved_units),
         service_deficit_unit_hours_delta: i128::from(candidate.service_deficit_unit_hours)
             - i128::from(reference.service_deficit_unit_hours),
         time_to_minimum_viable_service_day_delta: i128::from(
             candidate.time_to_minimum_viable_service_day,
-        ) - i128::from(reference.time_to_minimum_viable_service_day),
+        ) - i128::from(
+            reference.time_to_minimum_viable_service_day,
+        ),
         time_to_full_service_day_delta: i128::from(candidate.time_to_full_service_day)
             - i128::from(reference.time_to_full_service_day),
         recovery_cost_units_delta: i128::from(candidate.recovery_cost_units)
@@ -869,15 +876,11 @@ pub fn worst_case_recovery_regret(
     for vector in vectors.iter().skip(1) {
         for bound in &mut worst_case {
             let next_delta = match bound.metric {
-                RecoveryRegretMetric::UnmetUnitsAtDeadline => {
-                    vector.unmet_units_at_deadline_delta
-                }
+                RecoveryRegretMetric::UnmetUnitsAtDeadline => vector.unmet_units_at_deadline_delta,
                 RecoveryRegretMetric::InspectionQualifiedUnits => {
                     vector.inspection_qualified_units_delta
                 }
-                RecoveryRegretMetric::ReceiverAcceptedUnits => {
-                    vector.receiver_accepted_units_delta
-                }
+                RecoveryRegretMetric::ReceiverAcceptedUnits => vector.receiver_accepted_units_delta,
                 RecoveryRegretMetric::LateAcceptedUnits => vector.late_accepted_units_delta,
                 RecoveryRegretMetric::UnresolvedUnits => vector.unresolved_units_delta,
                 RecoveryRegretMetric::ServiceDeficitUnitHours => {
@@ -886,9 +889,7 @@ pub fn worst_case_recovery_regret(
                 RecoveryRegretMetric::TimeToMinimumViableServiceDay => {
                     vector.time_to_minimum_viable_service_day_delta
                 }
-                RecoveryRegretMetric::TimeToFullServiceDay => {
-                    vector.time_to_full_service_day_delta
-                }
+                RecoveryRegretMetric::TimeToFullServiceDay => vector.time_to_full_service_day_delta,
                 RecoveryRegretMetric::RecoveryCostUnits => vector.recovery_cost_units_delta,
                 RecoveryRegretMetric::RecoveryEmissionsUnits => {
                     vector.recovery_emissions_units_delta
@@ -1199,8 +1200,7 @@ mod tests {
 
     #[test]
     fn missing_or_duplicate_receiver_acceptance_fails_closed() {
-        let missing =
-            FIXTURE.replace("RECEIVER_ACCEPTANCE\tLOCAL-C\tACCEPTED\t10\tREV-001\n", "");
+        let missing = FIXTURE.replace("RECEIVER_ACCEPTANCE\tLOCAL-C\tACCEPTED\t10\tREV-001\n", "");
         assert!(
             parse_instance(&missing)
                 .unwrap_err()
@@ -1278,9 +1278,7 @@ mod tests {
         );
         let receipt = run_audit(fixture)
             .expect("an option can be sourced through an external capability receipt");
-        assert!(receipt.contains(
-            "OUTCOME\tO\tIMPORT\t4\t4\t10\t10\t10\t10"
-        ));
+        assert!(receipt.contains("OUTCOME\tO\tIMPORT\t4\t4\t10\t10\t10\t10"));
     }
 
     #[test]
@@ -1334,10 +1332,8 @@ mod tests {
             .find(|outcome| outcome.option_id == "IMPORT")
             .unwrap();
 
-        let changed_units = FIXTURE.replace(
-            "SERVICE-001\t10\tcargo_unit",
-            "SERVICE-001\t11\tcargo_unit",
-        );
+        let changed_units =
+            FIXTURE.replace("SERVICE-001\t10\tcargo_unit", "SERVICE-001\t11\tcargo_unit");
         let changed = parse_instance(&changed_units).unwrap();
         let changed_outcomes = evaluate(&changed).unwrap();
         assert!(
@@ -1357,8 +1353,7 @@ mod tests {
             "SERVICE-001\t10\tcargo_unit\t11",
         );
 
-        let changed_version =
-            FIXTURE.replace("MCSC-TINY-001\tv0.1", "MCSC-TINY-001\tv0.2");
+        let changed_version = FIXTURE.replace("MCSC-TINY-001\tv0.1", "MCSC-TINY-001\tv0.2");
         let changed = parse_instance(&changed_version).unwrap();
         let changed_outcomes = evaluate(&changed).unwrap();
         assert!(
@@ -1481,12 +1476,9 @@ mod tests {
         let mut invalid_qualification = recovery_outcome("INVALID-QUALIFICATION");
         invalid_qualification.receiver_accepted_units = 91;
         assert!(
-            compare_recovery_regret(
-                &invalid_qualification,
-                &recovery_outcome("ORACLE")
-            )
-            .unwrap_err()
-            .contains("expected/qualified/accepted")
+            compare_recovery_regret(&invalid_qualification, &recovery_outcome("ORACLE"))
+                .unwrap_err()
+                .contains("expected/qualified/accepted")
         );
 
         let mut invalid_time = recovery_outcome("INVALID-TIME");
@@ -1572,11 +1564,13 @@ mod tests {
         assert_eq!(envelope.expected_units, 100);
         assert_eq!(envelope.worst_case.len(), 14);
 
-        let bound = |metric| envelope
-            .worst_case
-            .iter()
-            .find(|item| item.metric == metric)
-            .unwrap();
+        let bound = |metric| {
+            envelope
+                .worst_case
+                .iter()
+                .find(|item| item.metric == metric)
+                .unwrap()
+        };
 
         assert_eq!(bound(RecoveryRegretMetric::UnmetUnitsAtDeadline).delta, 30);
         assert_eq!(
@@ -1601,10 +1595,7 @@ mod tests {
             bound(RecoveryRegretMetric::TimeToMinimumViableServiceDay).delta,
             2
         );
-        assert_eq!(
-            bound(RecoveryRegretMetric::TimeToFullServiceDay).delta,
-            7
-        );
+        assert_eq!(bound(RecoveryRegretMetric::TimeToFullServiceDay).delta, 7);
         assert_eq!(bound(RecoveryRegretMetric::RecoveryCostUnits).delta, 400);
         assert_eq!(
             bound(RecoveryRegretMetric::RecoveryEmissionsUnits).delta,
@@ -1613,7 +1604,10 @@ mod tests {
         assert_eq!(bound(RecoveryRegretMetric::RequalificationActions).delta, 2);
         assert_eq!(bound(RecoveryRegretMetric::ReplanInvocations).delta, 3);
         assert_eq!(bound(RecoveryRegretMetric::PlanChurnChanges).delta, 12);
-        assert_eq!(bound(RecoveryRegretMetric::DecisionLatencyMillis).delta, 6_000);
+        assert_eq!(
+            bound(RecoveryRegretMetric::DecisionLatencyMillis).delta,
+            6_000
+        );
     }
 
     #[test]
