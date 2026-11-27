@@ -169,7 +169,9 @@ fn quaternion_is_unit_xyzw(quaternion: [f64; 4]) -> bool {
         return false;
     }
     let norm_squared = quaternion.iter().map(|value| value * value).sum::<f64>();
-    norm_squared.is_finite() && norm_squared > 1.0e-24 && (norm_squared.sqrt() - 1.0).abs() <= 1.0e-6
+    norm_squared.is_finite()
+        && norm_squared > 1.0e-24
+        && (norm_squared.sqrt() - 1.0).abs() <= 1.0e-6
 }
 
 fn covariance_is_spd(matrix: &[f64; 36]) -> bool {
@@ -177,7 +179,10 @@ fn covariance_is_spd(matrix: &[f64; 36]) -> bool {
         return false;
     }
 
-    let scale = matrix.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let scale = matrix
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     if !scale.is_finite() || scale <= 0.0 {
         return false;
     }
@@ -462,11 +467,7 @@ pub fn evaluate(input: &RuntimePosePrediction) -> AdmissionResult {
         );
     }
 
-    base_result(
-        input,
-        AdmissionDisposition::CandidateStatisticalRegion,
-        "",
-    )
+    base_result(input, AdmissionDisposition::CandidateStatisticalRegion, "")
 }
 
 pub fn evaluate_manifest(inputs: &[RuntimePosePrediction]) -> Vec<AdmissionResult> {
@@ -581,7 +582,10 @@ mod tests {
     #[test]
     fn matched_scope_yields_candidate_only_statistical_region() {
         let result = evaluate(&input());
-        assert_eq!(result.disposition, AdmissionDisposition::CandidateStatisticalRegion);
+        assert_eq!(
+            result.disposition,
+            AdmissionDisposition::CandidateStatisticalRegion
+        );
         assert!(result.candidate_only);
         assert!(result.statistical_region_only);
         assert!(!result.deterministic_safety_bound);
@@ -603,7 +607,10 @@ mod tests {
     fn profile_model_mismatch_is_out_of_scope() {
         let mut value = input();
         value.profile.model_revision = "other-model".to_owned();
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::OutOfScope
+        );
     }
 
     #[test]
@@ -617,7 +624,10 @@ mod tests {
     fn stale_profile_abstains() {
         let mut value = input();
         value.profile.profile_state = "STALE".to_owned();
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::AbstainUncalibrated
+        );
     }
 
     #[test]
@@ -652,14 +662,20 @@ mod tests {
     fn covariance_must_be_positive_definite() {
         let mut value = input();
         value.covariance[0] = -1.0;
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::InvalidCovariance);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::InvalidCovariance
+        );
     }
 
     #[test]
     fn ood_pose_abstains_even_with_a_current_profile() {
         let mut value = input();
         value.ood_flag = true;
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::AbstainUnobservable);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::AbstainUnobservable
+        );
     }
 
     #[test]
@@ -668,7 +684,10 @@ mod tests {
         value.support_mode = "DIRECT_REGRESSION".to_owned();
         value.correspondence_count = 0;
         value.geometry_condition = 0.0;
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::CandidateStatisticalRegion);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::CandidateStatisticalRegion
+        );
     }
 
     #[test]
@@ -677,8 +696,10 @@ mod tests {
         let mut second = input();
         second.case_id = "RPA-002".to_owned();
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|value| {
-            value.disposition == AdmissionDisposition::DuplicateSample
-        }));
+        assert!(
+            results
+                .iter()
+                .all(|value| { value.disposition == AdmissionDisposition::DuplicateSample })
+        );
     }
 }
