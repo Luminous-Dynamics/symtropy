@@ -8,7 +8,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
-pub const MAX_CANDIDATE_ACTIONS: usize = 16;
+pub const MAX_CANDIDATE_ACTIONS: usize = 12;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoundsEvidenceStatus {
