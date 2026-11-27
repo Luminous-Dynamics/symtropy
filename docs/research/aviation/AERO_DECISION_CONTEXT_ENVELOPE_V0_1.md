@@ -14,7 +14,7 @@ This increment makes the digest a function of a typed context object. The evalua
 
 The versioned `DecisionContextV0_1` contains:
 
-The `evidence_knowledge_cut_sha256` is no longer an arbitrary caller-supplied digest in the AERO claim gate. It must equal the independently recomputed digest of a typed `OwnerEvidenceCutV0_1` that preserves Mycelix/AeroCommons packet and record references, BASALT report/input/final-state digests and per-record freshness, owner receipt watermark, trust policy and observer-coverage receipt. The owner cut's physical-unit/configuration and trust-policy identities must also match the context. See [AERO Owner Evidence Cut v0.1](AERO_OWNER_EVIDENCE_CUT_V0_1.md).
+The `evidence_knowledge_cut_sha256` is no longer an arbitrary caller-supplied digest in the AERO claim gate. It must equal the independently recomputed digest of a typed `OwnerEvidenceCutV0_1` that preserves Mycelix/AeroCommons packet and record references, BASALT report/input/final-state digests and per-record freshness, owner receipt watermark, trust policy and observer-coverage receipt. The frozen current example owner-cut digest is `da95f7ba160dc5883cea7ab6828cbf3abd84246a0aaf596121a846377e735ec8`, and the context digest with that cut is `018dca27c7f9cddb276d11698a27de5e1162a02edebdf5711b4fc7c9dbda0b3a`. The owner cut's physical-unit/configuration and trust-policy identities must also match the context. See [AERO Owner Evidence Cut v0.1](AERO_OWNER_EVIDENCE_CUT_V0_1.md).
 
 | Field | Binds |
 |---|---|
