@@ -241,6 +241,9 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
             .iter()
             .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
     let m2 = !m2_measurements.is_empty() && m2_lab_scope_ok;
+    if !m2_measurements.is_empty() && !m2_lab_scope_ok {
+        global_blockers.push(Blocker::MissingLaboratoryScopeEvidence);
+    }
 
     let process_records = has(EvidenceKind::ProcessRecord)
         .into_iter()
@@ -270,6 +273,9 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
     let m3_lab_scope_ok = microstructure
         .iter()
         .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
+    if !microstructure.is_empty() && !m3_lab_scope_ok {
+        global_blockers.push(Blocker::MissingLaboratoryScopeEvidence);
+    }
     let m3 = m2
         && !process_records.is_empty()
         && !microstructure.is_empty()
@@ -292,6 +298,7 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                         && structure.material_lot_id == property.material_lot_id
                         && structure.specimen_id == property.specimen_id
                         && structure.build_id == process.build_id
+                        && property.build_id == process.build_id
             )
         });
 
@@ -392,6 +399,9 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         && required_method_receipts
             .iter()
             .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
+    if !labs_cover_methods && !required_method_receipts.is_empty() {
+        global_blockers.push(Blocker::MissingLaboratoryScopeEvidence);
+    }
     let m5 = m4
         && cohort_ok
         && variability
@@ -575,6 +585,7 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
     ) {
         require(receipt.specimen_id.as_deref(), Blocker::MissingSpecimenBinding, &mut blockers);
         require(receipt.material_lot_id.as_deref(), Blocker::MissingLotBinding, &mut blockers);
+        require(receipt.build_id.as_deref(), Blocker::MissingBuildBinding, &mut blockers);
         validate_method(receipt, &mut blockers);
     }
     if receipt.kind == EvidenceKind::ProcessRecord {
@@ -631,6 +642,9 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
     if receipt.kind == EvidenceKind::LaboratoryMethodScope {
         require(receipt.laboratory_id.as_deref(), Blocker::MissingLaboratoryBinding, &mut blockers);
         require(receipt.method_scope_id.as_deref(), Blocker::MissingMethodScope, &mut blockers);
+        if receipt.standard_reference.as_deref() != Some("ISO/IEC 17025:2017") {
+            blockers.push(Blocker::MissingLaboratoryScopeEvidence);
+        }
     }
     blockers
 }
@@ -948,6 +962,13 @@ mod tests {
         let result = evaluate(&candidate(), &[receipt("MODEL", EvidenceKind::DesignModel, EvidenceClass::PublishedLiterature)]);
         assert_eq!(result.derived_level, MaturityLevel::M1);
         assert!(result.findings[0].supported);
+    }
+
+    #[test]
+    fn empty_evidence_has_no_maturity_level() {
+        let result = evaluate(&candidate(), &[]);
+        assert_eq!(result.derived_level, MaturityLevel::Unestablished);
+        assert!(!result.findings[0].supported);
     }
 
     #[test]
