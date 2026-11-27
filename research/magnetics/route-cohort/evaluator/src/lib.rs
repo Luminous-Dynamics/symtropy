@@ -269,13 +269,7 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
 
     let mut declared_specimen_to_build = BTreeMap::new();
     for build in build_by_id.values() {
-        validate_build_record(
-            cohort,
-            build,
-            &lot_by_id,
-            &valid_lot_ids,
-            &mut blockers,
-        );
+        validate_build_record(cohort, build, &lot_by_id, &valid_lot_ids, &mut blockers);
         if build.status == BuildStatus::Completed {
             counts.completed_builds += 1;
         }
@@ -362,8 +356,7 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
         + counts.missing_specimen_outcomes;
 
     let generalization_status = if !blockers.is_empty()
-        || counts.initiated_builds
-            < u64::from(cohort.replication_policy.minimum_independent_builds)
+        || counts.initiated_builds < u64::from(cohort.replication_policy.minimum_independent_builds)
         || counts.distinct_material_lots
             < u64::from(cohort.replication_policy.minimum_distinct_material_lots)
     {
@@ -372,13 +365,14 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
         GeneralizationStatus::ReplicationCoverageMeetsPolicy
     };
 
-    let cost_per_accepted_part = cohort.campaign_cost.as_ref().map(|cost| {
-        CostPerAcceptedPart {
+    let cost_per_accepted_part = cohort
+        .campaign_cost
+        .as_ref()
+        .map(|cost| CostPerAcceptedPart {
             currency: cost.currency.clone(),
             total_campaign_cost_minor: cost.total_campaign_cost_minor,
             accepted_part_count: counts.final_accepted_specimens,
-        }
-    });
+        });
 
     CohortEvaluation {
         cohort_id: cohort.cohort_id.clone(),
@@ -390,10 +384,7 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
             ),
             confirmed_failure: Rate::new(counts.first_pass_fail, counts.initiated_specimens),
             unresolved: Rate::new(unresolved_count, counts.initiated_specimens),
-            inspection_coverage: Rate::new(
-                counts.inspected_specimens,
-                counts.initiated_specimens,
-            ),
+            inspection_coverage: Rate::new(counts.inspected_specimens, counts.initiated_specimens),
             build_completion: Rate::new(counts.completed_builds, counts.initiated_builds),
             rework_recovery: Rate::new(counts.rework_recovered, counts.reworked_specimens),
             final_accepted_fraction: Rate::new(
@@ -446,9 +437,7 @@ fn validate_cohort_identity(cohort: &RouteCohort) -> Vec<Blocker> {
         if !valid_sha256(&cost.digest) {
             blockers.push(Blocker::InvalidDigest);
         }
-        if cost.currency.len() != 3
-            || !cost.currency.bytes().all(|byte| byte.is_ascii_uppercase())
-        {
+        if cost.currency.len() != 3 || !cost.currency.bytes().all(|byte| byte.is_ascii_uppercase()) {
             blockers.push(Blocker::InvalidCurrency);
         }
     }
@@ -468,15 +457,11 @@ fn validate_lot_record(
         blockers.push(Blocker::MissingIdentity);
         valid = false;
     }
-    if !valid_sha256(&lot.lot_record_digest)
-        || !valid_sha256(&lot.source_provenance_digest)
-    {
+    if !valid_sha256(&lot.lot_record_digest) || !valid_sha256(&lot.source_provenance_digest) {
         blockers.push(Blocker::InvalidDigest);
         valid = false;
     }
-    if !lot.recycled_mass_fraction.is_finite()
-        || !(0.0..=1.0).contains(&lot.recycled_mass_fraction)
-    {
+    if !lot.recycled_mass_fraction.is_finite() || !(0.0..=1.0).contains(&lot.recycled_mass_fraction) {
         blockers.push(Blocker::InvalidRecycledFraction);
         valid = false;
     }
@@ -840,11 +825,15 @@ mod tests {
     #[test]
     fn missing_specimen_record_is_kept_in_denominator() {
         let mut cohort = valid_cohort();
-        cohort.specimens.retain(|record| record.specimen_id != "SPEC-3");
+        cohort
+            .specimens
+            .retain(|record| record.specimen_id != "SPEC-3");
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::InitiatedSpecimenMissingRecord));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::InitiatedSpecimenMissingRecord)
+        );
         assert_eq!(result.summary.counts.initiated_specimens, 3);
         assert_eq!(result.summary.counts.missing_specimen_outcomes, 1);
         assert_eq!(result.summary.first_pass_acceptance, Rate::new(1, 3));
@@ -886,11 +875,15 @@ mod tests {
     #[test]
     fn duplicate_specimen_ids_in_two_build_manifests_are_rejected() {
         let mut cohort = valid_cohort();
-        cohort.builds[1].initiated_specimen_ids.push("SPEC-1".to_string());
+        cohort.builds[1]
+            .initiated_specimen_ids
+            .push("SPEC-1".to_string());
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::DuplicateInitiatedSpecimenId));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::DuplicateInitiatedSpecimenId)
+        );
     }
 
     #[test]
@@ -898,9 +891,11 @@ mod tests {
         let mut cohort = valid_cohort();
         cohort.builds[0].route_revision = "MEX-v2".to_string();
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::BuildRouteRevisionMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::BuildRouteRevisionMismatch)
+        );
     }
 
     #[test]
@@ -981,9 +976,11 @@ mod tests {
         let mut cohort = valid_cohort();
         cohort.specimens[2].manufacturing_complete = true;
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::FailedBuildHasInspectedSpecimen));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::FailedBuildHasInspectedSpecimen)
+        );
     }
 
     #[test]
