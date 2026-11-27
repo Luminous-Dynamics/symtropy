@@ -630,6 +630,22 @@ mod tests {
     }
 
     #[test]
+    fn service_denominator_cannot_drop_unclassified_units() {
+        let mut incomplete = action("PARTIAL", 5, 5);
+        incomplete.outcome.unmet_units = 4;
+        let result = solve_r1_finite(
+            &[decision(
+                "S1",
+                snapshot("FEEDER-V1", 60),
+                vec![incomplete],
+            )],
+            100,
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("frozen outcome contract"));
+    }
+
+    #[test]
     fn exhaustive_policy_budget_is_checked_before_enumeration() {
         let result = solve_r1_finite(
             &[decision(
