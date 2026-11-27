@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "cross-modal-pose-consistency-bench"
+version = "0.1.0"
