@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transport/ev-bms-event-evaluation/0.1",
+  "title": "EV BMS event-level warning evaluation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "evaluation_id",
+    "dataset_id",
+    "dataset_domain",
+    "dataset_admission_state",
+    "dataset_manifest_sha256",
+    "dataset_snapshot_sha256",
+    "split_manifest_sha256",
+    "split_partition",
+    "evidence_class",
+    "event_lookback_ms",
+    "threshold_policy_id",
+    "exposures",
+    "events",
+    "alarms",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "ev-bms-event-evaluation/v0.1"
+    },
+    "evaluation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_id": {
+      "enum": [
+        "cao-onboard-bms-zenodo-10656500",
+        "shenzhen-charger-side-mendeley-c7gg94tmvz-v3"
+      ]
+    },
+    "dataset_domain": {
+      "enum": [
+        "onboard_bms",
+        "charger_side"
+      ]
+    },
+    "dataset_admission_state": {
+      "enum": [
+        "metadata_only",
+        "snapshot_admitted"
+      ]
+    },
+    "dataset_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dataset_snapshot_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "split_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "split_partition": {
+      "const": "test"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "operator_collected_field_observation"
+      ]
+    },
+    "event_lookback_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "threshold_policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exposures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "exposure_id",
+          "asset_id",
+          "role",
+          "window_start_unix_ms",
+          "window_end_unix_ms"
+        ],
+        "properties": {
+          "exposure_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "negative_control",
+              "event_monitoring"
+            ]
+          },
+          "window_start_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "window_end_unix_ms": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "asset_id",
+          "event_time_unix_ms",
+          "event_time_semantics",
+          "label_source"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "event_time_unix_ms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "event_time_semantics": {
+            "enum": [
+              "recorded_bms_alarm",
+              "source_fault_time_file",
+              "maintenance_confirmation",
+              "adjudicated_fault_onset",
+              "other_recorded_event_time"
+            ]
+          },
+          "label_source": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "alarms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "alarm_id",
+          "asset_id",
+          "alarm_time_unix_ms",
+          "score",
+          "threshold"
+        ],
+        "properties": {
+          "alarm_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alarm_time_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "number"
+          },
+          "threshold": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
