@@ -51,6 +51,19 @@ The primary unit is a **counterfactual episode**: a frozen scene/trajectory/sens
 
 Every arm receives the same candidate-visible inputs, preprocessing opportunity, data splits, compute budget and output deadline. Paper-reported scores are context, not matched head-to-head results.
 
+## Generalization matrix: do not let unseen spacecraft disappear in averages
+
+The evaluator ledger now carries one explicit generalization stratum per episode:
+- `seen_target`
+- `unseen_target`
+- `unseen_target_family`
+- `unseen_renderer`
+- `unseen_sensor_rig`
+
+Score fault containment, false abstention and unsafe acceptance separately for every stratum. Counterfactual siblings remain in one stratum and one split. A large seen-target denominator must not hide failure on a new target family or sensor rig.
+
+This is motivated by SpaceSense-Bench (2026), which supplies 136 satellite models, synchronized RGB/depth/LiDAR, seven part classes and 6-DoF pose, and reports that zero-shot generalization to unseen spacecraft and recognition of small components such as thrusters and omni-antennas remain difficult. The CFI-Space scorecard should therefore report small-part strata explicitly wherever the dataset provides independent labels. The public synthetic P1 fixture currently exercises only `seen_target` and `unseen_target`; it does not claim performance on unseen target families, renderers or rigs.
+
 ## Scorecard: report every row, never collapse to one scalar
 
 ### Pose and geometry
