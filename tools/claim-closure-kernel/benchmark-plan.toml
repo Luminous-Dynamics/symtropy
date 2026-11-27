@@ -36,6 +36,12 @@ deterministic_replay = 1.0
 nodes = [100, 1000, 10000]
 fanout = [1, 3, 8]
 max_depth = [8, 64, 256]
+harness = "src/bin/scale_bench.rs"
+samples_per_shape = 15
+warmup_iterations = 2
+frozen_shapes = [[100, 1], [100, 3], [100, 8], [1000, 3], [1000, 8], [10000, 3], [10000, 8]]
+artifact_name = "claim-closure-scale-benchmark"
+performance_threshold_assertions = false
 
 [reported_metrics]
 required = [
