@@ -278,10 +278,7 @@ fn validate_plan(
         }
         if let Some(predecessor_id) = &task.qc_predecessor {
             let predecessor_index = task_index.get(predecessor_id).ok_or_else(|| {
-                ContinuousError::UnknownQcPredecessor(
-                    task.task_id.clone(),
-                    predecessor_id.clone(),
-                )
+                ContinuousError::UnknownQcPredecessor(task.task_id.clone(), predecessor_id.clone())
             })?;
             let predecessor = &instance.tasks[*predecessor_index];
             if predecessor.qc_id != task.qc_id {
@@ -332,7 +329,11 @@ fn validate_plan(
             if !visited.insert(current.clone()) {
                 return Err(ContinuousError::InvalidQcTaskOrder(qc_id.clone()));
             }
-            match qc_successors.get(&current).map(Vec::as_slice).unwrap_or(&[]) {
+            match qc_successors
+                .get(&current)
+                .map(Vec::as_slice)
+                .unwrap_or(&[])
+            {
                 [next] => current = next.clone(),
                 [] => break,
                 _ => return Err(ContinuousError::InvalidQcTaskOrder(qc_id.clone())),
@@ -364,7 +365,9 @@ fn validate_plan(
             predecessors.insert(predecessor);
         }
         for predecessor in predecessors {
-            *indegree.get_mut(&task.task_id).ok_or(ContinuousError::PrecedenceCycle)? += 1;
+            *indegree
+                .get_mut(&task.task_id)
+                .ok_or(ContinuousError::PrecedenceCycle)? += 1;
             successors
                 .entry(predecessor)
                 .or_default()
@@ -424,8 +427,10 @@ fn build_affine_plan_model(
             None => Affine::constant(task.qc_release_at, dimensions),
         };
         let agv_ready = match &structure.vehicle_predecessor[task_id] {
-            Some(predecessor_id) => vehicle_release[predecessor_id]
-                .add(&Affine::constant(structure.travel_before[task_id], dimensions)),
+            Some(predecessor_id) => vehicle_release[predecessor_id].add(&Affine::constant(
+                structure.travel_before[task_id],
+                dimensions,
+            )),
             None => Affine::constant(structure.travel_before[task_id], dimensions),
         };
 
@@ -452,14 +457,17 @@ fn build_affine_plan_model(
 
         let mut service = Affine::constant(task.nominal_service, dimensions);
         service.coefficients[index] = task.service_deviation;
-        let start = if choose_agv { agv_ready.clone() } else { qc_ready.clone() };
+        let start = if choose_agv {
+            agv_ready.clone()
+        } else {
+            qc_ready.clone()
+        };
         let finish = start.add(&service);
         let release = match task.direction {
             TaskDirection::Loading => start.clone(),
-            TaskDirection::Unloading => finish.add(&Affine::constant(
-                task.loaded_delivery_after,
-                dimensions,
-            )),
+            TaskDirection::Unloading => {
+                finish.add(&Affine::constant(task.loaded_delivery_after, dimensions))
+            }
         };
 
         let qc_wait = start.sub(&qc_ready).scale(instance.qc_wait_weight);
@@ -573,11 +581,7 @@ fn feasible(point: &[f64], constraints: &[LinearConstraint]) -> bool {
     })
 }
 
-fn replay(
-    instance: &ContinuousInstance,
-    structure: &PlanStructure,
-    witness: &[f64],
-) -> Replay {
+fn replay(instance: &ContinuousInstance, structure: &PlanStructure, witness: &[f64]) -> Replay {
     let mut qc_finish: BTreeMap<String, f64> = BTreeMap::new();
     let mut vehicle_release: BTreeMap<String, f64> = BTreeMap::new();
     let mut events = Vec::with_capacity(instance.tasks.len());
@@ -648,7 +652,13 @@ fn evaluate_plan(
 
     for sign_mask in 0..signs_count {
         let signs: Vec<f64> = (0..dimensions)
-            .map(|index| if (sign_mask & (1usize << index)) == 0 { 1.0 } else { -1.0 })
+            .map(|index| {
+                if (sign_mask & (1usize << index)) == 0 {
+                    1.0
+                } else {
+                    -1.0
+                }
+            })
             .collect();
         for branch_mask in 0..branches_count {
             let model = build_affine_plan_model(instance, structure, branch_mask);
@@ -722,8 +732,7 @@ fn evaluate_plan(
                     None => true,
                     Some((current_cost, current_witness)) => {
                         cost > *current_cost + EPS
-                            || ((cost - *current_cost).abs() <= EPS
-                                && witness < *current_witness)
+                            || ((cost - *current_cost).abs() <= EPS && witness < *current_witness)
                     }
                 };
                 if replace {
@@ -919,17 +928,19 @@ mod tests {
     fn fractional_budget_witness_satisfies_continuous_l1_set() {
         let result = evaluate_continuous_tournament(&instance(0.5)).unwrap();
         for plan in result.plans {
+            assert!(plan.witness
+                .iter()
+                .all(|(_, value)| value.abs() <= 1.0 + EPS));
             assert!(
-                plan.witness.iter().all(|(_, value)| value.abs() <= 1.0 + EPS)
-            );
-            assert!(
-                plan.witness.iter().map(|(_, value)| value.abs()).sum::<f64>()
+                plan.witness
+                    .iter()
+                    .map(|(_, value)| value.abs())
+                    .sum::<f64>()
                     <= 0.5 + EPS
             );
             assert!(plan.worst_case_cost + EPS >= plan.nominal_cost);
         }
     }
-
 
     #[test]
     fn worst_case_cost_is_monotone_in_the_uncertainty_budget() {
@@ -968,12 +979,7 @@ mod tests {
                 .find(|event| event.task_id == "A")
                 .unwrap();
             assert!((loading_b.vehicle_release - loading_b.service_start).abs() < EPS);
-            assert!(
-                (unloading_a.vehicle_release
-                    - (unloading_a.service_finish + 3.0))
-                    .abs()
-                    < EPS
-            );
+            assert!((unloading_a.vehicle_release - (unloading_a.service_finish + 3.0)).abs() < EPS);
         }
     }
 
@@ -989,7 +995,6 @@ mod tests {
         assert!(!result.nominal_best_plan.is_empty());
         assert!(!result.robust_best_plan.is_empty());
     }
-
 
     #[test]
     fn each_qc_must_have_one_linear_fixed_task_order() {
