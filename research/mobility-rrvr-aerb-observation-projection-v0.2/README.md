@@ -54,3 +54,12 @@ The focused workflow parses JSON, checks the decision cut, unique IDs, parent or
 ## Claim ceiling
 
 Synthetic process-model interchange only. No simulator/HIL/physical qualification, calibrated sensor claim, physical NoEffect claim, safety certification, benchmark improvement or SOTA result is claimed.
+
+
+## Digest and attestation boundary
+
+The schema exposes `evidence_profile_sha256`, `adapter_revision_sha256`, each capsule's `content_sha256`, and raw artifact digests. These fields bind the snapshot to explicit producer/profile identities; they do not authenticate a source or prove a sensor result.
+
+The current Evidence Capsules v0.1 digest is deterministic for its pinned Rust/Serde representation but is not a language-neutral canonicalization contract. The new snapshot includes floating-point measurement values, so polyglot producers/verifiers must not assume that a matching decimal JSON rendering implies matching canonical bytes.
+
+Reuse #7563 for the cross-language digest/attestation decision. Before independent language implementations exchange v0.2 snapshots, select and version either a published canonicalization profile (e.g. RFC 8785 with duplicate-key rejection and known-answer vectors) or exact immutable raw-byte hashing. Keep content integrity, source authentication, independence, calibration and physical truth separate.
