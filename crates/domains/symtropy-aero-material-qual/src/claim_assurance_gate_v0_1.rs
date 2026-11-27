@@ -501,10 +501,19 @@ fn validate_model_credibility_cut(
     match model.compute_sha256() {
         Ok(digest) => {
             match input.owner_evidence_cut.find_evidence(&model.evidence_ref) {
-                Some(record) if record.record_sha256 == digest => {}
-                Some(_) => {
-                    *invalid = true;
-                    reasons.insert("MODEL_CREDIBILITY_OWNER_RECORD_DIGEST_MISMATCH".to_owned());
+                Some(record) => {
+                    if record.record_sha256 != digest {
+                        *invalid = true;
+                        reasons.insert("MODEL_CREDIBILITY_OWNER_RECORD_DIGEST_MISMATCH".to_owned());
+                    }
+                    if record.subject_ref != input.decision_context.subject_ref
+                        || record.configuration_ref != model.configuration_ref
+                    {
+                        *invalid = true;
+                        reasons.insert(
+                            "MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned(),
+                        );
+                    }
                 }
                 None => {
                     *incomplete = true;
@@ -1763,10 +1772,15 @@ mod tests {
     fn stale_or_incomplete_required_owner_evidence_blocks_reviewability() {
         let evidence = all_admitted();
         let mut owner_cut = owner_cut_for_evidence(&evidence);
-        owner_cut.evidence_records[0].freshness = OwnerEvidenceFreshness::StaleTransitive;
-        owner_cut.evidence_records[0].dependency_coverage = OwnerDependencyCoverage::Incomplete;
-        owner_cut.evidence_records[0].unresolved_inputs = vec!["toolchain:rust".to_owned()];
-        owner_cut.evidence_records[0].requires_reverification = true;
+        let stale_record = owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|record| record.evidence_ref == "receipt:inspection-01")
+            .expect("required inspection receipt is present");
+        stale_record.freshness = OwnerEvidenceFreshness::StaleTransitive;
+        stale_record.dependency_coverage = OwnerDependencyCoverage::Incomplete;
+        stale_record.unresolved_inputs = vec!["toolchain:rust".to_owned()];
+        stale_record.requires_reverification = true;
         let result = evaluate_with_owner_cut(
             CoverageStatus::QualifiedCompleteForScope,
             CutStatus::Closed,
@@ -1796,7 +1810,12 @@ mod tests {
     fn non_active_owner_lifecycle_cannot_be_promoted_to_reviewable() {
         let evidence = all_admitted();
         let mut owner_cut = owner_cut_for_evidence(&evidence);
-        owner_cut.evidence_records[0].lifecycle = OwnerEvidenceLifecycle::Disputed;
+        let disputed_record = owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|record| record.evidence_ref == "receipt:inspection-01")
+            .expect("required inspection receipt is present");
+        disputed_record.lifecycle = OwnerEvidenceLifecycle::Disputed;
         let result = evaluate_with_owner_cut(
             CoverageStatus::QualifiedCompleteForScope,
             CutStatus::Closed,
