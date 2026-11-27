@@ -720,7 +720,8 @@ mod tests {
                 vec![action("HIGH-SERVICE", 10, 20), action("LOW-COST", 8, 10)],
             )],
             100,
-        ).expect("R1 result");
+        )
+        .expect("R1 result");
         assert_eq!(result.candidate_policy_count, 2);
         assert_eq!(result.pareto_frontier.len(), 2);
     }
@@ -741,7 +742,8 @@ mod tests {
                 ),
             ],
             100,
-        ).expect("R1 result");
+        )
+        .expect("R1 result");
 
         assert_eq!(result.candidate_policy_count, 4);
         assert_eq!(result.pareto_frontier.len(), 1);
@@ -750,7 +752,10 @@ mod tests {
             .values()
             .map(String::as_str)
             .collect();
-        assert_eq!(chosen, BTreeSet::from(["LOCAL", "IMPORT"]));
+        assert_eq!(
+            chosen,
+            BTreeSet::from(["LOCAL", "IMPORT"])
+        );
     }
 
     #[test]
@@ -771,7 +776,8 @@ mod tests {
                 ),
             ],
             100,
-        ).expect("safe abstention remains");
+        )
+        .expect("safe abstention remains");
         assert_eq!(result.candidate_policy_count, 1);
         assert_eq!(
             result.pareto_frontier[0]
@@ -795,7 +801,8 @@ mod tests {
                 vec![action("ABSTAIN", 0, 5), unsafe_action],
             )],
             100,
-        ).expect("abstention remains feasible");
+        )
+        .expect("abstention remains feasible");
         assert_eq!(result.candidate_policy_count, 1);
         assert_eq!(
             result.pareto_frontier[0]
