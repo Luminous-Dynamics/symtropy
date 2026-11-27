@@ -604,8 +604,9 @@ mod tests {
             Err(EpistemicMinimaxRegretError::IncompleteOrDuplicateScenarioReport)
         );
         let duplicate_a = scenario_report(SCENARIO_A, [0.0, 10.0, 20.0], 0.025);
+        let duplicate_a_again = scenario_report(SCENARIO_A, [0.0, 10.0, 20.0], 0.025);
         assert_eq!(
-            evaluator().aggregate(&[a, duplicate_a]),
+            evaluator().aggregate(&[duplicate_a, duplicate_a_again]),
             Err(EpistemicMinimaxRegretError::IncompleteOrDuplicateScenarioReport)
         );
         let substituted = scenario_report([3; 32], [20.0, 0.0, 10.0], 0.025);
