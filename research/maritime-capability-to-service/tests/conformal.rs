@@ -60,7 +60,11 @@ fn public_api_keeps_small_sample_unbounded_and_shifted_coverage_unclaimed() {
         &observations(8),
     )
     .expect("small-sample calibration");
-    assert!(build_interval(&small, 100).expect("interval result").is_none());
+    assert!(
+        build_interval(&small, 100)
+            .expect("interval result")
+            .is_none()
+    );
 
     let shifted = calibrate_absolute_residuals(
         &contract(CoverageApplicability::KnownDistributionShift),
