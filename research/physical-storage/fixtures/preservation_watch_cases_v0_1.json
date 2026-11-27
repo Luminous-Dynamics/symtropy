@@ -29,7 +29,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -43,7 +45,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -57,7 +61,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Stable",
@@ -90,7 +96,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -104,7 +112,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Unknown",
@@ -142,7 +152,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -156,7 +168,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -170,7 +184,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Blocked",
@@ -208,7 +224,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -222,7 +240,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -236,7 +256,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Unknown",
@@ -272,7 +294,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -286,7 +310,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -300,7 +326,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TECH-1",
@@ -314,7 +342,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Watch",
@@ -351,7 +381,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -365,7 +397,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -379,7 +413,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "REV-1",
@@ -393,7 +429,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Unknown",
@@ -430,7 +468,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -444,7 +484,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Unverified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -458,7 +500,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Unknown",
@@ -496,7 +540,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Invalid",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -510,7 +556,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -524,7 +572,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Blocked",
@@ -561,7 +611,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -575,7 +627,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -589,7 +643,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "ENV-1",
@@ -603,7 +659,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "InterventionRequired",
@@ -641,7 +699,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -655,7 +715,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -669,7 +731,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "COPIES-1",
@@ -683,7 +747,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": 1
+          "observed_independent_copies": 1,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "InterventionRequired",
@@ -719,7 +785,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "FIX-CLEAR",
@@ -733,7 +801,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": "FIX-ALERT",
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": "REM-FIX-001",
+          "remediation_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         },
         {
           "observation_id": "CAL-1",
@@ -747,7 +817,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -761,7 +833,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": "Stable",
@@ -794,7 +868,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "FIX-CLEAR",
@@ -808,7 +884,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -822,7 +900,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -836,7 +916,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": null,
@@ -870,7 +952,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -884,7 +968,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -898,7 +984,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "COPIES-1",
@@ -912,7 +1000,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": 1
+          "observed_independent_copies": 1,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": null,
@@ -945,7 +1035,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "CAL-1",
@@ -959,7 +1051,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         },
         {
           "observation_id": "TRUST-1",
@@ -973,7 +1067,9 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
         }
       ],
       "expected_disposition": null,
@@ -1006,6 +1102,110 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
+        },
+        {
+          "observation_id": "OPT-SANDBOX-1",
+          "target_id": "archive-A",
+          "signal": "SandboxPolicy",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "observer_id": "untrusted-observer",
+          "provenance": "Invalid",
+          "supersedes_observation_id": null,
+          "observed_independent_copies": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null
+        }
+      ],
+      "expected_disposition": "Blocked",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "IsolateSuspectCopy",
+        "HumanReview"
+      ],
+      "rationale": "An invalidly sourced optional policy signal must still block; non-required must not mean silently ignored."
+    },
+    {
+      "case_id": "PW-016-UNKNOWN-CANNOT-CLEAR-ALERT",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-UNKNOWN",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 2,
+          "state": "Unknown",
+          "observed_at_unix": 102,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
           "observed_independent_copies": null
         },
         {
@@ -1020,6 +1220,8 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
           "observed_independent_copies": null
         },
         {
@@ -1034,20 +1236,8 @@
           "observer_id": "independent-watcher",
           "provenance": "Verified",
           "supersedes_observation_id": null,
-          "observed_independent_copies": null
-        },
-        {
-          "observation_id": "OPT-SANDBOX-1",
-          "target_id": "archive-A",
-          "signal": "SandboxPolicy",
-          "sequence": 1,
-          "state": "Alert",
-          "observed_at_unix": 101,
-          "valid_until_unix": 200,
-          "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "observer_id": "untrusted-observer",
-          "provenance": "Invalid",
-          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
           "observed_independent_copies": null
         }
       ],
@@ -1055,9 +1245,332 @@
       "expected_contract_error": null,
       "expected_actions": [
         "IsolateSuspectCopy",
+        "VerifyFixity",
+        "RecoverFromIndependentCopy",
         "HumanReview"
       ],
-      "rationale": "An invalidly sourced optional policy signal must still block; non-required must not mean silently ignored."
+      "rationale": "A later unknown observation cannot downgrade a verified, unresolved fixity alert."
+    },
+    {
+      "case_id": "PW-017-MULTIPLE-ALERTS-ONLY-ONE-CLEARED",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-ALERT-2",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 2,
+          "state": "Alert",
+          "observed_at_unix": 102,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-CLEAR-2",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 3,
+          "state": "Healthy",
+          "observed_at_unix": 103,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "FIX-ALERT-2",
+          "remediation_receipt_id": "REM-FIX-002",
+          "remediation_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": "Blocked",
+      "expected_contract_error": null,
+      "expected_actions": [
+        "IsolateSuspectCopy",
+        "VerifyFixity",
+        "RecoverFromIndependentCopy",
+        "HumanReview"
+      ],
+      "rationale": "One remediation receipt clears only the alert it names; earlier active alerts stay unresolved."
+    },
+    {
+      "case_id": "PW-018-UNKNOWN-ALERT-REFERENCE",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-CLEAR",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "FIX-NOT-PRESENT",
+          "remediation_receipt_id": "REM-FIX-003",
+          "remediation_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "UnknownSupersededAlert",
+      "expected_actions": [],
+      "rationale": "A remediation receipt cannot clear an alert absent from the evaluated signal history."
+    },
+    {
+      "case_id": "PW-019-MISSING-REMEDIATION-DIGEST",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-CLEAR",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 2,
+          "state": "Healthy",
+          "observed_at_unix": 102,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "FIX-ALERT",
+          "remediation_receipt_id": "REM-FIX-004",
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "InvalidRemediationReceiptDigest",
+      "expected_actions": [],
+      "rationale": "A remediation receipt identifier without its independently retrievable content digest is not sufficient."
+    },
+    {
+      "case_id": "PW-020-ALERT-CANNOT-SUPERSEDE",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "SOME-ALERT",
+          "remediation_receipt_id": "REM-FIX-005",
+          "remediation_receipt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "SupersedesNonHealthyObservation",
+      "expected_actions": [],
+      "rationale": "Only a verified Healthy observation can clear an alert; an Alert cannot itself carry a supersession."
     }
   ]
 }
