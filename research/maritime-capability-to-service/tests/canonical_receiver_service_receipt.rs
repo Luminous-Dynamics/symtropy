@@ -53,7 +53,7 @@ fn parse_receipt(input: &str) -> Result<(BTreeMap<String, (usize, usize)>, BTree
                     return Err(format!("line {}: duplicate case", index + 3));
                 }
             }
-            "COHORT" if fields.len() == 21 => {
+            "COHORT" if fields.len() == 20 => {
                 let n = |i: usize, name: &str| {
                     fields[i]
                         .parse::<u64>()
@@ -124,6 +124,51 @@ fn parse_receipt(input: &str) -> Result<(BTreeMap<String, (usize, usize)>, BTree
             cohorts.len()
         ));
     }
+
+    // Verify summary arithmetic and the conservative floor classification.
+    // Unit-level adjudication remains the canonical #7554 implementation.
+    for ((case_id, _, _), row) in &cohorts {
+        if row.adjudicated + row.unresolved + row.reconciliation_failure != row.scheduled {
+            return Err(format!("{case_id}: adjudicated + unresolved + reconciliation must equal scheduled"));
+        }
+        if row.on_time + row.late + row.not_accepted + row.lost != row.adjudicated {
+            return Err(format!("{case_id}: adjudicated outcome categories do not reconcile"));
+        }
+        if row.observed_numerator != row.on_time
+            || row.observed_denominator != row.adjudicated
+            || row.lower_numerator != row.on_time
+            || row.lower_denominator != row.scheduled
+            || row.upper_numerator != row.on_time + row.unresolved
+            || row.upper_denominator != row.scheduled
+        {
+            return Err(format!("{case_id}: observed or conservative service bounds do not reconcile"));
+        }
+        let expected_disposition = match row.floor {
+            None => "NOT_CONFIGURED",
+            Some(_) if row.reconciliation_failure > 0 => "INVALID_EVIDENCE",
+            Some(floor) => {
+                let lower_passes =
+                    u128::from(row.lower_numerator) * 10_000
+                        >= u128::from(floor) * u128::from(row.lower_denominator);
+                let upper_fails =
+                    u128::from(row.upper_numerator) * 10_000
+                        < u128::from(floor) * u128::from(row.upper_denominator);
+                if lower_passes {
+                    "PASS"
+                } else if upper_fails {
+                    "FAIL"
+                } else {
+                    "UNKNOWN"
+                }
+            }
+        };
+        if row.disposition != expected_disposition {
+            return Err(format!(
+                "{case_id}: floor disposition {} does not match conservative bounds ({expected_disposition})",
+                row.disposition
+            ));
+        }
+    }
     Ok((cases, cohorts))
 }
 
@@ -191,30 +236,9 @@ fn canonical_receiver_service_receipt_preserves_unknown_and_protected_floor_boun
 }
 
 #[test]
-fn terminal_exit_promoted_to_delivery_is_rejected_by_snapshot_control() {
-    let invalid = RECEIPT.replace(
-        "1\t0\t0\t0\t0\t0\t1\t0",
-        "1\t0\t1\t0\t0\t0\t0\t0",
-    );
-    let (_, rows) = parse_receipt(&invalid).expect("structural receipt parses");
-    let terminal_only = &rows[&(
-        "S01_TERMINAL_EXIT_ONLY".to_owned(),
-        "essential".to_owned(),
-        "container".to_owned(),
-    )];
-    assert!(
-        terminal_only.on_time > 0,
-        "this control demonstrates the promoted value; the canonical receipt must not contain it"
-    );
-    assert_eq!(
-        parse_receipt(RECEIPT)
-            .unwrap()
-            .1[&(
-                "S01_TERMINAL_EXIT_ONLY".to_owned(),
-                "essential".to_owned(),
-                "container".to_owned()
-            )]
-            .on_time,
-        0
-    );
+fn terminal_exit_promoted_to_delivery_is_rejected_by_receipt_invariant() {
+    let original = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t0\\t0\\t0\\t0\\t0\\t1\\t0\\t0\\t0\\t0\\t1\\t1\\t1\\t10000\\tUNKNOWN";
+    let promoted = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t1\\t1\\t0\\t0\\t0\\t0\\t0\\t1\\t1\\t1\\t1\\t1\\t1\\t10000\\tPASS";
+    let invalid = RECEIPT.replace(original, promoted);
+    assert!(parse_receipt(&invalid).unwrap_err().contains("adjudicated + unresolved"));
 }
