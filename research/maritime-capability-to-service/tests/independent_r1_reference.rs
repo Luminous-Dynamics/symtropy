@@ -1,9 +1,9 @@
-use maritime_capability_to_service::kite::{
-    select_as_of, AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState,
-};
 use maritime_capability_to_service::kite::Gate;
+use maritime_capability_to_service::kite::{
+    AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState, select_as_of,
+};
 use maritime_capability_to_service::kite_oracle::{
-    solve_r1_finite, ActionOutcome, DecisionContext, OutcomeVector, ScenarioDecision,
+    ActionOutcome, DecisionContext, OutcomeVector, ScenarioDecision, solve_r1_finite,
 };
 
 fn context() -> DecisionContext {
@@ -231,10 +231,7 @@ fn production_r1_matches_a_separate_tiny_one_information_set_challenger() {
         production_bounds.receiver_accepted_units,
         reference[0].1.receiver_accepted_units
     );
-    assert_eq!(
-        production_bounds.unmet_units,
-        reference[0].1.unmet_units
-    );
+    assert_eq!(production_bounds.unmet_units, reference[0].1.unmet_units);
     assert_eq!(
         production_bounds.service_deficit_unit_hours,
         reference[0].1.service_deficit_unit_hours
