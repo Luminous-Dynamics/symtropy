@@ -76,6 +76,10 @@ pub enum ContactFreshnessError {
         proxy: ProxyId,
         domain: RevisionDomain,
     },
+    GeometryRefreshNotCommitted,
+    WarmStartResetNotCommitted,
+    SolverActivationNotCommitted,
+    PairEligibilityRecheckNotCommitted,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -287,6 +291,41 @@ impl ContactFreshnessStamp {
             solver_activation_required,
             reasons: reasons.into_iter().collect(),
         })
+    }
+
+    /// Commit a new freshness stamp only after all obligations in the current
+    /// assessment have actually completed. The caller must not set a flag
+    /// merely because work was scheduled: geometry, warm-start reset,
+    /// eligibility recheck and solver activation must each have completed.
+    ///
+    /// This single stamp records the now-current state after all required
+    /// actions have been performed. It avoids repeatedly invalidating a
+    /// retained manifold after a material/solver-only warm-start reset, while
+    /// preventing premature stamp advancement.
+    pub fn commit_transition(
+        &self,
+        global: GlobalContactRevisions,
+        left: EndpointRevisions,
+        right: EndpointRevisions,
+        geometry_refreshed: bool,
+        warm_start_reset: bool,
+        pair_eligibility_rechecked: bool,
+        solver_activated: bool,
+    ) -> Result<Self, ContactFreshnessError> {
+        let decision = self.assess(global, left, right)?;
+        if decision.geometry == ReuseDisposition::RefreshRequired && !geometry_refreshed {
+            return Err(ContactFreshnessError::GeometryRefreshNotCommitted);
+        }
+        if decision.warm_start == ReuseDisposition::RefreshRequired && !warm_start_reset {
+            return Err(ContactFreshnessError::WarmStartResetNotCommitted);
+        }
+        if decision.pair_eligibility_recheck_required && !pair_eligibility_rechecked {
+            return Err(ContactFreshnessError::PairEligibilityRecheckNotCommitted);
+        }
+        if decision.solver_activation_required && !solver_activated {
+            return Err(ContactFreshnessError::SolverActivationNotCommitted);
+        }
+        Self::new(self.pair, global, left, right)
     }
 }
 
@@ -843,6 +882,139 @@ mod tests {
             plan_contact_lifecycle(&delta, &stamps, next_global(), &endpoints),
             Err(ContactLifecycleError::UnexplainedRevalidation(pair))
         );
+    }
+
+    #[test]
+    fn material_only_transition_commits_after_warm_start_reset_without_geometry_rebuild() {
+        let stamp = stamp();
+        let mut material = endpoint(2);
+        material.material += 1;
+        let next = next_global();
+        assert_eq!(
+            stamp.commit_transition(
+                next,
+                endpoint(1),
+                material,
+                false,
+                false,
+                false,
+                false,
+            ),
+            Err(ContactFreshnessError::WarmStartResetNotCommitted)
+        );
+        let committed = stamp
+            .commit_transition(
+                next,
+                endpoint(1),
+                material,
+                false,
+                true,
+                false,
+                false,
+            )
+            .expect("warm-start reset completed");
+        let next_step = GlobalContactRevisions {
+            world: next.world + 1,
+            ..next
+        };
+        let decision = committed
+            .assess(next_step, endpoint(1), material)
+            .expect("committed material revision is current");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+        assert!(decision.reasons.is_empty());
+    }
+
+    #[test]
+    fn wake_only_transition_commits_only_after_solver_activation() {
+        let stamp = stamp();
+        let mut awake = endpoint(1);
+        awake.wake_epoch += 1;
+        let next = next_global();
+        assert_eq!(
+            stamp.commit_transition(
+                next,
+                awake,
+                endpoint(2),
+                false,
+                false,
+                false,
+                false,
+            ),
+            Err(ContactFreshnessError::SolverActivationNotCommitted)
+        );
+        let committed = stamp
+            .commit_transition(
+                next,
+                awake,
+                endpoint(2),
+                false,
+                false,
+                false,
+                true,
+            )
+            .expect("solver island has been reactivated");
+        let next_step = GlobalContactRevisions {
+            world: next.world + 1,
+            ..next
+        };
+        let decision = committed
+            .assess(next_step, awake, endpoint(2))
+            .expect("wake revision was committed");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+        assert!(!decision.solver_activation_required);
+    }
+
+    #[test]
+    fn geometry_and_warm_start_must_both_commit_after_transform_change() {
+        let stamp = stamp();
+        let mut moved = endpoint(1);
+        moved.transform += 1;
+        assert_eq!(
+            stamp.commit_transition(
+                next_global(),
+                moved,
+                endpoint(2),
+                true,
+                false,
+                false,
+                false,
+            ),
+            Err(ContactFreshnessError::WarmStartResetNotCommitted)
+        );
+    }
+
+    #[test]
+    fn filter_change_requires_eligibility_recheck_before_stamp_advance() {
+        let stamp = stamp();
+        let mut filtered = endpoint(1);
+        filtered.eligibility += 1;
+        let mut next = next_global();
+        next.collision_policy += 1;
+        assert_eq!(
+            stamp.commit_transition(
+                next,
+                filtered,
+                endpoint(2),
+                true,
+                true,
+                false,
+                false,
+            ),
+            Err(ContactFreshnessError::PairEligibilityRecheckNotCommitted)
+        );
+        assert!(stamp
+            .commit_transition(
+                next,
+                filtered,
+                endpoint(2),
+                true,
+                true,
+                true,
+                false,
+            )
+            .is_ok());
     }
 
 }
