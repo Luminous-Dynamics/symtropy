@@ -43,6 +43,7 @@ The generated corpus matches the input contract of `tools/ev-fleet-resilience`. 
 - Uses deterministic sampling with replacement, explicitly not a cryptographic random source.
 - Derives a target SOC delta from daily energy demand divided by effective capacity (nominal pack capacity × SOH × temperature capacity fraction).
 - Applies static acceptance and efficiency assumptions; it does not model battery discharge during the drive, transient thermal dynamics, charging equipment communication, AC feeder voltages, or stochastic outages.
+- `--maximum-battery-acceptance-kw` is a declared static scenario cap, not a SOC-dependent charging curve or evidence that the pack sustains that power across an entire dwell. Do not promote this generated workload to a route-level charge guarantee. The next integration should consume piecewise SOC-dependent acceptance with battery-temperature and health derating from the qualified Symthaea/Symtropy capability evidence.
 - Uses a repeat-duty abstraction: input operation-day rows are independent samples, not verified consecutive days for the same vehicle.
 - An idealized source-derived duty profile is not proof the vehicle is present, plugged in or permitted to charge throughout the modeled window.
 - The output cannot establish the performance of a real NLR fleet, commercial vehicle or South African deployment. It is a transparent workload generator for controlled simulation and should be followed by measured/local validation.
