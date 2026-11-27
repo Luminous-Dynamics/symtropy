@@ -130,7 +130,6 @@ impl ScopeKey {
             unit_frame_budget: row.unit_frame_budget,
         }
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
