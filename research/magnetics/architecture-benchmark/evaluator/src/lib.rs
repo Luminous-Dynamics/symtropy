@@ -44,7 +44,7 @@ pub enum EvidenceClass {
     SyntheticControl,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Maturity {
     M1,
     M2,
@@ -65,6 +65,7 @@ pub enum Decision {
     NotComparable,
     Fail,
     Indeterminate,
+    InferiorToBaseline,
     NonInferiorNoArchitectureBenefit,
     ArchitectureAdvantage,
 }
@@ -192,6 +193,8 @@ pub enum Blocker {
     DefiniteHardLimitViolation,
     UnresolvedHardLimit,
     NonInferiorMarginViolation,
+    BaselineFailsHardLimit,
+    BaselineHardLimitUnresolved,
     MissingConventionalBaseline,
 }
 
@@ -334,9 +337,11 @@ fn validate_spec(spec: &BenchmarkSpec, trials: &[ArchitectureTrial]) -> Vec<Bloc
             blockers.push(Blocker::MissingRequiredBaseline);
         }
     }
-    if baselines.iter().all(|trial| {
-        trial.family == ArchitectureFamily::ReluctanceOnlyControl
-    }) {
+    if !baselines.is_empty()
+        && baselines
+            .iter()
+            .all(|trial| trial.family == ArchitectureFamily::ReluctanceOnlyControl)
+    {
         blockers.push(Blocker::ReluctanceOnlyCannotBeSoleBaseline);
     }
     blockers
@@ -417,6 +422,24 @@ fn evaluate_candidate(
         validate_acceptance(baseline, spec, &mut baseline_blockers);
         validate_baseline_optimization(baseline, spec, &mut baseline_blockers);
         let baseline_values = validate_observations(baseline, spec, &mut baseline_blockers);
+        for metric in &spec.metrics {
+            if let Some(interval) = baseline_values.get(metric.metric_id.as_str()) {
+                if let Some(minimum) = metric.hard_min {
+                    if interval.upper < minimum {
+                        baseline_blockers.push(Blocker::BaselineFailsHardLimit);
+                    } else if interval.lower < minimum {
+                        baseline_blockers.push(Blocker::BaselineHardLimitUnresolved);
+                    }
+                }
+                if let Some(maximum) = metric.hard_max {
+                    if interval.lower > maximum {
+                        baseline_blockers.push(Blocker::BaselineFailsHardLimit);
+                    } else if interval.upper > maximum {
+                        baseline_blockers.push(Blocker::BaselineHardLimitUnresolved);
+                    }
+                }
+            }
+        }
         if !baseline_blockers.is_empty() {
             all_baselines_have_admissible_evidence = false;
             blockers.extend(baseline_blockers);
@@ -439,10 +462,10 @@ fn evaluate_candidate(
                     let margin = metric.non_inferiority_margin.unwrap_or(0.0);
                     let safe = match metric.direction {
                         Direction::Maximize => {
-                            candidate_interval.lower >= baseline_interval.lower - margin
+                            candidate_interval.lower >= baseline_interval.upper - margin
                         }
                         Direction::Minimize => {
-                            candidate_interval.upper <= baseline_interval.upper + margin
+                            candidate_interval.upper <= baseline_interval.lower + margin
                         }
                     };
                     if !safe {
@@ -504,11 +527,29 @@ fn evaluate_candidate(
     } else if hard_unresolved
         || missing_metrics
         || !all_baselines_have_admissible_evidence
-        || !blockers.is_empty()
+        || blockers.iter().any(|blocker| {
+            matches!(
+                blocker,
+                Blocker::MissingM4Acceptance
+                    | Blocker::NonQualifiedAcceptance
+                    | Blocker::InadmissibleEvidenceClass
+                    | Blocker::MissingMetricObservation
+                    | Blocker::DuplicateMetricObservation
+                    | Blocker::WrongMetricUnit
+                    | Blocker::MissingMeasurementMethod
+                    | Blocker::InvalidOptimizationReceipt
+                    | Blocker::MissingOptimizationReceipt
+                    | Blocker::InvalidDigest
+                    | Blocker::NonFiniteMetric
+                    | Blocker::NegativeUncertainty
+                    | Blocker::UnresolvedHardLimit
+                    | Blocker::BaselineHardLimitUnresolved
+            )
+        })
     {
         Decision::Indeterminate
     } else if !all_baselines_non_inferior {
-        Decision::NonInferiorNoArchitectureBenefit
+        Decision::InferiorToBaseline
     } else if any_robust_benefit {
         Decision::ArchitectureAdvantage
     } else {
@@ -594,7 +635,7 @@ fn validate_observations(
     trial: &ArchitectureTrial,
     spec: &BenchmarkSpec,
     blockers: &mut Vec<Blocker>,
-) -> BTreeMap<&str, Interval> {
+) -> BTreeMap<String, Interval> {
     let mut by_id = BTreeMap::new();
     for observation in &trial.observations {
         if by_id.insert(observation.metric_id.as_str(), observation).is_some() {
@@ -647,7 +688,7 @@ fn validate_observations(
             continue;
         }
         intervals.insert(
-            metric.metric_id.as_str(),
+            metric.metric_id.clone(),
             Interval {
                 lower: observation.value - observation.uncertainty_radius,
                 upper: observation.value + observation.uncertainty_radius,
@@ -770,24 +811,17 @@ mod tests {
         id: &str,
         family: ArchitectureFamily,
         role: ArchitectureRole,
-        torque: f64,
-        efficiency: f64,
-        temperature: f64,
-        demag: f64,
-        retention: f64,
-        pm_mass: f64,
-        inertia: f64,
-        cost: f64,
+        values: [f64; 8],
     ) -> ArchitectureTrial {
-        let mut observations = vec![
-            observation("torque_density", "Nm/L", torque, 0.1, 'a'),
-            observation("efficiency", "fraction", efficiency, 0.001, 'b'),
-            observation("maximum_magnet_temperature", "degC", temperature, 1.0, 'c'),
-            observation("demagnetization_margin", "ratio", demag, 0.05, 'd'),
-            observation("retention_margin", "ratio", retention, 0.05, 'e'),
-            observation("pm_mass", "kg", pm_mass, 0.01, 'f'),
-            observation("rotor_inertia", "kg*m2", inertia, 0.005, '1'),
-            observation("cost_per_torque", "USD/Nm", cost, 20.0, '2'),
+        let observations = vec![
+            observation("torque_density", "Nm/L", values[0], 0.1, 'a'),
+            observation("efficiency", "fraction", values[1], 0.001, 'b'),
+            observation("maximum_magnet_temperature", "degC", values[2], 1.0, 'c'),
+            observation("demagnetization_margin", "ratio", values[3], 0.05, 'd'),
+            observation("retention_margin", "ratio", values[4], 0.05, 'e'),
+            observation("pm_mass", "kg", values[5], 0.01, 'f'),
+            observation("rotor_inertia", "kg*m2", values[6], 0.005, '1'),
+            observation("cost_per_torque", "USD/Nm", values[7], 20.0, '2'),
         ];
         ArchitectureTrial {
             architecture_id: id.to_string(),
@@ -796,7 +830,7 @@ mod tests {
             scope: scope(),
             acceptance: acceptance(id),
             optimization: (role == ArchitectureRole::RequiredBaseline).then(|| optimization(id)),
-            observations: std::mem::take(&mut observations),
+            observations,
         }
     }
 
@@ -806,53 +840,25 @@ mod tests {
                 "AM-HYBRID-001",
                 ArchitectureFamily::AmHybridArchitecture,
                 ArchitectureRole::Candidate,
-                14.7,
-                0.946,
-                92.0,
-                1.7,
-                2.6,
-                0.45,
-                0.15,
-                930.0,
+                [14.7, 0.946, 92.0, 1.7, 2.6, 0.45, 0.15, 930.0],
             ),
             trial(
                 "SINTERED-PM-001",
                 ArchitectureFamily::ConventionalSinteredPm,
                 ArchitectureRole::RequiredBaseline,
-                15.0,
-                0.94,
-                95.0,
-                1.6,
-                2.5,
-                1.0,
-                0.20,
-                1000.0,
+                [15.0, 0.94, 95.0, 1.6, 2.5, 1.0, 0.20, 1000.0],
             ),
             trial(
                 "PMASS-SYNRM-001",
                 ArchitectureFamily::PmAssistedSynrm,
                 ArchitectureRole::RequiredBaseline,
-                14.5,
-                0.95,
-                90.0,
-                1.8,
-                2.7,
-                0.6,
-                0.18,
-                1050.0,
+                [14.5, 0.95, 90.0, 1.8, 2.7, 0.6, 0.18, 1050.0],
             ),
             trial(
                 "RELUCTANCE-CONTROL-001",
                 ArchitectureFamily::ReluctanceOnlyControl,
                 ArchitectureRole::SecondaryControl,
-                13.0,
-                0.93,
-                96.0,
-                10.0,
-                2.8,
-                0.0,
-                0.16,
-                900.0,
+                [13.0, 0.93, 96.0, 10.0, 2.8, 0.0, 0.16, 900.0],
             ),
         ]
     }
@@ -885,14 +891,7 @@ mod tests {
             "RELUCTANCE-BASELINE",
             ArchitectureFamily::ReluctanceOnlyControl,
             ArchitectureRole::RequiredBaseline,
-            13.0,
-            0.93,
-            96.0,
-            10.0,
-            2.8,
-            0.0,
-            0.16,
-            900.0,
+            [13.0, 0.93, 96.0, 10.0, 2.8, 0.0, 0.16, 900.0],
         ));
         let candidate = evaluate_architectures(&spec, &trials)
             .into_iter()
@@ -951,6 +950,29 @@ mod tests {
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
         assert!(candidate.blockers.contains(&Blocker::UnresolvedHardLimit));
+    }
+
+    #[test]
+    fn noninferiority_failure_is_distinguished_from_unresolved_evidence() {
+        let mut trials = known_answer_trials();
+        trials[0].observations[1].value = 0.92;
+        let candidate = evaluate_architectures(&spec(), &trials)
+            .into_iter()
+            .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
+            .expect("candidate");
+        assert_eq!(candidate.decision, Decision::InferiorToBaseline);
+    }
+
+    #[test]
+    fn baseline_outside_hard_application_limits_is_not_an_admissible_reference() {
+        let mut trials = known_answer_trials();
+        trials[1].observations[3].value = 1.0;
+        let candidate = evaluate_architectures(&spec(), &trials)
+            .into_iter()
+            .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
+            .expect("candidate");
+        assert_eq!(candidate.decision, Decision::Indeterminate);
+        assert!(candidate.blockers.contains(&Blocker::BaselineFailsHardLimit));
     }
 
     #[test]
