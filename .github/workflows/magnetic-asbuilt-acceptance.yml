@@ -6,8 +6,6 @@ on:
       - "research/magnetics/as-built-acceptance/**"
       - ".github/workflows/magnetic-asbuilt-acceptance.yml"
   push:
-    branches:
-      - "research/magnetic-asbuilt-function-acceptance-v0.1"
     paths:
       - "research/magnetics/as-built-acceptance/**"
       - ".github/workflows/magnetic-asbuilt-acceptance.yml"
