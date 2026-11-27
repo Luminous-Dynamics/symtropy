@@ -139,7 +139,6 @@ fn auxiliary_graph_digest(bundle: &FlowCertificateBundle) -> Result<String, Stri
 
 fn base_edge_attribution(
     profile: &TemporalProfile,
-    floors: &[BeneficiaryFloor],
     base_edge: &FlowEdge,
 ) -> Result<EdgeAttribution, String> {
     let service_by_edge = profile
@@ -155,14 +154,6 @@ fn base_edge_attribution(
                 base_edge.id
             ));
         }
-        let floor = floors
-            .iter()
-            .find(|floor| floor.service_id == service.service_id)
-            .ok_or_else(|| format!("base service edge {} has no declared floor", base_edge.id))?;
-        let residual_capacity = base_edge
-            .capacity
-            .checked_sub(floor.minimum_required_quantity)
-            .ok_or_else(|| format!("base service edge {} has floor above request", base_edge.id))?;
         return Ok(EdgeAttribution {
             family: FloorCutConstraintFamily::BeneficiaryRequestCeilingResidual,
             original_edge_id: Some(base_edge.id.clone()),
@@ -370,24 +361,21 @@ fn attribute_cut_edge(
         .iter()
         .find(|base_edge| base_edge.id == edge.id)
     {
-        let value = base_edge_attribution(profile, floors, base_edge)?;
+        let value = base_edge_attribution(profile, base_edge)?;
         let expected_capacity = if value.family
             == FloorCutConstraintFamily::BeneficiaryRequestCeilingResidual
         {
+            let service_id = value
+                .related_service_ids
+                .first()
+                .ok_or_else(|| format!("service cut edge {} has no service identity", edge.id))?;
+            let floor = floors
+                .iter()
+                .find(|floor| floor.service_id == *service_id)
+                .ok_or_else(|| format!("service cut edge {} has no matching floor", edge.id))?;
             base_edge
                 .capacity
-                .checked_sub(
-                    floors
-                        .iter()
-                        .find(|floor| {
-                            value.related_service_ids.first()
-                                == Some(&floor.service_id)
-                        })
-                        .ok_or_else(|| {
-                            format!("service cut edge {} has no matching floor", edge.id)
-                        })?
-                        .minimum_required_quantity,
-                )
+                .checked_sub(floor.minimum_required_quantity)
                 .ok_or_else(|| format!("service cut edge {} has invalid lower bound", edge.id))?
         } else {
             base_edge.capacity
