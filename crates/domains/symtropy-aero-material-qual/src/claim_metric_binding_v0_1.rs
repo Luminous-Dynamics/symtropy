@@ -1208,7 +1208,7 @@ mod tests {
             .compute_sha256()
             .expect("owner cut fixture digest");
         context.required_evidence_manifest_sha256 =
-            compute_required_evidence_manifest_sha256(&vec![
+            compute_required_evidence_manifest_sha256(&[
                 "receipt:inspection-01".to_owned(),
                 "receipt:calibration-02".to_owned(),
             ])
