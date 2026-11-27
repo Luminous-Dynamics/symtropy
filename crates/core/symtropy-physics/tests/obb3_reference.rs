@@ -247,7 +247,63 @@ fn transformed_3d_obb_gjk_matches_independent_15_axis_sat() {
         translation_only_disagreements > CASES / 10,
         "translation-only negative control too weak: {translation_only_disagreements}/{CASES}"
     );
-    assert!(tested_axes > CASES * 10, "too few SAT axes were evaluated");
+    assert!(
+        tested_axes > CASES * 4,
+        "SAT should evaluate several candidate axes per case even with separating-axis early exit"
+    );
+}
+
+#[test]
+fn aligned_and_near_parallel_boxes_exercise_degenerate_cross_axes() {
+    let identity = rotor_3d([0.0, 0.0, 0.0]);
+    let near_parallel = rotor_3d([1.0e-14, 0.0, 0.0]);
+    let half = [1.0, 1.0, 1.0];
+
+    let identical = obb_sat_reference(
+        [0.0, 0.0, 0.0],
+        half,
+        &identity,
+        [0.0, 0.0, 0.0],
+        half,
+        &identity,
+    );
+    assert!(identical.intersects);
+    assert_eq!(identical.degenerate_axes, 9);
+    assert_eq!(identical.tested_axes, 6);
+
+    let near_parallel_result = obb_sat_reference(
+        [0.0, 0.0, 0.0],
+        half,
+        &identity,
+        [0.0, 0.0, 0.0],
+        half,
+        &near_parallel,
+    );
+    assert!(near_parallel_result.intersects);
+    assert!(
+        near_parallel_result.degenerate_axes >= 3,
+        "near-parallel cross axes should be explicitly counted"
+    );
+
+    let face_touching = obb_sat_reference(
+        [0.0, 0.0, 0.0],
+        half,
+        &identity,
+        [2.0, 0.0, 0.0],
+        half,
+        &identity,
+    );
+    assert!(face_touching.intersects, "face touching is inclusive");
+
+    let separated = obb_sat_reference(
+        [0.0, 0.0, 0.0],
+        half,
+        &identity,
+        [2.0 + 1.0e-6, 0.0, 0.0],
+        half,
+        &identity,
+    );
+    assert!(!separated.intersects);
 }
 
 fn rotate_translate(point: [f64; 3], rotation: &Rotor<3>, translation: [f64; 3]) -> [f64; 3] {
