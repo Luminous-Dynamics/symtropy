@@ -942,13 +942,16 @@ mod tests {
         revocation.valid_until_unix = 120;
         observations.push(revocation);
         let mut watch_policy = policy();
-        watch_policy.required_signals.push(WatchSignal::RevocationFreshness);
+        watch_policy
+            .required_signals
+            .push(WatchSignal::RevocationFreshness);
         let receipt = evaluate_watch("archive-A", 150, &watch_policy, &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Unknown);
         assert!(
-            receipt.action_proposals.iter().any(
-                |proposal| proposal.action == ProposedAction::RefreshRevocationEvidence
-            )
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::RefreshRevocationEvidence)
         );
     }
 
