@@ -379,7 +379,9 @@ fn validate_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> Vec<Blocker> {
         {
             blockers.push(Blocker::InvalidDesignFeatureVector);
         }
-        if candidate_dimensions.is_some_and(|dimension| dimension != observation.design_features.len()) {
+        if candidate_dimensions
+            .is_some_and(|dimension| dimension != observation.design_features.len())
+        {
             blockers.push(Blocker::InvalidDesignFeatureVector);
         }
         if !observation.predicted_feasibility_probability.is_finite()
@@ -462,7 +464,9 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
             .outcomes
             .iter()
             .filter(|outcome| outcome.iteration <= iteration)
-            .fold(0u64, |total, outcome| total.saturating_add(outcome.cost_minor))
+            .fold(0u64, |total, outcome| {
+                total.saturating_add(outcome.cost_minor)
+            })
     });
 
     let false_feasible_selections = trace
@@ -582,7 +586,8 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
             confirmed_holdout
                 .iter()
                 .map(|observation| {
-                    let actual = f64::from(observation.disposition == ExperimentDisposition::Qualified);
+                    let actual =
+                        f64::from(observation.disposition == ExperimentDisposition::Qualified);
                     (observation.predicted_feasibility_probability - actual).powi(2)
                 })
                 .sum::<f64>()
@@ -628,10 +633,9 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
         confirmed_failures,
         unresolved_experiments: unresolved,
         first_qualified_iteration,
-        total_experiment_cost_minor: trace
-            .outcomes
-            .iter()
-            .fold(0u64, |total, outcome| total.saturating_add(outcome.cost_minor)),
+        total_experiment_cost_minor: trace.outcomes.iter().fold(0u64, |total, outcome| {
+            total.saturating_add(outcome.cost_minor)
+        }),
         cost_to_first_qualified_minor: cost_to_first,
         false_feasible_selections,
         unresolved_feasibility_selections,
@@ -719,15 +723,17 @@ fn same_holdout_actuals(left: &[HoldoutObservation], right: &[HoldoutObservation
         .map(|observation| (observation.holdout_id.as_str(), observation))
         .collect::<BTreeMap<_, _>>();
     right.iter().all(|observation| {
-        left_by_id.get(observation.holdout_id.as_str()).is_some_and(|other| {
-            other.candidate_id == observation.candidate_id
-                && other.material_lot_id == observation.material_lot_id
-                && other.build_id == observation.build_id
-                && other.process_revision == observation.process_revision
-                && other.disposition == observation.disposition
-                && other.objective_values == observation.objective_values
-                && other.design_features == observation.design_features
-        })
+        left_by_id
+            .get(observation.holdout_id.as_str())
+            .is_some_and(|other| {
+                other.candidate_id == observation.candidate_id
+                    && other.material_lot_id == observation.material_lot_id
+                    && other.build_id == observation.build_id
+                    && other.process_revision == observation.process_revision
+                    && other.disposition == observation.disposition
+                    && other.objective_values == observation.objective_values
+                    && other.design_features == observation.design_features
+            })
     })
 }
 
@@ -826,18 +832,58 @@ mod tests {
             design_features: vec![0.5, 0.75],
             predicted_feasibility_probability: probability,
             predicted_intervals: vec![
-                PredictionInterval { objective_index: 0, lower: 10.0, upper: 14.0 },
-                PredictionInterval { objective_index: 1, lower: 0.35, upper: 0.50 },
+                PredictionInterval {
+                    objective_index: 0,
+                    lower: 10.0,
+                    upper: 14.0,
+                },
+                PredictionInterval {
+                    objective_index: 1,
+                    lower: 0.35,
+                    upper: 0.50,
+                },
             ],
         }
     }
 
     fn trace(policy: PolicyFamily) -> PolicyTrace {
         let outcomes = vec![
-            outcome("EXP-1", "CAND-1", 1, ExperimentDisposition::Fail, 2_000, vec![30.0, 0.2], 0.95),
-            outcome("EXP-2", "CAND-2", 2, ExperimentDisposition::Indeterminate, 3_000, vec![20.0, 0.3], 0.90),
-            outcome("EXP-3", "CAND-3", 3, ExperimentDisposition::Qualified, 4_000, vec![10.0, 0.4], 0.80),
-            outcome("EXP-4", "CAND-4", 4, ExperimentDisposition::Qualified, 2_500, vec![15.0, 0.45], 0.85),
+            outcome(
+                "EXP-1",
+                "CAND-1",
+                1,
+                ExperimentDisposition::Fail,
+                2_000,
+                vec![30.0, 0.2],
+                0.95,
+            ),
+            outcome(
+                "EXP-2",
+                "CAND-2",
+                2,
+                ExperimentDisposition::Indeterminate,
+                3_000,
+                vec![20.0, 0.3],
+                0.90,
+            ),
+            outcome(
+                "EXP-3",
+                "CAND-3",
+                3,
+                ExperimentDisposition::Qualified,
+                4_000,
+                vec![10.0, 0.4],
+                0.80,
+            ),
+            outcome(
+                "EXP-4",
+                "CAND-4",
+                4,
+                ExperimentDisposition::Qualified,
+                2_500,
+                vec![15.0, 0.45],
+                0.85,
+            ),
         ];
         PolicyTrace {
             policy,
@@ -847,8 +893,20 @@ mod tests {
             initiated_experiment_count: 4,
             outcomes,
             holdout: vec![
-                holdout("HOLD-1", "HC-1", ExperimentDisposition::Qualified, vec![12.0, 0.42], 0.80),
-                holdout("HOLD-2", "HC-2", ExperimentDisposition::Fail, vec![30.0, 0.1], 0.20),
+                holdout(
+                    "HOLD-1",
+                    "HC-1",
+                    ExperimentDisposition::Qualified,
+                    vec![12.0, 0.42],
+                    0.80,
+                ),
+                holdout(
+                    "HOLD-2",
+                    "HC-2",
+                    ExperimentDisposition::Fail,
+                    vec![30.0, 0.1],
+                    0.20,
+                ),
             ],
         }
     }
@@ -879,8 +937,14 @@ mod tests {
         assert_eq!(metrics.unresolved_feasibility_selections, 1);
         assert_eq!(metrics.simple_regret_objective_0, Some(5.0));
         assert_eq!(metrics.pareto_hypervolume_2d, Some(17.75));
-        assert_eq!(metrics.holdout_interval_coverage, vec![Some(1.0), Some(1.0)]);
-        assert_eq!(metrics.holdout_mean_interval_width, vec![Some(4.0), Some(0.15)]);
+        assert_eq!(
+            metrics.holdout_interval_coverage,
+            vec![Some(1.0), Some(1.0)]
+        );
+        assert_eq!(
+            metrics.holdout_mean_interval_width,
+            vec![Some(4.0), Some(0.15)]
+        );
         assert_eq!(metrics.holdout_feasibility_brier, Some(0.04));
         assert_eq!(metrics.holdout_unresolved_count, 0);
     }
@@ -900,7 +964,11 @@ mod tests {
         run.task.split_unit = SplitUnit::RandomRows;
         let result = evaluate_run(&run);
         assert!(!result.valid);
-        assert!(result.blockers.contains(&Blocker::UnsupportedRandomRowHoldout));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::UnsupportedRandomRowHoldout)
+        );
     }
 
     #[test]
@@ -909,7 +977,11 @@ mod tests {
         run.traces[0].outcomes.pop();
         let result = evaluate_run(&run);
         assert!(!result.valid);
-        assert!(result.blockers.contains(&Blocker::InitiatedOutcomeCountMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::InitiatedOutcomeCountMismatch)
+        );
     }
 
     #[test]
@@ -1020,7 +1092,11 @@ mod tests {
         let mut run = run();
         run.traces[0].holdout[0].predicted_intervals.pop();
         let result = evaluate_run(&run);
-        assert!(result.blockers.contains(&Blocker::MissingPredictionInterval));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::MissingPredictionInterval)
+        );
     }
 
     #[test]
