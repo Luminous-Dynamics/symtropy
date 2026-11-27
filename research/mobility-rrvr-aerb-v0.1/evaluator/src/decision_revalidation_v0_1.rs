@@ -269,7 +269,7 @@ pub fn revalidate_before_effect(
         };
     }
 
-    if coverage.profile_sha256 != receipt.change_stream_profile_sha256 {
+    if coverage.profile_sha256.as_str() != receipt.change_stream_profile_sha256.as_str() {
         return DecisionRevalidation::Invalid {
             reason: InvalidReason::DigestInvalid("change_stream_profile_mismatch"),
         };
@@ -397,7 +397,7 @@ pub fn revalidate_before_effect(
         };
     }
 
-    if current_action_ticket_sha256 != receipt.action_ticket_sha256 {
+    if current_action_ticket_sha256 != receipt.action_ticket_sha256.as_str() {
         recompute.push(RecomputeReason::ActionTicketChanged);
     }
     if current_cut.clock_profile_sha256 != receipt.decision_cut.clock_profile_sha256 {
