@@ -164,10 +164,11 @@ pub struct CurvatureResult {
     pub scope: Scope,
     pub disposition: CurvatureDisposition,
     pub central_gravity_numerator: Option<u128>,
-    pub differential_acceleration_numerator: Option<u128>,
     pub radial_domain_denominator: Option<u128>,
-    pub exact_total_numerator: Option<u128>,
-    pub exact_total_denominator: Option<u128>,
+    pub differential_acceleration_upper_mm_per_s2: Option<u128>,
+    pub transform_operator_norm_upper_scaled: Option<u128>,
+    pub scaled_central_numerator: Option<u128>,
+    pub scaled_perturbation_term: Option<u128>,
     /// Outward upper bound on ||q''|| * 1e6 s^2.
     pub m_upper_scaled_per_s2: Option<u128>,
     pub m_scale: u128,
@@ -209,10 +210,11 @@ fn base_result(
         scope: input.scope.clone(),
         disposition,
         central_gravity_numerator: None,
-        differential_acceleration_numerator: None,
         radial_domain_denominator: None,
-        exact_total_numerator: None,
-        exact_total_denominator: None,
+        differential_acceleration_upper_mm_per_s2: None,
+        transform_operator_norm_upper_scaled: None,
+        scaled_central_numerator: None,
+        scaled_perturbation_term: None,
         m_upper_scaled_per_s2: None,
         m_scale: CURVATURE_SCALE,
         m_unit: "s^-2".to_owned(),
@@ -376,56 +378,63 @@ pub fn derive(input: &CurvatureInput) -> CurvatureResult {
         }
     };
 
-    let perturbation_numerator = match differential.checked_mul(denominator) {
+    // Keep the central-gravity rational and the integer perturbation term
+    // separate. Since transform and differential are integers,
+    // ceil(T * (central / D + differential))
+    //   = ceil(T * central / D) + T * differential.
+    // This avoids materializing differential * D and the aggregate numerator,
+    // both of which can overflow even when the final outward bound fits u128.
+    let scaled_central_numerator = match transform.checked_mul(central_numerator) {
         Some(value) => value,
         None => {
             return base_result(
                 input,
                 CurvatureDisposition::Overflow,
-                "PERTURBATION_PRODUCT_OVERFLOW",
+                "SCALED_CENTRAL_NUMERATOR_OVERFLOW",
             );
         }
     };
 
-    let acceleration_numerator = match central_numerator.checked_add(perturbation_numerator) {
+    let scaled_perturbation_term = match transform.checked_mul(differential) {
         Some(value) => value,
         None => {
             return base_result(
                 input,
                 CurvatureDisposition::Overflow,
-                "ACCELERATION_SUM_OVERFLOW",
+                "SCALED_PERTURBATION_TERM_OVERFLOW",
             );
         }
     };
 
-    let total_numerator = match transform.checked_mul(acceleration_numerator) {
+    let central_m_upper = match ceil_div_nonnegative(scaled_central_numerator, denominator) {
         Some(value) => value,
         None => {
             return base_result(
                 input,
                 CurvatureDisposition::Overflow,
-                "TRANSFORMED_NUMERATOR_OVERFLOW",
+                "CENTRAL_OUTWARD_DIVISION_FAILED",
             );
         }
     };
 
-    let m_upper = match ceil_div_nonnegative(total_numerator, denominator) {
+    let m_upper = match central_m_upper.checked_add(scaled_perturbation_term) {
         Some(value) => value,
         None => {
             return base_result(
                 input,
                 CurvatureDisposition::Overflow,
-                "OUTWARD_DIVISION_FAILED",
+                "OUTWARD_BOUND_SUM_OVERFLOW",
             );
         }
     };
 
     let mut result = base_result(input, CurvatureDisposition::BoundReady, "");
     result.central_gravity_numerator = Some(central_numerator);
-    result.differential_acceleration_numerator = Some(perturbation_numerator);
     result.radial_domain_denominator = Some(denominator);
-    result.exact_total_numerator = Some(total_numerator);
-    result.exact_total_denominator = Some(denominator);
+    result.differential_acceleration_upper_mm_per_s2 = Some(differential);
+    result.transform_operator_norm_upper_scaled = Some(transform);
+    result.scaled_central_numerator = Some(scaled_central_numerator);
+    result.scaled_perturbation_term = Some(scaled_perturbation_term);
     result.m_upper_scaled_per_s2 = Some(m_upper);
     result.radial_slack_mm = Some(radial_slack);
     result.bound_ready = true;
@@ -503,6 +512,21 @@ mod tests {
     }
 
     #[test]
+    fn valid_bound_does_not_overflow_from_avoidable_aggregate_products() {
+        let mut value = input();
+        value.mu_upper_mm3_per_s2 = 398_600_000_000_000_000_000_000;
+        value.chief_radius_lower_mm = 7_000_000_000;
+        value.relative_separation_upper_mm = 1_000_000;
+        value.differential_acceleration_upper_mm_per_s2 = 1_000_000;
+        value.transform_operator_norm_upper_scaled = 1_000;
+        let result = derive(&value);
+        assert_eq!(result.disposition, CurvatureDisposition::BoundReady);
+        assert_eq!(result.scaled_perturbation_term, Some(1_000_000_000));
+        assert!(result.m_upper_scaled_per_s2.unwrap() >= 1_000_000_000);
+    }
+
+    #[test]
+    fn positive_differential_acceleration_increases_the_bound() {    #[test]
     fn positive_differential_acceleration_increases_the_bound() {
         let baseline = derive(&input());
         let mut higher = input();
