@@ -1152,9 +1152,8 @@ mod tests {
     #[test]
     fn duplicate_observation_ids_are_not_silently_overwritten() {
         let mut trials = known_answer_trials();
-        trials[0]
-            .observations
-            .push(trials[0].observations[0].clone());
+        let duplicate = trials[0].observations[0].clone();
+        trials[0].observations.push(duplicate);
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
