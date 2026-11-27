@@ -125,6 +125,10 @@ fn json_escape(value: &str) -> String {
     output
 }
 
+fn optional_u64(value: Option<u64>) -> String {
+    value.map_or_else(|| "null".to_owned(), |number| number.to_string())
+}
+
 fn bool_array(values: [bool; 3]) -> String {
     format!("[{},{},{}]", values[0], values[1], values[2])
 }
@@ -162,7 +166,7 @@ fn render_result(result: &PoseScore) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"sample_id\":\"{}\",\"target_id\":\"{}\",\"split\":\"{}\",\"crop_stratum\":\"{}\",\"visible_parts\":\"{}\",\"modality\":\"{}\",\"ood_group\":\"{}\",\"calibration_revision\":\"{}\",\"frame_id\":\"{}\",\"disposition\":\"{}\",\"reason_codes\":[{}],\"regions\":[{}]}}",
+        "{{\"case_id\":\"{}\",\"sample_id\":\"{}\",\"target_id\":\"{}\",\"split\":\"{}\",\"crop_stratum\":\"{}\",\"visible_parts\":\"{}\",\"modality\":\"{}\",\"ood_group\":\"{}\",\"calibration_revision\":\"{}\",\"frame_id\":\"{}\",\"disposition\":\"{}\",\"reason_codes\":[{}],\"translation_error_l2_um\":{},\"orientation_error_urad\":{},\"regions\":[{}]}}",
         json_escape(&result.case_id),
         json_escape(&result.sample_id),
         json_escape(&result.target_id),
@@ -175,6 +179,8 @@ fn render_result(result: &PoseScore) -> String {
         json_escape(&result.frame_id),
         result.disposition.as_str(),
         reasons,
+        optional_u64(result.translation_error_l2_um),
+        optional_u64(result.orientation_error_urad),
         regions,
     )
 }
@@ -204,7 +210,7 @@ fn render_scorecard(card: &Scorecard) -> String {
     let groups = card.groups.iter().map(|group| {
         let group_levels = group.levels.iter().map(render_aggregate).collect::<Vec<_>>().join(",");
         format!(
-            "{{\"target_id\":\"{}\",\"crop_stratum\":\"{}\",\"modality\":\"{}\",\"ood_group\":\"{}\",\"sample_count\":{},\"accepted_count\":{},\"abstained_count\":{},\"missing_count\":{},\"invalid_count\":{},\"levels\":[{}]}}",
+            "{{\"target_id\":\"{}\",\"crop_stratum\":\"{}\",\"modality\":\"{}\",\"ood_group\":\"{}\",\"sample_count\":{},\"accepted_count\":{},\"abstained_count\":{},\"missing_count\":{},\"invalid_count\":{},\"sum_translation_error_l2_um\":{},\"max_translation_error_l2_um\":{},\"sum_orientation_error_urad\":{},\"max_orientation_error_urad\":{},\"levels\":[{}]}}",
             json_escape(&group.target_id),
             json_escape(&group.crop_stratum),
             json_escape(&group.modality),
@@ -214,6 +220,10 @@ fn render_scorecard(card: &Scorecard) -> String {
             group.abstained_count,
             group.missing_count,
             group.invalid_count,
+            group.sum_translation_error_l2_um,
+            group.max_translation_error_l2_um,
+            group.sum_orientation_error_urad,
+            group.max_orientation_error_urad,
             group_levels,
         )
     }).collect::<Vec<_>>().join(",");
