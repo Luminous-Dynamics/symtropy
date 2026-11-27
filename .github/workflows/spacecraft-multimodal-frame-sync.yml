@@ -72,7 +72,11 @@ jobs:
           assert cases["MB038"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["MB039"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["MB040"]["disposition"] == "OUT_OF_SCOPE"
-          print("40 multimodal bundles: exact Rust/Python receipt equality")
+          assert cases["MB001"]["lidar_coordinate_frame"] == "SENSOR_LOCAL_FRAME"
+          assert cases["MB001"]["pose_semantics"] == "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD"
+          assert cases["MB001"]["camera_calibration_sha256"] == "b" * 64
+          assert cases["MB001"]["lidar_to_camera_sha256"] == "c" * 64
+          print("40 multimodal bundles: exact Rust/Python receipt equality with calibration provenance")
           PY
       - name: Retain exact-head evidence
         if: success()
