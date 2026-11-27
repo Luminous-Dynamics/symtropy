@@ -393,7 +393,7 @@ fn upper_um(center_m: f64, radius_m: f64) -> Option<i64> {
         return None;
     }
     let integer = scaled.ceil();
-    if integer < I64_LOWER_INCLUSIVE || integer >= I64_UPPER_EXCLUSIVE {
+    if !(I64_LOWER_INCLUSIVE..I64_UPPER_EXCLUSIVE).contains(&integer) {
         return None;
     }
     Some(integer as i64)
