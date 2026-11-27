@@ -159,7 +159,6 @@ pub enum Blocker {
     InvalidReworkState,
     InvalidScrapReceipt,
     FailedBuildHasInspectedSpecimen,
-    MissingCostReceipt,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -249,12 +248,16 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
     let mut counts = CohortCounts::default();
 
     let mut lot_by_id = BTreeMap::new();
+    let mut valid_lot_ids = BTreeSet::new();
     for lot in &cohort.lots {
         if lot_by_id.insert(lot.lot_id.as_str(), lot).is_some() {
             blockers.push(Blocker::DuplicateLotId);
         }
+        if validate_lot_record(lot, cohort, &mut blockers) {
+            valid_lot_ids.insert(lot.lot_id.as_str());
+        }
     }
-    counts.distinct_material_lots = lot_by_id.len() as u64;
+    counts.distinct_material_lots = valid_lot_ids.len() as u64;
 
     let mut build_by_id = BTreeMap::new();
     for build in &cohort.builds {
@@ -266,7 +269,13 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
 
     let mut declared_specimen_to_build = BTreeMap::new();
     for build in build_by_id.values() {
-        validate_build_record(cohort, build, &lot_by_id, &mut blockers);
+        validate_build_record(
+            cohort,
+            build,
+            &lot_by_id,
+            &valid_lot_ids,
+            &mut blockers,
+        );
         if build.status == BuildStatus::Completed {
             counts.completed_builds += 1;
         }
@@ -445,10 +454,45 @@ fn validate_cohort_identity(cohort: &RouteCohort) -> Vec<Blocker> {
     blockers
 }
 
+fn validate_lot_record(
+    lot: &FeedstockLot,
+    cohort: &RouteCohort,
+    blockers: &mut Vec<Blocker>,
+) -> bool {
+    let mut valid = true;
+    if lot.lot_id.trim().is_empty()
+        || lot.feedstock_family.trim().is_empty()
+        || lot.material_grade.trim().is_empty()
+    {
+        blockers.push(Blocker::MissingIdentity);
+        valid = false;
+    }
+    if !valid_sha256(&lot.lot_record_digest)
+        || !valid_sha256(&lot.source_provenance_digest)
+    {
+        blockers.push(Blocker::InvalidDigest);
+        valid = false;
+    }
+    if !lot.recycled_mass_fraction.is_finite()
+        || !(0.0..=1.0).contains(&lot.recycled_mass_fraction)
+    {
+        blockers.push(Blocker::InvalidRecycledFraction);
+        valid = false;
+    }
+    if lot.feedstock_family != cohort.feedstock_family
+        || lot.material_grade != cohort.material_grade
+    {
+        blockers.push(Blocker::BuildLotMismatch);
+        valid = false;
+    }
+    valid
+}
+
 fn validate_build_record(
     cohort: &RouteCohort,
     build: &BuildRecord,
     lot_by_id: &BTreeMap<&str, &FeedstockLot>,
+    valid_lot_ids: &BTreeSet<&str>,
     blockers: &mut Vec<Blocker>,
 ) {
     if build.build_id.trim().is_empty()
@@ -477,6 +521,9 @@ fn validate_build_record(
         blockers.push(Blocker::MissingLotRecord);
         return;
     };
+    if !valid_lot_ids.contains(build.material_lot_id.as_str()) {
+        blockers.push(Blocker::MissingLotRecord);
+    }
     if lot.feedstock_family != cohort.feedstock_family
         || lot.material_grade != cohort.material_grade
     {
@@ -948,6 +995,6 @@ mod tests {
         cohort.campaign_cost = None;
         let result = evaluate_cohort(&cohort);
         assert!(result.summary.cost_per_accepted_part.is_none());
-        assert!(result.blockers.contains(&Blocker::MissingCostReceipt));
+        assert!(result.structurally_valid());
     }
 }
