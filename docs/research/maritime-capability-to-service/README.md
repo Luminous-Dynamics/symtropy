@@ -43,7 +43,9 @@ This micro-instance schedules every portfolio from day 0. For each required depe
 
 `receiver_day = ready_day + production_days + inspection_days + commissioning_days + handoff_days`
 
-For this tiny case, each option's production/supply duration is a fixed synthetic duration. A real benchmark must use source-qualified time windows and distributions rather than treating these fixture values as estimates. Later-starting shocks, partial resource recovery, overlapping work and stochastic processing times require a richer event simulator and are deliberately outside this arithmetic fixture.
+The parser rejects shocks that do not begin at day 0: later-starting shocks, partial resource recovery, overlapping work and stochastic processing times require an event simulator and are not approximated by this arithmetic reference. Duration arithmetic is checked for overflow. Input record ordering and dependency ordering do not change the canonical receipt.
+
+For this tiny case, each option's production/supply duration is a fixed synthetic duration. A real benchmark must use source-qualified time windows and distributions rather than treating these fixture values as estimates.
 
 On-time accepted service is the full expected-unit quantity when `receiver_day <= deadline_day`; otherwise it is zero on time. Late delivery remains late, not deleted from the expected denominator. This all-or-nothing batch rule is deliberately simplistic and must not be mistaken for a realistic cargo or vessel model.
 
@@ -71,16 +73,35 @@ Cost, embodied emissions, regional value, receiver delay and resilience must rem
 
 The denominator is 10 for all five alternatives. Only LOCAL-C reaches the receiver by day 10 in the outage case.
 
+## Standalone Rust reference
+
+The dependency-free research crate lives at `research/maritime-capability-to-service`, outside the Holochain production workspace.
+
+From the repository root:
+
+```sh
+cargo fmt --manifest-path research/maritime-capability-to-service/Cargo.toml -- --check
+cargo test --locked --manifest-path research/maritime-capability-to-service/Cargo.toml
+cargo clippy --locked --manifest-path research/maritime-capability-to-service/Cargo.toml --all-targets -- -D warnings
+cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo.toml
+```
+
+The current Rust reference parses the frozen service obligation, dependency inventory, day-zero shock and alternatives; rejects unknown/duplicate dependencies and unsupported shock timing; computes no-shock and shocked receiver days; preserves the expected-unit denominator; and emits a deterministic tab-delimited receipt containing source inputs and outcomes.
+
+Six Rust tests are authored: the five hand-calculated known answers, full denominator retention for a late option, input-record-order invariance, unknown-dependency rejection, duplicate-dependency rejection and rejection of later-starting shocks. The exact-head GitHub Actions workflow also runs formatting, locked tests, strict Clippy and the CLI receipt.
+
+**Qualification status:** this authored crate and workflow have not yet been observed passing at the current PR head. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed. The hand calculation is an independent arithmetic check, not a separately implemented oracle.
+
 ## What this fixture does not establish
 
 It does not establish actual supplier independence, actual regional capacity, physical production quality, class/statutory compliance, a real grid outage distribution, cost competitiveness, emissions performance, job creation, causal economic impact, a South African port capacity fact or a real receiver delivery.
 
-The result is conditional on the exact declared synthetic dependency topology and timing rule. An incomplete dependency inventory must yield UNKNOWN/INDETERMINATE in a future implementation, not an inferred independent path.
+The result is conditional on the exact declared synthetic dependency topology and timing rule. An incomplete dependency inventory must yield UNKNOWN/INDETERMINATE in a future cross-stack adapter, not an inferred independent path.
 
 ## Next qualification steps
 
-1. Implement an independent deterministic evaluator over the fixture; do not import production supplier-graph or receiver-service reducers.
-2. Add negative controls for shared transitive dependency, stale/revoked dependency evidence, inspection failure, revision mismatch, unknown dependency remainder, partial delivery and denominator deletion.
+1. Observe exact-head formatting, test, strict-Clippy and deterministic receipt results; address every failure without weakening gates.
+2. Add an independent reference implementation and mutation controls for shared transitive dependencies, stale/revoked evidence, inspection failure, revision mismatch, unknown dependency remainder, partial delivery and denominator deletion.
 3. Extend to at least 15 tiny cases and 30 total cases, then hold out complete disruption families.
 4. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 5. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
