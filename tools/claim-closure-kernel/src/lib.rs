@@ -250,38 +250,45 @@ fn validate_claim(claim: &Claim, findings: &mut BTreeSet<Finding>) {
     }
 }
 
-fn validate_attestation(
+struct AttestationView<'a> {
     status: AttestationStatus,
-    identity_ref: &str,
+    identity_ref: &'a str,
     as_of_unix_ms: Option<u64>,
-    digest: Option<&str>,
+    digest: Option<&'a str>,
+    label: &'a str,
+}
+
+fn validate_attestation(
+    attestation: AttestationView<'_>,
     knowledge_cut_unix_ms: u64,
     evidence_ref: &str,
-    label: &str,
     findings: &mut BTreeSet<Finding>,
 ) {
-    match status {
+    match attestation.status {
         AttestationStatus::Verified => {
-            if !valid_identifier(identity_ref) {
+            if !valid_identifier(attestation.identity_ref) {
                 add_finding(
                     findings,
-                    &format!("{label}_IDENTITY_MISSING"),
+                    &format!("{}_IDENTITY_MISSING", attestation.label),
                     FindingClass::Invalid,
                     Some(evidence_ref),
                 );
             }
-            if !digest.is_some_and(valid_sha256) {
+            if !attestation.digest.is_some_and(valid_sha256) {
                 add_finding(
                     findings,
-                    &format!("{label}_DIGEST_INVALID"),
+                    &format!("{}_DIGEST_INVALID", attestation.label),
                     FindingClass::Invalid,
                     Some(evidence_ref),
                 );
             }
-            if as_of_unix_ms.is_none_or(|as_of| as_of > knowledge_cut_unix_ms) {
+            if attestation
+                .as_of_unix_ms
+                .is_none_or(|as_of| as_of > knowledge_cut_unix_ms)
+            {
                 add_finding(
                     findings,
-                    &format!("{label}_NOT_KNOWN_AT_CLAIM_CUT"),
+                    &format!("{}_NOT_KNOWN_AT_CLAIM_CUT", attestation.label),
                     FindingClass::Unverified,
                     Some(evidence_ref),
                 );
@@ -290,7 +297,7 @@ fn validate_attestation(
         AttestationStatus::Unverified | AttestationStatus::Disputed => {
             add_finding(
                 findings,
-                &format!("{label}_UNVERIFIED"),
+                &format!("{}_UNVERIFIED", attestation.label),
                 FindingClass::Unverified,
                 Some(evidence_ref),
             );
@@ -298,7 +305,7 @@ fn validate_attestation(
         AttestationStatus::Revoked => {
             add_finding(
                 findings,
-                &format!("{label}_REVOKED"),
+                &format!("{}_REVOKED", attestation.label),
                 FindingClass::Invalid,
                 Some(evidence_ref),
             );
@@ -385,23 +392,27 @@ fn validate_record(record: &EvidenceRecord, claim: &Claim, findings: &mut BTreeS
     }
 
     validate_attestation(
-        record.producer_authority.status,
-        &record.producer_authority.identity_ref,
-        record.producer_authority.as_of_unix_ms,
-        record.producer_authority.record_sha256.as_deref(),
+        AttestationView {
+            status: record.producer_authority.status,
+            identity_ref: &record.producer_authority.identity_ref,
+            as_of_unix_ms: record.producer_authority.as_of_unix_ms,
+            digest: record.producer_authority.record_sha256.as_deref(),
+            label: "PRODUCER_AUTHORITY",
+        },
         claim.knowledge_cut_unix_ms,
         evidence_ref,
-        "PRODUCER_AUTHORITY",
         findings,
     );
     validate_attestation(
-        record.trust_snapshot.status,
-        &record.trust_snapshot.policy_ref,
-        record.trust_snapshot.as_of_unix_ms,
-        record.trust_snapshot.policy_sha256.as_deref(),
+        AttestationView {
+            status: record.trust_snapshot.status,
+            identity_ref: &record.trust_snapshot.policy_ref,
+            as_of_unix_ms: record.trust_snapshot.as_of_unix_ms,
+            digest: record.trust_snapshot.policy_sha256.as_deref(),
+            label: "TRUST_SNAPSHOT",
+        },
         claim.knowledge_cut_unix_ms,
         evidence_ref,
-        "TRUST_SNAPSHOT",
         findings,
     );
 
