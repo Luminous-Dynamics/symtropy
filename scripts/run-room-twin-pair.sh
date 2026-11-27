@@ -50,7 +50,7 @@ mkdir -p "$output_root/world-a" "$output_root/world-b"
 
 settings="$output_root/render-settings.json"
 cat > "$settings" <<EOF
-{"camera_id":"room-twin-camera-v1","capture_times_secs":[1.5,4.0,7.0],"height_px":720,"profile":"low-power-720p","renderer":"bevy-0.19.0","shadows_enabled":false,"width_px":1280,"waypoints":[[0.0,0.0,1.65,-7.0],[4.5,0.0,1.65,-7.0],[5.7,0.0,1.65,2.0],[6.4,5.2,1.65,2.0],[6.8,5.2,1.65,2.0]]}
+{"camera_id":"room-twin-camera-v1","camera_profile_sha256":"$camera_profile_sha256","capture_times_secs":[1.5,4.0,7.0],"height_px":720,"profile":"low-power-720p","renderer":"bevy-0.19.0","shadows_enabled":false,"width_px":1280,"waypoints":[[0.0,0.0,1.65,-7.0],[4.5,0.0,1.65,-7.0],[5.7,0.0,1.65,2.0],[6.4,5.2,1.65,2.0],[6.8,5.2,1.65,2.0]]}
 EOF
 settings_sha256="$(hash_file "$settings")"
 
