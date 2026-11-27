@@ -1,0 +1,94 @@
+{
+  "manifest_version": "ev-bms-split-manifest/v0.1",
+  "split_id": "cao-onboard-bms-vehicle-holdout-synthetic-v0.1",
+  "dataset_id": "cao-onboard-bms-zenodo-10656500",
+  "dataset_domain": "onboard_bms",
+  "dataset_admission_state": "metadata_only",
+  "dataset_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "dataset_snapshot_sha256": null,
+  "evidence_class": "synthetic_fixture",
+  "split_strategy": "group_disjoint_with_sequence_guards",
+  "group_key": "vehicle_id",
+  "leakage_keys": [
+    "sequence_id",
+    "event_id"
+  ],
+  "temporal_exclusion_keys": [
+    "vehicle_id"
+  ],
+  "split_seed": 20261127,
+  "generator_revision": "synthetic-hand-assigned-v0.1",
+  "partitions": [
+    {
+      "name": "train",
+      "records": [
+        {
+          "record_id": "cao-rec-001",
+          "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "group_values": {
+            "vehicle_id": "veh-001",
+            "sequence_id": "seq-001",
+            "event_id": "evt-normal-001"
+          },
+          "window_start_unix_ms": 1000,
+          "window_end_unix_ms": 2000
+        },
+        {
+          "record_id": "cao-rec-002",
+          "record_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "group_values": {
+            "vehicle_id": "veh-002",
+            "sequence_id": "seq-002",
+            "event_id": "evt-normal-002"
+          },
+          "window_start_unix_ms": 3000,
+          "window_end_unix_ms": 4000
+        }
+      ]
+    },
+    {
+      "name": "calibration",
+      "records": [
+        {
+          "record_id": "cao-rec-003",
+          "record_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "group_values": {
+            "vehicle_id": "veh-003",
+            "sequence_id": "seq-003",
+            "event_id": "evt-normal-003"
+          },
+          "window_start_unix_ms": 5000,
+          "window_end_unix_ms": 6000
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "records": [
+        {
+          "record_id": "cao-rec-004",
+          "record_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "group_values": {
+            "vehicle_id": "veh-004",
+            "sequence_id": "seq-004",
+            "event_id": "evt-fault-004"
+          },
+          "window_start_unix_ms": 7000,
+          "window_end_unix_ms": 8000
+        },
+        {
+          "record_id": "cao-rec-005",
+          "record_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+          "group_values": {
+            "vehicle_id": "veh-005",
+            "sequence_id": "seq-005",
+            "event_id": "evt-fault-005"
+          },
+          "window_start_unix_ms": 9000,
+          "window_end_unix_ms": 10000
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic split-integrity fixture only. No admitted dataset snapshot or model evaluation is represented."
+}
