@@ -1014,7 +1014,7 @@ mod tests {
         );
         assert_eq!(
             evaluate_temporal_replay_case(&case, TemporalQueryMode::RecomputedWithCurrentTrust)
-            .disposition,
+                .disposition,
             "TRUST_UNRESOLVED"
         );
     }
