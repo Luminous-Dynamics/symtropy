@@ -94,7 +94,7 @@
     },
     "candidate": {
       "type": "object",
-      "required": ["candidate_id", "route_family", "specimen_id", "material_lot_id", "build_run_id", "nominal_geometry_digest", "as_built_geometry_digest", "geometry_inspection_digest", "inspected_geometry_digest", "process_genealogy_digest", "material_state_digest", "post_magnetization_digest", "scope", "method_scope_supported", "observations"],
+      "required": ["candidate_id", "route_family", "specimen_id", "material_lot_id", "build_run_id", "nominal_geometry_digest", "as_built_geometry_digest", "geometry_inspection_record_id", "geometry_inspection_digest", "geometry_inspection_method_id", "geometry_inspection_calibration_digest", "geometry_inspection_reference_chain_id", "inspected_geometry_digest", "process_genealogy_digest", "material_state_digest", "post_magnetization_digest", "scope", "method_scope_supported", "observations"],
       "properties": {
         "candidate_id": { "type": "string", "minLength": 1 },
         "route_family": { "enum": ["Mex", "LpbfSlm", "Sls", "BinderJet", "LcmPhotopolymer", "PemAdjacent", "ConventionalBonded", "SinteredOrAssembled"] },
@@ -103,7 +103,11 @@
         "build_run_id": { "type": "string", "minLength": 1 },
         "nominal_geometry_digest": { "$ref": "#/$defs/digest" },
         "as_built_geometry_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_record_id": { "type": "string", "minLength": 1 },
         "geometry_inspection_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_method_id": { "type": "string", "minLength": 1 },
+        "geometry_inspection_calibration_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_reference_chain_id": { "type": "string", "minLength": 1 },
         "inspected_geometry_digest": { "$ref": "#/$defs/digest" },
         "process_genealogy_digest": { "$ref": "#/$defs/digest" },
         "material_state_digest": { "$ref": "#/$defs/digest" },
