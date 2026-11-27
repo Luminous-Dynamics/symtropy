@@ -100,6 +100,8 @@ pub struct EvidencePrefix {
     pub clock_mapping_profile_sha256: String,
     pub coverage_start_ns: u64,
     pub coverage_end_ns: u64,
+    /// True only when the entire declared prefix contains no unobserved gaps.
+    pub coverage_complete: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,6 +111,7 @@ pub struct SupportUpdateReceipt {
     pub base_support_sha256: String,
     pub resulting_support_sha256: String,
     pub evidence_artifact_sha256: String,
+    pub evidence_prefix_sha256: String,
     pub oracle_profile_sha256: String,
     pub derivation_receipt_sha256: String,
     pub derivation_complete: bool,
@@ -280,6 +283,10 @@ fn physical_path_commitment(receipt: &PhysicalPathReceipt) -> Result<String, Che
     serialized_digest(&payload, b"AERB-PHYSICAL-PATH-RECEIPT-V0.1\0")
 }
 
+fn evidence_prefix_commitment(prefix: &EvidencePrefix) -> Result<String, CheckpointError> {
+    serialized_digest(prefix, b"AERB-EVIDENCE-PREFIX-V0.1\0")
+}
+
 fn valid_sha256(value: &str) -> bool {
     value.len() == 64
         && value
@@ -338,6 +345,9 @@ fn classify_partial_evidence(
     if prefix.quality != EvidenceQuality::Admitted {
         return Ok(PartialEvidenceDisposition::Unqualified);
     }
+    if !prefix.coverage_complete {
+        return Ok(PartialEvidenceDisposition::InsufficientForDeclaredScope);
+    }
 
     let full_scope = prefix.coverage_end_ns == requested.end_ns;
     if full_scope {
@@ -387,6 +397,7 @@ fn validate_support_update(
     validate_digest(&receipt.base_support_sha256, "base_support")?;
     validate_digest(&receipt.resulting_support_sha256, "resulting_support")?;
     validate_digest(&receipt.evidence_artifact_sha256, "support_evidence")?;
+    validate_digest(&receipt.evidence_prefix_sha256, "support_evidence_prefix")?;
     validate_digest(&receipt.oracle_profile_sha256, "support_oracle_profile")?;
     validate_digest(&receipt.derivation_receipt_sha256, "support_derivation")?;
 
@@ -406,6 +417,7 @@ fn validate_support_update(
     if receipt.base_support_sha256 != possible_world_support_sha256(&before)?
         || receipt.resulting_support_sha256 != possible_world_support_sha256(&after)?
         || receipt.evidence_artifact_sha256 != evidence.artifact_sha256
+        || receipt.evidence_prefix_sha256 != evidence_prefix_commitment(evidence)?
         || receipt.derivation_receipt_sha256 != support_update_commitment(receipt)?
     {
         return Err(CheckpointError::InvalidSupportReceipt("receipt does not bind exact support and evidence"));
@@ -559,50 +571,58 @@ pub fn evaluate_checkpoint(
         }
     }
 
-    let action = if checkpoint.lifecycle == ProbeLifecycle::Completed {
-        // Acquisition has ended. This is a sensing disposition, not command
-        // closure, effect finality, or authority to start another action.
-        CheckpointAction::StopSensingHold
-    } else {
-        let can_continue = checkpoint.lifecycle == ProbeLifecycle::Acquiring
-            && path_is_qualified(
-                &checkpoint.physical_path_receipts,
-                PhysicalPathKind::ContinueProbe,
-                &checkpoint.attempt_id,
-                &checkpoint.probe_id,
-                checkpoint.sequence,
-                &checkpoint.physical_plan_sha256,
-            );
-        let can_stop = path_is_qualified(
+    let can_continue = checkpoint.lifecycle == ProbeLifecycle::Acquiring
+        && path_is_qualified(
             &checkpoint.physical_path_receipts,
-            PhysicalPathKind::SafeStopHold,
+            PhysicalPathKind::ContinueProbe,
             &checkpoint.attempt_id,
             &checkpoint.probe_id,
             checkpoint.sequence,
             &checkpoint.physical_plan_sha256,
         );
-        let can_abort = path_is_qualified(
-            &checkpoint.physical_path_receipts,
-            PhysicalPathKind::AbortProbe,
-            &checkpoint.attempt_id,
-            &checkpoint.probe_id,
-            checkpoint.sequence,
-            &checkpoint.physical_plan_sha256,
-        );
+    let can_stop = path_is_qualified(
+        &checkpoint.physical_path_receipts,
+        PhysicalPathKind::SafeStopHold,
+        &checkpoint.attempt_id,
+        &checkpoint.probe_id,
+        checkpoint.sequence,
+        &checkpoint.physical_plan_sha256,
+    );
+    let can_abort = path_is_qualified(
+        &checkpoint.physical_path_receipts,
+        PhysicalPathKind::AbortProbe,
+        &checkpoint.attempt_id,
+        &checkpoint.probe_id,
+        checkpoint.sequence,
+        &checkpoint.physical_plan_sha256,
+    );
 
-        if decision_sufficient && can_stop {
-            CheckpointAction::StopSensingHold
-        } else if decision_sufficient && can_abort {
-            CheckpointAction::AbortProbe
-        } else if can_continue {
-            CheckpointAction::ContinueProbe
-        } else if can_abort {
-            CheckpointAction::AbortProbe
-        } else if can_stop {
+    let action = if checkpoint.lifecycle == ProbeLifecycle::Completed {
+        // Completion closes acquisition, not the physical need for a qualified
+        // hold trajectory. A completed observation is never itself a safe hold.
+        if can_stop {
             CheckpointAction::StopSensingHold
         } else {
             CheckpointAction::NoSafeContinuation
         }
+    } else if decision_sufficient {
+        if can_stop {
+            CheckpointAction::StopSensingHold
+        } else if can_abort {
+            CheckpointAction::AbortProbe
+        } else {
+            CheckpointAction::NoSafeContinuation
+        }
+    } else if can_continue {
+        CheckpointAction::ContinueProbe
+    } else if can_stop {
+        // Prefer a qualified non-abort hold over abort when both are available
+        // and the upstream oracle has not independently required abort.
+        CheckpointAction::StopSensingHold
+    } else if can_abort {
+        CheckpointAction::AbortProbe
+    } else {
+        CheckpointAction::NoSafeContinuation
     };
 
     let checkpoint_sha256 = checkpoint_fingerprint(checkpoint)?;
@@ -656,6 +676,7 @@ mod tests {
             clock_mapping_profile_sha256: digest('d'),
             coverage_start_ns: 10,
             coverage_end_ns: end_ns,
+            coverage_complete: true,
         }
     }
 
@@ -736,6 +757,7 @@ mod tests {
             base_support_sha256: possible_world_support_sha256(before).expect("before digest"),
             resulting_support_sha256: possible_world_support_sha256(after).expect("after digest"),
             evidence_artifact_sha256: evidence.artifact_sha256.clone(),
+            evidence_prefix_sha256: evidence_prefix_commitment(evidence).expect("evidence prefix commitment"),
             oracle_profile_sha256: digest('3'),
             derivation_receipt_sha256: String::new(),
             derivation_complete: true,
@@ -983,6 +1005,12 @@ mod tests {
     fn completed_probe_stops_sensing_but_never_authorizes_a_new_effect() {
         let mut input = checkpoint();
         input.lifecycle = ProbeLifecycle::Completed;
+        input.physical_path_receipts.push(path(
+            PhysicalPathKind::SafeStopHold,
+            SafetyQualification::Qualified,
+            10,
+            Some(30),
+        ));
         let result = evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint");
         assert_eq!(result.action, CheckpointAction::StopSensingHold);
         assert!(!result.new_effect_permitted);
@@ -1043,7 +1071,7 @@ mod tests {
         input.decision_sufficiency_receipt = Some(decision_receipt(&support, 1));
         assert_eq!(
             evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
-            CheckpointAction::ContinueProbe
+            CheckpointAction::NoSafeContinuation
         );
     }
 
@@ -1175,6 +1203,88 @@ mod tests {
         assert_eq!(
             evaluate_checkpoint(&cursor, &input),
             Err(CheckpointError::InvalidSupportReceipt("derivation coverage incomplete"))
+        );
+    }
+
+
+    #[test]
+    fn incomplete_coverage_cannot_narrow_possible_world_support() {
+        let cursor = initial_cursor();
+        let mut input = checkpoint();
+        let mut evidence = prefix(
+            ClaimSemantics::PositiveEvent,
+            EvidenceQuality::Admitted,
+            15,
+        );
+        evidence.coverage_complete = false;
+        input.evidence_prefix = Some(evidence.clone());
+        input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
+        input.support_update_receipt = Some(support_receipt(
+            &cursor.possible_world_support_ids,
+            &input.proposed_possible_world_support_ids,
+            &evidence,
+        ));
+        let result = evaluate_checkpoint(&cursor, &input);
+        assert!(matches!(
+            result,
+            Err(CheckpointError::InvalidSupportTransition(_))
+        ));
+    }
+
+    #[test]
+    fn evidence_prefix_metadata_is_bound_into_support_update_receipt() {
+        let cursor = initial_cursor();
+        let mut input = checkpoint();
+        let evidence = prefix(
+            ClaimSemantics::PositiveEvent,
+            EvidenceQuality::Admitted,
+            15,
+        );
+        input.evidence_prefix = Some(evidence.clone());
+        input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
+        input.support_update_receipt = Some(support_receipt(
+            &cursor.possible_world_support_ids,
+            &input.proposed_possible_world_support_ids,
+            &evidence,
+        ));
+        input.evidence_prefix.as_mut().expect("prefix").coverage_end_ns = 14;
+        assert_eq!(
+            evaluate_checkpoint(&cursor, &input),
+            Err(CheckpointError::InvalidSupportReceipt(
+                "receipt does not bind exact support and evidence"
+            ))
+        );
+    }
+
+    #[test]
+    fn completed_probe_without_qualified_hold_path_is_not_reported_as_safe_hold() {
+        let mut input = checkpoint();
+        input.lifecycle = ProbeLifecycle::Completed;
+        let result = evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint");
+        assert_eq!(result.action, CheckpointAction::NoSafeContinuation);
+        assert!(!result.new_effect_permitted);
+    }
+
+    #[test]
+    fn safe_hold_is_preferred_to_abort_when_continuation_is_unavailable() {
+        let mut input = checkpoint();
+        input.physical_path_receipts = vec![
+            path(
+                PhysicalPathKind::SafeStopHold,
+                SafetyQualification::Qualified,
+                10,
+                Some(30),
+            ),
+            path(
+                PhysicalPathKind::AbortProbe,
+                SafetyQualification::Qualified,
+                10,
+                Some(30),
+            ),
+        ];
+        assert_eq!(
+            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            CheckpointAction::StopSensingHold
         );
     }
 
