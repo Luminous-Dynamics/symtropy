@@ -98,7 +98,9 @@
           2
         ]
       }
-    ]
+    ],
+    "camera_profile_manifest": "ROOM-TWIN-01.camera-profile.json",
+    "sensor_id": "camera-front"
   },
   "capture": {
     "schedule_secs": [

@@ -110,3 +110,12 @@ A failure is a failed audit, not permission to loosen the equality criterion. Th
 **Claim boundary:** source and fixture contracts plus compile/test status do not establish an actual rendered pair. Only a hardware run of `scripts/run-room-twin-pair.sh` can produce decoded-prefix equality evidence. This public A/B fixture is not blind: #6754 must provide isolated truth, candidate process/filesystem separation, and a rights/split/custody receipt before a blind benchmark claim. The PNG capture receipt proves integrity and declared provenance only, not visual correctness, physical camera calibration, candidate replay or spatial-model performance.
 
 The first pair intentionally covers only delayed visual topology identification. It is not a complete indoor SLAM benchmark, and the remaining eight world pairs stay unbound until their own exact artifacts and replay evidence exist.
+
+
+### Typed replay handoff
+
+The fixture includes `ROOM-TWIN-01.camera-profile.json`, a frozen shared camera/sensor profile. The A/B pixel auditor validates it, exports the exact decoded RGBA8 bytes to `decoded-rgba8/frame-0001.rgba8` through `frame-0003.rgba8` under each evaluator output directory, and reports their SHA-256/byte lengths. This raw frame export is the handoff to the existing #6201 `VideoFrameObservationV1` / `AgentObservationBundleV1` contract. The PNG capture receipt remains a separate file-integrity/provenance receipt; it is not itself an agent observation.
+
+The camera profile deliberately carries a bounded capture-time interval rather than claiming exact exposure timestamps: the capture plugin records scheduled screenshot request times, not hardware exposure times. It also marks calibration as `synthetic_un-calibrated`. Import into #6201 must preserve those bounds and must not create a clock transform or physical calibration claim.
+
+The exported A/B directories and truth metadata are evaluator-side development artifacts. A #6201 importer must create a variant-neutral candidate bundle in a separate candidate-visible root, with no A/B label, hidden world digest or truth file. #6754 isolation is still required before blind testing.

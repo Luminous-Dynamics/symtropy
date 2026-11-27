@@ -1,10 +1,11 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Verifies ROOM-TWIN-01 capture receipts and decoded candidate-prefix pixels.
+//! Verifies ROOM-TWIN-01 capture receipts, decoded RGBA8 equality and exports
+//! the same verified pixels as raw files for the #6201 observation adapter.
 //!
-//! The evaluator expects a development-only A/B folder pair. Variant labels
-//! and source paths remain outside the candidate observation payload.
+//! The public A/B output folders are evaluator-side development artifacts.
+//! Their names and truth crosswalk must not be mounted into a blind candidate.
 
 use image::{DynamicImage, ImageFormat};
 use serde_json::{Value, json};
@@ -18,8 +19,10 @@ use std::{
 
 const CAPTURE_TIMES: [f64; 3] = [1.5, 4.0, 7.0];
 const CAPTURE_STEM: &str = "room-twin";
+const CAMERA_PROFILE_PATH: &str = "benchmarks/render/ROOM-TWIN-01.camera-profile.json";
 const MAX_PNG_BYTES: u64 = 256 * 1024 * 1024;
 const MAX_IMAGE_PIXELS: u64 = 20_000_000;
+const MAX_PROFILE_BYTES: u64 = 1024 * 1024;
 
 struct DecodedCapture {
     width: u32,
@@ -82,6 +85,64 @@ fn read_receipt(directory: &Path) -> Result<Value, Box<dyn Error>> {
     Ok(serde_json::from_slice(&bytes)?)
 }
 
+fn read_and_validate_camera_profile(
+    root: &Path,
+    metadata: &Value,
+) -> Result<(Value, String), Box<dyn Error>> {
+    let path = root.join(CAMERA_PROFILE_PATH);
+    let size = fs::metadata(&path)?.len();
+    if size > MAX_PROFILE_BYTES {
+        return Err("camera profile exceeds 1 MiB limit".into());
+    }
+    let bytes = fs::read(path)?;
+    if u64::try_from(bytes.len())? != size {
+        return Err("camera profile changed while reading".into());
+    }
+    let digest = sha256_hex(&bytes);
+    let profile: Value = serde_json::from_slice(&bytes)?;
+
+    if profile["schema_version"] != 1
+        || profile["fixture_id"] != "ROOM-TWIN-01"
+        || profile["camera_profile_id"] != "room-twin-camera-v1"
+        || profile["sensor_id"] != "camera-front"
+        || profile["renderer"] != "Bevy 0.19.0"
+        || profile["image"]["width_px"] != metadata["width_px"]
+        || profile["image"]["height_px"] != metadata["height_px"]
+        || profile["image"]["pixel_format"] != "rgba8"
+        || profile["image"]["color_space"] != "srgb"
+        || profile["image"]["color_range"] != "full"
+        || profile["clock_domain"]["domain_id"] != "room-twin-bevy-real-time"
+        || profile["clock_domain"]["generation"] != 0
+        || profile["clock_domain"]["time_scale_id"]
+            != "monotonic-seconds-since-app-start-v1"
+        || profile["calibration"]["calibration_profile_sha256"] != Value::Null
+        || profile["calibration"]["status"] != "synthetic_un-calibrated"
+    {
+        return Err("camera profile violates the frozen ROOM-TWIN-01 sensor contract".into());
+    }
+
+    let profile_times = profile["capture_time_bounds"]["capture_schedule_secs"]
+        .as_array()
+        .ok_or("camera profile lacks capture schedule")?;
+    if profile_times.len() != CAPTURE_TIMES.len()
+        || profile_times
+            .iter()
+            .zip(CAPTURE_TIMES)
+            .any(|(actual, expected)| actual.as_f64().is_none_or(|value| (value - expected).abs() > 0.01))
+    {
+        return Err("camera profile capture times do not match the audit schedule".into());
+    }
+
+    let renderer_version = metadata["renderer_version"]
+        .as_str()
+        .ok_or("capture receipt lacks renderer version")?;
+    if renderer_version != "bevy-0.19.0" {
+        return Err("capture receipt renderer version differs from the camera profile".into());
+    }
+
+    Ok((profile, digest))
+}
+
 fn validate_receipt(
     receipt: &Value,
     directory: &Path,
@@ -124,7 +185,11 @@ fn validate_receipt(
         .as_array()
         .ok_or("receipt images field is not an array")?;
     if images.len() != CAPTURE_TIMES.len() {
-        return Err(format!("expected three images, found {}", images.len()).into());
+        return Err(format!(
+            "expected three images, found {}",
+            images.len()
+        )
+        .into());
     }
 
     let mut decoded = Vec::with_capacity(CAPTURE_TIMES.len());
@@ -182,6 +247,28 @@ fn validate_receipt(
     Ok(decoded)
 }
 
+fn export_raw_rgba(directory: &Path, frames: &[DecodedCapture]) -> Result<Vec<Value>, Box<dyn Error>> {
+    let export_dir = directory.join("decoded-rgba8");
+    fs::create_dir(&export_dir)?;
+    let mut exports = Vec::with_capacity(frames.len());
+    for (index, frame) in frames.iter().enumerate() {
+        let name = format!("frame-{:04}.rgba8", index + 1);
+        let path = export_dir.join(&name);
+        fs::write(&path, &frame.rgba)?;
+        exports.push(json!({
+            "relative_path": format!("decoded-rgba8/{name}"),
+            "byte_len": frame.rgba.len(),
+            "sha256": frame.rgba_sha256,
+            "width_px": frame.width,
+            "height_px": frame.height,
+            "pixel_format": "rgba8",
+            "color_space": "srgb",
+            "color_range": "full"
+        }));
+    }
+    Ok(exports)
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let mut args = env::args_os().skip(1);
     let world_a = PathBuf::from(
@@ -205,6 +292,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err("world variants have different expected image counts".into());
     }
 
+    let root = env::current_dir()?;
+    let (camera_profile, camera_profile_sha256) =
+        read_and_validate_camera_profile(&root, &receipt_a["metadata"])?;
+
     let captures_a = validate_receipt(&receipt_a, &world_a)?;
     let captures_b = validate_receipt(&receipt_b, &world_b)?;
     let prefix_1_equal = captures_a[0].rgba == captures_b[0].rgba;
@@ -221,21 +312,29 @@ fn run() -> Result<(), Box<dyn Error>> {
         .into());
     }
 
+    let exports_a = export_raw_rgba(&world_a, &captures_a)?;
+    let exports_b = export_raw_rgba(&world_b, &captures_b)?;
+
     let metadata_bytes = serde_json::to_vec(&receipt_a["metadata"])?;
     let report = json!({
         "schema_version": 1,
         "fixture_id": "ROOM-TWIN-01",
         "camera_id": "room-twin-camera-v1",
+        "camera_profile_path": CAMERA_PROFILE_PATH,
+        "camera_profile_sha256": camera_profile_sha256,
+        "camera_profile_claim_ceiling": camera_profile["calibration"]["status"],
         "capture_times_secs": CAPTURE_TIMES,
         "candidate_visible_metadata_sha256": sha256_hex(&metadata_bytes),
         "dimensions_px": [captures_a[0].width, captures_a[0].height],
         "world_a_decoded_rgba_sha256": captures_a.iter().map(|frame| frame.rgba_sha256.as_str()).collect::<Vec<_>>(),
         "world_b_decoded_rgba_sha256": captures_b.iter().map(|frame| frame.rgba_sha256.as_str()).collect::<Vec<_>>(),
+        "world_a_raw_rgba_exports": exports_a,
+        "world_b_raw_rgba_exports": exports_b,
         "prefix_byte_equivalence": [prefix_1_equal, prefix_2_equal],
         "within_world_prefix_stability": [within_a_stable, within_b_stable],
         "final_observation_distinguishes_worlds": reveal_differs,
         "result": "DEVELOPMENT_PIXEL_AUDIT_PASS",
-        "claim_ceiling": "decoded RGBA8 equality for declared captures only; not hidden-custody, renderer correctness, candidate replay, physical calibration, map accuracy, or model performance"
+        "claim_ceiling": "decoded RGBA8 equality and raw-frame export for declared captures only; not hidden-custody, renderer correctness, candidate replay, physical calibration, map accuracy, or model performance"
     });
     println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
@@ -246,7 +345,8 @@ fn main() {
         eprintln!("room-twin-pair-audit: {error}");
         std::process::exit(1);
     }
-}\n
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

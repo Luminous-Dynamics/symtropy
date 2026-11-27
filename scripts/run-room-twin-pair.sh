@@ -31,7 +31,9 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 fixture="benchmarks/render/ROOM-TWIN-01.json"
+camera_profile="benchmarks/render/ROOM-TWIN-01.camera-profile.json"
 fixture_sha256="$(hash_file "$fixture")"
+camera_profile_sha256="$(hash_file "$camera_profile")"
 profile="low-power-720p"
 width=1280
 height=720

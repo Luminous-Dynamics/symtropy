@@ -67,6 +67,7 @@ jobs:
 
           fixture = json.loads(Path("benchmarks/render/ROOM-TWIN-01.json").read_text())
           truth = json.loads(Path("benchmarks/render/ROOM-TWIN-01.truth.json").read_text())
+          camera = json.loads(Path("benchmarks/render/ROOM-TWIN-01.camera-profile.json").read_text())
           assert fixture["fixture_id"] == truth["fixture_id"] == "ROOM-TWIN-01"
           assert fixture["capture"]["schedule_secs"] == [1.5, 4.0, 7.0]
           assert fixture["capture"]["shared_prefix_cutoff_secs"] == 4.0
@@ -74,6 +75,16 @@ jobs:
           assert truth["variant_a"]["target_relation"] != truth["variant_b"]["target_relation"]
           assert truth["invariant"]["common_capture_times_secs"] == [1.5, 4.0, 7.0]
           assert truth["visibility"].startswith("evaluator-only")
+          assert camera["fixture_id"] == fixture["fixture_id"]
+          assert camera["camera_profile_id"] == fixture["camera"]["camera_id"]
+          assert camera["image"]["pixel_format"] == "rgba8"
+          assert camera["image"]["width_px"] == fixture["render"]["width_px"]
+          assert camera["image"]["height_px"] == fixture["render"]["height_px"]
+          assert camera["capture_time_bounds"]["capture_schedule_secs"] == [1.5, 4.0, 7.0]
+          assert camera["capture_time_bounds"]["exact_exposure_timestamp_available"] is False
+          assert camera["transport"]["decision_cutoff_tick"] == 2
+          assert camera["transport"]["first_distinguishing_observation_tick"] == 3
+          assert camera["calibration"]["calibration_profile_sha256"] is None
           print("PASS: common fixture and evaluator truth crosswalk are internally consistent")
           PY
           bash -n scripts/run-room-twin-pair.sh
