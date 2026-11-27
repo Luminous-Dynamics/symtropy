@@ -405,10 +405,13 @@ pub fn plan_portfolio(
             continue;
         }
 
-        let mut cost = 0u64;
-        let mut energy = 0u64;
-        let mut duration = 0u64;
-        let mut downtime = 0u64;
+        // At most 16 u64 bounds are accumulated. u128 safely represents the
+        // full aggregate so an over-budget subset can be skipped without
+        // aborting other valid alternatives.
+        let mut cost = 0u128;
+        let mut energy = 0u128;
+        let mut duration = 0u128;
+        let mut downtime = 0u128;
         let mut covered = BTreeSet::new();
         let mut prerequisite_ids = BTreeSet::new();
         let mut approval_ids = BTreeSet::new();
@@ -418,14 +421,10 @@ pub fn plan_portfolio(
 
         for index in &selected {
             let action = &actions[*index];
-            cost = cost.checked_add(action.cost_upper_microunits)
-                .ok_or(PortfolioContractError::ArithmeticOverflow)?;
-            energy = energy.checked_add(action.energy_upper_millijoules)
-                .ok_or(PortfolioContractError::ArithmeticOverflow)?;
-            duration = duration.checked_add(action.duration_upper_ms)
-                .ok_or(PortfolioContractError::ArithmeticOverflow)?;
-            downtime = downtime.checked_add(action.downtime_upper_ms)
-                .ok_or(PortfolioContractError::ArithmeticOverflow)?;
+            cost += u128::from(action.cost_upper_microunits);
+            energy += u128::from(action.energy_upper_millijoules);
+            duration += u128::from(action.duration_upper_ms);
+            downtime += u128::from(action.downtime_upper_ms);
             covered.extend(action.addresses_alert_ids.iter().map(String::as_str));
             prerequisite_ids.extend(action.prerequisite_evidence_ids.iter().cloned());
             approval_ids.extend(action.required_approvals.iter().cloned());
@@ -438,10 +437,10 @@ pub fn plan_portfolio(
             });
         }
 
-        if cost > policy.max_cost_microunits
-            || energy > policy.max_energy_millijoules
-            || duration > policy.max_duration_ms
-            || downtime > policy.max_downtime_ms
+        if cost > u128::from(policy.max_cost_microunits)
+            || energy > u128::from(policy.max_energy_millijoules)
+            || duration > u128::from(policy.max_duration_ms)
+            || downtime > u128::from(policy.max_downtime_ms)
             || !required_alerts.is_subset(&covered)
         {
             continue;
@@ -456,10 +455,14 @@ pub fn plan_portfolio(
             required_approvals: approval_ids.into_iter().collect(),
             required_postcondition_evidence: postconditions.into_iter().collect(),
             bounds_evidence,
-            cost_upper_microunits: cost,
-            energy_upper_millijoules: energy,
-            duration_upper_ms: duration,
-            downtime_upper_ms: downtime,
+            cost_upper_microunits: u64::try_from(cost)
+                .map_err(|_| PortfolioContractError::ArithmeticOverflow)?,
+            energy_upper_millijoules: u64::try_from(energy)
+                .map_err(|_| PortfolioContractError::ArithmeticOverflow)?,
+            duration_upper_ms: u64::try_from(duration)
+                .map_err(|_| PortfolioContractError::ArithmeticOverflow)?,
+            downtime_upper_ms: u64::try_from(downtime)
+                .map_err(|_| PortfolioContractError::ArithmeticOverflow)?,
             auto_execute: false,
             preserves_source_until_acceptance: true,
         });
@@ -728,15 +731,16 @@ mod tests {
     }
 
     #[test]
-    fn arithmetic_overflow_is_rejected_not_saturated() {
+    fn aggregate_over_budget_subset_does_not_abort_other_feasible_plans() {
+        let mut p = policy(&["alert-a", "alert-b"]);
+        p.max_cost_microunits = u64::MAX;
         let candidates = [
             action("address-a", &["alert-a"], u64::MAX, 1, 1, 1),
             action("address-b", &["alert-b"], 1, 1, 1, 1),
         ];
-        assert_eq!(
-            plan_portfolio(&policy(&["alert-a", "alert-b"]), &candidates),
-            Err(PortfolioContractError::ArithmeticOverflow)
-        );
+        let result = plan_portfolio(&p, &candidates).unwrap();
+        assert_eq!(result.disposition, PortfolioDisposition::Infeasible);
+        assert!(result.pareto_frontier.is_empty());
     }
 
     #[test]
