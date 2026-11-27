@@ -17,6 +17,8 @@ It composes, but does not replace:
 
 This artifact is a synthetic counterfactual composition reference, not a second supplier graph, production scheduler, optimizer, cargo ledger or physical model.
 
+The external comparator, reproduction and acceptance protocol is maintained in [benchmark-matrix.md](benchmark-matrix.md). Symtropy #4204 remains the owner of public ship-block dataset admission and faithful reproduction; this benchmark consumes its outputs only after those source checks pass.
+
 ## Frozen fixture
 
 File: `fixtures/mcsc-counterfactual-tiny-v0.tsv`
