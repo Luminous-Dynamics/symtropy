@@ -474,6 +474,43 @@ mod tests {
     }
 
     #[test]
+    fn scenario_order_and_floor_order_do_not_change_input_identity() {
+        let mut request = input(10, 9);
+        let report = evaluate_robust_floor_scenarios(&request).unwrap();
+        request.scenarios.reverse();
+        request.floors.reverse();
+        let reordered = evaluate_robust_floor_scenarios(&request).unwrap();
+        assert_eq!(report.scenario_set_sha256, reordered.scenario_set_sha256);
+        assert_eq!(report.floor_set_sha256, reordered.floor_set_sha256);
+        assert_eq!(report.assurance_input_sha256, reordered.assurance_input_sha256);
+        assert_eq!(report, reordered);
+    }
+
+    #[test]
+    fn published_robust_floor_schemas_are_valid_json_documents() {
+        let input_schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/robust-beneficiary-floors-input-v0.1.schema.json"
+        ))
+        .unwrap();
+        let report_schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/robust-beneficiary-floors-report-v0.1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            input_schema["properties"]["floors"]["type"],
+            "array"
+        );
+        assert_eq!(
+            report_schema["properties"]["schema_version"]["const"],
+            ROBUST_FLOOR_SCENARIO_SCHEMA
+        );
+        assert_eq!(
+            report_schema["properties"]["disposition"]["enum"][0],
+            "GuaranteedAcrossSuppliedScenarios"
+        );
+    }
+
+    #[test]
     fn strict_json_round_trip_and_unknown_fields_are_enforced() {
         let request = input(10, 9);
         let report = evaluate_robust_floor_scenarios(&request).unwrap();
