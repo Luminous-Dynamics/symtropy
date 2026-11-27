@@ -556,8 +556,8 @@ mod tests {
     #[test]
     fn partial_acceptance_never_expands_to_the_full_denominator() {
         let changed = FIXTURE.replace(
-            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
-            "INSPECTION\\tLOCAL-C\\tPASS\\t6\\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t10\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t6\tREV-001",
         );
         let local_c = evaluate(&parse_instance(&changed).unwrap())
             .unwrap()
@@ -572,10 +572,10 @@ mod tests {
     #[test]
     fn failed_or_unknown_inspection_cannot_earn_service_credit() {
         for (status, units) in [("FAIL", "0"), ("UNKNOWN", "0")] {
-            let original = "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001";
+            let original = "INSPECTION\tLOCAL-C\tPASS\t10\tREV-001";
             let changed = FIXTURE.replace(
                 original,
-                &format!("INSPECTION\\tLOCAL-C\\t{status}\\t{units}\\tREV-001"),
+                &format!("INSPECTION\tLOCAL-C\t{status}\t{units}\tREV-001"),
             );
             let local_c = evaluate(&parse_instance(&changed).unwrap())
                 .unwrap()
@@ -591,8 +591,8 @@ mod tests {
     #[test]
     fn inspection_revision_mismatch_fails_closed() {
         let changed = FIXTURE.replace(
-            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
-            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-002",
+            "INSPECTION\tLOCAL-C\tPASS\t10\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t10\tREV-002",
         );
         assert!(
             parse_instance(&changed)
@@ -603,7 +603,7 @@ mod tests {
 
     #[test]
     fn missing_or_duplicate_inspection_fails_closed() {
-        let missing = FIXTURE.replace("INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001\\n", "");
+        let missing = FIXTURE.replace("INSPECTION\tLOCAL-C\tPASS\t10\tREV-001\n", "");
         assert!(
             parse_instance(&missing)
                 .unwrap_err()
@@ -611,8 +611,8 @@ mod tests {
         );
 
         let duplicate = FIXTURE.replace(
-            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
-            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001\\nINSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t10\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t10\tREV-001\nINSPECTION\tLOCAL-C\tPASS\t10\tREV-001",
         );
         assert!(
             parse_instance(&duplicate)
