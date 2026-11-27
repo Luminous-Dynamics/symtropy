@@ -180,7 +180,8 @@
       "expected_structurally_complete": false,
       "expected_violation_codes": [],
       "expected_blocker_codes": [
-        "ACQUISITION_TIMESTAMP_MISSING_OR_INVALID"
+        "ACQUISITION_TIMESTAMP_MISSING_OR_INVALID",
+        "CALIBRATION_ACQUISITION_TIME_UNRESOLVED"
       ]
     },
     {
