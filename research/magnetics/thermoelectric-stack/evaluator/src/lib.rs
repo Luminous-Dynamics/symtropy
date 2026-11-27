@@ -180,6 +180,7 @@ pub enum Blocker {
     InadmissibleEvidenceClass,
     MissingMeasurementProvenance,
     InvalidOptimizationReceipt,
+    BaselineNotAdmissible,
     BaselineFailsHardLimit,
     DefiniteHardLimitViolation,
     UnresolvedHardLimit,
@@ -282,7 +283,11 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
 
                 if !baseline_blockers.is_empty() {
                     any_baseline_invalid = true;
-                    blockers.push(Blocker::BaselineFailsHardLimit);
+                    if baseline_blockers.contains(&Blocker::DefiniteHardLimitViolation) {
+                        blockers.push(Blocker::BaselineFailsHardLimit);
+                    } else {
+                        blockers.push(Blocker::BaselineNotAdmissible);
+                    }
                     continue;
                 }
 
@@ -955,28 +960,28 @@ mod tests {
     }
 
     #[test]
-    fn wrong_waveform_makes_comparison_indeterminate() {
+    fn wrong_waveform_makes_comparison_not_comparable() {
         let mut trials = known_trials();
         trials[0].scope.waveform_digest = digest('a');
         let result = evaluate(&spec(), &trials);
-        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert_eq!(result[0].decision, Decision::NotComparable);
         assert!(result[0].blockers.contains(&Blocker::ScopeMismatch));
     }
 
     #[test]
-    fn coolant_mismatch_does_not_get_normalized_away() {
+    fn coolant_mismatch_makes_comparison_not_comparable() {
         let mut trials = known_trials();
         trials[0].scope.coolant_digest = digest('a');
         let result = evaluate(&spec(), &trials);
-        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert_eq!(result[0].decision, Decision::NotComparable);
     }
 
     #[test]
-    fn missing_conventional_baseline_is_indeterminate() {
+    fn missing_conventional_baseline_is_not_comparable() {
         let mut trials = known_trials();
         trials.remove(1);
         let result = evaluate(&spec(), &trials);
-        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert_eq!(result[0].decision, Decision::NotComparable);
         assert!(result[0]
             .blockers
             .contains(&Blocker::MissingRequiredBaseline));
@@ -1032,6 +1037,32 @@ mod tests {
     }
 
     #[test]
+    fn candidate_must_have_a_fair_optimization_receipt() {
+        let mut trials = known_trials();
+        trials[0].optimization.as_mut().unwrap().evaluations = 1;
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::InvalidOptimizationReceipt));
+    }
+
+    #[test]
+    fn invalid_specimen_binding_cannot_create_a_false_hard_fail() {
+        let mut trials = known_trials();
+        trials[0].observations[0].value = 500.0;
+        trials[0].observations[0].specimen_id = "SPEC-OTHER".to_string();
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(!result[0]
+            .blockers
+            .contains(&Blocker::DefiniteHardLimitViolation));
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::BrokenSpecimenBinding));
+    }
+
+    #[test]
     fn candidate_acceptance_must_be_m4_and_scope_bound() {
         let mut trials = known_trials();
         trials[0].acceptance.maturity = Maturity::M3;
@@ -1070,6 +1101,6 @@ mod tests {
         let mut trials = known_trials();
         trials[1].role = Role::SecondaryControl;
         let result = evaluate(&spec(), &trials);
-        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert_eq!(result[0].decision, Decision::NotComparable);
     }
 }
