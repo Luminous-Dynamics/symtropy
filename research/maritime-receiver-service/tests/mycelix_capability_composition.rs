@@ -89,9 +89,9 @@ fn make_records(
 fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
     let plans = owner_plans(OWNER_RECEIPT);
     let declared_resources = OWNER_RECEIPT.lines().collect::<Vec<_>>();
-    assert!(declared_resources.contains(&"RESOURCE\\tREGIONAL-PLATE\\tYARD-A\\tP1\\t3.000\\tt"));
-    assert!(declared_resources.contains(&"RESOURCE\\tREGIONAL-WELD\\tYARD-A\\tP1\\t12.000\\th"));
-    assert!(declared_resources.contains(&"RESOURCE\\tREGIONAL-NDT\\tYARD-A\\tP1\\t2.000\\tjob"));
+    assert!(declared_resources.contains(&"RESOURCE\tREGIONAL-PLATE\tYARD-A\tP1\t3.000\tt"));
+    assert!(declared_resources.contains(&"RESOURCE\tREGIONAL-WELD\tYARD-A\tP1\t12.000\th"));
+    assert!(declared_resources.contains(&"RESOURCE\tREGIONAL-NDT\tYARD-A\tP1\t2.000\tjob"));
     assert_eq!(plans.len(), 4);
     assert_eq!(plans.values().filter(|plan| plan.feasible).count(), 3);
     assert_eq!(plans.values().filter(|plan| plan.pareto).count(), 3);
