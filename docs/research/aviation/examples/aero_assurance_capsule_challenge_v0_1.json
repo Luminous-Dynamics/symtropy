@@ -234,6 +234,15 @@
       "expected_reason_codes": [
         "CAPSULE_REVIEW_JUDGEMENT_RECEIPT_MISSING"
       ]
+    },
+    {
+      "case_id": "AC27",
+      "case_class": "single_fault",
+      "mutation": "Omit the detached package-integrity envelope reference or its owner verification boundary.",
+      "expected_validator_result": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CAPSULE_DETACHED_PACKAGE_RECEIPT_MISSING"
+      ]
     }
   ]
 }
