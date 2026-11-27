@@ -203,7 +203,9 @@ pub fn verify_post_run_reveal(
     {
         return Err(BlindGenerationError::RevealMismatch("corpus_class"));
     }
-    if candidate.campaign_id != evaluator.campaign_id {
+    if candidate.campaign_id != evaluator.campaign_id
+        || !is_opaque_campaign_id(&candidate.campaign_id)
+    {
         return Err(BlindGenerationError::RevealMismatch("campaign_id"));
     }
     if !valid_sha256(&candidate.campaign_commitment_sha256) {
@@ -298,7 +300,8 @@ fn random_below<E: EntropySource>(
         entropy.fill_bytes(&mut bytes)?;
         let value = u64::from_le_bytes(bytes);
         if value >= rejection_floor {
-            return Ok((value % upper) as usize);
+            return usize::try_from(value % upper)
+                .map_err(|_| BlindGenerationError::InvalidEpisodeCount);
         }
     }
 }
@@ -318,6 +321,12 @@ fn is_opaque_episode_id(value: &str) -> bool {
     value.len() == 3 + OPAQUE_ID_BYTES * 2
         && value.starts_with("ep_")
         && is_lower_hex(&value[3..])
+}
+
+fn is_opaque_campaign_id(value: &str) -> bool {
+    value.len() == 5 + OPAQUE_ID_BYTES * 2
+        && value.starts_with("camp_")
+        && is_lower_hex(&value[5..])
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -407,7 +416,7 @@ mod tests {
         let original = &campaign.evaluator_manifest.assignments[0].hidden_truth_world_id;
         let replacement = WORLD_IDS
             .iter()
-            .find(|world_id| **world_id != original)
+            .find(|world_id| **world_id != original.as_str())
             .expect("different hidden world");
         campaign.evaluator_manifest.assignments[0].hidden_truth_world_id =
             (*replacement).to_owned();
