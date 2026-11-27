@@ -1,0 +1,13 @@
+[package]
+name = "magnetic-digital-quadrature"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Evidence-bounded Hall-latch and incremental quadrature reference"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
