@@ -1,0 +1,144 @@
+# CFI-Space v0.1 — Counterfactual Fault-Injection Benchmark
+
+Issue: [#7828](https://github.com/Luminous-Dynamics/symtropy/issues/7828)
+
+## Purpose
+
+CFI-Space evaluates whether a spacecraft perception/relative-navigation stack detects and contains plausible sensor and model failures before a plausible-looking but invalid pose can flow into a decision. It complements pose accuracy, calibration, and OOD benchmarks; it does not replace them.
+
+The primary unit is a **counterfactual episode**: a frozen scene/trajectory/sensor configuration with a clean reference and one or more controlled fault variants. The evaluator knows the injected fault; the candidate does not.
+
+## Research hypotheses
+
+1. **Agreement can be unsafe.** RGB/event estimates can agree while sharing a biased clock, extrinsic, target model, renderer, training set, annotation lineage, or calibration artifact.
+2. **Framewise calibration is insufficient.** A pose stream can have acceptable marginal frame coverage while missing at least one critical frame in an operational horizon.
+3. **Geometry-preserving appearance translation is a falsifiable assumption.** Translation must pass independent keypoint, visibility, crop, mask-topology, and temporal-motion checks before translated samples are admitted to calibration.
+4. **Abstention is a measurable capability.** A system should distinguish safe-to-score, out-of-domain, dependency-unknown, disagreement, and modality-unavailable states rather than silently selecting a preferred sensor.
+5. **Decision quality is not reducible to pose error.** A slightly less accurate estimator that correctly abstains under a common-cause fault may be preferable to a low-error estimator that silently accepts a biased pose.
+
+## Evaluation unit and split policy
+
+- Primary independent unit: target × session/trajectory × sensor-rig/configuration. The manifest must declare which grouping key is the independence unit; do not assume frames are independent.
+- All frames in an episode share a fixed horizon and are scored jointly.
+- Development, calibration, confirmatory, and blind-holdout manifests are disjoint by target/session/trajectory and by any known renderer or data-lineage group relevant to the claim.
+- Counterfactual variants derived from one parent episode remain in the same split.
+- No random frame split. No test-time calibration on the blind holdout.
+- Public synthetic fixtures validate scorer semantics only. Blind performance requires evaluator custody and candidate/evaluator process separation; public labels are not blind.
+
+## Fault taxonomy
+
+| Family | Examples | Required expected behaviour |
+|---|---|---|
+| RGB-local | saturation, underexposure, blur, dead rows, dropout | detect degradation; use valid alternate evidence only if scope and dependence permit |
+| Event-local | polarity loss, refractory/dead pixels, background activity, burst loss | detect degradation; abstain if observability falls below declared floor |
+| Timing | fixed offset, drift, jitter, stale timestamps, rolling-shutter mismatch | OUT_OF_SCOPE or DEPENDENCE_UNKNOWN; never fuse mismatched epochs |
+| Extrinsics/conventions | baseline shift, axis swap, unit mismatch, transform-direction mismatch | reject scope mismatch; do not normalize away an unverified convention |
+| Common cause | shared clock, optics, target geometry, renderer, training/annotation/calibration lineage | DEPENDENCE_UNKNOWN unless independent evidence closes the declared dependency |
+| Translation | keypoint drift, visibility/crop change, mask IoU/topology change, temporal jitter | reject translated calibration unit when any required geometry invariant fails |
+| Dynamics/observability | acceleration, occlusion transition, weak parallax, low event activity | OOD/LOW_OBSERVABILITY abstention or explicitly qualified dynamic model |
+| Integrity | digest substitution, missing dependency, stale revision, replayed identity, incomplete horizon | fail closed; no candidate-consistent status |
+
+## Required benchmark arms
+
+1. RGB-only estimator.
+2. Event-only estimator.
+3. Matched uncertainty-driven per-keypoint fusion (UE-Pose-style).
+4. Matched physics-cue/local reliability fusion.
+5. Geometry + temporal smoothing baseline.
+6. Symtropy consistency/dependency gate without pose fusion.
+7. Symtropy gate + independent-unit conformal sequence regions + translation audit.
+8. Research-only correlation-aware fusion. This arm is excluded from promotion until its dependence assumptions and tangent-space covariance handling are separately qualified.
+
+Every arm receives the same candidate-visible inputs, preprocessing opportunity, data splits, compute budget and output deadline. Paper-reported scores are context, not matched head-to-head results.
+
+## Scorecard: report every row, never collapse to one scalar
+
+### Pose and geometry
+- translation and rotation median, mean, P95, P99;
+- success rate at mission-declared tolerances;
+- reprojection residual and rigid-body consistency;
+- sequence maximum error and duration above tolerance.
+
+### Uncertainty and calibration
+- simultaneous complete-horizon coverage by independent unit;
+- region size/volume and sharpness;
+- conditional coverage by illumination, angular rate, range, occlusion, modality health and domain;
+- silent-miss rate: output claims valid while the true pose lies outside the declared region;
+- coverage-risk and availability-risk curves.
+
+### Fault detection and containment
+- per-family AUROC/AUPRC (diagnostic only);
+- recall at a predeclared false-alarm rate and precision at a predeclared recall;
+- detection delay in frames and milliseconds;
+- fault-family localization accuracy;
+- unsafe accepts, correct abstentions, unnecessary abstentions and time to recover;
+- exact denominator and per-case disposition.
+
+### Temporal behaviour
+- drift, jitter, discontinuity, stale-data detection, sequence-level failure rate;
+- maximum consecutive unqualified frames;
+- recovery overshoot and settling duration.
+
+### Resource envelope
+- p50/p95/p99 end-to-end latency, throughput, peak resident memory, energy/frame, model size;
+- hardware, compiler/runtime, precision, thermal/power mode and batch size.
+
+### Evidence integrity
+- exact input/output digests and replay determinism;
+- dependency declaration completeness;
+- split/lineage leakage controls;
+- malformed and incomplete-input rejection;
+- scorer parity across independent implementations.
+
+## Non-compensatory promotion gates
+
+- Zero unsafe accepts on the enumerated deterministic fault suite. Publish the complete finite denominator and case list; this is not a universal zero-risk statement.
+- No average score can compensate for a failed critical fault family.
+- Coverage is computed over independent complete episodes, not frame counts alone.
+- Confidence intervals and denominators are mandatory. Cluster/bootstrap at the declared independent-unit level; do not treat correlated frames as independent samples.
+- Fault detection is scored at predeclared operating points; AUROC alone is not a deployment criterion.
+- Missing fault families are OUT_OF_SCOPE, never implicitly passed.
+- A clean synthetic pass does not imply public-real, HIL, physical or flight qualification.
+
+## Implementation phases
+
+### P0 — contract and scorer (this branch)
+- Freeze manifest schema, taxonomy, scorecard, promotion gates and claim ceiling.
+- Add tiny synthetic known-answer fixtures only after schema review.
+- Keep evaluator fault ledger separate from candidate-visible manifest.
+
+### P1 — deterministic corpus and Rust scorer
+- Build deterministic episode/variant identity and counterfactual pairing.
+- Implement integer/fixed-point metrics where practical; define rounding and overflow behaviour.
+- Add an independent challenger and raw-byte corpus digest binding.
+- Negative controls: missing frames, duplicate identities, changed parent, altered horizon, unknown fault, digest mismatch, split leakage.
+
+### P2 — matched baselines
+- Adapter contracts for RGB, event, per-keypoint fusion, physical cue fusion and temporal geometry.
+- Resource-normalized execution; no unmatched paper score comparisons.
+- Preserve original modality estimates and uncertainty; no implicit fusion fallback.
+
+### P3 — public-real and blind evaluation
+- Lawful data/label admission, target/session grouping and rights register.
+- Candidate/evaluator separation and hidden fault ledger.
+- Prospective holdout and reproducible scorecard.
+
+### P4 — hardware and operational qualification
+- Exact sensor and compute configuration.
+- HIL fault injection, clock/extrinsic perturbation, thermal/power constraints and measured end-to-end latency.
+- Physical tests and mission-specific safety case remain independent promotion gates.
+
+## Existing work ownership
+
+- #7786: split/translation lineage auditor.
+- #7800/#7801: independent-unit conformal calibration.
+- #7806/#7808: translation geometry and temporal-label preservation.
+- #7810/#7813: RGB/event consistency and declared common-cause gate.
+- #7782: statistical pose regions.
+- #7715: synchronization; #7743: pose trustworthiness.
+
+CFI-Space owns cross-program benchmark orchestration, counterfactual pairing, baseline protocol, scorecard and blind evaluation governance. It must consume these outputs rather than duplicate or silently reinterpret their contracts.
+
+## Claim ceiling
+
+This document specifies a research benchmark. No estimator accuracy, fault rate, physical performance, SOTA superiority, deterministic safety outside the finite injected suite, flight readiness or certification is claimed. Synthetic known-answer fixtures validate scorer semantics only.
