@@ -1,0 +1,129 @@
+# AERO Research Positioning and Industry Comparison v0.1
+
+**Status:** literature-informed research positioning; not a market survey or certification assessment  
+**Date:** 2026-11-27  
+**Purpose:** identify what is established, what AERO must not claim as novel, and where a defensible research contribution may exist.
+
+## 1. Executive conclusion
+
+AERO should not claim to invent machine-readable assurance cases, assurance-argument formalization, model-based traceability, automated change-impact analysis, model credibility assessment, or lifecycle digital threads. These are established research and industry directions.
+
+The strongest research opportunity is a rigorously evaluated **cross-owner assurance replay and requalification protocol** that joins:
+1. typed claim/context identity;
+2. independently verifiable owner evidence and authority;
+3. separate physical/issuer/receiver/trust time semantics;
+4. non-compensatory model applicability and validation obligations;
+5. observer-coverage-qualified change impact;
+6. portable independent reconstruction;
+7. defeater-first and bounded evidence-acquisition workflows.
+
+The differentiator is the *end-to-end contract and empirical qualification*, not any single graph, digest, LLM, or assurance-case notation.
+
+## 2. Relevant prior art and standards
+
+### Assurance-case-centric engineering (ACCESS)
+
+The ACCESS work describes assurance-case-centric development, model-based traceability to engineering artefacts, invoking formal-method evidence (including Isabelle/HOL), machine-checking argument formalizations, and automated change-impact analysis. It also discusses evolving development-time assurance cases into runtime assurance cases.
+
+Implication: AERO's argument graph, formal evidence invocation and change-impact concepts overlap established prior art. The research contribution must be more specific: cross-owner identity/provenance, temporal replay, observer completeness, independent capsule reconstruction, and an adjudicated benchmark.
+
+Reference: [ACCESS: Assurance Case Centric Engineering of Safety-critical Systems](https://doi.org/10.1016/j.jss.2024.112034).
+
+### Assurance-case semantic analysis
+
+Recent work on goal-directed Answer Set Programming (ASP) formalizes semantic analysis of assurance cases. This reinforces that graph well-formedness is not argument soundness. AERO should eventually expose a formal semantics or independently checked inference obligations, not merely validate node and edge structure.
+
+Reference: [Automating Semantic Analysis of System Assurance Cases Using Goal-Directed ASP](https://www.cambridge.org/core/journals/theory-and-practice-of-logic-programming/article/automating-semantic-analysis-of-system-assurance-cases-using-goaldirected-asp/1515C06F4BC02013C302239B8C6C4562).
+
+### NASA model and simulation credibility
+
+NASA-STD-7009B establishes requirements/recommendations for models and simulations used in NASA activities, including credibility, uncertainty, transparency, repeatability and traceability across the M&S lifecycle. NASA's 2026 B-series handbook provides implementation guidance while explicitly leaving discipline-specific methods to responsible engineering disciplines.
+
+Implication: AERO should map model owner reports to context-of-use, credibility, uncertainty and validation obligations; it should not replace the underlying discipline-specific VVUQ.
+
+References:
+- [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf).
+- [NASA-HDBK-7009B, dated 2026-02-03](https://standards.nasa.gov/node/198).
+
+### LLMs and assurance arguments
+
+NASA/TM-20250001849 (March 2025) surveys proposals for LLM generation and assessment of assurance arguments. Its abstract concludes that much remains to be demonstrated before LLMs can be considered fit for generating or assessing assurance arguments in engineering and certification practice.
+
+Implication: Symthaea should be an investigator, defeater generator and evidence-action planner under explicit limits. It must not become the source of truth or an autonomous certification reviewer. Evaluate hallucinated evidence, unsupported inference, omission of defeaters, overconfident disposition and automation bias.
+
+Reference: [NASA/TM-20250001849, Examining Proposed Uses of LLMs to Produce or Assess Assurance Arguments](https://ntrs.nasa.gov/api/citations/20250001849/downloads/NASA-TM-20250001849.pdf?attachment=true).
+
+### MBSE and digital-thread workflows
+
+Industrial MBSE and PLM workflows already provide requirements traceability, configuration management, verification management, product lifecycle data and digital-thread integration. Automated validation suites can query model completeness and maturity.
+
+Implication: AERO should integrate with PLM/MBSE/QMS rather than compete as a replacement. Its target is portable cross-boundary claim admissibility and independent replay across owners and platforms.
+
+References:
+- [Siemens: Digital approach to airworthiness](https://static.sw.cdn.siemens.com/siemens-disw-assets/public/OuFPhhtGA5To47IB60A4m/en-US/VM---Technical-guide---Digital-approach-to-airworthiness_tcm27-106699.pdf).
+- [IEEE Aerospace 2024: Automating Model Validation for Quantifying System Maturity & Quality Assurance](https://doi.org/10.1109/AERO58975.2024.10521227).
+
+## 3. Competitive capability matrix
+
+| Capability | Established industry/research position | AERO's testable opportunity |
+|---|---|---|
+| Requirements and configuration traceability | Mature MBSE/PLM capability | Preserve claim-specific physical/configuration identity across owner boundaries |
+| Assurance-case graph and argument structure | Established standards and research | Typed executable contract with defeaters and explicit non-claims |
+| Formal semantic checking | Active research, including ASP and theorem-prover workflows | Independent semantic oracle and explicit reason-code reconstruction |
+| Model credibility / VVUQ | NASA-STD-7009B and discipline-specific practices | Bind owner-native credibility results to exact claim context and model cut |
+| Evidence integrity / signatures | Established cryptographic and supply-chain mechanisms | Separate payload integrity, producer authority, semantic validity, applicability and receiver knowledge |
+| Change impact | Existing traceability and assurance-case research | Permit selective requalification only when observer completeness is qualified |
+| Historical replay | Bitemporal/event-sourcing concepts exist in adjacent fields | Reconstruct evidence and trust as known at the original decision time |
+| Portable decision reconstruction | Reproducible build and archival methods exist | Portable assurance capsule with detached package integrity and explicit disclosure class |
+| LLM support | Early research; critical-use efficacy remains unproven | Defeater-first investigation and bounded evidence acquisition with measured error/authority limits |
+
+## 4. Defensible novelty claims
+
+AERO may claim these as **research hypotheses**, pending independent evidence:
+
+1. **Cross-owner claim replay:** a single portable claim episode can be reconstructed from multiple owner-native receipts without transferring owner authority to AERO.
+2. **Temporal non-collapse:** evidence knowledge time and trust-policy time are preserved independently through historical and counterfactual replay.
+3. **Observer-qualified selective requalification:** no claim is preserved as unaffected unless the relevant dependency observer's completeness is itself qualified.
+4. **Non-compensatory claim composition:** no aggregate score or model quality can erase a mandatory identity, provenance, applicability or chronology failure.
+5. **Evidence-action contracts:** every proposed investigation is tied to a precise unresolved predicate, authorization boundary and expected artifact contract; completion alone does not satisfy the claim.
+6. **Independent reconstruction benchmark:** a third-party verifier reconstructs disposition and reason codes from exported inputs, not from the originating AERO runtime.
+
+Do not describe any of these as industry-first or SOTA without a structured prior-art review and a matched independent benchmark.
+
+## 5. How to outperform responsibly
+
+AERO should aim to outperform on **measured assurance quality and cost**, not on model fluency or dashboard breadth.
+
+- Safety: zero observed critical false-review decisions in a frozen, independently adjudicated challenge set.
+- Recall: 100% detection of affected claims in critical dependency families before reducing unnecessary requalification.
+- Temporal fidelity: exact disposition/reason-code agreement on independently authored historical replay oracles.
+- Reproducibility: clean-room replay with explicit evidence disclosure classes and no undeclared dependencies.
+- Human factors: reduce reviewer time without increasing critical error, false rejection or automation bias.
+- Robustness: blinded root-cause families, coupled faults, mutation testing, and independent implementations.
+- Transfer: repeat the benchmark on at least one unrelated engineering domain only after the structural-material family is independently qualified.
+
+AERO should publish negative results and per-stratum failures. Any benchmark that hides false rejection, abstention, reviewer intervention, or incomplete observation is not a credible comparison.
+
+## 6. Research risks and anti-claims
+
+- A valid JSON Schema does not prove an assurance argument is sound.
+- A cryptographic digest does not prove producer authority or source truth.
+- A valid signature does not prove semantic applicability.
+- A validated model is not automatically valid outside its context of use.
+- An empty impact set does not prove no impact when observer coverage is incomplete.
+- A reproducible decision is not necessarily a correct decision.
+- An LLM-generated defeater is a hypothesis until verified.
+- A zero-failure synthetic benchmark is not a field failure-rate estimate.
+- No software-only benchmark establishes airworthiness or certification.
+
+## 7. Recommended next scientific experiments
+
+1. **Ablation study:** compare full AERO with no temporal replay, no owner authority binding, no observer coverage, no non-compensatory gate, and no capsule replay.
+2. **Cross-owner substitution challenge:** same part number, different serial/batch/configuration/producer; independently adjudicate exact identity.
+3. **Temporal counterfactual challenge:** one evidence episode replayed across three evidence/trust cut combinations.
+4. **Observer fault injection:** remove, delay or corrupt source observations and measure whether AERO overclaims unaffected claims.
+5. **Clean-room replay:** export capsules under included, digest-only, withheld and authorized-access-required disclosure classes.
+6. **Defeater utility study:** measure whether generated defeaters find independently seeded omissions without increasing unsupported rejection.
+7. **Human factors study:** blinded reviewers with and without AERO; measure error, time, reliance, disagreement and confidence calibration.
+
+These experiments should be frozen and independently reviewed before performance claims are made.
