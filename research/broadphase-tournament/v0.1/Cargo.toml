@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 incremental-aabb-tree-reference = { path = "../../incremental-aabb-tree-reference/v0.1" }
+symtropy-math = { path = "../../../crates/core/symtropy-math" }
 
 [lib]
 path = "src/lib.rs"
