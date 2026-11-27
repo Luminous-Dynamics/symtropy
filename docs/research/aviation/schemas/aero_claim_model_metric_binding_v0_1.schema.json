@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-claim-model-metric-binding-v0.1.schema.json",
+  "title": "AERO Claim-to-Model Metric Semantic Binding v0.1",
+  "description": "Owner-referenced typed semantic mapping. Shape validation and digest linkage do not authenticate signatures, establish scientific equivalence or prove physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "binding_ref",
+    "claim_id",
+    "claim_specification_payload_sha256",
+    "claim_specification_semantic_sha256",
+    "decision_context_sha256",
+    "model_credibility_sha256",
+    "owner_evidence_cut_sha256",
+    "required_evidence_refs",
+    "model_metric_id",
+    "measurand_id",
+    "metric_definition_ref",
+    "metric_definition_sha256",
+    "semantic_mapping_ref",
+    "semantic_mapping_basis_sha256",
+    "unit_code",
+    "aggregation",
+    "population_ref",
+    "sampling_unit_ref",
+    "population_manifest_sha256",
+    "population_quantifier",
+    "population_confidence_level_ppm",
+    "predicate_operator",
+    "predicate_threshold",
+    "predicate_unit_code",
+    "uncertainty_treatment",
+    "uncertainty_method_ref",
+    "uncertainty_profile_sha256",
+    "uncertainty_confidence_level_ppm",
+    "required_strata",
+    "owner_namespace",
+    "metric_semantics_evidence_ref",
+    "metric_semantics_record_sha256",
+    "model_report_evidence_ref",
+    "model_report_record_sha256",
+    "owner_attestation_evidence_ref",
+    "owner_attestation_record_sha256",
+    "producer_authority_receipt_ref",
+    "producer_authority_receipt_sha256",
+    "semantic_validation_receipt_ref",
+    "semantic_validation_receipt_sha256",
+    "receiver_first_seen_earliest_unix_ms",
+    "receiver_first_seen_latest_unix_ms",
+    "receiver_first_seen_receipt_ref",
+    "receiver_first_seen_record_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroClaimMetricSemanticBindingV0_1"
+    },
+    "binding_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "claim_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "claim_specification_payload_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "claim_specification_semantic_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "decision_context_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "model_credibility_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "owner_evidence_cut_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "required_evidence_refs": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "model_metric_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "measurand_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "metric_definition_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "metric_definition_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "semantic_mapping_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "semantic_mapping_basis_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "unit_code": {
+      "type": "string",
+      "enum": [
+        "1",
+        "Pa",
+        "MPa",
+        "N",
+        "m",
+        "s",
+        "kg",
+        "K",
+        "m/s",
+        "m/s^2",
+        "J",
+        "W"
+      ]
+    },
+    "aggregation": {
+      "type": "string",
+      "enum": [
+        "each_unit",
+        "maximum",
+        "minimum",
+        "mean",
+        "p95",
+        "p99"
+      ]
+    },
+    "population_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "sampling_unit_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "population_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "population_quantifier": {
+      "type": "string",
+      "enum": [
+        "every_required_unit",
+        "worst_case_over_declared_population",
+        "population_confidence_bound"
+      ]
+    },
+    "population_confidence_level_ppm": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "predicate_operator": {
+      "type": "string",
+      "enum": [
+        "less_than",
+        "less_than_or_equal",
+        "greater_than",
+        "greater_than_or_equal"
+      ]
+    },
+    "predicate_threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": -9223372036854776000,
+          "maximum": 9223372036854776000
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709552000
+        }
+      }
+    },
+    "predicate_unit_code": {
+      "type": "string",
+      "enum": [
+        "1",
+        "Pa",
+        "MPa",
+        "N",
+        "m",
+        "s",
+        "kg",
+        "K",
+        "m/s",
+        "m/s^2",
+        "J",
+        "W"
+      ]
+    },
+    "uncertainty_treatment": {
+      "type": "string",
+      "enum": [
+        "point_estimate",
+        "deterministic_upper_bound",
+        "deterministic_lower_bound",
+        "statistical_upper_confidence_bound",
+        "statistical_lower_confidence_bound",
+        "interval_enclosure"
+      ]
+    },
+    "uncertainty_method_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "uncertainty_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "uncertainty_confidence_level_ppm": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999999
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_strata": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "claim_stratum_id",
+          "model_stratum_ref"
+        ],
+        "properties": {
+          "claim_stratum_id": {
+            "$ref": "#/$defs/identifier"
+          },
+          "model_stratum_ref": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    },
+    "owner_namespace": {
+      "$ref": "#/$defs/identifier"
+    },
+    "metric_semantics_evidence_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "metric_semantics_record_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "model_report_evidence_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "model_report_record_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "owner_attestation_evidence_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "owner_attestation_record_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "producer_authority_receipt_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "producer_authority_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "semantic_validation_receipt_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "semantic_validation_receipt_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "receiver_first_seen_earliest_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "receiver_first_seen_latest_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "receiver_first_seen_receipt_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "receiver_first_seen_record_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "population_quantifier": {
+            "const": "population_confidence_bound"
+          }
+        },
+        "required": [
+          "population_quantifier"
+        ]
+      },
+      "then": {
+        "properties": {
+          "population_confidence_level_ppm": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999999
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "population_confidence_level_ppm": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "uncertainty_treatment": {
+            "enum": [
+              "statistical_upper_confidence_bound",
+              "statistical_lower_confidence_bound"
+            ]
+          }
+        },
+        "required": [
+          "uncertainty_treatment"
+        ]
+      },
+      "then": {
+        "properties": {
+          "uncertainty_confidence_level_ppm": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 999999
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "uncertainty_confidence_level_ppm": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9:._/-]+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

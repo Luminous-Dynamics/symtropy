@@ -1,0 +1,68 @@
+{
+  "schema": "AeroClaimMetricSemanticBindingV0_1",
+  "binding_ref": "aero:metric-binding:wing-panel-strength-001",
+  "claim_id": "claim-wing-panel-001",
+  "claim_specification_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "claim_specification_semantic_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "decision_context_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "model_credibility_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "owner_evidence_cut_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "required_evidence_refs": [
+    "receipt:inspection-01",
+    "receipt:calibration-02",
+    "receipt:metric-semantics",
+    "aeroweift:validation:wing-panel-001",
+    "receipt:metric-owner-attestation",
+    "receipt:metric-authority-verification",
+    "receipt:metric-semantic-validation",
+    "receipt:receiver-first-seen-binding"
+  ],
+  "model_metric_id": "maximum_principal_stress",
+  "measurand_id": "measurand:maximum-principal-stress",
+  "metric_definition_ref": "aeroweift:metric:maximum-principal-stress",
+  "metric_definition_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "semantic_mapping_ref": "aeroweift:mapping:stress-to-maximum-principal-stress",
+  "semantic_mapping_basis_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "unit_code": "MPa",
+  "aggregation": "maximum",
+  "population_ref": "population:wing-panel-candidates-synthetic",
+  "sampling_unit_ref": "sampling-unit:physical-panel",
+  "population_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "population_quantifier": "worst_case_over_declared_population",
+  "population_confidence_level_ppm": null,
+  "predicate_operator": "less_than_or_equal",
+  "predicate_threshold": {
+    "numerator": 300,
+    "denominator": 1
+  },
+  "predicate_unit_code": "MPa",
+  "uncertainty_treatment": "deterministic_upper_bound",
+  "uncertainty_method_ref": "method:synthetic-upper-bound-v1",
+  "uncertainty_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "uncertainty_confidence_level_ppm": null,
+  "required_strata": [
+    {
+      "claim_stratum_id": "stratum:temperature-ambient",
+      "model_stratum_ref": "environment:temperature-ambient"
+    },
+    {
+      "claim_stratum_id": "stratum:limit-load",
+      "model_stratum_ref": "load_case:limit-load"
+    }
+  ],
+  "owner_namespace": "mycelix:aerocommons",
+  "metric_semantics_evidence_ref": "receipt:metric-semantics",
+  "metric_semantics_record_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "model_report_evidence_ref": "aeroweift:validation:wing-panel-001",
+  "model_report_record_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "owner_attestation_evidence_ref": "receipt:metric-owner-attestation",
+  "owner_attestation_record_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "producer_authority_receipt_ref": "receipt:metric-authority-verification",
+  "producer_authority_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "semantic_validation_receipt_ref": "receipt:metric-semantic-validation",
+  "semantic_validation_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "receiver_first_seen_earliest_unix_ms": 1795516500000,
+  "receiver_first_seen_latest_unix_ms": 1795516600000,
+  "receiver_first_seen_receipt_ref": "receipt:receiver-first-seen-binding",
+  "receiver_first_seen_record_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+}
