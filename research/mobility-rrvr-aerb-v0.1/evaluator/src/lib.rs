@@ -648,16 +648,14 @@ fn validate_world_semantics(world: &EvaluatorWorld) -> Result<(), EvaluatorError
     Ok(())
 }
 
+type EvaluatorWorldMap<'a> = BTreeMap<&'a str, &'a EvaluatorWorld>;
+type DecisionLossTable = BTreeMap<(Disposition, String), f64>;
+type ValidatedWorldPack<'a> = (EvaluatorWorldMap<'a>, DecisionLossTable);
+
 fn validate_world_pack<'a>(
     pack: &'a EvaluatorWorldPack,
     episode: &CandidateEpisode,
-) -> Result<
-    (
-        BTreeMap<&'a str, &'a EvaluatorWorld>,
-        BTreeMap<(Disposition, String), f64>,
-    ),
-    EvaluatorError,
-> {
+) -> Result<ValidatedWorldPack<'a>, EvaluatorError> {
     if pack.schema_version != SCHEMA_VERSION || pack.benchmark != BENCHMARK {
         return Err(EvaluatorError::UnsupportedSchema(
             "evaluator world pack".to_owned(),
