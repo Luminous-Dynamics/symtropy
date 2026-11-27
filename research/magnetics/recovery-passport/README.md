@@ -34,17 +34,14 @@ This is not a recovery-process operating manual, chemistry recipe, LCA/TEA engin
 
 The evaluator validates identity, declared scope, route-eligibility receipts, event sequencing, mass-flow identities and supplied quality/acceptance evidence. The v0.1 implementation computes total mass-balance intervals only; element-specific balance is a later method-scoped assay adapter. It does not authenticate evidence producers, validate laboratory methods, establish process safety, calculate magnetic fields, perform LCA/TEA, or authorize physical recovery operations.
 
+## Exact evidence joins
 
-The recovery stage input mass is now bound to the exact feedstock-lot mass record. Downstream closed-loop reuse can reference only a recovered magnet-feedstock or remanufacturable-alloy output; residues and elemental products cannot be relabelled as reused magnet feedstock. Definite mass-balance contradictions are non-compensatory FAIL outcomes, while unsupported route/form combinations are NOT_EVALUABLE.
+- Source-lot feedstock mass and recovery-stage input mass each have a distinct digest-bound weighing record.
+- Their uncertainty intervals must overlap; point-value equality is not required. Disjoint intervals remain unresolved.
+- Recovery outputs have unique product IDs and method-scoped composition, quality or residue-disposition evidence according to product form.
+- A closed-loop use claim binds a recovered magnet-feedstock/alloy output to a positive digest-bound consumed-mass record, a new material lot, downstream genealogy and the as-built functional acceptance receipt.
+- The consumed mass cannot exceed the identified recovered output; residues and elemental products are not magnet-feedstock reuse.
 
+## Validation inventory
 
-The route-source register distinguishes paper/review evidence from local specimen receipts. A literature source establishes neither route eligibility nor downstream product quality for a specific source lot.
-
-
-Source-lot and recovery-stage input weights each carry their own digest-bound measurement record. The evaluator requires the source and stage-input mass uncertainty intervals to overlap; identical point values are not required, and disjoint intervals remain indeterminate.
-
-
-Source-lot mass and recovery-stage input mass each require their own digest-bound weighing record. The two measurement intervals must overlap; point-value equality is not required when both measurements carry defensible uncertainty. Disjoint intervals remain indeterminate.
-
-
-A closed-loop reuse claim now requires a digest-bound consumption receipt and a positive consumed mass that cannot exceed the identified recovered magnet-feedstock/alloy output. Merely linking an output ID to a later build is not sufficient. Residues and elemental products cannot be counted as magnet-feedstock reuse.
+Twenty-eight Rust unit tests are authored. The three-platform workflow is in `.github/workflows/magnetic-recovery-passport.yml`. The current branch head still requires a completed exact-head run; no compile, Clippy or test pass is claimed until the runner reports it.
