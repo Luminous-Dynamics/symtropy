@@ -928,7 +928,8 @@ mod tests {
     fn fractional_budget_witness_satisfies_continuous_l1_set() {
         let result = evaluate_continuous_tournament(&instance(0.5)).unwrap();
         for plan in result.plans {
-            assert!(plan.witness
+            assert!(plan
+                .witness
                 .iter()
                 .all(|(_, value)| value.abs() <= 1.0 + EPS));
             assert!(
