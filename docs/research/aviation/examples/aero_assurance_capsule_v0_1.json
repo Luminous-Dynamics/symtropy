@@ -200,6 +200,96 @@
       "owner_receipt_ref": "receipt:owner-cut",
       "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
       "required_for_claim": true
+    },
+    {
+      "evidence_ref": "receipt:spec-check",
+      "owner_namespace": "aero:specification-validator",
+      "evidence_role": "semantic_validation",
+      "raw_payload_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "owner_record_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "receipt:binding",
+      "owner_namespace": "aero:claim-metric-binding",
+      "evidence_role": "semantic_validation",
+      "raw_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "owner_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "receipt:trust",
+      "owner_namespace": "mycelix:aerocommons",
+      "evidence_role": "producer_authority",
+      "raw_payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "owner_record_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "receipt:verifier-execution",
+      "owner_namespace": "aero:verifier",
+      "evidence_role": "other",
+      "raw_payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "owner_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "decision:aero-capsule-synthetic-001",
+      "owner_namespace": "aero:decision-recorder",
+      "evidence_role": "other",
+      "raw_payload_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "owner_record_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
     }
   ],
   "component_results": [
@@ -278,7 +368,12 @@
     "classification": "authorized_access_required",
     "required_evidence_refs": [
       "evidence:model-report",
-      "evidence:owner-receipts"
+      "evidence:owner-receipts",
+      "receipt:spec-check",
+      "receipt:binding",
+      "receipt:trust",
+      "receipt:verifier-execution",
+      "decision:aero-capsule-synthetic-001"
     ],
     "included_evidence_refs": [],
     "verification_steps": [
