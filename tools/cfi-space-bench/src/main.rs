@@ -858,6 +858,30 @@ mod tests {
     }
 
     #[test]
+    fn input_bundle_digest_substitution_is_rejected() {
+        let mut manifest: CandidateManifest = parse(MANIFEST);
+        manifest.episodes[0].input_bundle_sha256 = "f".repeat(64);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn input_bundle_path_traversal_is_rejected() {
+        let mut manifest: CandidateManifest = parse(MANIFEST);
+        manifest.episodes[0].input_bundle_path = "../Cargo.toml".to_string();
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
     fn duplicate_prediction_identity_is_rejected() {
         let manifest: CandidateManifest = parse(MANIFEST);
         let ledger: EvaluatorLedger = parse(LEDGER);
