@@ -75,14 +75,18 @@ fn validate(rows: &[EvidenceRow<'_>]) -> Result<(), String> {
                     ));
                 }
                 if row.value == "UNKNOWN" {
-                    if row.evidence_class != "NOT_REPORTED_FOR_PORT_PERIOD" {
+                    if row.evidence_class != "NOT_REPORTED_FOR_PORT_PERIOD"
+                        || !row.claim_ceiling.contains("Do not treat dash as zero")
+                    {
                         return Err(format!(
                             "unknown period {} at {} must retain NOT_REPORTED state",
                             row.period, row.site
                         ));
                     }
                 } else {
-                    if row.evidence_class != "ESTIMATED_FROM_TNPA_VESSEL_LOGS_AND_REFERENCE_POWER" {
+                    if row.evidence_class != "ESTIMATED_FROM_TNPA_VESSEL_LOGS_AND_REFERENCE_POWER"
+                        || row.claim_ceiling.contains("Do not treat dash as zero")
+                    {
                         return Err(format!(
                             "shore-power value {} at {} must remain model-estimated",
                             row.period, row.site
@@ -134,9 +138,9 @@ fn source_evidence_preserves_units_statuses_and_claim_ceilings() {
     for row in &evidence {
         *counts.entry((row.source_id, row.unit)).or_default() += 1;
     }
-    assert_eq!(counts.get(&("LOAD_CONNECTION_2025", "MVA")), Some(&10));
+    assert_eq!(counts.get(&("LOAD_CONNECTION_2025", "MVA")), Some(&6));
     assert_eq!(counts.get(&("LOAD_CONNECTION_2025", "category")), Some(&2));
-    assert_eq!(counts.get(&("SHORE_POWER_DEMAND_2025", "MW")), Some(&24));
+    assert_eq!(counts.get(&("SHORE_POWER_DEMAND_2025", "MW")), Some(&28));
 
     let ngqura_spare = exactly_one(
         &evidence,
