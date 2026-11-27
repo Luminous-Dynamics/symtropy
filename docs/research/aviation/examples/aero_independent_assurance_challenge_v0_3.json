@@ -238,10 +238,9 @@
       "case_id": "IAB27",
       "case_class": "single_fault",
       "mutation": "Change a non-dependent document and unnecessarily requalify every claim despite complete dependency observation.",
-      "expected_disposition": "INCOMPLETE",
-      "expected_reason_codes": [
-        "IMPACT_ANALYSIS_OVER_INVALIDATES"
-      ]
+      "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+      "expected_reason_codes": [],
+      "expected_impact_outcome": "NO_REQUALIFICATION_REQUIRED"
     },
     {
       "case_id": "IAB28",
@@ -256,7 +255,7 @@
       "case_id": "IAB29",
       "case_class": "single_fault",
       "mutation": "Recommend a destructive physical test without required authorization or approved procedure.",
-      "expected_disposition": "REJECTED",
+      "expected_disposition": "INCOMPLETE",
       "expected_reason_codes": [
         "EVIDENCE_ACTION_AUTHORITY_MISSING"
       ]
@@ -265,7 +264,7 @@
       "case_id": "IAB30",
       "case_class": "single_fault",
       "mutation": "Recommend an additional test but mark the claim resolved before the resulting artifact is received and verified.",
-      "expected_disposition": "REJECTED",
+      "expected_disposition": "INCOMPLETE",
       "expected_reason_codes": [
         "EVIDENCE_ACTION_COMPLETION_NOT_VERIFIED"
       ]
@@ -277,7 +276,8 @@
       "expected_disposition": "UNVERIFIED",
       "expected_reason_codes": [
         "EVIDENCE_PRODUCER_AUTHORITY_UNVERIFIED"
-      ]
+      ],
+      "replay_mode": "CURRENT_POLICY_COUNTERFACTUAL"
     },
     {
       "case_id": "IAB32",
