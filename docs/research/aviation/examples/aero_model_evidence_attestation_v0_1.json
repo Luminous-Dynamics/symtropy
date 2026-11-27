@@ -72,7 +72,7 @@
     "first_seen_latest_unix_ms": 1795777200500,
     "verification_receipt": {
       "receipt_ref": "receipt:synthetic:receiver-first-seen-001",
-      "receipt_sha256": "cecececececececececececececececececececececececececececececececec"
+      "receipt_sha256": "cececececececececececececececececececececececececececececececece"
     }
   },
   "owner_receipt": {
