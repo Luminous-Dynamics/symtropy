@@ -68,7 +68,8 @@ impl McfResidualInstance {
                 .iter()
                 .map(|&supply| i128::from(supply)),
         );
-        if self.arc_count as usize != self.arcs.len() || self.lower_bounds.len() != self.arcs.len() {
+        if self.arc_count as usize != self.arcs.len() || self.lower_bounds.len() != self.arcs.len()
+        {
             return Err(McfTransformError::new(
                 "residual arc and lower-bound vectors do not match declared arc count",
             ));
@@ -415,10 +416,9 @@ mod tests {
 
     #[test]
     fn lower_bound_reduction_preserves_node_balance_for_restored_flow() {
-        let instance = parse_dimacs_mcf(
-            "p min 3 2\nn 1 5\nn 2 -1\nn 3 -4\na 1 2 2 5 7\na 2 3 1 4 -3",
-        )
-        .unwrap();
+        let instance =
+            parse_dimacs_mcf("p min 3 2\nn 1 5\nn 2 -1\nn 3 -4\na 1 2 2 5 7\na 2 3 1 4 -3")
+                .unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
         let residual_flows = [3_i64, 3_i64];
         let original_flows = restore_original_flows(&residual, &residual_flows).unwrap();
@@ -583,14 +583,7 @@ mod tests {
 
         let mut balance = vec![0_i128; node_count as usize + 1];
         let mut best = None;
-        visit(
-            0,
-            arcs,
-            supplies,
-            &mut balance,
-            objective_offset,
-            &mut best,
-        );
+        visit(0, arcs, supplies, &mut balance, objective_offset, &mut best);
         best
     }
 
@@ -613,8 +606,8 @@ mod tests {
                 let head = (next(&mut state) % 3 + 1) as usize;
                 let lower = i64::from(next(&mut state) % 2);
                 let upper = lower + i64::from(next(&mut state) % 3);
-                let chosen = lower
-                    + i64::from(next(&mut state) % u32::try_from(upper - lower + 1).unwrap());
+                let chosen =
+                    lower + i64::from(next(&mut state) % u32::try_from(upper - lower + 1).unwrap());
                 let unit_cost = i32::try_from(next(&mut state) % 9).unwrap() - 4;
                 supplies[tail] += chosen;
                 supplies[head] -= chosen;
@@ -666,12 +659,8 @@ mod tests {
                 })
                 .collect::<Vec<_>>();
 
-            let original_best = brute_min_cost(
-                instance.node_count,
-                &original_rows,
-                &original_supplies,
-                0,
-            );
+            let original_best =
+                brute_min_cost(instance.node_count, &original_rows, &original_supplies, 0);
             let residual_best = brute_min_cost(
                 residual.node_count,
                 &residual_rows,
@@ -679,11 +668,13 @@ mod tests {
                 residual.lower_bound_cost_offset,
             );
             assert_eq!(
-                residual_best,
-                original_best,
+                residual_best, original_best,
                 "lower-bound transform mismatch for deterministic seed {seed}; chosen feasible flow {chosen_flows:?}"
             );
-            assert!(original_best.is_some(), "seed {seed} was constructed from a feasible flow");
+            assert!(
+                original_best.is_some(),
+                "seed {seed} was constructed from a feasible flow"
+            );
         }
     }
 
