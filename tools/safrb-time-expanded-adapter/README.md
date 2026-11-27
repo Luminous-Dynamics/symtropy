@@ -84,7 +84,7 @@ The `floor_cut_explanations` module reuses the exact lower-bound circulation cer
 - lower-bound positive/negative balance arcs;
 - circulation return closure.
 
-Each explanation includes the base and auxiliary graph digests, required/achieved auxiliary flow, shortfall, exact cut capacity, source-side nodes, exact cut-edge identities/metadata and directly referenced service IDs. The independent verifier reconstructs the mapping from the same profile and floor report, verifies the original lower-bound proof, and rejects any modified edge, capacity, mapping or summary.
+Each explanation includes the base and auxiliary graph digests, required/achieved auxiliary flow, shortfall, exact cut capacity, source-side nodes, exact cut-edge identities/metadata, physical node, temporal state, period and directly referenced service IDs. The independent verifier reconstructs the mapping from the same profile and floor report, verifies the original lower-bound proof, and rejects any modified edge, capacity, mapping or summary.
 
 **Claim boundary:** the min-cut proves a bottleneck in the exact compiled lower-bound circulation graph. Its mapping describes encoded constraints, not physical root cause, a unique minimal intervention, causal responsibility, or an investment ranking. Source evidence and authority remain externally qualified.
 
