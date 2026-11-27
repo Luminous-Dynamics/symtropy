@@ -15,16 +15,77 @@
     "constraint_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
   },
   "metrics": [
-    { "metric_id": "hotspot", "unit": "degC", "class": "MandatoryFunction", "direction": "Minimize", "hard_max": 160.0, "non_inferiority_margin": 5.0 },
-    { "metric_id": "ac_winding_loss", "unit": "W", "class": "MandatoryFunction", "direction": "Minimize", "hard_max": 1800.0, "non_inferiority_margin": 50.0 },
-    { "metric_id": "dielectric_margin", "unit": "ratio", "class": "MandatoryFunction", "direction": "Maximize", "hard_min": 1.5, "non_inferiority_margin": 0.1 },
-    { "metric_id": "pressure_drop", "unit": "kPa", "class": "MandatoryFunction", "direction": "Minimize", "hard_max": 45.0, "non_inferiority_margin": 2.0 },
-    { "metric_id": "pump_power", "unit": "W", "class": "MandatoryFunction", "direction": "Minimize", "hard_max": 180.0, "non_inferiority_margin": 10.0 },
-    { "metric_id": "leak_rate", "unit": "mL/h", "class": "MandatoryFunction", "direction": "Minimize", "hard_max": 0.01, "non_inferiority_margin": 0.002 },
-    { "metric_id": "thermal_cycles", "unit": "cycles", "class": "MandatoryFunction", "direction": "Maximize", "hard_min": 1000.0, "non_inferiority_margin": 100.0 },
-    { "metric_id": "thermal_resistance", "unit": "K/W", "class": "StackBenefit", "direction": "Minimize" },
-    { "metric_id": "system_mass", "unit": "kg", "class": "StackBenefit", "direction": "Minimize" }
+    {
+      "metric_id": "winding_hotspot_temperature",
+      "unit": "degC",
+      "class": "MandatoryFunction",
+      "direction": "Minimize",
+      "hard_max": 160,
+      "non_inferiority_margin": 5
+    },
+    {
+      "metric_id": "ac_winding_loss",
+      "unit": "W",
+      "class": "MandatoryFunction",
+      "direction": "Minimize",
+      "hard_max": 1800,
+      "non_inferiority_margin": 50
+    },
+    {
+      "metric_id": "dielectric_margin",
+      "unit": "ratio",
+      "class": "MandatoryFunction",
+      "direction": "Maximize",
+      "hard_min": 1.5,
+      "non_inferiority_margin": 0.1
+    },
+    {
+      "metric_id": "coolant_pressure_drop",
+      "unit": "kPa",
+      "class": "MandatoryFunction",
+      "direction": "Minimize",
+      "hard_max": 45,
+      "non_inferiority_margin": 2
+    },
+    {
+      "metric_id": "pump_input_power",
+      "unit": "W",
+      "class": "MandatoryFunction",
+      "direction": "Minimize",
+      "hard_max": 180,
+      "non_inferiority_margin": 10
+    },
+    {
+      "metric_id": "leak_rate",
+      "unit": "mL/h",
+      "class": "MandatoryFunction",
+      "direction": "Minimize",
+      "hard_max": 0.01,
+      "non_inferiority_margin": 0.002
+    },
+    {
+      "metric_id": "thermal_cycle_survival",
+      "unit": "cycles",
+      "class": "MandatoryFunction",
+      "direction": "Maximize",
+      "hard_min": 1000,
+      "non_inferiority_margin": 100
+    },
+    {
+      "metric_id": "effective_thermal_resistance",
+      "unit": "K/W",
+      "class": "StackBenefit",
+      "direction": "Minimize"
+    },
+    {
+      "metric_id": "system_mass",
+      "unit": "kg",
+      "class": "StackBenefit",
+      "direction": "Minimize"
+    }
   ],
-  "required_baseline_families": ["ConventionalWindingCooling"],
+  "required_baseline_families": [
+    "ConventionalWindingCooling"
+  ],
   "trials": []
 }
