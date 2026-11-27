@@ -1,6 +1,7 @@
 use orbital_inspection_horizon_composition_bench::{HorizonDisposition, HorizonScope};
 use orbital_passive_safety_terminal_bench::{
-    BoundEnvelope, BoundState, PeriodWitness, RECEIPT_SCHEMA, TerminalCase, TerminalResult, evaluate,
+    BoundEnvelope, BoundState, PeriodWitness, RECEIPT_SCHEMA, TerminalCase, TerminalResult,
+    evaluate,
 };
 use std::env;
 use std::error::Error;
@@ -146,14 +147,14 @@ fn render_result(result: &TerminalResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     let scope = &result.scope;
-    let period_id = result
-        .period_witness_id
-        .as_deref()
-        .map_or_else(|| "null".to_owned(), |value| format!("\"{}\"", json_escape(value)));
-    let period_sha = result
-        .period_witness_receipt_sha256
-        .as_deref()
-        .map_or_else(|| "null".to_owned(), |value| format!("\"{}\"", json_escape(value)));
+    let period_id = result.period_witness_id.as_deref().map_or_else(
+        || "null".to_owned(),
+        |value| format!("\"{}\"", json_escape(value)),
+    );
+    let period_sha = result.period_witness_receipt_sha256.as_deref().map_or_else(
+        || "null".to_owned(),
+        |value| format!("\"{}\"", json_escape(value)),
+    );
     format!(
         "{{\"case_id\":\"{}\",\"scope\":{{\"action_id\":\"{}\",\"target_id\":\"{}\",\"keepout_profile_id\":\"{}\",\"keepout_geometry_revision\":\"{}\",\"transform_digest\":\"{}\",\"frame_id\":\"{}\",\"frame_revision\":\"{}\",\"time_basis_id\":\"{}\",\"dynamics_profile_revision\":\"{}\"}},\"terminal_epoch_tai_ns\":{},\"bounds_provider_id\":\"{}\",\"bounds_provider_revision\":\"{}\",\"bounds_receipt_sha256\":\"{}\",\"bounds_state\":\"{}\",\"period_witness_id\":{},\"period_witness_receipt_sha256\":{},\"disposition\":\"{}\",\"delta_a_branch\":\"{}\",\"margin_scaled\":{},\"reason_codes\":[{}],\"period_witness_consumed\":{}}}",
         json_escape(&result.case_id),
