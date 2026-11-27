@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1", "research/aero-assurance-capsule-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -52,9 +52,14 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/examples/aero_assurance_capsule_challenge_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_capsule_challenge_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_capsule_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_capsule_v0_1.schema.json"
+      - "docs/research/aviation/AERO_PORTABLE_ASSURANCE_CAPSULE_V0_1.md"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -107,6 +112,11 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
       - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/examples/aero_assurance_capsule_challenge_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_capsule_challenge_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_capsule_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_capsule_v0_1.schema.json"
+      - "docs/research/aviation/AERO_PORTABLE_ASSURANCE_CAPSULE_V0_1.md"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -1042,6 +1052,159 @@ jobs:
           if not any(case["expected_disposition"] == "FORMALLY_WELL_SPECIFIED" for case in cases):
               raise SystemExit("challenge seed must retain a positive control")
           print("AERO claim-spec schemas/examples passed; 12-case challenge seed remains unreviewed and unexecuted.")
+          PY
+
+      - name: Validate AERO portable assurance capsule schema and graph/evidence invariants
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+          from collections import deque
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema_path = root / "docs/research/aviation/schemas/aero_assurance_capsule_v0_1.schema.json"
+          example_path = root / "docs/research/aviation/examples/aero_assurance_capsule_v0_1.json"
+          corpus_schema_path = root / "docs/research/aviation/schemas/aero_assurance_capsule_challenge_v0_1.schema.json"
+          corpus_path = root / "docs/research/aviation/examples/aero_assurance_capsule_challenge_v0_1.json"
+
+          pairs = [(schema_path, example_path), (corpus_schema_path, corpus_path)]
+          for schema_file, instance_file in pairs:
+              schema = json.loads(schema_file.read_text())
+              instance = json.loads(instance_file.read_text())
+              if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+                  raise SystemExit(f"{schema_file.name}: Draft 2020-12 is required")
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(instance),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{instance_file.name} {list(error.absolute_path)}: {error.message}", file=sys.stderr)
+                  raise SystemExit(f"{instance_file.name}: {len(errors)} schema validation errors")
+
+          capsule = json.loads(example_path.read_text())
+          graph = capsule["argument_graph"]
+          nodes = graph["nodes"]
+          node_ids = [node["node_id"] for node in nodes]
+          if len(node_ids) != len(set(node_ids)):
+              raise SystemExit("argument node IDs must be unique")
+          if graph["root_node_id"] not in set(node_ids):
+              raise SystemExit("argument graph root must exist")
+          node_by_id = {node["node_id"]: node for node in nodes}
+          outgoing = {node_id: [] for node_id in node_ids}
+          undirected = {node_id: set() for node_id in node_ids}
+          seen_edges = set()
+          for edge in graph["edges"]:
+              source, target, relation = edge["from_node_id"], edge["to_node_id"], edge["relation"]
+              if source not in node_by_id or target not in node_by_id:
+                  raise SystemExit("argument edge endpoint is missing")
+              key = (source, target, relation)
+              if key in seen_edges:
+                  raise SystemExit("argument edges must be unique")
+              seen_edges.add(key)
+              outgoing[source].append(target)
+              undirected[source].add(target)
+              undirected[target].add(source)
+
+          indegree = {node_id: 0 for node_id in node_ids}
+          for source in node_ids:
+              for target in outgoing[source]:
+                  indegree[target] += 1
+          queue = deque(node_id for node_id, degree in indegree.items() if degree == 0)
+          visited = 0
+          while queue:
+              node_id = queue.popleft()
+              visited += 1
+              for target in outgoing[node_id]:
+                  indegree[target] -= 1
+                  if indegree[target] == 0:
+                      queue.append(target)
+          if visited != len(node_ids):
+              raise SystemExit("argument graph must be acyclic")
+
+          root = graph["root_node_id"]
+          connected = {root}
+          pending = [root]
+          while pending:
+              current = pending.pop()
+              for neighbor in undirected[current]:
+                  if neighbor not in connected:
+                      connected.add(neighbor)
+                      pending.append(neighbor)
+          if connected != set(node_ids):
+              raise SystemExit("argument graph contains unreachable/orphan nodes")
+
+          evidence = capsule["evidence_manifest"]
+          evidence_refs = [item["evidence_ref"] for item in evidence]
+          if len(evidence_refs) != len(set(evidence_refs)):
+              raise SystemExit("evidence manifest references must be unique")
+          evidence_by_ref = {item["evidence_ref"]: item for item in evidence}
+          for node in nodes:
+              if node["node_kind"] == "evidence":
+                  if not node.get("evidence_ref") or node["evidence_ref"] not in evidence_by_ref:
+                      raise SystemExit(f"{node['node_id']}: evidence node must bind an indexed evidence record")
+          component_ids = [item["component_id"] for item in capsule["component_results"]]
+          if len(component_ids) != len(set(component_ids)):
+              raise SystemExit("component result IDs must be unique")
+          for component in capsule["component_results"]:
+              if component["receipt_ref"] not in evidence_by_ref:
+                  raise SystemExit(f"{component['component_id']}: component receipt must be in the evidence manifest")
+          decision = capsule["decision"]
+          positive = decision["disposition"] == "reviewable_for_independent_decision"
+          component_blockers = {
+              "incomplete", "unverified", "rejected", "out_of_scope",
+              "not_known_at_snapshot", "unsupported_profile"
+          }
+          if positive and any(item["disposition"] in component_blockers for item in capsule["component_results"]):
+              raise SystemExit("top-level reviewability cannot compensate for a non-positive mandatory component")
+          if not positive and not decision["reason_codes"]:
+              raise SystemExit("non-positive decision requires explicit reason codes")
+          if capsule["claim_context"]["acquisition_interval"]["earliest_unix_ms"] > capsule["claim_context"]["acquisition_interval"]["latest_unix_ms"]:
+              raise SystemExit("claim acquisition interval is reversed")
+          if capsule["claim_context"]["acquisition_interval"]["latest_unix_ms"] > capsule["claim_context"]["as_known_at_unix_ms"]:
+              raise SystemExit("claim acquisition interval exceeds historical knowledge cutoff")
+          for item in evidence:
+              interval = item["receiver_first_seen_interval"]
+              if interval["earliest_unix_ms"] > interval["latest_unix_ms"]:
+                  raise SystemExit(f"{item['evidence_ref']}: receiver-first-seen interval is reversed")
+              if item["required_for_claim"] and interval["latest_unix_ms"] > capsule["claim_context"]["as_known_at_unix_ms"]:
+                  raise SystemExit(f"{item['evidence_ref']}: required evidence was not known at the historical cutoff")
+
+          reproduction = capsule["reproduction"]
+          known_refs = set(evidence_refs)
+          required_refs = set(reproduction["required_evidence_refs"])
+          included_refs = set(reproduction["included_evidence_refs"])
+          if not required_refs.issubset(known_refs):
+              raise SystemExit("reproduction required-evidence references must exist in the evidence manifest")
+          if not included_refs.issubset(required_refs):
+              raise SystemExit("included evidence must be a subset of required evidence")
+          if reproduction["classification"] == "fully_reproducible":
+              if reproduction["unresolved_prerequisites"] or not required_refs.issubset(included_refs):
+                  raise SystemExit("fully_reproducible requires all mandatory evidence bytes and no unresolved prerequisites")
+              if capsule["verifier_manifest"]["network_policy"] != "hermetic_no_network":
+                  raise SystemExit("fully_reproducible requires a qualified hermetic no-network verifier")
+          detached = capsule["detached_integrity"]
+          if detached["detached_receipt_ref"] in evidence_by_ref:
+              raise SystemExit("detached package receipt must remain outside the capsule to avoid self-referential hashing")
+          if not detached["signature_verification_owner"]:
+              raise SystemExit("detached package receipt requires a named owner trust boundary")
+
+          corpus = json.loads(corpus_path.read_text())
+          cases = corpus["cases"]
+          case_ids = [case["case_id"] for case in cases]
+          if len(cases) != 27 or len(case_ids) != len(set(case_ids)):
+              raise SystemExit("capsule challenge seed must contain exactly 27 unique cases")
+          if corpus["oracle_status"] != "NOT_INDEPENDENTLY_REVIEWED" or corpus["execution_status"] != "NOT_EXECUTED":
+              raise SystemExit("capsule challenge seed must remain unreviewed and unexecuted")
+          if not any(case["case_class"] == "positive_control" for case in cases):
+              raise SystemExit("capsule challenge seed must contain a positive control")
+          if any(case["case_class"] in ("single_fault", "coupled_fault") and case["expected_validator_result"] == "STRUCTURALLY_VALID" for case in cases):
+              raise SystemExit("fault-bearing challenge cases cannot expect STRUCTURALLY_VALID")
+          print("AERO capsule schemas and synthetic argument/evidence/reproduction invariants passed; 27-case corpus remains unreviewed and unexecuted.")
           PY
 
       - name: Run evaluator tests
