@@ -118,7 +118,7 @@ pub struct ComponentAcceptance {
     pub linked_evidence_ids: Vec<String>,
     pub maturity: Maturity,
     pub disposition: Disposition,
-    pub scope_digest: String,
+    pub acceptance_policy_digest: String,
     pub receipt_digest: String,
     pub physical_evidence_digest: String,
 }
@@ -175,6 +175,7 @@ pub enum Blocker {
     InvalidBenchmarkSpec,
     DuplicateArchitectureId,
     DuplicateComponentId,
+    DuplicateEvidenceIdentity,
     MissingCandidate,
     MissingRequiredBaseline,
     MissingConventionalBaseline,
@@ -215,6 +216,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
     let mut global_blockers = validate_spec(spec);
     let mut ids = BTreeSet::new();
     let mut component_ids = BTreeSet::new();
+    let mut evidence_ids = BTreeSet::new();
 
     for trial in trials {
         if !ids.insert(trial.architecture_id.as_str()) {
@@ -222,6 +224,14 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
         }
         if !component_ids.insert(trial.component_id.as_str()) {
             global_blockers.push(Blocker::DuplicateComponentId);
+        }
+        if !evidence_ids.insert(trial.acceptance.functional_test_evidence_id.as_str()) {
+            global_blockers.push(Blocker::DuplicateEvidenceIdentity);
+        }
+        for observation in &trial.observations {
+            if !evidence_ids.insert(observation.evidence_id.as_str()) {
+                global_blockers.push(Blocker::DuplicateEvidenceIdentity);
+            }
         }
     }
 
@@ -239,7 +249,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
         let mut blockers = global_blockers.clone();
 
         if candidate.scope != spec.scope
-            || candidate.acceptance.scope_digest != spec.scope.acceptance_policy_digest
+            || candidate.acceptance.acceptance_policy_digest != spec.scope.acceptance_policy_digest
         {
             blockers.push(Blocker::ScopeMismatch);
         }
@@ -275,7 +285,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
 
             for baseline in matching {
                 if baseline.scope != spec.scope
-                    || baseline.acceptance.scope_digest != spec.scope.acceptance_policy_digest
+                    || baseline.acceptance.acceptance_policy_digest != spec.scope.acceptance_policy_digest
                 {
                     blockers.push(Blocker::ScopeMismatch);
                     any_baseline_invalid = true;
@@ -447,6 +457,48 @@ fn validate_spec(spec: &BenchmarkSpec) -> Vec<Blocker> {
         blockers.push(Blocker::InvalidBenchmarkSpec);
     }
 
+    const REQUIRED_FUNCTION_METRICS: [(&str, Direction, bool); 7] = [
+        ("winding_hotspot_temperature", Direction::Minimize, true),
+        ("ac_winding_loss", Direction::Minimize, true),
+        ("dielectric_margin", Direction::Maximize, false),
+        ("coolant_pressure_drop", Direction::Minimize, true),
+        ("pump_input_power", Direction::Minimize, true),
+        ("leak_rate", Direction::Minimize, true),
+        ("thermal_cycle_survival", Direction::Maximize, false),
+    ];
+    for (metric_id, direction, requires_hard_max) in REQUIRED_FUNCTION_METRICS {
+        let valid = spec.metrics.iter().any(|metric| {
+            metric.metric_id == metric_id
+                && metric.class == MetricClass::MandatoryFunction
+                && metric.direction == direction
+                && if requires_hard_max {
+                    metric.hard_max.is_some() && metric.hard_min.is_none()
+                } else {
+                    metric.hard_min.is_some() && metric.hard_max.is_none()
+                }
+        });
+        if !valid {
+            blockers.push(Blocker::InvalidBenchmarkSpec);
+        }
+    }
+
+    let mut baseline_families = BTreeSet::new();
+    for family in &spec.required_baseline_families {
+        let conventional = matches!(
+            family,
+            Family::ConventionalWindingCooling
+                | Family::ConventionalHighPerformanceCooling
+                | Family::ConventionalDirectOilCooling
+                | Family::ConventionalMultiNozzleOilJetCooling
+                | Family::ConventionalHairpinOilSprayCooling
+                | Family::ConventionalSlotEmbeddedCooling
+                | Family::ConventionalHollowConductorCooling
+        );
+        if !conventional || !baseline_families.insert(*family) {
+            blockers.push(Blocker::InvalidBenchmarkSpec);
+        }
+    }
+
     blockers
 }
 
@@ -460,7 +512,7 @@ fn validate_acceptance(trial: &Trial, blockers: &mut Vec<Blocker>) {
         || !valid_sha256(&acceptance.functional_test_digest)
         || acceptance.maturity < Maturity::M4
         || acceptance.disposition != Disposition::Qualified
-        || !valid_sha256(&acceptance.scope_digest)
+        || !valid_sha256(&acceptance.acceptance_policy_digest)
         || !valid_sha256(&acceptance.receipt_digest)
         || !valid_sha256(&acceptance.physical_evidence_digest)
     {
@@ -735,7 +787,7 @@ mod tests {
             scope: scope(),
             metrics: vec![
                 MetricSpec {
-                    metric_id: "hotspot".to_string(),
+                    metric_id: "winding_hotspot_temperature".to_string(),
                     unit: "degC".to_string(),
                     class: MetricClass::MandatoryFunction,
                     direction: Direction::Minimize,
@@ -762,7 +814,7 @@ mod tests {
                     non_inferiority_margin: Some(0.1),
                 },
                 MetricSpec {
-                    metric_id: "pressure_drop".to_string(),
+                    metric_id: "coolant_pressure_drop".to_string(),
                     unit: "kPa".to_string(),
                     class: MetricClass::MandatoryFunction,
                     direction: Direction::Minimize,
@@ -771,7 +823,7 @@ mod tests {
                     non_inferiority_margin: Some(2.0),
                 },
                 MetricSpec {
-                    metric_id: "pump_power".to_string(),
+                    metric_id: "pump_input_power".to_string(),
                     unit: "W".to_string(),
                     class: MetricClass::MandatoryFunction,
                     direction: Direction::Minimize,
@@ -789,7 +841,7 @@ mod tests {
                     non_inferiority_margin: Some(0.002),
                 },
                 MetricSpec {
-                    metric_id: "thermal_cycles".to_string(),
+                    metric_id: "thermal_cycle_survival".to_string(),
                     unit: "cycles".to_string(),
                     class: MetricClass::MandatoryFunction,
                     direction: Direction::Maximize,
@@ -798,7 +850,7 @@ mod tests {
                     non_inferiority_margin: Some(100.0),
                 },
                 MetricSpec {
-                    metric_id: "thermal_resistance".to_string(),
+                    metric_id: "effective_thermal_resistance".to_string(),
                     unit: "K/W".to_string(),
                     class: MetricClass::StackBenefit,
                     direction: Direction::Minimize,
@@ -832,7 +884,7 @@ mod tests {
             linked_evidence_ids: Vec::new(),
             maturity: Maturity::M4,
             disposition: Disposition::Qualified,
-            scope_digest: digest('1'),
+            acceptance_policy_digest: digest('1'),
             receipt_digest: digest('4'),
             physical_evidence_digest: digest('5'),
         }
@@ -855,14 +907,14 @@ mod tests {
         let specimen_id = format!("SPEC-{component_id}");
         let build_id = format!("BUILD-{component_id}");
         let metric_values = [
-            ("hotspot", "degC", values[0], 1.0, 'a'),
+            ("winding_hotspot_temperature", "degC", values[0], 1.0, 'a'),
             ("ac_winding_loss", "W", values[1], 5.0, 'b'),
             ("dielectric_margin", "ratio", values[2], 0.02, 'c'),
-            ("pressure_drop", "kPa", values[3], 0.5, 'd'),
-            ("pump_power", "W", values[4], 2.0, 'e'),
+            ("coolant_pressure_drop", "kPa", values[3], 0.5, 'd'),
+            ("pump_input_power", "W", values[4], 2.0, 'e'),
             ("leak_rate", "mL/h", values[5], 0.001, 'f'),
-            ("thermal_cycles", "cycles", values[6], 10.0, '1'),
-            ("thermal_resistance", "K/W", values[7], 0.01, '2'),
+            ("thermal_cycle_survival", "cycles", values[6], 10.0, '1'),
+            ("effective_thermal_resistance", "K/W", values[7], 0.01, '2'),
             ("system_mass", "kg", values[8], 0.1, '3'),
         ];
         let observations = metric_values
@@ -935,7 +987,30 @@ mod tests {
         assert_eq!(results[0].decision, Decision::StackAdvantage);
         assert!(results[0]
             .robust_stack_benefits
-            .contains(&"thermal_resistance".to_string()));
+            .contains(&"effective_thermal_resistance".to_string()));
+    }
+
+    #[test]
+    fn benchmark_spec_requires_all_seven_mandatory_function_metrics() {
+        let mut benchmark = spec();
+        benchmark.metrics.retain(|metric| metric.metric_id != "ac_winding_loss");
+        let result = evaluate(&benchmark, &known_trials());
+        assert_eq!(result[0].decision, Decision::NotComparable);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::InvalidBenchmarkSpec));
+    }
+
+    #[test]
+    fn evidence_ids_must_be_unique_across_candidate_and_baseline() {
+        let mut trials = known_trials();
+        trials[1].observations[0].evidence_id =
+            trials[0].observations[0].evidence_id.clone();
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::DuplicateEvidenceIdentity));
     }
 
     #[test]
