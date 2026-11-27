@@ -110,6 +110,39 @@ A route tournament must stratify results by maturity. Do not compare an M2 coupo
 
 The 2026 perspective argues that industrial adoption should be judged by **cost-per-performance at the intended production volume**, not printability alone. For permanent-magnet and hybrid assemblies, report cost-per-torque or cost-per-power where applicable alongside magnetic function, remanence/coercivity at temperature, demagnetization margin, mechanical retention, build rate, post-processing, inspection, yield, scrap and process capability. These should remain separate metrics or explicit application-specific ratios; do not hide a failed reliability gate inside a favorable cost metric.
 
+## 4C. November 2026 state-of-the-art envelope and component-level competitive test
+
+The September 2026 review *State-of-the-art additive manufacturing of NdFeB permanent magnets: challenges and pathways toward high performance* (Journal of Science: Advanced Materials and Devices 11(3), 101226, DOI [10.1016/j.jsamd.2026.101226](https://doi.org/10.1016/j.jsamd.2026.101226)) reports AM NdFeB remanence values generally around 0.6–1.0 T across the literature. In that review, MEX is the most competitive printed route for bonded NdFeB and reaches the highest reported remanence among the surveyed AM routes; LPBF can produce dense parts but has not demonstrated the magnetic texture needed for high performance; SLS and binder jet remain constrained by porosity. The same review reports conventional anisotropic sintered NdFeB around 1.4–1.5 T. These are aggregated literature ranges, **not matched specimens, common measurement conditions or universal route limits**.
+
+Fodor et al. (2026), DOI [10.1002/adem.71259](https://doi.org/10.1002/adem.71259), give representative property points for different material forms: isotropic bonded NdFeB feedstock datasheet ceilings around Br 0.73–0.76 T, early LPBF NdFeB around Br 0.59 T / Hcj 695 kA/m / (BH)max 45 kJ/m³, aligned SmFeN in PA12 around Br 0.68 T / Hcj 501 kA/m / (BH)max 78.8 kJ/m³, and a SmCo-Al cold-spray composite example around Br 0.35 T / Hcj 863 kA/m / (BH)max 20.7 kJ/m³. These figures come from different feedstocks and studies. They are **route/material context only**, not directly rankable without matched temperature, specimen geometry, method, density, orientation, uncertainty and magnetic-state conditions.
+
+### A different competitive question
+
+Do not frame the entire programme as “make printed NdFeB reach sintered-NdFeB remanence.” Sintered anisotropic NdFeB remains the high-performance reference. AM can win by changing the component architecture: topology-specific PM placement, segmented flux paths, material-efficient shapes, integrated retention, reduced machining scrap, thermal/mechanical integration, or hybrid PM-assisted reluctance designs. But architecture freedom is not automatically an engineering advantage.
+
+The tournament must compare against the strongest relevant conventional baseline, not an intentionally weak or incomplete design:
+
+1. optimized conventional sintered-NdFeB rotor/assembly at the same duty point;
+2. optimized conventional bonded-PM component where the AM feedstock is bonded;
+3. optimized PM-assisted synchronous-reluctance baseline where that is the actual system comparator;
+4. AM-shaped or functionally integrated PM insert;
+5. AM/hybrid architecture with integrated retention, segmentation or other claimed advantage.
+
+Use identical application target, winding/inverter, cooling boundary, operating envelope, duty cycle, air gap and temperature assumptions. State the system boundary and which parameters were co-optimized. Do not treat a torque gain over a reluctance-only rotor as proof of superiority over an optimized conventional PM rotor.
+
+### Non-compensatory function and architecture metrics
+
+Report separate measured/qualified values:
+- remanence (B_r(T)), intrinsic coercivity (H_{cj}(T)), recoil/demagnetization curves and irreversible flux loss after representative thermal/current exposure;
+- demagnetization margin under worst-case armature reaction, field weakening, fault current and maximum magnet temperature;
+- air-gap field-map error and harmonic content, torque, torque ripple, torque density and power density;
+- magnet mass, magnet volume, rotor inertia and active-material utilization;
+- mechanical retention margin, fatigue/vibration and bondline/interface stability;
+- eddy-current and core losses, efficiency over the declared duty cycle and cooling/pump parasitics;
+- first-pass yield, accepted-part cost, post-processing, inspection and cost per torque/power at the intended production volume.
+
+An AM route is a competitive win only when its application-specific value is non-dominated against the relevant optimized conventional baseline, while all hard requirements (especially coercivity/demagnetization, thermal stability, retention and durability) remain satisfied. A lower remanence material can still be valuable if architecture delivers the same qualified function with lower PM mass, inertia, scrap or life-cycle cost; it is not a win if the supposed gain merely shifts cost or risk elsewhere.
+
 ## 5. Common target and matched experiment design
 
 Choose one application target before selecting numeric improvement thresholds. Candidate targets:
