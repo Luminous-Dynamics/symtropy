@@ -560,8 +560,8 @@ fn threshold_result(
         calibration_unit_count: u64::try_from(calibration_unit_scores.len()).unwrap_or(u64::MAX),
         framewise_order_statistic_rank: frame_rank,
         unitwise_order_statistic_rank: unit_rank,
-        framewise_threshold_q32_32: frame_threshold.flatten(),
-        unitwise_threshold_q32_32: unit_threshold.flatten(),
+        framewise_threshold_q32_32: frame_threshold,
+        unitwise_threshold_q32_32: unit_threshold,
         framewise_finite: frame_threshold.flatten().is_some(),
         unitwise_finite: unit_threshold.flatten().is_some(),
         test_frame_count,
@@ -728,7 +728,7 @@ mod tests {
             calibration_revision: "cal-r1".to_owned(),
             unit_frame_budget: budget,
             status,
-            score_q32_32: score.map(|value| value + u64::from(frame) * 0),
+            score_q32_32: score,
         }
     }
 
