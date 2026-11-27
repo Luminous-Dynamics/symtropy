@@ -512,6 +512,28 @@ mod tests {
     }
 
     #[test]
+    fn verifier_rejects_profile_substitution_before_certificate_reuse() {
+        let original = vec![
+            CoherentScenario {
+                scenario_id: "mode-a".to_string(),
+                profile: profile("case-a", 10, 0),
+            },
+            CoherentScenario {
+                scenario_id: "mode-b".to_string(),
+                profile: profile("case-b", 0, 10),
+            },
+        ];
+        let report = evaluate_coherent_scenario_set("set-v1", &original).unwrap();
+        let mut substituted = original.clone();
+        substituted[0].profile.transfers[0].route_capacity = 9;
+        assert!(
+            verify_coherent_scenario_set("set-v1", &substituted, &report)
+                .unwrap_err()
+                .contains("scenario-set profile digest mismatch")
+        );
+    }
+
+    #[test]
     fn verifier_rejects_scenario_profile_digest_mismatch() {
         let scenarios = vec![
             CoherentScenario {
@@ -618,6 +640,10 @@ mod tests {
         assert_eq!(
             scenario_report["properties"]["schema_version"]["const"],
             COHERENT_SCENARIO_SET_SCHEMA
+        );
+        assert_eq!(
+            scenario_report["properties"]["scenario_set_sha256"]["pattern"],
+            "^sha256:[a-f0-9]{64}$"
         );
         assert_eq!(scenario_input["properties"]["scenarios"]["type"], "array");
     }
