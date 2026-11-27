@@ -243,7 +243,8 @@
     "structured_assurance_case_tool",
     "plm_digital_thread_workflow",
     "owner_native_vvuq_workflow",
-    "hierarchical_validation_measurement_workflow"
+    "hierarchical_validation_measurement_workflow",
+    "approved_part_lifecycle_provenance_ledger"
   ],
   "release_gates": [
     "R0_structural",
