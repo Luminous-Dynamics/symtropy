@@ -18,6 +18,14 @@ matching = "exact_digest_equality"
 
 [baseline]
 required_families = ["ConventionalWindingCooling"]
+application_dependent_required_families = [
+  "ConventionalDirectOilCooling",
+  "ConventionalMultiNozzleOilJetCooling",
+  "ConventionalHairpinOilSprayCooling",
+  "ConventionalSlotEmbeddedCooling",
+  "ConventionalHollowConductorCooling",
+]
+rule = "include every incumbent family applicable to the frozen application; these are not all universally mandatory"
 minimum_optimization_evaluations = 100
 minimum_independent_restarts = 3
 frozen_before_comparison = true
