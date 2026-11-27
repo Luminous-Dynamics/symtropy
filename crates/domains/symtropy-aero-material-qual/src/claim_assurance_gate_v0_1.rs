@@ -549,9 +549,10 @@ mod tests {
             evidence_knowledge_cut_sha256: "b".repeat(64),
             trust_policy_sha256: "c".repeat(64),
             claim_specification_sha256: "d".repeat(64),
-            required_evidence_manifest_sha256:
-                compute_required_evidence_manifest_sha256(evidence_refs)
-                    .expect("evidence manifest serializes"),
+            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(
+                evidence_refs,
+            )
+            .expect("evidence manifest serializes"),
             risk_classification_sha256: "e".repeat(64),
             model_applicability_profile_sha256: "f".repeat(64),
         }
@@ -566,7 +567,9 @@ mod tests {
     }
 
     fn context_digest(context: &DecisionContextV0_1) -> String {
-        context.compute_sha256().expect("test decision context is valid")
+        context
+            .compute_sha256()
+            .expect("test decision context is valid")
     }
 
     fn evidence(state: EvidenceAdmissionState, evidence_ref: &str) -> RequiredEvidenceAdmission {
@@ -654,8 +657,12 @@ mod tests {
         let coverage_result = coverage(coverage_status);
         let cut_result = cut(cut_status);
         let decision_context = context_for_evidence(evidence);
-        let component_bindings =
-            bindings_for(&coverage_result, &cut_result, effectivity, &decision_context);
+        let component_bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            effectivity,
+            &decision_context,
+        );
         evaluate_with_bindings(
             coverage_status,
             cut_status,
