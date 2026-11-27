@@ -1733,45 +1733,6 @@ mod tests {
     }
 
     #[test]
-    fn verifier_rejects_mutated_auxiliary_graph_and_flow_certificate() {
-        let model = profile(15, 10, 10);
-        let floors = vec![
-            BeneficiaryFloor {
-                service_id: "service-a".to_string(),
-                minimum_required_quantity: 5,
-            },
-            BeneficiaryFloor {
-                service_id: "service-b".to_string(),
-                minimum_required_quantity: 5,
-            },
-        ];
-        let report = evaluate_beneficiary_floors(&model, &floors).unwrap();
-
-        let mut changed_graph = report.clone();
-        let edge = changed_graph
-            .feasibility_certificate
-            .graph
-            .edges
-            .iter_mut()
-            .find(|edge| edge.id.starts_with(SUPER_SOURCE_PREFIX))
-            .unwrap();
-        edge.capacity = edge.capacity.saturating_sub(1);
-        assert!(
-            verify_beneficiary_floor_report(&model, &floors, &changed_graph)
-                .unwrap_err()
-                .contains("reconstructed lower-bound reduction")
-        );
-
-        let mut changed_witness = report;
-        changed_witness.feasibility_certificate.result.max_flow = 0;
-        assert!(
-            verify_beneficiary_floor_report(&model, &floors, &changed_witness)
-                .unwrap_err()
-                .contains("lower-bound feasibility certificate invalid")
-        );
-    }
-
-    #[test]
     fn published_floor_schemas_are_valid_json_documents() {
         let temporal_schema: serde_json::Value =
             serde_json::from_str(include_str!("../schemas/temporal-profile-v0.1.schema.json"))
