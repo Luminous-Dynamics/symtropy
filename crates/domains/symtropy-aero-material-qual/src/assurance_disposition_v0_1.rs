@@ -44,6 +44,27 @@ impl SubjectTimeEffectivityV0_1 {
     }
 }
 
+impl From<super::effectivity_interval_v0_1::EffectivityRelation>
+    for SubjectTimeEffectivityV0_1
+{
+    fn from(relation: super::effectivity_interval_v0_1::EffectivityRelation) -> Self {
+        match relation {
+            super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyEffective => {
+                Self::DefinitelyEffective
+            }
+            super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyNotYetEffective => {
+                Self::DefinitelyNotYetEffective
+            }
+            super::effectivity_interval_v0_1::EffectivityRelation::BoundaryAmbiguous => {
+                Self::BoundaryAmbiguous
+            }
+            super::effectivity_interval_v0_1::EffectivityRelation::InvalidInterval => {
+                Self::InvalidInterval
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum PropositionEvidenceStateV0_1 {
     #[serde(rename = "NEITHER")]
@@ -250,6 +271,7 @@ pub struct BlockingObligationV0_1 {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct AssuranceDispositionAssessmentV0_1 {
     pub case_id: String,
+    pub replay_mode: ReplayModeV0_1,
     pub disposition: AssuranceDispositionV0_1,
     pub reason_codes: Vec<String>,
     pub blocking_obligations: Vec<BlockingObligationV0_1>,
@@ -539,6 +561,7 @@ pub fn evaluate_assurance_state_case_v0_1(
 
     AssuranceDispositionAssessmentV0_1 {
         case_id: case.case_id.clone(),
+        replay_mode: case.replay_mode,
         disposition,
         reason_codes: reasons.into_iter().collect(),
         blocking_obligations,
@@ -719,6 +742,28 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn subject_time_effectivity_maps_from_existing_interval_comparator() {
+        use super::super::effectivity_interval_v0_1::EffectivityRelation;
+
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::DefinitelyEffective),
+            SubjectEffectivity::DefinitelyEffective
+        );
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::DefinitelyNotYetEffective),
+            SubjectEffectivity::DefinitelyNotYetEffective
+        );
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::BoundaryAmbiguous),
+            SubjectEffectivity::BoundaryAmbiguous
+        );
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::InvalidInterval),
+            SubjectEffectivity::InvalidInterval
+        );
     }
 
     #[test]
