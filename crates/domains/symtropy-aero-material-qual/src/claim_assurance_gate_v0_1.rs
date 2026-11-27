@@ -149,6 +149,17 @@ pub struct ClaimAssuranceAssessment {
     pub claim_id: String,
     /// Shared digest of the exact physical subject and decision context.
     pub decision_context_sha256: String,
+    /// Digest of the exact typed owner-native evidence cut.
+    pub owner_evidence_cut_sha256: String,
+    /// Mycelix/AeroCommons packet identity and digest.
+    pub owner_component_packet_id: String,
+    pub owner_component_packet_sha256: String,
+    /// BASALT run identity and exact audit report/final-state digests.
+    pub owner_basalt_run_id: String,
+    pub owner_basalt_report_sha256: String,
+    pub owner_basalt_final_state_sha256: String,
+    /// Selected receiver-evidence cutoff.
+    pub owner_receiver_receipt_watermark_unix_ms: u64,
     /// Component report digests in coverage, causal-cut, effectivity order.
     pub component_report_sha256: [String; 3],
     /// Sorted mandatory evidence references included in this assessment.
@@ -591,6 +602,11 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         reasons.insert("REQUIRED_EVIDENCE_SET_EMPTY".to_owned());
     }
 
+    let owner_evidence_cut_sha256 = input
+        .owner_evidence_cut
+        .compute_sha256()
+        .unwrap_or_default();
+
     let status = if invalid {
         ClaimGateStatus::Rejected
     } else if out_of_scope {
@@ -610,6 +626,15 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
     ClaimAssuranceAssessment {
         claim_id: input.claim_id.to_owned(),
         decision_context_sha256,
+        owner_evidence_cut_sha256,
+        owner_component_packet_id: input.owner_evidence_cut.component_packet_id.clone(),
+        owner_component_packet_sha256: input.owner_evidence_cut.component_packet_sha256.clone(),
+        owner_basalt_run_id: input.owner_evidence_cut.basalt_run_id.clone(),
+        owner_basalt_report_sha256: input.owner_evidence_cut.basalt_report_sha256.clone(),
+        owner_basalt_final_state_sha256: input.owner_evidence_cut.basalt_final_state_sha256.clone(),
+        owner_receiver_receipt_watermark_unix_ms: input
+            .owner_evidence_cut
+            .receiver_receipt_watermark_unix_ms,
         component_report_sha256: [
             input.bindings.coverage.report_sha256.clone(),
             input.bindings.causal_cut.report_sha256.clone(),
