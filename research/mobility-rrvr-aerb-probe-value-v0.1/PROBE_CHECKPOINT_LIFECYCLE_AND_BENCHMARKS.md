@@ -143,3 +143,22 @@ The checkpoint reducer must not be placed in front of the driver as a new dispat
 ### Dispatch race benchmark overlay
 
 On a frozen controller/hardware profile and identical event schedule, compare: (A) baseline dispatch, (B) AERB/#7814 pre-enqueue currentness only, (C) pre-enqueue currentness plus controller epoch fence, and (D) full immutable action-ticket binding atomically consumed at the native application point. Inject revocation/configuration/ODD/mode/mission/clock changes after decision, before queue, while queued, and racing with application. Keep both legal linearization orders as positive controls. Report invalid sink calls, duplicate attempts, ambiguous outcome retries, false holds, application latency, fence latency, and reconciliation latency separately. Hard target: zero invalid mutations at the actual sink; the false-veto/positive-control rate remains a separate metric. A wrapper mutex or stale controller epoch is not evidence that the native boundary is atomic.
+
+
+## Statistical power and reproducibility (preregister before blind runs)
+
+A zero observed failure count is not a zero failure probability. For (n) independent Bernoulli trials with zero failures, the exact one-sided upper confidence limit at confidence (1-\alpha) is:
+
+[
+p_{upper}=1-\alpha^{1/n}.
+]
+
+As an illustration, zero failures in 3,000 independent trials gives a one-sided 95% upper bound of approximately 0.1% for that measured population. If reporting eight world classes with a family-wise 95% confidence requirement and Bonferroni allocation (\(\alpha/8\)), approximately 5,073 zero-failure trials **per world** are needed to put each class's upper bound below 0.1%. These are statistical illustrations, not evidence that such a rate is safe or an acceptable risk threshold. The deployment hazard analysis must set the required risk target.
+
+- Report valid, invalid, unresolved, timed-out, crashed and excluded counts for every arm and every world. Never discard a failure or remove it from the denominator after observing its outcome.
+- Report per-world and per-hazard-stratum results plus micro, macro and worst-stratum metrics. Do not let common benign cases dilute rare catastrophic branches.
+- Freeze campaign count, world/condition strata, stopping rules, exclusion policy, multiplicity correction, risk targets and analysis code before the blind run.
+- Use campaign-level/grouped splits and cluster bootstrap (or an appropriate hierarchical model) when episodes share a robot, scene, trajectory, controller, simulator seed or environment. Treat correlated episodes as clusters, not independent Bernoulli trials.
+- Report paired policy differences on identical traces and resource budgets, with confidence intervals and paired non-parametric tests where appropriate. Preserve p50/p95/p99 latency and tail exposure; avoid reporting only a mean.
+- Separate exploratory public conformance runs from preregistered blind confirmation runs. A changed policy, evaluator, schema or threshold starts a new versioned campaign.
+- Repeat across independent campaign generations and at least one held-out environment/robot configuration before any generalization claim. Performance is a property of the complete policy + evidence adapter + controller/runtime + scenario distribution, not only the Rust reducer.
