@@ -154,6 +154,7 @@ pub enum ContractError {
 }
 
 // Shape validation only: the harness must separately hash and authenticate the raw trace.
+// The SHA-shaped value alone never certifies meter calibration or measurement integrity.
 fn is_sha256_hex(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
