@@ -6,7 +6,10 @@
 //! This crate validates supplied measurement/model intervals and residual
 //! Jacobian supremum bounds. It does not derive or authenticate those bounds.
 
-use magnetic_interval_ad::Interval;
+use magnetic_interval_ad::{
+    certify_expression_centered, map_spatial_derivative_suprema, Interval, IntervalAdError,
+    IntervalDual, ParameterDomain, SpatialMappingError, ValidatedDerivativeEnclosure,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum EvidenceRole {
@@ -43,6 +46,8 @@ pub struct CellDiscrepancyInput {
     /// Solver prediction enclosure across the complete spatial cell.
     pub model_field_over_cell_t: [Interval; 3],
     pub residual_jacobian_record_id: String,
+    pub residual_jacobian_component_record_ids: [String; 3],
+    pub residual_jacobian_component_expression_ids: [String; 3],
     pub residual_jacobian_source_revision: String,
     pub residual_jacobian_implementation_id: String,
     pub residual_jacobian_artifact_sha256: String,
@@ -82,6 +87,8 @@ pub struct PhysicalFieldDiscrepancyCertificate {
     pub background_control_record_id: String,
     pub temperature_record_id: String,
     pub residual_jacobian_record_id: String,
+    pub residual_jacobian_component_record_ids: [String; 3],
+    pub residual_jacobian_component_expression_ids: [String; 3],
     pub residual_jacobian_source_revision: String,
     pub residual_jacobian_implementation_id: String,
     pub residual_jacobian_artifact_sha256: String,
@@ -124,6 +131,17 @@ pub enum DiscrepancyError {
         component: usize,
     },
     JacobianCellIdentityMismatch,
+    IntervalAdMapping {
+        component: usize,
+        error: SpatialMappingError,
+    },
+    IntervalAdScopeMismatch {
+        component: usize,
+        field: &'static str,
+    },
+    DuplicateIntervalAdComponentIdentity {
+        component: usize,
+    },
     InvalidJacobianBound {
         field_component: usize,
         spatial_axis: usize,
@@ -173,6 +191,153 @@ fn validate_finite_intervals(
             return Err(DiscrepancyError::UnboundedFieldInterval { field, component });
         }
     }
+    Ok(())
+}
+
+/// Bind the three residual-field component Jacobians directly from
+/// validated interval-AD whole-cell derivative enclosures.
+///
+/// The records must describe the exact residual components Bx, By and Bz,
+/// in that order, over the same physical cell. The adapter verifies parameter
+/// identity/order, metre units, field units, cell bounds and model/solver/
+—scope metadata, then copies their derivative absolute suprema into the 3x3
+/// residual-Jacobian matrix. It does not infer or authenticate the semantics
+/// of the supplied expressions; the expected expression IDs are explicit
+/// caller inputs and become part of the resulting certificate.
+pub fn bind_interval_ad_residual_jacobian(
+    input: &mut CellDiscrepancyInput,
+    records: [&ValidatedDerivativeEnclosure<3>; 3],
+    expected_expression_ids: [&str; 3],
+    spatial_axis_parameter_ids: [&str; 3],
+) -> Result<(), DiscrepancyError> {
+    validate_input(input)?;
+
+    if expected_expression_ids
+        .iter()
+        .any(|expression_id| !nonempty(expression_id))
+    {
+        return Err(DiscrepancyError::InvalidIdentity);
+    }
+
+    let mut mapped_records: [Option<magnetic_interval_ad::SpatialDerivativeSupremumEvidence>; 3] =
+        std::array::from_fn(|_| None);
+
+    for component in 0..3 {
+        let record = records[component];
+        if record.expression_id != expected_expression_ids[component] {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "expression_id",
+            });
+        }
+        if record.output_unit != input.field_unit {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "field_unit",
+            });
+        }
+        let mapped = map_spatial_derivative_suprema(
+            record,
+            &input.cell_id,
+            &input.requirement_id,
+            spatial_axis_parameter_ids,
+            "metre",
+        )
+        .map_err(|error| DiscrepancyError::IntervalAdMapping { component, error })?;
+
+        if mapped.axis_bounds_m != input.cell_bounds_m {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "cell_bounds_m",
+            });
+        }
+        if mapped.coordinate_frame_id != input.coordinate_frame_id {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "coordinate_frame_id",
+            });
+        }
+        if mapped.operating_condition_id != input.operating_condition_id {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "operating_condition_id",
+            });
+        }
+        if mapped.model_set_id != input.model_set_id {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "model_set_id",
+            });
+        }
+        if mapped.solver_run_id != input.solver_run_id {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "solver_run_id",
+            });
+        }
+        if mapped.geometry_sha256 != input.geometry_sha256 {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "geometry_sha256",
+            });
+        }
+        if mapped.material_sha256 != input.material_sha256 {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "material_sha256",
+            });
+        }
+        if mapped.source_revision != input.residual_jacobian_source_revision {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "source_revision",
+            });
+        }
+        if mapped.implementation_id != input.residual_jacobian_implementation_id {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "implementation_id",
+            });
+        }
+        if mapped.artifact_sha256 != input.residual_jacobian_artifact_sha256 {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "artifact_sha256",
+            });
+        }
+        if mapped.environment_sha256 != input.residual_jacobian_environment_sha256 {
+            return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                component,
+                field: "environment_sha256",
+            });
+        }
+
+        for previous in 0..component {
+            if records[previous].record_id == record.record_id
+                || records[previous].expression_id == record.expression_id
+            {
+                return Err(DiscrepancyError::DuplicateIntervalAdComponentIdentity {
+                    component,
+                });
+            }
+        }
+        mapped_records[component] = Some(mapped);
+    }
+
+    let mapped_records = mapped_records.map(|record| record.expect("all components were mapped"));
+    input.residual_jacobian_component_record_ids =
+        std::array::from_fn(|index| records[index].record_id.clone());
+    input.residual_jacobian_component_expression_ids =
+        std::array::from_fn(|index| records[index].expression_id.clone());
+    input.residual_jacobian_cell_id = input.cell_id.clone();
+    input.residual_jacobian_abs_supremum_t_per_m = std::array::from_fn(|component| {
+        mapped_records[component].derivative_abs_supremum_by_axis
+    });
+    input.residual_jacobian_record_id = format!(
+        "interval-ad-jacobian-set:{}|{}|{}",
+        records[0].record_id, records[1].record_id, records[2].record_id
+    );
+
     Ok(())
 }
 
@@ -343,6 +508,8 @@ pub fn certify_physical_field_discrepancy(
         background_control_record_id: input.background_control_record_id.clone(),
         temperature_record_id: input.temperature_record_id.clone(),
         residual_jacobian_record_id: input.residual_jacobian_record_id.clone(),
+        residual_jacobian_component_record_ids: input.residual_jacobian_component_record_ids.clone(),
+        residual_jacobian_component_expression_ids: input.residual_jacobian_component_expression_ids.clone(),
         residual_jacobian_source_revision: input.residual_jacobian_source_revision.clone(),
         residual_jacobian_implementation_id: input.residual_jacobian_implementation_id.clone(),
         residual_jacobian_artifact_sha256: input.residual_jacobian_artifact_sha256.clone(),
@@ -421,6 +588,16 @@ mod tests {
                 interval(-0.4, 0.4),
             ],
             residual_jacobian_record_id: "residual-jacobian-001".to_owned(),
+            residual_jacobian_component_record_ids: [
+                "residual-jacobian-bx-001".to_owned(),
+                "residual-jacobian-by-001".to_owned(),
+                "residual-jacobian-bz-001".to_owned(),
+            ],
+            residual_jacobian_component_expression_ids: [
+                "residual-bx-expression".to_owned(),
+                "residual-by-expression".to_owned(),
+                "residual-bz-expression".to_owned(),
+            ],
             residual_jacobian_source_revision: "jacobian-source-v1".to_owned(),
             residual_jacobian_implementation_id: "interval-gradient-v1".to_owned(),
             residual_jacobian_artifact_sha256: DIGEST_A.to_owned(),
