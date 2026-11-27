@@ -583,8 +583,11 @@ pub struct RecoveryServiceOutcome {
     pub recovery_cost_units: u64,
     pub recovery_emissions_units: u64,
     pub requalification_actions: u64,
+    /// Number of replanning decisions triggered during the scenario.
     pub replan_invocations: u64,
+    /// Number of resource, assignment or time-slot changes from the prior committed plan.
     pub plan_churn_changes: u64,
+    /// Elapsed milliseconds from disruption receipt to an admissible replacement plan.
     pub decision_latency_millis: u64,
 }
 
