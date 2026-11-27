@@ -922,9 +922,21 @@ impl ClaimMetricSemanticBindingV0_1 {
             .map(|item| (item.stratum_ref.as_str(), item))
             .collect::<BTreeMap<_, _>>();
         let reported_strata = reports.keys().copied().collect::<BTreeSet<_>>();
-        if reported_strata != mapped_model_strata {
+        let missing_reports = mapped_model_strata
+            .difference(&reported_strata)
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let unexpected_reports = reported_strata
+            .difference(&mapped_model_strata)
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if !missing_reports.is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_METRIC_BINDING_MODEL_REPORT_SET_INCOMPLETE".to_owned());
+        }
+        if !unexpected_reports.is_empty() {
             rejected = true;
-            reasons.insert("CLAIM_METRIC_BINDING_MODEL_REPORT_SET_MISMATCH".to_owned());
+            reasons.insert("CLAIM_METRIC_BINDING_MODEL_REPORT_SET_HAS_UNEXPECTED_STRATA".to_owned());
         }
         for stratum_ref in mapped_model_strata {
             let Some(report) = reports.get(stratum_ref) else {
