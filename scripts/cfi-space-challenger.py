@@ -192,6 +192,7 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
             "ledger episode count outside permitted range")
     by_id: dict[str, dict[str, Any]] = {}
     group_keys: dict[str, tuple[Any, ...]] = {}
+    group_variants: dict[str, list[int]] = {}
     split_maps: dict[str, dict[str, str]] = {
         "target": {}, "session": {}, "trajectory": {}, "rig": {},
     }
@@ -243,6 +244,8 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
             require(len(fault_ids) >= 2 and families and disposition != "qualified",
                     f"interaction contract violated for {eid}")
         group = row["counterfactual_group_id"]
+        counts = group_variants.setdefault(group, [0, 0])
+        counts[0 if row["variant_kind"] == "clean" else 1] += 1
         key = (row["parent_episode_id"], row["split"], *unit_values)
         if group in group_keys:
             require(group_keys[group] == key,
@@ -254,6 +257,9 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
             require(previous == row["split"],
                     f"{name} {value} leaks across splits")
         by_id[eid] = row
+    for group, (clean_count, variant_count) in group_variants.items():
+        require(clean_count == 1 and variant_count > 0,
+                f"counterfactual group {group} needs exactly one clean reference and at least one fault variant")
     return by_id
 
 
