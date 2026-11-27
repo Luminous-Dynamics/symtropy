@@ -21,7 +21,7 @@ use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
 pub struct RelativeMotionEnvelope<const D: usize> {
     /// Translation change of the canonical relative transform.
     pub relative_translation_delta: [f64; D],
-    /// Outward upper bounds on abs(current_relative_rotation - cached_relative_rotation), entry-wise.
+    /// Entrywise outward upper bounds on the absolute relative-rotation delta.
     pub relative_rotation_delta_abs_upper: [[f64; D]; D],
     /// Conservative maximum radius of the cached contact geometry from the
     /// relative transform's rotation reference point.
@@ -347,7 +347,6 @@ pub fn evaluate_contact_geometry_lease<const D: usize>(
     })
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -664,7 +663,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn unsupported_dimensions_fail_closed() {
         let bad_motion = motion([0.0; 1], 0.0, 1.0);
@@ -673,8 +671,6 @@ mod tests {
             Err(ContactLeaseError::UnsupportedDimension)
         );
     }
-
-
 
     #[test]
     fn changed_support_feature_forces_fresh_narrowphase() {
@@ -712,8 +708,6 @@ mod tests {
         .expect("missing feature witness");
         assert_eq!(decision.disposition, ContactLeaseDisposition::UnsupportedGeometry);
     }
-
-
 
     #[test]
     fn lease_predicate_supports_two_and_four_dimensions() {
@@ -774,8 +768,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn four_dimensional_two_plane_rotation_uses_all_matrix_delta_entries() {
         let mut delta = [[0.0; 4]; 4];
@@ -804,15 +796,17 @@ mod tests {
         assert!(bound.rotation_displacement_upper < 1.0);
 
         let anchor = [0.5_f64, -0.5, 0.5, 0.5];
-        let (sin_a, cos_a) = angle_a.sin_cos();
-        let (sin_b, cos_b) = angle_b.sin_cos();
         let moved = [
             (cos_a - 1.0) * anchor[0] - sin_a * anchor[1],
             sin_a * anchor[0] + (cos_a - 1.0) * anchor[1],
             (cos_b - 1.0) * anchor[2] - sin_b * anchor[3],
             sin_b * anchor[2] + (cos_b - 1.0) * anchor[3],
         ];
-        let actual_displacement = moved.iter().map(|value| value * value).sum::<f64>().sqrt();
+        let actual_displacement = moved
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
         assert!(actual_displacement <= bound.rotation_displacement_upper);
     }
 
