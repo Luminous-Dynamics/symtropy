@@ -45,4 +45,4 @@ The initial tranche is a protocol and synthetic semantic benchmark. It does not 
 
 The standard-library-only Rust 2024 crate in `evaluator/` checks specimen, manufacturing, as-built geometry, material, post-magnetization, calibration, solver, observation, exact-grid comparison, blind-holdout and spatial-certificate joins. It emits QUALIFIED / FAIL / INDETERMINATE / NOT_EVALUABLE with typed blockers.
 
-Twenty unit tests are authored. The evaluator binds a separate physical-model discrepancy record and uncertainty-budget digest; model-fit observations and blind holdout observations are disjoint. They have not been executed: the current local environment lacks `rustc` and `cargo`, and the feature branch's exact-head CI status must be checked independently.
+Twenty-seven unit tests are authored. The evaluator binds a separate physical-model discrepancy record and uncertainty-budget digest; model-fit observations and blind holdout observations are disjoint. They have not been executed: the current local environment lacks `rustc` and `cargo`, and the feature branch's exact-head CI status must be checked independently.
