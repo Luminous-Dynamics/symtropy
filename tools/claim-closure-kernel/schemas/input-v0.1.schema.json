@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.luminousdynamics.io/schemas/engineering-claim-closure-input-v0.1.schema.json",
+  "title": "Engineering Claim Closure Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "claim", "evidence_records"],
+  "properties": {
+    "schema_version": { "const": "engineering-claim-closure-v0.1" },
+    "claim": { "$ref": "#/$defs/claim" },
+    "evidence_records": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": { "$ref": "#/$defs/evidence_record" }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["verified", "unverified", "revoked", "disputed"]
+    },
+    "producer_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity_ref", "status", "as_of_unix_ms", "record_sha256"],
+      "properties": {
+        "identity_ref": { "$ref": "#/$defs/identifier" },
+        "status": { "$ref": "#/$defs/status" },
+        "as_of_unix_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "record_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+      }
+    },
+    "trust_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy_ref", "status", "as_of_unix_ms", "policy_sha256"],
+      "properties": {
+        "policy_ref": { "$ref": "#/$defs/identifier" },
+        "status": { "$ref": "#/$defs/status" },
+        "as_of_unix_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "policy_sha256": { "oneOf": [{ "$ref": "#/$defs/sha256" }, { "type": "null" }] }
+      }
+    },
+    "uncertainty_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["budget_ref", "digest_sha256", "resolved"],
+      "properties": {
+        "budget_ref": { "$ref": "#/$defs/identifier" },
+        "digest_sha256": { "$ref": "#/$defs/sha256" },
+        "resolved": { "type": "boolean" }
+      }
+    },
+    "dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "expected_record_sha256"],
+      "properties": {
+        "evidence_ref": { "$ref": "#/$defs/identifier" },
+        "expected_record_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "expected_record_sha256",
+        "role",
+        "uncertainty_budget_ref",
+        "uncertainty_budget_sha256"
+      ],
+      "properties": {
+        "evidence_ref": { "$ref": "#/$defs/identifier" },
+        "expected_record_sha256": { "$ref": "#/$defs/sha256" },
+        "role": { "$ref": "#/$defs/identifier" },
+        "uncertainty_budget_ref": { "$ref": "#/$defs/identifier" },
+        "uncertainty_budget_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "subject_ref",
+        "configuration_ref",
+        "scope_ref",
+        "acquisition_start_unix_ms",
+        "acquisition_end_unix_ms",
+        "knowledge_cut_unix_ms",
+        "evaluated_at_unix_ms",
+        "requirements"
+      ],
+      "properties": {
+        "claim_id": { "$ref": "#/$defs/identifier" },
+        "subject_ref": { "$ref": "#/$defs/identifier" },
+        "configuration_ref": { "$ref": "#/$defs/identifier" },
+        "scope_ref": { "$ref": "#/$defs/identifier" },
+        "acquisition_start_unix_ms": { "type": "integer", "minimum": 0 },
+        "acquisition_end_unix_ms": { "type": "integer", "minimum": 0 },
+        "knowledge_cut_unix_ms": { "type": "integer", "minimum": 0 },
+        "evaluated_at_unix_ms": { "type": "integer", "minimum": 0 },
+        "requirements": {
+          "type": "array",
+          "maxItems": 20000,
+          "items": { "$ref": "#/$defs/requirement" }
+        }
+      }
+    },
+    "evidence_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "record_sha256",
+        "role",
+        "subject_ref",
+        "configuration_ref",
+        "scope_ref",
+        "recorded_at_unix_ms",
+        "effective_from_unix_ms",
+        "effective_until_exclusive_unix_ms",
+        "producer_authority",
+        "trust_snapshot",
+        "uncertainty_budget",
+        "dependencies"
+      ],
+      "properties": {
+        "evidence_ref": { "$ref": "#/$defs/identifier" },
+        "record_sha256": { "$ref": "#/$defs/sha256" },
+        "role": { "$ref": "#/$defs/identifier" },
+        "subject_ref": { "$ref": "#/$defs/identifier" },
+        "configuration_ref": { "$ref": "#/$defs/identifier" },
+        "scope_ref": { "$ref": "#/$defs/identifier" },
+        "recorded_at_unix_ms": { "type": "integer", "minimum": 0 },
+        "effective_from_unix_ms": { "type": "integer", "minimum": 0 },
+        "effective_until_exclusive_unix_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "producer_authority": { "$ref": "#/$defs/producer_authority" },
+        "trust_snapshot": { "$ref": "#/$defs/trust_snapshot" },
+        "uncertainty_budget": { "$ref": "#/$defs/uncertainty_budget" },
+        "dependencies": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": { "$ref": "#/$defs/dependency" }
+        }
+      }
+    }
+  }
+}

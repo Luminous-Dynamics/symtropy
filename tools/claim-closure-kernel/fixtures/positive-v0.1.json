@@ -1,0 +1,121 @@
+{
+  "schema_version": "engineering-claim-closure-v0.1",
+  "claim": {
+    "claim_id": "claim:wing-panel-inspection-001",
+    "subject_ref": "part:wing-panel-001",
+    "configuration_ref": "configuration:wing-r17",
+    "scope_ref": "envelope:hot-static-load",
+    "acquisition_start_unix_ms": 100,
+    "acquisition_end_unix_ms": 120,
+    "knowledge_cut_unix_ms": 160,
+    "evaluated_at_unix_ms": 180,
+    "requirements": [
+      {
+        "evidence_ref": "evidence:measurement-001",
+        "expected_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role": "measurement",
+        "uncertainty_budget_ref": "uncertainty:measurement-001",
+        "uncertainty_budget_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "evidence_records": [
+    {
+      "evidence_ref": "evidence:measurement-001",
+      "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "measurement",
+      "subject_ref": "part:wing-panel-001",
+      "configuration_ref": "configuration:wing-r17",
+      "scope_ref": "envelope:hot-static-load",
+      "recorded_at_unix_ms": 150,
+      "effective_from_unix_ms": 90,
+      "effective_until_exclusive_unix_ms": 130,
+      "producer_authority": {
+        "identity_ref": "producer:independent-lab-01",
+        "status": "verified",
+        "as_of_unix_ms": 150,
+        "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "trust_snapshot": {
+        "policy_ref": "policy:engineering-evidence-v1",
+        "status": "verified",
+        "as_of_unix_ms": 150,
+        "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "uncertainty_budget": {
+        "budget_ref": "uncertainty:measurement-001",
+        "digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "resolved": true
+      },
+      "dependencies": [
+        {
+          "evidence_ref": "evidence:calibration-001",
+          "expected_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    {
+      "evidence_ref": "evidence:calibration-001",
+      "record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "role": "calibration",
+      "subject_ref": "instrument:load-cell-01",
+      "configuration_ref": "calibration-config:lc-7",
+      "scope_ref": "metrology:force-range-100kn",
+      "recorded_at_unix_ms": 110,
+      "effective_from_unix_ms": 80,
+      "effective_until_exclusive_unix_ms": 200,
+      "producer_authority": {
+        "identity_ref": "producer:calibration-lab-02",
+        "status": "verified",
+        "as_of_unix_ms": 140,
+        "record_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "trust_snapshot": {
+        "policy_ref": "policy:engineering-evidence-v1",
+        "status": "verified",
+        "as_of_unix_ms": 140,
+        "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "uncertainty_budget": {
+        "budget_ref": "uncertainty:calibration-001",
+        "digest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "resolved": true
+      },
+      "dependencies": [
+        {
+          "evidence_ref": "evidence:reference-standard-001",
+          "expected_record_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ]
+    },
+    {
+      "evidence_ref": "evidence:reference-standard-001",
+      "record_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "role": "reference_standard",
+      "subject_ref": "standard:force-reference-100kn",
+      "configuration_ref": "configuration:reference-standard-v3",
+      "scope_ref": "metrology:force-range-100kn",
+      "recorded_at_unix_ms": 90,
+      "effective_from_unix_ms": 70,
+      "effective_until_exclusive_unix_ms": 210,
+      "producer_authority": {
+        "identity_ref": "producer:national-metrology-institute",
+        "status": "verified",
+        "as_of_unix_ms": 100,
+        "record_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "trust_snapshot": {
+        "policy_ref": "policy:engineering-evidence-v1",
+        "status": "verified",
+        "as_of_unix_ms": 100,
+        "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "uncertainty_budget": {
+        "budget_ref": "uncertainty:reference-standard-001",
+        "digest_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "resolved": true
+      },
+      "dependencies": []
+    }
+  ]
+}

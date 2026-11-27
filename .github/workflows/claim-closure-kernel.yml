@@ -1,0 +1,79 @@
+name: Engineering Claim Closure Kernel
+
+on:
+  pull_request:
+    paths:
+      - "tools/claim-closure-kernel/**"
+      - ".github/workflows/claim-closure-kernel.yml"
+  push:
+    branches:
+      - "research/claim-closure-kernel-v0.1"
+    paths:
+      - "tools/claim-closure-kernel/**"
+      - ".github/workflows/claim-closure-kernel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust semantic contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/claim-closure-kernel/Cargo.toml -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/claim-closure-kernel/Cargo.toml --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test --manifest-path tools/claim-closure-kernel/Cargo.toml --all-targets
+      - name: Compare independent Python reference oracle
+        run: python tools/claim-closure-kernel/tests/reference_oracle.py
+      - name: Run deterministic scale benchmark
+        run: cargo run --manifest-path tools/claim-closure-kernel/Cargo.toml --bin scale_bench > "$RUNNER_TEMP/claim-closure-scale-benchmark.json"
+      - name: Upload scale benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: claim-closure-scale-benchmark
+          path: ${{ runner.temp }}/claim-closure-scale-benchmark.json
+          if-no-files-found: error
+      - name: Check fixture schema and positive-control structure
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/claim-closure-kernel")
+          schema = json.loads((root / "schemas/input-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "fixtures/positive-v0.1.json").read_text())
+          mutation_base = json.loads((root / "fixtures/mutation-base-v0.1.json").read_text())
+          mutation_schema = json.loads((root / "schemas/mutation-corpus-v0.1.schema.json").read_text())
+          mutation_corpus = json.loads((root / "fixtures/mutation-cases-v0.1.json").read_text())
+          for document, instance, label in (
+              (schema, fixture, "positive input"),
+              (schema, mutation_base, "shared mutation base"),
+              (mutation_schema, mutation_corpus, "mutation corpus"),
+          ):
+              Draft202012Validator.check_schema(document)
+              errors = list(Draft202012Validator(document).iter_errors(instance))
+              if errors:
+                  for error in errors:
+                      print(label, list(error.absolute_path), error.message)
+                  raise SystemExit(1)
+          assert fixture["claim"]["requirements"]
+          assert len(fixture["evidence_records"]) == 3
+          assert mutation_base["claim"]["requirements"]
+          assert len(mutation_base["evidence_records"]) == 3
+          assert mutation_base["claim"]["requirements"][0]["evidence_ref"] == "evidence:measurement"
+          assert mutation_corpus["mutation_count"] == len(mutation_corpus["cases"]) == 25
+          assert len({case["case_id"] for case in mutation_corpus["cases"]}) == 25
+          print("PASS: Draft 2020-12 input and mutation schemas; positive fixture and shared mutation base; 25 unique mutation cases")
+          PY

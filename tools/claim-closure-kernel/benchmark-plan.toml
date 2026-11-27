@@ -1,0 +1,104 @@
+schema_version = "claim-closure-benchmark-plan-v0.1"
+status = "PROPOSED_EXECUTABLE_BENCHMARK"
+
+[scope]
+claim = "Structural closure of a declared engineering evidence dependency graph for independent review"
+not_claimed = [
+  "cryptographic signature verification",
+  "producer identity authentication",
+  "truth of physical observations",
+  "model calibration or physical validation",
+  "completeness of a domain-specific evidence requirement set",
+  "engineering release or operational authorization"
+]
+
+[limits]
+max_evidence_records = 20000
+max_dependency_edges = 100000
+max_graph_depth = 256
+
+[mutation_corpus]
+fixture = "fixtures/mutation-cases-v0.1.json"
+shared_base_fixture = "fixtures/mutation-base-v0.1.json"
+schema = "schemas/mutation-corpus-v0.1.schema.json"
+shared_base_contract = "same positive dependency graph consumed by Rust and Python oracles"
+mutation_cases_authored = 25
+unit_tests_authored = 34
+oracle_review_status = "NOT_INDEPENDENTLY_REVIEWED"
+execution_status = "EXECUTED_AT_RECORDED_SOURCE_SHA"
+
+[functional_targets]
+false_closure_on_adversarial_mutations = 0
+false_block_on_valid_positive_controls = 0
+permutation_invariance = 1.0
+independent_report_tamper_detection = 1.0
+deterministic_replay = 1.0
+
+[scale_cases]
+nodes = [100, 1000, 10000]
+fanout = [1, 3, 8]
+max_depth = [8, 64, 256]
+harness = "src/bin/scale_bench.rs"
+samples_per_shape = 15
+warmup_iterations = 2
+frozen_shapes = [[100, 1], [100, 3], [100, 8], [1000, 3], [1000, 8], [10000, 3], [10000, 8]]
+artifact_name = "claim-closure-scale-benchmark"
+performance_threshold_assertions = false
+
+[reported_metrics]
+required = [
+  "precision_closed_claims",
+  "recall_closed_claims",
+  "false_closure_rate",
+  "false_block_rate",
+  "mutation_kill_rate",
+  "permutation_invariance_rate",
+  "report_tamper_detection_rate",
+  "p50_latency_ms",
+  "p95_latency_ms",
+  "p99_latency_ms",
+  "peak_memory_bytes",
+  "records_per_second",
+  "dependency_edges_per_second"
+]
+
+[comparators]
+standards_and_systems = [
+  "NASA-STD-7009B: model-and-simulation credibility process",
+  "ASME VVUQ 20.1-2024: multivariate experimental/simulation validation metric",
+  "IETF RFC 9943 SCITT: signed-statement transparency and receipts",
+  "SLSA/in-toto: software provenance and attestations"
+]
+comparison_rule = "Compare only matched input graphs and identical mutation suites; do not equate structural closure with physical validation or cryptographic authenticity."
+
+[qualification]
+unit_tests_executed = true
+exact_head_ci_pass = true
+independent_oracle_reviewed = false
+qualified_source_commit = "0913e630f6aded392af06b23734f21f2c3ea127b"
+qualification_workflow_run_id = 45996908844
+qualification_workflow_url = "https://github.com/Luminous-Dynamics/symtropy/actions/runs/45996908844"
+qualification_platform = "ubuntu-latest"
+rust_toolchain = "1.96.0"
+
+[measured_baseline]
+artifact = "claim-closure-scale-benchmark"
+artifact_id = 15196331975
+sample_count_per_shape = 15
+warmups_excluded = 2
+nodes_100_p50_latency_ms_range = [9.311654, 9.435946]
+nodes_100_records_per_second_range = [10597.77, 10739.23]
+nodes_1000_p50_latency_ms_range = [93.821686, 93.846918]
+nodes_1000_records_per_second_range = [10655.65, 10658.52]
+nodes_10000_p50_latency_ms_range = [966.129773, 966.781068]
+nodes_10000_p95_latency_ms_range = [979.3757, 989.497646]
+nodes_10000_records_per_second_range = [10343.60, 10350.58]
+observed_process_high_water_rss_bytes = [3305472, 6893568, 39874560]
+memory_interpretation = "Linux process VmHWM high-water mark, not isolated per-case allocation"
+limitations = [
+  "single ubuntu-latest run",
+  "15 samples per shape",
+  "no machine-speed threshold enforced",
+  "not an industry or competitor comparison",
+  "not an estimate of physical false-assurance risk"
+]
