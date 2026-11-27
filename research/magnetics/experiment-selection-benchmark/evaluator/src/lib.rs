@@ -952,6 +952,7 @@ mod tests {
     fn lot_holdout_prevents_same_lot_leakage() {
         let mut run = run();
         run.traces[0].holdout[0].material_lot_id = "LOT-A".to_string();
+        run.traces[0].holdout_group_ids = vec!["LOT-A".to_string(), "LOT-B".to_string()];
         let result = evaluate_run(&run);
         assert!(!result.valid);
         assert!(result.blockers.contains(&Blocker::TrainingHoldoutLeakage));
@@ -1056,10 +1057,11 @@ mod tests {
         trace.outcomes[0].disposition = ExperimentDisposition::Fail;
         trace.outcomes[1].disposition = ExperimentDisposition::Fail;
         trace.outcomes[2].disposition = ExperimentDisposition::Fail;
+        trace.outcomes[3].disposition = ExperimentDisposition::Fail;
         let metrics = score_trace(&task(), &trace);
         assert_eq!(metrics.cost_to_first_qualified_minor, None);
         assert_eq!(metrics.total_experiment_cost_minor, 11_500);
-        assert_eq!(metrics.qualified_experiments, 1);
+        assert_eq!(metrics.qualified_experiments, 0);
     }
 
     #[test]
