@@ -40,7 +40,9 @@ Report schema: tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0
    - MAE and RMSE in kW;
    - P95 absolute interval error;
    - mean signed bias;
-   - daily energy difference per profile and in aggregate;
+   - daily energy difference per profile;
+   - signed and absolute net whole-archive daily-energy error;
+   - sum of absolute per-profile daily-energy errors (so opposing errors cannot hide);
    - maximum absolute profile peak-demand error.
 
 All candidate files are revalidated against the same expected file set and time grid before metrics are computed.
@@ -51,6 +53,7 @@ The unit suite builds deterministic temporary archives containing all 81 profile
 - the 81 × 96 profile/interval contract;
 - exact zero error for identical candidate/reference archives;
 - exact 0.5 kW MAE and bias for a candidate with a constant +0.5 kW offset;
+- a positive/negative cross-profile bias control proving that net daily-energy error can cancel while the sum of per-profile absolute errors remains non-zero;
 - rejection of timestamp drift, missing profiles, negative and non-finite power;
 - rejection when the average profile's peak exceeds the maximum-sample profile peak.
 
