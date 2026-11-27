@@ -309,7 +309,7 @@ fn validate_probe_prediction(
                 ));
             }
             covered_worlds.insert(world_id.clone());
-            if world_id == OPEN_WORLD_RESIDUAL {
+            if world_id.as_str() == OPEN_WORLD_RESIDUAL {
                 has_unresolved_scope = true;
             }
         }
@@ -321,7 +321,7 @@ fn validate_probe_prediction(
             has_closed_scope = true;
         }
     }
-    if covered_worlds != *initial_support {
+    if &covered_worlds != initial_support {
         return fail(format!(
             "PREDICTED_OUTCOMES_DO_NOT_COVER_INITIAL_SUPPORT: {}",
             prediction.probe_id
@@ -424,7 +424,7 @@ fn validate_policy_graph(
         return fail("POLICY_ROOT_HAS_INCOMING_EDGE");
     }
     for node_id in nodes.keys() {
-        if *node_id != policy.root_node_id && incoming.get(node_id).copied().unwrap_or(0) != 1 {
+        if *node_id != policy.root_node_id.as_str() && incoming.get(*node_id).copied().unwrap_or(0) != 1 {
             return fail(format!("POLICY_NODE_MUST_HAVE_ONE_PARENT: {node_id}"));
         }
     }
