@@ -519,9 +519,7 @@ fn walk_policy(
         }
         let disposition = node
             .terminal_disposition
-            .ok_or_else(|| {
-                CandidateV02Error(format!("TERMINAL_DISPOSITION_MISSING: {node_id}"))
-            })?;
+            .ok_or_else(|| CandidateV02Error(format!("TERMINAL_DISPOSITION_MISSING: {node_id}")))?;
         if disposition == TerminalDisposition::RecommendFreshAttempt
             && possible_support
                 .iter()
