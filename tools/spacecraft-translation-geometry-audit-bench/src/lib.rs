@@ -234,7 +234,11 @@ fn ceil_sqrt(value: u128) -> Option<u64> {
         }
     }
     let square = low.checked_mul(low)?;
-    let result = if square == value { low } else { low.checked_add(1)? };
+    let result = if square == value {
+        low
+    } else {
+        low.checked_add(1)?
+    };
     u64::try_from(result).ok()
 }
 
@@ -301,9 +305,17 @@ fn component_count(mask: &[bool], width: usize, height: usize) -> u32 {
             let y = current / width;
             let neighbors = [
                 if x > 0 { Some(current - 1) } else { None },
-                if x + 1 < width { Some(current + 1) } else { None },
+                if x + 1 < width {
+                    Some(current + 1)
+                } else {
+                    None
+                },
                 if y > 0 { Some(current - width) } else { None },
-                if y + 1 < height { Some(current + width) } else { None },
+                if y + 1 < height {
+                    Some(current + width)
+                } else {
+                    None
+                },
             ];
             for neighbor in neighbors.into_iter().flatten() {
                 if mask[neighbor] && !visited[neighbor] {
@@ -318,7 +330,10 @@ fn component_count(mask: &[bool], width: usize, height: usize) -> u32 {
 
 fn score_mask(pair: &MaskPair, width: usize, height: usize) -> Result<MaskScore, String> {
     if pair.iou_floor_bps > 10_000 {
-        return Err(format!("mask {} IoU floor exceeds 10000 bps", pair.region_id));
+        return Err(format!(
+            "mask {} IoU floor exceeds 10000 bps",
+            pair.region_id
+        ));
     }
     let pixel_count = width
         .checked_mul(height)
@@ -338,7 +353,10 @@ fn score_mask(pair: &MaskPair, width: usize, height: usize) -> Result<MaskScore,
         }
     }
     if union == 0 {
-        return Err(format!("mask {} has an empty source/translated union", pair.region_id));
+        return Err(format!(
+            "mask {} has an empty source/translated union",
+            pair.region_id
+        ));
     }
     let iou = u128::from(intersection)
         .checked_mul(10_000)
@@ -373,7 +391,10 @@ fn validate_frame(frame: &FrameAnnotations) -> Result<(), String> {
         ("crop_stratum", metadata.scope.crop_stratum.as_str()),
         ("modality", metadata.scope.modality.as_str()),
         ("ood_group", metadata.scope.ood_group.as_str()),
-        ("calibration_revision", metadata.scope.calibration_revision.as_str()),
+        (
+            "calibration_revision",
+            metadata.scope.calibration_revision.as_str(),
+        ),
     ] {
         if !valid_text(value) {
             return Err(format!("{name} is empty or reserved"));
@@ -398,7 +419,9 @@ fn validate_frame(frame: &FrameAnnotations) -> Result<(), String> {
     {
         return Err("invalid frame index, budget, or image dimensions".to_owned());
     }
-    if metadata.scope.image_width_px
+    if metadata
+        .scope
+        .image_width_px
         .checked_mul(metadata.scope.image_height_px)
         .is_none_or(|count| count as usize > MAX_MASK_PIXELS)
     {
@@ -424,7 +447,8 @@ fn validate_frame(frame: &FrameAnnotations) -> Result<(), String> {
 
     let mut landmark_ids = BTreeSet::new();
     for landmark in &frame.landmarks {
-        if !valid_text(&landmark.landmark_id) || !landmark_ids.insert(landmark.landmark_id.as_str()) {
+        if !valid_text(&landmark.landmark_id) || !landmark_ids.insert(landmark.landmark_id.as_str())
+        {
             return Err("empty or duplicate landmark identity".to_owned());
         }
     }
@@ -465,7 +489,10 @@ fn score_frame(frame: &FrameAnnotations) -> Result<FrameScore, String> {
                 && landmark.translated_y_mpx >= 0
                 && landmark.translated_y_mpx < height_mpx;
             if !source_in_bounds || !translated_in_bounds {
-                reasons.insert(format!("VISIBLE_LANDMARK_OUT_OF_BOUNDS:{}", landmark.landmark_id));
+                reasons.insert(format!(
+                    "VISIBLE_LANDMARK_OUT_OF_BOUNDS:{}",
+                    landmark.landmark_id
+                ));
                 continue;
             }
             let dx = landmark.translated_x_mpx - landmark.source_x_mpx;
@@ -473,7 +500,10 @@ fn score_frame(frame: &FrameAnnotations) -> Result<FrameScore, String> {
             let displacement = displacement_mpx(dx, dy)
                 .ok_or_else(|| "landmark displacement overflow".to_owned())?;
             if displacement > frame.metadata.scope.landmark_tolerance_mpx {
-                reasons.insert(format!("LANDMARK_DISPLACEMENT_EXCEEDED:{}", landmark.landmark_id));
+                reasons.insert(format!(
+                    "LANDMARK_DISPLACEMENT_EXCEEDED:{}",
+                    landmark.landmark_id
+                ));
             }
             displacements.push(displacement);
         }
@@ -527,10 +557,16 @@ fn validate_unit_frames(frames: &[FrameAnnotations]) -> Result<(), String> {
         ));
     }
     let mut indices = BTreeSet::new();
-    let expected_landmarks: BTreeSet<&str> =
-        frames[0].landmarks.iter().map(|item| item.landmark_id.as_str()).collect();
-    let expected_masks: BTreeSet<&str> =
-        frames[0].masks.iter().map(|item| item.region_id.as_str()).collect();
+    let expected_landmarks: BTreeSet<&str> = frames[0]
+        .landmarks
+        .iter()
+        .map(|item| item.landmark_id.as_str())
+        .collect();
+    let expected_masks: BTreeSet<&str> = frames[0]
+        .masks
+        .iter()
+        .map(|item| item.region_id.as_str())
+        .collect();
 
     for frame in frames {
         let metadata = &frame.metadata;
@@ -539,17 +575,29 @@ fn validate_unit_frames(frames: &[FrameAnnotations]) -> Result<(), String> {
             || metadata.scope != first.scope
             || metadata.target_id != first.target_id
         {
-            return Err(format!("unit {} changes scope or target identity", first.unit_id));
+            return Err(format!(
+                "unit {} changes scope or target identity",
+                first.unit_id
+            ));
         }
         if !indices.insert(metadata.frame_index) {
             return Err(format!("unit {} has duplicate frame index", first.unit_id));
         }
-        let landmark_ids: BTreeSet<&str> =
-            frame.landmarks.iter().map(|item| item.landmark_id.as_str()).collect();
-        let mask_ids: BTreeSet<&str> =
-            frame.masks.iter().map(|item| item.region_id.as_str()).collect();
+        let landmark_ids: BTreeSet<&str> = frame
+            .landmarks
+            .iter()
+            .map(|item| item.landmark_id.as_str())
+            .collect();
+        let mask_ids: BTreeSet<&str> = frame
+            .masks
+            .iter()
+            .map(|item| item.region_id.as_str())
+            .collect();
         if landmark_ids != expected_landmarks || mask_ids != expected_masks {
-            return Err(format!("unit {} changes landmark or mask identity set", first.unit_id));
+            return Err(format!(
+                "unit {} changes landmark or mask identity set",
+                first.unit_id
+            ));
         }
     }
     if indices.iter().copied().ne(0..budget) {
@@ -593,11 +641,8 @@ fn temporal_motion_residual(frames: &[FrameAnnotations]) -> Result<Option<u64>, 
             let source_dy = right.source_y_mpx - left.source_y_mpx;
             let translated_dx = right.translated_x_mpx - left.translated_x_mpx;
             let translated_dy = right.translated_y_mpx - left.translated_y_mpx;
-            let residual = displacement_mpx(
-                translated_dx - source_dx,
-                translated_dy - source_dy,
-            )
-            .ok_or_else(|| "temporal motion residual overflow".to_owned())?;
+            let residual = displacement_mpx(translated_dx - source_dx, translated_dy - source_dy)
+                .ok_or_else(|| "temporal motion residual overflow".to_owned())?;
             maximum = Some(maximum.map_or(residual, |current| current.max(residual)));
         }
     }
@@ -622,12 +667,14 @@ pub fn audit_manifest(frames: &[FrameAnnotations]) -> Result<AuditReceipt, Strin
         if !sample_ids.insert(frame.metadata.sample_id.as_str()) {
             return Err(format!("duplicate sample id: {}", frame.metadata.sample_id));
         }
-        if let Some(existing) = scopes.insert(
-            frame.metadata.unit_id.clone(),
-            frame.metadata.scope.clone(),
-        ) {
+        if let Some(existing) =
+            scopes.insert(frame.metadata.unit_id.clone(), frame.metadata.scope.clone())
+        {
             if existing != frame.metadata.scope {
-                return Err(format!("unit {} crosses geometry audit scopes", frame.metadata.unit_id));
+                return Err(format!(
+                    "unit {} crosses geometry audit scopes",
+                    frame.metadata.unit_id
+                ));
             }
         }
         units
@@ -665,7 +712,10 @@ pub fn audit_manifest(frames: &[FrameAnnotations]) -> Result<AuditReceipt, Strin
         } else if unit_frames[0].metadata.scope.unit_frame_budget > 1 && temporal.is_none() {
             unit_reasons.insert("NO_VISIBLE_LANDMARK_TRAJECTORY_FOR_TEMPORAL_AUDIT".to_owned());
         }
-        if frame_scores.iter().any(|score| score.disposition != "PASS_GEOMETRY_PRESERVATION") {
+        if frame_scores
+            .iter()
+            .any(|score| score.disposition != "PASS_GEOMETRY_PRESERVATION")
+        {
             unit_reasons.insert("ONE_OR_MORE_FRAMES_FAILED_GEOMETRY_PRESERVATION".to_owned());
         }
 
@@ -721,8 +771,8 @@ pub fn audit_manifest(frames: &[FrameAnnotations]) -> Result<AuditReceipt, Strin
 #[cfg(test)]
 mod tests {
     use super::{
-        CropState, FrameAnnotations, FrameMetadata, LandmarkPair, MaskPair,
-        ScopeKey, UnitKind, Visibility, audit_manifest,
+        CropState, FrameAnnotations, FrameMetadata, LandmarkPair, MaskPair, ScopeKey, UnitKind,
+        Visibility, audit_manifest,
     };
 
     fn digest(character: char) -> String {
@@ -737,7 +787,10 @@ mod tests {
                 nibbles[index / 4] |= 1 << (index % 4);
             }
         }
-        nibbles.iter().map(|nibble| char::from_digit(u32::from(*nibble), 16).unwrap()).collect()
+        nibbles
+            .iter()
+            .map(|nibble| char::from_digit(u32::from(*nibble), 16).unwrap())
+            .collect()
     }
 
     fn frame(unit: &str, index: u32, x: i64, translated_x: i64) -> FrameAnnotations {
@@ -843,7 +896,12 @@ mod tests {
         frames[1].landmarks[0].translated_x_mpx += 2_000;
         let receipt = audit_manifest(&frames).expect("well-formed annotation manifest");
         assert_eq!(receipt.blocked_unit_count, 1);
-        assert!(receipt.results[0].reason_codes.iter().any(|reason| reason.contains("ONE_OR_MORE_FRAMES")));
+        assert!(
+            receipt.results[0]
+                .reason_codes
+                .iter()
+                .any(|reason| reason.contains("ONE_OR_MORE_FRAMES"))
+        );
     }
 
     #[test]
@@ -851,7 +909,10 @@ mod tests {
         let mut frames = clean_unit("SEQ-003");
         frames[1].landmarks[0].translated_visibility = Visibility::Occluded;
         let receipt = audit_manifest(&frames).expect("well-formed annotation manifest");
-        assert_eq!(receipt.results[0].frames[1].disposition, "BLOCKED_GEOMETRY_PRESERVATION");
+        assert_eq!(
+            receipt.results[0].frames[1].disposition,
+            "BLOCKED_GEOMETRY_PRESERVATION"
+        );
     }
 
     #[test]
@@ -859,7 +920,12 @@ mod tests {
         let mut frames = clean_unit("SEQ-004");
         frames[1].landmarks[0].translated_crop_state = CropState::Truncated;
         let receipt = audit_manifest(&frames).expect("well-formed annotation manifest");
-        assert!(receipt.results[0].frames[1].reason_codes.iter().any(|reason| reason.contains("CROP_STATE_CHANGED")));
+        assert!(
+            receipt.results[0].frames[1]
+                .reason_codes
+                .iter()
+                .any(|reason| reason.contains("CROP_STATE_CHANGED"))
+        );
     }
 
     #[test]
@@ -867,10 +933,15 @@ mod tests {
         let mut frames = clean_unit("SEQ-005");
         frames[1].masks[1].translated_mask_hex = {
             let bits = vec![0_u8; 256];
-            bits.iter().map(|nibble| char::from_digit(u32::from(*nibble), 16).unwrap()).collect()
+            bits.iter()
+                .map(|nibble| char::from_digit(u32::from(*nibble), 16).unwrap())
+                .collect()
         };
         let receipt = audit_manifest(&frames).expect("well-formed mask annotations");
-        assert_eq!(receipt.results[0].frames[1].disposition, "BLOCKED_GEOMETRY_PRESERVATION");
+        assert_eq!(
+            receipt.results[0].frames[1].disposition,
+            "BLOCKED_GEOMETRY_PRESERVATION"
+        );
     }
 
     #[test]
@@ -894,10 +965,25 @@ mod tests {
         frames[1].landmarks[0].translated_x_mpx += 1_000;
         frames[2].landmarks[0].translated_x_mpx += 1_000;
         let receipt = audit_manifest(&frames).expect("valid frame annotations");
-        assert!(receipt.results[0].frames.iter().all(|score| score.disposition == "PASS_GEOMETRY_PRESERVATION"));
-        assert_eq!(receipt.results[0].max_temporal_motion_residual_mpx, Some(1_000));
-        assert_eq!(receipt.results[0].disposition, "BLOCKED_GEOMETRY_PRESERVATION");
-        assert!(receipt.results[0].reason_codes.contains(&"TEMPORAL_MOTION_RESIDUAL_EXCEEDED".to_owned()));
+        assert!(
+            receipt.results[0]
+                .frames
+                .iter()
+                .all(|score| score.disposition == "PASS_GEOMETRY_PRESERVATION")
+        );
+        assert_eq!(
+            receipt.results[0].max_temporal_motion_residual_mpx,
+            Some(1_000)
+        );
+        assert_eq!(
+            receipt.results[0].disposition,
+            "BLOCKED_GEOMETRY_PRESERVATION"
+        );
+        assert!(
+            receipt.results[0]
+                .reason_codes
+                .contains(&"TEMPORAL_MOTION_RESIDUAL_EXCEEDED".to_owned())
+        );
     }
 
     #[test]
