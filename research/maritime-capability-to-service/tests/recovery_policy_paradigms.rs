@@ -1,13 +1,9 @@
 use maritime_capability_to_service::{
-    compare_recovery_regret, worst_case_recovery_regret, RecoveryRegretEnvelope,
-    RecoveryRegretMetric, RecoveryServiceOutcome,
+    RecoveryRegretEnvelope, RecoveryRegretMetric, RecoveryServiceOutcome, compare_recovery_regret,
+    worst_case_recovery_regret,
 };
 
-fn outcome(
-    policy: &str,
-    scenario: &str,
-    values: [u64; 13],
-) -> RecoveryServiceOutcome {
+fn outcome(policy: &str, scenario: &str, values: [u64; 13]) -> RecoveryServiceOutcome {
     RecoveryServiceOutcome {
         instance_id: "MCSC-RECOVERY-PARADIGMS-001".to_owned(),
         instance_version: "v0.1".to_owned(),
@@ -82,40 +78,46 @@ fn recovery_paradigms_expose_service_stability_and_decision_latency_tradeoffs() 
     ];
 
     let disruption_management = envelope_for_policy("DISRUPTION-MANAGEMENT", &scenarios);
-    let full_rescheduling = envelope_for_policy("FULL-RESCHEDULING", &[
-        (
-            "SHARED-FEEDER-OUTAGE",
-            [90, 90, 80, 10, 200, 1, 6, 300, 130, 2, 3, 30, 3_500],
-            scenarios[0].2,
-        ),
-        (
-            "CALIBRATION-EXPIRY",
-            [85, 80, 70, 20, 300, 2, 7, 320, 140, 3, 4, 35, 4_500],
-            scenarios[1].2,
-        ),
-        (
-            "SEQUENTIAL-DISRUPTION",
-            [80, 75, 60, 25, 500, 2, 10, 400, 170, 4, 6, 50, 6_000],
-            scenarios[2].2,
-        ),
-    ]);
-    let proactive_reactive = envelope_for_policy("PROACTIVE-REACTIVE-HYBRID", &[
-        (
-            "SHARED-FEEDER-OUTAGE",
-            [85, 80, 75, 20, 250, 1, 7, 270, 110, 2, 2, 12, 1_800],
-            scenarios[0].2,
-        ),
-        (
-            "CALIBRATION-EXPIRY",
-            [80, 75, 65, 25, 450, 2, 9, 290, 120, 3, 3, 15, 2_000],
-            scenarios[1].2,
-        ),
-        (
-            "SEQUENTIAL-DISRUPTION",
-            [75, 70, 60, 30, 550, 2, 11, 350, 150, 4, 4, 20, 2_500],
-            scenarios[2].2,
-        ),
-    ]);
+    let full_rescheduling = envelope_for_policy(
+        "FULL-RESCHEDULING",
+        &[
+            (
+                "SHARED-FEEDER-OUTAGE",
+                [90, 90, 80, 10, 200, 1, 6, 300, 130, 2, 3, 30, 3_500],
+                scenarios[0].2,
+            ),
+            (
+                "CALIBRATION-EXPIRY",
+                [85, 80, 70, 20, 300, 2, 7, 320, 140, 3, 4, 35, 4_500],
+                scenarios[1].2,
+            ),
+            (
+                "SEQUENTIAL-DISRUPTION",
+                [80, 75, 60, 25, 500, 2, 10, 400, 170, 4, 6, 50, 6_000],
+                scenarios[2].2,
+            ),
+        ],
+    );
+    let proactive_reactive = envelope_for_policy(
+        "PROACTIVE-REACTIVE-HYBRID",
+        &[
+            (
+                "SHARED-FEEDER-OUTAGE",
+                [85, 80, 75, 20, 250, 1, 7, 270, 110, 2, 2, 12, 1_800],
+                scenarios[0].2,
+            ),
+            (
+                "CALIBRATION-EXPIRY",
+                [80, 75, 65, 25, 450, 2, 9, 290, 120, 3, 3, 15, 2_000],
+                scenarios[1].2,
+            ),
+            (
+                "SEQUENTIAL-DISRUPTION",
+                [75, 70, 60, 30, 550, 2, 11, 350, 150, 4, 4, 20, 2_500],
+                scenarios[2].2,
+            ),
+        ],
+    );
 
     for envelope in [
         &disruption_management,
@@ -163,11 +165,7 @@ fn recovery_paradigms_expose_service_stability_and_decision_latency_tradeoffs() 
         40
     );
     assert_eq!(
-        bound(
-            &full_rescheduling,
-            RecoveryRegretMetric::PlanChurnChanges
-        )
-        .delta,
+        bound(&full_rescheduling, RecoveryRegretMetric::PlanChurnChanges).delta,
         48
     );
     assert_eq!(
@@ -190,11 +188,7 @@ fn recovery_paradigms_expose_service_stability_and_decision_latency_tradeoffs() 
         40
     );
     assert_eq!(
-        bound(
-            &proactive_reactive,
-            RecoveryRegretMetric::PlanChurnChanges
-        )
-        .delta,
+        bound(&proactive_reactive, RecoveryRegretMetric::PlanChurnChanges).delta,
         18
     );
     assert_eq!(
