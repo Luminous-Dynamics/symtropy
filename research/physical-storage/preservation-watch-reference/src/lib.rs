@@ -175,18 +175,39 @@ fn action_plan(signal: WatchSignal) -> (WatchDisposition, Vec<ProposedAction>, V
     match signal {
         S::Fixity => (
             D::Blocked,
-            vec![A::IsolateSuspectCopy, A::VerifyFixity, A::RecoverFromIndependentCopy, A::HumanReview],
-            vec!["scorer-held expected digest", "independent copy provenance", "recovery receipt"],
+            vec![
+                A::IsolateSuspectCopy,
+                A::VerifyFixity,
+                A::RecoverFromIndependentCopy,
+                A::HumanReview,
+            ],
+            vec![
+                "scorer-held expected digest",
+                "independent copy provenance",
+                "recovery receipt",
+            ],
         ),
         S::MediaRead => (
             D::Blocked,
-            vec![A::InspectMedia, A::RunControlledReadTrial, A::RecoverFromIndependentCopy],
-            vec!["raw reader observations", "instrument calibration", "specimen identity"],
+            vec![
+                A::InspectMedia,
+                A::RunControlledReadTrial,
+                A::RecoverFromIndependentCopy,
+            ],
+            vec![
+                "raw reader observations",
+                "instrument calibration",
+                "specimen identity",
+            ],
         ),
         S::Calibration => (
             D::Blocked,
             vec![A::RecalibrateReader, A::ReplaceReader, A::HumanReview],
-            vec!["current calibration record", "reader and firmware identity", "calibration reference provenance"],
+            vec![
+                "current calibration record",
+                "reader and firmware identity",
+                "calibration reference provenance",
+            ],
         ),
         S::ReaderAvailability => (
             D::Blocked,
@@ -196,67 +217,126 @@ fn action_plan(signal: WatchSignal) -> (WatchDisposition, Vec<ProposedAction>, V
         S::ReaderIndependence => (
             D::InterventionRequired,
             vec![A::AssessFailureDomains, A::ReplaceReader, A::HumanReview],
-            vec!["transitive dependency graph", "common-cause cut sets", "two-reader comparison"],
+            vec![
+                "transitive dependency graph",
+                "common-cause cut sets",
+                "two-reader comparison",
+            ],
         ),
         S::TrustAnchor => (
             D::Unknown,
             vec![A::ObtainTrustAnchor, A::HumanReview],
-            vec!["out-of-band trust-root provenance", "trust policy version", "custody evidence"],
+            vec![
+                "out-of-band trust-root provenance",
+                "trust policy version",
+                "custody evidence",
+            ],
         ),
         S::SignatureValidity => (
             D::Blocked,
             vec![A::IsolateSuspectCopy, A::HumanReview],
-            vec!["signature validation material", "independent trust root", "provenance chain"],
+            vec![
+                "signature validation material",
+                "independent trust root",
+                "provenance chain",
+            ],
         ),
         S::RevocationFreshness => (
             D::Unknown,
             vec![A::RefreshRevocationEvidence, A::HumanReview],
-            vec!["fresh revocation evidence", "historical validation record", "trust policy"],
+            vec![
+                "fresh revocation evidence",
+                "historical validation record",
+                "trust policy",
+            ],
         ),
         S::PreservationObjective => (
             D::InterventionRequired,
-            vec![A::RestoreRepresentationInformation, A::RunPreservationObjective],
-            vec!["failed objective definition", "representation information", "independent objective result"],
+            vec![
+                A::RestoreRepresentationInformation,
+                A::RunPreservationObjective,
+            ],
+            vec![
+                "failed objective definition",
+                "representation information",
+                "independent objective result",
+            ],
         ),
         S::RepresentationInformation => (
             D::InterventionRequired,
             vec![A::RestoreRepresentationInformation, A::PlanMigration],
-            vec!["format specification", "schema and units", "independent render/interpretation result"],
+            vec![
+                "format specification",
+                "schema and units",
+                "independent render/interpretation result",
+            ],
         ),
         S::IndependentCopies => (
             D::InterventionRequired,
             vec![A::CreateIndependentCopy, A::AssessFailureDomains],
-            vec!["copy fixity receipt", "failure-domain assessment", "custody and placement evidence"],
+            vec![
+                "copy fixity receipt",
+                "failure-domain assessment",
+                "custody and placement evidence",
+            ],
         ),
         S::CommonCause => (
             D::InterventionRequired,
             vec![A::AssessFailureDomains, A::CreateIndependentCopy],
-            vec!["dependency graph", "common-cause analysis", "independent-copy receipt"],
+            vec![
+                "dependency graph",
+                "common-cause analysis",
+                "independent-copy receipt",
+            ],
         ),
         S::TechnologySupport => (
             D::Watch,
             vec![A::PlanMigration, A::RunControlledReadTrial],
-            vec!["reader/vendor support evidence", "migration rehearsal", "format portability assessment"],
+            vec![
+                "reader/vendor support evidence",
+                "migration rehearsal",
+                "format portability assessment",
+            ],
         ),
         S::EnvironmentEnvelope => (
             D::InterventionRequired,
             vec![A::InspectMedia, A::RunControlledReadTrial, A::HumanReview],
-            vec!["calibrated environmental measurement", "specimen and batch identity", "measurement uncertainty"],
+            vec![
+                "calibrated environmental measurement",
+                "specimen and batch identity",
+                "measurement uncertainty",
+            ],
         ),
         S::ReadMargin => (
             D::InterventionRequired,
             vec![A::RunControlledReadTrial, A::InspectMedia, A::PlanMigration],
-            vec!["raw read measurements", "calibration provenance", "independent decode result"],
+            vec![
+                "raw read measurements",
+                "calibration provenance",
+                "independent decode result",
+            ],
         ),
         S::DependencyPolicy => (
             D::Blocked,
             vec![A::VerifyRuntimeDependencies, A::HumanReview],
-            vec!["observed runtime dependency trace", "declared dependency manifest", "offline run receipt"],
+            vec![
+                "observed runtime dependency trace",
+                "declared dependency manifest",
+                "offline run receipt",
+            ],
         ),
         S::SandboxPolicy => (
             D::Blocked,
-            vec![A::IsolateSuspectCopy, A::VerifyRuntimeDependencies, A::HumanReview],
-            vec!["sandbox event log", "host-boundary policy", "independent incident review"],
+            vec![
+                A::IsolateSuspectCopy,
+                A::VerifyRuntimeDependencies,
+                A::HumanReview,
+            ],
+            vec![
+                "sandbox event log",
+                "host-boundary policy",
+                "independent incident review",
+            ],
         ),
     }
 }
@@ -267,15 +347,21 @@ fn make_proposals(
     actions: &[ProposedAction],
     requirements: &[&str],
 ) -> Vec<ActionProposal> {
-    actions.iter().map(|action| ActionProposal {
-        target_id: target_id.to_string(),
-        signal: observation.signal,
-        action: *action,
-        trigger_observation_id: observation.observation_id.clone(),
-        required_approvals: vec!["archive_owner".into(), "independent_reviewer".into()],
-        required_evidence: requirements.iter().map(|value| (*value).to_string()).collect(),
-        auto_execute: false,
-    }).collect()
+    actions
+        .iter()
+        .map(|action| ActionProposal {
+            target_id: target_id.to_string(),
+            signal: observation.signal,
+            action: *action,
+            trigger_observation_id: observation.observation_id.clone(),
+            required_approvals: vec!["archive_owner".into(), "independent_reviewer".into()],
+            required_evidence: requirements
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect(),
+            auto_execute: false,
+        })
+        .collect()
 }
 
 fn unresolved_alerts<'a>(
@@ -297,7 +383,8 @@ fn unresolved_alerts<'a>(
             {
                 return Err(WatchContractError::UnsubstantiatedClear);
             }
-            let alert = unresolved.remove(alert_id)
+            let alert = unresolved
+                .remove(alert_id)
                 .ok_or(WatchContractError::UnknownSupersededAlert)?;
             if alert.target_id != observation.target_id || alert.signal != observation.signal {
                 return Err(WatchContractError::SupersedesWrongTargetOrSignal);
@@ -334,16 +421,21 @@ pub fn evaluate_watch(
     if policy.required_signals.is_empty() {
         return Err(WatchContractError::EmptyRequiredSignals);
     }
-    let copies_required = policy.required_signals.contains(&WatchSignal::IndependentCopies);
+    let copies_required = policy
+        .required_signals
+        .contains(&WatchSignal::IndependentCopies);
     if copies_required && policy.minimum_independent_copies == 0 {
         return Err(WatchContractError::ZeroMinimumIndependentCopies);
     }
     if !copies_required && policy.minimum_independent_copies > 0 {
         return Err(WatchContractError::CopyThresholdWithoutSignal);
     }
-    if policy.required_signals.iter().enumerate().any(
-        |(index, signal)| policy.required_signals[..index].contains(signal)
-    ) {
+    if policy
+        .required_signals
+        .iter()
+        .enumerate()
+        .any(|(index, signal)| policy.required_signals[..index].contains(signal))
+    {
         return Err(WatchContractError::DuplicateRequiredSignal);
     }
 
@@ -385,14 +477,22 @@ pub fn evaluate_watch(
             if observation.state != ObservationState::Healthy {
                 return Err(WatchContractError::SupersedesNonHealthyObservation);
             }
-            if observation.remediation_receipt_id.as_deref().is_none_or(str::is_empty) {
+            if observation
+                .remediation_receipt_id
+                .as_deref()
+                .is_none_or(str::is_empty)
+            {
                 return Err(WatchContractError::MissingRemediationReceipt);
             }
             let receipt_id = observation.remediation_receipt_id.as_deref().unwrap();
             if !remediation_receipt_ids.insert(receipt_id) {
                 return Err(WatchContractError::DuplicateRemediationReceiptId);
             }
-            if !observation.remediation_receipt_sha256.as_deref().is_some_and(is_sha256_hex) {
+            if !observation
+                .remediation_receipt_sha256
+                .as_deref()
+                .is_some_and(is_sha256_hex)
+            {
                 return Err(WatchContractError::InvalidRemediationReceiptDigest);
             }
         } else if observation.remediation_receipt_id.is_some()
@@ -411,7 +511,10 @@ pub fn evaluate_watch(
             return Err(WatchContractError::CopyCountOnWrongSignal);
         }
         if observation.target_id == target_id {
-            grouped.entry(observation.signal).or_default().push(observation);
+            grouped
+                .entry(observation.signal)
+                .or_default()
+                .push(observation);
         }
     }
 
@@ -451,7 +554,12 @@ pub fn evaluate_watch(
             if !missing_actions.contains(&ProposedAction::GatherFreshEvidence) {
                 missing_actions.push(ProposedAction::GatherFreshEvidence);
             }
-            proposals.extend(make_proposals(target_id, &placeholder, &missing_actions, &requirements));
+            proposals.extend(make_proposals(
+                target_id,
+                &placeholder,
+                &missing_actions,
+                &requirements,
+            ));
             continue;
         };
 
@@ -471,8 +579,12 @@ pub fn evaluate_watch(
         let latest = ordered.last().copied().expect("history is non-empty");
         let fresh = latest.valid_until_unix >= evaluated_at_unix;
         let source_verified = latest.provenance == EvidenceProvenance::Verified;
-        let active_invalid = unresolved.iter().any(|alert| alert.provenance == EvidenceProvenance::Invalid);
-        let active_verified = unresolved.iter().any(|alert| alert.provenance == EvidenceProvenance::Verified);
+        let active_invalid = unresolved
+            .iter()
+            .any(|alert| alert.provenance == EvidenceProvenance::Invalid);
+        let active_verified = unresolved
+            .iter()
+            .any(|alert| alert.provenance == EvidenceProvenance::Verified);
         let state = if active_invalid || active_verified {
             ObservationState::Alert
         } else if !unresolved.is_empty() {
@@ -482,7 +594,8 @@ pub fn evaluate_watch(
         } else if !fresh || !source_verified {
             ObservationState::Unknown
         } else if *signal == WatchSignal::IndependentCopies {
-            let observed = latest.observed_independent_copies
+            let observed = latest
+                .observed_independent_copies
                 .ok_or(WatchContractError::MissingIndependentCopyCount)?;
             let below_policy = observed < policy.minimum_independent_copies;
             if below_policy && latest.state == ObservationState::Healthy {
@@ -491,7 +604,11 @@ pub fn evaluate_watch(
             if !below_policy && latest.state == ObservationState::Alert {
                 return Err(WatchContractError::InconsistentIndependentCopyEvidence);
             }
-            if below_policy { ObservationState::Alert } else { ObservationState::Healthy }
+            if below_policy {
+                ObservationState::Alert
+            } else {
+                ObservationState::Healthy
+            }
         } else {
             latest.state
         };
@@ -502,28 +619,47 @@ pub fn evaluate_watch(
             evidence_fresh: fresh,
             source_verified,
             latest_observation_id: Some(latest.observation_id.clone()),
-            unresolved_alert_ids: unresolved.iter().map(|alert| alert.observation_id.clone()).collect(),
+            unresolved_alert_ids: unresolved
+                .iter()
+                .map(|alert| alert.observation_id.clone())
+                .collect(),
         });
 
         if state == ObservationState::Alert {
             if !unresolved.is_empty() {
                 for alert in &unresolved {
-                    let (disposition, actions, requirements) = if alert.provenance == EvidenceProvenance::Invalid {
-                        (WatchDisposition::Blocked, vec![ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview], vec!["invalid evidence provenance", "independent investigation"])
-                    } else {
-                        action_plan(*signal)
-                    };
+                    let (disposition, actions, requirements) =
+                        if alert.provenance == EvidenceProvenance::Invalid {
+                            (
+                                WatchDisposition::Blocked,
+                                vec![
+                                    ProposedAction::IsolateSuspectCopy,
+                                    ProposedAction::HumanReview,
+                                ],
+                                vec!["invalid evidence provenance", "independent investigation"],
+                            )
+                        } else {
+                            action_plan(*signal)
+                        };
                     dispositions.push(disposition);
                     proposals.extend(make_proposals(target_id, alert, &actions, &requirements));
                 }
             } else {
-            let (disposition, actions, requirements) = if latest.provenance == EvidenceProvenance::Invalid {
-                (WatchDisposition::Blocked, vec![ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview], vec!["invalid evidence provenance", "independent investigation"])
-            } else {
-                action_plan(*signal)
-            };
-            dispositions.push(disposition);
-            proposals.extend(make_proposals(target_id, latest, &actions, &requirements));
+                let (disposition, actions, requirements) =
+                    if latest.provenance == EvidenceProvenance::Invalid {
+                        (
+                            WatchDisposition::Blocked,
+                            vec![
+                                ProposedAction::IsolateSuspectCopy,
+                                ProposedAction::HumanReview,
+                            ],
+                            vec!["invalid evidence provenance", "independent investigation"],
+                        )
+                    } else {
+                        action_plan(*signal)
+                    };
+                dispositions.push(disposition);
+                proposals.extend(make_proposals(target_id, latest, &actions, &requirements));
             }
         } else if state == ObservationState::Unknown {
             dispositions.push(WatchDisposition::Unknown);
@@ -551,7 +687,10 @@ pub fn evaluate_watch(
         }
         let unresolved = unresolved_alerts(&ordered, evaluated_at_unix)?;
         if let Some(latest) = ordered.last().copied() {
-            let state = if unresolved.iter().any(|alert| alert.provenance != EvidenceProvenance::Unverified) {
+            let state = if unresolved
+                .iter()
+                .any(|alert| alert.provenance != EvidenceProvenance::Unverified)
+            {
                 ObservationState::Alert
             } else if !unresolved.is_empty() {
                 ObservationState::Unknown
@@ -570,7 +709,10 @@ pub fn evaluate_watch(
                 evidence_fresh: latest.valid_until_unix >= evaluated_at_unix,
                 source_verified: latest.provenance == EvidenceProvenance::Verified,
                 latest_observation_id: Some(latest.observation_id.clone()),
-                unresolved_alert_ids: unresolved.iter().map(|alert| alert.observation_id.clone()).collect(),
+                unresolved_alert_ids: unresolved
+                    .iter()
+                    .map(|alert| alert.observation_id.clone())
+                    .collect(),
             });
             match state {
                 ObservationState::Alert if !unresolved.is_empty() => {
@@ -580,13 +722,21 @@ pub fn evaluate_watch(
                             proposals.extend(make_proposals(
                                 target_id,
                                 alert,
-                                &[ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview],
+                                &[
+                                    ProposedAction::IsolateSuspectCopy,
+                                    ProposedAction::HumanReview,
+                                ],
                                 &["invalid evidence provenance", "independent investigation"],
                             ));
                         } else {
                             let (disposition, actions, requirements) = action_plan(*signal);
                             dispositions.push(disposition);
-                            proposals.extend(make_proposals(target_id, alert, &actions, &requirements));
+                            proposals.extend(make_proposals(
+                                target_id,
+                                alert,
+                                &actions,
+                                &requirements,
+                            ));
                         }
                     }
                 }
@@ -595,7 +745,10 @@ pub fn evaluate_watch(
                     proposals.extend(make_proposals(
                         target_id,
                         latest,
-                        &[ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview],
+                        &[
+                            ProposedAction::IsolateSuspectCopy,
+                            ProposedAction::HumanReview,
+                        ],
                         &["invalid evidence provenance", "independent investigation"],
                     ));
                 }
@@ -629,12 +782,14 @@ pub fn evaluate_watch(
         WatchDisposition::Stable
     };
 
-    proposals.sort_by_key(|proposal| (
-        proposal.target_id.clone(),
-        proposal.signal,
-        proposal.action,
-        proposal.trigger_observation_id.clone(),
-    ));
+    proposals.sort_by_key(|proposal| {
+        (
+            proposal.target_id.clone(),
+            proposal.signal,
+            proposal.action,
+            proposal.trigger_observation_id.clone(),
+        )
+    });
     proposals.dedup_by(|left, right| {
         left.target_id == right.target_id
             && left.signal == right.signal
@@ -686,15 +841,29 @@ mod tests {
             supersedes_observation_id: None,
             remediation_receipt_id: None,
             remediation_receipt_sha256: None,
-            observed_independent_copies: if signal == WatchSignal::IndependentCopies { Some(2) } else { None },
+            observed_independent_copies: if signal == WatchSignal::IndependentCopies {
+                Some(2)
+            } else {
+                None
+            },
         }
     }
 
     fn healthy_snapshot() -> Vec<WatchObservation> {
         vec![
             observation("FIX-1", WatchSignal::Fixity, ObservationState::Healthy, 1),
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ]
     }
 
@@ -711,9 +880,12 @@ mod tests {
         observations.pop();
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Unknown);
-        assert!(receipt.action_proposals.iter().any(
-            |proposal| proposal.action == ProposedAction::GatherFreshEvidence
-        ));
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::GatherFreshEvidence)
+        );
     }
 
     #[test]
@@ -730,10 +902,18 @@ mod tests {
         observations[0].state = ObservationState::Alert;
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Blocked);
-        assert!(receipt.action_proposals.iter().any(
-            |proposal| proposal.action == ProposedAction::RecoverFromIndependentCopy
-        ));
-        assert!(receipt.action_proposals.iter().all(|proposal| !proposal.auto_execute));
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::RecoverFromIndependentCopy)
+        );
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .all(|proposal| !proposal.auto_execute)
+        );
     }
 
     #[test]
@@ -747,9 +927,12 @@ mod tests {
         ));
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Watch);
-        assert!(receipt.action_proposals.iter().any(
-            |proposal| proposal.action == ProposedAction::PlanMigration
-        ));
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::PlanMigration)
+        );
     }
 
     #[test]
@@ -758,23 +941,41 @@ mod tests {
         observations[2].valid_until_unix = 120;
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Unknown);
-        assert!(receipt.action_proposals.iter().any(
-            |proposal| proposal.action == ProposedAction::RefreshRevocationEvidence
-        ));
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::RefreshRevocationEvidence)
+        );
     }
 
     #[test]
     fn verified_remediation_can_clear_a_prior_alert() {
         let alert = observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1);
-        let mut clear = observation("FIX-CLEAR", WatchSignal::Fixity, ObservationState::Healthy, 2);
+        let mut clear = observation(
+            "FIX-CLEAR",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            2,
+        );
         clear.supersedes_observation_id = Some("FIX-ALERT".into());
         clear.remediation_receipt_id = Some("REM-FIX-001".into());
         clear.remediation_receipt_sha256 = Some("c".repeat(64));
         let observations = vec![
             alert,
             clear,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Stable);
@@ -783,35 +984,86 @@ mod tests {
     #[test]
     fn unknown_latest_observation_cannot_downgrade_unresolved_verified_alert() {
         let alert = observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1);
-        let unknown = observation("FIX-UNKNOWN", WatchSignal::Fixity, ObservationState::Unknown, 2);
+        let unknown = observation(
+            "FIX-UNKNOWN",
+            WatchSignal::Fixity,
+            ObservationState::Unknown,
+            2,
+        );
         let observations = vec![
-            alert, unknown,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            alert,
+            unknown,
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Blocked);
-        let fixity = receipt.signal_results.iter().find(|item| item.signal == WatchSignal::Fixity).unwrap();
+        let fixity = receipt
+            .signal_results
+            .iter()
+            .find(|item| item.signal == WatchSignal::Fixity)
+            .unwrap();
         assert_eq!(fixity.state, ObservationState::Alert);
         assert_eq!(fixity.unresolved_alert_ids, vec!["FIX-ALERT"]);
     }
 
     #[test]
     fn every_unresolved_alert_requires_its_own_remediation_receipt() {
-        let alert_one = observation("FIX-ALERT-1", WatchSignal::Fixity, ObservationState::Alert, 1);
-        let alert_two = observation("FIX-ALERT-2", WatchSignal::Fixity, ObservationState::Alert, 2);
-        let mut clear_two = observation("FIX-CLEAR-2", WatchSignal::Fixity, ObservationState::Healthy, 3);
+        let alert_one = observation(
+            "FIX-ALERT-1",
+            WatchSignal::Fixity,
+            ObservationState::Alert,
+            1,
+        );
+        let alert_two = observation(
+            "FIX-ALERT-2",
+            WatchSignal::Fixity,
+            ObservationState::Alert,
+            2,
+        );
+        let mut clear_two = observation(
+            "FIX-CLEAR-2",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            3,
+        );
         clear_two.supersedes_observation_id = Some("FIX-ALERT-2".into());
         clear_two.remediation_receipt_id = Some("REM-FIX-002".into());
         clear_two.remediation_receipt_sha256 = Some("d".repeat(64));
         let observations = vec![
-            alert_one, alert_two, clear_two,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            alert_one,
+            alert_two,
+            clear_two,
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Blocked);
-        let fixity = receipt.signal_results.iter().find(|item| item.signal == WatchSignal::Fixity).unwrap();
+        let fixity = receipt
+            .signal_results
+            .iter()
+            .find(|item| item.signal == WatchSignal::Fixity)
+            .unwrap();
         assert_eq!(fixity.unresolved_alert_ids, vec!["FIX-ALERT-1"]);
     }
 
@@ -828,22 +1080,48 @@ mod tests {
         unknown_supersession.remediation_receipt_sha256 = Some("e".repeat(64));
         let observations = vec![
             unknown_supersession,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &observations),
             Err(WatchContractError::UnknownSupersededAlert)
         );
 
-        let mut clear = observation("FIX-CLEAR", WatchSignal::Fixity, ObservationState::Healthy, 2);
+        let mut clear = observation(
+            "FIX-CLEAR",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            2,
+        );
         clear.supersedes_observation_id = Some("FIX-ALERT".into());
         clear.remediation_receipt_id = Some("REM-EMPTY".into());
         clear.remediation_receipt_sha256 = None;
         let observations = vec![
-            observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1), clear,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1),
+            clear,
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &observations),
@@ -854,11 +1132,27 @@ mod tests {
     #[test]
     fn prior_alert_cannot_clear_without_explicit_supersession() {
         let alert = observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1);
-        let clear = observation("FIX-CLEAR", WatchSignal::Fixity, ObservationState::Healthy, 2);
+        let clear = observation(
+            "FIX-CLEAR",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            2,
+        );
         let observations = vec![
-            alert, clear,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            alert,
+            clear,
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &observations),
@@ -868,20 +1162,53 @@ mod tests {
 
     #[test]
     fn remediation_receipt_identifier_cannot_be_reused() {
-        let alert_one = observation("FIX-ALERT-1", WatchSignal::Fixity, ObservationState::Alert, 1);
-        let alert_two = observation("FIX-ALERT-2", WatchSignal::Fixity, ObservationState::Alert, 2);
-        let mut clear_one = observation("FIX-CLEAR-1", WatchSignal::Fixity, ObservationState::Healthy, 3);
+        let alert_one = observation(
+            "FIX-ALERT-1",
+            WatchSignal::Fixity,
+            ObservationState::Alert,
+            1,
+        );
+        let alert_two = observation(
+            "FIX-ALERT-2",
+            WatchSignal::Fixity,
+            ObservationState::Alert,
+            2,
+        );
+        let mut clear_one = observation(
+            "FIX-CLEAR-1",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            3,
+        );
         clear_one.supersedes_observation_id = Some("FIX-ALERT-1".into());
         clear_one.remediation_receipt_id = Some("REM-REUSED".into());
         clear_one.remediation_receipt_sha256 = Some("1".repeat(64));
-        let mut clear_two = observation("FIX-CLEAR-2", WatchSignal::Fixity, ObservationState::Healthy, 4);
+        let mut clear_two = observation(
+            "FIX-CLEAR-2",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            4,
+        );
         clear_two.supersedes_observation_id = Some("FIX-ALERT-2".into());
         clear_two.remediation_receipt_id = Some("REM-REUSED".into());
         clear_two.remediation_receipt_sha256 = Some("1".repeat(64));
         let observations = vec![
-            alert_one, alert_two, clear_one, clear_two,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            alert_one,
+            alert_two,
+            clear_one,
+            clear_two,
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &observations),
@@ -912,9 +1239,20 @@ mod tests {
         let mut second = observation("FIX-2", WatchSignal::Fixity, ObservationState::Unknown, 1);
         second.observed_at_unix = 120;
         let observations = vec![
-            first, second,
-            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
-            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+            first,
+            second,
+            observation(
+                "CAL-1",
+                WatchSignal::Calibration,
+                ObservationState::Healthy,
+                1,
+            ),
+            observation(
+                "TRUST-1",
+                WatchSignal::TrustAnchor,
+                ObservationState::Healthy,
+                1,
+            ),
         ];
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &observations),
@@ -959,7 +1297,9 @@ mod tests {
     #[test]
     fn independent_copy_threshold_is_enforced_from_measured_count() {
         let mut copy_policy = policy();
-        copy_policy.required_signals.push(WatchSignal::IndependentCopies);
+        copy_policy
+            .required_signals
+            .push(WatchSignal::IndependentCopies);
         copy_policy.minimum_independent_copies = 2;
         let mut observations = healthy_snapshot();
         let mut copies = observation(
@@ -972,15 +1312,20 @@ mod tests {
         observations.push(copies);
         let receipt = evaluate_watch("archive-A", 150, &copy_policy, &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::InterventionRequired);
-        assert!(receipt.action_proposals.iter().any(
-            |proposal| proposal.action == ProposedAction::CreateIndependentCopy
-        ));
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::CreateIndependentCopy)
+        );
     }
 
     #[test]
     fn copy_count_and_reported_state_must_not_contradict() {
         let mut copy_policy = policy();
-        copy_policy.required_signals.push(WatchSignal::IndependentCopies);
+        copy_policy
+            .required_signals
+            .push(WatchSignal::IndependentCopies);
         copy_policy.minimum_independent_copies = 2;
         let mut observations = healthy_snapshot();
         let mut copies = observation(
@@ -1007,7 +1352,9 @@ mod tests {
         );
 
         let mut zero_policy = policy();
-        zero_policy.required_signals.push(WatchSignal::IndependentCopies);
+        zero_policy
+            .required_signals
+            .push(WatchSignal::IndependentCopies);
         assert_eq!(
             evaluate_watch("archive-A", 150, &zero_policy, &healthy_snapshot()),
             Err(WatchContractError::ZeroMinimumIndependentCopies)
@@ -1027,9 +1374,12 @@ mod tests {
         observations[index].provenance = EvidenceProvenance::Invalid;
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Blocked);
-        assert!(receipt.action_proposals.iter().any(
-            |proposal| proposal.action == ProposedAction::IsolateSuspectCopy
-        ));
+        assert!(
+            receipt
+                .action_proposals
+                .iter()
+                .any(|proposal| proposal.action == ProposedAction::IsolateSuspectCopy)
+        );
     }
 
     #[test]
