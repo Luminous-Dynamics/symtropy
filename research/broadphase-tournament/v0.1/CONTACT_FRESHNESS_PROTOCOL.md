@@ -276,7 +276,7 @@ The conservative displacement bound is:
 
 `norm_upper(delta_t_rel) + R_rel * frobenius_norm_upper(delta_R_rel) + rounding_allowance`
 
-using (2sin(	heta/2) le 	heta), conservative for the admitted angle interval ([0,pi]). Arithmetic operations are rounded upward with `next_up`; overflow or non-finite input fails closed.
+For any anchor vector x, `||delta_R_rel * x||_2 <= ||delta_R_rel||_2 * ||x||_2 <= ||delta_R_rel||_F * ||x||_2`; therefore radius times the Frobenius norm bounds rotational anchor displacement for all points inside the lever-arm radius, including multiple independent 4D rotation planes. Each matrix entry supplied to the lease must already be an outward upper bound on the absolute entrywise transform difference. Products, sums, square roots and radius multiplication are rounded upward with `next_up`; negative bounds, overflow or non-finite input fail closed.
 
 Reuse is admitted only when the pair identity, proxy generations, shape revisions and feature identity remain valid; the feature-margin lower bound strictly exceeds the relative-motion upper bound; the normal-variation upper bound stays within tolerance; and the updated gap interval remains inside the declared contact/penetration envelope. The result is `ReuseCertified`, `ContactEnded`, `RefreshRequired(reason)` or `UnsupportedGeometry`. Equality at the feature-margin or contact-slop boundary refreshes rather than reuses.
 
