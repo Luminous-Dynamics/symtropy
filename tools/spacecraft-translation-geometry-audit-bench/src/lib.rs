@@ -288,8 +288,8 @@ fn component_count(mask: &[bool], width: usize, height: usize) -> u32 {
     let mut components = 0_u32;
     let mut queue = VecDeque::<usize>::new();
 
-    for index in 0..mask.len() {
-        if !mask[index] || visited[index] {
+    for (index, &active) in mask.iter().enumerate() {
+        if !active || visited[index] {
             continue;
         }
         components += 1;
@@ -954,6 +954,6 @@ mod tests {
         let mut frames = clean_unit("SEQ-015");
         frames[2].landmarks[1].source_crop_state = CropState::Cropped;
         frames[2].landmarks[1].translated_crop_state = CropState::Full;
-        assert!(audit_manifest(&frames).unwrap().blocked_unit_count == 1);
+        assert_eq!(audit_manifest(&frames).unwrap().blocked_unit_count, 1);
     }
 }
