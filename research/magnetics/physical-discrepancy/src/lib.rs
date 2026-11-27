@@ -445,8 +445,7 @@ pub fn certify_physical_field_discrepancy(
             let derivative_bound =
                 Interval::point(input.residual_jacobian_abs_supremum_t_per_m[component][axis])
                     .expect("validated finite Jacobian bound");
-            let cell_radius =
-                Interval::point(*half_width).expect("validated finite half-width");
+            let cell_radius = Interval::point(*half_width).expect("validated finite half-width");
             let contribution = (derivative_bound * cell_radius)
                 .abs_upper_bound()
                 .ok_or(DiscrepancyError::NonFiniteResidualRadius { component })?;
@@ -532,7 +531,7 @@ pub fn certify_physical_field_discrepancy(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use magnetic_interval_ad::{certify_expression_centered, IntervalDual, ParameterDomain};
+    use magnetic_interval_ad::{IntervalDual, ParameterDomain, certify_expression_centered};
 
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
