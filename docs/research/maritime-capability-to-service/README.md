@@ -37,13 +37,13 @@ Two regional supplier names (LOCAL-A and LOCAL-B) therefore do not imply two ind
 
 ### Timing rule
 
-For an option with dependencies (D):
+This micro-instance schedules every portfolio from day 0. For each required dependency, compute its effective availability as the later of its declared availability and the end of any outage interval that overlaps day 0. The ready day is the maximum effective availability across the option's dependencies, or day 0 if it has none.
 
-`ready_day = max(0, availability_day(d) for d in D)`
+`ready_day = max(0, effective_available_day(d) for d in D)`
 
 `receiver_day = ready_day + production_days + inspection_days + commissioning_days + handoff_days`
 
-For this tiny case, each option's production/supply duration is a fixed synthetic duration. A real benchmark must use source-qualified time windows and distributions rather than treating these fixture values as estimates.
+For this tiny case, each option's production/supply duration is a fixed synthetic duration. A real benchmark must use source-qualified time windows and distributions rather than treating these fixture values as estimates. Later-starting shocks, partial resource recovery, overlapping work and stochastic processing times require a richer event simulator and are deliberately outside this arithmetic fixture.
 
 On-time accepted service is the full expected-unit quantity when `receiver_day <= deadline_day`; otherwise it is zero on time. Late delivery remains late, not deleted from the expected denominator. This all-or-nothing batch rule is deliberately simplistic and must not be mistaken for a realistic cargo or vessel model.
 
