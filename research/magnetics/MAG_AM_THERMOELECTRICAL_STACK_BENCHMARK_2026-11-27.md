@@ -16,6 +16,8 @@ The better question than “Can we print a more complex motor?” is:
 
 ## 2. Frozen system boundary
 
+Every candidate and reference must share the exact same frozen comparison scope. A canonical scope digest is computed over a deterministic canonical JSON encoding of every scope field except the digest field itself. The digest is repeated in every component-acceptance and physical-observation receipt; the evaluator checks equality but does not recompute the canonical hash or authenticate its issuer.
+
 Every candidate and reference must share the exact same:
 - application, torque-speed duty and time-at-load profile;
 - inverter topology, switching frequency, PWM/current waveform and control;
