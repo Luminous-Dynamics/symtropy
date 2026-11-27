@@ -1070,7 +1070,7 @@ mod tests {
         assert!(
             result
                 .blockers
-                .contains(&Blocker::FailedBuildHasInspectedSpecimen)
+                .contains(&Blocker::FailedBuildHasCompletedSpecimen)
         );
     }
 
