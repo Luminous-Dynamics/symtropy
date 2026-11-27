@@ -33,4 +33,6 @@ jobs:
         run: cargo build --release --locked --target x86_64-unknown-linux-musl --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --bin aerb_sandbox_canary
       - name: Execute actual Bubblewrap isolation canary
         timeout-minutes: 2
+        env:
+          AERB_EVALUATOR_SECRET: CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX
         run: target/x86_64-unknown-linux-musl/release/aerb_sandbox_canary
