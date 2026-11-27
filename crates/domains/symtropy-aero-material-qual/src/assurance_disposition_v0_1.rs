@@ -356,9 +356,7 @@ pub fn evaluate_assurance_state_case_v0_1(
             if obligation.mandatory {
                 blocking_obligations.push(BlockingObligationV0_1 {
                     obligation_id: obligation.obligation_id.clone(),
-                    reason_codes: vec![
-                        "ASSURANCE_OBLIGATION_ID_INVALID_OR_DUPLICATE".to_owned(),
-                    ],
+                    reason_codes: vec!["ASSURANCE_OBLIGATION_ID_INVALID_OR_DUPLICATE".to_owned()],
                 });
             }
             continue;
@@ -370,10 +368,10 @@ pub fn evaluate_assurance_state_case_v0_1(
             let evidence_refs_valid = obligation.evidence_refs.iter().all(|reference| {
                 nonempty_canonical(reference) && evidence_refs_seen.insert(reference.as_str())
             });
-            let has_evidence_reference = evidence_refs_valid && !obligation.evidence_refs.is_empty();
+            let has_evidence_reference =
+                evidence_refs_valid && !obligation.evidence_refs.is_empty();
             if !evidence_refs_valid
-                || (obligation.proposition_evidence
-                    != PropositionEvidenceStateV0_1::Neither
+                || (obligation.proposition_evidence != PropositionEvidenceStateV0_1::Neither
                     && !has_evidence_reference)
             {
                 incomplete = true;
@@ -391,8 +389,7 @@ pub fn evaluate_assurance_state_case_v0_1(
 
             // A verified negative result on a hard gate is a known failure.
             if obligation.hard_gate
-                && ((obligation.proposition_evidence
-                    == PropositionEvidenceStateV0_1::RefutedOnly
+                && ((obligation.proposition_evidence == PropositionEvidenceStateV0_1::RefutedOnly
                     && obligation.verification == VerificationStateV0_1::Verified
                     || obligation.verification == VerificationStateV0_1::Failed)
                     && has_evidence_reference)
@@ -419,9 +416,7 @@ pub fn evaluate_assurance_state_case_v0_1(
                 local_reasons.insert("MANDATORY_OBLIGATION_OUT_OF_SCOPE".to_owned());
             }
 
-            if obligation.temporal_knowledge
-                == TemporalKnowledgeStateV0_1::NotKnownAtCutoff
-            {
+            if obligation.temporal_knowledge == TemporalKnowledgeStateV0_1::NotKnownAtCutoff {
                 not_known = true;
                 blocks = true;
                 local_reasons.insert("EVIDENCE_NOT_KNOWN_AT_SNAPSHOT".to_owned());
@@ -454,22 +449,17 @@ pub fn evaluate_assurance_state_case_v0_1(
             if obligation.applicability == ApplicabilityStateV0_1::Unknown
                 || obligation.temporal_knowledge == TemporalKnowledgeStateV0_1::TemporalConflict
                 || obligation.proposition_evidence != PropositionEvidenceStateV0_1::SupportedOnly
-                || obligation.observer_coverage
-                    == ObserverCoverageStateV0_1::Incomplete
+                || obligation.observer_coverage == ObserverCoverageStateV0_1::Incomplete
                 || obligation.observer_coverage == ObserverCoverageStateV0_1::Unknown
             {
                 incomplete = true;
                 blocks = true;
                 if obligation.proposition_evidence == PropositionEvidenceStateV0_1::Both {
                     local_reasons.insert("MANDATORY_EVIDENCE_CONFLICT".to_owned());
-                } else if obligation.proposition_evidence
-                    == PropositionEvidenceStateV0_1::Neither
-                {
+                } else if obligation.proposition_evidence == PropositionEvidenceStateV0_1::Neither {
                     local_reasons.insert("MANDATORY_EVIDENCE_NOT_ESTABLISHED".to_owned());
                 }
-                if obligation.temporal_knowledge
-                    == TemporalKnowledgeStateV0_1::TemporalConflict
-                {
+                if obligation.temporal_knowledge == TemporalKnowledgeStateV0_1::TemporalConflict {
                     local_reasons.insert("MANDATORY_TEMPORAL_CONFLICT".to_owned());
                 }
                 if matches!(
@@ -575,14 +565,32 @@ mod tests {
             obligation_id: id.to_owned(),
             kind,
             mandatory: true,
-            hard_gate: matches!(kind, Kind::ClaimIdentity | Kind::EvidenceIntegrity | Kind::ProducerAuthority),
+            hard_gate: matches!(
+                kind,
+                Kind::ClaimIdentity | Kind::EvidenceIntegrity | Kind::ProducerAuthority
+            ),
             proposition_evidence: Evidence::SupportedOnly,
             applicability: Applicability::InScope,
-            authority: if kind == Kind::ProducerAuthority { Authority::Authorized } else { Authority::NotRequired },
-            temporal_knowledge: if kind == Kind::TemporalKnowledge { Temporal::KnownAtCutoff } else { Temporal::NotTemporal },
-            observer_coverage: if kind == Kind::DependencyObservation { Observer::Complete } else { Observer::NotApplicable },
+            authority: if kind == Kind::ProducerAuthority {
+                Authority::Authorized
+            } else {
+                Authority::NotRequired
+            },
+            temporal_knowledge: if kind == Kind::TemporalKnowledge {
+                Temporal::KnownAtCutoff
+            } else {
+                Temporal::NotTemporal
+            },
+            observer_coverage: if kind == Kind::DependencyObservation {
+                Observer::Complete
+            } else {
+                Observer::NotApplicable
+            },
             verification: Verification::Verified,
-            evidence_refs: vec!["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned()],
+            evidence_refs: vec![
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                    .to_owned(),
+            ],
             reason_codes: Vec::new(),
         }
     }
@@ -598,7 +606,9 @@ mod tests {
                 physical_subject_ref: "ARTICLE-001".to_owned(),
                 configuration_ref: "CONFIG-A".to_owned(),
                 as_known_cutoff: "2026-11-01T00:00:00Z".to_owned(),
-                trust_policy_snapshot_digest: "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+                trust_policy_snapshot_digest:
+                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                        .to_owned(),
             },
             obligations: vec![
                 obligation("identity", Kind::ClaimIdentity),
@@ -618,9 +628,15 @@ mod tests {
     #[test]
     fn positive_control_is_reviewable_but_never_grants_authority() {
         let result = evaluate_assurance_state_case_v0_1(&positive_case());
-        assert_eq!(result.disposition, Disposition::ReviewableForIndependentDecision);
+        assert_eq!(
+            result.disposition,
+            Disposition::ReviewableForIndependentDecision
+        );
         assert!(!result.authority_granted);
-        assert_eq!(result.physical_qualification_status, "OUT_OF_SCOPE_NOT_CLAIMED");
+        assert_eq!(
+            result.physical_qualification_status,
+            "OUT_OF_SCOPE_NOT_CLAIMED"
+        );
         assert_eq!(result.certification_status, "NOT_CLAIMED");
     }
 
@@ -628,11 +644,23 @@ mod tests {
     fn both_preserves_conflict_and_blocks_reviewability() {
         let mut case = positive_case();
         case.obligations[2].proposition_evidence = Evidence::Both;
-        case.obligations[2].reason_codes.push("EVIDENCE_CONFLICT".to_owned());
+        case.obligations[2]
+            .reason_codes
+            .push("EVIDENCE_CONFLICT".to_owned());
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.disposition, Disposition::Incomplete);
-        assert!(result.reason_codes.iter().any(|code| code == "EVIDENCE_CONFLICT"));
-        assert!(result.reason_codes.iter().any(|code| code == "MANDATORY_EVIDENCE_CONFLICT"));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "EVIDENCE_CONFLICT")
+        );
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "MANDATORY_EVIDENCE_CONFLICT")
+        );
     }
 
     #[test]
@@ -696,7 +724,12 @@ mod tests {
         });
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.disposition, Disposition::ReviewableForIndependentDecision);
-        assert!(result.reason_codes.iter().any(|code| code == "GENERATED_DEFEATER_HYPOTHESIS"));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "GENERATED_DEFEATER_HYPOTHESIS")
+        );
         assert!(result.blocking_defeater_ids.is_empty());
     }
 
@@ -707,7 +740,10 @@ mod tests {
             defeater_id: "defeater-01".to_owned(),
             status: DefeaterStatus::Unresolved,
             materiality: Materiality::Blocking,
-            evidence_refs: vec!["sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned()],
+            evidence_refs: vec![
+                "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+                    .to_owned(),
+            ],
             reason_codes: vec!["MATERIAL_DEFEATER_UNRESOLVED".to_owned()],
         });
         let result = evaluate_assurance_state_case_v0_1(&case);
@@ -721,12 +757,24 @@ mod tests {
         let mut optional = obligation("optional", Kind::IndependentReplay);
         optional.mandatory = false;
         optional.proposition_evidence = Evidence::Neither;
-        optional.reason_codes.push("OPTIONAL_REPLAY_NOT_RUN".to_owned());
+        optional
+            .reason_codes
+            .push("OPTIONAL_REPLAY_NOT_RUN".to_owned());
         case.obligations.push(optional);
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.disposition, Disposition::ReviewableForIndependentDecision);
-        assert!(result.reason_codes.iter().any(|code| code == "OPTIONAL_REPLAY_NOT_RUN"));
-        assert!(!result.blocking_obligations.iter().any(|item| item.obligation_id == "optional"));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "OPTIONAL_REPLAY_NOT_RUN")
+        );
+        assert!(
+            !result
+                .blocking_obligations
+                .iter()
+                .any(|item| item.obligation_id == "optional")
+        );
     }
 
     #[test]
@@ -738,9 +786,24 @@ mod tests {
         case.obligations[4].observer_coverage = Observer::Unknown;
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.disposition, Disposition::Rejected);
-        assert!(result.reason_codes.iter().any(|code| code == "MANDATORY_OBLIGATION_OUT_OF_SCOPE"));
-        assert!(result.reason_codes.iter().any(|code| code == "EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"));
-        assert!(result.reason_codes.iter().any(|code| code == "DEPENDENCY_OBSERVER_COVERAGE_NOT_COMPLETE"));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "MANDATORY_OBLIGATION_OUT_OF_SCOPE")
+        );
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "EVIDENCE_NOT_KNOWN_AT_SNAPSHOT")
+        );
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| code == "DEPENDENCY_OBSERVER_COVERAGE_NOT_COMPLETE")
+        );
     }
 
     #[test]
@@ -901,8 +964,8 @@ mod tests {
                 .into_iter()
                 .filter_map(|value| value.as_str().map(str::to_owned))
                 .collect::<Vec<_>>();
-            let case: Case = serde_json::from_value(value)
-                .expect("synthetic vector matches the Rust contract");
+            let case: Case =
+                serde_json::from_value(value).expect("synthetic vector matches the Rust contract");
             let assessment = evaluate_assurance_state_case_v0_1(&case);
 
             assert_eq!(
