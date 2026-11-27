@@ -142,12 +142,37 @@ fn render_result(result: &TerminalResult) -> String {
     let reasons = result
         .reason_codes
         .iter()
-        .map(|reason| format!("\"{}\"", json_escape(reason)))
+        .map(|reason| format!("\\"{}\\"", json_escape(reason)))
         .collect::<Vec<_>>()
         .join(",");
+    let scope = &result.scope;
+    let period_id = result
+        .period_witness_id
+        .as_deref()
+        .map_or_else(|| "null".to_owned(), |value| format!("\\"{}\\"", json_escape(value)));
+    let period_sha = result
+        .period_witness_receipt_sha256
+        .as_deref()
+        .map_or_else(|| "null".to_owned(), |value| format!("\\"{}\\"", json_escape(value)));
     format!(
-        "{{\"case_id\":\"{}\",\"disposition\":\"{}\",\"delta_a_branch\":\"{}\",\"margin_scaled\":{},\"reason_codes\":[{}],\"period_witness_consumed\":{}}}",
+        "{{\\"case_id\\":\\"{}\\",\\"scope\\":{{\\"action_id\\":\\"{}\\",\\"target_id\\":\\"{}\\",\\"keepout_profile_id\\":\\"{}\\",\\"keepout_geometry_revision\\":\\"{}\\",\\"transform_digest\\":\\"{}\\",\\"frame_id\\":\\"{}\\",\\"frame_revision\\":\\"{}\\",\\"time_basis_id\\":\\"{}\\",\\"dynamics_profile_revision\\":\\"{}\\"}},\\"terminal_epoch_tai_ns\\":{},\\"bounds_provider_id\\":\\"{}\\",\\"bounds_provider_revision\\":\\"{}\\",\\"bounds_receipt_sha256\\":\\"{}\\",\\"bounds_state\\":\\"{}\\",\\"period_witness_id\\":{},\\"period_witness_receipt_sha256\\":{},\\"disposition\\":\\"{}\\",\\"delta_a_branch\\":\\"{}\\",\\"margin_scaled\\":{},\\"reason_codes\\":[{}],\\"period_witness_consumed\\":{}}}",
         json_escape(&result.case_id),
+        json_escape(&scope.action_id),
+        json_escape(&scope.target_id),
+        json_escape(&scope.keepout_profile_id),
+        json_escape(&scope.keepout_geometry_revision),
+        json_escape(&scope.transform_digest),
+        json_escape(&scope.frame_id),
+        json_escape(&scope.frame_revision),
+        json_escape(&scope.time_basis_id),
+        json_escape(&scope.dynamics_profile_revision),
+        result.terminal_epoch_tai_ns,
+        json_escape(&result.bounds_provider_id),
+        json_escape(&result.bounds_provider_revision),
+        json_escape(&result.bounds_receipt_sha256),
+        result.bounds_state.as_str(),
+        period_id,
+        period_sha,
         result.disposition.as_str(),
         json_escape(&result.delta_a_branch),
         optional_number(result.margin_scaled),
