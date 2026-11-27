@@ -1161,7 +1161,7 @@ mod tests {
     }
 
     #[test]
-    fn receipt_replay_rejects_uncommitted_wake_contact_stamp {
+    fn receipt_replay_rejects_uncommitted_wake_contact_stamp() {
         let (mut receipt, _, _) = receipt_fixture(true);
         receipt.post_contact_stamps.clear();
         assert_eq!(
