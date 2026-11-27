@@ -10,8 +10,7 @@
   "split_strategy": "group_disjoint_with_sequence_guards",
   "group_key": "vehicle_id",
   "leakage_keys": [
-    "sequence_id",
-    "event_id"
+    "sequence_id"
   ],
   "temporal_exclusion_keys": [
     "vehicle_id"
@@ -27,8 +26,7 @@
           "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
           "group_values": {
             "vehicle_id": "veh-001",
-            "sequence_id": "seq-001",
-            "event_id": "evt-normal-001"
+            "sequence_id": "seq-001"
           },
           "window_start_unix_ms": 1000,
           "window_end_unix_ms": 2000
@@ -90,5 +88,8 @@
       ]
     }
   ],
-  "claim_ceiling": "Synthetic split-integrity fixture only. No admitted dataset snapshot or model evaluation is represented."
+  "claim_ceiling": "Synthetic split-integrity fixture only. No admitted dataset snapshot or model evaluation is represented.",
+  "optional_leakage_keys": [
+    "event_id"
+  ]
 }
