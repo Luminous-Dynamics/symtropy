@@ -59,6 +59,18 @@ ASME V&V 20 requires simulation accuracy to be assessed at specified validation 
 
 For each exact-head run, preserve the source commit, toolchain, seed, case count, reference algorithm version, tolerances, false-positive/negative counts, translation-only negative-control count, and raw test log. If the corpus changes, increment its version and retain the prior seed for regression comparison.
 
+## Additional 3D narrowphase verification (v0.2 extension)
+
+The test suite now includes a separate 3D OBB corpus, not just the 2D seed:
+
+- 4,096 deterministic pairs using fixed half-extents and arbitrary composed 3D rotations in XY, YZ and XZ planes.
+- Independent 15-axis separating-axis theorem: three face axes from each box plus nine pairwise edge cross products.
+- The oracle uses only rotated basis vectors, projection radii and scalar dot/cross products; it does not call the engine's support-map or GJK implementation.
+- The transformed public GJK API is compared to the SAT oracle, with false-positive and false-negative counts accumulated separately.
+- A translation-only implementation is retained as a negative control and must disagree on more than 10% of the corpus.
+
+This extends the narrowphase reference coverage from 2D to 3D. It still does not qualify 4D simplex logic, EPA penetration depth, continuous collision detection, contact manifolds, or physical experiments. The next N-dimensional stage should have its own independent oracle (for example, bounded convex polytopes and linear-program feasibility), rather than extrapolating 3D SAT.
+
 ## Industry benchmark snapshot and fair-comparison rules (2026-11-26)
 
 A useful current external reference is the Rapier 0.35 / Godot 4.7 performance comparison. The published Godot Rapier table reports p50 physics-step times on the same M1 machine, release builds, and with rendering excluded. Examples include a 10k-body 2D box pyramid (Rapier2D 15.6 ms vs Box2D 17.0 ms), mixed 3D piles (Rapier3D 10.8 ms vs Jolt 12.4 ms), and query storms (Rapier3D 5.7 ms vs Jolt 22.3 ms). The table also includes an unstable/timeout joint-grid result for Jolt; that must remain a failure/unsupported result, not be omitted from an aggregate. These are Godot-integrated scene results, not isolated engine microbenchmarks and not directly comparable with Symtropy's current GJK nanosecond measurements. See the [published benchmark table](https://godot.rapier.rs/docs/documentation/performance/) and [Rapier 2026 update](https://godot.rapier.rs/blog/2026-updates/).
