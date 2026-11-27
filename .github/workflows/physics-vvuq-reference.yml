@@ -53,7 +53,9 @@ jobs:
             echo "rustc=$(rustc --version)"
             echo "cargo=$(cargo --version)"
             echo "seed=0x4551435656553031"
-            echo "obb_cases=4096"
+            echo "obb_cases_2d=4096"
+            echo "obb_cases_3d=4096"
+            echo "obb_metamorphic_2d=1024"
             echo "free_fall_dt=1/30,1/60,1/120,1/240"
           } | tee "$RUNNER_TEMP/physics-vvuq/run-metadata.txt"
 
