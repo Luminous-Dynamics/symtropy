@@ -1203,7 +1203,7 @@ mod tests {
             } else {
                 [54; 32]
             },
-            event_inventory_digest: [55; 32],
+            event_inventory_digest: [90 + portfolio_id[0]; 32],
             risk_envelope_digest: [56 + portfolio_id[0]; 32],
             total_mass_ticks: 100,
             post_action_horizon_digest: [57; 32],
@@ -1909,6 +1909,152 @@ mod tests {
                 "seed {seed}"
             );
         }
+    }
+
+
+    fn trajectory_contracts(
+        supports: &[ScenarioAtomUniverse],
+    ) -> Vec<crate::counterfactual_trajectory_receipt::ScenarioTrajectoryContract> {
+        supports
+            .iter()
+            .map(|support| {
+                let scenario_a = support.scenario_id == SCENARIO_A;
+                crate::counterfactual_trajectory_receipt::ScenarioTrajectoryContract {
+                    scenario_id: support.scenario_id,
+                    scenario_physics_configuration_digest: support
+                        .scenario_physics_configuration_digest,
+                    target_measure_digest: if scenario_a { [51; 32] } else { [52; 32] },
+                    density_space_digest: if scenario_a { [53; 32] } else { [54; 32] },
+                    reference_frame_digest: if scenario_a { [66; 32] } else { [76; 32] },
+                    time_scale_digest: if scenario_a { [67; 32] } else { [77; 32] },
+                    reference_epoch_digest: if scenario_a { [68; 32] } else { [78; 32] },
+                    propagator_configuration_digest: if scenario_a { [69; 32] } else { [79; 32] },
+                    integrator_configuration_digest: if scenario_a { [80; 32] } else { [81; 32] },
+                    atom_ids: support.atom_ids.clone(),
+                }
+            })
+            .collect()
+    }
+
+    fn trajectory_atoms(
+        supports: &[ScenarioAtomUniverse],
+        gate: &crate::scenario_mission_risk_gate::ScenarioMissionRiskGateReport,
+    ) -> Vec<crate::counterfactual_trajectory_receipt::CounterfactualTrajectoryAtom> {
+        use crate::counterfactual_trajectory_receipt::{
+            CounterfactualTrajectoryAtom, PortfolioTrajectoryReceipt,
+            SharedExogenousWorldReceipt,
+        };
+
+        let contracts = trajectory_contracts(supports);
+        let mut rows = Vec::new();
+        for support in supports {
+            let contract = contracts
+                .iter()
+                .find(|contract| contract.scenario_id == support.scenario_id)
+                .unwrap();
+            for atom_id in &support.atom_ids {
+                let shared_world = SharedExogenousWorldReceipt {
+                    scenario_id: support.scenario_id,
+                    atom_id: *atom_id,
+                    initial_state_digest: [120 + atom_id[0]; 32],
+                    initial_covariance_digest: [121; 32],
+                    latent_uncertainty_digest: [122 + atom_id[0]; 32],
+                    environment_realization_digest: [124; 32],
+                    process_noise_realization_digest: [125; 32],
+                    target_measure_digest: contract.target_measure_digest,
+                    density_space_digest: contract.density_space_digest,
+                    reference_frame_digest: contract.reference_frame_digest,
+                    time_scale_digest: contract.time_scale_digest,
+                    reference_epoch_digest: contract.reference_epoch_digest,
+                };
+                let shared_digest = shared_world.canonical_digest();
+                let portfolio_trajectories = [PORTFOLIO_A, PORTFOLIO_C]
+                    .into_iter()
+                    .map(|portfolio_id| {
+                        let check = gate
+                            .scenario_portfolio_risk_checks
+                            .iter()
+                            .find(|check| {
+                                check.scenario_id == support.scenario_id
+                                    && check.portfolio_id == portfolio_id
+                            })
+                            .unwrap();
+                        PortfolioTrajectoryReceipt {
+                            scenario_id: support.scenario_id,
+                            atom_id: *atom_id,
+                            portfolio_id,
+                            shared_exogenous_receipt_digest: shared_digest,
+                            maneuver_plan_digest: [130 + portfolio_id[0]; 32],
+                            post_action_initial_state_digest: [140 + portfolio_id[0]; 32],
+                            scenario_physics_configuration_digest: contract
+                                .scenario_physics_configuration_digest,
+                            propagator_configuration_digest: contract
+                                .propagator_configuration_digest,
+                            integrator_configuration_digest: contract
+                                .integrator_configuration_digest,
+                            propagated_trajectory_digest: [150 + portfolio_id[0]; 32],
+                            mission_manifest_digest: check.manifest_digest,
+                            post_action_event_inventory_digest: check.event_inventory_digest,
+                            post_action_horizon_digest: check.post_action_horizon_digest,
+                            risk_policy_digest: check.risk_policy_digest,
+                            risk_envelope_digest: check.risk_envelope_digest,
+                        }
+                    })
+                    .collect();
+                rows.push(CounterfactualTrajectoryAtom {
+                    shared_world,
+                    portfolio_trajectories,
+                });
+            }
+        }
+        rows
+    }
+
+    #[test]
+    fn trajectory_receipts_are_required_to_bind_a_qualified_pareto_report() {
+        use crate::counterfactual_trajectory_receipt::CounterfactualTrajectoryReceiptCampaign;
+
+        let supports = standard_supports();
+        let gate = gate_report();
+        let process = campaign(
+            supports.clone(),
+            vec![specs()[0]],
+            vec![
+                bound(PORTFOLIO_A, OBJECTIVE_FUEL, 0, 200),
+                bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
+            ],
+        );
+        let receipt_campaign =
+            CounterfactualTrajectoryReceiptCampaign::new(&gate, trajectory_contracts(&supports))
+                .unwrap();
+        let report = process
+            .evaluate_with_trajectory_receipts(
+                &fuel_only_atoms(),
+                &receipt_campaign,
+                trajectory_atoms(&supports, &gate),
+            )
+            .unwrap();
+        assert!(report.trajectory_receipt_digest.is_some());
+        assert!(!report.authority_granted);
+
+        let mut mismatched_supports = supports;
+        mismatched_supports[0].scenario_physics_configuration_digest = [199; 32];
+        let mismatched = campaign(
+            mismatched_supports,
+            vec![specs()[0]],
+            vec![
+                bound(PORTFOLIO_A, OBJECTIVE_FUEL, 0, 200),
+                bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
+            ],
+        );
+        assert_eq!(
+            mismatched.evaluate_with_trajectory_receipts(
+                &fuel_only_atoms(),
+                &receipt_campaign,
+                trajectory_atoms(&standard_supports(), &gate),
+            ),
+            Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch)
+        );
     }
 
     #[test]
