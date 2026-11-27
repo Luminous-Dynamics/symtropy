@@ -173,7 +173,11 @@ pub fn calibrate_absolute_residuals(
                 observation.observation_id
             ));
         }
-        residuals.push(observation.predicted_value.abs_diff(observation.observed_value));
+        residuals.push(
+            observation
+                .predicted_value
+                .abs_diff(observation.observed_value),
+        );
     }
 
     residuals.sort_unstable();
@@ -183,8 +187,8 @@ pub fn calibrate_absolute_residuals(
         .checked_mul(u128::from(1_000_000 - contract.alpha_ppm))
         .ok_or_else(|| "conformal rank arithmetic overflow".to_owned())?;
     let rank = rank_numerator.div_ceil(1_000_000);
-    let quantile_rank_1based = u64::try_from(rank)
-        .map_err(|_| "conformal rank exceeds u64".to_owned())?;
+    let quantile_rank_1based =
+        u64::try_from(rank).map_err(|_| "conformal rank exceeds u64".to_owned())?;
     let radius = if quantile_rank_1based > sample_count {
         None
     } else {
@@ -192,13 +196,12 @@ pub fn calibrate_absolute_residuals(
     };
 
     let claim = coverage_claim(contract.applicability);
-    let nominal_coverage_claim_ppm = if contract.applicability
-        == CoverageApplicability::ExchangeabilitySupported
-    {
-        Some(1_000_000 - contract.alpha_ppm)
-    } else {
-        None
-    };
+    let nominal_coverage_claim_ppm =
+        if contract.applicability == CoverageApplicability::ExchangeabilitySupported {
+            Some(1_000_000 - contract.alpha_ppm)
+        } else {
+            None
+        };
 
     Ok(CalibrationReport {
         sample_count,
@@ -243,10 +246,7 @@ pub fn build_interval(
 
 /// Check whether a subsequently observed outcome fell inside the interval.
 /// This is one observation, not an aggregate coverage estimate.
-pub fn assess_coverage(
-    interval: &ConformalInterval,
-    observed_value: u64,
-) -> CoverageObservation {
+pub fn assess_coverage(interval: &ConformalInterval, observed_value: u64) -> CoverageObservation {
     CoverageObservation {
         covered: interval.lower <= observed_value && observed_value <= interval.upper,
     }
@@ -263,8 +263,7 @@ pub fn assess_deadline_feasibility(
     handling_duration_upper: u64,
     deadline: u64,
 ) -> DecisionGate {
-    if interval.coverage_claim
-        != CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
+    if interval.coverage_claim != CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
         || interval.nominal_coverage_claim_ppm.is_none()
     {
         return DecisionGate::Indeterminate;
@@ -335,7 +334,11 @@ mod tests {
         .expect("valid calibration");
         assert_eq!(report.quantile_rank_1based, 9);
         assert_eq!(report.radius, None);
-        assert!(build_interval(&report, 100).expect("unbounded interval").is_none());
+        assert!(
+            build_interval(&report, 100)
+                .expect("unbounded interval")
+                .is_none()
+        );
     }
 
     #[test]
@@ -422,7 +425,9 @@ mod tests {
             let report = calibrate_absolute_residuals(&contract(applicability), &observations(9))
                 .expect("calibration arithmetic remains available");
             assert_eq!(report.nominal_coverage_claim_ppm, None);
-            let interval = build_interval(&report, 100).expect("build").expect("finite");
+            let interval = build_interval(&report, 100)
+                .expect("build")
+                .expect("finite");
             assert_eq!(
                 assess_deadline_feasibility(&interval, 5, 200),
                 DecisionGate::Indeterminate
@@ -437,11 +442,19 @@ mod tests {
             &observations(9),
         )
         .expect("calibration");
-        let interval = build_interval(&report, 100).expect("build").expect("finite");
+        let interval = build_interval(&report, 100)
+            .expect("build")
+            .expect("finite");
         assert_eq!(interval.lower, 91);
         assert_eq!(interval.upper, 109);
-        assert_eq!(assess_deadline_feasibility(&interval, 10, 119), DecisionGate::Feasible);
-        assert_eq!(assess_deadline_feasibility(&interval, 10, 118), DecisionGate::Infeasible);
+        assert_eq!(
+            assess_deadline_feasibility(&interval, 10, 119),
+            DecisionGate::Feasible
+        );
+        assert_eq!(
+            assess_deadline_feasibility(&interval, 10, 118),
+            DecisionGate::Infeasible
+        );
     }
 
     #[test]
