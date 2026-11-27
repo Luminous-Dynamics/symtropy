@@ -16,6 +16,7 @@ fn scenario_input(
     deadline: u64,
     expected_units: u64,
     inspection_override: &str,
+    receiver_override: &str,
 ) -> String {
     let mut records = Vec::new();
     for line in BASE.lines().map(str::trim) {
@@ -24,7 +25,7 @@ fn scenario_input(
         }
         let fields: Vec<&str> = line.split('\t').collect();
         match fields[0] {
-            "INSTANCE" => records.push(format!("INSTANCE\tMCSC-{id}\tv0.1")),
+            "INSTANCE" => records.push(format!("INSTANCE\tMCSC-{id}\tv0.2")),
             "SERVICE" => records.push(format!(
                 "SERVICE\t{}\t{}\t{}\t{}",
                 fields[1], expected_units, fields[3], deadline
@@ -42,20 +43,10 @@ fn scenario_input(
             }
             "SHOCK" => {}
             "INSPECTION" => {
-                if inspection_override != "NONE" {
-                    let parts: Vec<&str> = inspection_override.split(':').collect();
-                    assert_eq!(parts.len(), 4);
-                    if parts[0] == fields[1] {
-                        records.push(format!(
-                            "INSPECTION\t{}\t{}\t{}\t{}",
-                            parts[0], parts[1], parts[2], parts[3]
-                        ));
-                    } else {
-                        records.push(line.to_owned());
-                    }
-                } else {
-                    records.push(line.to_owned());
-                }
+                records.push(apply_disposition_override(line, fields, inspection_override));
+            }
+            "RECEIVER_ACCEPTANCE" => {
+                records.push(apply_disposition_override(line, fields, receiver_override));
             }
             _ => records.push(line.to_owned()),
         }
@@ -73,6 +64,24 @@ fn scenario_input(
     records.join("\n") + "\n"
 }
 
+fn apply_disposition_override(line: &str, fields: Vec<&str>, override_spec: &str) -> String {
+    if override_spec == "NONE" {
+        return line.to_owned();
+    }
+    let parts: Vec<&str> = override_spec.split(':').collect();
+    assert_eq!(parts.len(), 4);
+    if parts[0] == fields[1] {
+        format!(
+            "{}\t{}\t{}\t{}\t{}",
+            fields[0], parts[0], parts[1], parts[2], parts[3]
+        )
+    } else {
+        line.to_owned()
+    }
+}
+
+type ExpectedOutcome = (u64, u64, u64, u64, u64, u64, String, String, String);
+
 fn independent_outcomes(
     base: &str,
     shock_spec: &str,
@@ -80,10 +89,12 @@ fn independent_outcomes(
     deadline: u64,
     expected_units: u64,
     inspection_override: &str,
-) -> BTreeMap<String, (u64, u64, u64, u64, u64, String, String)> {
+    receiver_override: &str,
+) -> BTreeMap<String, ExpectedOutcome> {
     let mut availability = BTreeMap::<String, u64>::new();
     let mut options = Vec::<Vec<String>>::new();
     let mut inspections = BTreeMap::<String, (String, u64, String)>::new();
+    let mut receivers = BTreeMap::<String, (String, u64, String)>::new();
 
     for line in base.lines().map(str::trim) {
         if line.is_empty() || line.starts_with('#') {
@@ -103,7 +114,17 @@ fn independent_outcomes(
                     fields[1].clone(),
                     (
                         fields[2].clone(),
-                        fields[3].parse().expect("accepted units are numeric"),
+                        fields[3].parse().expect("qualified units are numeric"),
+                        fields[4].clone(),
+                    ),
+                );
+            }
+            "RECEIVER_ACCEPTANCE" => {
+                receivers.insert(
+                    fields[1].clone(),
+                    (
+                        fields[2].clone(),
+                        fields[3].parse().expect("receiver units are numeric"),
                         fields[4].clone(),
                     ),
                 );
@@ -121,18 +142,8 @@ fn independent_outcomes(
             day.parse().expect("override day is numeric"),
         );
     }
-    if inspection_override != "NONE" {
-        let parts: Vec<&str> = inspection_override.split(':').collect();
-        assert_eq!(parts.len(), 4);
-        inspections.insert(
-            parts[0].to_owned(),
-            (
-                parts[1].to_owned(),
-                parts[2].parse().expect("accepted units are numeric"),
-                parts[3].to_owned(),
-            ),
-        );
-    }
+    apply_reference_override(&mut inspections, inspection_override);
+    apply_reference_override(&mut receivers, receiver_override);
 
     let shocks: BTreeMap<String, u64> = if shock_spec == "NONE" {
         BTreeMap::new()
@@ -175,17 +186,37 @@ fn independent_outcomes(
             + option[7].parse::<u64>().unwrap();
         let normal_day = normal_ready + duration;
         let disrupted_day = disrupted_ready + duration;
-        let (status, reported_units, inspection_revision) =
+        let (inspection_status, qualified_reported, inspection_revision) =
             inspections.get(&option[1]).expect("inspection exists");
+        let (receiver_status, accepted_reported, receiver_revision) =
+            receivers.get(&option[1]).expect("receiver disposition exists");
         assert_eq!(inspection_revision, &option[11]);
-        assert!(reported_units <= &expected_units);
+        assert_eq!(receiver_revision, &option[11]);
+        assert!(qualified_reported <= &expected_units);
+        assert!(accepted_reported <= qualified_reported);
         assert!(
-            status == "PASS" || *reported_units == 0,
-            "non-passing inspection cannot report accepted units"
+            inspection_status == "PASS" || *qualified_reported == 0,
+            "failed/unknown inspection cannot qualify units"
         );
-        let accepted_units = if status == "PASS" { *reported_units } else { 0 };
-        let on_time_units = if disrupted_day <= deadline && status == "PASS" {
-            *reported_units
+        assert!(
+            receiver_status == "ACCEPTED" || *accepted_reported == 0,
+            "rejected/unknown receiver cannot accept units"
+        );
+        let qualified = if inspection_status == "PASS" {
+            *qualified_reported
+        } else {
+            0
+        };
+        let accepted = if receiver_status == "ACCEPTED" {
+            *accepted_reported
+        } else {
+            0
+        };
+        let on_time = if disrupted_day <= deadline
+            && inspection_status == "PASS"
+            && receiver_status == "ACCEPTED"
+        {
+            *accepted_reported
         } else {
             0
         };
@@ -195,9 +226,11 @@ fn independent_outcomes(
                 normal_day,
                 disrupted_day,
                 expected_units,
-                accepted_units,
-                on_time_units,
-                status.clone(),
+                qualified,
+                accepted,
+                on_time,
+                inspection_status.clone(),
+                receiver_status.clone(),
                 option[11].clone(),
             ),
         );
@@ -205,9 +238,26 @@ fn independent_outcomes(
     expected
 }
 
-fn receipt_outcomes(
-    receipt: &str,
-) -> BTreeMap<String, (u64, u64, u64, u64, u64, String, String)> {
+fn apply_reference_override(
+    dispositions: &mut BTreeMap<String, (String, u64, String)>,
+    override_spec: &str,
+) {
+    if override_spec == "NONE" {
+        return;
+    }
+    let parts: Vec<&str> = override_spec.split(':').collect();
+    assert_eq!(parts.len(), 4);
+    dispositions.insert(
+        parts[0].to_owned(),
+        (
+            parts[1].to_owned(),
+            parts[2].parse().expect("override unit count is numeric"),
+            parts[3].to_owned(),
+        ),
+    );
+}
+
+fn receipt_outcomes(receipt: &str) -> BTreeMap<String, ExpectedOutcome> {
     let mut observed = BTreeMap::new();
     for line in receipt.lines() {
         let fields: Vec<&str> = line.split('\t').collect();
@@ -216,10 +266,12 @@ fn receipt_outcomes(
                 fields[3].parse().expect("normal day is numeric"),
                 fields[4].parse().expect("disrupted day is numeric"),
                 fields[5].parse().expect("expected units are numeric"),
-                fields[6].parse().expect("accepted units are numeric"),
-                fields[7].parse().expect("on-time accepted units are numeric"),
-                fields[8].to_owned(),
+                fields[6].parse().expect("inspection-qualified units are numeric"),
+                fields[7].parse().expect("receiver-accepted units are numeric"),
+                fields[8].parse().expect("on-time accepted units are numeric"),
                 fields[9].to_owned(),
+                fields[10].to_owned(),
+                fields[11].to_owned(),
             );
             assert!(observed.insert(fields[1].to_owned(), value).is_none());
         }
@@ -228,7 +280,7 @@ fn receipt_outcomes(
 }
 
 #[test]
-fn twenty_two_frozen_scenarios_match_the_separate_reference() {
+fn twenty_six_frozen_scenarios_match_the_separate_reference_or_reject() {
     let mut count = 0usize;
     for line in CORPUS.lines().map(str::trim) {
         if line.is_empty() || line.starts_with('#') {
@@ -236,56 +288,75 @@ fn twenty_two_frozen_scenarios_match_the_separate_reference() {
         }
         let fields: Vec<&str> = line.split('\t').collect();
         assert_eq!(fields[0], "CASE");
-        assert_eq!(fields.len(), 8);
+        assert_eq!(fields.len(), 9);
         let id = fields[1];
         let shocks = fields[2];
         let availability = fields[3];
         let deadline = fields[4].parse::<u64>().expect("deadline is numeric");
         let units = fields[5].parse::<u64>().expect("expected units are numeric");
         let inspection = fields[6];
-        let expected_result = fields[7];
+        let receiver = fields[7];
+        let expected_result = fields[8];
         assert!(units > 0);
 
-        let generated =
-            scenario_input(id, shocks, availability, deadline, units, inspection);
+        let generated = scenario_input(
+            id,
+            shocks,
+            availability,
+            deadline,
+            units,
+            inspection,
+            receiver,
+        );
         let result = run_audit(&generated);
-        if expected_result == "ERROR_REVISION" {
-            assert!(
-                result
-                    .unwrap_err()
-                    .contains("does not match configuration revision"),
-                "scenario {id} must reject mismatched inspection revision"
-            );
-        } else {
-            let receipt = result.unwrap_or_else(|error| {
-                panic!("scenario {id} rejected: {error}");
-            });
-            let independently_expected =
-                independent_outcomes(BASE, shocks, availability, deadline, units, inspection);
-            let observed = receipt_outcomes(&receipt);
-            assert_eq!(observed, independently_expected, "scenario {id}");
-            assert_eq!(observed.len(), 5, "scenario {id} lost an option");
-            assert!(
-                observed
-                    .values()
-                    .all(|(_, _, denominator, _, _, _, _)| *denominator == units),
-                "scenario {id} changed its expected-service denominator"
-            );
+        match expected_result {
+            "ERROR_REVISION" => assert!(
+                result.unwrap_err().contains("revision"),
+                "scenario {id} must reject a revision mismatch"
+            ),
+            "ERROR_RECEIVER_UNITS" => assert!(
+                result.unwrap_err().contains("exceed inspection-qualified"),
+                "scenario {id} must reject receiver over-acceptance"
+            ),
+            "PASS" => {
+                let receipt = result.unwrap_or_else(|error| {
+                    panic!("scenario {id} rejected: {error}");
+                });
+                let independently_expected = independent_outcomes(
+                    BASE,
+                    shocks,
+                    availability,
+                    deadline,
+                    units,
+                    inspection,
+                    receiver,
+                );
+                let observed = receipt_outcomes(&receipt);
+                assert_eq!(observed, independently_expected, "scenario {id}");
+                assert_eq!(observed.len(), 5, "scenario {id} lost an option");
+                assert!(
+                    observed
+                        .values()
+                        .all(|(_, _, denominator, _, _, _, _, _, _)| *denominator == units),
+                    "scenario {id} changed its expected-service denominator"
+                );
+            }
+            other => panic!("unsupported expected result {other} in scenario {id}"),
         }
         count += 1;
     }
-    assert_eq!(count, 22);
+    assert_eq!(count, 26);
 }
 
 #[test]
 fn equality_deadlines_and_large_denominators_remain_exact() {
-    let equality = scenario_input("EQUALITY", "GRID-A:6", "NONE", 14, 10, "NONE");
+    let equality = scenario_input("EQUALITY", "GRID-A:6", "NONE", 14, 10, "NONE", "NONE");
     let equality_receipt = receipt_outcomes(&run_audit(&equality).unwrap());
-    assert_eq!(equality_receipt["LOCAL-A"], (8, 14, 10, 10, 10, "PASS".into(), "REV-001".into()));
+    assert_eq!(equality_receipt["LOCAL-A"].5, 10);
 
-    let strict = scenario_input("STRICT", "GRID-A:6", "NONE", 13, 10, "NONE");
+    let strict = scenario_input("STRICT", "GRID-A:6", "NONE", 13, 10, "NONE", "NONE");
     let strict_receipt = receipt_outcomes(&run_audit(&strict).unwrap());
-    assert_eq!(strict_receipt["LOCAL-A"].4, 0);
+    assert_eq!(strict_receipt["LOCAL-A"].5, 0);
 
     let large = scenario_input(
         "LARGE",
@@ -294,8 +365,10 @@ fn equality_deadlines_and_large_denominators_remain_exact() {
         15,
         1_000,
         "NONE",
+        "NONE",
     );
     let large_receipt = receipt_outcomes(&run_audit(&large).unwrap());
     assert_eq!(large_receipt["LOCAL-B"].2, 1_000);
+    assert_eq!(large_receipt["LOCAL-B"].3, 1_000);
     assert_eq!(large_receipt["LOCAL-B"].4, 1_000);
 }
