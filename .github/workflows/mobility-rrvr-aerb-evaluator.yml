@@ -50,6 +50,7 @@ jobs:
           V02="research/mobility-rrvr-aerb-probe-value-v0.1"
           jq empty "$V02/schemas/aerb_candidate_submission_v0_2.schema.json"
           jq empty "$V02/fixtures/candidate_submission_adaptive_synthetic_v0_2.json"
+          jq empty "$ROOT/schemas/aerb_probe_checkpoint_v0_1.schema.json"
 
           jq -e '
             . as $candidate
