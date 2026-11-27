@@ -136,6 +136,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if (
         not valid_text(case_id)
         or any(not valid_text(str(scope[field])) for field in SCOPE_FIELDS[:-1])
+        or row["matrix_convention"] != "body-fixed-K-inverse-m2-v1"
         or row["length_unit"] != "metre"
         or row["direction_convention"] != "unit-along-track-positive-y"
         or not valid_sha(row["matrix_sha256"])
