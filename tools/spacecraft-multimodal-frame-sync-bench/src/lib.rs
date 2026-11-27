@@ -344,10 +344,15 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
                 "MODALITY_PATH_IS_NOT_A_SAFE_RELATIVE_PATH",
             );
         }
-        if !path_components.contains(&input.spacecraft_id.as_str())
-            || !path_components.contains(&input.trajectory_id.as_str())
-            || !path_components.contains(&expected_path_component)
-            || !path_components.contains(&input.capture_timestamp)
+        let expected_path_sequence = [
+            input.spacecraft_id.as_str(),
+            input.trajectory_id.as_str(),
+            expected_path_component,
+            input.capture_timestamp.as_str(),
+        ];
+        if !path_components
+            .windows(expected_path_sequence.len())
+            .any(|window| window == expected_path_sequence.as_slice())
         {
             return result(
                 input,
@@ -674,6 +679,14 @@ mod tests {
         traversal.rgb.path =
             "raw/../ACE/approach_front/rgb/20260120165126242".to_owned();
         assert_eq!(evaluate(&traversal).disposition, BundleDisposition::InvalidInput);
+    }
+
+    #[test]
+    fn modality_path_identity_components_must_be_in_order() {
+        let mut value = input();
+        value.rgb.path =
+            "raw/ACE/rgb/approach_front/20260120165126242".to_owned();
+        assert_eq!(evaluate(&value).disposition, BundleDisposition::OutOfScope);
     }
 
     #[test]
