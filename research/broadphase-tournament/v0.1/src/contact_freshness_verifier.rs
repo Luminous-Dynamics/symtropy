@@ -363,6 +363,17 @@ fn audit_endpoint(
     }
 
     audit_domain(
+        previous.response_state,
+        current.response_state,
+        current.proxy,
+        RevisionDomain::ResponseState,
+    )?;
+    if current.response_state != previous.response_state {
+        reasons.insert(FreshnessReason::ResponseStateChanged);
+        *warm_start = ReuseDisposition::RefreshRequired;
+    }
+
+    audit_domain(
         previous.wake_epoch,
         current.wake_epoch,
         current.proxy,
@@ -759,6 +770,11 @@ fn audit_endpoint_revision_monotonicity(
             RevisionDomain::Material,
         ),
         (
+            previous.response_state,
+            current.response_state,
+            RevisionDomain::ResponseState,
+        ),
+        (
             previous.wake_epoch,
             current.wake_epoch,
             RevisionDomain::WakeEpoch,
@@ -794,6 +810,7 @@ mod tests {
             eligibility: 3,
             motion_class: 1,
             material: 7,
+            response_state: 6,
             wake_epoch: 2,
         }
     }
@@ -1614,6 +1631,65 @@ mod tests {
                     expected: 1,
                     actual: 0,
                 }
+            ))
+        ));
+    }
+
+
+
+    #[test]
+    fn verifier_replays_dynamic_callback_response_state_change() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        let stamps = BTreeMap::from([(pair, stamp())]);
+        let mut changed_left = endpoint(1);
+        changed_left.response_state += 1;
+        let endpoints = BTreeMap::from([
+            (ProxyId(1), changed_left),
+            (ProxyId(2), endpoint(2)),
+        ]);
+        let producer_plan =
+            make_plan(&delta, &stamps, next_global(), &endpoints);
+        let report = verify_contact_lifecycle_plan(
+            &delta,
+            &stamps,
+            next_global(),
+            &endpoints,
+            &producer_plan,
+        )
+        .expect("independent response-state audit");
+        assert_eq!(report.geometry_reuses, 1);
+        assert_eq!(report.warm_start_reuses, 0);
+    }
+
+    #[test]
+    fn verifier_rejects_callback_response_state_regression() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        let stamps = BTreeMap::from([(pair, stamp())]);
+        let mut older_left = endpoint(1);
+        older_left.response_state -= 1;
+        let endpoints = BTreeMap::from([
+            (ProxyId(1), older_left),
+            (ProxyId(2), endpoint(2)),
+        ]);
+        assert!(matches!(
+            verify_contact_lifecycle_plan(
+                &delta,
+                &stamps,
+                next_global(),
+                &endpoints,
+                &ContactLifecyclePlan::default(),
+            ),
+            Err(ContactLifecycleVerificationError::Input(
+                ContactLifecycleError::Freshness(
+                    ContactFreshnessError::EndpointRevisionRegressed {
+                        proxy: ProxyId(1),
+                        domain: RevisionDomain::ResponseState,
+                    }
+                )
             ))
         ));
     }
