@@ -158,6 +158,7 @@ pub enum WatchContractError {
     UnknownSupersededAlert,
     SupersedesNonHealthyObservation,
     MissingRemediationReceipt,
+    DuplicateRemediationReceiptId,
     InvalidRemediationReceiptDigest,
     UnexpectedRemediationReceipt,
     HealthyStateWithAlertOnlyProvenance,
@@ -347,6 +348,7 @@ pub fn evaluate_watch(
     }
 
     let mut observation_ids = HashSet::with_capacity(observations.len());
+    let mut remediation_receipt_ids = HashSet::new();
     let mut grouped: BTreeMap<WatchSignal, Vec<&WatchObservation>> = BTreeMap::new();
 
     for observation in observations {
@@ -385,6 +387,10 @@ pub fn evaluate_watch(
             }
             if observation.remediation_receipt_id.as_deref().is_none_or(str::is_empty) {
                 return Err(WatchContractError::MissingRemediationReceipt);
+            }
+            let receipt_id = observation.remediation_receipt_id.as_deref().unwrap();
+            if !remediation_receipt_ids.insert(receipt_id) {
+                return Err(WatchContractError::DuplicateRemediationReceiptId);
             }
             if !observation.remediation_receipt_sha256.as_deref().is_some_and(is_sha256_hex) {
                 return Err(WatchContractError::InvalidRemediationReceiptDigest);
@@ -830,18 +836,12 @@ mod tests {
             Err(WatchContractError::UnknownSupersededAlert)
         );
 
-        let mut missing_receipt = observation(
-            "FIX-ALERT",
-            WatchSignal::Fixity,
-            ObservationState::Alert,
-            1,
-        );
         let mut clear = observation("FIX-CLEAR", WatchSignal::Fixity, ObservationState::Healthy, 2);
         clear.supersedes_observation_id = Some("FIX-ALERT".into());
         clear.remediation_receipt_id = Some("REM-EMPTY".into());
         clear.remediation_receipt_sha256 = None;
         let observations = vec![
-            missing_receipt.clone(), clear,
+            observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1), clear,
             observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
             observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
         ];
@@ -849,7 +849,6 @@ mod tests {
             evaluate_watch("archive-A", 150, &policy(), &observations),
             Err(WatchContractError::InvalidRemediationReceiptDigest)
         );
-        missing_receipt.observation_id.clear();
     }
 
     #[test]
@@ -864,6 +863,29 @@ mod tests {
         assert_eq!(
             evaluate_watch("archive-A", 150, &policy(), &observations),
             Err(WatchContractError::UnsubstantiatedClear)
+        );
+    }
+
+    #[test]
+    fn remediation_receipt_identifier_cannot_be_reused() {
+        let alert_one = observation("FIX-ALERT-1", WatchSignal::Fixity, ObservationState::Alert, 1);
+        let alert_two = observation("FIX-ALERT-2", WatchSignal::Fixity, ObservationState::Alert, 2);
+        let mut clear_one = observation("FIX-CLEAR-1", WatchSignal::Fixity, ObservationState::Healthy, 3);
+        clear_one.supersedes_observation_id = Some("FIX-ALERT-1".into());
+        clear_one.remediation_receipt_id = Some("REM-REUSED".into());
+        clear_one.remediation_receipt_sha256 = Some("1".repeat(64));
+        let mut clear_two = observation("FIX-CLEAR-2", WatchSignal::Fixity, ObservationState::Healthy, 4);
+        clear_two.supersedes_observation_id = Some("FIX-ALERT-2".into());
+        clear_two.remediation_receipt_id = Some("REM-REUSED".into());
+        clear_two.remediation_receipt_sha256 = Some("1".repeat(64));
+        let observations = vec![
+            alert_one, alert_two, clear_one, clear_two,
+            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
+            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+        ];
+        assert_eq!(
+            evaluate_watch("archive-A", 150, &policy(), &observations),
+            Err(WatchContractError::DuplicateRemediationReceiptId)
         );
     }
 
