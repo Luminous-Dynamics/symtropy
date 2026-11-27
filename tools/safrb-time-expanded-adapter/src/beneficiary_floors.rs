@@ -1436,6 +1436,136 @@ mod tests {
     }
 
     #[test]
+    fn multiple_service_floors_share_one_beneficiary_issue_gate() {
+        let model = TemporalProfile {
+            schema_version: TEMPORAL_PROFILE_SCHEMA.to_string(),
+            case_id: "shared-beneficiary-issue-gate".to_string(),
+            commodity_ref: "diesel".to_string(),
+            capacity_unit_ref: "litre".to_string(),
+            quantity_boundary_ref: "beneficiary-deliverable-litres".to_string(),
+            period_timebase_ref: "synthetic:daily-periods".to_string(),
+            horizon_last_period: 1,
+            nodes: vec![
+                node("origin-yard", 0, 20, 0),
+                node("shared-beneficiary", 0, 0, 10),
+            ],
+            receipts: vec![TemporalReceipt {
+                receipt_id: "receipt-20".to_string(),
+                node_id: "origin-yard".to_string(),
+                available_period: 0,
+                quantity: 20,
+            }],
+            transfers: vec![TemporalTransfer {
+                transfer_id: "route-shared".to_string(),
+                from_node_id: "origin-yard".to_string(),
+                to_node_id: "shared-beneficiary".to_string(),
+                departure_period: 0,
+                transit_periods: 1,
+                route_capacity: 20,
+            }],
+            services: vec![
+                TemporalService {
+                    service_id: "service-a".to_string(),
+                    node_id: "shared-beneficiary".to_string(),
+                    period: 1,
+                    requested_quantity: 10,
+                },
+                TemporalService {
+                    service_id: "service-b".to_string(),
+                    node_id: "shared-beneficiary".to_string(),
+                    period: 1,
+                    requested_quantity: 10,
+                },
+            ],
+        };
+
+        let feasible_floors = vec![
+            BeneficiaryFloor {
+                service_id: "service-a".to_string(),
+                minimum_required_quantity: 6,
+            },
+            BeneficiaryFloor {
+                service_id: "service-b".to_string(),
+                minimum_required_quantity: 4,
+            },
+        ];
+        let feasible = evaluate_beneficiary_floors(&model, &feasible_floors).unwrap();
+        assert!(feasible.floors_jointly_feasible);
+        verify_beneficiary_floor_report(&model, &feasible_floors, &feasible).unwrap();
+
+        let overbooked_floors = vec![
+            BeneficiaryFloor {
+                service_id: "service-a".to_string(),
+                minimum_required_quantity: 6,
+            },
+            BeneficiaryFloor {
+                service_id: "service-b".to_string(),
+                minimum_required_quantity: 6,
+            },
+        ];
+        let overbooked = evaluate_beneficiary_floors(&model, &overbooked_floors).unwrap();
+        assert!(!overbooked.floors_jointly_feasible);
+        assert_eq!(overbooked.required_auxiliary_flow, 12);
+        assert_eq!(overbooked.achieved_auxiliary_flow, 10);
+        assert!(overbooked.beneficiary_allocations.is_none());
+        verify_beneficiary_floor_report(&model, &overbooked_floors, &overbooked).unwrap();
+    }
+
+    #[test]
+    fn source_return_capacity_overflow_fails_closed_before_solving() {
+        let model = TemporalProfile {
+            schema_version: TEMPORAL_PROFILE_SCHEMA.to_string(),
+            case_id: "source-capacity-overflow".to_string(),
+            commodity_ref: "diesel".to_string(),
+            capacity_unit_ref: "litre".to_string(),
+            quantity_boundary_ref: "beneficiary-deliverable-litres".to_string(),
+            period_timebase_ref: "synthetic:daily-periods".to_string(),
+            horizon_last_period: 1,
+            nodes: vec![
+                node("origin-yard", 0, 1, 0),
+                node("beneficiary-a", 0, 0, 1),
+            ],
+            receipts: vec![
+                TemporalReceipt {
+                    receipt_id: "receipt-max".to_string(),
+                    node_id: "origin-yard".to_string(),
+                    available_period: 0,
+                    quantity: u64::MAX,
+                },
+                TemporalReceipt {
+                    receipt_id: "receipt-one".to_string(),
+                    node_id: "origin-yard".to_string(),
+                    available_period: 0,
+                    quantity: 1,
+                },
+            ],
+            transfers: vec![TemporalTransfer {
+                transfer_id: "route-a".to_string(),
+                from_node_id: "origin-yard".to_string(),
+                to_node_id: "beneficiary-a".to_string(),
+                departure_period: 0,
+                transit_periods: 1,
+                route_capacity: 1,
+            }],
+            services: vec![TemporalService {
+                service_id: "service-a".to_string(),
+                node_id: "beneficiary-a".to_string(),
+                period: 1,
+                requested_quantity: 1,
+            }],
+        };
+        let floors = vec![BeneficiaryFloor {
+            service_id: "service-a".to_string(),
+            minimum_required_quantity: 1,
+        }];
+        assert!(
+            evaluate_beneficiary_floors(&model, &floors)
+                .unwrap_err()
+                .contains("source capacity bound overflowed u64")
+        );
+    }
+
+    #[test]
     fn floor_above_request_is_rejected_before_solving() {
         let model = profile(15, 10, 10);
         let floors = vec![BeneficiaryFloor {
