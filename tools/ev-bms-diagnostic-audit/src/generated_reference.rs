@@ -166,7 +166,7 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
             return Err(format!("{name} must not be empty"));
         }
     }
-    if manifest.dataset_id != "ch-batteryg-en-iclr-2026-v1"
+    if manifest.dataset_id != "ch-batterygen-iclr-2026-v1"
         || manifest.paper_url
             != "https://proceedings.iclr.cc/paper_files/paper/2026/file/0d781fa5f639bf2caf728a68e9678362-Paper-Conference.pdf"
         || manifest.source_repository_url != "https://github.com/CH-BatteryGen/dataset-warehouse"
