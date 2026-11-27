@@ -571,10 +571,10 @@ fn validate_cohort(cohort: &ComparisonCohort) -> Vec<Blocker> {
         {
             blockers.push(Blocker::InvalidHardBounds);
         }
-        if let (Some(minimum), Some(maximum)) = (metric.hard_min, metric.hard_max) {
-            if minimum > maximum {
-                blockers.push(Blocker::InvalidHardBounds);
-            }
+        if let (Some(minimum), Some(maximum)) = (metric.hard_min, metric.hard_max)
+            && minimum > maximum
+        {
+            blockers.push(Blocker::InvalidHardBounds);
         }
     }
     if !cohort
@@ -706,36 +706,38 @@ mod tests {
         }
     }
 
-    fn observation(
-        specimen_id: &str,
-        material_lot_id: &str,
-        build_run_id: &str,
-        metric_id: &str,
+    struct ObservationSeed<'a> {
+        specimen_id: &'a str,
+        material_lot_id: &'a str,
+        build_run_id: &'a str,
+        metric_id: &'a str,
         value: f64,
         uncertainty: f64,
-        unit: &str,
+        unit: &'a str,
         role: EvidenceRole,
         suffix: char,
-    ) -> MetricObservation {
-        let physical = requires_calibration(role);
+    }
+
+    fn observation(seed: ObservationSeed<'_>) -> MetricObservation {
+        let physical = requires_calibration(seed.role);
         MetricObservation {
-            record_id: format!("OBS-{specimen_id}-{metric_id}"),
-            record_digest: digest(suffix),
-            metric_id: metric_id.to_string(),
-            specimen_id: specimen_id.to_string(),
-            material_lot_id: material_lot_id.to_string(),
-            build_run_id: build_run_id.to_string(),
+            record_id: format!("OBS-{}-{}", seed.specimen_id, seed.metric_id),
+            record_digest: digest(seed.suffix),
+            metric_id: seed.metric_id.to_string(),
+            specimen_id: seed.specimen_id.to_string(),
+            material_lot_id: seed.material_lot_id.to_string(),
+            build_run_id: seed.build_run_id.to_string(),
             as_built_geometry_digest: digest('d'),
             geometry_inspection_digest: digest('2'),
             process_genealogy_digest: digest('3'),
             material_state_digest: digest('4'),
             post_magnetization_digest: digest('5'),
             scope: scope(),
-            value,
-            uncertainty_radius: uncertainty,
-            unit: unit.to_string(),
-            role,
-            method_id: format!("METHOD-{metric_id}"),
+            value: seed.value,
+            uncertainty_radius: seed.uncertainty,
+            unit: seed.unit.to_string(),
+            role: seed.role,
+            method_id: format!("METHOD-{}", seed.metric_id),
             calibration_digest: physical.then(|| digest('e')),
             reference_chain_id: physical.then(|| "REF-CHAIN-001".to_string()),
         }
@@ -771,39 +773,39 @@ mod tests {
             scope: scope(),
             method_scope_supported: true,
             observations: vec![
-                observation(
-                    &specimen_id,
-                    &material_lot_id,
-                    &build_run_id,
-                    "field_error",
-                    field_error,
-                    0.5,
-                    "mT",
-                    EvidenceRole::PhysicalObservation,
-                    '6',
-                ),
-                observation(
-                    &specimen_id,
-                    &material_lot_id,
-                    &build_run_id,
-                    "remanence",
-                    remanence,
-                    0.01,
-                    "T",
-                    EvidenceRole::MaterialCharacterization,
-                    '4',
-                ),
-                observation(
-                    &specimen_id,
-                    &material_lot_id,
-                    &build_run_id,
-                    "accepted_part_cost",
-                    cost,
-                    0.1,
-                    "USD/part",
-                    EvidenceRole::ProcessRecord,
-                    '8',
-                ),
+                observation(ObservationSeed {
+                    specimen_id: &specimen_id,
+                    material_lot_id: &material_lot_id,
+                    build_run_id: &build_run_id,
+                    metric_id: "field_error",
+                    value: field_error,
+                    uncertainty: 0.5,
+                    unit: "mT",
+                    role: EvidenceRole::PhysicalObservation,
+                    suffix: '6',
+                }),
+                observation(ObservationSeed {
+                    specimen_id: &specimen_id,
+                    material_lot_id: &material_lot_id,
+                    build_run_id: &build_run_id,
+                    metric_id: "remanence",
+                    value: remanence,
+                    uncertainty: 0.01,
+                    unit: "T",
+                    role: EvidenceRole::MaterialCharacterization,
+                    suffix: '4',
+                }),
+                observation(ObservationSeed {
+                    specimen_id: &specimen_id,
+                    material_lot_id: &material_lot_id,
+                    build_run_id: &build_run_id,
+                    metric_id: "accepted_part_cost",
+                    value: cost,
+                    uncertainty: 0.1,
+                    unit: "USD/part",
+                    role: EvidenceRole::ProcessRecord,
+                    suffix: '8',
+                }),
             ],
         }
     }
