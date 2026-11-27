@@ -60,6 +60,9 @@ pub struct CalibrationReport {
     pub alpha_ppm: u32,
     pub nominal_coverage_claim_ppm: Option<u32>,
     pub coverage_claim: CoverageClaim,
+    pub model_fit_cutoff: u64,
+    pub calibration_window_start: u64,
+    pub calibration_window_end: u64,
     pub model_sha256: String,
     pub feature_schema_sha256: String,
     pub calibration_data_sha256: String,
@@ -76,6 +79,12 @@ pub struct ConformalInterval {
     pub quantile_rank_1based: u64,
     pub coverage_claim: CoverageClaim,
     pub nominal_coverage_claim_ppm: Option<u32>,
+    pub model_fit_cutoff: u64,
+    pub calibration_window_start: u64,
+    pub calibration_window_end: u64,
+    pub model_sha256: String,
+    pub feature_schema_sha256: String,
+    pub calibration_data_sha256: String,
     pub decision_cutoff: u64,
 }
 
@@ -210,6 +219,9 @@ pub fn calibrate_absolute_residuals(
         alpha_ppm: contract.alpha_ppm,
         nominal_coverage_claim_ppm,
         coverage_claim: claim,
+        model_fit_cutoff: contract.model_fit_cutoff,
+        calibration_window_start: contract.calibration_window_start,
+        calibration_window_end: contract.calibration_window_end,
         model_sha256: contract.model_sha256.clone(),
         feature_schema_sha256: contract.feature_schema_sha256.clone(),
         calibration_data_sha256: contract.calibration_data_sha256.clone(),
@@ -240,6 +252,12 @@ pub fn build_interval(
         quantile_rank_1based: report.quantile_rank_1based,
         coverage_claim: report.coverage_claim,
         nominal_coverage_claim_ppm: report.nominal_coverage_claim_ppm,
+        model_fit_cutoff: report.model_fit_cutoff,
+        calibration_window_start: report.calibration_window_start,
+        calibration_window_end: report.calibration_window_end,
+        model_sha256: report.model_sha256.clone(),
+        feature_schema_sha256: report.feature_schema_sha256.clone(),
+        calibration_data_sha256: report.calibration_data_sha256.clone(),
         decision_cutoff: report.decision_cutoff,
     }))
 }
@@ -323,6 +341,15 @@ mod tests {
         assert_eq!(report.quantile_rank_1based, 9);
         assert_eq!(report.radius, Some(9));
         assert_eq!(report.nominal_coverage_claim_ppm, Some(900_000));
+        let interval = build_interval(&report, 100)
+            .expect("interval")
+            .expect("finite");
+        assert_eq!(interval.model_sha256, report.model_sha256);
+        assert_eq!(interval.feature_schema_sha256, report.feature_schema_sha256);
+        assert_eq!(interval.calibration_data_sha256, report.calibration_data_sha256);
+        assert_eq!(interval.model_fit_cutoff, 10);
+        assert_eq!(interval.calibration_window_start, 11);
+        assert_eq!(interval.calibration_window_end, 40);
     }
 
     #[test]
