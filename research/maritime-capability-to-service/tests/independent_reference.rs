@@ -106,14 +106,28 @@ fn independent_parser_reconstructs_the_complete_service_receipt() {
                     fields[3].parse().expect("receipt base day is numeric"),
                     fields[4].parse().expect("receipt outage day is numeric"),
                     fields[5].parse().expect("receipt denominator is numeric"),
-                    fields[6].parse().expect("receipt on-time units are numeric"),
+                    fields[6]
+                        .parse()
+                        .expect("receipt on-time units are numeric"),
                 ),
             );
         }
     }
 
     assert_eq!(observed, independently_expected);
-    assert_eq!(observed.len(), 5, "no portfolio may disappear from the receipt");
-    assert!(receipt.lines().any(|line| line.starts_with("OPTION\tLOCAL-A\t")));
-    assert!(receipt.lines().any(|line| line.starts_with("OPTION\tLOCAL-B\t")));
+    assert_eq!(
+        observed.len(),
+        5,
+        "no portfolio may disappear from the receipt"
+    );
+    assert!(
+        receipt
+            .lines()
+            .any(|line| line.starts_with("OPTION\tLOCAL-A\t"))
+    );
+    assert!(
+        receipt
+            .lines()
+            .any(|line| line.starts_with("OPTION\tLOCAL-B\t"))
+    );
 }
