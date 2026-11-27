@@ -21,12 +21,13 @@ Source: `evaluator/src/probe_checkpoint_v0_1.rs`.
 
 - Checkpoint sequence must advance by exactly one and chain to the exact previous checkpoint digest. Replays and reordered checkpoints fail closed.
 - Checkpoint identity is bound to attempt, probe, checkpoint sequence and a physical-plan digest.
-- Evidence prefixes are bound to proposition, source/profile, calibration, clock mapping and acquired time interval. A prefix must begin at the requested interval start and end no later than its requested end.
+- Evidence prefixes are bound to proposition, source/profile, calibration, clock mapping and acquired time interval. A prefix must begin at the requested interval start, end no later than its requested end, and carry an explicit gap-free coverage assertion for that prefix. Endpoint equality alone is not proof that frames or intervals were not dropped.
 - An admitted positive/general measurement prefix can be admitted only for its observed sub-scope. A partial `absence_over_interval` claim is explicitly insufficient for the full declared interval; it cannot narrow possible-world support.
-- Support narrowing requires a complete, payload-committed derivation receipt bound to exact before/after support sets and the admitted artifact. Support widening is delegated to the existing evidence-invalidation owner.
+- Support narrowing requires a complete, payload-committed derivation receipt bound to exact before/after support sets, the admitted artifact digest, and a digest of the complete typed evidence-prefix record (source/profile, calibration, claim semantics, clock profile, interval and gap-free coverage assertion). Support widening is delegated to the existing evidence-invalidation owner.
 - Removing `open_world_residual` additionally requires an explicit scope-closure receipt and an admitted complete declared scope. A partial observation can never close the residual.
 - Decision sufficiency is accepted only from a complete, payload-committed receipt bound to the exact checkpoint and current support, asserting that all supported worlds share a terminal recommendation and no remaining probe strictly reduces worst-case terminal loss.
 - Continue, safe-stop/hold and abort are distinct path kinds. A path must bind the exact attempt, probe, checkpoint and physical plan; cover the full trajectory; be qualified; and have a known safe horizon no shorter than its required duration. Unknown horizon is not infinity.
+- A `completed` acquisition is not automatically a qualified physical hold: the completed state still needs a checkpoint-bound safe-stop/hold path, or the reducer returns `NO_SAFE_CONTINUATION`. When acquisition cannot continue and no decision-sufficiency oracle has required abort, a qualified hold is preferred to abort.
 - `STOP_SENSING_HOLD`, `ABORT_PROBE` and `NO_SAFE_CONTINUATION` never grant a new physical effect. New effects still require #7788/#7814 pre-effect revalidation and #6503 independent action-ticket commit authority.
 
 ### Dispositions
@@ -42,7 +43,7 @@ Partial-evidence disposition is orthogonal to the lifecycle action: `ADMITTED_FO
 
 ## Trust boundary
 
-The Rust reducer verifies identity, sequence, digest shape, deterministic payload commitments, exact scope binding and cross-receipt consistency. A hash/commitment detects payload changes; it does **not** authenticate an issuer. It does not prove that an upstream sensor measured reality, that an upstream dependency inventory is complete, that the physical supervisor's horizon is sound, or that an abort actually stopped motion. Those remain upstream and independently qualified responsibilities.
+The Rust reducer verifies identity, sequence, digest shape, deterministic payload commitments, exact scope binding and cross-receipt consistency. The gap-free coverage bit is an upstream assertion, not independently established by this reducer. A hash/commitment detects payload changes; it does **not** authenticate an issuer. It does not prove that an upstream sensor measured reality, that an upstream dependency inventory is complete, that the physical supervisor's horizon is sound, or that an abort actually stopped motion. Those remain upstream and independently qualified responsibilities.
 
 The module is a pure process-model reducer. No simulator, HIL, physical robot or regulatory qualification is implied.
 
@@ -61,7 +62,7 @@ Freeze scenario worlds, action budgets, probe costs, acquisition/transport/infer
 7. Full-trajectory viability-bounded continuation and independently qualified stop/abort paths (#7738).
 8. Evaluator-only optimal stopping/abort oracle as a non-deployable upper bound.
 
-All arms pay for elapsed sensing, stop/settle, abort, communication, inference, actuator energy and recovery. Preserve native task/recovery success as a separate host metric. Use paired schedules: late effect evidence before/during/after a probe; authority revocation; shrinking hazard horizon; missing abort route; sensor/calibration/clock invalidation; partial measurement; delayed/duplicated abort; candidate-visible metadata leakage; and checkpoint replay/permutation.
+All arms pay for elapsed sensing, stop/settle, abort, communication, inference, actuator energy and recovery. Preserve native task/recovery success as a separate host metric. Use paired schedules: late effect evidence before/during/after a probe; authority revocation; shrinking hazard horizon; missing abort route; sensor/calibration/clock invalidation; partial measurement; gapful intervals and sensor dropouts; evidence-prefix metadata tampering; delayed/duplicated abort; candidate-visible metadata leakage; and checkpoint replay/permutation.
 
 ### Metrics — report separately
 
@@ -86,7 +87,7 @@ Hard-safety and false-finality errors are disqualifying and must never be averag
 
 - 100% agreement with an independently authored finite checkpoint/branch oracle.
 - Zero false safe-to-continue/stop/abort in frozen negative controls.
-- Zero partial-prefix promotion beyond measured scope; zero partial absence promotion to full-window absence.
+- Zero partial-prefix promotion beyond measured scope; zero gapful-prefix admission for support narrowing; zero partial absence promotion to full-window absence.
 - Zero open-world residual deletion without the required complete scope-closure receipt.
 - Zero acceptance of replayed, stale, wrong-plan or payload-tampered receipts.
 - Zero new-effect authorization from this reducer (invariant, not a benchmark score).
