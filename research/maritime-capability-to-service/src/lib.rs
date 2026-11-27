@@ -609,7 +609,7 @@ pub struct RecoveryRegretVector {
 }
 
 const RECOVERY_UNITS_ERROR: &str =
-    "recovery outcome has inconsistent expected/accepted/on-time/unresolved units";
+    "recovery outcome has inconsistent expected/qualified/accepted/on-time/unresolved units";
 const RECOVERY_TIME_ERROR: &str =
     "recovery outcome has inconsistent minimum/full recovery times or horizon";
 const RECOVERY_CONTEXT_ERROR: &str =
@@ -1239,6 +1239,17 @@ mod tests {
             compare_recovery_regret(&invalid_units, &recovery_outcome("ORACLE"))
                 .unwrap_err()
                 .contains("inconsistent expected/accepted")
+        );
+
+        let mut invalid_qualification = recovery_outcome("INVALID-QUALIFICATION");
+        invalid_qualification.receiver_accepted_units = 91;
+        assert!(
+            compare_recovery_regret(
+                &invalid_qualification,
+                &recovery_outcome("ORACLE")
+            )
+            .unwrap_err()
+            .contains("expected/qualified/accepted")
         );
 
         let mut invalid_time = recovery_outcome("INVALID-TIME");
