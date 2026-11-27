@@ -21,11 +21,11 @@ The declared covariance is a 6x6 SPD matrix in that same tangent order:
     BODY_LOCAL_TRANSLATION_XYZ_ROTATION_VECTOR_XYZ
     units: m, m, m, rad, rad, rad
 
-The Mahalanobis distance is computed by Cholesky solve, not explicit matrix inversion:
+The covariance must be finite, symmetric and positive definite. The Mahalanobis distance is computed by Cholesky solve, not explicit matrix inversion:
 
     d2 = e^T Sigma^-1 e
 
-For six degrees of freedom the frozen chi-square thresholds are 50%, 80%, 90%, 95% and 99%. The evaluator reports empirical joint-region coverage separately from translation and orientation point error. It rejects non-finite, asymmetric, singular and non-positive-definite covariance matrices.
+For six degrees of freedom the frozen chi-square thresholds are 50%, 80%, 90%, 95% and 99%. This is a Gaussian ellipsoid coverage hypothesis: the evaluator tests it empirically and does not assume EDL/NIG outputs are Gaussian or calibrated. The evaluator reports empirical joint-region coverage separately from translation and orientation point error. It also reports covariance log-determinant and 95% prediction-region log-volume so a model cannot improve coverage merely by inflating uncertainty. It rejects non-finite, asymmetric, singular and non-positive-definite covariance matrices.
 
 ## Decision and false-confidence contract
 
@@ -46,7 +46,7 @@ A covariance is stochastic, not a deterministic geometric enclosure. This evalua
 
 ## Risk-coverage frontier
 
-The benchmark sweeps confidence-score thresholds from 0 to 1,000,000 ppm and reports selected count, overall coverage, false-confidence count and selective risk. It also reports accepted sample counts, empirical covariance coverage, accepted translation p95 and accepted rotation p95.
+The benchmark sweeps confidence-score thresholds from 0 to 1,000,000 ppm and reports selected count, overall coverage, false-confidence count and selective risk. It also reports accepted-pose coverage, empirical covariance coverage, accepted translation p95, accepted rotation p95, median covariance log-determinant and median 95% pose-region log-volume.
 
 A model is not rewarded for rejecting every difficult sample: the risk-coverage frontier exposes the accuracy/coverage tradeoff. Results must always be stratified by spacecraft identity, view, truncation, visibility, sensor mode, range and OOD regime in full model experiments.
 
