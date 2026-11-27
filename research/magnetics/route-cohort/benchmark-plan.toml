@@ -61,3 +61,12 @@ specimen_count_is_independent_build_count = false
 rework_success_counts_as_first_pass = false
 descriptive_fraction_is_production_yield = false
 inferential_yield_claim_available = false
+
+
+[replication_eligibility]
+build_must_have_unique_identity = true
+build_must_have_valid_process_and_genealogy_receipts = true
+material_lot_must_be_valid_and_referenced_by_a_valid_build = true
+unused_lots_count_toward_replication = false
+failed_before_inspection_build_counts_if_genealogy_is_valid = true
+duplicate_qualification_rework_scrap_receipt_ids_invalidate_cohort = true
