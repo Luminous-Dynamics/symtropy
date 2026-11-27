@@ -41,6 +41,23 @@ Compare candidate policy outcomes with a clairvoyant per-scenario oracle (upper 
 
 No failure probability is assigned to v0.1. Scenario frequencies, expected loss and risk-adjusted ROI require source-grounded incident/repair/availability data and a declared sampling model.
 
+## 3A. Executable regret comparator
+
+The MCSC Rust reference now exposes `compare_recovery_regret(candidate, reference)`. It accepts two outcome records only when the frozen instance identity/version, scenario ID, service ID, deadline, horizon and expected-unit denominator are identical.
+
+It computes candidate-minus-reference deltas separately for:
+- unmet expected units at the deadline;
+- late accepted units;
+- unresolved units;
+- service deficit unit-hours;
+- time to minimum viable service and full service;
+- recovery cost and emissions;
+- requalification action count.
+
+Positive deltas are worse for the candidate. This vector is not scalarized. The reference may be a clairvoyant per-scenario admissible upper bound, but is not an implementable policy and has no probability weight. Validation rejects inconsistent accepted/on-time/unresolved quantities and impossible recovery times. Unit tests cover a nine-dimensional known answer, context mismatches, invalid inputs and zero-regret equality.
+
+This API is only a comparison primitive. The 20-case corpus currently validates scenario coverage and claim ceilings; no full recovery optimizer, scenario probability model or empirical regret result is claimed.
+
 ## 4. Shared cause and multi-stage recovery semantics
 
 Use owner-native identities and transitive closure. Preserve exact common dependency IDs; a set digest cannot replace the identity members. Distinguish:
