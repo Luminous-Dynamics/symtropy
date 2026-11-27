@@ -16,11 +16,11 @@ SPACESENSE_REVISION = "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e"
 SPACESENSE_POSE_CSV_RELEASE = "pose-ground-truth-regenerated-2026-05-19"
 TIMESTAMP_FORMAT = "YYYYMMDDHHMMSSmmm"
 MODALITIES = (
-    ("rgb", "cam0"),
-    ("depth", "cam0"),
-    ("segmentation", "cam0"),
-    ("lidar", "lidar0"),
-    ("pose", "pose_ground_truth"),
+    ("rgb", "cam0", "rgb"),
+    ("depth", "cam0", "depth"),
+    ("segmentation", "cam0", "segmentation"),
+    ("lidar", "lidar0", "lidar"),
+    ("pose", "pose_ground_truth", "pose"),
 )
 
 
@@ -65,8 +65,8 @@ def result_base(
     disposition: str,
     reason: str | None,
 ) -> dict[str, object]:
-    sha_map = {name: row[f"{name}_sha256"] for name, _ in MODALITIES}
-    path_map = {name: row[f"{name}_path"] for name, _ in MODALITIES}
+    sha_map = {name: row[f"{name}_sha256"] for name, _, _ in MODALITIES}
+    path_map = {name: row[f"{name}_path"] for name, _, _ in MODALITIES}
     return {
         "case_id": row["case_id"],
         "dataset_id": row["dataset_id"],
@@ -131,8 +131,6 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         or row["lidar_coordinate_frame"] != "SENSOR_LOCAL_FRAME"
         or row["pose_semantics"] != "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD"
         or row["quaternion_convention"] != "HAMILTON_WXYZ"
-        or not valid_sha(row["camera_calibration_sha256"])
-        or not valid_sha(row["lidar_to_camera_sha256"])
         or row["pose_length_unit"] != "metre"
         or row["depth_unit"] != "millimetre"
         or row["lidar_unit"] != "metre"
@@ -142,6 +140,15 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             row,
             "OUT_OF_SCOPE",
             "DATASET_REVISION_LICENSE_OR_CONVENTION_UNSUPPORTED",
+        )
+
+    if not valid_sha(row["camera_calibration_sha256"]) or not valid_sha(
+        row["lidar_to_camera_sha256"]
+    ):
+        return result_base(
+            row,
+            "INVALID_INPUT",
+            "CALIBRATION_OR_EXTRINSICS_DIGEST_MALFORMED",
         )
 
     if row["pose_csv_revision"] != row["corrected_pose_revision"]:
@@ -163,7 +170,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if not valid_timestamp(row["capture_timestamp"]):
         return result_base(row, "INVALID_INPUT", "CAPTURE_TIMESTAMP_INVALID")
 
-    for name, expected_sensor in MODALITIES:
+    for name, expected_sensor, expected_path_component in MODALITIES:
         record = modality(row, name)
         if not record["present"]:
             reasons = {
@@ -178,12 +185,31 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         if not valid_text(str(record["path"])) or not valid_sha(str(record["sha256"])):
             return result_base(row, "INVALID_INPUT", "MODALITY_PATH_OR_DIGEST_INVALID")
 
-        required_path_scope = f"{row['spacecraft_id']}/{row['trajectory_id']}/"
-        if required_path_scope not in str(record["path"]) or row["capture_timestamp"] not in str(record["path"]):
+        path = str(record["path"])
+        path_components = path.split("/")
+        if (
+            path.startswith("/")
+            or "\\" in path
+            or any(component in ("", ".", "..") for component in path_components)
+        ):
+            return result_base(
+                row,
+                "INVALID_INPUT",
+                "MODALITY_PATH_IS_NOT_A_SAFE_RELATIVE_PATH",
+            )
+        if any(
+            expected not in path_components
+            for expected in (
+                row["spacecraft_id"],
+                row["trajectory_id"],
+                expected_path_component,
+                row["capture_timestamp"],
+            )
+        ):
             return result_base(
                 row,
                 "OUT_OF_SCOPE",
-                "MODALITY_PATH_DOES_NOT_BIND_TRAJECTORY_AND_FRAME_TIME",
+                "MODALITY_PATH_DOES_NOT_BIND_EXPECTED_SENSOR_STREAM_AND_FRAME",
             )
 
         if (
