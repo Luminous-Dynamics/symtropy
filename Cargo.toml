@@ -175,6 +175,7 @@ members = [
     "crates/domains/symtropy-firstlight-bent-feeder",
     "crates/domains/symtropy-firstlight-catastrophe",
     "tools/wpt-exact-service-oracle",
+    "tools/single-commodity-flow-kernel",
 ]
 
 [lints.clippy]

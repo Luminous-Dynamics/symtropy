@@ -8564,6 +8564,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "single-commodity-flow-kernel"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11619,6 +11628,7 @@ name = "wpt-exact-service-oracle"
 version = "0.1.0"
 dependencies = [
  "serde_json",
+ "single-commodity-flow-kernel",
 ]
 
 [[package]]

@@ -1,0 +1,139 @@
+{
+  "schema_version": "luminous-flow-certificate-v1",
+  "graph": {
+    "commodity_ref": "test-commodity",
+    "capacity_unit_ref": "mWh",
+    "quantity_boundary_ref": "test-boundary",
+    "nodes": [
+      {
+        "id": "s"
+      },
+      {
+        "id": "a"
+      },
+      {
+        "id": "b"
+      },
+      {
+        "id": "t"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "from": "s",
+        "to": "a",
+        "capacity": 3,
+        "metadata_ref": null
+      },
+      {
+        "id": "e2",
+        "from": "s",
+        "to": "b",
+        "capacity": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e3",
+        "from": "a",
+        "to": "t",
+        "capacity": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e4",
+        "from": "b",
+        "to": "t",
+        "capacity": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e5",
+        "from": "a",
+        "to": "b",
+        "capacity": 1,
+        "metadata_ref": null
+      }
+    ],
+    "source": "s",
+    "sink": "t"
+  },
+  "result": {
+    "certificate_schema": "luminous-flow-certificate-v1",
+    "graph_sha256": "sha256:38d8d4afe66a36650e28ef1de2c500e41a619113a031a8afe82aa80e3056693e",
+    "commodity_ref": "test-commodity",
+    "capacity_unit_ref": "mWh",
+    "quantity_boundary_ref": "test-boundary",
+    "kernel_version": "single-commodity-directed-flow-v0.1.0",
+    "supported_model_class": "single_commodity_directed_integer_capacity",
+    "source": "s",
+    "sink": "t",
+    "max_flow": 4,
+    "edge_flows": [
+      {
+        "id": "e1",
+        "from": "s",
+        "to": "a",
+        "capacity": 3,
+        "flow": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e2",
+        "from": "s",
+        "to": "b",
+        "capacity": 2,
+        "flow": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e3",
+        "from": "a",
+        "to": "t",
+        "capacity": 2,
+        "flow": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e4",
+        "from": "b",
+        "to": "t",
+        "capacity": 2,
+        "flow": 2,
+        "metadata_ref": null
+      },
+      {
+        "id": "e5",
+        "from": "a",
+        "to": "b",
+        "capacity": 1,
+        "flow": 0,
+        "metadata_ref": null
+      }
+    ],
+    "source_side_nodes": [
+      "a",
+      "b",
+      "s"
+    ],
+    "min_cut": {
+      "capacity": 4,
+      "edges": [
+        {
+          "id": "e3",
+          "from": "a",
+          "to": "t",
+          "capacity": 2,
+          "metadata_ref": null
+        },
+        {
+          "id": "e4",
+          "from": "b",
+          "to": "t",
+          "capacity": 2,
+          "metadata_ref": null
+        }
+      ]
+    }
+  }
+}

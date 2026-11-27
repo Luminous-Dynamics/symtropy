@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:luminous:flow-certificate:v1",
+  "title": "Luminous Flow Certificate Bundle v1",
+  "description": "Portable graph-bound max-flow/min-cut evidence. A schema-valid document is not trusted until the graph/result pair passes the independent verifier.",
+  "type": "object",
+  "required": ["schema_version", "graph", "result"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "luminous-flow-certificate-v1" },
+    "graph": { "$ref": "#/$defs/graph" },
+    "result": { "$ref": "#/$defs/result" }
+  },
+  "$defs": {
+    "uint64": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 18446744073709551615,
+      "format": "uint64",
+      "x-rust-type": "u64"
+    },
+    "optionalMetadata": {
+      "type": ["string", "null"]
+    },
+    "node": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "from", "to", "capacity", "metadata_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "capacity": { "$ref": "#/$defs/uint64" },
+        "metadata_ref": { "$ref": "#/$defs/optionalMetadata" }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "required": [
+        "commodity_ref",
+        "capacity_unit_ref",
+        "quantity_boundary_ref",
+        "nodes",
+        "edges",
+        "source",
+        "sink"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "commodity_ref": { "type": "string", "minLength": 1 },
+        "capacity_unit_ref": { "type": "string", "minLength": 1 },
+        "quantity_boundary_ref": { "type": "string", "minLength": 1 },
+        "nodes": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": { "$ref": "#/$defs/node" }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 65536,
+          "items": { "$ref": "#/$defs/edge" }
+        },
+        "source": { "type": "string", "minLength": 1 },
+        "sink": { "type": "string", "minLength": 1 }
+      }
+    },
+    "edgeFlow": {
+      "type": "object",
+      "required": ["id", "from", "to", "capacity", "flow", "metadata_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "capacity": { "$ref": "#/$defs/uint64" },
+        "flow": { "$ref": "#/$defs/uint64" },
+        "metadata_ref": { "$ref": "#/$defs/optionalMetadata" }
+      }
+    },
+    "cutEdge": {
+      "type": "object",
+      "required": ["id", "from", "to", "capacity", "metadata_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "from": { "type": "string", "minLength": 1 },
+        "to": { "type": "string", "minLength": 1 },
+        "capacity": { "$ref": "#/$defs/uint64" },
+        "metadata_ref": { "$ref": "#/$defs/optionalMetadata" }
+      }
+    },
+    "minimumCut": {
+      "type": "object",
+      "required": ["capacity", "edges"],
+      "additionalProperties": false,
+      "properties": {
+        "capacity": { "$ref": "#/$defs/uint64" },
+        "edges": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/cutEdge" }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "certificate_schema",
+        "graph_sha256",
+        "commodity_ref",
+        "capacity_unit_ref",
+        "quantity_boundary_ref",
+        "kernel_version",
+        "supported_model_class",
+        "source",
+        "sink",
+        "max_flow",
+        "edge_flows",
+        "source_side_nodes",
+        "min_cut"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "certificate_schema": { "const": "luminous-flow-certificate-v1" },
+        "graph_sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+        "commodity_ref": { "type": "string", "minLength": 1 },
+        "capacity_unit_ref": { "type": "string", "minLength": 1 },
+        "quantity_boundary_ref": { "type": "string", "minLength": 1 },
+        "kernel_version": { "const": "single-commodity-directed-flow-v0.1.0" },
+        "supported_model_class": { "const": "single_commodity_directed_integer_capacity" },
+        "source": { "type": "string", "minLength": 1 },
+        "sink": { "type": "string", "minLength": 1 },
+        "max_flow": { "$ref": "#/$defs/uint64" },
+        "edge_flows": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/edgeFlow" }
+        },
+        "source_side_nodes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "min_cut": { "$ref": "#/$defs/minimumCut" }
+      }
+    }
+  }
+}

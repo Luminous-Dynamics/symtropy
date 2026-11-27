@@ -1,0 +1,293 @@
+{
+  "schema_version": "dimacs-network-flows-2.0-core-manifest-v0.1",
+  "recorded_date": "2026-11-26",
+  "challenge": {
+    "name": "13th DIMACS Implementation Challenge: Network Flows 2.0",
+    "period": "2026-2027",
+    "overview_url": "https://coral.ise.lehigh.edu/flow-challenge-2-0/",
+    "maxflow_instances_url": "https://coral.ise.lehigh.edu/flow-challenge-2-0/max-flow-instances-and-generators/",
+    "maxflow_reference_solvers_url": "https://coral.ise.lehigh.edu/flow-challenge-2-0/max-flow-reference-solvers/",
+    "format_spec_url": "https://coral.ise.lehigh.edu/flow-challenge-2-0/files/2026/04/maxflow.pdf"
+  },
+  "format": {
+    "name": "DIMACS .max",
+    "problem_record": "p max <n> <m>",
+    "terminal_records": "n <v> s|t",
+    "arc_record": "a <v> <w> <capacity>",
+    "node_ids": "1-based; 1..=n",
+    "standard_capacity_min": 1,
+    "standard_capacity_max": 2147483647,
+    "parallel_arcs": "not allowed in general-capacity new instances, but allowed in unit-capacity instances; older files may contain parallel arcs. Preserve them as distinct IDs.",
+    "comments": "lowercase c comment records may appear anywhere",
+    "current_importer": "tools/single-commodity-flow-kernel/examples/dimacs_max.rs",
+    "current_importer_limits": {
+      "max_nodes": 4096,
+      "max_arcs": 65536
+    },
+    "extended_u64_lane": "separate from standard DIMACS .max; never reinterpret standard format values as u64 extensions without a distinct schema"
+  },
+  "reference_solvers": [
+    {
+      "name": "HIPR4",
+      "version": "4.2",
+      "algorithm": "highest-level push-relabel",
+      "priority": "primary",
+      "availability": "not yet acquired or run"
+    },
+    {
+      "name": "Pseudoflow",
+      "implementation": "C",
+      "algorithm": "pseudoflow",
+      "priority": "secondary",
+      "availability": "not yet acquired or run"
+    },
+    {
+      "name": "EIBFS",
+      "algorithm": "incremental breadth-first-search Boykov-Kolmogorov",
+      "priority": "vision/incremental cases only",
+      "availability": "not yet acquired or run"
+    },
+    {
+      "name": "OR-Tools SimpleMaxFlow",
+      "version": "pin at acquisition",
+      "algorithm": "max-flow",
+      "priority": "additional independent comparator",
+      "availability": "not installed in local exploration environment"
+    },
+    {
+      "name": "NetworkX",
+      "version": "3.6.1 exploratory baseline; pin for each formal run",
+      "algorithm": "preflow-push, Dinitz, Edmonds-Karp",
+      "priority": "additional independent comparator",
+      "availability": "exploratory six-graph run completed"
+    }
+  ],
+  "core_instances": [
+    {
+      "family": "vision_3d_segmentation",
+      "names": [
+        "bone.n6c100",
+        "bone.n26c100",
+        "bone.subx.n6c100",
+        "bone.subx.n26c100"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "surface_fitting",
+      "names": [
+        "LB07-bunny-med",
+        "LB07-bunny-lrg"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "automatic_labelling_environment_ale4",
+      "names": [
+        "graph_2007_000033_3",
+        "graph_2007_000033_9"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "automatic_labelling_environment_ale10",
+      "names": [
+        "_2007_000033_3",
+        "graph_2007_000033_9"
+      ],
+      "status": "not_yet_acquired",
+      "note": "same filenames in different directories; path is part of instance identity"
+    },
+    {
+      "family": "multi_view",
+      "names": [
+        "BL06-camel-med",
+        "BL06-camel-lrg"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "stereo",
+      "names": [
+        "KZ2-sawtooth",
+        "KZ2-venus"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "punch",
+      "names": [
+        "punch-eu22p",
+        "punch-eu22u",
+        "punch-us22p",
+        "punch-us22u"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "bisection",
+      "names": [
+        "alue7065",
+        "cal",
+        "horse",
+        "rgg18"
+      ],
+      "status": "not_yet_acquired"
+    },
+    {
+      "family": "polygon_aggregation_64bit",
+      "names": [
+        "gerolstein_500",
+        "gerolstein_1000",
+        "gerolstein_5000",
+        "edendorf_500",
+        "edendorf_1000",
+        "edendorf_5000"
+      ],
+      "status": "not_yet_acquired",
+      "capacity_lane": "u64_extension",
+      "note": "official page warns triangulation instances use 64-bit capacities although the standard format states 32-bit; use a separate extension loader"
+    }
+  ],
+  "generators": [
+    {
+      "family": "rmf_long",
+      "generator": "rmfgen",
+      "capacity_parameters": {
+        "c1": 1,
+        "c2": 10000
+      },
+      "parameter_pairs": [
+        [
+          38,
+          1448
+        ],
+        [
+          45,
+          2048
+        ],
+        [
+          54,
+          2896
+        ],
+        [
+          64,
+          4096
+        ],
+        [
+          76,
+          5793
+        ],
+        [
+          91,
+          8104
+        ]
+      ],
+      "status": "not_yet_generated"
+    },
+    {
+      "family": "rmf_wide",
+      "generator": "rmfgen",
+      "capacity_parameters": {
+        "c1": 1,
+        "c2": 10000
+      },
+      "parameter_pairs": [
+        [
+          256,
+          16
+        ],
+        [
+          341,
+          18
+        ],
+        [
+          447,
+          21
+        ],
+        [
+          591,
+          24
+        ],
+        [
+          774,
+          28
+        ],
+        [
+          1034,
+          32
+        ]
+      ],
+      "status": "not_yet_generated"
+    },
+    {
+      "family": "wash_rlg_long",
+      "generator": "Washington RLG",
+      "type": 2,
+      "dim1": 128,
+      "dim2_values": [
+        16384,
+        32768,
+        65536,
+        131072,
+        262144,
+        524288
+      ],
+      "required_generator_defines": {
+        "MAX_N": 2147483648,
+        "MAX_DEGREE": 1024
+      },
+      "status": "not_yet_generated"
+    },
+    {
+      "family": "wash_rlg_wide",
+      "generator": "Washington RLG",
+      "type": 2,
+      "dim2": 128,
+      "dim1_values": [
+        8192,
+        16384,
+        32768,
+        65536,
+        131072,
+        262144
+      ],
+      "required_generator_defines": {
+        "MAX_N": 2147483648,
+        "MAX_DEGREE": 1024
+      },
+      "status": "not_yet_generated"
+    }
+  ],
+  "per_instance_receipt_required": [
+    "source_archive_sha256",
+    "original_instance_sha256",
+    "normalized_graph_sha256",
+    "node_count",
+    "arc_count",
+    "capacity_min_max_and_distribution",
+    "parallel_arc_count",
+    "generator_name_version_parameters_and_seed",
+    "translator_version_if_any",
+    "kernel_commit_and_toolchain",
+    "reference_solver_commit_or_release",
+    "parse_solve_bundle_and_verify_latency",
+    "peak_rss",
+    "flow_value_and_min_cut_value",
+    "certificate_verification_status",
+    "status_completed_dnf_or_unsupported"
+  ],
+  "rules": {
+    "no_cherry_picking": "Record every required core case. Publish DNF for cases not completed. Explain unsupported format/model cases; never silently omit.",
+    "static_dynamic_separation": "Incremental instances are a separate dynamic-update track and must not be mixed into static cold-solve timings.",
+    "model_family_separation": "Do not aggregate vision-specialized and general road/time-expanded results into one speed score.",
+    "claim_ceiling": "DIMACS parity benchmarks graph algorithm behavior only; no SAFRB physical evidence, service, legal or dispatch qualification."
+  },
+  "statuses": {
+    "importer_fixture": "small DIMACS-compatible fixture added; Rust test authored but not yet toolchain-qualified",
+    "official_instances": "not yet acquired or run",
+    "formal_reference_comparison": "not yet run"
+  },
+  "per_instance_receipt_schema": "tools/single-commodity-flow-kernel/benchmarks/dimacs-benchmark-receipt-v1.schema.json",
+  "per_instance_receipt_template": "tools/single-commodity-flow-kernel/benchmarks/dimacs-benchmark-receipt-template-v1.json"
+}
