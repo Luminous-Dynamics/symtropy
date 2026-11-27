@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-decision-sufficient-observation-v0",
+  "scorecard_status": "author-authored finite known answers; independent executable verifier pending",
+  "episodes": [
+    {
+      "episode_id": "av-dso-001-high-eig-zero-evsi-vs-lower-eig-positive-evsi",
+      "current_best_decision": "warn",
+      "current_expected_loss": 20,
+      "subtype_detail": {
+        "eig_nats": 0.6931471805599453,
+        "post_expected_loss": 20,
+        "evsi": 0,
+        "net_evsi": -1,
+        "expected_disposition": "do_not_request_for_decision_improvement"
+      },
+      "hazard_cue": {
+        "eig_nats": 0.1927447570217575,
+        "post_expected_loss": 14,
+        "evsi": 6,
+        "utility_cost": 2,
+        "net_evsi": 4,
+        "expected_disposition": "request_hazard_cue"
+      },
+      "assertion": "Lower EIG action has higher positive net decision value."
+    },
+    {
+      "episode_id": "av-dso-002-robust-stop",
+      "expected_disposition": "stop",
+      "remaining_hypothesis_entropy_nats": 0.6931471805599453,
+      "evsi": 0,
+      "assertion": "Uncertainty remains, but every hypothesis selects continue."
+    },
+    {
+      "episode_id": "av-dso-003-observation-arrives-after-decision-deadline",
+      "expected_disposition": "do_not_request_for_current_decision",
+      "reason": "arrival_tick_13_after_deadline_tick_10"
+    },
+    {
+      "episode_id": "av-dso-004-budget-excludes-best-information-request",
+      "expected_disposition": "exclude_highres_multi_frame; evaluate_single_crop_or_stop",
+      "reason": "hard_latency_bytes_and_energy_budgets_are_not_soft_penalties"
+    },
+    {
+      "episode_id": "av-dso-005-permission-excludes-private-sensor-request",
+      "expected_disposition": "never_select_private_room_camera",
+      "reason": "permission_gate_precedes_value_ranking"
+    },
+    {
+      "episode_id": "av-dso-006-correlated-observations-not-independent",
+      "expected_disposition": "do_not_count_derived_view_as_independent",
+      "reason": "same_capture_dependency_group"
+    },
+    {
+      "episode_id": "av-dso-007-uncalibrated-incomplete-outcome-partition",
+      "expected_disposition": "mark_eig_evsi_unquantified_and_abstain",
+      "reason": "uncalibrated_prior_and_missing_open_world_outcome"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[workspace]
+
+[package]
+name = "av-decision-sufficient-observation-v0"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Finite known-answer audit for decision-sufficient audiovisual evidence acquisition"
+
+[[bin]]
+name = "av-dso-fixture-audit"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "=1.0.150"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
