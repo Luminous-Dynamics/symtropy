@@ -87,6 +87,9 @@ pub struct WatchObservation {
     /// A Healthy observation that clears an earlier Alert must identify the
     /// alert it supersedes. Mere disappearance or elapsed time cannot clear it.
     pub supersedes_observation_id: Option<String>,
+    /// Separate, independently verifiable remediation receipt required to clear an alert.
+    pub remediation_receipt_id: Option<String>,
+    pub remediation_receipt_sha256: Option<String>,
     /// Must be supplied for IndependentCopies observations; measured by the
     /// independent dependency/failure-domain authority, not inferred here.
     pub observed_independent_copies: Option<u32>,
@@ -118,6 +121,8 @@ pub struct SignalResult {
     pub evidence_fresh: bool,
     pub source_verified: bool,
     pub latest_observation_id: Option<String>,
+    /// Confirmed historical alerts still awaiting separate remediation receipts.
+    pub unresolved_alert_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,6 +155,11 @@ pub enum WatchContractError {
     NonMonotonicSignalHistory,
     UnsubstantiatedClear,
     SupersedesWrongTargetOrSignal,
+    UnknownSupersededAlert,
+    SupersedesNonHealthyObservation,
+    MissingRemediationReceipt,
+    InvalidRemediationReceiptDigest,
+    UnexpectedRemediationReceipt,
     HealthyStateWithAlertOnlyProvenance,
 }
 
@@ -267,6 +277,44 @@ fn make_proposals(
     }).collect()
 }
 
+fn unresolved_alerts<'a>(
+    ordered: &[&'a WatchObservation],
+    evaluated_at_unix: u64,
+) -> Result<Vec<&'a WatchObservation>, WatchContractError> {
+    let mut unresolved: BTreeMap<&str, &'a WatchObservation> = BTreeMap::new();
+    for observation in ordered {
+        if observation.state == ObservationState::Alert {
+            unresolved.insert(observation.observation_id.as_str(), *observation);
+            continue;
+        }
+        if let Some(alert_id) = observation.supersedes_observation_id.as_deref() {
+            if observation.state != ObservationState::Healthy {
+                return Err(WatchContractError::SupersedesNonHealthyObservation);
+            }
+            if observation.provenance != EvidenceProvenance::Verified
+                || observation.valid_until_unix < evaluated_at_unix
+            {
+                return Err(WatchContractError::UnsubstantiatedClear);
+            }
+            let alert = unresolved.remove(alert_id)
+                .ok_or(WatchContractError::UnknownSupersededAlert)?;
+            if alert.target_id != observation.target_id || alert.signal != observation.signal {
+                return Err(WatchContractError::SupersedesWrongTargetOrSignal);
+            }
+            continue;
+        }
+        if observation.remediation_receipt_id.is_some()
+            || observation.remediation_receipt_sha256.is_some()
+        {
+            return Err(WatchContractError::UnexpectedRemediationReceipt);
+        }
+        if observation.state == ObservationState::Healthy && !unresolved.is_empty() {
+            return Err(WatchContractError::UnsubstantiatedClear);
+        }
+    }
+    Ok(unresolved.into_values().collect())
+}
+
 /// Evaluate a time-bounded evidence snapshot.
 ///
 /// Multiple observations for the same target/signal are accepted as a short
@@ -331,6 +379,21 @@ pub fn evaluate_watch(
         {
             return Err(WatchContractError::HealthyStateWithAlertOnlyProvenance);
         }
+        if observation.supersedes_observation_id.is_some() {
+            if observation.state != ObservationState::Healthy {
+                return Err(WatchContractError::SupersedesNonHealthyObservation);
+            }
+            if observation.remediation_receipt_id.as_deref().is_none_or(str::is_empty) {
+                return Err(WatchContractError::MissingRemediationReceipt);
+            }
+            if !observation.remediation_receipt_sha256.as_deref().is_some_and(is_sha256_hex) {
+                return Err(WatchContractError::InvalidRemediationReceiptDigest);
+            }
+        } else if observation.remediation_receipt_id.is_some()
+            || observation.remediation_receipt_sha256.is_some()
+        {
+            return Err(WatchContractError::UnexpectedRemediationReceipt);
+        }
         if observation.signal == WatchSignal::IndependentCopies {
             if !copies_required {
                 return Err(WatchContractError::CopyThresholdWithoutSignal);
@@ -358,6 +421,7 @@ pub fn evaluate_watch(
                 evidence_fresh: false,
                 source_verified: false,
                 latest_observation_id: None,
+                unresolved_alert_ids: Vec::new(),
             });
             dispositions.push(WatchDisposition::Unknown);
             let (_, actions, requirements) = action_plan(*signal);
@@ -373,6 +437,9 @@ pub fn evaluate_watch(
                 observer_id: "watch-engine".into(),
                 provenance: EvidenceProvenance::Unverified,
                 supersedes_observation_id: None,
+                remediation_receipt_id: None,
+                remediation_receipt_sha256: None,
+                observed_independent_copies: None,
             };
             let mut missing_actions = actions;
             if !missing_actions.contains(&ProposedAction::GatherFreshEvidence) {
@@ -393,34 +460,18 @@ pub fn evaluate_watch(
             }
         }
 
-        let mut last_alert: Option<&WatchObservation> = None;
-        for observation in &ordered {
-            if observation.state == ObservationState::Alert {
-                last_alert = Some(observation);
-            } else if observation.state == ObservationState::Healthy {
-                if let Some(alert) = last_alert {
-                    if observation.supersedes_observation_id.as_deref()
-                        != Some(alert.observation_id.as_str())
-                    {
-                        return Err(WatchContractError::UnsubstantiatedClear);
-                    }
-                    if observation.provenance != EvidenceProvenance::Verified
-                        || observation.valid_until_unix < evaluated_at_unix
-                    {
-                        return Err(WatchContractError::UnsubstantiatedClear);
-                    }
-                    if alert.target_id != observation.target_id || alert.signal != observation.signal {
-                        return Err(WatchContractError::SupersedesWrongTargetOrSignal);
-                    }
-                    last_alert = None;
-                }
-            }
-        }
+        let unresolved = unresolved_alerts(&ordered, evaluated_at_unix)?;
 
         let latest = ordered.last().copied().expect("history is non-empty");
         let fresh = latest.valid_until_unix >= evaluated_at_unix;
         let source_verified = latest.provenance == EvidenceProvenance::Verified;
-        let state = if latest.provenance == EvidenceProvenance::Invalid {
+        let active_invalid = unresolved.iter().any(|alert| alert.provenance == EvidenceProvenance::Invalid);
+        let active_verified = unresolved.iter().any(|alert| alert.provenance == EvidenceProvenance::Verified);
+        let state = if active_invalid || active_verified {
+            ObservationState::Alert
+        } else if !unresolved.is_empty() {
+            ObservationState::Unknown
+        } else if latest.provenance == EvidenceProvenance::Invalid {
             ObservationState::Alert
         } else if !fresh || !source_verified {
             ObservationState::Unknown
@@ -445,9 +496,21 @@ pub fn evaluate_watch(
             evidence_fresh: fresh,
             source_verified,
             latest_observation_id: Some(latest.observation_id.clone()),
+            unresolved_alert_ids: unresolved.iter().map(|alert| alert.observation_id.clone()).collect(),
         });
 
         if state == ObservationState::Alert {
+            if !unresolved.is_empty() {
+                for alert in &unresolved {
+                    let (disposition, actions, requirements) = if alert.provenance == EvidenceProvenance::Invalid {
+                        (WatchDisposition::Blocked, vec![ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview], vec!["invalid evidence provenance", "independent investigation"])
+                    } else {
+                        action_plan(*signal)
+                    };
+                    dispositions.push(disposition);
+                    proposals.extend(make_proposals(target_id, alert, &actions, &requirements));
+                }
+            } else {
             let (disposition, actions, requirements) = if latest.provenance == EvidenceProvenance::Invalid {
                 (WatchDisposition::Blocked, vec![ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview], vec!["invalid evidence provenance", "independent investigation"])
             } else {
@@ -455,6 +518,7 @@ pub fn evaluate_watch(
             };
             dispositions.push(disposition);
             proposals.extend(make_proposals(target_id, latest, &actions, &requirements));
+            }
         } else if state == ObservationState::Unknown {
             dispositions.push(WatchDisposition::Unknown);
             let (_, mut actions, requirements) = action_plan(*signal);
@@ -479,25 +543,14 @@ pub fn evaluate_watch(
                 return Err(WatchContractError::NonMonotonicSignalHistory);
             }
         }
-        let mut last_alert: Option<&WatchObservation> = None;
-        for observation in &ordered {
-            if observation.state == ObservationState::Alert {
-                last_alert = Some(observation);
-            } else if observation.state == ObservationState::Healthy {
-                if let Some(alert) = last_alert {
-                    if observation.supersedes_observation_id.as_deref()
-                        != Some(alert.observation_id.as_str())
-                        || observation.provenance != EvidenceProvenance::Verified
-                        || observation.valid_until_unix < evaluated_at_unix
-                    {
-                        return Err(WatchContractError::UnsubstantiatedClear);
-                    }
-                    last_alert = None;
-                }
-            }
-        }
+        let unresolved = unresolved_alerts(&ordered, evaluated_at_unix)?;
+        let unresolved = unresolved_alerts(&ordered, evaluated_at_unix)?;
         if let Some(latest) = ordered.last().copied() {
-            let state = if latest.provenance == EvidenceProvenance::Invalid {
+            let state = if unresolved.iter().any(|alert| alert.provenance != EvidenceProvenance::Unverified) {
+                ObservationState::Alert
+            } else if !unresolved.is_empty() {
+                ObservationState::Unknown
+            } else if latest.provenance == EvidenceProvenance::Invalid {
                 ObservationState::Alert
             } else if latest.valid_until_unix < evaluated_at_unix
                 || latest.provenance == EvidenceProvenance::Unverified
@@ -506,7 +559,32 @@ pub fn evaluate_watch(
             } else {
                 latest.state
             };
+            signal_results.push(SignalResult {
+                signal: *signal,
+                state,
+                evidence_fresh: latest.valid_until_unix >= evaluated_at_unix,
+                source_verified: latest.provenance == EvidenceProvenance::Verified,
+                latest_observation_id: Some(latest.observation_id.clone()),
+                unresolved_alert_ids: unresolved.iter().map(|alert| alert.observation_id.clone()).collect(),
+            });
             match state {
+                ObservationState::Alert if !unresolved.is_empty() => {
+                    for alert in &unresolved {
+                        if alert.provenance == EvidenceProvenance::Invalid {
+                            dispositions.push(WatchDisposition::Blocked);
+                            proposals.extend(make_proposals(
+                                target_id,
+                                alert,
+                                &[ProposedAction::IsolateSuspectCopy, ProposedAction::HumanReview],
+                                &["invalid evidence provenance", "independent investigation"],
+                            ));
+                        } else {
+                            let (disposition, actions, requirements) = action_plan(*signal);
+                            dispositions.push(disposition);
+                            proposals.extend(make_proposals(target_id, alert, &actions, &requirements));
+                        }
+                    }
+                }
                 ObservationState::Alert if latest.provenance == EvidenceProvenance::Invalid => {
                     dispositions.push(WatchDisposition::Blocked);
                     proposals.extend(make_proposals(
@@ -601,6 +679,8 @@ mod tests {
             observer_id: "independent-watcher".into(),
             provenance: EvidenceProvenance::Verified,
             supersedes_observation_id: None,
+            remediation_receipt_id: None,
+            remediation_receipt_sha256: None,
             observed_independent_copies: if signal == WatchSignal::IndependentCopies { Some(2) } else { None },
         }
     }
