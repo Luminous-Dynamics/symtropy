@@ -138,10 +138,7 @@ pub fn verify(case: &CaseInput) -> CaseOutput {
         None => return invalid(Disposition::Overflow),
     };
 
-    let curvature_error = match ceil_div_nonnegative(
-        curvature_numerator,
-        CURVATURE_DENOMINATOR,
-    ) {
+    let curvature_error = match ceil_div_nonnegative(curvature_numerator, CURVATURE_DENOMINATOR) {
         Some(value) => value,
         None => return invalid(Disposition::Overflow),
     };
@@ -200,65 +197,134 @@ mod tests {
 
     #[test]
     fn stationary_point_outside_is_conditionally_clear() {
-        let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 0, 1_000_000_000, 0));
+        let result = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            0,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.disposition, Disposition::ConditionalClear);
     }
 
     #[test]
     fn chord_through_keepout_is_not_proven_clear() {
-        let result = verify(&case([-2_000_000, 0, 0], [2_000_000, 0, 0], 0, 1_000_000_000, 0));
+        let result = verify(&case(
+            [-2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            0,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.disposition, Disposition::NotProven);
     }
 
     #[test]
     fn exact_tangency_is_not_a_clearance_proof() {
-        let result = verify(&case([1_000_000, 1_000_000, 0], [1_000_000, -1_000_000, 0], 0, 1_000_000_000, 0));
+        let result = verify(&case(
+            [1_000_000, 1_000_000, 0],
+            [1_000_000, -1_000_000, 0],
+            0,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.disposition, Disposition::NotProven);
     }
 
     #[test]
     fn curvature_error_is_rounded_outward() {
-        let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 4_000_000, 1_000_000_000, 0));
+        let result = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            4_000_000,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.curvature_error_scaled, Some(500_000));
         assert_eq!(result.disposition, Disposition::ConditionalClear);
     }
 
     #[test]
     fn curvature_can_remove_an_apparent_chord_clearance() {
-        let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 16_000_000, 1_000_000_000, 0));
+        let result = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            16_000_000,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.curvature_error_scaled, Some(2_000_000));
         assert_eq!(result.disposition, Disposition::NotProven);
     }
 
     #[test]
     fn endpoint_uncertainty_is_added_to_the_tube() {
-        let result = verify(&case([1_200_000, 0, 0], [1_200_000, 0, 0], 0, 1_000_000_000, 300_000));
+        let result = verify(&case(
+            [1_200_000, 0, 0],
+            [1_200_000, 0, 0],
+            0,
+            1_000_000_000,
+            300_000,
+        ));
         assert_eq!(result.total_tube_error_scaled, Some(300_000));
         assert_eq!(result.disposition, Disposition::NotProven);
     }
 
     #[test]
     fn closest_point_can_be_at_either_endpoint() {
-        let start_closest = verify(&case([2_000_000, 0, 0], [3_000_000, 0, 0], 0, 1_000_000_000, 0));
-        let end_closest = verify(&case([3_000_000, 0, 0], [2_000_000, 0, 0], 0, 1_000_000_000, 0));
+        let start_closest = verify(&case(
+            [2_000_000, 0, 0],
+            [3_000_000, 0, 0],
+            0,
+            1_000_000_000,
+            0,
+        ));
+        let end_closest = verify(&case(
+            [3_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            0,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(start_closest.disposition, Disposition::ConditionalClear);
         assert_eq!(end_closest.disposition, Disposition::ConditionalClear);
     }
 
     #[test]
     fn three_dimensional_segment_distance_is_used() {
-        let result = verify(&case([2_000_000, 2_000_000, 1_000_000], [2_000_000, -2_000_000, 1_000_000], 0, 1_000_000_000, 0));
+        let result = verify(&case(
+            [2_000_000, 2_000_000, 1_000_000],
+            [2_000_000, -2_000_000, 1_000_000],
+            0,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.disposition, Disposition::ConditionalClear);
     }
 
     #[test]
     fn zero_duration_and_negative_bounds_are_invalid() {
         let zero_duration = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 0, 0, 0));
-        let negative_acceleration = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], -1, 1_000_000_000, 0));
-        let negative_endpoint_error = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 0, 1_000_000_000, -1));
+        let negative_acceleration = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            -1,
+            1_000_000_000,
+            0,
+        ));
+        let negative_endpoint_error = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            0,
+            1_000_000_000,
+            -1,
+        ));
         assert_eq!(zero_duration.disposition, Disposition::InvalidInput);
         assert_eq!(negative_acceleration.disposition, Disposition::InvalidInput);
-        assert_eq!(negative_endpoint_error.disposition, Disposition::InvalidInput);
+        assert_eq!(
+            negative_endpoint_error.disposition,
+            Disposition::InvalidInput
+        );
     }
 
     #[test]
@@ -275,13 +341,25 @@ mod tests {
 
     #[test]
     fn a_strictly_positive_one_micro_unit_margin_can_pass() {
-        let result = verify(&case([1_000_001, 0, 0], [1_000_001, 0, 0], 0, 1_000_000_000, 0));
+        let result = verify(&case(
+            [1_000_001, 0, 0],
+            [1_000_001, 0, 0],
+            0,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.disposition, Disposition::ConditionalClear);
     }
 
     #[test]
     fn exact_boundary_after_endpoint_uncertainty_does_not_pass() {
-        let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 0, 1_000_000_000, 1_000_000));
+        let result = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            0,
+            1_000_000_000,
+            1_000_000,
+        ));
         assert_eq!(result.disposition, Disposition::NotProven);
     }
 
@@ -312,35 +390,38 @@ mod tests {
         let baseline = verify(&original);
         assert_eq!(verify(&reversed).disposition, baseline.disposition);
         assert_eq!(verify(&transformed).disposition, baseline.disposition);
-        assert_eq!(verify(&reversed).curvature_error_scaled, baseline.curvature_error_scaled);
-        assert_eq!(verify(&transformed).total_tube_error_scaled, baseline.total_tube_error_scaled);
+        assert_eq!(
+            verify(&reversed).curvature_error_scaled,
+            baseline.curvature_error_scaled
+        );
+        assert_eq!(
+            verify(&transformed).total_tube_error_scaled,
+            baseline.total_tube_error_scaled
+        );
     }
 
     #[test]
     fn enlarging_uncertainty_or_curvature_never_rescues_a_boundary_case() {
         let base = case([1_100_000, 0, 0], [1_100_000, 0, 0], 0, 1_000_000_000, 0);
-        let with_endpoint_error = case(
-            base.start,
-            base.end,
-            0,
-            base.duration_ns,
-            100_000,
-        );
-        let with_curvature = case(
-            base.start,
-            base.end,
-            800_000,
-            base.duration_ns,
-            0,
-        );
+        let with_endpoint_error = case(base.start, base.end, 0, base.duration_ns, 100_000);
+        let with_curvature = case(base.start, base.end, 800_000, base.duration_ns, 0);
         assert_eq!(verify(&base).disposition, Disposition::ConditionalClear);
-        assert_eq!(verify(&with_endpoint_error).disposition, Disposition::NotProven);
+        assert_eq!(
+            verify(&with_endpoint_error).disposition,
+            Disposition::NotProven
+        );
         assert_eq!(verify(&with_curvature).disposition, Disposition::NotProven);
     }
 
     #[test]
     fn non_integral_curvature_remainder_is_rounded_outward() {
-        let result = verify(&case([2_000_000, 0, 0], [2_000_000, 0, 0], 1, 1_000_000_000, 0));
+        let result = verify(&case(
+            [2_000_000, 0, 0],
+            [2_000_000, 0, 0],
+            1,
+            1_000_000_000,
+            0,
+        ));
         assert_eq!(result.curvature_error_scaled, Some(1));
         assert_eq!(result.disposition, Disposition::ConditionalClear);
     }
