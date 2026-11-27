@@ -66,6 +66,7 @@ The unit suite builds deterministic temporary archives containing all 81 profile
     cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --locked -- \
       --reference-dir /path/to/extracted/nlr/15min-profiles \
       --source-revision 61530df51f6cd7d64f014ebbf8714cef24c8ca70 \
+      --source-archive-path /path/to/15min-depot-charging-profiles.zip \
       --source-archive-sha256 VERIFIED_ZIP_SHA256 \
       --output nlr-reference-audit.json
 
@@ -77,6 +78,7 @@ To compare a candidate profile archive:
       --candidate-id symtropy-depot-model-v0.1 \
       --candidate-evidence-class simulated \
       --source-revision 61530df51f6cd7d64f014ebbf8714cef24c8ca70 \
+      --source-archive-path /path/to/15min-depot-charging-profiles.zip \
       --source-archive-sha256 VERIFIED_ZIP_SHA256 \
       --output nlr-candidate-comparison.json
 
