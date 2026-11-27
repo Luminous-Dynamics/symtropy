@@ -1061,4 +1061,121 @@ mod tests {
             PartialEvidenceDisposition::AdmittedForDeclaredScope
         );
     }
+
+    #[test]
+    fn incomplete_decision_oracle_cannot_prove_decision_sufficiency() {
+        let mut input = checkpoint();
+        let support = initial_cursor().possible_world_support_ids;
+        let mut receipt = decision_receipt(&support, 1);
+        receipt.oracle_complete = false;
+        receipt.receipt_sha256.clear();
+        receipt.receipt_sha256 = decision_sufficiency_commitment(&receipt).expect("resealed receipt");
+        input.decision_sufficiency_receipt = Some(receipt);
+        let result = evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint");
+        assert!(!result.decision_sufficient);
+        assert_eq!(result.action, CheckpointAction::ContinueProbe);
+    }
+
+    #[test]
+    fn incomplete_physical_trajectory_cannot_qualify_continuation() {
+        let mut input = checkpoint();
+        let mut receipt = input.physical_path_receipts[0].clone();
+        receipt.full_trajectory_covered = false;
+        receipt.receipt_sha256.clear();
+        receipt.receipt_sha256 = physical_path_commitment(&receipt).expect("resealed path");
+        input.physical_path_receipts[0] = receipt;
+        assert_eq!(
+            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            CheckpointAction::NoSafeContinuation
+        );
+    }
+
+    #[test]
+    fn changed_horizon_without_new_receipt_commitment_is_rejected() {
+        let mut input = checkpoint();
+        input.physical_path_receipts[0].safe_horizon_ns = Some(1_000_000);
+        assert_eq!(
+            evaluate_checkpoint(&initial_cursor(), &input),
+            Err(CheckpointError::InvalidPathReceipt("plan binding or receipt commitment mismatch"))
+        );
+    }
+
+    #[test]
+    fn open_world_residual_cannot_be_removed_by_partial_prefix() {
+        let mut cursor = initial_cursor();
+        cursor.possible_world_support_ids = vec![
+            super::super::OPEN_WORLD_RESIDUAL.to_owned(),
+            "world-a".to_owned(),
+        ];
+        let mut input = checkpoint();
+        input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
+        let evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Admitted, 15);
+        input.evidence_prefix = Some(evidence.clone());
+        let mut receipt = support_receipt(
+            &cursor.possible_world_support_ids,
+            &input.proposed_possible_world_support_ids,
+            &evidence,
+        );
+        receipt.open_world_scope_closure_receipt_sha256 = Some(digest('5'));
+        receipt.derivation_receipt_sha256.clear();
+        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("resealed receipt");
+        input.support_update_receipt = Some(receipt);
+        assert_eq!(
+            evaluate_checkpoint(&cursor, &input),
+            Err(CheckpointError::InvalidSupportReceipt("open-world residual cannot be removed by partial scope"))
+        );
+    }
+
+    #[test]
+    fn open_world_residual_requires_explicit_full_scope_closure_receipt() {
+        let mut cursor = initial_cursor();
+        cursor.possible_world_support_ids = vec![
+            super::super::OPEN_WORLD_RESIDUAL.to_owned(),
+            "world-a".to_owned(),
+        ];
+        let mut input = checkpoint();
+        input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
+        let evidence = prefix(ClaimSemantics::GeneralMeasurement, EvidenceQuality::Admitted, 20);
+        input.evidence_prefix = Some(evidence.clone());
+        let mut receipt = support_receipt(
+            &cursor.possible_world_support_ids,
+            &input.proposed_possible_world_support_ids,
+            &evidence,
+        );
+        input.support_update_receipt = Some(receipt.clone());
+        assert_eq!(
+            evaluate_checkpoint(&cursor, &input),
+            Err(CheckpointError::InvalidSupportReceipt("open-world residual removal requires scope-closure receipt"))
+        );
+
+        receipt.open_world_scope_closure_receipt_sha256 = Some(digest('5'));
+        receipt.derivation_receipt_sha256.clear();
+        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("resealed receipt");
+        input.support_update_receipt = Some(receipt);
+        let result = evaluate_checkpoint(&cursor, &input).expect("qualified full-scope closure");
+        assert_eq!(result.possible_world_support_ids, vec!["world-a".to_owned()]);
+    }
+
+    #[test]
+    fn incomplete_support_derivation_cannot_narrow_world_support() {
+        let cursor = initial_cursor();
+        let mut input = checkpoint();
+        let evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Admitted, 15);
+        input.evidence_prefix = Some(evidence.clone());
+        input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
+        let mut receipt = support_receipt(
+            &cursor.possible_world_support_ids,
+            &input.proposed_possible_world_support_ids,
+            &evidence,
+        );
+        receipt.derivation_complete = false;
+        receipt.derivation_receipt_sha256.clear();
+        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("resealed receipt");
+        input.support_update_receipt = Some(receipt);
+        assert_eq!(
+            evaluate_checkpoint(&cursor, &input),
+            Err(CheckpointError::InvalidSupportReceipt("derivation coverage incomplete"))
+        );
+    }
+
 }
