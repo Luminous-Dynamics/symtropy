@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/beneficiary-floor-feasibility-v0.1.schema.json",
+  "title": "SAFRB Beneficiary Floor Feasibility Report v0.1",
+  "description": "A strict report containing the exact temporal base graph, the lower-bound circulation reduction and its max-flow/min-cut certificate, and a constructive allocation only when all beneficiary floors are jointly feasible.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "base_graph_sha256",
+    "obligations",
+    "required_auxiliary_flow",
+    "achieved_auxiliary_flow",
+    "floors_jointly_feasible",
+    "base_graph",
+    "feasibility_certificate",
+    "original_edge_flows",
+    "beneficiary_allocations",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-beneficiary-floor-feasibility-v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_graph_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "obligations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/floor"
+      }
+    },
+    "required_auxiliary_flow": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "achieved_auxiliary_flow": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "floors_jointly_feasible": {
+      "type": "boolean"
+    },
+    "base_graph": {
+      "$ref": "../../single-commodity-flow-kernel/schemas/flow-certificate-v1.schema.json#/properties/graph"
+    },
+    "feasibility_certificate": {
+      "$ref": "../../single-commodity-flow-kernel/schemas/flow-certificate-v1.schema.json"
+    },
+    "original_edge_flows": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge_flow"
+          }
+        }
+      ]
+    },
+    "beneficiary_allocations": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/allocation"
+          }
+        }
+      ]
+    },
+    "claim_ceiling": {
+      "const": "Synthetic joint feasibility of the declared beneficiary minimum floors in the supplied temporal single-commodity graph only; no priority optimization, source authentication, legal authority, physical qualification, dispatch authorization or actual service claim."
+    }
+  },
+  "$defs": {
+    "floor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_id",
+        "minimum_required_quantity"
+      ],
+      "properties": {
+        "service_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_required_quantity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_id",
+        "requested_quantity",
+        "minimum_required_quantity",
+        "allocated_quantity"
+      ],
+      "properties": {
+        "service_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_quantity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_required_quantity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allocated_quantity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "edge_flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "from",
+        "to",
+        "capacity",
+        "flow",
+        "metadata_ref"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "flow": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "metadata_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
