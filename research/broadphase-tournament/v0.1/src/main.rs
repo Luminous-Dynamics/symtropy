@@ -34,13 +34,9 @@ fn main() {
             SceneFamily::SleepingWakeups,
             SceneFamily::HighChurn,
         ] {
-            let scene = generate_scene::<3>(
-                family,
-                proxy_count,
-                frame_count,
-                0x2026_1126_0000_0001,
-            )
-            .expect("generate deterministic scale scene");
+            let scene =
+                generate_scene::<3>(family, proxy_count, frame_count, 0x2026_1126_0000_0001)
+                    .expect("generate deterministic scale scene");
             let rows = run_scale_tournament(&scene, config)
                 .expect("run exact-sweep-oracled scale tournament");
             for row in rows {
