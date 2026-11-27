@@ -131,17 +131,11 @@ pub enum DecisionRevalidation {
         current_cut: DecisionCut,
     },
     /// A known relevant change or applicability boundary requires recomputation.
-    RecomputeRequired {
-        reasons: Vec<RecomputeReason>,
-    },
+    RecomputeRequired { reasons: Vec<RecomputeReason> },
     /// The reducer cannot establish completeness/currentness. Effect stays blocked.
-    Indeterminate {
-        reasons: Vec<IndeterminateReason>,
-    },
+    Indeterminate { reasons: Vec<IndeterminateReason> },
     /// The submitted contract is malformed or internally inconsistent.
-    Invalid {
-        reason: InvalidReason,
-    },
+    Invalid { reason: InvalidReason },
 }
 
 fn nonempty(value: &str) -> bool {
@@ -171,7 +165,10 @@ fn validate_receipt(receipt: &DecisionSupportReceipt) -> Result<(), InvalidReaso
             "decision_support_receipt_sha256",
             &receipt.decision_support_receipt_sha256,
         ),
-        ("decision_snapshot_sha256", &receipt.decision_snapshot_sha256),
+        (
+            "decision_snapshot_sha256",
+            &receipt.decision_snapshot_sha256,
+        ),
         (
             "possible_world_support_sha256",
             &receipt.possible_world_support_sha256,
@@ -254,9 +251,7 @@ pub fn revalidate_before_effect(
             reason: InvalidReason::DigestInvalid("coverage.profile_sha256"),
         };
     }
-    if coverage.through_ingest_frontier_inclusive
-        < coverage.from_ingest_frontier_exclusive
-    {
+    if coverage.through_ingest_frontier_inclusive < coverage.from_ingest_frontier_exclusive {
         return DecisionRevalidation::Invalid {
             reason: InvalidReason::CoverageRangeReversed,
         };
@@ -282,10 +277,8 @@ pub fn revalidate_before_effect(
     if !coverage.complete {
         indeterminate.push(IndeterminateReason::ChangeCoverageIncomplete);
     }
-    if coverage.from_ingest_frontier_exclusive
-        != receipt.decision_cut.ingest_frontier_sequence
-        || coverage.through_ingest_frontier_inclusive
-            != current_cut.ingest_frontier_sequence
+    if coverage.from_ingest_frontier_exclusive != receipt.decision_cut.ingest_frontier_sequence
+        || coverage.through_ingest_frontier_inclusive != current_cut.ingest_frontier_sequence
     {
         indeterminate.push(IndeterminateReason::ChangeCoverageRangeMismatch);
     }
@@ -350,9 +343,7 @@ pub fn revalidate_before_effect(
             }
             if !affected_ids.insert(dependency_id.as_str()) {
                 return DecisionRevalidation::Invalid {
-                    reason: InvalidReason::DuplicateAffectedDependencyId(
-                        dependency_id.clone(),
-                    ),
+                    reason: InvalidReason::DuplicateAffectedDependencyId(dependency_id.clone()),
                 };
             }
         }
@@ -589,10 +580,7 @@ mod tests {
             &cut(21, 31),
             &receipt.action_ticket_sha256,
         );
-        assert!(matches!(
-            result,
-            DecisionRevalidation::Indeterminate { .. }
-        ));
+        assert!(matches!(result, DecisionRevalidation::Indeterminate { .. }));
     }
 
     #[test]
@@ -606,10 +594,7 @@ mod tests {
             &cut(21, 31),
             &receipt.action_ticket_sha256,
         );
-        assert!(matches!(
-            result,
-            DecisionRevalidation::Indeterminate { .. }
-        ));
+        assert!(matches!(result, DecisionRevalidation::Indeterminate { .. }));
     }
 
     #[test]
@@ -658,13 +643,8 @@ mod tests {
     #[test]
     fn changed_action_ticket_requires_recomputation() {
         let receipt = receipt();
-        let result = revalidate_before_effect(
-            &receipt,
-            &coverage(),
-            &[],
-            &cut(21, 31),
-            &digest('8'),
-        );
+        let result =
+            revalidate_before_effect(&receipt, &coverage(), &[], &cut(21, 31), &digest('8'));
         assert_eq!(
             result,
             DecisionRevalidation::RecomputeRequired {
@@ -703,10 +683,7 @@ mod tests {
             &cut(21, 31),
             &receipt.action_ticket_sha256,
         );
-        assert!(matches!(
-            result,
-            DecisionRevalidation::Indeterminate { .. }
-        ));
+        assert!(matches!(result, DecisionRevalidation::Indeterminate { .. }));
     }
 
     #[test]
@@ -719,10 +696,7 @@ mod tests {
             &cut(21, 31),
             &receipt.action_ticket_sha256,
         );
-        assert!(matches!(
-            result,
-            DecisionRevalidation::Indeterminate { .. }
-        ));
+        assert!(matches!(result, DecisionRevalidation::Indeterminate { .. }));
     }
 
     #[test]
@@ -737,10 +711,7 @@ mod tests {
             &cut(21, 31),
             &receipt.action_ticket_sha256,
         );
-        assert!(matches!(
-            result,
-            DecisionRevalidation::Indeterminate { .. }
-        ));
+        assert!(matches!(result, DecisionRevalidation::Indeterminate { .. }));
     }
 
     #[test]
@@ -818,7 +789,6 @@ mod tests {
             DecisionRevalidation::CurrentForCommit { .. }
         ));
     }
-
 
     #[test]
     fn malformed_decision_support_receipt_digest_is_invalid() {
