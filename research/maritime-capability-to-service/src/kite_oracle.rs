@@ -74,7 +74,6 @@ pub struct R1OracleResult {
 
 struct InformationGroup<'a> {
     key: InformationSetKey,
-    scenarios: Vec<&'a ScenarioDecision>,
     common_actions: Vec<String>,
 }
 
@@ -263,7 +262,7 @@ pub fn solve_r1_finite(
                     scenario
                         .actions
                         .iter()
-                        .find(|action| action.action_id == **action_id)
+                        .find(|action| action.action_id.as_str() == **action_id)
                         .is_some_and(|action| {
                             action.admissibility == Gate::Yes
                                 && action.hard_constraints_passed
@@ -292,7 +291,6 @@ pub fn solve_r1_finite(
 
         groups.push(InformationGroup {
             key,
-            scenarios,
             common_actions,
         });
     }
