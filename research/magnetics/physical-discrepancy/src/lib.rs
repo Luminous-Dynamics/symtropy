@@ -624,7 +624,7 @@ mod tests {
             material_sha256: scope.material_sha256.clone(),
             requirement_id: scope.requirement_id.clone(),
         };
-        certify_expression_centered(&domain, move |[x, y, z]| {
+        certify_expression_centered(&domain, move |[x, y, z]: [IntervalDual<3>; 3]| {
             let cx = IntervalDual::constant(
                 Interval::point(coefficients[0]).expect("finite coefficient"),
             );
