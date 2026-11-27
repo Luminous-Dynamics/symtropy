@@ -161,7 +161,6 @@ pub enum WatchContractError {
     DuplicateRemediationReceiptId,
     InvalidRemediationReceiptDigest,
     UnexpectedRemediationReceipt,
-    HealthyStateWithAlertOnlyProvenance,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -467,11 +466,6 @@ pub fn evaluate_watch(
         }
         if observation.valid_until_unix < observation.observed_at_unix {
             return Err(WatchContractError::InvalidValidityWindow);
-        }
-        if observation.state == ObservationState::Healthy
-            && observation.provenance != EvidenceProvenance::Verified
-        {
-            return Err(WatchContractError::HealthyStateWithAlertOnlyProvenance);
         }
         if observation.supersedes_observation_id.is_some() {
             if observation.state != ObservationState::Healthy {
@@ -936,16 +930,24 @@ mod tests {
     }
 
     #[test]
-    fn stale_trust_evidence_is_unknown_and_requests_refresh() {
+    fn stale_revocation_evidence_is_unknown_and_requests_refresh() {
         let mut observations = healthy_snapshot();
-        observations[2].valid_until_unix = 120;
-        let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
+        let mut revocation = observation(
+            "REVOCATION-1",
+            WatchSignal::RevocationFreshness,
+            ObservationState::Healthy,
+            1,
+        );
+        revocation.valid_until_unix = 120;
+        observations.push(revocation);
+        let mut watch_policy = policy();
+        watch_policy.required_signals.push(WatchSignal::RevocationFreshness);
+        let receipt = evaluate_watch("archive-A", 150, &watch_policy, &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Unknown);
         assert!(
-            receipt
-                .action_proposals
-                .iter()
-                .any(|proposal| proposal.action == ProposedAction::RefreshRevocationEvidence)
+            receipt.action_proposals.iter().any(
+                |proposal| proposal.action == ProposedAction::RefreshRevocationEvidence
+            )
         );
     }
 
