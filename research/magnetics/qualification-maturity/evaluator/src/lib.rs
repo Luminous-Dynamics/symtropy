@@ -1348,7 +1348,11 @@ mod tests {
             lab_scope.laboratory_id = Some("LAB-001".to_string());
             receipts.push(lab_scope);
         }
-        receipts.last_mut().unwrap().linked_evidence_ids =
+        let acceptance = receipts
+            .iter_mut()
+            .find(|receipt| receipt.kind == EvidenceKind::ComponentAcceptance)
+            .expect("component acceptance receipt");
+        acceptance.linked_evidence_ids =
             vec!["FUNCTION-001".to_string(), "GEOMETRY-001".to_string()];
         receipts
     }
