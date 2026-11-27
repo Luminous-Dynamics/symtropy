@@ -18,10 +18,13 @@ Only the first layer is presently source-qualified by the documents reviewed bel
 
 | Source | Source time / coverage | Class | Admissible use now | Not admissible as |
 |---|---|---|---|---|
-| Ports Regulator of South Africa, 2024/25 Annual Report | Published 2025-07-31; eight commercial ports; WEGO performance summary | PUBLISHED_AGGREGATE / REGULATORY_DERIVED | Regulatory KPI vocabulary, reported annual scorecard context | Raw call-level delay, port event chronology, absolute vessel waiting hours |
+| Ports Regulator of South Africa, 2024/25 Annual Report | 2024/25 financial-year report, listed on the official annual-reports page; eight commercial ports; WEGO performance summary | PUBLISHED_AGGREGATE / REGULATORY_DERIVED | Regulatory KPI vocabulary, reported annual scorecard context | Raw call-level delay, port event chronology, absolute vessel waiting hours |
 | Transnet media statement, FY2025/26 | Published 2026-05-12; eight TNPA commercial ports; annual totals | PUBLISHED_AGGREGATE / OWNER_REPORTED | Aggregate annual vessel arrivals and cargo throughput context | Per-port arrivals, per-vessel times, receiver delivery or corridor incidents |
 | UNCTAD Review of Maritime Transport 2026 | Published 2026-11-26; global/developing/developed and Africa regional aggregates | PUBLISHED_AGGREGATE / INTERNATIONAL_COMPARATOR | Trade-route, waiting-time and continuity context | South African port-specific event truth or operational baseline |
-| Voydar port calls by port/month | 2026-10 monthly file, 681 rows, generated 2026-11-05; feeds BarentsWatch, Digitraffic and Voydar receivers | OBSERVED_MOVEMENT_DERIVED / MONTHLY_AGGREGATE | Potential method comparator after South African port coverage is verified | KITE event history, individual vessel-call timeline from monthly aggregates |
+| Voydar port calls by port/month | 2026-10 monthly file, 681 rows, generated 2026-11-05; feeds BarentsWatch, Digitraffic and Voydar receivers | OBSERVED_MOVEMENT_DERIVED / MONTHLY_AGGREGATE | Potential method comparator after South African port rows are checked in the actual file | KITE event history, individual vessel-call timeline from monthly aggregates |
+| Voydar Durban per-port page/API (ZADUR) | Per-port page retrieved 2026-11-26; AIS-detected call sections include events dated 2026-11-25 and repeated-caller history since 2026-08-28 | OBSERVED_MOVEMENT_DERIVED / PER-PORT PAGE/API | Exploratory movement reconstruction; API advertises section-level source/licence metadata | Official port-call/berth/cargo event, first-availability replay, receiver acceptance |
+| IMF PortWatch-derived Ngqura daily activity (EED) | Estimate up to 2026-11-20; weekly/daily and 28-day aggregated metrics | OBSERVED_MOVEMENT_DERIVED / AIS_ESTIMATE | Port-level aggregate context with explicit modelled/estimate class | Official port statistic, per-vessel event history, independent corroboration of another PortWatch-derived feed |
+| Dues live AIS vessel board | Current snapshot; displays Durban and Cape Town and a two-week replay; explicitly says free feed does not hear Algoa Bay / Ngqura | OBSERVED_MOVEMENT_DERIVED / LIVE_FEED | Coverage and missingness control for the displayed ports | Complete South African AIS coverage, long-horizon historical baseline |
 | GuillermoSiaira Open AIS Historical Dataset | README declares daily global AIS positions / port calls / voyages; repository HEAD audited at de1b329075514d5e4c14830e0dd4eeddd1f06895 (2026-05-02) | CANDIDATE_OBSERVED_MOVEMENT | Exploratory source-code and pipeline audit; potential retrospective reconstruction after repairs and byte/rights validation | Current validated South African dataset, signed source provenance, historical first-availability replay |
 
 ## 1. Ports Regulator of South Africa (PRSA)
@@ -75,13 +78,61 @@ Source: [Voydar Open Datasets](https://www.voydar.com/data).
 At the audit date, the port-call-by-port-and-month table lists the 2026-10 snapshot with 681 rows, generated 5 November 2026, under CC BY 4.0. The page identifies the input feeds as BarentsWatch AIS API, Digitraffic marine AIS and Voydar-operated receivers. Its method counts a call when a vessel stays under 2 knots inside a port geofence for 15 minutes; it counts the call in the month it began. It states that coverage-limited counts are lower bounds. Monthly fields include calls, distinct vessels, closed calls and median dwell hours.
 
 Critical limitations:
-- The source-feed registry must be checked for South African coverage before selecting any port rows. No South African row or coverage percentage is asserted by this audit.
+- The public page lists 681 rows and previews only the first five; the full CSV could not be fetched in this audit session. South African membership of the **monthly CC BY file** therefore remains UNKNOWN. Do not infer either presence or absence from its preview.
+- The separate ZADUR per-port page/API is positive evidence that Voydar has a South African per-port view, but it is not proof that ZADUR is present in the 681-row monthly open-data file or that every section is redistributable.
 - Monthly aggregates cannot reconstruct individual call chronology or per-vessel decision-time evidence.
 - A port-call detector's geofence/speed/minimum-duration semantics are not identical to official arrival, anchorage, berth, cargo-work or departure event definitions.
 - Closed-call count is a detector-specific status for observed departure, not proof of completed cargo service or receiver acceptance.
 - The page excludes AIS feeds whose redistribution rights are unknown; do not assume that any other public AIS pipeline has equivalent source rights.
 
 This dataset is a useful external detector/coverage comparator only after its actual rows and source coverage have been inspected.
+
+## 5. Voydar per-port movement view: Durban (ZADUR)
+
+Source: [Voydar Port of Durban page](https://www.voydar.com/port/zadur-durban), retrieved 26 November 2026. UN/LOCODE ZADUR.
+
+The per-port page includes a recent-arrivals/departures table with AIS-detected records dated 24–25 November 2026, and a regular-caller section derived from AIS port-call detection (at least 30 minutes in port). Its JSON endpoint is advertised as \`GET /api/v1/ports/ZADUR\`; the page says each section has its own source and licence, and sections whose sources do not permit redistribution are listed as withheld.
+
+Admission class: OBSERVED_MOVEMENT_DERIVED / PER-PORT PAGE/API.
+
+Use:
+- candidate for exploratory vessel movement and detected-call reconstruction;
+- a way to inspect section-level source lineage and licensing;
+- a coverage/missingness comparison against official or terminal-owned arrival/departure records.
+
+Do not:
+- treat AIS-detected time as official port-limit arrival, anchorage, berth, cargo-work or receiver-acceptance time;
+- assume all page sections share one upstream source or licence;
+- redistribute any section marked withheld;
+- use page retrieval time as historical first-available time;
+- assume ZADUR's existence on the port page proves it appears in the separate 681-row monthly CC BY CSV.
+
+The API JSON endpoint could not be fetched by the available web retrieval path during this audit, so no raw JSON bytes, per-section source metadata, licence records or immutable digest have been frozen. The visible webpage itself is a source lead, not a qualified empirical archive. The page also distinguishes nearby AIS sightings from port calls; these must not be conflated.
+
+## 6. IMF PortWatch-derived Ngqura estimates
+
+Source: [El Estrecho Digital, Port of Ngqura daily activity](https://www.elestrechodigital.com/en/maritime-radar/ports/port2063), using IMF PortWatch AIS estimates; page reports data through 20 November 2026.
+
+At the time of retrieval the page reports a seven-day estimated average of 16 kt/day, a 28-day estimated volume of 24 kt/day, and an average of one port call per day. Its by-vessel-type table gives last-28-day call and estimated cargo figures. The page explicitly says the figures are estimates, may include transhipment, and are not equivalent to official port statistics.
+
+Admission class: OBSERVED_MOVEMENT_DERIVED / MODELLED AIS ESTIMATE.
+
+This is a useful regional time-series comparator for Ngqura, but:
+- it is an estimate from an AIS-derived global product, not a TNPA event ledger;
+- port calls and cargo volumes are not receiver-accepted service;
+- transhipment and model assumptions may affect the estimate;
+- the page's weekly update and revision behaviour must be preserved;
+- other IMF PortWatch-derived views are the same upstream provenance family, not independent corroboration.
+
+## 7. Dues live AIS vessel board: coverage control
+
+Source: [Dues South African ports vessel finder](https://dues.co.za/vessel-finder), observed 27 November 2026.
+
+The page displays vessels at anchor, at quay and moving around Durban and Cape Town, with a two-week replay. It explicitly states that Algoa Bay (Ngqura/Gqeberha) is not heard by its free feed.
+
+Admission class: OBSERVED_MOVEMENT_DERIVED / LIVE FEED, licensing and raw-history retention to be verified.
+
+This is useful as a **negative coverage control**: no observed Ngqura vessel on this feed cannot be interpreted as no vessel activity at Ngqura. Its current two-week replay is not evidence of a long historical archive or decision-authority first-availability timestamp. Its source provenance and redistribution terms must be obtained before ingestion.
 
 ## 5. Candidate: GuillermoSiaira Open AIS Historical Dataset
 
