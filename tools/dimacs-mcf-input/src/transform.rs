@@ -57,11 +57,17 @@ impl McfResidualInstance {
                 "original/adjusted supply vector shape or zero sentinel is invalid",
             ));
         }
-        let mut expected_adjusted = self
-            .original_supplies
-            .iter()
-            .map(|&supply| i128::from(supply))
-            .collect::<Vec<_>>();
+        let mut expected_adjusted = Vec::new();
+        reserve_exact(
+            &mut expected_adjusted,
+            expected_supply_len,
+            "recomputed adjusted supply vector",
+        )?;
+        expected_adjusted.extend(
+            self.original_supplies
+                .iter()
+                .map(|&supply| i128::from(supply)),
+        );
         if self.arc_count as usize != self.arcs.len()
             || self.lower_bounds.len() != self.arcs.len()
         {
@@ -88,12 +94,11 @@ impl McfResidualInstance {
                     "negative lower bound or residual capacity on arc {ordinal}"
                 )));
             }
-            let upper = lower.checked_add(arc.capacity).ok_or_else(|| {
+            lower.checked_add(arc.capacity).ok_or_else(|| {
                 McfTransformError::new(format!(
                     "lower bound plus residual capacity overflows i64 on arc {ordinal}"
                 ))
             })?;
-            let _ = upper;
             expected_adjusted[arc.tail as usize] = expected_adjusted[arc.tail as usize]
                 .checked_sub(i128::from(lower))
                 .ok_or_else(|| McfTransformError::new("recomputed tail supply underflow"))?;
@@ -281,10 +286,18 @@ pub fn remove_lower_bounds(
         });
     }
 
+    let mut original_supplies = Vec::new();
+    reserve_exact(
+        &mut original_supplies,
+        expected_supply_len,
+        "original supply witness",
+    )?;
+    original_supplies.extend(instance.node_supplies.iter().copied());
+
     let residual = McfResidualInstance {
         node_count: instance.node_count,
         arc_count: instance.arc_count,
-        original_supplies: instance.node_supplies.clone(),
+        original_supplies,
         adjusted_supplies,
         lower_bounds,
         arcs: residual_arcs,
