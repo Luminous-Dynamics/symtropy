@@ -147,8 +147,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
 
     if state == "FAIL":
         return outcome(row,
-            "NOT_PASSIVE_SAFE",
-            "UPSTREAM_BOUND_FAIL",
+            "INDETERMINATE",
+            "UPSTREAM_BOUND_UNRESOLVED",
             None,
             "UPSTREAM_BOUND_PROVIDER_FAILED",
             False,
