@@ -177,14 +177,6 @@ impl Interval {
     }
 }
 
-fn interval_add(left: Interval, right: Interval) -> Option<Interval> {
-    let result = Interval {
-        lower: next_down(left.lower + right.lower),
-        upper: next_up(left.upper + right.upper),
-    };
-    result.finite().then_some(result)
-}
-
 fn interval_sub(left: Interval, right: Interval) -> Option<Interval> {
     let result = Interval {
         lower: next_down(left.lower - right.upper),
@@ -283,11 +275,11 @@ fn covariance_is_spd(matrix: &[f64; 36]) -> bool {
     for row in 0..6 {
         for column in 0..=row {
             let mut residual = Interval::point(matrix[row * 6 + column]);
-            for index in 0..column {
+            for (index, row_factor) in lower[row].iter().take(column).enumerate() {
                 let product = if row == column {
-                    interval_square(lower[row][index])
+                    interval_square(*row_factor)
                 } else {
-                    interval_mul(lower[row][index], lower[column][index])
+                    interval_mul(*row_factor, lower[column][index])
                 };
                 let Some(product) = product else {
                     return false;
