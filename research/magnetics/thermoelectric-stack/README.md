@@ -26,3 +26,7 @@ The evaluator requires M4 component acceptance and physical observations with me
 Hard limits are non-compensatory. Candidate intervals must satisfy every absolute requirement and be conservatively non-inferior to every mandatory comparator. An advantage requires strict uncertainty-separated improvement in at least one same benefit metric against every required comparator. There is no universal weighted score.
 
 See `MAG_AM_THERMOELECTRICAL_STACK_BENCHMARK_2026-11-27.md`, `benchmark-plan.toml`, and `evaluator/`.
+
+## Industry baseline requirement
+
+“Conventional” must include the strongest applicable incumbent, not just a water jacket. The evaluator has distinct families for direct oil cooling, multi-nozzle oil jets, hairpin oil spray, slot-embedded cooling and hollow conductors. The application must preregister which families are mandatory. A water-jacket-only result cannot support an industry-superiority claim where direct cooling is already used in the target segment.
