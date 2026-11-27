@@ -25,7 +25,7 @@ shared_base_contract = "same positive dependency graph consumed by Rust and Pyth
 mutation_cases_authored = 25
 unit_tests_authored = 34
 oracle_review_status = "NOT_INDEPENDENTLY_REVIEWED"
-execution_status = "AUTHORED_NOT_YET_EXECUTED"
+execution_status = "EXECUTED_AT_RECORDED_SOURCE_SHA"
 
 [functional_targets]
 false_closure_on_adversarial_mutations = 0
@@ -72,6 +72,33 @@ standards_and_systems = [
 comparison_rule = "Compare only matched input graphs and identical mutation suites; do not equate structural closure with physical validation or cryptographic authenticity."
 
 [qualification]
-unit_tests_executed = false
-exact_head_ci_pass = false
+unit_tests_executed = true
+exact_head_ci_pass = true
 independent_oracle_reviewed = false
+qualified_source_commit = "0913e630f6aded392af06b23734f21f2c3ea127b"
+qualification_workflow_run_id = 45996908844
+qualification_workflow_url = "https://github.com/Luminous-Dynamics/symtropy/actions/runs/45996908844"
+qualification_platform = "ubuntu-latest"
+rust_toolchain = "1.96.0"
+
+[measured_baseline]
+artifact = "claim-closure-scale-benchmark"
+artifact_id = 15196331975
+sample_count_per_shape = 15
+warmups_excluded = 2
+nodes_100_p50_latency_ms_range = [9.311654, 9.435946]
+nodes_100_records_per_second_range = [10597.77, 10739.23]
+nodes_1000_p50_latency_ms_range = [93.821686, 93.846918]
+nodes_1000_records_per_second_range = [10655.65, 10658.52]
+nodes_10000_p50_latency_ms_range = [966.129773, 966.781068]
+nodes_10000_p95_latency_ms_range = [979.3757, 989.497646]
+nodes_10000_records_per_second_range = [10343.60, 10350.58]
+observed_process_high_water_rss_bytes = [3305472, 6893568, 39874560]
+memory_interpretation = "Linux process VmHWM high-water mark, not isolated per-case allocation"
+limitations = [
+  "single ubuntu-latest run",
+  "15 samples per shape",
+  "no machine-speed threshold enforced",
+  "not an industry or competitor comparison",
+  "not an estimate of physical false-assurance risk"
+]
