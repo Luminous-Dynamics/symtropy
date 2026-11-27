@@ -194,25 +194,13 @@ fn transformed_3d_obb_gjk_matches_independent_15_axis_sat() {
         assert!(rotation_a.is_proper_rotation(1.0e-8));
         assert!(rotation_b.is_proper_rotation(1.0e-8));
 
-        let reference = obb_sat_reference(
-            center_a,
-            half_a,
-            &rotation_a,
-            center_b,
-            half_b,
-            &rotation_b,
-        );
+        let reference =
+            obb_sat_reference(center_a, half_a, &rotation_a, center_b, half_b, &rotation_b);
         degenerate_axes += reference.degenerate_axes;
         tested_axes += reference.tested_axes;
 
-        let observed = intersects_transformed(
-            half_a,
-            center_a,
-            &rotation_a,
-            half_b,
-            center_b,
-            &rotation_b,
-        );
+        let observed =
+            intersects_transformed(half_a, center_a, &rotation_a, half_b, center_b, &rotation_b);
         if observed && !reference.intersects {
             false_positives += 1;
             first_mismatch.get_or_insert_with(|| {
@@ -251,7 +239,10 @@ fn transformed_3d_obb_gjk_matches_independent_15_axis_sat() {
         "3D OBB seed: cases={CASES}, false_positives={false_positives}, false_negatives={false_negatives}, translation_only_disagreements={translation_only_disagreements}, degenerate_axes={degenerate_axes}, tested_axes={tested_axes}, first_mismatch={first_mismatch:?}"
     );
     assert_eq!(false_positives, 0, "3D transformed GJK false positives");
-    assert_eq!(false_negatives, 0, "3D transformed GJK false negatives; {first_mismatch:?}");
+    assert_eq!(
+        false_negatives, 0,
+        "3D transformed GJK false negatives; {first_mismatch:?}"
+    );
     assert!(
         translation_only_disagreements > CASES / 10,
         "translation-only negative control too weak: {translation_only_disagreements}/{CASES}"
@@ -308,23 +299,11 @@ fn transformed_3d_obb_classification_is_common_rigid_motion_invariant() {
             sample_range(&mut state, -10.0, 10.0),
         ];
 
-        let base_sat = obb_sat_reference(
-            center_a,
-            half_a,
-            &rotation_a,
-            center_b,
-            half_b,
-            &rotation_b,
-        )
-        .intersects;
-        let base_gjk = intersects_transformed(
-            half_a,
-            center_a,
-            &rotation_a,
-            half_b,
-            center_b,
-            &rotation_b,
-        );
+        let base_sat =
+            obb_sat_reference(center_a, half_a, &rotation_a, center_b, half_b, &rotation_b)
+                .intersects;
+        let base_gjk =
+            intersects_transformed(half_a, center_a, &rotation_a, half_b, center_b, &rotation_b);
 
         let moved_a = rotate_translate(center_a, &global_rotation, translation);
         let moved_b = rotate_translate(center_b, &global_rotation, translation);
