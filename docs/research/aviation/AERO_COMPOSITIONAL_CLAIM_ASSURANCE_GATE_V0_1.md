@@ -44,6 +44,21 @@ Precedence is fail-closed: integrity rejection dominates; scope limits remain ex
 The evaluator returns stable sorted reason codes. It does not compute a weighted score, posterior probability, confidence score, safety margin or EVSI. No failed critical obligation is averaged away.
 
 ## 4. Exact-context composition
+### 4.1 Typed owner evidence cut
+
+The gate now requires a typed `OwnerEvidenceCutV0_1` committed by the context's `evidence_knowledge_cut_sha256`. It preserves the exact AeroCommons component packet ID/SHA-256/byte length, physical-unit and configuration IDs, artifact-byte verification disposition, exact AeroEvidence record references/digests and lifecycle/predecessor, BASALT run/report/input/final-state digests, per-record freshness/dependency coverage/unresolved inputs/reverification, confirmatory eligibility, receiver receipt manifest/watermark, trust-policy digest and observer-coverage receipt/status/watermark.
+
+The gate recomputes the cut digest and requires exact agreement with the typed context. It also requires the owner packet unit/configuration and trust-policy digest to match that context, receiver watermark not to exceed the AS-KNOWN snapshot, and every mandatory evidence reference to exist in the owner cut.
+
+Non-compensatory owner gates:
+- unverified artifact payload bytes or `basalt_confirmatory_eligible=false` => `UNVERIFIED`;
+- non-Active AeroEvidence lifecycle => `UNVERIFIED`;
+- stale direct/transitive evidence, incomplete dependency coverage, unresolved inputs or required reverification => `INCOMPLETE`;
+- owner observer coverage incomplete/unverified/out of scope remains a hard non-positive state;
+- missing mandatory owner record => `INCOMPLETE`.
+
+AERO consumes BASALT freshness and Mycelix lifecycle state; it does not rebuild their ledgers or authenticate their reports. Exact owner input bytes, signatures, runner-coverage receipts and receiver-first-seen proofs remain owned by the respective owner/verifier systems. See [AERO Owner Evidence Cut v0.1](AERO_OWNER_EVIDENCE_CUT_V0_1.md).
+
 
 Each component supplies an `AssessmentBinding` containing:
 
