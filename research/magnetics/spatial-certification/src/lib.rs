@@ -3,12 +3,12 @@
 //! Continuous-domain interval certification for magnetic functional margins.
 //!
 //! This crate validates supplied derivative supremum bounds and interval arithmetic.
+//! It does not solve a magnetic field or authenticate the supplied evidence.
 
 use magnetic_interval_ad::{
     SpatialDerivativeSupremumEvidence, SpatialMappingError, ValidatedDerivativeEnclosure,
     map_spatial_derivative_suprema,
 };
-//! It does not solve a magnetic field or authenticate the supplied evidence.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Axis {
