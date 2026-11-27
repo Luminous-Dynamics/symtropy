@@ -20,8 +20,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const ROBUST_FLOOR_SCENARIO_SCHEMA: &str = "safrb-robust-beneficiary-floors-v0.1";
-pub const ROBUST_FLOOR_CLAIM_CEILING: &str =
-    "Joint mandatory-floor feasibility across every supplied finite synthetic scenario, assuming the scenario is observed before scenario-specific allocation (full recourse); no scenario-set completeness, evidence authority, probability calibration, physical qualification, dispatch authority or actual beneficiary-service claim.";
+pub const ROBUST_FLOOR_CLAIM_CEILING: &str = "Joint mandatory-floor feasibility across every supplied finite synthetic scenario, assuming the scenario is observed before scenario-specific allocation (full recourse); no scenario-set completeness, evidence authority, probability calibration, physical qualification, dispatch authority or actual beneficiary-service claim.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -33,9 +32,7 @@ pub enum ScenarioRecourseAssumption {
 impl ScenarioRecourseAssumption {
     fn schema_token(self) -> &'static str {
         match self {
-            Self::ScenarioObservedBeforeAllocation => {
-                "scenario_observed_before_allocation"
-            }
+            Self::ScenarioObservedBeforeAllocation => "scenario_observed_before_allocation",
         }
     }
 }
@@ -106,10 +103,18 @@ fn push_length_prefixed(bytes: &mut Vec<u8>, value: &[u8]) -> Result<(), String>
 
 fn canonical_profile_bytes(profile: &TemporalProfile) -> Result<Vec<u8>, String> {
     let mut canonical = profile.clone();
-    canonical.nodes.sort_by(|left, right| left.node_id.cmp(&right.node_id));
-    canonical.receipts.sort_by(|left, right| left.receipt_id.cmp(&right.receipt_id));
-    canonical.transfers.sort_by(|left, right| left.transfer_id.cmp(&right.transfer_id));
-    canonical.services.sort_by(|left, right| left.service_id.cmp(&right.service_id));
+    canonical
+        .nodes
+        .sort_by(|left, right| left.node_id.cmp(&right.node_id));
+    canonical
+        .receipts
+        .sort_by(|left, right| left.receipt_id.cmp(&right.receipt_id));
+    canonical
+        .transfers
+        .sort_by(|left, right| left.transfer_id.cmp(&right.transfer_id));
+    canonical
+        .services
+        .sort_by(|left, right| left.service_id.cmp(&right.service_id));
     serde_json::to_vec(&canonical)
         .map_err(|error| format!("could not encode canonical temporal profile: {error}"))
 }
@@ -169,14 +174,23 @@ fn validate_input(input: &RobustFloorScenarioInput) -> Result<Vec<BeneficiaryFlo
     for scenario in &input.scenarios {
         require_nonempty(&scenario.scenario_id, "scenario_id")?;
         if !scenario_ids.insert(scenario.scenario_id.as_str()) {
-            return Err(format!("duplicate floor scenario ID {}", scenario.scenario_id));
+            return Err(format!(
+                "duplicate floor scenario ID {}",
+                scenario.scenario_id
+            ));
         }
         require_nonempty(&scenario.profile.case_id, "case_id")?;
         if !case_ids.insert(scenario.profile.case_id.as_str()) {
-            return Err(format!("duplicate floor scenario case ID {}", scenario.profile.case_id));
+            return Err(format!(
+                "duplicate floor scenario case ID {}",
+                scenario.profile.case_id
+            ));
         }
         if scenario.profile.schema_version != TEMPORAL_PROFILE_SCHEMA {
-            return Err(format!("scenario {} uses unsupported temporal schema", scenario.scenario_id));
+            return Err(format!(
+                "scenario {} uses unsupported temporal schema",
+                scenario.scenario_id
+            ));
         }
     }
 
@@ -220,7 +234,12 @@ fn validate_input(input: &RobustFloorScenarioInput) -> Result<Vec<BeneficiaryFlo
     for floor in &floors {
         let reference = reference_services
             .get(floor.service_id.as_str())
-            .ok_or_else(|| format!("reference scenario omits floor service {}", floor.service_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "reference scenario omits floor service {}",
+                    floor.service_id
+                )
+            })?;
         if floor.minimum_required_quantity > reference.requested_quantity {
             return Err(format!(
                 "reference scenario request ceiling is below mandatory floor for {}",
@@ -258,7 +277,10 @@ fn validate_input(input: &RobustFloorScenarioInput) -> Result<Vec<BeneficiaryFlo
 }
 
 fn disposition(outcomes: &[FloorScenarioOutcome]) -> RobustFloorDisposition {
-    let feasible = outcomes.iter().filter(|outcome| outcome.floors_jointly_feasible).count();
+    let feasible = outcomes
+        .iter()
+        .filter(|outcome| outcome.floors_jointly_feasible)
+        .count();
     if feasible == outcomes.len() {
         RobustFloorDisposition::GuaranteedAcrossSuppliedScenarios
     } else if feasible > 0 {
@@ -280,7 +302,10 @@ pub fn evaluate_robust_floor_scenarios(
     let mut outcomes = Vec::with_capacity(scenarios.len());
     for scenario in scenarios {
         let result = evaluate_beneficiary_floors(&scenario.profile, &floors).map_err(|error| {
-            format!("scenario {} floor evaluation failed: {error}", scenario.scenario_id)
+            format!(
+                "scenario {} floor evaluation failed: {error}",
+                scenario.scenario_id
+            )
         })?;
         outcomes.push(FloorScenarioOutcome {
             scenario_id: scenario.scenario_id.clone(),
@@ -298,7 +323,10 @@ pub fn evaluate_robust_floor_scenarios(
         &scenario_digest,
         &floors_digest,
     )?;
-    let guaranteed_count = outcomes.iter().filter(|item| item.floors_jointly_feasible).count();
+    let guaranteed_count = outcomes
+        .iter()
+        .filter(|item| item.floors_jointly_feasible)
+        .count();
 
     let report = RobustFloorScenarioReport {
         schema_version: ROBUST_FLOOR_SCENARIO_SCHEMA.to_string(),
@@ -359,20 +387,39 @@ pub fn verify_robust_floor_scenario_report(
     let mut scenarios = input.scenarios.iter().collect::<Vec<_>>();
     scenarios.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     for (scenario, outcome) in scenarios.iter().zip(report.outcomes.iter()) {
-        if outcome.scenario_id != scenario.scenario_id || outcome.case_id != scenario.profile.case_id {
-            return Err(format!("robust floor scenario receipt identity mismatch for {}", scenario.scenario_id));
+        if outcome.scenario_id != scenario.scenario_id
+            || outcome.case_id != scenario.profile.case_id
+        {
+            return Err(format!(
+                "robust floor scenario receipt identity mismatch for {}",
+                scenario.scenario_id
+            ));
         }
         if outcome.floors_jointly_feasible != outcome.report.floors_jointly_feasible {
-            return Err(format!("robust floor disposition mismatch for {}", scenario.scenario_id));
+            return Err(format!(
+                "robust floor disposition mismatch for {}",
+                scenario.scenario_id
+            ));
         }
-        verify_beneficiary_floor_report(&scenario.profile, &floors, &outcome.report).map_err(|error| {
-            format!("scenario {} floor certificate failed independent verification: {error}", scenario.scenario_id)
-        })?;
+        verify_beneficiary_floor_report(&scenario.profile, &floors, &outcome.report).map_err(
+            |error| {
+                format!(
+                    "scenario {} floor certificate failed independent verification: {error}",
+                    scenario.scenario_id
+                )
+            },
+        )?;
     }
 
     let expected_disposition = disposition(&report.outcomes);
-    let guaranteed_count = report.outcomes.iter().filter(|item| item.floors_jointly_feasible).count();
-    if report.disposition != expected_disposition || report.guaranteed_scenario_count != guaranteed_count {
+    let guaranteed_count = report
+        .outcomes
+        .iter()
+        .filter(|item| item.floors_jointly_feasible)
+        .count();
+    if report.disposition != expected_disposition
+        || report.guaranteed_scenario_count != guaranteed_count
+    {
         return Err("robust floor scenario summary does not match verified receipts".to_string());
     }
     Ok(())
@@ -381,7 +428,9 @@ pub fn verify_robust_floor_scenario_report(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::temporal_profile::{TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer};
+    use crate::temporal_profile::{
+        TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer,
+    };
 
     fn node(id: &str, handling: u64, issue: u64) -> TemporalNode {
         TemporalNode {
@@ -479,7 +528,10 @@ mod tests {
     fn all_scenarios_feasible_yields_guaranteed_within_supplied_set() {
         let request = input(10, 20);
         let report = evaluate_robust_floor_scenarios(&request).unwrap();
-        assert_eq!(report.disposition, RobustFloorDisposition::GuaranteedAcrossSuppliedScenarios);
+        assert_eq!(
+            report.disposition,
+            RobustFloorDisposition::GuaranteedAcrossSuppliedScenarios
+        );
         assert_eq!(report.guaranteed_scenario_count, 2);
         verify_robust_floor_scenario_report(&request, &report).unwrap();
     }
@@ -488,7 +540,10 @@ mod tests {
     fn one_feasible_scenario_yields_possible_not_guaranteed() {
         let request = input(10, 9);
         let report = evaluate_robust_floor_scenarios(&request).unwrap();
-        assert_eq!(report.disposition, RobustFloorDisposition::PossibleInAtLeastOneSuppliedScenario);
+        assert_eq!(
+            report.disposition,
+            RobustFloorDisposition::PossibleInAtLeastOneSuppliedScenario
+        );
         assert_eq!(report.guaranteed_scenario_count, 1);
         assert!(!report.outcomes[1].floors_jointly_feasible);
         verify_robust_floor_scenario_report(&request, &report).unwrap();
@@ -498,7 +553,10 @@ mod tests {
     fn no_scenario_feasible_yields_not_possible_within_supplied_set() {
         let request = input(9, 8);
         let report = evaluate_robust_floor_scenarios(&request).unwrap();
-        assert_eq!(report.disposition, RobustFloorDisposition::NotFeasibleInAnySuppliedScenario);
+        assert_eq!(
+            report.disposition,
+            RobustFloorDisposition::NotFeasibleInAnySuppliedScenario
+        );
         assert_eq!(report.guaranteed_scenario_count, 0);
         verify_robust_floor_scenario_report(&request, &report).unwrap();
     }
@@ -510,15 +568,19 @@ mod tests {
 
         let mut changed_scenario = request.clone();
         changed_scenario.scenarios[0].profile.transfers[0].route_capacity = 4;
-        assert!(verify_robust_floor_scenario_report(&changed_scenario, &report)
-            .unwrap_err()
-            .contains("input digest mismatch"));
+        assert!(
+            verify_robust_floor_scenario_report(&changed_scenario, &report)
+                .unwrap_err()
+                .contains("input digest mismatch")
+        );
 
         let mut changed_floor = request;
         changed_floor.floors[0].minimum_required_quantity = 6;
-        assert!(verify_robust_floor_scenario_report(&changed_floor, &report)
-            .unwrap_err()
-            .contains("input digest mismatch"));
+        assert!(
+            verify_robust_floor_scenario_report(&changed_floor, &report)
+                .unwrap_err()
+                .contains("input digest mismatch")
+        );
     }
 
     #[test]
@@ -544,15 +606,19 @@ mod tests {
     fn incomparable_units_or_calendars_are_rejected() {
         let mut request = input(10, 10);
         request.scenarios[1].profile.capacity_unit_ref = "gallon".to_string();
-        assert!(evaluate_robust_floor_scenarios(&request)
-            .unwrap_err()
-            .contains("incomparable"));
+        assert!(
+            evaluate_robust_floor_scenarios(&request)
+                .unwrap_err()
+                .contains("incomparable")
+        );
 
         let mut request = input(10, 10);
         request.scenarios[1].profile.period_timebase_ref = "synthetic:weekly".to_string();
-        assert!(evaluate_robust_floor_scenarios(&request)
-            .unwrap_err()
-            .contains("incomparable"));
+        assert!(
+            evaluate_robust_floor_scenarios(&request)
+                .unwrap_err()
+                .contains("incomparable")
+        );
     }
 
     #[test]
@@ -564,7 +630,10 @@ mod tests {
         let reordered = evaluate_robust_floor_scenarios(&request).unwrap();
         assert_eq!(report.scenario_set_sha256, reordered.scenario_set_sha256);
         assert_eq!(report.floor_set_sha256, reordered.floor_set_sha256);
-        assert_eq!(report.assurance_input_sha256, reordered.assurance_input_sha256);
+        assert_eq!(
+            report.assurance_input_sha256,
+            reordered.assurance_input_sha256
+        );
         assert_eq!(report, reordered);
     }
 
@@ -578,10 +647,7 @@ mod tests {
             "../schemas/robust-beneficiary-floors-report-v0.1.schema.json"
         ))
         .unwrap();
-        assert_eq!(
-            input_schema["properties"]["floors"]["type"],
-            "array"
-        );
+        assert_eq!(input_schema["properties"]["floors"]["type"], "array");
         assert_eq!(
             report_schema["properties"]["schema_version"]["const"],
             ROBUST_FLOOR_SCENARIO_SCHEMA
@@ -600,8 +666,7 @@ mod tests {
             ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation
         );
         let input_bytes = serde_json::to_vec(&request).unwrap();
-        let decoded_input: RobustFloorScenarioInput =
-            serde_json::from_slice(&input_bytes).unwrap();
+        let decoded_input: RobustFloorScenarioInput = serde_json::from_slice(&input_bytes).unwrap();
         assert_eq!(decoded_input, request);
 
         let mut unsupported_recourse = serde_json::to_value(&request).unwrap();
@@ -609,7 +674,10 @@ mod tests {
         assert!(serde_json::from_value::<RobustFloorScenarioInput>(unsupported_recourse).is_err());
 
         let report = evaluate_robust_floor_scenarios(&decoded_input).unwrap();
-        assert_eq!(report.recourse_assumption, decoded_input.recourse_assumption);
+        assert_eq!(
+            report.recourse_assumption,
+            decoded_input.recourse_assumption
+        );
         let encoded = serde_json::to_vec(&report).unwrap();
         let decoded: RobustFloorScenarioReport = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, report);
