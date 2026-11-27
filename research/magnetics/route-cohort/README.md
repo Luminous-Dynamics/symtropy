@@ -41,3 +41,6 @@ The fixture tests denominator, identity, missingness, rework, scrap and replicat
 
 
 Replication coverage counts only unique build IDs with valid build/process/genealogy identity and a valid linked feedstock lot; distinct lots count only when used by such builds. All initiated build records and manifested specimens remain visible in the descriptive denominators. Duplicate qualification, rework and scrap receipt IDs invalidate cohort structure.
+
+
+Replication eligibility is stricter than record presence: only unique build IDs with valid process/recipe/genealogy and a valid linked lot count toward the independent-build floor; only distinct material lots used by those builds count. Unused lots, duplicated build IDs and invalid lineage cannot improve replication coverage. Duplicate qualification, rework or scrap receipt IDs invalidate the cohort.
