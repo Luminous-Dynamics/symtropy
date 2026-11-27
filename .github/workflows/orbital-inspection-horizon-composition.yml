@@ -1,0 +1,81 @@
+name: Orbital Inspection Horizon Composition Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-inspection-horizon-composition-bench/**"
+      - "tools/orbital-inspection-chord-tube-bench/**"
+      - ".github/workflows/orbital-inspection-horizon-composition.yml"
+  push:
+    branches:
+      - "research/orbital-inspection-horizon-composition-v0-1"
+    paths:
+      - "tools/orbital-inspection-horizon-composition-bench/**"
+      - "tools/orbital-inspection-chord-tube-bench/**"
+      - ".github/workflows/orbital-inspection-horizon-composition.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Complete-horizon composition and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/orbital-inspection-horizon-composition-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-inspection-horizon-composition-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-inspection-horizon-composition-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Bind frozen corpus digest
+        run: |
+          echo "CORPUS_SHA256=$(sha256sum tools/orbital-inspection-horizon-composition-bench/fixtures/horizon-composition-corpus-v0_1.csv | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Rust deterministic receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-inspection-horizon-composition-bench/Cargo.toml --bin orbital-inspection-horizon-composition-bench -- tools/orbital-inspection-horizon-composition-bench/fixtures/horizon-composition-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/horizon-rust.json
+          cargo run --quiet --locked --manifest-path tools/orbital-inspection-horizon-composition-bench/Cargo.toml --bin orbital-inspection-horizon-composition-bench -- tools/orbital-inspection-horizon-composition-bench/fixtures/horizon-composition-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/horizon-rust-replay.json
+          cmp /tmp/horizon-rust.json /tmp/horizon-rust-replay.json
+      - name: Independent Python horizon oracle
+        run: |
+          python3 tools/orbital-inspection-horizon-composition-bench/tests/reference_oracle.py tools/orbital-inspection-horizon-composition-bench/fixtures/horizon-composition-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/horizon-python.json
+      - name: Compare full receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/horizon-rust.json").read_text())
+          python = json.loads(Path("/tmp/horizon-python.json").read_text())
+          assert rust == python
+          assert rust["case_count"] == 32
+          assert rust["claim_ready"] is False
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["authority_granted"] is False
+          assert rust["physical_validation"] == "NOT_ASSESSED"
+          cases = {item["horizon_id"]: item for item in rust["results"]}
+          assert cases["H001"]["disposition"] == "COMPLETE_CONDITIONAL_CLEAR"
+          assert cases["H003"]["disposition"] == "COMPLETE_CONDITIONAL_CLEAR"
+          assert cases["H005"]["disposition"] == "INCOMPLETE_COVERAGE"
+          assert cases["H012"]["disposition"] == "SEAM_INCOHERENT"
+          assert cases["H019"]["disposition"] == "NOT_PROVEN"
+          assert cases["H031"]["disposition"] == "OVERFLOW"
+          print("32 horizons: complete Rust/Python receipt equality")
+          PY
+      - name: Retain evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-inspection-horizon-composition-evidence
+          path: |
+            /tmp/horizon-rust.json
+            /tmp/horizon-python.json
+            tools/orbital-inspection-horizon-composition-bench/fixtures/horizon-composition-corpus-v0_1.csv
+          if-no-files-found: error
+          retention-days: 30
