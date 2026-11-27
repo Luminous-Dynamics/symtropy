@@ -501,7 +501,20 @@ fn validate_model_credibility_cut(
     match model.compute_sha256() {
         Ok(digest) => {
             match input.owner_evidence_cut.find_evidence(&model.evidence_ref) {
-                Some(record) if record.record_sha256 == digest => {}
+                Some(record) if record.record_sha256 == digest => {
+                    if record.subject_ref != model.model_ref {
+                        *invalid = true;
+                        reasons.insert(
+                            "MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned(),
+                        );
+                    }
+                    if record.configuration_ref != model.configuration_ref {
+                        *invalid = true;
+                        reasons.insert(
+                            "MODEL_CREDIBILITY_OWNER_RECORD_CONFIGURATION_MISMATCH".to_owned(),
+                        );
+                    }
+                }
                 Some(_) => {
                     *invalid = true;
                     reasons.insert("MODEL_CREDIBILITY_OWNER_RECORD_DIGEST_MISMATCH".to_owned());
@@ -1063,6 +1076,8 @@ mod tests {
             .iter_mut()
             .find(|record| record.evidence_ref == model.evidence_ref)
             .expect("model evidence reference is included in owner cut");
+        model_record.subject_ref = model.model_ref.clone();
+        model_record.configuration_ref = model.configuration_ref.clone();
         model_record.record_sha256 = model.compute_sha256().expect("model cut serializes");
         cut
     }
@@ -1763,10 +1778,15 @@ mod tests {
     fn stale_or_incomplete_required_owner_evidence_blocks_reviewability() {
         let evidence = all_admitted();
         let mut owner_cut = owner_cut_for_evidence(&evidence);
-        owner_cut.evidence_records[0].freshness = OwnerEvidenceFreshness::StaleTransitive;
-        owner_cut.evidence_records[0].dependency_coverage = OwnerDependencyCoverage::Incomplete;
-        owner_cut.evidence_records[0].unresolved_inputs = vec!["toolchain:rust".to_owned()];
-        owner_cut.evidence_records[0].requires_reverification = true;
+        let inspection = owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|record| record.evidence_ref == "receipt:inspection-01")
+            .expect("inspection receipt exists in owner cut");
+        inspection.freshness = OwnerEvidenceFreshness::StaleTransitive;
+        inspection.dependency_coverage = OwnerDependencyCoverage::Incomplete;
+        inspection.unresolved_inputs = vec!["toolchain:rust".to_owned()];
+        inspection.requires_reverification = true;
         let result = evaluate_with_owner_cut(
             CoverageStatus::QualifiedCompleteForScope,
             CutStatus::Closed,
@@ -1796,7 +1816,12 @@ mod tests {
     fn non_active_owner_lifecycle_cannot_be_promoted_to_reviewable() {
         let evidence = all_admitted();
         let mut owner_cut = owner_cut_for_evidence(&evidence);
-        owner_cut.evidence_records[0].lifecycle = OwnerEvidenceLifecycle::Disputed;
+        owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|record| record.evidence_ref == "receipt:inspection-01")
+            .expect("inspection receipt exists in owner cut")
+            .lifecycle = OwnerEvidenceLifecycle::Disputed;
         let result = evaluate_with_owner_cut(
             CoverageStatus::QualifiedCompleteForScope,
             CutStatus::Closed,
@@ -2062,6 +2087,51 @@ mod tests {
             result
                 .reason_codes
                 .contains(&"MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
+    fn model_owner_record_configuration_must_match_exact_model_configuration() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        let model_cut = model_cut_for_context(&context_for_evidence(&evidence));
+        let record = owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|item| item.evidence_ref == model_cut.evidence_ref)
+            .expect("model evidence record exists");
+        record.configuration_ref = "configuration:unrelated".to_owned();
+        let mut context = context_for_evidence(&evidence);
+        context.evidence_knowledge_cut_sha256 = owner_cut.compute_sha256().unwrap();
+        let digest = context_digest(&context);
+        let mut bound_evidence = evidence.clone();
+        for item in &mut bound_evidence {
+            item.decision_context_sha256 = digest.clone();
+        }
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            EffectivityRelation::DefinitelyEffective,
+            &context,
+        );
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            owner_evidence_cut: &owner_cut,
+            model_credibility_cut: &model_cut,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &bound_evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MODEL_CREDIBILITY_OWNER_RECORD_CONFIGURATION_MISMATCH".to_owned())
         );
     }
 
