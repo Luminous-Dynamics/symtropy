@@ -225,3 +225,16 @@ If `RequestObservation` is incorrectly left in the post-observation action set w
 3. Preserve the unresolved/open-world outcome in scope closure; do not force a positive `Delta` by deleting the hard case.
 4. Include a high-entropy, zero-`Delta` probe and a lower-entropy, positive-`Delta` probe as synthetic controls.
 5. Ensure candidate policy-tree scoring uses only post-observation dispositions and counts every compatible (outcome, world) pair.
+
+
+## 14. Interpreting zero observed safety events
+
+A target such as “zero unsafe fresh-attempt recommendations” is a finite-sample observation, not proof of zero risk. Under an explicitly justified independent Bernoulli-cluster sampling model, observing zero events in (n) independent clusters gives a one-sided (1-\alpha) upper bound:
+
+```text
+p_upper = 1 - alpha^(1/n)
+```
+
+At 95% one-sided confidence, approximately 2,995 independent clusters with zero observed events are required for this bound to fall below 0.1%. Three thousand frames or retries from one trajectory do not constitute three thousand independent clusters. When cluster independence is not defensible, use a justified cluster-level model or report descriptive outcomes without a population-risk claim.
+
+This calculation is a statistical planning aid only. It does not establish physical safety, cover out-of-distribution hazards, validate the world model, or replace a robot-cell risk assessment and independent safety review.
