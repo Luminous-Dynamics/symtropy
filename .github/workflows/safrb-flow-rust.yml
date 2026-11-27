@@ -19,6 +19,7 @@ on:
     branches:
       - research/wpt-exact-service-oracle-v0
       - research/single-commodity-flow-kernel-v0
+      - research/safrb-temporal-semantics-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
