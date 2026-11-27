@@ -1,0 +1,73 @@
+name: Spacecraft Domain Calibration Split Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/domain-calibration-split-audit-bench/**"
+      - ".github/workflows/domain-calibration-split-audit.yml"
+  push:
+    branches:
+      - "research/domain-calibration-split-audit-v0-1"
+    paths:
+      - "tools/domain-calibration-split-audit-bench/**"
+      - ".github/workflows/domain-calibration-split-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Split integrity and translation lineage oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/domain-calibration-split-audit-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/domain-calibration-split-audit-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/domain-calibration-split-audit-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Independent corpus replay and receipt parity
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/domain-audit-receipts
+          for manifest in tools/domain-calibration-split-audit-bench/fixtures/*.tsv; do
+            name=$(basename "$manifest" .tsv)
+            digest=$(sha256sum "$manifest" | cut -d' ' -f1)
+            cargo run --quiet --locked --manifest-path tools/domain-calibration-split-audit-bench/Cargo.toml -- "$manifest" "$GITHUB_SHA" "$digest" > "/tmp/domain-audit-receipts/$name.rust.json"
+            python3 tools/domain-calibration-split-audit-bench/tests/reference_oracle.py "$manifest" "$GITHUB_SHA" "$digest" > "/tmp/domain-audit-receipts/$name.python.json"
+            python3 - "$name" "/tmp/domain-audit-receipts/$name.rust.json" "/tmp/domain-audit-receipts/$name.python.json" <<'PY'
+          import json
+          import sys
+          name, rust_path, python_path = sys.argv[1:]
+          rust = json.load(open(rust_path, encoding="utf-8"))
+          oracle = json.load(open(python_path, encoding="utf-8"))
+          assert rust == oracle, f"{name}: Rust/Python receipt mismatch"
+          expected = {
+              "clean-sequence-splits-v0_1": "PASS_SPLIT_INTEGRITY",
+              "split-leakage-v0_1": "SPLIT_LEAKAGE",
+              "pending-translation-v0_1": "BLOCKED_TRANSLATION_LINEAGE",
+              "duplicate-sample-v0_1": "SPLIT_LEAKAGE",
+              "translated-output-leakage-v0_1": "SPLIT_LEAKAGE",
+          }[name]
+          assert rust["disposition"] == expected, (name, rust["disposition"], expected)
+          assert rust["dataset_source_bytes_authenticated"] is False
+          assert rust["translation_geometry_verified_here"] is False
+          if name == "translated-output-leakage-v0_1":
+              assert rust["cross_partition_translated_digest_leaks"]
+          assert rust["operational_exchangeability_proven"] is False
+          assert rust["flight_qualification"] is False
+          PY
+          done
+      - name: Retain exact receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacecraft-domain-calibration-split-audit-receipts
+          path: /tmp/domain-audit-receipts/*.json
+          if-no-files-found: error
