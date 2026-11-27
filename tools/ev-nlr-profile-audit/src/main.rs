@@ -132,8 +132,11 @@ struct ComparisonSummary {
     mean_bias_kw: f64,
     total_reference_energy_kwh: f64,
     total_candidate_energy_kwh: f64,
-    total_energy_absolute_error_kwh: f64,
-    total_energy_relative_error_percent: f64,
+    aggregate_energy_bias_kwh: f64,
+    aggregate_energy_absolute_error_kwh: f64,
+    aggregate_energy_relative_error_percent: f64,
+    sum_profile_daily_energy_absolute_error_kwh: f64,
+    sum_profile_daily_energy_relative_error_percent: f64,
     maximum_profile_peak_absolute_error_kw: f64,
     profile_comparisons: Vec<ProfileComparison>,
 }
@@ -522,13 +525,21 @@ fn compare_archives(
     let rmse = (squared_error_sum / interval_count).sqrt();
     let mean_bias = all_biases.iter().sum::<f64>() / interval_count;
     let p95 = percentile(&all_absolute_errors, 0.95).unwrap_or(0.0);
-    let total_energy_absolute_error = energy_absolute_error_sum;
-    let total_energy_relative_error = if reference_energy_sum > 0.0 {
-        total_energy_absolute_error / reference_energy_sum * 100.0
-    } else if total_energy_absolute_error == 0.0 {
+    let aggregate_energy_bias = candidate_energy_sum - reference_energy_sum;
+    let aggregate_energy_absolute_error = aggregate_energy_bias.abs();
+    let aggregate_energy_relative_error = if reference_energy_sum > 0.0 {
+        aggregate_energy_absolute_error / reference_energy_sum * 100.0
+    } else if aggregate_energy_absolute_error == 0.0 {
         0.0
     } else {
-        return Err("non-zero candidate energy against zero total reference energy".into());
+        return Err("non-zero aggregate candidate energy against zero total reference energy".into());
+    };
+    let sum_profile_energy_relative_error = if reference_energy_sum > 0.0 {
+        energy_absolute_error_sum / reference_energy_sum * 100.0
+    } else if energy_absolute_error_sum == 0.0 {
+        0.0
+    } else {
+        return Err("non-zero profile-level energy error against zero total reference energy".into());
     };
 
     Ok(ComparisonSummary {
@@ -542,8 +553,11 @@ fn compare_archives(
         mean_bias_kw: mean_bias,
         total_reference_energy_kwh: reference_energy_sum,
         total_candidate_energy_kwh: candidate_energy_sum,
-        total_energy_absolute_error_kwh: total_energy_absolute_error,
-        total_energy_relative_error_percent: total_energy_relative_error,
+        aggregate_energy_bias_kwh: aggregate_energy_bias,
+        aggregate_energy_absolute_error_kwh: aggregate_energy_absolute_error,
+        aggregate_energy_relative_error_percent: aggregate_energy_relative_error,
+        sum_profile_daily_energy_absolute_error_kwh: energy_absolute_error_sum,
+        sum_profile_daily_energy_relative_error_percent: sum_profile_energy_relative_error,
         maximum_profile_peak_absolute_error_kw: maximum_peak_error,
         profile_comparisons: comparisons,
     })
@@ -799,7 +813,9 @@ mod tests {
         assert!(report.mean_absolute_error_kw.abs() < 1e-12);
         assert!(report.root_mean_squared_error_kw.abs() < 1e-12);
         assert!(report.mean_bias_kw.abs() < 1e-12);
-        assert!(report.total_energy_absolute_error_kwh.abs() < 1e-12);
+        assert!(report.sum_profile_daily_energy_absolute_error_kwh.abs() < 1e-12);
+        assert!(report.aggregate_energy_absolute_error_kwh.abs() < 1e-12);
+        assert!(report.aggregate_energy_bias_kwh.abs() < 1e-12);
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
@@ -817,7 +833,9 @@ mod tests {
         assert!((report.mean_absolute_error_kw - 0.5).abs() < 1e-9);
         assert!((report.root_mean_squared_error_kw - 0.5).abs() < 1e-9);
         assert!((report.mean_bias_kw - 0.5).abs() < 1e-9);
-        assert!((report.total_energy_absolute_error_kwh - 81.0 * 12.0).abs() < 1e-9);
+        assert!((report.sum_profile_daily_energy_absolute_error_kwh - 81.0 * 12.0).abs() < 1e-9);
+        assert!((report.aggregate_energy_absolute_error_kwh - 81.0 * 12.0).abs() < 1e-9);
+        assert!((report.aggregate_energy_bias_kwh - 81.0 * 12.0).abs() < 1e-9);
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
