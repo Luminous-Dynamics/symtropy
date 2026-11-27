@@ -187,3 +187,8 @@ This is a validator, not yet a multistage optimizer. It does not prove the obser
 The bounded extensive-form R1 solver is specified in [extensive-form-r1-protocol-v0.1.md](extensive-form-r1-protocol-v0.1.md) and tracked in [MCSC-R1-EXTENSIVE-FORM-001 #7864](https://github.com/Luminous-Dynamics/symtropy/issues/7864). It chooses one common action per observable information set across a finite multi-epoch scenario tree, accumulates horizon service/resource outcomes, and returns a non-dominated Pareto frontier without scalarization.
 
 The v0.1 solver operates over frozen exogenous observation paths and additive action contributions. It is not yet an action-dependent physical transition model or a live berth/quay-crane/yard optimizer. An independent tiny-instance challenger exercises the public solver API.
+## Multi-epoch extensive-form R1 policy enumerator
+
+The bounded extensive-form R1 solver is specified in [extensive-form-r1-protocol-v0.1.md](extensive-form-r1-protocol-v0.1.md) and tracked in [MCSC-R1-EXTENSIVE-FORM-001 #7864](https://github.com/Luminous-Dynamics/symtropy/issues/7864). It chooses one common action per observable information set across a finite multi-epoch scenario tree, accumulates full-horizon service and resource outcomes with overflow checks, and returns a Pareto frontier over service and resource-use dimensions without scalarization.
+
+The v0.1 solver operates over frozen exogenous observation paths and additive action contributions. It is not yet an action-dependent physical transition model or a live berth/quay-crane/yard optimizer. An independent tiny-instance challenger exercises the public API.
