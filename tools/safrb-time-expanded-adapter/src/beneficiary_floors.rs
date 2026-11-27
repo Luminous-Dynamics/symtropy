@@ -44,6 +44,13 @@ pub struct BeneficiaryFloor {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct BeneficiaryFloorInput {
+    pub profile: TemporalProfile,
+    pub floors: Vec<BeneficiaryFloor>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct BeneficiaryFloorAllocation {
     pub service_id: String,
     pub requested_quantity: u64,
@@ -665,6 +672,13 @@ pub fn evaluate_beneficiary_floors(
     Ok(report)
 }
 
+/// Evaluate the portable profile-plus-floors request envelope.
+pub fn evaluate_beneficiary_floor_input(
+    input: &BeneficiaryFloorInput,
+) -> Result<BeneficiaryFloorReport, String> {
+    evaluate_beneficiary_floors(&input.profile, &input.floors)
+}
+
 /// Independently verify a floor-feasibility report. This function does not call
 /// the producer's temporal compiler or lower-bound reduction builder.
 pub fn verify_beneficiary_floor_report(
@@ -746,6 +760,14 @@ pub fn verify_beneficiary_floor_report(
     }
 
     Ok(())
+}
+
+/// Verify a floor report against the typed portable request envelope.
+pub fn verify_beneficiary_floor_input(
+    input: &BeneficiaryFloorInput,
+    report: &BeneficiaryFloorReport,
+) -> Result<(), String> {
+    verify_beneficiary_floor_report(&input.profile, &input.floors, report)
 }
 
 #[cfg(test)]
@@ -964,6 +986,32 @@ mod tests {
         );
         assert_eq!(input_schema["required"][0], "profile");
         assert_eq!(input_schema["required"][1], "floors");
+    }
+
+    #[test]
+    fn floor_input_envelope_round_trips_and_verifies() {
+        let input = BeneficiaryFloorInput {
+            profile: profile(15, 10, 10),
+            floors: vec![
+                BeneficiaryFloor {
+                    service_id: "service-a".to_string(),
+                    minimum_required_quantity: 5,
+                },
+                BeneficiaryFloor {
+                    service_id: "service-b".to_string(),
+                    minimum_required_quantity: 5,
+                },
+            ],
+        };
+        let bytes = serde_json::to_vec(&input).unwrap();
+        let decoded: BeneficiaryFloorInput = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(decoded, input);
+        let report = evaluate_beneficiary_floor_input(&decoded).unwrap();
+        verify_beneficiary_floor_input(&decoded, &report).unwrap();
+
+        let mut unknown = serde_json::to_value(&input).unwrap();
+        unknown["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<BeneficiaryFloorInput>(unknown).is_err());
     }
 
     #[test]
