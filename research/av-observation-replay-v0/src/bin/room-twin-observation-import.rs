@@ -78,6 +78,9 @@ fn validate_camera_profile(profile: &Value) -> Result<(u32, u32, u64, ClockDomai
         || profile["camera_profile_id"] != "room-twin-camera-v1"
         || profile["sensor_id"] != "camera-front"
         || profile["renderer"] != "Bevy 0.19.0"
+        || profile["pose_delivery"]["status"] != "not_agent_visible"
+        || profile["pose_delivery"]["pose_source"] != "renderer_evaluator_only"
+        || profile.get("camera_rail").is_some()
         || profile["image"]["pixel_format"] != "rgba8"
         || profile["image"]["channel_order"] != "rgba"
         || profile["image"]["color_space"] != "srgb"
