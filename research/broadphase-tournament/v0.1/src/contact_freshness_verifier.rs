@@ -1695,4 +1695,50 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn receipt_replay_commits_dynamic_response_state_warm_start_reset() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut changed_left = endpoint(1);
+        changed_left.response_state += 1;
+        receipt.current_endpoints.insert(ProxyId(1), changed_left);
+
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("response-state change requires revalidation");
+
+        let prior = receipt.previous_contact_stamps[&pair].clone();
+        let committed = prior
+            .commit_transition(
+                receipt.current_global,
+                changed_left,
+                endpoint(2),
+                false,
+                true,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [49; 32],
+                    ..payload()
+                },
+            )
+            .expect("dynamic response warm-start reset committed");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("response-state receipt replay");
+        assert_eq!(report.revalidated_pairs, 1);
+        assert_eq!(report.geometry_reuses, 1);
+        assert_eq!(report.warm_start_reuses, 0);
+    }
+
+
 }
