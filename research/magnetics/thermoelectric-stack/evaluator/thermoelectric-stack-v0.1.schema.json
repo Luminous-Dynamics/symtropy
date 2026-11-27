@@ -31,7 +31,8 @@
         "measurement_setup_digest",
         "acceptance_policy_digest",
         "objective_digest",
-        "constraint_digest"
+        "constraint_digest",
+        "comparison_scope_digest"
       ],
       "properties": {
         "application_id": {
@@ -63,6 +64,9 @@
           "$ref": "#/$defs/digest"
         },
         "constraint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "comparison_scope_digest": {
           "$ref": "#/$defs/digest"
         }
       },
@@ -126,7 +130,8 @@
         "evidence_class",
         "method_id",
         "calibration_digest",
-        "uncertainty_digest"
+        "uncertainty_digest",
+        "comparison_scope_digest"
       ],
       "properties": {
         "metric_id": {
@@ -179,6 +184,9 @@
         },
         "uncertainty_digest": {
           "$ref": "#/$defs/digest"
+        },
+        "comparison_scope_digest": {
+          "$ref": "#/$defs/digest"
         }
       },
       "additionalProperties": false
@@ -196,7 +204,8 @@
         "disposition",
         "acceptance_policy_digest",
         "receipt_digest",
-        "physical_evidence_digest"
+        "physical_evidence_digest",
+        "comparison_scope_digest"
       ],
       "properties": {
         "component_id": {
@@ -250,6 +259,9 @@
           "$ref": "#/$defs/digest"
         },
         "acceptance_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "comparison_scope_digest": {
           "$ref": "#/$defs/digest"
         }
       },
