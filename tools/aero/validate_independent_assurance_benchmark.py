@@ -282,8 +282,15 @@ def main() -> int:
     context = source_fixture["decision_context"]
     if specification["claim_id"] != context["claim_id"]:
         raise SystemExit("FAIL: source-binding claim specification/context IDs differ")
-    if source_fixture["owner_evidence_cut"]["receiver_receipt_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
-        raise SystemExit("FAIL: owner receipt watermark does not cover the selected as-known cutoff")
+    owner_cuts = source_fixture["owner_evidence_cuts"]
+    owner_watermarks = {}
+    for owner_cut in owner_cuts:
+        owner = owner_cut["owner_namespace"]
+        if owner in owner_watermarks:
+            raise SystemExit(f"FAIL: duplicate owner evidence cut: {owner}")
+        if owner_cut["receiver_receipt_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+            raise SystemExit(f"FAIL: owner receipt watermark does not cover as-known cutoff: {owner}")
+        owner_watermarks[owner] = owner_cut["receiver_receipt_watermark_unix_ms"]
     if source_fixture["observer_coverage"]["watermark_unix_ms"] < context["as_known_at_unix_ms"]:
         raise SystemExit("FAIL: observer watermark does not cover the selected as-known cutoff")
 
@@ -316,10 +323,13 @@ def main() -> int:
             if evidence["configuration_ref"] != context["configuration_ref"]:
                 raise SystemExit(f"FAIL: evidence configuration mismatch: {evidence['evidence_ref']}")
             receiver_first_seen = evidence["receiver_first_seen_at_unix_ms"]
+            owner_watermark = owner_watermarks.get(evidence["owner_namespace"])
+            if owner_watermark is None:
+                raise SystemExit(f"FAIL: evidence has no matching owner cut: {evidence['evidence_ref']}")
             if evidence["admission_state"] == "ADMITTED":
                 if (
                     receiver_first_seen is None
-                    or receiver_first_seen > source_fixture["owner_evidence_cut"]["receiver_receipt_watermark_unix_ms"]
+                    or receiver_first_seen > owner_watermark
                     or evidence["owner_receipt_ref"] is None
                     or evidence["owner_receipt_sha256"] is None
                     or evidence["verification_state"] != "VERIFIED"
@@ -333,11 +343,6 @@ def main() -> int:
                 if interval["earliest_unix_ms"] > interval["latest_unix_ms"]:
                     raise SystemExit(f"FAIL: malformed event-effectivity interval: {evidence['evidence_ref']}")
     require_unique(evidence_ids, "source-bound evidence references")
-
-    for event in policy["policy_events"]:
-        if event["receiver_first_seen_at_unix_ms"] < event["asserted_at_unix_ms"] and event["event_type"] not in {"KEY_ISSUED", "KEY_ROTATED"}:
-            # Issuer time is descriptive; receiver knowledge remains independently recorded.
-            pass
 
     print(
         "PASS: AERO IAB v0.3 structural validation "
