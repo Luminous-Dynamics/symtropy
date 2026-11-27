@@ -196,15 +196,15 @@ fn floor_sqrt(value: u128) -> u128 {
 fn ceil_sqrt(value: u128) -> (u128, u128, bool) {
     let floor = floor_sqrt(value);
     let perfect = floor.checked_mul(floor) == Some(value);
-    let ceiling = if perfect {
-        floor
-    } else {
-        floor + 1
-    };
+    let ceiling = if perfect { floor } else { floor + 1 };
     (ceiling, floor, perfect)
 }
 
-fn base_result(input: &SupportInput, disposition: SupportDisposition, reason: &str) -> SupportResult {
+fn base_result(
+    input: &SupportInput,
+    disposition: SupportDisposition,
+    reason: &str,
+) -> SupportResult {
     SupportResult {
         case_id: input.case_id.clone(),
         scope: input.scope.clone(),
@@ -286,7 +286,10 @@ pub fn derive(input: &SupportInput) -> SupportResult {
         );
     }
 
-    if evidence.iter().any(|item| item.state == ProviderState::Fail) {
+    if evidence
+        .iter()
+        .any(|item| item.state == ProviderState::Fail)
+    {
         return base_result(
             input,
             SupportDisposition::ProviderFailed,
@@ -426,8 +429,14 @@ mod tests {
 
     #[test]
     fn zero_numerator_or_denominator_is_invalid() {
-        assert_eq!(derive(&input(0, 1)).disposition, SupportDisposition::InvalidInput);
-        assert_eq!(derive(&input(1, 0)).disposition, SupportDisposition::InvalidInput);
+        assert_eq!(
+            derive(&input(0, 1)).disposition,
+            SupportDisposition::InvalidInput
+        );
+        assert_eq!(
+            derive(&input(1, 0)).disposition,
+            SupportDisposition::InvalidInput
+        );
     }
 
     #[test]
@@ -439,10 +448,17 @@ mod tests {
 
     #[test]
     fn stale_and_unknown_geometry_evidence_is_indeterminate() {
-        for state in [ProviderState::Unknown, ProviderState::Stale, ProviderState::Revoked] {
+        for state in [
+            ProviderState::Unknown,
+            ProviderState::Stale,
+            ProviderState::Revoked,
+        ] {
             let mut value = input(1, 1);
             value.evidence.direction_unit.state = state;
-            assert_eq!(derive(&value).disposition, SupportDisposition::Indeterminate);
+            assert_eq!(
+                derive(&value).disposition,
+                SupportDisposition::Indeterminate
+            );
         }
     }
 
@@ -450,27 +466,33 @@ mod tests {
     fn failed_spd_provider_never_produces_support_bound() {
         let mut value = input(1, 1);
         value.evidence.matrix_spd.state = ProviderState::Fail;
-        assert_eq!(derive(&value).disposition, SupportDisposition::ProviderFailed);
+        assert_eq!(
+            derive(&value).disposition,
+            SupportDisposition::ProviderFailed
+        );
     }
 
     #[test]
     fn malformed_matrix_or_direction_digest_is_invalid() {
         let mut matrix = input(1, 1);
         matrix.scope.matrix_sha256 = "bad".to_owned();
-        assert_eq!(derive(&matrix).disposition, SupportDisposition::InvalidInput);
+        assert_eq!(
+            derive(&matrix).disposition,
+            SupportDisposition::InvalidInput
+        );
         let mut direction = input(1, 1);
         direction.scope.direction_sha256 = "bad".to_owned();
-        assert_eq!(derive(&direction).disposition, SupportDisposition::InvalidInput);
+        assert_eq!(
+            derive(&direction).disposition,
+            SupportDisposition::InvalidInput
+        );
     }
 
     #[test]
     fn unsupported_matrix_convention_is_invalid() {
         let mut value = input(1, 1);
         value.scope.matrix_convention = "principal-axis-semiaxes-v0".to_owned();
-        assert_eq!(
-            derive(&value).disposition,
-            SupportDisposition::InvalidInput
-        );
+        assert_eq!(derive(&value).disposition, SupportDisposition::InvalidInput);
     }
 
     #[test]
