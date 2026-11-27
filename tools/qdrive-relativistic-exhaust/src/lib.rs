@@ -22,10 +22,7 @@ pub struct FourMomentum {
 
 impl FourMomentum {
     /// Construct a particle four-momentum from rest mass and frame velocity.
-    pub fn from_particle(
-        rest_mass_kg: f64,
-        velocity_m_s: [f64; 3],
-    ) -> Result<Self, &'static str> {
+    pub fn from_particle(rest_mass_kg: f64, velocity_m_s: [f64; 3]) -> Result<Self, &'static str> {
         if !rest_mass_kg.is_finite() || rest_mass_kg <= 0.0 {
             return Err("rest_mass_kg must be finite and positive");
         }
@@ -81,8 +78,7 @@ impl FourMomentum {
             return Err("four-momentum invariant overflowed its finite domain");
         }
 
-        let roundoff_bound =
-            64.0 * f64::EPSILON * (energy_squared + momentum_squared).max(1.0);
+        let roundoff_bound = 64.0 * f64::EPSILON * (energy_squared + momentum_squared).max(1.0);
         if invariant_mass_times_c_squared < -roundoff_bound {
             return Err("four-momentum is spacelike beyond numerical roundoff");
         }
@@ -96,10 +92,7 @@ impl FourMomentum {
     /// The sign convention is E' = gamma(E - v·p). Thus, a particle at rest in
     /// the original frame has negative momentum in a frame moving in the
     /// positive direction.
-    pub fn boost_to_moving_frame(
-        self,
-        frame_velocity_m_s: [f64; 3],
-    ) -> Result<Self, &'static str> {
+    pub fn boost_to_moving_frame(self, frame_velocity_m_s: [f64; 3]) -> Result<Self, &'static str> {
         if !self.energy_j.is_finite()
             || self.energy_j <= 0.0
             || !finite_vector(self.momentum_kg_m_s)
@@ -121,8 +114,7 @@ impl FourMomentum {
 
         let gamma = 1.0 / (1.0 - beta_squared).sqrt();
         let beta_dot_momentum = dot(beta, self.momentum_kg_m_s);
-        let energy_j =
-            gamma * (self.energy_j - SPEED_OF_LIGHT_M_S * beta_dot_momentum);
+        let energy_j = gamma * (self.energy_j - SPEED_OF_LIGHT_M_S * beta_dot_momentum);
         let momentum_coefficient = ((gamma - 1.0) / beta_squared) * beta_dot_momentum
             - gamma * self.energy_j / SPEED_OF_LIGHT_M_S;
         let momentum_kg_m_s = std::array::from_fn(|index| {
@@ -200,15 +192,14 @@ pub fn evaluate_relativistic_exhaust(
     // small and gamma rounds to 1.0 in f64.
     let gamma_minus_one = beta_squared * gamma / (1.0 + (1.0 - beta_squared).sqrt());
     let momentum_scale = input.rest_mass_flow_kg_s * gamma;
-    let exhaust_momentum_flux_n =
-        input.exhaust_velocity_m_s.map(|component| momentum_scale * component);
+    let exhaust_momentum_flux_n = input
+        .exhaust_velocity_m_s
+        .map(|component| momentum_scale * component);
     let thrust_on_vehicle_n = exhaust_momentum_flux_n.map(|component| -component);
     let thrust_magnitude_n = vector_norm(exhaust_momentum_flux_n);
-    let rest_mass_energy_flux_w =
-        input.rest_mass_flow_kg_s * SPEED_OF_LIGHT_M_S.powi(2);
+    let rest_mass_energy_flux_w = input.rest_mass_flow_kg_s * SPEED_OF_LIGHT_M_S.powi(2);
     let total_energy_flux_w = rest_mass_energy_flux_w * gamma;
-    let kinetic_power_w =
-        input.rest_mass_flow_kg_s * gamma_minus_one * SPEED_OF_LIGHT_M_S.powi(2);
+    let kinetic_power_w = input.rest_mass_flow_kg_s * gamma_minus_one * SPEED_OF_LIGHT_M_S.powi(2);
 
     let outputs = [
         beta,
@@ -392,8 +383,7 @@ mod tests {
             .boost_to_moving_frame([second_beta * SPEED_OF_LIGHT_M_S, 0.0, 0.0])
             .unwrap();
 
-        let combined_beta =
-            (first_beta + second_beta) / (1.0 + first_beta * second_beta);
+        let combined_beta = (first_beta + second_beta) / (1.0 + first_beta * second_beta);
         let direct = particle
             .boost_to_moving_frame([combined_beta * SPEED_OF_LIGHT_M_S, 0.0, 0.0])
             .unwrap();
@@ -481,9 +471,7 @@ mod tests {
 
     #[test]
     fn superluminal_speeds_and_non_finite_inputs_are_rejected() {
-        assert!(
-            FourMomentum::from_particle(1.0, [SPEED_OF_LIGHT_M_S, 0.0, 0.0]).is_err()
-        );
+        assert!(FourMomentum::from_particle(1.0, [SPEED_OF_LIGHT_M_S, 0.0, 0.0]).is_err());
         assert!(
             evaluate_relativistic_exhaust(RelativisticExhaustInput {
                 rest_mass_flow_kg_s: 1.0,
