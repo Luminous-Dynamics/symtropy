@@ -322,14 +322,8 @@ fn transformed_obb_3d_gjk_matches_independent_fifteen_axis_sat() {
             sample_range(&mut state, -2.5, 2.5),
         ];
 
-        let expected = obb_sat_3d_reference(
-            center_a,
-            half_a,
-            &rotation_a,
-            center_b,
-            half_b,
-            &rotation_b,
-        );
+        let expected =
+            obb_sat_3d_reference(center_a, half_a, &rotation_a, center_b, half_b, &rotation_b);
         let observed = gjk::intersects_transformed(
             &shape_a,
             &Transform {
