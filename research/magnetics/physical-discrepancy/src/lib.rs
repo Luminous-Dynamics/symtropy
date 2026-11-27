@@ -169,8 +169,12 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
         input.background_control_record_id.as_str(),
         input.temperature_record_id.as_str(),
         input.model_run_id.as_str(),
+        input.model_source_revision.as_str(),
+        input.model_implementation_id.as_str(),
         input.model_set_id.as_str(),
         input.residual_jacobian_record_id.as_str(),
+        input.residual_jacobian_source_revision.as_str(),
+        input.residual_jacobian_implementation_id.as_str(),
         input.residual_jacobian_cell_id.as_str(),
         input.coordinate_frame_id.as_str(),
         input.operating_condition_id.as_str(),
@@ -182,6 +186,10 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
     }
     validate_digest(&input.centre_measurement_sha256, "centre_measurement_sha256")?;
     validate_digest(&input.model_input_sha256, "model_input_sha256")?;
+    validate_digest(&input.model_artifact_sha256, "model_artifact_sha256")?;
+    validate_digest(&input.model_environment_sha256, "model_environment_sha256")?;
+    validate_digest(&input.residual_jacobian_artifact_sha256, "residual_jacobian_artifact_sha256")?;
+    validate_digest(&input.residual_jacobian_environment_sha256, "residual_jacobian_environment_sha256")?;
     validate_digest(&input.geometry_sha256, "geometry_sha256")?;
     validate_digest(&input.material_sha256, "material_sha256")?;
 
@@ -318,15 +326,24 @@ pub fn certify_physical_field_discrepancy(
         background_control_record_id: input.background_control_record_id.clone(),
         temperature_record_id: input.temperature_record_id.clone(),
         residual_jacobian_record_id: input.residual_jacobian_record_id.clone(),
+        residual_jacobian_source_revision: input.residual_jacobian_source_revision.clone(),
+        residual_jacobian_implementation_id: input.residual_jacobian_implementation_id.clone(),
+        residual_jacobian_artifact_sha256: input.residual_jacobian_artifact_sha256.clone(),
+        residual_jacobian_environment_sha256: input.residual_jacobian_environment_sha256.clone(),
         residual_jacobian_cell_id: input.residual_jacobian_cell_id.clone(),
         residual_jacobian_abs_supremum_t_per_m: input.residual_jacobian_abs_supremum_t_per_m,
         model_run_id: input.model_run_id.clone(),
+        model_source_revision: input.model_source_revision.clone(),
+        model_implementation_id: input.model_implementation_id.clone(),
+        model_artifact_sha256: input.model_artifact_sha256.clone(),
+        model_environment_sha256: input.model_environment_sha256.clone(),
         model_set_id: input.model_set_id.clone(),
         model_input_sha256: input.model_input_sha256.clone(),
         coordinate_frame_id: input.coordinate_frame_id.clone(),
         operating_condition_id: input.operating_condition_id.clone(),
         geometry_sha256: input.geometry_sha256.clone(),
         material_sha256: input.material_sha256.clone(),
+        requirement_id: input.requirement_id.clone(),
         solver_run_id: input.solver_run_id.clone(),
         field_unit: input.field_unit.clone(),
         residual_jacobian_unit: format!("{}/metre", input.field_unit),
@@ -370,6 +387,10 @@ mod tests {
             background_control_record_id: "background-001".to_owned(),
             temperature_record_id: "temperature-001".to_owned(),
             model_run_id: "model-run-001".to_owned(),
+            model_source_revision: "model-source-v1".to_owned(),
+            model_implementation_id: "magnetostatic-model-v1".to_owned(),
+            model_artifact_sha256: DIGEST_B.to_owned(),
+            model_environment_sha256: DIGEST_C.to_owned(),
             model_set_id: "model-set-001".to_owned(),
             model_input_sha256: DIGEST_B.to_owned(),
             model_field_at_centre_t: [
@@ -383,6 +404,10 @@ mod tests {
                 interval(-0.4, 0.4),
             ],
             residual_jacobian_record_id: "residual-jacobian-001".to_owned(),
+            residual_jacobian_source_revision: "jacobian-source-v1".to_owned(),
+            residual_jacobian_implementation_id: "interval-gradient-v1".to_owned(),
+            residual_jacobian_artifact_sha256: DIGEST_A.to_owned(),
+            residual_jacobian_environment_sha256: DIGEST_B.to_owned(),
             residual_jacobian_cell_id: "cell-0001".to_owned(),
             residual_jacobian_abs_supremum_t_per_m: [
                 [0.1, 0.2, 0.3],
