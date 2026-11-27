@@ -11,3 +11,5 @@ path = "src/lib.rs"
 [[bin]]
 name = "orbital-inspection-chord-tube-bench"
 path = "src/main.rs"
+
+[workspace]
