@@ -1,0 +1,192 @@
+{
+  "schema_version": "engineering-claim-closure-mutation-corpus-v0.1",
+  "synthetic_only": true,
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "execution_status": "AUTHORED_NOT_YET_EXECUTED",
+  "mutation_count": 25,
+  "cases": [
+    {
+      "case_id": "required-evidence-reference-substitution",
+      "operation": "set",
+      "target": "/claim/requirements/0/evidence_ref",
+      "value": "evidence:missing",
+      "expected_finding_code": "REQUIRED_EVIDENCE_MISSING"
+    },
+    {
+      "case_id": "required-record-digest-substitution",
+      "operation": "set",
+      "target": "/claim/requirements/0/expected_record_sha256",
+      "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expected_finding_code": "REQUIRED_EVIDENCE_DIGEST_MISMATCH"
+    },
+    {
+      "case_id": "required-role-substitution",
+      "operation": "set",
+      "target": "/evidence_records/0/role",
+      "value": "calibration",
+      "expected_finding_code": "REQUIRED_EVIDENCE_ROLE_MISMATCH"
+    },
+    {
+      "case_id": "required-subject-substitution",
+      "operation": "set",
+      "target": "/evidence_records/0/subject_ref",
+      "value": "part:other",
+      "expected_finding_code": "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"
+    },
+    {
+      "case_id": "required-configuration-substitution",
+      "operation": "set",
+      "target": "/evidence_records/0/configuration_ref",
+      "value": "configuration:r18",
+      "expected_finding_code": "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"
+    },
+    {
+      "case_id": "required-scope-substitution",
+      "operation": "set",
+      "target": "/evidence_records/0/scope_ref",
+      "value": "scope:cold-static",
+      "expected_finding_code": "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"
+    },
+    {
+      "case_id": "evidence-after-knowledge-cut",
+      "operation": "set",
+      "target": "/evidence_records/0/recorded_at_unix_ms",
+      "value": 161,
+      "expected_finding_code": "EVIDENCE_NOT_KNOWN_AT_CLAIM_CUT"
+    },
+    {
+      "case_id": "trust-snapshot-after-knowledge-cut",
+      "operation": "set",
+      "target": "/evidence_records/0/trust_snapshot/as_of_unix_ms",
+      "value": 161,
+      "expected_finding_code": "TRUST_SNAPSHOT_NOT_KNOWN_AT_CLAIM_CUT"
+    },
+    {
+      "case_id": "producer-authority-revoked",
+      "operation": "set",
+      "target": "/evidence_records/0/producer_authority/status",
+      "value": "revoked",
+      "expected_finding_code": "PRODUCER_AUTHORITY_REVOKED"
+    },
+    {
+      "case_id": "trust-snapshot-revoked",
+      "operation": "set",
+      "target": "/evidence_records/0/trust_snapshot/status",
+      "value": "revoked",
+      "expected_finding_code": "TRUST_SNAPSHOT_REVOKED"
+    },
+    {
+      "case_id": "uncertainty-budget-unresolved",
+      "operation": "set",
+      "target": "/evidence_records/1/uncertainty_budget/resolved",
+      "value": false,
+      "expected_finding_code": "UNCERTAINTY_BUDGET_UNRESOLVED"
+    },
+    {
+      "case_id": "uncertainty-budget-identity-substitution",
+      "operation": "set",
+      "target": "/claim/requirements/0/uncertainty_budget_ref",
+      "value": "uncertainty:other",
+      "expected_finding_code": "REQUIRED_EVIDENCE_UNCERTAINTY_BINDING_MISMATCH"
+    },
+    {
+      "case_id": "partial-effective-interval",
+      "operation": "set",
+      "target": "/evidence_records/0/effective_from_unix_ms",
+      "value": 110,
+      "expected_finding_code": "EVIDENCE_EFFECTIVE_INTERVAL_DOES_NOT_COVER_CLAIM"
+    },
+    {
+      "case_id": "non-overlapping-effective-interval",
+      "operation": "set",
+      "target": "/evidence_records/1/effective_from_unix_ms",
+      "value": 140,
+      "expected_finding_code": "EVIDENCE_NOT_EFFECTIVE_DURING_CLAIM_INTERVAL"
+    },
+    {
+      "case_id": "missing-transitive-dependency",
+      "operation": "set",
+      "target": "/evidence_records/0/dependencies/0/evidence_ref",
+      "value": "evidence:missing",
+      "expected_finding_code": "DEPENDENCY_EVIDENCE_MISSING"
+    },
+    {
+      "case_id": "dependency-digest-substitution",
+      "operation": "set",
+      "target": "/evidence_records/0/dependencies/0/expected_record_sha256",
+      "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "expected_finding_code": "DEPENDENCY_RECORD_DIGEST_MISMATCH"
+    },
+    {
+      "case_id": "dependency-cycle",
+      "operation": "set",
+      "target": "/evidence_records/2/dependencies",
+      "value": [
+        {
+          "evidence_ref": "evidence:measurement",
+          "expected_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "expected_finding_code": "DEPENDENCY_CYCLE_DETECTED"
+    },
+    {
+      "case_id": "duplicate-evidence-identity",
+      "operation": "set",
+      "target": "/evidence_records/2/evidence_ref",
+      "value": "evidence:measurement",
+      "expected_finding_code": "DUPLICATE_EVIDENCE_REFERENCE"
+    },
+    {
+      "case_id": "duplicate-dependency-edge",
+      "operation": "append",
+      "target": "/evidence_records/0/dependencies",
+      "value": {
+        "evidence_ref": "evidence:calibration",
+        "expected_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "expected_finding_code": "DUPLICATE_DEPENDENCY_EDGE"
+    },
+    {
+      "case_id": "empty-required-evidence-set",
+      "operation": "set",
+      "target": "/claim/requirements",
+      "value": [],
+      "expected_finding_code": "CLAIM_HAS_NO_REQUIRED_EVIDENCE"
+    },
+    {
+      "case_id": "future-knowledge-cut",
+      "operation": "set",
+      "target": "/claim/knowledge_cut_unix_ms",
+      "value": 181,
+      "expected_finding_code": "KNOWLEDGE_CUT_AFTER_EVALUATION_TIME"
+    },
+    {
+      "case_id": "reversed-acquisition-interval",
+      "operation": "set",
+      "target": "/claim/acquisition_start_unix_ms",
+      "value": 121,
+      "expected_finding_code": "CLAIM_ACQUISITION_INTERVAL_REVERSED"
+    },
+    {
+      "case_id": "unsupported-input-schema",
+      "operation": "set",
+      "target": "/schema_version",
+      "value": "engineering-claim-closure-v9",
+      "expected_finding_code": "INPUT_SCHEMA_VERSION_UNSUPPORTED"
+    },
+    {
+      "case_id": "missing-producer-authority-receipt",
+      "operation": "set",
+      "target": "/evidence_records/0/producer_authority/record_sha256",
+      "value": null,
+      "expected_finding_code": "PRODUCER_AUTHORITY_DIGEST_INVALID"
+    },
+    {
+      "case_id": "malformed-record-digest",
+      "operation": "set",
+      "target": "/evidence_records/0/record_sha256",
+      "value": "not-a-sha256",
+      "expected_finding_code": "EVIDENCE_RECORD_DIGEST_INVALID"
+    }
+  ]
+}
