@@ -88,6 +88,13 @@ impl ClaimMetricBindingDispositionV0_1 {
 pub struct ClaimMetricBindingAssessmentV0_1 {
     pub disposition: ClaimMetricBindingDispositionV0_1,
     pub reason_codes: Vec<String>,
+    pub binding_ref: String,
+    pub claim_metric_binding_sha256: String,
+    pub claim_id: String,
+    pub model_metric_id: String,
+    pub measurand_id: String,
+    pub metric_definition_sha256: String,
+    pub semantic_mapping_basis_sha256: String,
     pub claim_specification_semantic_sha256: String,
     pub decision_context_sha256: String,
     pub model_credibility_sha256: String,
@@ -308,13 +315,14 @@ impl ClaimMetricSemanticBindingV0_1 {
         let mut not_known_at_snapshot = false;
         let mut unsupported = false;
 
-        match self.compute_sha256() {
-            Ok(_) => {}
+        let binding_digest = match self.compute_sha256() {
+            Ok(value) => value,
             Err(errors) => {
                 rejected = true;
                 reasons.extend(errors);
+                String::new()
             }
-        }
+        };
 
         let specification_assessment = specification.assess();
         match specification_assessment.disposition {
@@ -854,6 +862,13 @@ impl ClaimMetricSemanticBindingV0_1 {
         ClaimMetricBindingAssessmentV0_1 {
             disposition,
             reason_codes: reasons.into_iter().collect(),
+            binding_ref: self.binding_ref.clone(),
+            claim_metric_binding_sha256: binding_digest,
+            claim_id: self.claim_id.clone(),
+            model_metric_id: self.model_metric_id.clone(),
+            measurand_id: self.measurand_id.clone(),
+            metric_definition_sha256: self.metric_definition_sha256.clone(),
+            semantic_mapping_basis_sha256: self.semantic_mapping_basis_sha256.clone(),
             claim_specification_semantic_sha256: semantic_digest,
             decision_context_sha256: context_digest,
             model_credibility_sha256: model_digest,
@@ -1147,6 +1162,12 @@ mod tests {
         assert_eq!(
             result.disposition,
             ClaimMetricBindingDispositionV0_1::SemanticsBound
+        );
+        assert!(!result.claim_metric_binding_sha256.is_empty());
+        assert_eq!(result.model_metric_id, "maximum_principal_stress");
+        assert_eq!(
+            result.measurand_id,
+            fixture.specification.measurand.measurand_id
         );
         assert!(!result.owner_authentication_performed);
         assert!(!result.physical_truth_established);
