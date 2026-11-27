@@ -139,9 +139,7 @@ pub struct ClosureReport {
 }
 
 fn valid_identifier(value: &str) -> bool {
-    !value.is_empty()
-        && value.trim() == value
-        && !value.chars().any(char::is_control)
+    !value.is_empty() && value.trim() == value && !value.chars().any(char::is_control)
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -195,14 +193,8 @@ fn canonical_input_sha256(input: &ClaimClosureInput) -> Result<String, String> {
     }
 
     canonical.evidence_records.sort_by(|left, right| {
-        (
-            left.evidence_ref.as_str(),
-            left.record_sha256.as_str(),
-        )
-            .cmp(&(
-                right.evidence_ref.as_str(),
-                right.record_sha256.as_str(),
-            ))
+        (left.evidence_ref.as_str(), left.record_sha256.as_str())
+            .cmp(&(right.evidence_ref.as_str(), right.record_sha256.as_str()))
     });
 
     let encoded = serde_json::to_vec(&canonical)
@@ -314,11 +306,7 @@ fn validate_attestation(
     }
 }
 
-fn validate_record(
-    record: &EvidenceRecord,
-    claim: &Claim,
-    findings: &mut BTreeSet<Finding>,
-) {
+fn validate_record(record: &EvidenceRecord, claim: &Claim, findings: &mut BTreeSet<Finding>) {
     let evidence_ref = record.evidence_ref.as_str();
     for (field, value) in [
         ("evidence_ref", record.evidence_ref.as_str()),
@@ -691,8 +679,7 @@ pub fn evaluate(input: &ClaimClosureInput) -> Result<ClosureReport, String> {
             );
         }
         if record.uncertainty_budget.budget_ref != requirement.uncertainty_budget_ref
-            || record.uncertainty_budget.digest_sha256
-                != requirement.uncertainty_budget_sha256
+            || record.uncertainty_budget.digest_sha256 != requirement.uncertainty_budget_sha256
         {
             add_finding(
                 &mut findings,
@@ -909,10 +896,12 @@ mod tests {
     #[test]
     fn dependency_order_does_not_change_the_report() {
         let mut input = sample_input();
-        input.evidence_records[0].dependencies.push(DependencyBinding {
-            evidence_ref: "evidence:calibration".to_owned(),
-            expected_record_sha256: digest('b'),
-        });
+        input.evidence_records[0]
+            .dependencies
+            .push(DependencyBinding {
+                evidence_ref: "evidence:calibration".to_owned(),
+                expected_record_sha256: digest('b'),
+            });
         let mut first = input.clone();
         let original = evaluate(&first).unwrap();
         first.evidence_records[0].dependencies.reverse();
@@ -924,7 +913,9 @@ mod tests {
     #[test]
     fn missing_required_evidence_blocks_closure() {
         let mut input = sample_input();
-        input.evidence_records.retain(|record| record.evidence_ref != "evidence:measurement");
+        input
+            .evidence_records
+            .retain(|record| record.evidence_ref != "evidence:measurement");
         let report = evaluate(&input).unwrap();
         assert_eq!(report.disposition, ClosureDisposition::Blocked);
         assert!(has_code(&report, "REQUIRED_EVIDENCE_MISSING"));
@@ -933,7 +924,9 @@ mod tests {
     #[test]
     fn missing_transitive_ancestor_blocks_closure() {
         let mut input = sample_input();
-        input.evidence_records.retain(|record| record.evidence_ref != "evidence:reference");
+        input
+            .evidence_records
+            .retain(|record| record.evidence_ref != "evidence:reference");
         let report = evaluate(&input).unwrap();
         assert!(has_code(&report, "DEPENDENCY_EVIDENCE_MISSING"));
     }
@@ -967,7 +960,10 @@ mod tests {
         let mut input = sample_input();
         input.evidence_records[0].subject_ref = "part:other".to_owned();
         let report = evaluate(&input).unwrap();
-        assert!(has_code(&report, "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"));
+        assert!(has_code(
+            &report,
+            "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"
+        ));
         assert_eq!(
             report
                 .findings
@@ -984,7 +980,10 @@ mod tests {
         let mut input = sample_input();
         input.evidence_records[0].configuration_ref = "configuration:r18".to_owned();
         let report = evaluate(&input).unwrap();
-        assert!(has_code(&report, "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"));
+        assert!(has_code(
+            &report,
+            "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"
+        ));
     }
 
     #[test]
@@ -992,7 +991,10 @@ mod tests {
         let mut input = sample_input();
         input.evidence_records[0].scope_ref = "scope:cold-static".to_owned();
         let report = evaluate(&input).unwrap();
-        assert!(has_code(&report, "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"));
+        assert!(has_code(
+            &report,
+            "REQUIRED_EVIDENCE_CLAIM_CONTEXT_MISMATCH"
+        ));
     }
 
     #[test]
@@ -1087,8 +1089,8 @@ mod tests {
     #[test]
     fn exclusive_effectivity_end_must_be_after_acquisition_end() {
         let mut input = sample_input();
-        record_mut(&mut input, "evidence:measurement")
-            .effective_until_exclusive_unix_ms = Some(120);
+        record_mut(&mut input, "evidence:measurement").effective_until_exclusive_unix_ms =
+            Some(120);
         let report = evaluate(&input).unwrap();
         assert!(has_code(
             &report,
@@ -1110,10 +1112,12 @@ mod tests {
     #[test]
     fn dependency_cycle_is_rejected() {
         let mut input = sample_input();
-        input.evidence_records[2].dependencies.push(DependencyBinding {
-            evidence_ref: "evidence:measurement".to_owned(),
-            expected_record_sha256: digest('a'),
-        });
+        input.evidence_records[2]
+            .dependencies
+            .push(DependencyBinding {
+                evidence_ref: "evidence:measurement".to_owned(),
+                expected_record_sha256: digest('a'),
+            });
         let report = evaluate(&input).unwrap();
         assert!(has_code(&report, "DEPENDENCY_CYCLE_DETECTED"));
     }
@@ -1121,7 +1125,9 @@ mod tests {
     #[test]
     fn duplicate_evidence_reference_is_rejected() {
         let mut input = sample_input();
-        input.evidence_records.push(input.evidence_records[0].clone());
+        input
+            .evidence_records
+            .push(input.evidence_records[0].clone());
         let report = evaluate(&input).unwrap();
         assert!(has_code(&report, "DUPLICATE_EVIDENCE_REFERENCE"));
     }
@@ -1129,7 +1135,10 @@ mod tests {
     #[test]
     fn duplicate_requirement_is_rejected() {
         let mut input = sample_input();
-        input.claim.requirements.push(input.claim.requirements[0].clone());
+        input
+            .claim
+            .requirements
+            .push(input.claim.requirements[0].clone());
         let report = evaluate(&input).unwrap();
         assert!(has_code(&report, "DUPLICATE_CLAIM_REQUIREMENT"));
     }
@@ -1138,7 +1147,9 @@ mod tests {
     fn report_tampering_is_detected_by_independent_recomputation() {
         let input = sample_input();
         let mut report = evaluate(&input).unwrap();
-        report.reached_evidence_refs.push("evidence:forged".to_owned());
+        report
+            .reached_evidence_refs
+            .push("evidence:forged".to_owned());
         assert!(!verify_report(&input, &report).unwrap());
     }
 
@@ -1163,9 +1174,16 @@ mod tests {
             100,
         ));
         let report = evaluate(&input).unwrap();
-        assert_eq!(report.disposition, ClosureDisposition::ClosedForIndependentReview);
+        assert_eq!(
+            report.disposition,
+            ClosureDisposition::ClosedForIndependentReview
+        );
         assert_eq!(report.reached_evidence_refs.len(), 3);
-        assert!(!report.reached_evidence_refs.contains(&"evidence:unrelated".to_owned()));
+        assert!(
+            !report
+                .reached_evidence_refs
+                .contains(&"evidence:unrelated".to_owned())
+        );
     }
 
     #[test]
