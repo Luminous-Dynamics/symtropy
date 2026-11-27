@@ -15,6 +15,7 @@ on:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - "research/mobility-rrvr-aerb-v0.1/schemas/**"
       - "research/mobility-rrvr-aerb-v0.1/fixtures/**"
+      - "research/mobility-rrvr-aerb-probe-value-v0.1/**"
       - ".github/workflows/mobility-rrvr-aerb-evaluator.yml"
   workflow_dispatch:
 
@@ -57,14 +58,20 @@ jobs:
             and ($candidate.initial_possible_world_support_ids | index("open_world_residual") != null)
             and ($node_ids | length == (unique | length))
             and ($node_ids | index($candidate.counterfactual_policy.root_node_id) != null)
-            and all($candidate.counterfactual_policy.nodes[]; .counterfactual_only == true)
-            and all($candidate.counterfactual_policy.nodes[] | select(.node_type == "probe"); .probe_id as $probe_id | any($probe_models[]; .probe_id == $probe_id))
-            and all($candidate.counterfactual_policy.nodes[] | select(.node_type == "probe") as $probe | $probe.outcome_branches[];
-              . as $branch
-              | ($node_ids | index($branch.next_node_id) != null)
-                and any($probe_models[] | select(.probe_id == $probe.probe_id) | .outcomes[]; .outcome_id == $branch.outcome_id)
+            and all($candidate.counterfactual_policy.nodes[];
+              . as $node
+              | $node.counterfactual_only == true
+                and (if $node.node_type == "probe" then
+                  any($probe_models[]; .probe_id == $node.probe_id)
+                  and all($node.outcome_branches[];
+                    . as $branch
+                    | ($node_ids | index($branch.next_node_id) != null)
+                      and any($probe_models[] | select(.probe_id == $node.probe_id) | .outcomes[]; .outcome_id == $branch.outcome_id)
+                  )
+                elif $node.node_type == "terminal" then
+                  ($node.terminal_disposition == "hold_reconcile" or $node.terminal_disposition == "abstain" or $node.terminal_disposition == "recommend_fresh_attempt")
+                else false end)
             )
-            and all($candidate.counterfactual_policy.nodes[] | select(.node_type == "terminal"); .terminal_disposition != "authorize_dispatch")
             and (has("hidden_truth_world_id") | not)
             and (has("decision_losses") | not)
             and (has("probe_outcome_supports") | not)
