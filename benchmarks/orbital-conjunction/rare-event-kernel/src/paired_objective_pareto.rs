@@ -16,6 +16,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 
+use crate::counterfactual_trajectory_receipt::{
+    CounterfactualTrajectoryAtom, CounterfactualTrajectoryReceiptCampaign,
+};
 use crate::mission_risk_aggregation::ExactMass;
 use crate::paired_counterfactual::{
     PairedCounterfactualAtom, PairedCounterfactualError, PairingEffect, SignedRational,
@@ -211,6 +214,8 @@ pub struct PairedObjectiveParetoReport {
     pub pareto_frontier_portfolio_ids: Vec<[u8; 32]>,
     /// Digest of the frozen campaign universe and hard-risk gate.
     pub frozen_input_digest: [u8; 32],
+    /// Optional digest of the structurally validated shared-exogenous trajectory receipts.
+    pub trajectory_receipt_digest: Option<[u8; 32]>,
     /// Digest of the complete canonical evidence and oracle result.
     pub result_digest: [u8; 32],
     /// Always false; this arithmetic oracle has no manoeuvre authority.
@@ -248,6 +253,8 @@ pub enum PairedObjectiveParetoError {
     ObjectiveOutcomeOutsideBound,
     /// Exact paired moment arithmetic failed or overflowed.
     ArithmeticFailure,
+    /// Trajectory receipts do not match the hard-risk/objective campaign universe.
+    TrajectoryReceiptMismatch,
 }
 
 impl core::fmt::Display for PairedObjectiveParetoError {
@@ -287,6 +294,9 @@ impl core::fmt::Display for PairedObjectiveParetoError {
                 "objective outcome is outside its frozen per-portfolio bound"
             }
             Self::ArithmeticFailure => "exact paired contrast arithmetic failed",
+            Self::TrajectoryReceiptMismatch => {
+                "shared-exogenous trajectory receipts do not match the Pareto campaign"
+            },
         };
         formatter.write_str(message)
     }
@@ -727,9 +737,82 @@ impl PairedObjectiveParetoCampaign {
             dominance_witnesses,
             pareto_frontier_portfolio_ids,
             frozen_input_digest: self.frozen_input_digest,
+            trajectory_receipt_digest: None,
             result_digest: [0; 32],
             authority_granted: false,
         };
+        report.result_digest = digest_report(&report);
+        Ok(report)
+    }
+
+    /// Evaluate the Pareto frontier only after a separate campaign has
+    /// structurally validated the shared-exogenous trajectory receipts.
+    ///
+    /// The receipt campaign must use the same hard-risk gate, scenario physics
+    /// identities, eligible portfolio set and exact scenario/atom universe.
+    /// Its result digest is bound into this Pareto report. This does not
+    /// authenticate the receipt issuer or prove that a propagator executed.
+    pub fn evaluate_with_trajectory_receipts(
+        &self,
+        atoms: &[PairedObjectiveAtom],
+        trajectory_campaign: &CounterfactualTrajectoryReceiptCampaign,
+        trajectory_atoms: Vec<CounterfactualTrajectoryAtom>,
+    ) -> Result<PairedObjectiveParetoReport, PairedObjectiveParetoError> {
+        let trajectory_report = trajectory_campaign
+            .validate(trajectory_atoms)
+            .map_err(|_| PairedObjectiveParetoError::TrajectoryReceiptMismatch)?;
+        let expected_scenario_ids = self
+            .scenario_supports
+            .iter()
+            .map(|support| support.scenario_id)
+            .collect::<Vec<_>>();
+        let expected_scenario_atom_ids = self
+            .scenario_supports
+            .iter()
+            .flat_map(|support| {
+                support.atom_ids.iter().map(move |atom_id| {
+                    crate::counterfactual_trajectory_receipt::ScenarioAtomIdentity {
+                        scenario_id: support.scenario_id,
+                        atom_id: *atom_id,
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+        let expected_physics_bindings = self
+            .scenario_supports
+            .iter()
+            .map(|support| {
+                (
+                    support.scenario_id,
+                    support.scenario_physics_configuration_digest,
+                )
+            })
+            .collect::<Vec<_>>();
+        let actual_physics_bindings = trajectory_report
+            .scenario_contracts
+            .iter()
+            .map(|contract| {
+                (
+                    contract.scenario_id,
+                    contract.scenario_physics_configuration_digest,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        if trajectory_report.authority_granted
+            || trajectory_report.mission_risk_gate_digest != self.mission_risk_gate_digest
+            || trajectory_report.scenario_ids != expected_scenario_ids
+            || trajectory_report.eligible_portfolio_ids != self.eligible_portfolio_ids
+            || trajectory_report.ineligible_portfolio_ids != self.ineligible_portfolio_ids
+            || trajectory_report.scenario_atom_ids != expected_scenario_atom_ids
+            || actual_physics_bindings != expected_physics_bindings
+            || is_zero(&trajectory_report.result_digest)
+        {
+            return Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch);
+        }
+
+        let mut report = self.evaluate(atoms)?;
+        report.trajectory_receipt_digest = Some(trajectory_report.result_digest);
         report.result_digest = digest_report(&report);
         Ok(report)
     }
@@ -966,6 +1049,13 @@ fn digest_report(report: &PairedObjectiveParetoReport) -> [u8; 32] {
     hasher.update(b"luminous.orbital.paired-objective-pareto.report.v0.1\0");
     hasher.update(report.mission_risk_gate_digest);
     hasher.update(report.frozen_input_digest);
+    match report.trajectory_receipt_digest {
+        Some(digest) => {
+            hasher.update([1]);
+            hasher.update(digest);
+        }
+        None => hasher.update([0]),
+    }
     hash_ids(&mut hasher, &report.scenario_ids);
     hasher.update((report.scenario_model_bindings.len() as u64).to_be_bytes());
     for binding in &report.scenario_model_bindings {
