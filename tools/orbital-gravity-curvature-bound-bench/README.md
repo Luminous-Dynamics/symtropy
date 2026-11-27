@@ -43,7 +43,7 @@ All values are integers:
 - chief/deputy relative separation upper bound: mm (u64)
 - differential relative acceleration upper bound: mm / s^2 (u64)
 - transform operator norm: ceil(||L||_2 * 1,000,000 mm) (u64)
-- output M upper bound: ceil(||q''|| * 1,000,000 s^2) (u128)
+- output M upper bound: ceil(||q''|| * 1,000,000 s^2), reported with m_scale=1,000,000 and m_unit=s^-2 (u128)
 
 With D = R_min^3, the exact scaled numerator is:
 
