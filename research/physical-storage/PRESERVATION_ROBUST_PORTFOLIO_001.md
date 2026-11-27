@@ -113,15 +113,16 @@ Performance reporting must include scenario count, candidate count, subset count
 ## 8. How to compare with industry and research
 
 The standards and product comparison is complementary, not competitive:
-- OAIS ISO 14721:2025 defines the archival reference model and preservation responsibilities.
-- ISO 16363:2025 defines audit/certification criteria for trustworthy digital repositories.
-- NDSA Levels 2.1 (March 2026) adds environmental sustainability guidance.
-- PREMIS 3.0 provides preservation event/agent/object metadata.
-- BagIt RFC 8493 and OCFL 1.1.1 provide interoperable packaging and object-layout foundations.
-- SPECstorage Solution 2020 measures application-style storage performance; it is not an end-to-end accepted-recovery benchmark.
-- SNIA Emerald measures storage-system power efficiency under defined procedures; its subsystem boundary must not be relabelled whole-service energy.
+- **OAIS ISO 14721:2025, Edition 3** is the archival reference model for preserving information for a Designated Community. Use its representation-information and preservation-responsibility concepts as architecture constraints.
+- **ISO 16363:2025, Edition 2** is the current trustworthy digital repository audit/certification reference. Map the evidence ledger to its controls; do not claim certification from passing local tests.
+- **NDSA Levels of Digital Preservation 2.1 (March 2026)** adds an Environmental Sustainability Guide. Include it in lifecycle decisions rather than treating energy as an isolated device metric.
+- **PREMIS 3.0** supplies the preservation metadata model for Objects, Events, Rights and Agents. Preserve event/agent/environment provenance instead of inventing a parallel history format.
+- **BagIt RFC 8493** supports hierarchical packaging, storage and transfer with manifest fixity; it explicitly does not understand payload semantics and is not designed to secure against active attacks.
+- **OCFL 1.1.1** provides an application-independent object layout emphasizing completeness, parsability, versioning, robustness and storage diversity. Treat its rebuildability requirements as an offline-closure baseline.
+- **SPECstorage Solution 2020** is SPEC's current file-server benchmark suite for throughput and response time. Match the exact workload and configuration; it is not an end-to-end accepted-recovery benchmark.
+- **SNIA Emerald** measures storage-product power efficiency under a defined taxonomy, instrumentation and measurement interval. Pin the exact edition and profile in every comparison: SNIA lists a v1.0 Standard published in September 2025 and a v4.0.0 Technical Position published in July 2020. Keep its device/subsystem boundary separate from whole-service energy.
 
-This track adds an explicit stress-test envelope around the intervention portfolio. It does not claim that these standards or industry products already provide, or fail to provide, any particular feature without an implementation-level comparison.
+This track adds an explicit stress-test envelope around the intervention portfolio. It does not claim that these standards or industry products already provide, or fail to provide, any particular feature without an implementation-level comparison. The programme should report standards conformance mapping, certification evidence, and performance benchmarking as three separate claims.
 
 ## 9. Claim ceiling
 
