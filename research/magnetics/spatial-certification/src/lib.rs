@@ -3,6 +3,11 @@
 //! Continuous-domain interval certification for magnetic functional margins.
 //!
 //! This crate validates supplied derivative supremum bounds and interval arithmetic.
+
+use magnetic_interval_ad::{
+    SpatialDerivativeSupremumEvidence, SpatialMappingError, ValidatedDerivativeEnclosure,
+    map_spatial_derivative_suprema,
+};
 //! It does not solve a magnetic field or authenticate the supplied evidence.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -248,6 +253,52 @@ pub enum CertificationError {
     DuplicateCellId,
 }
 
+/// Declared physical and numerical scope for one spatial functional requirement.
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialDomainScope {
+    pub domain_id: String,
+    pub cell_id: String,
+    pub bounds: AxisAlignedBox3,
+    pub coordinate_frame_id: String,
+    pub operating_condition_id: String,
+    pub model_set_id: String,
+    pub solver_run_id: String,
+    pub geometry_sha256: String,
+    pub material_sha256: String,
+    pub requirement_id: String,
+}
+
+/// Independent centre observation. The margin interval must be derived from
+/// the calibrated measurement and its uncertainty, not from the whole-cell
+/// expression enclosure.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CentreMarginObservation {
+    pub sample_id: String,
+    pub sample_sha256: String,
+    pub sample_position_m: [f64; 3],
+    pub margin_lower_bound: f64,
+    pub margin_upper_bound: f64,
+    pub margin_unit: String,
+    pub probe_calibration_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum EvidenceBindingError {
+    InvalidIdentity,
+    InvalidSha256 { field: &'static str },
+    InvalidBox(CertificationError),
+    CentreSampleNotAtCellCentre,
+    InvalidCentreMarginInterval,
+    DerivativeCellMismatch,
+    DerivativeBoxMismatch { axis: Axis },
+    DerivativeAxisMismatch { axis: Axis },
+    DerivativeScopeMismatch { field: &'static str },
+    DerivativeUnitMismatch,
+    InvalidDerivativeBound { axis: Axis },
+    IntervalMapping(SpatialMappingError),
+    SpatialCertification(CertificationError),
+}
+
 fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
@@ -373,6 +424,174 @@ fn validate_evidence(evidence: &CellMarginEvidence) -> Result<(), CertificationE
         }
     }
     Ok(())
+}
+
+fn exact_f64(left: f64, right: f64) -> bool {
+    left.to_bits() == right.to_bits()
+}
+
+fn valid_sha256(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Join an independent centre observation with interval-AD-derived
+/// whole-cell XYZ derivative evidence.
+///
+/// A single scalar interval-AD record contains all three XYZ partial
+/// derivative suprema. The legacy `derivative_bound_record_ids` array is
+/// therefore populated with the same source record ID in all three slots.
+/// This means "one shared XYZ certificate", not three distinct records.
+pub fn bind_centre_observation_to_spatial_derivative(
+    scope: &SpatialDomainScope,
+    observation: &CentreMarginObservation,
+    derivative: &SpatialDerivativeSupremumEvidence,
+    evidence_role: EvidenceRole,
+) -> Result<CellMarginEvidence, EvidenceBindingError> {
+    scope
+        .bounds
+        .validate()
+        .map_err(EvidenceBindingError::InvalidBox)?;
+
+    let identities = [
+        scope.domain_id.as_str(),
+        scope.cell_id.as_str(),
+        scope.coordinate_frame_id.as_str(),
+        scope.operating_condition_id.as_str(),
+        scope.model_set_id.as_str(),
+        scope.solver_run_id.as_str(),
+        scope.requirement_id.as_str(),
+        observation.sample_id.as_str(),
+        observation.margin_unit.as_str(),
+        observation.probe_calibration_id.as_str(),
+        derivative.source_record_id.as_str(),
+        derivative.source_revision.as_str(),
+        derivative.implementation_id.as_str(),
+        derivative.output_unit.as_str(),
+        derivative.derivative_unit.as_str(),
+        derivative.arithmetic_contract.as_str(),
+    ];
+    if identities.iter().any(|value| !nonempty(value)) {
+        return Err(EvidenceBindingError::InvalidIdentity);
+    }
+
+    for (value, field) in [
+        (&observation.sample_sha256, "centre_sample_sha256"),
+        (&scope.geometry_sha256, "geometry_sha256"),
+        (&scope.material_sha256, "material_sha256"),
+        (&derivative.artifact_sha256, "derivative_artifact_sha256"),
+        (&derivative.environment_sha256, "derivative_environment_sha256"),
+    ] {
+        if !valid_sha256(value) {
+            return Err(EvidenceBindingError::InvalidSha256 { field });
+        }
+    }
+
+    if !observation.margin_lower_bound.is_finite()
+        || !observation.margin_upper_bound.is_finite()
+        || observation.margin_lower_bound > observation.margin_upper_bound
+    {
+        return Err(EvidenceBindingError::InvalidCentreMarginInterval);
+    }
+    let expected_centre = scope.bounds.centre_m();
+    if !observation
+        .sample_position_m
+        .iter()
+        .zip(expected_centre.iter())
+        .all(|(actual, expected)| exact_f64(*actual, *expected))
+    {
+        return Err(EvidenceBindingError::CentreSampleNotAtCellCentre);
+    }
+
+    if derivative.cell_id != scope.cell_id {
+        return Err(EvidenceBindingError::DerivativeCellMismatch);
+    }
+    if derivative.output_unit != observation.margin_unit
+        || derivative.derivative_unit != format!("{}/metre", observation.margin_unit)
+    {
+        return Err(EvidenceBindingError::DerivativeUnitMismatch);
+    }
+
+    let expected_axes = ["x", "y", "z"];
+    for axis in Axis::ALL {
+        let index = axis.index();
+        if derivative.axis_parameter_ids[index] != expected_axes[index] {
+            return Err(EvidenceBindingError::DerivativeAxisMismatch { axis });
+        }
+        let bounds = derivative.axis_bounds_m[index];
+        if !exact_f64(bounds.lower(), scope.bounds.minimum_m[index])
+            || !exact_f64(bounds.upper(), scope.bounds.maximum_m[index])
+        {
+            return Err(EvidenceBindingError::DerivativeBoxMismatch { axis });
+        }
+        let derivative_bound = derivative.derivative_abs_supremum_by_axis[index];
+        if !derivative_bound.is_finite() || derivative_bound < 0.0 {
+            return Err(EvidenceBindingError::InvalidDerivativeBound { axis });
+        }
+    }
+
+    for (matches, field) in [
+        (derivative.coordinate_frame_id == scope.coordinate_frame_id, "coordinate_frame_id"),
+        (derivative.operating_condition_id == scope.operating_condition_id, "operating_condition_id"),
+        (derivative.model_set_id == scope.model_set_id, "model_set_id"),
+        (derivative.solver_run_id == scope.solver_run_id, "solver_run_id"),
+        (derivative.geometry_sha256 == scope.geometry_sha256, "geometry_sha256"),
+        (derivative.material_sha256 == scope.material_sha256, "material_sha256"),
+        (derivative.requirement_id == scope.requirement_id, "requirement_id"),
+    ] {
+        if !matches {
+            return Err(EvidenceBindingError::DerivativeScopeMismatch { field });
+        }
+    }
+
+    Ok(CellMarginEvidence {
+        domain_id: scope.domain_id.clone(),
+        cell_id: scope.cell_id.clone(),
+        bounds: scope.bounds,
+        centre_sample_id: observation.sample_id.clone(),
+        centre_sample_sha256: observation.sample_sha256.clone(),
+        centre_sample_position_m: observation.sample_position_m,
+        centre_margin_lower_bound: observation.margin_lower_bound,
+        centre_margin_upper_bound: observation.margin_upper_bound,
+        margin_unit: observation.margin_unit.clone(),
+        derivative_abs_upper_by_axis_per_m: derivative.derivative_abs_supremum_by_axis,
+        derivative_unit: derivative.derivative_unit.clone(),
+        derivative_bound_cell_id: derivative.cell_id.clone(),
+        derivative_bound_record_ids: std::array::from_fn(|_| derivative.source_record_id.clone()),
+        coordinate_frame_id: scope.coordinate_frame_id.clone(),
+        operating_condition_id: scope.operating_condition_id.clone(),
+        probe_calibration_id: observation.probe_calibration_id.clone(),
+        model_set_id: scope.model_set_id.clone(),
+        solver_run_id: scope.solver_run_id.clone(),
+        geometry_sha256: scope.geometry_sha256.clone(),
+        material_sha256: scope.material_sha256.clone(),
+        requirement_id: scope.requirement_id.clone(),
+        evidence_role,
+    })
+}
+
+/// Convenience path: map a validated interval-AD derivative record to XYZ
+/// and bind it with an independent centre observation in one operation.
+pub fn bind_centre_observation_to_validated_derivative<const N: usize>(
+    scope: &SpatialDomainScope,
+    observation: &CentreMarginObservation,
+    derivative_record: &ValidatedDerivativeEnclosure<N>,
+    evidence_role: EvidenceRole,
+) -> Result<CellMarginEvidence, EvidenceBindingError> {
+    let derivative = map_spatial_derivative_suprema(
+        derivative_record,
+        &scope.cell_id,
+        &scope.requirement_id,
+        ["x", "y", "z"],
+        "metre",
+    )
+    .map_err(EvidenceBindingError::IntervalMapping)?;
+    bind_centre_observation_to_spatial_derivative(
+        scope,
+        observation,
+        &derivative,
+        evidence_role,
+    )
+    .map_err(EvidenceBindingError::SpatialCertification)
 }
 
 fn dominant_axis(contributions: [f64; 3]) -> Option<Axis> {
