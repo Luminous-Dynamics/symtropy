@@ -42,6 +42,8 @@ pub struct ManufacturingEvidence {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GeometryEvidence {
     pub inspection_record: EvidenceRecord,
+    /// Exact geometry artifact digest named by the inspection record.
+    pub inspection_geometry_digest: String,
     pub nominal_geometry_digest: String,
     pub as_built_geometry_digest: String,
 }
@@ -71,7 +73,9 @@ pub struct ModelDiscrepancyEvidence {
     pub geometry_digest: String,
     pub material_state_record_id: String,
     pub solver_record_id: String,
+    pub solver_record_digest: String,
     pub observation_record_id: String,
+    pub observation_record_digest: String,
     pub qualified: bool,
 }
 
@@ -103,6 +107,8 @@ pub struct ComparisonEvidence {
     pub verdict: Verdict,
     /// True only when the comparison verdict accounts for its complete
     /// uncertainty budget rather than a point estimate.
+    pub uncertainty_record_id: String,
+    pub uncertainty_digest: String,
     pub uncertainty_resolved: bool,
 }
 
@@ -112,6 +118,9 @@ pub struct RequirementEvidence {
     pub record: EvidenceRecord,
     pub scope: Scope,
     pub verdict: Verdict,
+    /// Exact frozen budget used to derive this requirement verdict.
+    pub uncertainty_record_id: String,
+    pub uncertainty_digest: String,
     /// True only when the result's uncertainty is resolved against the
     /// preregistered requirement limit (not merely a point estimate).
     pub uncertainty_resolved: bool,
@@ -127,6 +136,9 @@ pub struct SpatialCertificate {
     pub material_state_record_id: String,
     pub complete_domain_coverage: bool,
     pub verdict: Verdict,
+    /// Exact frozen budget used to derive the spatial verdict.
+    pub uncertainty_record_id: String,
+    pub uncertainty_digest: String,
     /// A spatial verdict is admissible only when its uncertainty treatment is
     /// closed over the declared continuous domain.
     pub uncertainty_resolved: bool,
@@ -185,6 +197,7 @@ pub enum Blocker {
     ManufacturingLotMismatch,
     ManufacturingBuildMismatch,
     AsBuiltGeometryMismatch,
+    InspectionGeometryBindingMismatch,
     MaterialStateBindingMismatch,
     MagnetizationBindingMismatch,
     ManufacturingBindingMismatch,
@@ -205,6 +218,7 @@ pub enum Blocker {
     UnqualifiedModelDiscrepancy,
     ModelDiscrepancyBindingMismatch,
     MissingUncertaintyRecord,
+    UncertaintyBindingMismatch,
     DefiniteHardRequirementFailure,
     UnresolvedHardRequirement,
     ComparisonFailure,
@@ -348,7 +362,9 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     if case.model_discrepancy.geometry_digest != case.geometry.as_built_geometry_digest
         || case.model_discrepancy.material_state_record_id != case.material_state.id
         || case.model_discrepancy.solver_record_id != case.solver.record.id
+        || case.model_discrepancy.solver_record_digest != case.solver.record.digest
         || case.model_discrepancy.observation_record_id != case.observation.record.id
+        || case.model_discrepancy.observation_record_digest != case.observation.record.digest
     {
         blockers.push(Blocker::ModelDiscrepancyBindingMismatch);
     }
@@ -374,6 +390,11 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     if case.comparison.scope != case.scope {
         blockers.push(Blocker::WrongScope);
     }
+    if case.comparison.uncertainty_record_id != case.uncertainty.record_id
+        || case.comparison.uncertainty_digest != case.uncertainty.digest
+    {
+        blockers.push(Blocker::UncertaintyBindingMismatch);
+    }
 
     if case.spatial_certificate.certificate_id.trim().is_empty() {
         blockers.push(Blocker::MissingIdentity);
@@ -393,10 +414,19 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     if case.spatial_certificate.material_state_record_id != case.material_state.id {
         blockers.push(Blocker::SpatialMaterialBindingMismatch);
     }
+    if case.spatial_certificate.uncertainty_record_id != case.uncertainty.record_id
+        || case.spatial_certificate.uncertainty_digest != case.uncertainty.digest
+    {
+        blockers.push(Blocker::UncertaintyBindingMismatch);
+    }
     if !valid_sha256(&case.geometry.nominal_geometry_digest)
         || !valid_sha256(&case.geometry.as_built_geometry_digest)
+        || !valid_sha256(&case.geometry.inspection_geometry_digest)
     {
         blockers.push(Blocker::InvalidSha256Digest);
+    }
+    if case.geometry.inspection_geometry_digest != case.geometry.as_built_geometry_digest {
+        blockers.push(Blocker::InspectionGeometryBindingMismatch);
     }
 
     if case.hard_requirements.is_empty() {
@@ -417,6 +447,11 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
             )
         {
             blockers.push(Blocker::InvalidRequirementEvidence);
+        }
+        if requirement.uncertainty_record_id != case.uncertainty.record_id
+            || requirement.uncertainty_digest != case.uncertainty.digest
+        {
+            blockers.push(Blocker::UncertaintyBindingMismatch);
         }
     }
 
@@ -592,6 +627,7 @@ mod tests {
         };
         let geometry = GeometryEvidence {
             inspection_record: record("GEOM-001", &specimen, EvidenceRole::AsBuiltInspection, '2'),
+            inspection_geometry_digest: digest('b'),
             nominal_geometry_digest: digest('a'),
             as_built_geometry_digest: digest('b'),
         };
@@ -641,7 +677,9 @@ mod tests {
                 geometry_digest: geometry.as_built_geometry_digest.clone(),
                 material_state_record_id: material_state.id.clone(),
                 solver_record_id: solver_record.id.clone(),
+                solver_record_digest: solver_record.digest.clone(),
                 observation_record_id: observation_record.id.clone(),
+                observation_record_digest: observation_record.digest.clone(),
                 qualified: true,
             },
             observation: ObservationEvidence {
@@ -662,6 +700,8 @@ mod tests {
                 prediction_digest: solver_record.digest.clone(),
                 observation_record_id: observation_record.id.clone(),
                 observation_digest: observation_record.digest.clone(),
+                uncertainty_record_id: "UNCERTAINTY-001".to_string(),
+                uncertainty_digest: digest('e'),
                 scope: scope.clone(),
                 verdict: Verdict::Safe,
                 uncertainty_resolved: true,
@@ -673,6 +713,8 @@ mod tests {
                 scope: scope.clone(),
                 geometry_digest: geometry.as_built_geometry_digest.clone(),
                 material_state_record_id: material_state.id.clone(),
+                uncertainty_record_id: "UNCERTAINTY-001".to_string(),
+                uncertainty_digest: digest('e'),
                 complete_domain_coverage: true,
                 verdict: Verdict::Safe,
                 uncertainty_resolved: true,
@@ -682,6 +724,8 @@ mod tests {
                 record: observation_record,
                 scope: scope.clone(),
                 verdict: Verdict::Safe,
+                uncertainty_record_id: "UNCERTAINTY-001".to_string(),
+                uncertainty_digest: digest('e'),
                 uncertainty_resolved: true,
             }],
             fit_calibration_record_ids: vec!["FIT-OBS-001".to_string()],
@@ -953,6 +997,30 @@ mod tests {
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::UnresolvedComparison));
         assert!(result.blockers.contains(&Blocker::UnresolvedSpatialMargin));
+    }
+
+    #[test]
+    fn inspection_must_bind_the_exact_as_built_geometry_digest() {
+        let mut case = valid_case();
+        case.geometry.inspection_geometry_digest = digest('f');
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::InspectionGeometryBindingMismatch));
+    }
+
+    #[test]
+    fn every_derived_verdict_must_bind_the_same_frozen_uncertainty_budget() {
+        let mut case = valid_case();
+        case.comparison.uncertainty_digest = digest('f');
+        case.hard_requirements[0].uncertainty_record_id = "OTHER-UNCERTAINTY".to_string();
+        case.spatial_certificate.uncertainty_digest = digest('d');
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::UncertaintyBindingMismatch));
     }
 
     #[test]
