@@ -12,11 +12,12 @@
     "claim_specification",
     "decision_context",
     "trust_policy",
-    "owner_evidence_cut",
     "model_credibility_cut",
     "observer_coverage",
     "obligations",
-    "case_partition"
+    "case_partition",
+    "owner_evidence_cuts",
+    "replay_mode"
   ],
   "properties": {
     "schema": {
@@ -239,35 +240,6 @@
               }
             }
           }
-        }
-      }
-    },
-    "owner_evidence_cut": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "sha256",
-        "owner_namespace",
-        "receiver_receipt_manifest_sha256",
-        "receiver_receipt_watermark_unix_ms"
-      ],
-      "properties": {
-        "sha256": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "owner_namespace": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "^\\S.*\\S$|^\\S$"
-        },
-        "receiver_receipt_manifest_sha256": {
-          "type": "string",
-          "pattern": "^sha256:[a-f0-9]{64}$"
-        },
-        "receiver_receipt_watermark_unix_ms": {
-          "type": "integer",
-          "minimum": 0
         }
       }
     },
@@ -621,6 +593,46 @@
           "const": "INDEPENDENT_ENGINEERING_EPISODE_OR_ROOT_CAUSE_FAMILY"
         }
       }
+    },
+    "owner_evidence_cuts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sha256",
+          "owner_namespace",
+          "receiver_receipt_manifest_sha256",
+          "receiver_receipt_watermark_unix_ms"
+        ],
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "owner_namespace": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\S.*\\S$|^\\S$"
+          },
+          "receiver_receipt_manifest_sha256": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "receiver_receipt_watermark_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "replay_mode": {
+      "enum": [
+        "HISTORICAL_AS_KNOWN",
+        "CURRENT_POLICY_COUNTERFACTUAL",
+        "CURRENT_AS_KNOWN"
+      ]
     }
   }
 }
