@@ -136,14 +136,13 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                         "line {line_number}: v0.1 shock must begin at day 0 and have positive duration"
                     ));
                 }
-                pending_shocks.push((
-                    fields[1].to_owned(),
-                    Shock { start_day, end_day },
-                ));
+                pending_shocks.push((fields[1].to_owned(), Shock { start_day, end_day }));
             }
             "OPTION" if fields.len() == 11 => {
                 if fields[1].is_empty() || fields[2].is_empty() {
-                    return Err(format!("line {line_number}: empty option identity or region"));
+                    return Err(format!(
+                        "line {line_number}: empty option identity or region"
+                    ));
                 }
                 let mut dependency_ids: Vec<String> = if fields[10] == "-" {
                     Vec::new()
@@ -154,8 +153,7 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                 if dependency_ids.iter().any(String::is_empty) {
                     return Err(format!("line {line_number}: empty dependency in option"));
                 }
-                let unique: BTreeSet<&str> =
-                    dependency_ids.iter().map(String::as_str).collect();
+                let unique: BTreeSet<&str> = dependency_ids.iter().map(String::as_str).collect();
                 if unique.len() != dependency_ids.len() {
                     return Err(format!(
                         "line {line_number}: duplicate dependency in option '{}'",
@@ -171,7 +169,11 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                     commissioning_days: parse_u64(fields[6], "commissioning days", line_number)?,
                     handoff_days: parse_u64(fields[7], "receiver handoff days", line_number)?,
                     emissions_units: parse_u64(fields[8], "emissions units", line_number)?,
-                    regional_value_units: parse_u64(fields[9], "regional value units", line_number)?,
+                    regional_value_units: parse_u64(
+                        fields[9],
+                        "regional value units",
+                        line_number,
+                    )?,
                     dependencies: dependency_ids,
                 };
                 if options.insert(option.id.clone(), option).is_some() {
@@ -191,9 +193,9 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
 
     // Resolve shocks after parsing so record ordering is semantically irrelevant.
     for (dependency_id, shock) in pending_shocks {
-        let dependency = dependencies.get_mut(&dependency_id).ok_or_else(|| {
-            format!("shock references undeclared dependency '{dependency_id}'")
-        })?;
+        let dependency = dependencies
+            .get_mut(&dependency_id)
+            .ok_or_else(|| format!("shock references undeclared dependency '{dependency_id}'"))?;
         dependency.shocks.push(shock);
     }
 
@@ -412,31 +414,31 @@ mod tests {
 
     #[test]
     fn unknown_dependency_fails_closed() {
-        let changed = FIXTURE.replace(
-            "MILL-01,GRID-A,NDT-01",
-            "MILL-UNKNOWN,GRID-A,NDT-01",
+        let changed = FIXTURE.replace("MILL-01,GRID-A,NDT-01", "MILL-UNKNOWN,GRID-A,NDT-01");
+        assert!(
+            parse_instance(&changed)
+                .unwrap_err()
+                .contains("undeclared dependency")
         );
-        assert!(parse_instance(&changed)
-            .unwrap_err()
-            .contains("undeclared dependency"));
     }
 
     #[test]
     fn duplicate_dependency_fails_closed() {
-        let changed = FIXTURE.replace(
-            "MILL-01,GRID-A,NDT-01",
-            "MILL-01,MILL-01,NDT-01",
+        let changed = FIXTURE.replace("MILL-01,GRID-A,NDT-01", "MILL-01,MILL-01,NDT-01");
+        assert!(
+            parse_instance(&changed)
+                .unwrap_err()
+                .contains("duplicate dependency")
         );
-        assert!(parse_instance(&changed)
-            .unwrap_err()
-            .contains("duplicate dependency"));
     }
 
     #[test]
     fn nonzero_start_shock_is_not_approximated() {
         let changed = FIXTURE.replace("SHOCK\tGRID-A\t0\t6", "SHOCK\tGRID-A\t2\t6");
-        assert!(parse_instance(&changed)
-            .unwrap_err()
-            .contains("must begin at day 0"));
+        assert!(
+            parse_instance(&changed)
+                .unwrap_err()
+                .contains("must begin at day 0")
+        );
     }
 }
