@@ -1,6 +1,6 @@
 use spacecraft_unit_conformal_calibration_bench::{
-    EvaluationReceipt, Observation, ObservationStatus, Partition, ScopeResult,
-    ThresholdResult, UnitKind, WilsonIntervalPpm, evaluate_manifest,
+    EvaluationReceipt, Observation, ObservationStatus, Partition, ScopeResult, ThresholdResult,
+    UnitKind, WilsonIntervalPpm, evaluate_manifest,
 };
 use std::error::Error;
 use std::fmt::Write as _;
