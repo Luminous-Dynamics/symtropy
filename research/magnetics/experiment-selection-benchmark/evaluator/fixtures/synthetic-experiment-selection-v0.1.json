@@ -1,0 +1,333 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-EXPERIMENT-SELECTION-BENCH-001",
+  "claim_ceiling": "All traces and observations are synthetic. Metric values validate evaluator semantics only and are not magnetic-route performance or actual experimental savings.",
+  "task": {
+    "task_id": "MAGNETIC-AL-TASK-001",
+    "candidate_space_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "target_function_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "initial_design_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "holdout_manifest_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "split_unit": "MaterialLot",
+    "experiment_budget": 4,
+    "objectives": [
+      {
+        "metric_id": "field_error",
+        "unit": "mT",
+        "direction": "Minimize"
+      },
+      {
+        "metric_id": "remanence",
+        "unit": "T",
+        "direction": "Maximize"
+      }
+    ],
+    "oracle_best_objective_0": 5,
+    "hypervolume_reference_point": [
+      50,
+      0
+    ],
+    "false_feasible_probability_threshold": 0.5
+  },
+  "traces": [
+    {
+      "policy": "ExpertPrior",
+      "matched_seed_id": "SEED-001",
+      "training_group_ids": [
+        "LOT-A"
+      ],
+      "holdout_group_ids": [
+        "LOT-B"
+      ],
+      "initiated_experiment_count": 4,
+      "outcomes": [
+        {
+          "experiment_id": "EXP-1",
+          "candidate_id": "CAND-1",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-1",
+          "process_revision": "MEX-v1",
+          "iteration": 1,
+          "disposition": "Fail",
+          "cost_minor": 2000,
+          "objective_values": [
+            30,
+            0.2
+          ],
+          "design_features": [
+            1,
+            0.5
+          ],
+          "predicted_feasibility_probability": 0.95
+        },
+        {
+          "experiment_id": "EXP-2",
+          "candidate_id": "CAND-2",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-2",
+          "process_revision": "MEX-v1",
+          "iteration": 2,
+          "disposition": "Indeterminate",
+          "cost_minor": 3000,
+          "objective_values": [
+            20,
+            0.3
+          ],
+          "design_features": [
+            2,
+            1
+          ],
+          "predicted_feasibility_probability": 0.9
+        },
+        {
+          "experiment_id": "EXP-3",
+          "candidate_id": "CAND-3",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-3",
+          "process_revision": "MEX-v1",
+          "iteration": 3,
+          "disposition": "Qualified",
+          "cost_minor": 4000,
+          "objective_values": [
+            10,
+            0.4
+          ],
+          "design_features": [
+            3,
+            1.5
+          ],
+          "predicted_feasibility_probability": 0.8
+        },
+        {
+          "experiment_id": "EXP-4",
+          "candidate_id": "CAND-4",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-4",
+          "process_revision": "MEX-v1",
+          "iteration": 4,
+          "disposition": "Qualified",
+          "cost_minor": 2500,
+          "objective_values": [
+            15,
+            0.45
+          ],
+          "design_features": [
+            4,
+            2
+          ],
+          "predicted_feasibility_probability": 0.85
+        }
+      ],
+      "holdout": [
+        {
+          "holdout_id": "HOLD-1",
+          "candidate_id": "HC-1",
+          "material_lot_id": "LOT-B",
+          "build_id": "HB-1",
+          "process_revision": "MEX-v1",
+          "disposition": "Qualified",
+          "objective_values": [
+            12,
+            0.42
+          ],
+          "design_features": [
+            0.5,
+            0.75
+          ],
+          "predicted_feasibility_probability": 0.8,
+          "predicted_intervals": [
+            {
+              "objective_index": 0,
+              "lower": 10,
+              "upper": 14
+            },
+            {
+              "objective_index": 1,
+              "lower": 0.35,
+              "upper": 0.5
+            }
+          ]
+        },
+        {
+          "holdout_id": "HOLD-2",
+          "candidate_id": "HC-2",
+          "material_lot_id": "LOT-B",
+          "build_id": "HB-2",
+          "process_revision": "MEX-v1",
+          "disposition": "Fail",
+          "objective_values": [
+            30,
+            0.1
+          ],
+          "design_features": [
+            0.5,
+            0.75
+          ],
+          "predicted_feasibility_probability": 0.2,
+          "predicted_intervals": [
+            {
+              "objective_index": 0,
+              "lower": 28,
+              "upper": 32
+            },
+            {
+              "objective_index": 1,
+              "lower": 0.05,
+              "upper": 0.2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "policy": "GaussianProcessExpectedImprovement",
+      "matched_seed_id": "SEED-001",
+      "training_group_ids": [
+        "LOT-A"
+      ],
+      "holdout_group_ids": [
+        "LOT-B"
+      ],
+      "initiated_experiment_count": 4,
+      "outcomes": [
+        {
+          "experiment_id": "EXP-1",
+          "candidate_id": "CAND-1",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-1",
+          "process_revision": "MEX-v1",
+          "iteration": 1,
+          "disposition": "Fail",
+          "cost_minor": 2000,
+          "objective_values": [
+            30,
+            0.2
+          ],
+          "design_features": [
+            1,
+            0.5
+          ],
+          "predicted_feasibility_probability": 0.95
+        },
+        {
+          "experiment_id": "EXP-2",
+          "candidate_id": "CAND-2",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-2",
+          "process_revision": "MEX-v1",
+          "iteration": 2,
+          "disposition": "Indeterminate",
+          "cost_minor": 3000,
+          "objective_values": [
+            20,
+            0.3
+          ],
+          "design_features": [
+            2,
+            1
+          ],
+          "predicted_feasibility_probability": 0.9
+        },
+        {
+          "experiment_id": "EXP-3",
+          "candidate_id": "CAND-3",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-3",
+          "process_revision": "MEX-v1",
+          "iteration": 3,
+          "disposition": "Qualified",
+          "cost_minor": 4000,
+          "objective_values": [
+            10,
+            0.4
+          ],
+          "design_features": [
+            3,
+            1.5
+          ],
+          "predicted_feasibility_probability": 0.8
+        },
+        {
+          "experiment_id": "EXP-4",
+          "candidate_id": "CAND-4",
+          "material_lot_id": "LOT-A",
+          "build_id": "BUILD-4",
+          "process_revision": "MEX-v1",
+          "iteration": 4,
+          "disposition": "Qualified",
+          "cost_minor": 2500,
+          "objective_values": [
+            15,
+            0.45
+          ],
+          "design_features": [
+            4,
+            2
+          ],
+          "predicted_feasibility_probability": 0.85
+        }
+      ],
+      "holdout": [
+        {
+          "holdout_id": "HOLD-1",
+          "candidate_id": "HC-1",
+          "material_lot_id": "LOT-B",
+          "build_id": "HB-1",
+          "process_revision": "MEX-v1",
+          "disposition": "Qualified",
+          "objective_values": [
+            12,
+            0.42
+          ],
+          "design_features": [
+            0.5,
+            0.75
+          ],
+          "predicted_feasibility_probability": 0.8,
+          "predicted_intervals": [
+            {
+              "objective_index": 0,
+              "lower": 10,
+              "upper": 14
+            },
+            {
+              "objective_index": 1,
+              "lower": 0.35,
+              "upper": 0.5
+            }
+          ]
+        },
+        {
+          "holdout_id": "HOLD-2",
+          "candidate_id": "HC-2",
+          "material_lot_id": "LOT-B",
+          "build_id": "HB-2",
+          "process_revision": "MEX-v1",
+          "disposition": "Fail",
+          "objective_values": [
+            30,
+            0.1
+          ],
+          "design_features": [
+            0.5,
+            0.75
+          ],
+          "predicted_feasibility_probability": 0.2,
+          "predicted_intervals": [
+            {
+              "objective_index": 0,
+              "lower": 28,
+              "upper": 32
+            },
+            {
+              "objective_index": 1,
+              "lower": 0.05,
+              "upper": 0.2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
