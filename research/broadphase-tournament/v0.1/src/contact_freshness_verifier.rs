@@ -9,13 +9,13 @@
 //! cryptographic trust anchor. Production qualification still requires a
 //! separately built verifier process and an authoritative world snapshot.
 
+use super::PairDeltaFrame;
 use super::contact_freshness::{
     ContactFreshnessError, ContactFreshnessStamp, ContactLifecycleAction,
-    ContactLifecycleActionKind, ContactLifecycleError, ContactLifecyclePlan, ContactPayloadRevisions,
-    ContactReuseDecision, EndpointRevisions, FreshnessReason, GlobalContactRevisions,
-    ReuseDisposition, RevisionDomain,
+    ContactLifecycleActionKind, ContactLifecycleError, ContactLifecyclePlan,
+    ContactPayloadRevisions, ContactReuseDecision, EndpointRevisions, FreshnessReason,
+    GlobalContactRevisions, ReuseDisposition, RevisionDomain,
 };
-use super::PairDeltaFrame;
 use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -511,7 +511,9 @@ pub fn verify_contact_lifecycle_receipt(
             return Err(ContactLifecycleReceiptError::PriorContactStampMismatch(*key).into());
         }
         if !stamp.payload.has_digests() {
-            return Err(ContactLifecycleReceiptError::PriorContactPayloadDigestMissing(*key).into());
+            return Err(
+                ContactLifecycleReceiptError::PriorContactPayloadDigestMissing(*key).into(),
+            );
         }
         let left = receipt.previous_endpoints.get(&key.0).copied();
         let right = receipt.previous_endpoints.get(&key.1).copied();
@@ -574,7 +576,9 @@ pub fn verify_contact_lifecycle_receipt(
             return Err(ContactLifecycleReceiptError::UnexpectedPostContactStamp(*pair).into());
         }
         if !stamp.payload.has_digests() {
-            return Err(ContactLifecycleReceiptError::PostContactPayloadDigestMissing(*pair).into());
+            return Err(
+                ContactLifecycleReceiptError::PostContactPayloadDigestMissing(*pair).into(),
+            );
         }
         let left = receipt.current_endpoints.get(&pair.0).copied();
         let right = receipt.current_endpoints.get(&pair.1).copied();
@@ -633,8 +637,7 @@ pub fn verify_contact_lifecycle_receipt(
                         );
                     }
                 } else if post.payload.manifold_revision != stamp.payload.manifold_revision
-                    || post.payload.manifold_digest_sha256
-                        != stamp.payload.manifold_digest_sha256
+                    || post.payload.manifold_digest_sha256 != stamp.payload.manifold_digest_sha256
                 {
                     return Err(
                         ContactLifecycleReceiptError::ManifoldPayloadChangedWithoutRefresh(*pair)
@@ -893,13 +896,7 @@ mod tests {
             .solver_activation_required = false;
 
         assert_eq!(
-            verify_contact_lifecycle_plan(
-                &delta,
-                &stamps,
-                next_global(),
-                &endpoints,
-                &plan,
-            ),
+            verify_contact_lifecycle_plan(&delta, &stamps, next_global(), &endpoints, &plan,),
             Err(ContactLifecycleVerificationError::ActionMismatch { index: 0 })
         );
     }
@@ -913,13 +910,7 @@ mod tests {
         let plan = ContactLifecyclePlan::default();
 
         assert_eq!(
-            verify_contact_lifecycle_plan(
-                &delta,
-                &BTreeMap::new(),
-                global(),
-                &endpoints,
-                &plan,
-            ),
+            verify_contact_lifecycle_plan(&delta, &BTreeMap::new(), global(), &endpoints, &plan,),
             Err(ContactLifecycleVerificationError::ActionCountMismatch {
                 expected: 1,
                 actual: 0,
