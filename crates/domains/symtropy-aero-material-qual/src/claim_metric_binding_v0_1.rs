@@ -1412,6 +1412,44 @@ mod tests {
     }
 
     #[test]
+    fn missing_receiver_first_seen_reference_is_incomplete() {
+        let mut fixture = fixture();
+        let receiver_ref = fixture.binding.receiver_first_seen_receipt_ref.clone();
+        fixture.binding.receiver_first_seen_receipt_ref.clear();
+        fixture.binding.required_evidence_refs.retain(|reference| reference != &receiver_ref);
+        fixture.context.required_evidence_manifest_sha256 =
+            compute_required_evidence_manifest_sha256(&fixture.binding.required_evidence_refs)
+                .unwrap();
+        fixture.binding.decision_context_sha256 =
+            fixture.context.compute_sha256().unwrap();
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_MISSING".to_owned()
+        ));
+    }
+
+    #[test]
+    fn noncanonical_receiver_first_seen_reference_is_rejected() {
+        let mut fixture = fixture();
+        let receiver_ref = fixture.binding.receiver_first_seen_receipt_ref.clone();
+        fixture.binding.receiver_first_seen_receipt_ref = "bad receiver ref".to_owned();
+        for reference in &mut fixture.binding.required_evidence_refs {
+            if reference == &receiver_ref {
+                *reference = "bad receiver ref".to_owned();
+            }
+        }
+        fixture.context.required_evidence_manifest_sha256 =
+            compute_required_evidence_manifest_sha256(&fixture.binding.required_evidence_refs)
+                .unwrap_or_else(|_| fixture.context.required_evidence_manifest_sha256.clone());
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_NONCANONICAL".to_owned()
+        ));
+    }
+
+    #[test]
     fn missing_receiver_first_seen_owner_record_is_unverified() {
         let mut fixture = fixture();
         let receiver_ref = fixture.binding.receiver_first_seen_receipt_ref.clone();
