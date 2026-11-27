@@ -51,6 +51,7 @@ def audit(rows: list[dict[str, str]]) -> dict[str, object]:
     group_partitions: dict[str, set[str]] = defaultdict(set)
     frame_partitions: dict[str, set[str]] = defaultdict(set)
     image_partitions: dict[str, set[str]] = defaultdict(set)
+    translated_partitions: dict[str, set[str]] = defaultdict(set)
     translation_issues: set[str] = set()
 
     for line_number, row in enumerate(rows, start=2):
@@ -86,6 +87,7 @@ def audit(rows: list[dict[str, str]]) -> dict[str, object]:
             for name in ("translator_sha256", "translated_sha256", "label_audit_sha256"):
                 if not valid_sha(row[name]):
                     raise ValueError(f"row {line_number} has incomplete translation lineage")
+            translated_partitions[row["translated_sha256"]].add(row["partition"])
             if row["label_audit_state"] != "PASS":
                 translation_issues.add(row["sample_id"])
         else:
@@ -96,8 +98,9 @@ def audit(rows: list[dict[str, str]]) -> dict[str, object]:
     group_leaks = cross_partition(group_partitions)
     frame_leaks = cross_partition(frame_partitions)
     image_leaks = cross_partition(image_partitions)
+    translated_leaks = cross_partition(translated_partitions)
     translation_issues = sorted(translation_issues)
-    split_leak = bool(duplicates or group_leaks or frame_leaks or image_leaks)
+    split_leak = bool(duplicates or group_leaks or frame_leaks or image_leaks or translated_leaks)
 
     if missing:
         disposition = "INCOMPLETE_PARTITION_SET"
@@ -118,6 +121,7 @@ def audit(rows: list[dict[str, str]]) -> dict[str, object]:
         "cross_partition_group_leaks": group_leaks,
         "cross_partition_frame_digest_leaks": frame_leaks,
         "cross_partition_image_digest_leaks": image_leaks,
+        "cross_partition_translated_digest_leaks": translated_leaks,
         "translation_lineage_unqualified": translation_issues,
         "disposition": disposition,
         "dataset_source_bytes_authenticated": False,
