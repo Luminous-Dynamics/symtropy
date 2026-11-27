@@ -988,27 +988,12 @@ fn build_findings(input: FindingInputs<'_>) -> Vec<LevelFinding> {
     .collect::<Vec<_>>();
 
     let m5_missing = [
-        (
-            input.cohort_missing,
-            Capability::ReplicatedBuildLotCohort,
-        ),
-        (
-            input.variability_missing,
-            Capability::VariabilityControl,
-        ),
+        (input.cohort_missing, Capability::ReplicatedBuildLotCohort),
+        (input.variability_missing, Capability::VariabilityControl),
         (input.durability_missing, Capability::Durability),
-        (
-            input.site_missing,
-            Capability::ProductionSiteQuality,
-        ),
-        (
-            input.equipment_missing,
-            Capability::EquipmentIqOqPq,
-        ),
-        (
-            input.lab_missing,
-            Capability::LaboratoryMethodScope,
-        ),
+        (input.site_missing, Capability::ProductionSiteQuality),
+        (input.equipment_missing, Capability::EquipmentIqOqPq),
+        (input.lab_missing, Capability::LaboratoryMethodScope),
     ]
     .into_iter()
     .filter_map(|(missing, capability)| missing.then_some(capability))
@@ -1084,11 +1069,7 @@ fn build_findings(input: FindingInputs<'_>) -> Vec<LevelFinding> {
             level: MaturityLevel::M3,
             supported: input.m3,
             required_capabilities: vec![Capability::ProcessStructureProperty],
-            missing_capabilities: if input.m3 {
-                vec![]
-            } else {
-                m3_missing
-            },
+            missing_capabilities: if input.m3 { vec![] } else { m3_missing },
             blockers: if input.m3 {
                 vec![]
             } else {
@@ -1108,11 +1089,7 @@ fn build_findings(input: FindingInputs<'_>) -> Vec<LevelFinding> {
                 Capability::ComponentFunction,
                 Capability::ComponentAcceptance,
             ],
-            missing_capabilities: if input.m4 {
-                vec![]
-            } else {
-                m4_missing
-            },
+            missing_capabilities: if input.m4 { vec![] } else { m4_missing },
             blockers: if input.m4 {
                 vec![]
             } else {
@@ -1135,16 +1112,8 @@ fn build_findings(input: FindingInputs<'_>) -> Vec<LevelFinding> {
                 Capability::EquipmentIqOqPq,
                 Capability::LaboratoryMethodScope,
             ],
-            missing_capabilities: if input.m5 {
-                vec![]
-            } else {
-                m5_missing
-            },
-            blockers: if input.m5 {
-                vec![]
-            } else {
-                m5_blockers
-            },
+            missing_capabilities: if input.m5 { vec![] } else { m5_missing },
+            blockers: if input.m5 { vec![] } else { m5_blockers },
             evidence_ids: ids(&[
                 EvidenceKind::CohortSummary,
                 EvidenceKind::VariabilityAnalysis,
