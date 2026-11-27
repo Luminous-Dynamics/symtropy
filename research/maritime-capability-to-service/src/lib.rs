@@ -94,7 +94,9 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                 }
                 let expected_units = parse_u64(fields[2], "expected units", line_number)?;
                 if expected_units == 0 {
-                    return Err(format!("line {line_number}: expected units must be positive"));
+                    return Err(format!(
+                        "line {line_number}: expected units must be positive"
+                    ));
                 }
                 service = Some(Service {
                     id: fields[1].to_owned(),
@@ -115,7 +117,10 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                     )?,
                     shocks: Vec::new(),
                 };
-                if dependencies.insert(fields[1].to_owned(), dependency).is_some() {
+                if dependencies
+                    .insert(fields[1].to_owned(), dependency)
+                    .is_some()
+                {
                     return Err(format!(
                         "line {line_number}: duplicate dependency '{}'",
                         fields[1]
