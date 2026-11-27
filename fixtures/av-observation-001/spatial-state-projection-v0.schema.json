@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/av-observation-001/spatial-state-projection-v0.schema.json",
   "title": "Candidate Spatial State Projection v0",
-  "description": "Candidate-visible, source-indexed spatial state. It contains hypotheses and claims, not evaluator truth, canonical map IDs, verified physical coordinates, or action authority.",
+  "description": "Candidate-visible source-indexed spatial state. Frame, clock and pose semantics are inherited from Symthaea #498/#611/#621/#632: ReferenceFrameId and ClockDomainId are namespace/local_id/generation identities; poses are directed T_reference_from_local with [w,x,y,z] quaternions and #498 independent marginal sigmas. This contains hypotheses and claims, not evaluator truth or action authority.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -106,14 +106,6 @@
         "type": "number"
       }
     },
-    "quat_xyzw": {
-      "type": "array",
-      "minItems": 4,
-      "maxItems": 4,
-      "items": {
-        "type": "number"
-      }
-    },
     "observation_ref": {
       "type": "object",
       "additionalProperties": false,
@@ -121,11 +113,8 @@
         "observation_id",
         "modality",
         "artifact_digest",
-        "clock_domain_id",
-        "clock_generation",
-        "capture_start_ns",
-        "capture_end_ns",
-        "known_at_ns"
+        "capture_support",
+        "known_at"
       ],
       "properties": {
         "observation_id": {
@@ -145,24 +134,48 @@
         "artifact_digest": {
           "$ref": "#/$defs/sha256"
         },
-        "clock_domain_id": {
-          "$ref": "#/$defs/id"
+        "capture_support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "clock_domain_ref",
+            "support_kind",
+            "start_tick",
+            "end_tick"
+          ],
+          "properties": {
+            "clock_domain_ref": {
+              "$ref": "#/$defs/clock_domain_ref"
+            },
+            "support_kind": {
+              "enum": [
+                "instant",
+                "interval"
+              ]
+            },
+            "start_tick": {
+              "type": "integer"
+            },
+            "end_tick": {
+              "type": "integer"
+            }
+          }
         },
-        "clock_generation": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "capture_start_ns": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "capture_end_ns": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "known_at_ns": {
-          "type": "integer",
-          "minimum": 0
+        "known_at": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "clock_domain_ref",
+            "tick"
+          ],
+          "properties": {
+            "clock_domain_ref": {
+              "$ref": "#/$defs/clock_domain_ref"
+            },
+            "tick": {
+              "type": "integer"
+            }
+          }
         }
       }
     },
@@ -170,14 +183,14 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "frame_id",
+        "frame_ref",
         "frame_kind",
         "units",
         "candidate_only"
       ],
       "properties": {
-        "frame_id": {
-          "$ref": "#/$defs/id"
+        "frame_ref": {
+          "$ref": "#/$defs/frame_ref"
         },
         "frame_kind": {
           "enum": [
@@ -198,8 +211,8 @@
             "unknown"
           ]
         },
-        "parent_frame_id": {
-          "$ref": "#/$defs/id"
+        "parent_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
         },
         "candidate_only": {
           "const": true
@@ -211,12 +224,12 @@
       "additionalProperties": false,
       "required": [
         "transform_id",
-        "source_frame_id",
-        "target_frame_id",
-        "translation",
-        "rotation_xyzw",
-        "translation_stddev",
-        "rotation_stddev_rad",
+        "reference_frame_ref",
+        "local_frame_ref",
+        "pose_convention",
+        "translation_m",
+        "rotation_wxyz",
+        "pose_uncertainty",
         "source_observation_refs",
         "transform_revision"
       ],
@@ -224,25 +237,40 @@
         "transform_id": {
           "$ref": "#/$defs/id"
         },
-        "source_frame_id": {
-          "$ref": "#/$defs/id"
+        "reference_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
         },
-        "target_frame_id": {
-          "$ref": "#/$defs/id"
+        "local_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
         },
-        "translation": {
+        "pose_convention": {
+          "const": "T_reference_from_local"
+        },
+        "translation_m": {
           "$ref": "#/$defs/vec3"
         },
-        "rotation_xyzw": {
-          "$ref": "#/$defs/quat_xyzw"
+        "rotation_wxyz": {
+          "$ref": "#/$defs/quat_wxyz"
         },
-        "translation_stddev": {
-          "type": "number",
-          "minimum": 0
-        },
-        "rotation_stddev_rad": {
-          "type": "number",
-          "minimum": 0
+        "pose_uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile",
+            "translation_sigma_m",
+            "rotation_tangent_sigma_rad"
+          ],
+          "properties": {
+            "profile": {
+              "const": "pose-uncertainty-independent-marginals-v1"
+            },
+            "translation_sigma_m": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotation_tangent_sigma_rad": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
         },
         "calibration_digest": {
           "$ref": "#/$defs/sha256"
@@ -305,9 +333,6 @@
             "unknown"
           ]
         },
-        "frame_id": {
-          "$ref": "#/$defs/id"
-        },
         "position_m": {
           "$ref": "#/$defs/vec3"
         },
@@ -320,6 +345,12 @@
         },
         "source_observation_refs": {
           "$ref": "#/$defs/source_refs"
+        },
+        "frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        },
+        "position_sigma_m": {
+          "$ref": "#/$defs/vec3"
         }
       },
       "allOf": [
@@ -349,7 +380,8 @@
             }
           }
         }
-      ]
+      ],
+      "description": "position_m, when present, is a MetricPoint3 expressed in frame_ref; position_sigma_m is a per-axis marginal diagnostic, not a correlated 3D covariance."
     },
     "relation_claim": {
       "type": "object",
@@ -487,6 +519,56 @@
           "type": "string",
           "maxLength": 512
         }
+      }
+    },
+    "frame_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "local_id",
+        "generation"
+      ],
+      "properties": {
+        "namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "local_id": {
+          "$ref": "#/$defs/id"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "clock_domain_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "local_id",
+        "generation"
+      ],
+      "properties": {
+        "namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "local_id": {
+          "$ref": "#/$defs/id"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "quat_wxyz": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "number"
       }
     }
   }
