@@ -934,13 +934,17 @@ mod tests {
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::ArchitectureAdvantage);
         assert_eq!(candidate.baseline_comparisons.len(), 2);
-        assert!(candidate
-            .baseline_comparisons
-            .iter()
-            .all(|comparison| comparison.mandatory_metrics_non_inferior));
-        assert!(candidate
-            .robust_benefit_metrics
-            .contains(&"pm_mass".to_string()));
+        assert!(
+            candidate
+                .baseline_comparisons
+                .iter()
+                .all(|comparison| comparison.mandatory_metrics_non_inferior)
+        );
+        assert!(
+            candidate
+                .robust_benefit_metrics
+                .contains(&"pm_mass".to_string())
+        );
     }
 
     #[test]
@@ -974,7 +978,11 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::NotComparable);
-        assert!(candidate.blockers.contains(&Blocker::MissingRequiredBaseline));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::MissingRequiredBaseline)
+        );
     }
 
     #[test]
@@ -998,7 +1006,11 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Fail);
-        assert!(candidate.blockers.contains(&Blocker::DefiniteHardLimitViolation));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::DefiniteHardLimitViolation)
+        );
     }
 
     #[test]
@@ -1011,7 +1023,11 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate.blockers.contains(&Blocker::UnresolvedHardLimit));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::UnresolvedHardLimit)
+        );
     }
 
     #[test]
@@ -1034,7 +1050,11 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate.blockers.contains(&Blocker::BaselineFailsHardLimit));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::BaselineFailsHardLimit)
+        );
     }
 
     #[test]
@@ -1046,7 +1066,11 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_ne!(candidate.decision, Decision::ArchitectureAdvantage);
-        assert!(candidate.blockers.contains(&Blocker::NonInferiorMarginViolation));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::NonInferiorMarginViolation)
+        );
     }
 
     #[test]
@@ -1078,14 +1102,22 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate.blockers.contains(&Blocker::InadmissibleEvidenceClass));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::InadmissibleEvidenceClass)
+        );
     }
 
     #[test]
     fn baseline_optimization_budget_must_be_frozen_and_adequate() {
         let mut trials = known_answer_trials();
         trials[1].optimization.as_mut().unwrap().evaluations = 10;
-        trials[2].optimization.as_mut().unwrap().frozen_before_comparison = false;
+        trials[2]
+            .optimization
+            .as_mut()
+            .unwrap()
+            .frozen_before_comparison = false;
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
@@ -1108,19 +1140,29 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate.blockers.contains(&Blocker::NonQualifiedAcceptance));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::NonQualifiedAcceptance)
+        );
     }
 
     #[test]
     fn duplicate_observation_ids_are_not_silently_overwritten() {
         let mut trials = known_answer_trials();
-        trials[0].observations.push(trials[0].observations[0].clone());
+        trials[0]
+            .observations
+            .push(trials[0].observations[0].clone());
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate.blockers.contains(&Blocker::DuplicateMetricObservation));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::DuplicateMetricObservation)
+        );
     }
 
     #[test]
@@ -1160,12 +1202,18 @@ mod tests {
     #[test]
     fn missing_metric_observation_cannot_default_to_zero() {
         let mut trials = known_answer_trials();
-        trials[0].observations.retain(|item| item.metric_id != "demagnetization_margin");
+        trials[0]
+            .observations
+            .retain(|item| item.metric_id != "demagnetization_margin");
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate.blockers.contains(&Blocker::MissingMetricObservation));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::MissingMetricObservation)
+        );
     }
 }
