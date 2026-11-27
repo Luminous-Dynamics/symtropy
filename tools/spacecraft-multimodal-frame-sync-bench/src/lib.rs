@@ -161,20 +161,22 @@ fn valid_timestamp(value: &str) -> bool {
         && millis <= 999
 }
 
-fn modalities(input: &BundleInput) -> [(&'static str, &ModalityRecord, &'static str); 5] {
+fn modalities(
+    input: &BundleInput,
+) -> [(&'static str, &ModalityRecord, &'static str, &'static str); 5] {
     [
-        ("rgb", &input.rgb, "cam0"),
-        ("depth", &input.depth, "cam0"),
-        ("segmentation", &input.segmentation, "cam0"),
-        ("lidar", &input.lidar, "lidar0"),
-        ("pose", &input.pose, "pose_ground_truth"),
+        ("rgb", &input.rgb, "cam0", "rgb"),
+        ("depth", &input.depth, "cam0", "depth"),
+        ("segmentation", &input.segmentation, "cam0", "segmentation"),
+        ("lidar", &input.lidar, "lidar0", "lidar"),
+        ("pose", &input.pose, "pose_ground_truth", "pose"),
     ]
 }
 
 fn result(input: &BundleInput, disposition: BundleDisposition, reason: &str) -> BundleResult {
     let mut modality_sha256 = BTreeMap::new();
     let mut modality_paths = BTreeMap::new();
-    for (name, record, _) in modalities(input) {
+    for (name, record, _, _) in modalities(input) {
         modality_sha256.insert(name.to_owned(), record.sha256.clone());
         modality_paths.insert(name.to_owned(), record.path.clone());
     }
@@ -227,6 +229,8 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         input.trajectory_id.as_str(),
         input.sample_id.as_str(),
         input.frame_id.as_str(),
+        input.camera_calibration_revision.as_str(),
+        input.lidar_to_camera_revision.as_str(),
         input.capture_timestamp.as_str(),
         input.corrected_pose_revision.as_str(),
         input.pose_csv_revision.as_str(),
@@ -255,8 +259,6 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         || input.lidar_coordinate_frame != "SENSOR_LOCAL_FRAME"
         || input.pose_semantics != "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD"
         || input.quaternion_convention != "HAMILTON_WXYZ"
-        || !valid_sha256(&input.camera_calibration_sha256)
-        || !valid_sha256(&input.lidar_to_camera_sha256)
         || input.pose_length_unit != "metre"
         || input.depth_unit != "millimetre"
         || input.lidar_unit != "metre"
@@ -266,6 +268,16 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
             input,
             BundleDisposition::OutOfScope,
             "DATASET_REVISION_LICENSE_OR_CONVENTION_UNSUPPORTED",
+        );
+    }
+
+    if !valid_sha256(&input.camera_calibration_sha256)
+        || !valid_sha256(&input.lidar_to_camera_sha256)
+    {
+        return result(
+            input,
+            BundleDisposition::InvalidInput,
+            "CALIBRATION_OR_EXTRINSICS_DIGEST_MALFORMED",
         );
     }
 
@@ -298,7 +310,7 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         );
     }
 
-    for (name, record, expected_sensor) in modalities(input) {
+    for (name, record, expected_sensor, expected_path_component) in modalities(input) {
         if !record.present {
             return result(
                 input,
@@ -319,14 +331,28 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
                 "MODALITY_PATH_OR_DIGEST_INVALID",
             );
         }
-        let required_path_scope = format!("{}/{}/", input.spacecraft_id, input.trajectory_id);
-        if !record.path.contains(&required_path_scope)
-            || !record.path.contains(&input.capture_timestamp)
+        let path_components: Vec<&str> = record.path.split('/').collect();
+        if record.path.starts_with('/')
+            || record.path.contains('\\')
+            || path_components.iter().any(|component| {
+                component.is_empty() || *component == "." || *component == ".."
+            })
+        {
+            return result(
+                input,
+                BundleDisposition::InvalidInput,
+                "MODALITY_PATH_IS_NOT_A_SAFE_RELATIVE_PATH",
+            );
+        }
+        if !path_components.contains(&input.spacecraft_id.as_str())
+            || !path_components.contains(&input.trajectory_id.as_str())
+            || !path_components.contains(&expected_path_component)
+            || !path_components.contains(&input.capture_timestamp)
         {
             return result(
                 input,
                 BundleDisposition::OutOfScope,
-                "MODALITY_PATH_DOES_NOT_BIND_TRAJECTORY_AND_FRAME_TIME",
+                "MODALITY_PATH_DOES_NOT_BIND_EXPECTED_SENSOR_STREAM_AND_FRAME",
             );
         }
         if !valid_text(&record.sensor_id)
@@ -454,7 +480,7 @@ mod tests {
             depth: modality("depth", "cam0"),
             segmentation: modality("seg", "cam0"),
             lidar: modality("lidar", "lidar0"),
-            pose: modality("pose_ground_truth.csv", "pose_ground_truth"),
+            pose: modality("pose", "pose_ground_truth"),
         }
     }
 
@@ -609,16 +635,58 @@ mod tests {
     }
 
     #[test]
-    fn malformed_calibration_or_extrinsics_digest_is_out_of_scope() {
+    fn calibration_revisions_and_bundle_frame_id_are_required() {
+        let mut frame = input();
+        frame.frame_id.clear();
+        for record in [
+            &mut frame.rgb,
+            &mut frame.depth,
+            &mut frame.segmentation,
+            &mut frame.lidar,
+            &mut frame.pose,
+        ] {
+            record.frame_id.clear();
+        }
+        assert_eq!(evaluate(&frame).disposition, BundleDisposition::InvalidInput);
+
+        let mut camera_revision = input();
+        camera_revision.camera_calibration_revision.clear();
+        assert_eq!(
+            evaluate(&camera_revision).disposition,
+            BundleDisposition::InvalidInput
+        );
+
+        let mut extrinsics_revision = input();
+        extrinsics_revision.lidar_to_camera_revision.clear();
+        assert_eq!(
+            evaluate(&extrinsics_revision).disposition,
+            BundleDisposition::InvalidInput
+        );
+    }
+
+    #[test]
+    fn modality_path_must_name_its_expected_stream_directory() {
+        let mut value = input();
+        value.rgb.path = "raw/ACE/approach_front/depth/20260120165126242".to_owned();
+        assert_eq!(evaluate(&value).disposition, BundleDisposition::OutOfScope);
+
+        let mut traversal = input();
+        traversal.rgb.path =
+            "raw/../ACE/approach_front/rgb/20260120165126242".to_owned();
+        assert_eq!(evaluate(&traversal).disposition, BundleDisposition::InvalidInput);
+    }
+
+    #[test]
+    fn malformed_calibration_or_extrinsics_digest_is_invalid_input() {
         let mut camera = input();
         camera.camera_calibration_sha256 = "bad".to_owned();
-        assert_eq!(evaluate(&camera).disposition, BundleDisposition::OutOfScope);
+        assert_eq!(evaluate(&camera).disposition, BundleDisposition::InvalidInput);
 
         let mut extrinsics = input();
         extrinsics.lidar_to_camera_sha256 = "bad".to_owned();
         assert_eq!(
             evaluate(&extrinsics).disposition,
-            BundleDisposition::OutOfScope
+            BundleDisposition::InvalidInput
         );
     }
 
