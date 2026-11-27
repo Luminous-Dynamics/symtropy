@@ -273,8 +273,8 @@ fn canonical_receiver_service_receipt_preserves_unknown_and_protected_floor_boun
 
 #[test]
 fn contradictory_receiver_service_summary_is_rejected() {
-    let original = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t0\\t0\\t0\\t0\\t0\\t1\\t0\\t0\\t0\\t0\\t1\\t1\\t1\\t10000\\tUNKNOWN";
-    let contradictory = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t0\\t1\\t0\\t0\\t0\\t1\\t0\\t1\\t0\\t0\\t1\\t1\\t1\\t10000\\tUNKNOWN";
+    let original = "COHORT\tS01_TERMINAL_EXIT_ONLY\tessential\tcontainer\t1\t0\t0\t0\t0\t0\t1\t0\t0\t0\t0\t1\t1\t1\t10000\tUNKNOWN";
+    let contradictory = "COHORT\tS01_TERMINAL_EXIT_ONLY\tessential\tcontainer\t1\t0\t1\t0\t0\t0\t1\t0\t1\t0\t0\t1\t1\t1\t10000\tUNKNOWN";
     let invalid = RECEIPT.replace(original, contradictory);
     assert!(
         parse_receipt(&invalid)
