@@ -1,0 +1,104 @@
+name: Spacecraft Multimodal Frame Synchronization
+
+on:
+  pull_request:
+    paths:
+      - "tools/spacecraft-multimodal-frame-sync-bench/**"
+      - ".github/workflows/spacecraft-multimodal-frame-sync.yml"
+  push:
+    branches:
+      - "research/spacecraft-multimodal-frame-sync-v0-1"
+    paths:
+      - "tools/spacecraft-multimodal-frame-sync-bench/**"
+      - ".github/workflows/spacecraft-multimodal-frame-sync.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Multimodal frame identity and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/spacecraft-multimodal-frame-sync-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/spacecraft-multimodal-frame-sync-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/spacecraft-multimodal-frame-sync-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Bind frozen corpus digest
+        run: |
+          echo "CORPUS_SHA256=$(sha256sum tools/spacecraft-multimodal-frame-sync-bench/fixtures/frame-sync-corpus-v0_1.csv | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Deterministic Rust receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/spacecraft-multimodal-frame-sync-bench/Cargo.toml --bin spacecraft-multimodal-frame-sync-bench -- tools/spacecraft-multimodal-frame-sync-bench/fixtures/frame-sync-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/frame-sync-rust.json
+          cargo run --quiet --locked --manifest-path tools/spacecraft-multimodal-frame-sync-bench/Cargo.toml --bin spacecraft-multimodal-frame-sync-bench -- tools/spacecraft-multimodal-frame-sync-bench/fixtures/frame-sync-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/frame-sync-rust-replay.json
+          cmp /tmp/frame-sync-rust.json /tmp/frame-sync-rust-replay.json
+      - name: Independent Python frame bundle oracle
+        run: |
+          python3 tools/spacecraft-multimodal-frame-sync-bench/tests/reference_oracle.py tools/spacecraft-multimodal-frame-sync-bench/fixtures/frame-sync-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/frame-sync-python.json
+      - name: Compare complete receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/frame-sync-rust.json").read_text())
+          oracle = json.loads(Path("/tmp/frame-sync-python.json").read_text())
+          assert rust == oracle
+          assert rust["case_count"] == 50
+          assert rust["expected_disposition_matches"] == 50
+          assert rust["expected_disposition_mismatches"] == 0
+          assert rust["dataset_revision"] == "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e"
+          assert rust["pose_correction_date"] == "2026-05-19"
+          assert rust["claim_ready"] is False
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["calibration_physically_validated"] is False
+          assert rust["authority_granted"] is False
+          cases = {item["case_id"]: item for item in rust["results"]}
+          assert cases["MB001"]["disposition"] == "SYNCHRONIZED"
+          assert cases["MB002"]["disposition"] == "UNSYNCHRONIZED"
+          assert cases["MB008"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB001"]["dataset_revision"] == "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e"
+          assert cases["MB001"]["corrected_pose_revision"] == "pose-ground-truth-regenerated-2026-05-19"
+          assert cases["MB001"]["pose_csv_revision"] == "pose-ground-truth-regenerated-2026-05-19"
+          assert cases["MB016"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB035"]["disposition"] == "SYNCHRONIZED"
+          assert cases["MB036"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB037"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB038"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB039"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB040"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB041"]["disposition"] == "DUPLICATE_SAMPLE"
+          assert cases["MB042"]["disposition"] == "DUPLICATE_SAMPLE"
+          assert cases["MB043"]["disposition"] == "SPLIT_LEAKAGE"
+          assert cases["MB044"]["disposition"] == "SPLIT_LEAKAGE"
+          assert cases["MB045"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB046"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB047"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB048"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB049"]["disposition"] == "INVALID_INPUT"
+          assert cases["MB050"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB001"]["lidar_coordinate_frame"] == "SENSOR_LOCAL_FRAME"
+          assert cases["MB001"]["pose_semantics"] == "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD"
+          assert cases["MB001"]["camera_calibration_sha256"] == "b" * 64
+          assert cases["MB001"]["lidar_to_camera_sha256"] == "c" * 64
+          print("50 multimodal bundles: exact Rust/Python receipt equality with calibration and ordered path provenance")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacecraft-multimodal-frame-sync-evidence
+          path: |
+            /tmp/frame-sync-rust.json
+            /tmp/frame-sync-python.json
+            tools/spacecraft-multimodal-frame-sync-bench/fixtures/frame-sync-corpus-v0_1.csv
+          if-no-files-found: error
+          retention-days: 30
