@@ -36,6 +36,7 @@ pub struct AuditReceipt {
     pub cross_partition_group_leaks: Vec<String>,
     pub cross_partition_frame_digest_leaks: Vec<String>,
     pub cross_partition_image_digest_leaks: Vec<String>,
+    pub cross_partition_translated_digest_leaks: Vec<String>,
     pub translation_lineage_unqualified: Vec<String>,
 }
 
@@ -100,6 +101,7 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
     let mut group_partitions = BTreeMap::<String, BTreeSet<String>>::new();
     let mut frame_partitions = BTreeMap::<String, BTreeSet<String>>::new();
     let mut image_partitions = BTreeMap::<String, BTreeSet<String>>::new();
+    let mut translated_partitions = BTreeMap::<String, BTreeSet<String>>::new();
     let mut unqualified_translation = BTreeSet::<String>::new();
 
     for (index, row) in rows.iter().enumerate() {
@@ -176,6 +178,11 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
                         index + 2
                     ));
                 }
+                add_partition(
+                    &mut translated_partitions,
+                    &row.translated_sha256,
+                    &row.partition,
+                );
                 if row.label_audit_state != "PASS" {
                     unqualified_translation.insert(row.sample_id.clone());
                 }
@@ -205,12 +212,14 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
     let group_leaks = cross_partition_leaks(group_partitions);
     let frame_leaks = cross_partition_leaks(frame_partitions);
     let image_leaks = cross_partition_leaks(image_partitions);
+    let translated_leaks = cross_partition_leaks(translated_partitions);
     let translation_issues = unqualified_translation.into_iter().collect::<Vec<_>>();
 
     let split_leakage = !duplicate_sample_ids.is_empty()
         || !group_leaks.is_empty()
         || !frame_leaks.is_empty()
-        || !image_leaks.is_empty();
+        || !image_leaks.is_empty()
+        || !translated_leaks.is_empty();
 
     let disposition = if !missing_partitions.is_empty() {
         "INCOMPLETE_PARTITION_SET"
@@ -234,6 +243,7 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
         cross_partition_group_leaks: group_leaks,
         cross_partition_frame_digest_leaks: frame_leaks,
         cross_partition_image_digest_leaks: image_leaks,
+        cross_partition_translated_digest_leaks: translated_leaks,
         translation_lineage_unqualified: translation_issues,
     })
 }
