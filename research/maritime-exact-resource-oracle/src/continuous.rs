@@ -514,8 +514,8 @@ fn solve_square_system(matrix: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
         }
         augmented.swap(column, pivot);
         let divisor = augmented[column][column];
-        for item in column..=n {
-            augmented[column][item] /= divisor;
+        for value in augmented[column].iter_mut().take(n + 1).skip(column) {
+            *value /= divisor;
         }
         for row in 0..n {
             if row == column {
@@ -525,8 +525,12 @@ fn solve_square_system(matrix: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
             if factor.abs() <= EPS {
                 continue;
             }
-            for item in column..=n {
-                augmented[row][item] -= factor * augmented[column][item];
+            for (value, pivot_value) in augmented[row]
+                .iter_mut()
+                .zip(augmented[column].iter())
+                .skip(column)
+            {
+                *value -= factor * pivot_value;
             }
         }
     }
