@@ -38,7 +38,7 @@ The builder emits a direct prlimit → bubblewrap → candidate argv chain, with
 - read-only mounts for /candidate/input and /runtime;
 - the sole writable host mount at /candidate/output;
 - private /proc, minimal /dev, and a size-bounded tmpfs at /tmp;
-- cleared environment and explicit HOME, PWD, TMPDIR, PATH, LANG and TZ;
+- host launcher uses env_clear before starting prlimit/Bubblewrap, preventing CI/evaluator variables from reaching the setup parent; the candidate environment is then cleared and explicitly sets HOME, PWD, TMPDIR, PATH, LANG and TZ;
 - rlimits for address space, CPU time, process count, open files, per-file output size and core dumps disabled.
 
 The unit tests inspect command construction and reject path-overlap, evaluator-root overlap, host paths in arguments, path traversal, an executable outside the runtime, and zero limits. A separate static musl canary probes the actual Bubblewrap runtime and is executed by the dedicated workflow.
@@ -70,12 +70,12 @@ An executable canary binary and dedicated CI workflow are now authored:
 
 The workflow builds the canary as a static musl binary, installs Bubblewrap, and invokes it through the exact command builder. **Its exact-head CI result is pending.** A successful unit test of the argv builder is not a process-isolation pass.
 
-The CI canary executes the binary and reports:
+The host runner deliberately sets AERB_EVALUATOR_SECRET to a sentinel; SandboxCommand::process_command clears it before launching prlimit. Candidate mode checks both its own environment and the visible process-1 environment for the sentinel. The CI canary executes the binary and reports:
 1. evaluator canary path and host secret path are not visible;
 2. candidate input and runtime writes fail with read-only errors;
 3. candidate output writes succeed and are confined to the output mount;
 4. loopback and external network access are unavailable;
-5. host process tree, PID namespace and environment isolation match the declared profile;
+5. host process tree, PID namespace and environment isolation match the declared profile, including no sentinel in the process table;
 6. nested user namespace creation is disabled and the in-sandbox user.max_user_namespaces limit is 1;
 7. CPU/address-space/process/file limits are observed at their exact boundary;
 8. timeout, crash, OOM, output overflow, malformed output and sandbox setup failure all produce explicit failed/invalid campaign states, never a score-as-pass;
