@@ -178,6 +178,9 @@ def score_frame(frame: dict[str, object]) -> dict[str, object]:
 def validate_manifest(rows: list[dict[str, str]]) -> dict[str, dict[str, object]]:
     if not rows:
         raise ValueError("manifest has no geometry rows")
+    if rows[0]["unit_kind"] not in UNIT_FIELDS:
+        raise ValueError("unsupported unit kind")
+    manifest_unit_kind = rows[0]["unit_kind"]
     frames: dict[str, dict[str, object]] = {}
     for line, row in enumerate(rows, start=2):
         for field in (
@@ -188,6 +191,8 @@ def validate_manifest(rows: list[dict[str, str]]) -> dict[str, dict[str, object]
             if not valid_text(row[field]):
                 raise ValueError(f"row {line}: {field} is empty or reserved")
         kind = row["unit_kind"]
+        if kind != manifest_unit_kind:
+            raise ValueError(f"row {line}: unit kind changes within manifest")
         if kind not in UNIT_FIELDS:
             raise ValueError(f"row {line}: unsupported unit kind")
         if row["partition"] != PARTITION:
@@ -201,8 +206,6 @@ def validate_manifest(rows: list[dict[str, str]]) -> dict[str, dict[str, object]
         index = int(row["frame_index"])
         if width <= 0 or height <= 0 or width * height > MAX_MASK_PIXELS or budget <= 0 or index >= budget:
             raise ValueError(f"row {line}: invalid dimensions or frame index/budget")
-        if row["unit_kind"] != row["unit_kind"]:
-            raise ValueError(f"row {line}: unit kind mismatch")
         if any(not valid_sha(row[field]) for field in (
             "translator_sha256", "source_image_sha256", "translated_image_sha256",
             "source_annotation_sha256", "translated_annotation_sha256",
