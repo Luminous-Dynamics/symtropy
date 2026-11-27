@@ -106,7 +106,7 @@
       "type": "array",
       "uniqueItems": true,
       "items": {
-        "$ref": "#/$defs/sha256"
+        "$ref": "#/$defs/content_digest"
       }
     }
   },
