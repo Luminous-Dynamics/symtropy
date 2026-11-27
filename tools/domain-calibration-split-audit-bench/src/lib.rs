@@ -345,6 +345,23 @@ mod tests {
         assert!(receipt.translation_lineage_unqualified.is_empty());
     }
 
+
+    #[test]
+    fn translated_output_digest_reuse_across_partitions_fails() {
+        let mut rows = clean_rows();
+        for (index, row) in rows.iter_mut().enumerate() {
+            row.translation_kind = "IMAGE_TRANSLATED".to_owned();
+            row.translator_sha256 = digest('1');
+            row.translated_sha256 = digest(if index == 2 { '2' } else { '3' });
+            row.label_audit_sha256 = digest('4');
+            row.label_audit_state = "PASS".to_owned();
+        }
+        rows[2].translated_sha256 = rows[0].translated_sha256.clone();
+        let receipt = audit_rows(&rows).expect("valid translation lineage");
+        assert_eq!(receipt.disposition, "SPLIT_LEAKAGE");
+        assert_eq!(receipt.cross_partition_translated_digest_leaks.len(), 1);
+    }
+
     #[test]
     fn translated_row_without_passed_audit_is_blocked() {
         let mut rows = clean_rows();
