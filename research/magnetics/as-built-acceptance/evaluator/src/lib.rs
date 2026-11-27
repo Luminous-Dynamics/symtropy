@@ -238,7 +238,10 @@ pub struct Evaluation {
 
 impl Evaluation {
     fn new(disposition: Disposition, blockers: Vec<Blocker>) -> Self {
-        Self { disposition, blockers }
+        Self {
+            disposition,
+            blockers,
+        }
     }
 }
 
@@ -356,7 +359,12 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     if case.observation.calibration.instrument_id != case.observation.instrument_id {
         blockers.push(Blocker::CalibrationInstrumentMismatch);
     }
-    if case.observation.background_field_treatment_id.trim().is_empty() {
+    if case
+        .observation
+        .background_field_treatment_id
+        .trim()
+        .is_empty()
+    {
         blockers.push(Blocker::MissingBackgroundFieldTreatment);
     }
     if case.model_discrepancy.geometry_digest != case.geometry.as_built_geometry_digest
@@ -456,7 +464,10 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     }
 
     if case.blind_holdout_record_ids.is_empty()
-        || case.blind_holdout_record_ids.iter().any(|id| id.trim().is_empty())
+        || case
+            .blind_holdout_record_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
         || !case
             .blind_holdout_record_ids
             .iter()
@@ -541,9 +552,7 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     ) {
         (Verdict::Safe, true, true) => {}
         (Verdict::Fail, true, _) => failures.push(Blocker::SpatialMarginFailure),
-        (Verdict::Fail, false, _)
-        | (Verdict::Unresolved, _, _)
-        | (Verdict::Safe, false, _) => {
+        (Verdict::Fail, false, _) | (Verdict::Unresolved, _, _) | (Verdict::Safe, false, _) => {
             unresolved.push(Blocker::UnresolvedSpatialMargin);
         }
         (Verdict::Safe, true, false) => {
@@ -644,12 +653,8 @@ mod tests {
             '4',
         );
         let solver_record = record("SOLVER-001", &specimen, EvidenceRole::Predicted, '5');
-        let observation_record = record(
-            "OBS-001",
-            &specimen,
-            EvidenceRole::PhysicalObservation,
-            '6',
-        );
+        let observation_record =
+            record("OBS-001", &specimen, EvidenceRole::PhysicalObservation, '6');
         let calibration_id = "CAL-REF-001".to_string();
 
         AcceptanceCase {
@@ -672,7 +677,12 @@ mod tests {
                 manufacturing_record_id: manufacturing.record.id.clone(),
             },
             model_discrepancy: ModelDiscrepancyEvidence {
-                record: record("MODEL-DIFF-001", &specimen, EvidenceRole::ModelDiscrepancy, '9'),
+                record: record(
+                    "MODEL-DIFF-001",
+                    &specimen,
+                    EvidenceRole::ModelDiscrepancy,
+                    '9',
+                ),
                 scope: scope.clone(),
                 geometry_digest: geometry.as_built_geometry_digest.clone(),
                 material_state_record_id: material_state.id.clone(),
@@ -773,7 +783,11 @@ mod tests {
         case.solver.magnetization_record_id = "MAG-MISSING".to_string();
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result.blockers.contains(&Blocker::MagnetizationBindingMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::MagnetizationBindingMismatch)
+        );
     }
 
     #[test]
@@ -782,9 +796,11 @@ mod tests {
         case.hard_requirements[0].verdict = Verdict::Fail;
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Fail);
-        assert!(result
-            .blockers
-            .contains(&Blocker::DefiniteHardRequirementFailure));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::DefiniteHardRequirementFailure)
+        );
     }
 
     #[test]
@@ -794,7 +810,11 @@ mod tests {
         case.hard_requirements[0].uncertainty_resolved = false;
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result.blockers.contains(&Blocker::UnresolvedHardRequirement));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::UnresolvedHardRequirement)
+        );
     }
 
     #[test]
@@ -803,13 +823,18 @@ mod tests {
         case.spatial_certificate.complete_domain_coverage = false;
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result.blockers.contains(&Blocker::IncompleteSpatialCoverage));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::IncompleteSpatialCoverage)
+        );
     }
 
     #[test]
     fn calibration_holdout_overlap_is_rejected() {
         let mut case = valid_case();
-        case.blind_holdout_record_ids.push("CAL-REF-001".to_string());
+        case.blind_holdout_record_ids
+            .push("CAL-REF-001".to_string());
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::HoldoutLeakage));
@@ -821,9 +846,11 @@ mod tests {
         case.observation.calibration.instrument_id = "OTHER-PROBE".to_string();
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::CalibrationInstrumentMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::CalibrationInstrumentMismatch)
+        );
     }
 
     #[test]
@@ -832,9 +859,11 @@ mod tests {
         case.blind_holdout_record_ids.clear();
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::MissingBlindHoldoutEvidence));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::MissingBlindHoldoutEvidence)
+        );
     }
 
     #[test]
@@ -843,9 +872,11 @@ mod tests {
         case.model_discrepancy.observation_record_id = "OBS-OTHER".to_string();
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::ModelDiscrepancyBindingMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::ModelDiscrepancyBindingMismatch)
+        );
     }
 
     #[test]
@@ -881,9 +912,11 @@ mod tests {
         case.model_discrepancy.qualified = false;
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::UnqualifiedModelDiscrepancy));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::UnqualifiedModelDiscrepancy)
+        );
     }
 
     #[test]
@@ -892,9 +925,11 @@ mod tests {
         case.uncertainty.common_cause_source_ids.clear();
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::MissingCommonCauseEvidence));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::MissingCommonCauseEvidence)
+        );
     }
 
     #[test]
@@ -912,9 +947,11 @@ mod tests {
         case.comparison.observation_record_id = "OBS-OTHER".to_string();
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::ComparisonObservationMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::ComparisonObservationMismatch)
+        );
     }
 
     #[test]
@@ -950,7 +987,11 @@ mod tests {
         case.hard_requirements[0].uncertainty_resolved = false;
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result.blockers.contains(&Blocker::UnresolvedHardRequirement));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::UnresolvedHardRequirement)
+        );
     }
 
     #[test]
@@ -960,12 +1001,16 @@ mod tests {
         case.comparison.observation_digest = digest('e');
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::ComparisonPredictionDigestMismatch));
-        assert!(result
-            .blockers
-            .contains(&Blocker::ComparisonObservationDigestMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::ComparisonPredictionDigestMismatch)
+        );
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::ComparisonObservationDigestMismatch)
+        );
     }
 
     #[test]
@@ -1005,9 +1050,11 @@ mod tests {
         case.geometry.inspection_geometry_digest = digest('f');
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::InspectionGeometryBindingMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::InspectionGeometryBindingMismatch)
+        );
     }
 
     #[test]
@@ -1018,9 +1065,11 @@ mod tests {
         case.spatial_certificate.uncertainty_digest = digest('d');
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::UncertaintyBindingMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::UncertaintyBindingMismatch)
+        );
     }
 
     #[test]
