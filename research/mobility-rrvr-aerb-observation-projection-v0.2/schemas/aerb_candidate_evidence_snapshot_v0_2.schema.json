@@ -260,7 +260,46 @@
             }
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "finding": {
+                "enum": [
+                  "effect_absent",
+                  "fault_absent"
+                ]
+              }
+            },
+            "required": [
+              "finding"
+            ]
+          },
+          "then": {
+            "properties": {
+              "coverage": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/coverage"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "complete"
+                    ],
+                    "properties": {
+                      "complete": {
+                        "const": true
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
     },
     "endpoint_fence_receipt": {
       "type": "object",
@@ -462,7 +501,78 @@
             "null"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "closure_disposition": {
+                "const": "closed"
+              }
+            },
+            "required": [
+              "closure_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "proof_path": {
+                "enum": [
+                  "fenced_and_drained",
+                  "bounded_expiry"
+                ]
+              },
+              "hold_reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "closure_disposition": {
+                "enum": [
+                  "hold",
+                  "unknown",
+                  "disputed"
+                ]
+              }
+            },
+            "required": [
+              "closure_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "hold_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "proof_path": {
+                "const": "bounded_expiry"
+              }
+            },
+            "required": [
+              "proof_path"
+            ]
+          },
+          "then": {
+            "properties": {
+              "horizon_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      ]
     },
     "physical_measurement": {
       "type": "object",
