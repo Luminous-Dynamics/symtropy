@@ -119,6 +119,9 @@ struct Instance {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Outcome {
+    pub instance_id: String,
+    pub service_id: String,
+    pub deadline_day: u64,
     pub option_id: String,
     pub region: String,
     pub receiver_day_without_shock: u64,
@@ -478,6 +481,9 @@ fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
                 };
 
             Ok(Outcome {
+                instance_id: instance.id.clone(),
+                service_id: instance.service.id.clone(),
+                deadline_day: instance.service.deadline_day,
                 option_id: option.id.clone(),
                 region: option.region.clone(),
                 receiver_day_without_shock,
@@ -495,6 +501,61 @@ fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
             })
         })
         .collect()
+}
+
+/// Vector-valued marginal outcomes of adding one qualified portfolio option
+/// relative to another option under the exact same frozen instance and obligation.
+/// Negative receiver-day/cost/emissions deltas are improvements; positive service and
+/// regional-value deltas are improvements. Dimensions are never collapsed into a score.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ServiceOptionValue {
+    pub instance_id: String,
+    pub service_id: String,
+    pub baseline_option_id: String,
+    pub candidate_option_id: String,
+    pub receiver_day_delta: i128,
+    pub inspection_qualified_units_delta: i128,
+    pub receiver_accepted_units_delta: i128,
+    pub on_time_accepted_units_delta: i128,
+    pub cost_units_delta: i128,
+    pub emissions_units_delta: i128,
+    pub regional_value_units_delta: i128,
+}
+
+pub fn compare_service_options(
+    baseline: &Outcome,
+    candidate: &Outcome,
+) -> Result<ServiceOptionValue, String> {
+    if baseline.instance_id != candidate.instance_id
+        || baseline.service_id != candidate.service_id
+        || baseline.deadline_day != candidate.deadline_day
+        || baseline.expected_units != candidate.expected_units
+    {
+        return Err(
+            "service option comparison requires the same frozen instance, service, deadline and expected-unit denominator"
+                .to_owned(),
+        );
+    }
+
+    Ok(ServiceOptionValue {
+        instance_id: baseline.instance_id.clone(),
+        service_id: baseline.service_id.clone(),
+        baseline_option_id: baseline.option_id.clone(),
+        candidate_option_id: candidate.option_id.clone(),
+        receiver_day_delta: i128::from(candidate.receiver_day_with_shock)
+            - i128::from(baseline.receiver_day_with_shock),
+        inspection_qualified_units_delta: i128::from(candidate.inspection_qualified_units)
+            - i128::from(baseline.inspection_qualified_units),
+        receiver_accepted_units_delta: i128::from(candidate.receiver_accepted_units)
+            - i128::from(baseline.receiver_accepted_units),
+        on_time_accepted_units_delta: i128::from(candidate.on_time_accepted_units_with_shock)
+            - i128::from(baseline.on_time_accepted_units_with_shock),
+        cost_units_delta: i128::from(candidate.cost_units) - i128::from(baseline.cost_units),
+        emissions_units_delta: i128::from(candidate.emissions_units)
+            - i128::from(baseline.emissions_units),
+        regional_value_units_delta: i128::from(candidate.regional_value_units)
+            - i128::from(baseline.regional_value_units),
+    })
 }
 
 fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
@@ -843,6 +904,71 @@ mod tests {
         let fixture = "INSTANCE\\tMCSC-NO-DEPENDENCY\\tv0.4\\nSERVICE\\tS\\t10\\tcargo_unit\\t10\\nOPTION\\tO\\tIMPORT\\t1\\t1\\t1\\t1\\t1\\t1\\t0\\t-\\tREV-001\\nINSPECTION\\tO\\tPASS\\t10\\tREV-001\\nRECEIVER_ACCEPTANCE\\tO\\tACCEPTED\\t10\\tREV-001\\n";
         let receipt = run_audit(fixture).expect("an option can be sourced through an external capability receipt");
         assert!(receipt.contains("OUTCOME\\tO\\tIMPORT\\t4\\t4\\t10\\t10\\t10\\t10"));
+    }
+
+    #[test]
+    fn service_option_value_reports_each_tradeoff_without_scalarization() {
+        let instance = parse_instance(FIXTURE).unwrap();
+        let outcomes = evaluate(&instance).unwrap();
+        let existing = outcomes
+            .iter()
+            .find(|outcome| outcome.option_id == "EXISTING")
+            .unwrap();
+        let local_c = outcomes
+            .iter()
+            .find(|outcome| outcome.option_id == "LOCAL-C")
+            .unwrap();
+
+        let value = compare_service_options(existing, local_c).unwrap();
+        assert_eq!(value.instance_id, "MCSC-TINY-001");
+        assert_eq!(value.service_id, "SERVICE-001");
+        assert_eq!(value.receiver_day_delta, -13);
+        assert_eq!(value.inspection_qualified_units_delta, 0);
+        assert_eq!(value.receiver_accepted_units_delta, 0);
+        assert_eq!(value.on_time_accepted_units_delta, 10);
+        assert_eq!(value.cost_units_delta, 55);
+        assert_eq!(value.emissions_units_delta, -13);
+        assert_eq!(value.regional_value_units_delta, 60);
+    }
+
+    #[test]
+    fn service_option_value_rejects_different_instances_or_service_denominators() {
+        let original = parse_instance(FIXTURE).unwrap();
+        let original_outcomes = evaluate(&original).unwrap();
+        let baseline = original_outcomes
+            .iter()
+            .find(|outcome| outcome.option_id == "IMPORT")
+            .unwrap();
+
+        let changed_units = FIXTURE.replace("SERVICE-001\\t10\\tcargo_unit", "SERVICE-001\\t11\\tcargo_unit");
+        let changed = parse_instance(&changed_units).unwrap();
+        let changed_outcomes = evaluate(&changed).unwrap();
+        assert!(
+            compare_service_options(
+                baseline,
+                changed_outcomes
+                    .iter()
+                    .find(|outcome| outcome.option_id == "IMPORT")
+                    .unwrap()
+            )
+            .unwrap_err()
+            .contains("same frozen instance")
+        );
+
+        let changed_deadline = FIXTURE.replace("SERVICE-001\\t10\\tcargo_unit\\t10", "SERVICE-001\\t10\\tcargo_unit\\t11");
+        let changed = parse_instance(&changed_deadline).unwrap();
+        let changed_outcomes = evaluate(&changed).unwrap();
+        assert!(
+            compare_service_options(
+                baseline,
+                changed_outcomes
+                    .iter()
+                    .find(|outcome| outcome.option_id == "IMPORT")
+                    .unwrap()
+            )
+            .unwrap_err()
+            .contains("same frozen instance")
+        );
     }
 
     #[test]
