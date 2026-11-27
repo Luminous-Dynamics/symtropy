@@ -36,7 +36,11 @@ fn parse_state(value: &str, field: &str) -> Result<ProviderState, Box<dyn Error>
     ProviderState::parse(value).ok_or_else(|| format!("invalid {field} state").into())
 }
 
-fn parse_provider(fields: &[&str], offset: usize, name: &str) -> Result<ProviderEvidence, Box<dyn Error>> {
+fn parse_provider(
+    fields: &[&str],
+    offset: usize,
+    name: &str,
+) -> Result<ProviderEvidence, Box<dyn Error>> {
     Ok(ProviderEvidence {
         provider_id: fields[offset].to_owned(),
         provider_revision: fields[offset + 1].to_owned(),
@@ -185,7 +189,9 @@ fn render_result(result: &CurvatureResult) -> String {
         optional_u128(result.m_upper_scaled_per_s2),
         result.m_scale,
         json_escape(&result.m_unit),
-        result.radial_slack_mm.map_or_else(|| "null".to_owned(), |value| value.to_string()),
+        result
+            .radial_slack_mm
+            .map_or_else(|| "null".to_owned(), |value| value.to_string()),
         json_escape(&result.perturbation_inventory_id),
         result.perturbation_inventory_complete,
         render_provider(&evidence.mu),
@@ -241,7 +247,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("empty curvature corpus".into());
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     let bound_ready_count = results
         .iter()
         .filter(|result| result.disposition == CurvatureDisposition::BoundReady)
