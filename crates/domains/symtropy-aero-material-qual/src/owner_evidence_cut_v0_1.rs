@@ -205,10 +205,6 @@ impl OwnerEvidenceCutV0_1 {
         {
             errors.push("OWNER_CUT_OBSERVER_WATERMARK_AFTER_RECEIPT_CUT".to_owned());
         }
-        if self.evidence_records.is_empty() {
-            errors.push("OWNER_CUT_EVIDENCE_RECORDS_EMPTY".to_owned());
-        }
-
         let mut seen = BTreeSet::new();
         for record in &self.evidence_records {
             if !valid_identifier(&record.evidence_ref)
