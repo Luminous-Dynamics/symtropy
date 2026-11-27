@@ -70,7 +70,7 @@ Each component supplies an `AssessmentBinding` containing:
 
 Coverage, causal-cut and effectivity bindings must agree on claim, subject and decision-context digest. Their component report digests must be well-formed and distinct. Every mandatory evidence reference separately carries the same decision-context digest. Any mismatch or malformed binding rejects the composite package; a valid binding shape is not cryptographic authentication.
 
-The composite output preserves the shared decision-context digest, all three report digests and a sorted set of required evidence references. This enables downstream review to retrieve the exact component reports and inspect the provenance chain rather than relying on an unanchored aggregate PASS.
+The composite output preserves the shared decision-context digest, all three report digests and a sorted set of required evidence references. This enables downstream review to retrieve the exact component reports and inspect the provenance chain rather than relying on an unanchored aggregate PASS. It also carries the owner evidence-cut digest, Mycelix/AeroCommons packet ID and digest, BASALT run ID, report digest and final-state digest, plus the receiver receipt watermark. These references keep owner-side provenance addressable in the claim report; they are not substitutes for retrieving/verifying the external bytes.
 
 The gate computes the context digest from the typed input. Owners still have to supply the referenced manifest/policy digests and retained component report bytes. A production integration must independently reproduce the versioned serialization, resolve the source-owned manifests, authenticate each owner receipt and verify the component report digest against its retained bytes.
 
