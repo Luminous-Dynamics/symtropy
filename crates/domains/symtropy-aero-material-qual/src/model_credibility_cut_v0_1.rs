@@ -760,7 +760,8 @@ mod tests {
         let mut cut = fixture();
         cut.split_integrity_status = SplitIntegrityStatus::LeakageDetected;
         cut.domain_coverage_status = ModelDomainCoverageStatus::Indeterminate;
-        cut.required_modalities.clear();
+        // Preserve the owner-required modality obligations; remove only
+        // their supporting evidence to verify that a missing modality blocks.
         cut.modality_evidence.clear();
         let blockers = cut.reviewability_blockers();
         assert!(blockers.contains(&"MODEL_CONFIRMATORY_SPLIT_LEAKAGE".to_owned()));
