@@ -25,6 +25,39 @@ struct Service {
     deadline_day: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum InspectionStatus {
+    Pass,
+    Fail,
+    Unknown,
+}
+
+impl InspectionStatus {
+    fn parse(value: &str, line: usize) -> Result<Self, String> {
+        match value {
+            "PASS" => Ok(Self::Pass),
+            "FAIL" => Ok(Self::Fail),
+            "UNKNOWN" => Ok(Self::Unknown),
+            _ => Err(format!("line {line}: unsupported inspection status '{value}'")),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Pass => "PASS",
+            Self::Fail => "FAIL",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+struct Inspection {
+    status: InspectionStatus,
+    accepted_units: u64,
+    revision: String,
+}
+
 #[derive(Clone, Debug)]
 struct PortfolioOption {
     id: String,
@@ -36,6 +69,7 @@ struct PortfolioOption {
     handoff_days: u64,
     emissions_units: u64,
     regional_value_units: u64,
+    revision: String,
     dependencies: Vec<String>,
 }
 
@@ -46,6 +80,7 @@ struct Instance {
     service: Service,
     dependencies: BTreeMap<String, Dependency>,
     options: BTreeMap<String, PortfolioOption>,
+    inspections: BTreeMap<String, Inspection>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -55,7 +90,10 @@ pub struct Outcome {
     pub receiver_day_without_shock: u64,
     pub receiver_day_with_shock: u64,
     pub expected_units: u64,
-    pub on_time_units_with_shock: u64,
+    pub receiver_accepted_units: u64,
+    pub on_time_accepted_units_with_shock: u64,
+    pub inspection_status: String,
+    pub revision: String,
     pub cost_units: u64,
     pub emissions_units: u64,
     pub regional_value_units: u64,
@@ -72,6 +110,7 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
     let mut service: Option<Service> = None;
     let mut dependencies: BTreeMap<String, Dependency> = BTreeMap::new();
     let mut options: BTreeMap<String, PortfolioOption> = BTreeMap::new();
+    let mut inspections: BTreeMap<String, Inspection> = BTreeMap::new();
     let mut pending_shocks: Vec<(String, Shock)> = Vec::new();
 
     for (index, raw_line) in input.lines().enumerate() {
@@ -144,7 +183,7 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                 }
                 pending_shocks.push((fields[1].to_owned(), Shock { start_day, end_day }));
             }
-            "OPTION" if fields.len() == 11 => {
+            "OPTION" if fields.len() == 12 => {
                 if fields[1].is_empty() || fields[2].is_empty() {
                     return Err(format!(
                         "line {line_number}: empty option identity or region"
@@ -166,6 +205,9 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                         fields[1]
                     ));
                 }
+                if fields[11].is_empty() {
+                    return Err(format!("line {line_number}: empty configuration revision"));
+                }
                 let option = PortfolioOption {
                     id: fields[1].to_owned(),
                     region: fields[2].to_owned(),
@@ -181,10 +223,27 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                         line_number,
                     )?,
                     dependencies: dependency_ids,
+                    revision: fields[11].to_owned(),
                 };
                 if options.insert(option.id.clone(), option).is_some() {
                     return Err(format!(
                         "line {line_number}: duplicate option '{}'",
+                        fields[1]
+                    ));
+                }
+            }
+            "INSPECTION" if fields.len() == 5 => {
+                if fields[1].is_empty() || fields[4].is_empty() {
+                    return Err(format!("line {line_number}: empty inspection option or revision"));
+                }
+                let inspection = Inspection {
+                    status: InspectionStatus::parse(fields[2], line_number)?,
+                    accepted_units: parse_u64(fields[3], "accepted units", line_number)?,
+                    revision: fields[4].to_owned(),
+                };
+                if inspections.insert(fields[1].to_owned(), inspection).is_some() {
+                    return Err(format!(
+                        "line {line_number}: duplicate inspection record for '{}'",
                         fields[1]
                     ));
                 }
@@ -220,6 +279,32 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                 ));
             }
         }
+        let inspection = inspections.get(&option.id).ok_or_else(|| {
+            format!("option '{}' has no inspection disposition", option.id)
+        })?;
+        if inspection.revision != option.revision {
+            return Err(format!(
+                "option '{}' inspection revision '{}' does not match configuration revision '{}'",
+                option.id, inspection.revision, option.revision
+            ));
+        }
+        if inspection.accepted_units > service.expected_units {
+            return Err(format!(
+                "option '{}' accepted units exceed expected service units",
+                option.id
+            ));
+        }
+        if inspection.status != InspectionStatus::Pass && inspection.accepted_units != 0 {
+            return Err(format!(
+                "option '{}' has accepted units without a passing inspection",
+                option.id
+            ));
+        }
+    }
+    for option_id in inspections.keys() {
+        if !options.contains_key(option_id) {
+            return Err(format!("inspection references unknown option '{option_id}'"));
+        }
     }
 
     Ok(Instance {
@@ -228,6 +313,7 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
         service,
         dependencies,
         options,
+        inspections,
     })
 }
 
@@ -281,9 +367,17 @@ fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
         .map(|option| {
             let receiver_day_without_shock = receiver_day(instance, option, false)?;
             let receiver_day_with_shock = receiver_day(instance, option, true)?;
-            let on_time_units_with_shock =
-                if receiver_day_with_shock <= instance.service.deadline_day {
-                    instance.service.expected_units
+            let inspection = &instance.inspections[&option.id];
+            let receiver_accepted_units = if inspection.status == InspectionStatus::Pass {
+                inspection.accepted_units
+            } else {
+                0
+            };
+            let on_time_accepted_units_with_shock =
+                if receiver_day_with_shock <= instance.service.deadline_day
+                    && inspection.status == InspectionStatus::Pass
+                {
+                    inspection.accepted_units
                 } else {
                     0
                 };
@@ -293,7 +387,10 @@ fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
                 receiver_day_without_shock,
                 receiver_day_with_shock,
                 expected_units: instance.service.expected_units,
-                on_time_units_with_shock,
+                receiver_accepted_units,
+                on_time_accepted_units_with_shock,
+                inspection_status: inspection.status.as_str().to_owned(),
+                revision: option.revision.clone(),
                 cost_units: option.cost_units,
                 emissions_units: option.emissions_units,
                 regional_value_units: option.regional_value_units,
@@ -333,7 +430,7 @@ fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
             option.dependencies.join(",")
         };
         lines.push(format!(
-            "OPTION\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "OPTION\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             option.id,
             option.region,
             option.cost_units,
@@ -343,18 +440,30 @@ fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
             option.handoff_days,
             option.emissions_units,
             option.regional_value_units,
-            dependencies
+            dependencies,
+            option.revision
+        ));
+        let inspection = &instance.inspections[&option.id];
+        lines.push(format!(
+            "INSPECTION\t{}\t{}\t{}\t{}",
+            option.id,
+            inspection.status.as_str(),
+            inspection.accepted_units,
+            inspection.revision
         ));
     }
     for outcome in outcomes {
         lines.push(format!(
-            "OUTCOME\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            "OUTCOME\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
             outcome.option_id,
             outcome.region,
             outcome.receiver_day_without_shock,
             outcome.receiver_day_with_shock,
             outcome.expected_units,
-            outcome.on_time_units_with_shock,
+            outcome.receiver_accepted_units,
+            outcome.on_time_accepted_units_with_shock,
+            outcome.inspection_status,
+            outcome.revision,
             outcome.cost_units,
             outcome.emissions_units,
             outcome.regional_value_units,
@@ -379,21 +488,26 @@ mod tests {
         let instance = parse_instance(FIXTURE).expect("fixture parses");
         let outcomes = evaluate(&instance).expect("evaluation succeeds");
         let expected = [
-            ("EXISTING", 23, 23, 0, 90, 45, 0),
-            ("IMPORT", 13, 13, 0, 100, 40, 5),
-            ("LOCAL-A", 8, 14, 0, 130, 30, 80),
-            ("LOCAL-B", 9, 15, 0, 125, 35, 70),
-            ("LOCAL-C", 10, 10, 10, 145, 32, 60),
+            ("EXISTING", 23, 23, 10, 0, 90, 45, 0),
+            ("IMPORT", 13, 13, 10, 0, 100, 40, 5),
+            ("LOCAL-A", 8, 14, 10, 0, 130, 30, 80),
+            ("LOCAL-B", 9, 15, 10, 0, 125, 35, 70),
+            ("LOCAL-C", 10, 10, 10, 10, 145, 32, 60),
         ];
         assert_eq!(outcomes.len(), expected.len());
-        for (outcome, (id, no_shock, with_shock, on_time, cost, emissions, regional)) in
-            outcomes.iter().zip(expected)
+        for (
+            outcome,
+            (id, no_shock, with_shock, accepted, on_time, cost, emissions, regional),
+        ) in outcomes.iter().zip(expected)
         {
             assert_eq!(outcome.option_id, id);
             assert_eq!(outcome.receiver_day_without_shock, no_shock);
             assert_eq!(outcome.receiver_day_with_shock, with_shock);
             assert_eq!(outcome.expected_units, 10);
-            assert_eq!(outcome.on_time_units_with_shock, on_time);
+            assert_eq!(outcome.receiver_accepted_units, accepted);
+            assert_eq!(outcome.on_time_accepted_units_with_shock, on_time);
+            assert_eq!(outcome.inspection_status, "PASS");
+            assert_eq!(outcome.revision, "REV-001");
             assert_eq!(outcome.cost_units, cost);
             assert_eq!(outcome.emissions_units, emissions);
             assert_eq!(outcome.regional_value_units, regional);
@@ -409,7 +523,8 @@ mod tests {
             .find(|outcome| outcome.option_id == "IMPORT")
             .expect("import option exists");
         assert_eq!(import.expected_units, 10);
-        assert_eq!(import.on_time_units_with_shock, 0);
+        assert_eq!(import.receiver_accepted_units, 10);
+        assert_eq!(import.on_time_accepted_units_with_shock, 0);
     }
 
     #[test]
@@ -435,6 +550,74 @@ mod tests {
             parse_instance(&changed)
                 .unwrap_err()
                 .contains("duplicate dependency")
+        );
+    }
+
+    #[test]
+    fn partial_acceptance_never_expands_to_the_full_denominator() {
+        let changed = FIXTURE.replace(
+            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
+            "INSPECTION\\tLOCAL-C\\tPASS\\t6\\tREV-001",
+        );
+        let local_c = evaluate(&parse_instance(&changed).unwrap())
+            .unwrap()
+            .into_iter()
+            .find(|outcome| outcome.option_id == "LOCAL-C")
+            .unwrap();
+        assert_eq!(local_c.expected_units, 10);
+        assert_eq!(local_c.receiver_accepted_units, 6);
+        assert_eq!(local_c.on_time_accepted_units_with_shock, 6);
+    }
+
+    #[test]
+    fn failed_or_unknown_inspection_cannot_earn_service_credit() {
+        for (status, units) in [("FAIL", "0"), ("UNKNOWN", "0")] {
+            let original = "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001";
+            let changed = FIXTURE.replace(
+                original,
+                &format!("INSPECTION\\tLOCAL-C\\t{status}\\t{units}\\tREV-001"),
+            );
+            let local_c = evaluate(&parse_instance(&changed).unwrap())
+                .unwrap()
+                .into_iter()
+                .find(|outcome| outcome.option_id == "LOCAL-C")
+                .unwrap();
+            assert_eq!(local_c.expected_units, 10);
+            assert_eq!(local_c.receiver_accepted_units, 0);
+            assert_eq!(local_c.on_time_accepted_units_with_shock, 0);
+        }
+    }
+
+    #[test]
+    fn inspection_revision_mismatch_fails_closed() {
+        let changed = FIXTURE.replace(
+            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
+            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-002",
+        );
+        assert!(
+            parse_instance(&changed)
+                .unwrap_err()
+                .contains("does not match configuration revision")
+        );
+    }
+
+    #[test]
+    fn missing_or_duplicate_inspection_fails_closed() {
+        let missing = FIXTURE.replace("INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001\\n", "");
+        assert!(
+            parse_instance(&missing)
+                .unwrap_err()
+                .contains("has no inspection disposition")
+        );
+
+        let duplicate = FIXTURE.replace(
+            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
+            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001\\nINSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
+        );
+        assert!(
+            parse_instance(&duplicate)
+                .unwrap_err()
+                .contains("duplicate inspection record")
         );
     }
 
