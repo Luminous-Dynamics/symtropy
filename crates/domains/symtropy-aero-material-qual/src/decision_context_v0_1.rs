@@ -76,7 +76,9 @@ struct RequiredEvidenceManifestEnvelope<'a> {
 }
 
 fn valid_identifier(value: &str) -> bool {
-    !value.trim().is_empty() && value == value.trim()
+    !value.trim().is_empty()
+        && value == value.trim()
+        && value.bytes().all(|byte| byte.is_ascii_graphic())
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -103,6 +105,9 @@ fn sha256_hex(bytes: &[u8]) -> String {
 pub fn compute_required_evidence_manifest_sha256(
     evidence_refs: &[String],
 ) -> Result<String, String> {
+    if evidence_refs.iter().any(|reference| !valid_identifier(reference)) {
+        return Err("REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned());
+    }
     let mut sorted_refs = evidence_refs.iter().map(String::as_str).collect::<Vec<_>>();
     sorted_refs.sort_unstable();
     let envelope = RequiredEvidenceManifestEnvelope {
@@ -345,6 +350,29 @@ mod tests {
             future
                 .validation_errors()
                 .contains(&"DECISION_CONTEXT_ACQUISITION_AFTER_AS_KNOWN".to_owned())
+        );
+    }
+
+    #[test]
+    fn context_and_manifest_identifiers_reject_spaces_controls_and_non_ascii() {
+        let refs = vec!["receipt:inspection-01".to_owned()];
+        let mut context = context(&refs);
+        context.subject_ref = "part:wing panel".to_owned();
+        assert!(
+            context
+                .validation_errors()
+                .contains(&"DECISION_CONTEXT_SUBJECT_REF_INVALID".to_owned())
+        );
+
+        let with_control = vec!["receipt:inspection\n01".to_owned()];
+        assert_eq!(
+            compute_required_evidence_manifest_sha256(&with_control),
+            Err("REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned())
+        );
+        let with_non_ascii = vec!["receipt:inspection-é".to_owned()];
+        assert_eq!(
+            compute_required_evidence_manifest_sha256(&with_non_ascii),
+            Err("REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned())
         );
     }
 
