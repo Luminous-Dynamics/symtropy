@@ -166,7 +166,7 @@ fn build_service_case(owner: &OwnerReport) -> (String, BTreeMap<String, String>)
     ];
     let mut option_to_plan = BTreeMap::new();
 
-    for (index, (plan_id, plan)) in owner.plans.iter().enumerate() {
+    for (index, (plan_id, plan)) in owner.plans.iter().filter(|(_, plan)| plan.feasible).enumerate() {
         let option_id = format!("OWNER-PLAN-{index:02}");
         let has_local = plan
             .selected_options
@@ -195,18 +195,14 @@ fn build_service_case(owner: &OwnerReport) -> (String, BTreeMap<String, String>)
             plan.regional_value_units
         ));
 
-        let (inspection_status, receiver_status, units) = if plan.feasible {
-            ("PASS", "ACCEPTED", 10)
-        } else {
-            // A plan that the owner has rejected as resource-infeasible cannot acquire
-            // a passing inspection or receiver acceptance by downstream optimism.
-            ("UNKNOWN", "UNKNOWN", 0)
-        };
+        // These downstream dispositions are explicit synthetic scenario assumptions
+        // applied equally to every owner-feasible plan. They are not emitted by Mycelix
+        // and must never be inferred from a FEASIBLE sourcing receipt.
         rows.push(format!(
-            "INSPECTION\t{option_id}\t{inspection_status}\t{units}\tREV-MPCB-001"
+            "INSPECTION\\t{option_id}\\tPASS\\t10\\tREV-MPCB-001"
         ));
         rows.push(format!(
-            "RECEIVER_ACCEPTANCE\t{option_id}\t{receiver_status}\t{units}\tREV-MPCB-001"
+            "RECEIVER_ACCEPTANCE\\t{option_id}\\tACCEPTED\\t10\\tREV-MPCB-001"
         ));
         option_to_plan.insert(option_id, plan_id.clone());
     }
@@ -252,7 +248,11 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
     );
 
     let (service_case, option_to_plan) = build_service_case(&owner);
-    let receipt = run_audit(&service_case).expect("owner-derived service case audits");
+    assert_eq!(option_to_plan.len(), 3, "only owner-feasible plans enter service evaluation");
+    assert!(
+        !option_to_plan.values().any(|plan_id| plan_id == &all_local.0),
+        "resource-infeasible all-local plan must not receive a hypothetical completion time"
+    );
     let mut seen = BTreeMap::new();
 
     for line in receipt.lines() {
@@ -274,16 +274,10 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
         let on_time: u64 = fields[8].parse().expect("on-time units are numeric");
 
         assert_eq!(expected_units, 10);
-        assert_eq!(inspection_qualified, if owner_plan.feasible { 10 } else { 0 });
-        assert_eq!(receiver_accepted, if owner_plan.feasible { 10 } else { 0 });
-        assert_eq!(
-            on_time,
-            if owner_plan.feasible && receiver_day <= 20 {
-                10
-            } else {
-                0
-            }
-        );
+        assert!(owner_plan.feasible);
+        assert_eq!(inspection_qualified, 10);
+        assert_eq!(receiver_accepted, 10);
+        assert_eq!(on_time, if receiver_day <= 20 { 10 } else { 0 });
         assert_eq!(
             fields[12].parse::<u64>().unwrap(),
             owner_plan.cost_units
@@ -299,12 +293,15 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
         seen.insert(plan_id.clone(), (receiver_day, receiver_accepted, on_time));
     }
 
-    assert_eq!(seen.len(), 4);
+    assert_eq!(seen.len(), 3);
+    assert!(
+        seen.values().all(|(_, accepted, _)| *accepted == 10),
+        "synthetic downstream PASS/ACCEPTED assumptions apply to all feasible owner plans"
+    );
 
-    // The faster all-local portfolio is infeasible and earns no accepted service.
-    assert_eq!(seen[&all_local.0], (9, 0, 0));
+    // The faster all-local portfolio remains visible in the source receipt's blocking
+    // witnesses, but is excluded from the service candidate set before timing is computed.
 
-    // Only the WP-A local / WP-B imported hybrid meets the 20-day end-to-end deadline.
     let timely_hybrid = owner
         .plans
         .iter()
