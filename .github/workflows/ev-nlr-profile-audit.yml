@@ -1,0 +1,100 @@
+name: EV NLR 15-minute depot profile audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ev-nlr-profile-audit.yml"
+      - "tools/ev-nlr-profile-audit/**"
+  push:
+    branches: [main, "research/**"]
+    paths:
+      - ".github/workflows/ev-nlr-profile-audit.yml"
+      - "tools/ev-nlr-profile-audit/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-subject:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install Rust and quality tools
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all -- --check
+      - name: Run unit and adversarial contract tests
+        run: cargo test --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets
+      - name: Run warnings-denied Clippy
+        run: cargo clippy --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets -- -D warnings
+      - name: Generate synthetic 81-profile reference and candidate archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          REF="$RUNNER_TEMP/nlr-reference-synthetic"
+          CAND="$RUNNER_TEMP/nlr-candidate-synthetic"
+          mkdir -p "$REF" "$CAND"
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            case "$fleet" in
+              fleet1-beverage-delivery) fleet_index=0 ;;
+              fleet2-warehouse-delivery) fleet_index=1 ;;
+              fleet3-food-delivery) fleet_index=2 ;;
+            esac
+            for size in 10 50 100; do
+              case "$size" in
+                10) size_index=0 ;;
+                50) size_index=1 ;;
+                100) size_index=2 ;;
+              esac
+              for strategy in immediate delayed min_power; do
+                case "$strategy" in
+                  immediate) strategy_index=0 ;;
+                  delayed) strategy_index=1 ;;
+                  min_power) strategy_index=2 ;;
+                esac
+                for kind in avg-prof min-prof peak-prof; do
+                  case "$kind" in
+                    min-prof) kind_shift=0 ;;
+                    avg-prof) kind_shift=1 ;;
+                    peak-prof) kind_shift=2 ;;
+                  esac
+                  name="$fleet"_"$size"vehs_"$kind"_"$strategy"_15min.csv
+                  printf 'time,avg_power_kw\n' > "$REF/$name"
+                  printf 'time,avg_power_kw\n' > "$CAND/$name"
+                  for interval in $(seq 0 95); do
+                    hour=$((interval / 4))
+                    minute=$(((interval % 4) * 15))
+                    printf -v timestamp '%02d:%02d:00' "$hour" "$minute"
+                    base=$(awk -v f="$fleet_index" -v s="$size_index" -v t="$strategy_index" -v k="$kind_shift" -v q="$interval" 'BEGIN { printf "%.6f", 8 + 2*f + 3*s + t + k + 0.01*q }')
+                    candidate=$(awk -v b="$base" 'BEGIN { printf "%.6f", b + 0.5 }')
+                    printf '%s,%s\n' "$timestamp" "$base" >> "$REF/$name"
+                    printf '%s,%s\n' "$timestamp" "$candidate" >> "$CAND/$name"
+                  done
+                done
+              done
+            done
+          done
+      - name: Audit archive contract and compare candidate
+        run: |
+          cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml -- \
+            --reference-dir "$RUNNER_TEMP/nlr-reference-synthetic" \
+            --candidate-dir "$RUNNER_TEMP/nlr-candidate-synthetic" \
+            --candidate-id deterministic-half-kw-bias \
+            --candidate-evidence-class simulated \
+            --source-revision synthetic-fixture-v0.1 \
+            --output nlr-profile-audit-report.json
+          jq -e '.report.reference_profile_count == 81 and .report.expected_intervals_per_profile == 96 and .report.reference_total_interval_count == 7776 and .report.candidate_comparison.profile_count == 81 and .report.candidate_comparison.interval_count == 7776 and (.report.candidate_comparison.mean_absolute_error_kw - 0.5 | fabs < 0.000001) and (.report.candidate_comparison.mean_bias_kw - 0.5 | fabs < 0.000001)' nlr-profile-audit-report.json
+          sha256sum nlr-profile-audit-report.json > nlr-profile-audit-report.sha256
+      - name: Upload synthetic contract report and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-nlr-profile-audit-synthetic
+          path: |
+            nlr-profile-audit-report.json
+            nlr-profile-audit-report.sha256
+          if-no-files-found: error
+          retention-days: 14
