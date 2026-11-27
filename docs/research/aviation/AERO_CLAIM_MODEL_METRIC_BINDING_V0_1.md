@@ -28,8 +28,9 @@ Therefore, a report can be valid for the correct model/configuration and still b
 - exact predicate operator, rational threshold and unit;
 - exact uncertainty treatment, method and confidence;
 - a one-to-one map for every claim-required stratum;
-- the exact model report, semantic mapping, owner attestation, producer-authority receipt and semantic-validation receipt records;
-- receiver-first-seen interval relative to the historical evidence cutoff.
+- the exact model report, semantic mapping, owner attestation, producer-authority receipt, semantic-validation receipt and receiver-first-seen receipt records;
+- receiver-first-seen interval relative to the historical evidence cutoff;
+- a distinct owner-native receiver-first-seen receipt reference and exact record digest, both included in the decision's required-evidence manifest.
 
 The mapping is not inferred from display names. No implicit unit conversion is permitted. If a conversion is needed, it requires a separate versioned conversion profile, exact transformation rule, source and target units, uncertainty propagation, owner receipt and independent qualification.
 
@@ -61,7 +62,7 @@ The adapter rejects any mismatch in:
 6. operator / threshold / uncertainty treatment and method;
 7. complete one-to-one claim-stratum ↔ model-stratum mapping;
 8. per-stratum report population and status;
-9. owner metric-semantic, model report, attestation, authority and semantic-validation receipt identities;
+9. owner metric-semantic, model report, attestation, authority, semantic-validation and receiver-first-seen receipt identities;
 10. decision required-evidence manifest membership;
 11. owner lifecycle, freshness and dependency coverage;
 12. receiver-first-seen before the historical decision cutoff.
