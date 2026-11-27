@@ -1225,6 +1225,21 @@ mod tests {
                 .iter()
                 .all(|decision| decision.selected_portfolio_id == PORTFOLIO_A)
         );
+        assert!(report.policy_mission_risk_feasible);
+        assert_eq!(
+            report.scenario_policy_risk_assessments.len(),
+            2
+        );
+        assert!(
+            report.scenario_policy_risk_assessments.iter().all(|risk| {
+                risk.policy_union_mass
+                    == ExactMass {
+                        numerator: 3,
+                        denominator: 4,
+                    }
+                    && risk.within_declared_finite_support_budget
+            })
+        );
         assert!(!report.authority_granted);
     }
 
@@ -1244,6 +1259,39 @@ mod tests {
         assert_eq!(report.unique_observable_history_count, 2);
         assert_eq!(report.world_decisions[0].selected_portfolio_id, PORTFOLIO_A);
         assert_eq!(report.world_decisions[1].selected_portfolio_id, PORTFOLIO_C);
+        assert!(!report.policy_mission_risk_feasible);
+        assert!(
+            report.scenario_policy_risk_assessments.iter().all(|risk| {
+                risk.policy_union_mass
+                    == ExactMass {
+                        numerator: 1,
+                        denominator: 1,
+                    }
+                    && !risk.within_declared_finite_support_budget
+            })
+        );
+    }
+
+    #[test]
+    fn fixed_portfolio_c_remains_policy_risk_feasible_below_the_static_budget() {
+        let traces = complete_traces(false);
+        let plan = NonAnticipativePolicyPlan {
+            policy_id: [201; 32],
+            policy_code_digest: [202; 32],
+            nodes: vec![policy_node(&traces[0].measurements, PORTFOLIO_C)],
+        };
+        let report = campaign().evaluate(&plan, &traces).unwrap();
+        assert!(report.policy_mission_risk_feasible);
+        assert!(
+            report.scenario_policy_risk_assessments.iter().all(|risk| {
+                risk.policy_union_mass
+                    == ExactMass {
+                        numerator: 1,
+                        denominator: 4,
+                    }
+                    && risk.within_declared_finite_support_budget
+            })
+        );
     }
 
     #[test]
