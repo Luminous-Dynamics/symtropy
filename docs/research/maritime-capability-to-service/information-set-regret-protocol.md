@@ -142,7 +142,7 @@ The executable corpus must demonstrate all of the following:
 - **Deadline control:** an admissible plan published after the action cutoff is recorded as late even if its objective is better.
 - **Authorization control:** a computed plan is not executable until the required authority receipt is valid.
 
-The companion [`information-set-replay-v0.tsv`](fixtures/information-set-replay-v0.tsv) is a synthetic case manifest for these controls. It is a test-design corpus, not a real event history or a probability sample.
+The companion [`information-set-replay-v0.tsv`](fixtures/information-set-replay-v0.tsv) is a synthetic case manifest for these controls. The reusable library API also tests append-only correction vintages and late revocation with stable historical snapshots. These are test-design corpora, not real event histories or probability samples.
 
 ## 6. Benchmark scorecard
 
@@ -231,7 +231,7 @@ A synthetic replay suite proves that the evaluator enforces the declared informa
 Recommended sequence:
 
 1. Freeze event-vintage schema and the case manifest.
-2. Extract the passing-or-pending conformance parser from `tests/information_set_replay.rs` into a reusable Rust module, then implement deterministic as-of selection over append-only evidence vintages.
+2. The follow-on reusable Rust module `src/kite.rs` now provides deterministic as-of selection over complete append-only evidence-vintage lineages; keep the manifest conformance parser and library API independently tested, then bind the manifest to the public API where its current row schema is sufficient.
 3. Implement no-lookahead negative controls before adding a recovery optimizer.
 4. Consume canonical Mycelix/Symtropy receipts by exact digest, authority, rights, freshness and version.
 5. Add the R0/R1/R2 benchmark harness and compute-budget capture.
