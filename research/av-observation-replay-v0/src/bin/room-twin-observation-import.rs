@@ -144,7 +144,7 @@ fn validate_camera_profile(profile: &Value) -> Result<(u32, u32, u64, ClockDomai
         || ticks.iter().enumerate().any(|(index, value)| {
             value.as_u64() != Some((index + 1) as u64)
         })
-        || profile["transport"]["decision_cutoff_tick"] != 2
+        || profile["transport"]["prefix_decision_cutoff_tick"] != 2
         || profile["transport"]["first_distinguishing_observation_tick"] != 3
     {
         return Err("camera profile transport schedule is invalid".into());
