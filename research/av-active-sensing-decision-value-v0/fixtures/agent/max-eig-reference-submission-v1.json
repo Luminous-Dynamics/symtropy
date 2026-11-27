@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-active-sensing-decision-value-v0",
+  "policy_id": "synthetic-max-eig-reference-v1",
+  "run_id": "synthetic-max-eig-run-v1",
+  "policy_family": "max_eig",
+  "predictions": [
+    {
+      "episode_id": "as-001-high-eig-zero-evsi",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-001-high-eig-zero-evsi",
+          "action_id": "inspect-uniform-label",
+          "request_tick": 10,
+          "estimated_eig_nats": 1.4,
+          "estimated_evsi": 0,
+          "estimated_cost_joules": 0.8
+        }
+      ],
+      "decision": "answer",
+      "answer": "proceed",
+      "confidence": 0.85,
+      "response_tick": 16,
+      "evidence_as_of_tick": 15,
+      "cited_observation_refs": [
+        "obs-clear-corridor",
+        "obs-uniform-label"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-002-low-eig-high-evsi",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-002-low-eig-high-evsi",
+          "action_id": "inspect-hazard-tone",
+          "request_tick": 10,
+          "estimated_eig_nats": 0.12,
+          "estimated_evsi": 6,
+          "estimated_cost_joules": 0.4
+        }
+      ],
+      "decision": "answer",
+      "answer": "stop",
+      "confidence": 0.85,
+      "response_tick": 15,
+      "evidence_as_of_tick": 14,
+      "cited_observation_refs": [
+        "obs-cart-visual",
+        "obs-hazard-tone"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-003-audio-necessary",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-003-audio-necessary",
+          "action_id": "capture-machine-audio",
+          "request_tick": 12,
+          "estimated_eig_nats": 0.4,
+          "estimated_evsi": 4,
+          "estimated_cost_joules": 0.5
+        }
+      ],
+      "decision": "answer",
+      "answer": "alarm",
+      "confidence": 0.85,
+      "response_tick": 18,
+      "evidence_as_of_tick": 17,
+      "cited_observation_refs": [
+        "obs-machine-video",
+        "obs-machine-audio"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-004-common-cause-duplicate",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-004-common-cause-duplicate",
+          "action_id": "capture-impact-audio",
+          "request_tick": 20,
+          "estimated_eig_nats": 0.3,
+          "estimated_evsi": 0,
+          "estimated_cost_joules": 0.2
+        }
+      ],
+      "decision": "answer",
+      "answer": "one shared event",
+      "confidence": 0.85,
+      "response_tick": 24,
+      "evidence_as_of_tick": 23,
+      "cited_observation_refs": [
+        "obs-impact-video",
+        "obs-impact-audio"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-005-deadline-late-observation",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-005-deadline-late-observation",
+          "action_id": "request-delayed-camera-frame",
+          "request_tick": 10,
+          "estimated_eig_nats": 1.2,
+          "estimated_evsi": 0,
+          "estimated_cost_joules": 0.6
+        }
+      ],
+      "decision": "answer",
+      "answer": "hazard present",
+      "confidence": 0.85,
+      "response_tick": 26,
+      "evidence_as_of_tick": 25,
+      "cited_observation_refs": [
+        "obs-delayed-frame"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-006-budget-allocation",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-006-budget-allocation",
+          "action_id": "inspect-cell-a-label",
+          "request_tick": 30,
+          "estimated_eig_nats": 1,
+          "estimated_evsi": 0,
+          "estimated_cost_joules": 0.5
+        }
+      ],
+      "decision": "answer",
+      "answer": "cell A",
+      "confidence": 0.85,
+      "response_tick": 35,
+      "evidence_as_of_tick": 34,
+      "cited_observation_refs": [
+        "obs-workcells",
+        "obs-cell-a-label"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-007-partial-unavailable-action",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-007-partial-unavailable-action",
+          "action_id": "request-pump-audio",
+          "request_tick": 13,
+          "estimated_eig_nats": 0,
+          "estimated_evsi": 0,
+          "estimated_cost_joules": 0.4
+        }
+      ],
+      "decision": "answer",
+      "answer": "insufficient evidence",
+      "confidence": 0.85,
+      "response_tick": 19,
+      "evidence_as_of_tick": 18,
+      "cited_observation_refs": [
+        "obs-pump-visual"
+      ],
+      "claimed_independent_corroboration": false
+    },
+    {
+      "episode_id": "as-008-sufficient-stop",
+      "action_requests": [
+        {
+          "request_id": "max-eig-as-008-sufficient-stop",
+          "action_id": "inspect-exit-sign",
+          "request_tick": 5,
+          "estimated_eig_nats": 0.6,
+          "estimated_evsi": 0,
+          "estimated_cost_joules": 0.5
+        }
+      ],
+      "decision": "answer",
+      "answer": "clear",
+      "confidence": 0.85,
+      "response_tick": 10,
+      "evidence_as_of_tick": 8,
+      "cited_observation_refs": [
+        "obs-exit-clear",
+        "obs-exit-sign"
+      ],
+      "claimed_independent_corroboration": false
+    }
+  ]
+}

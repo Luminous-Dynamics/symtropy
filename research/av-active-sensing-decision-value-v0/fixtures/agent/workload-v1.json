@@ -1,0 +1,343 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-active-sensing-decision-value-v0",
+  "note": "Synthetic metadata-only action catalogue. It contains no raw sensor media, measured timing or physical actuator qualification.",
+  "episodes": [
+    {
+      "episode_id": "as-001-high-eig-zero-evsi",
+      "task": {
+        "query_tick": 10,
+        "deadline_tick": 50,
+        "decision_prompt": "Is the corridor safe to proceed?",
+        "decision_options": [
+          "proceed",
+          "hold"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-clear-corridor",
+          "modality": "video",
+          "availability_tick": 10,
+          "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dependency_group": "root-corridor"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "inspect-uniform-label",
+          "modality": "video",
+          "target": "read a uniform label unrelated to the safety decision",
+          "latency_ticks": 5,
+          "resource_cost": {
+            "audio_bytes": 0,
+            "video_frames": 3,
+            "energy_joules": 0.8
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 0,
+        "max_video_frames": 4,
+        "max_energy_joules": 1
+      }
+    },
+    {
+      "episode_id": "as-002-low-eig-high-evsi",
+      "task": {
+        "query_tick": 10,
+        "deadline_tick": 60,
+        "decision_prompt": "Should the robot proceed past the maintenance cart?",
+        "decision_options": [
+          "proceed",
+          "stop"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-cart-visual",
+          "modality": "video",
+          "availability_tick": 10,
+          "artifact_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "source_dependency_group": "root-cart"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "inspect-hazard-tone",
+          "modality": "audio",
+          "target": "capture the short non-speech hazard cue near the cart",
+          "latency_ticks": 4,
+          "resource_cost": {
+            "audio_bytes": 4096,
+            "video_frames": 0,
+            "energy_joules": 0.4
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 8192,
+        "max_video_frames": 0,
+        "max_energy_joules": 1
+      }
+    },
+    {
+      "episode_id": "as-003-audio-necessary",
+      "task": {
+        "query_tick": 12,
+        "deadline_tick": 55,
+        "decision_prompt": "Which machine state is active?",
+        "decision_options": [
+          "idle",
+          "alarm",
+          "running"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-machine-video",
+          "modality": "video",
+          "availability_tick": 12,
+          "artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "source_dependency_group": "root-machine"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "capture-machine-audio",
+          "modality": "audio",
+          "target": "capture a bounded non-speech machine status interval",
+          "latency_ticks": 5,
+          "resource_cost": {
+            "audio_bytes": 8192,
+            "video_frames": 0,
+            "energy_joules": 0.5
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 8192,
+        "max_video_frames": 0,
+        "max_energy_joules": 1
+      }
+    },
+    {
+      "episode_id": "as-004-common-cause-duplicate",
+      "task": {
+        "query_tick": 20,
+        "deadline_tick": 80,
+        "decision_prompt": "Do audio and video independently confirm two separate impacts?",
+        "decision_options": [
+          "one shared event",
+          "two independent events"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-impact-video",
+          "modality": "video",
+          "availability_tick": 18,
+          "artifact_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "source_dependency_group": "root-impact-4"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "capture-impact-audio",
+          "modality": "audio",
+          "target": "capture the sound associated with the visible impact",
+          "latency_ticks": 3,
+          "resource_cost": {
+            "audio_bytes": 2048,
+            "video_frames": 0,
+            "energy_joules": 0.2
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 4096,
+        "max_video_frames": 0,
+        "max_energy_joules": 0.5
+      }
+    },
+    {
+      "episode_id": "as-005-deadline-late-observation",
+      "task": {
+        "query_tick": 10,
+        "deadline_tick": 20,
+        "decision_prompt": "Is the hazard present before the crossing deadline?",
+        "decision_options": [
+          "hazard present",
+          "no hazard",
+          "insufficient evidence"
+        ]
+      },
+      "initial_observations": [],
+      "action_catalogue": [
+        {
+          "action_id": "request-delayed-camera-frame",
+          "modality": "video",
+          "target": "request high-resolution frame from a remote camera with delayed delivery",
+          "latency_ticks": 15,
+          "resource_cost": {
+            "audio_bytes": 0,
+            "video_frames": 2,
+            "energy_joules": 0.6
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 0,
+        "max_video_frames": 2,
+        "max_energy_joules": 1
+      }
+    },
+    {
+      "episode_id": "as-006-budget-allocation",
+      "task": {
+        "query_tick": 30,
+        "deadline_tick": 100,
+        "decision_prompt": "Which of two monitored workcells needs immediate intervention?",
+        "decision_options": [
+          "cell A",
+          "cell B",
+          "neither"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-workcells",
+          "modality": "video",
+          "availability_tick": 30,
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "source_dependency_group": "root-workcells"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "inspect-cell-a-label",
+          "modality": "video",
+          "target": "read a low-value workcell label",
+          "latency_ticks": 4,
+          "resource_cost": {
+            "audio_bytes": 0,
+            "video_frames": 2,
+            "energy_joules": 0.5
+          },
+          "max_uses": 1
+        },
+        {
+          "action_id": "capture-cell-b-alarm",
+          "modality": "audio",
+          "target": "capture workcell B alarm cue",
+          "latency_ticks": 3,
+          "resource_cost": {
+            "audio_bytes": 4096,
+            "video_frames": 0,
+            "energy_joules": 0.4
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 4096,
+        "max_video_frames": 2,
+        "max_energy_joules": 0.5
+      }
+    },
+    {
+      "episode_id": "as-007-partial-unavailable-action",
+      "task": {
+        "query_tick": 10,
+        "deadline_tick": 60,
+        "decision_prompt": "Is the pump overheating?",
+        "decision_options": [
+          "normal",
+          "overheating",
+          "insufficient evidence"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-pump-visual",
+          "modality": "video",
+          "availability_tick": 10,
+          "artifact_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "source_dependency_group": "root-pump"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "request-pump-audio",
+          "modality": "audio",
+          "target": "request microphone interval from intermittently unavailable sensor",
+          "latency_ticks": 5,
+          "resource_cost": {
+            "audio_bytes": 4096,
+            "video_frames": 0,
+            "energy_joules": 0.4
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 8192,
+        "max_video_frames": 0,
+        "max_energy_joules": 1
+      }
+    },
+    {
+      "episode_id": "as-008-sufficient-stop",
+      "task": {
+        "query_tick": 5,
+        "deadline_tick": 25,
+        "decision_prompt": "Is the emergency exit blocked?",
+        "decision_options": [
+          "blocked",
+          "clear"
+        ]
+      },
+      "initial_observations": [
+        {
+          "observation_ref": "obs-exit-clear",
+          "modality": "video",
+          "availability_tick": 5,
+          "artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "source_dependency_group": "root-exit"
+        }
+      ],
+      "action_catalogue": [
+        {
+          "action_id": "inspect-exit-sign",
+          "modality": "video",
+          "target": "read decorative signage unrelated to blockage",
+          "latency_ticks": 3,
+          "resource_cost": {
+            "audio_bytes": 0,
+            "video_frames": 2,
+            "energy_joules": 0.5
+          },
+          "max_uses": 1
+        }
+      ],
+      "budget": {
+        "max_actions": 1,
+        "max_audio_bytes": 0,
+        "max_video_frames": 2,
+        "max_energy_joules": 1
+      }
+    }
+  ]
+}

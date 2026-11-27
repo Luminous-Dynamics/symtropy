@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-active-sensing-decision-value-v0",
+  "policy_id": "synthetic-decision-value-reference-v1",
+  "run_id": "synthetic-action-run-v1",
+  "interpretation": {
+    "status": "synthetic_reference_score",
+    "limitations": [
+      "The score is computed on eight authored synthetic metadata-only episodes, not real sensor streams or model runs.",
+      "Action EVSI and arrival outcomes are evaluator-only scenario labels; candidate estimates are not trusted as realized value.",
+      "Logical ticks are not wall-clock latency, and catalogue resource costs are not measured physical energy.",
+      "The public truth fixture is not blind or secure; blind evaluation requires a restricted evaluator process and hidden scenario storage.",
+      "Passing this suite does not validate camera movement, microphone control, physical feasibility, safety or SOTA superiority."
+    ]
+  },
+  "totals": {
+    "episode_count": 8,
+    "answer_accuracy": 1,
+    "safe_decision_accuracy": 1,
+    "coverage": 1,
+    "decision_regret_total": 0,
+    "acquisition_count": 3,
+    "wasted_acquisition_count": 0,
+    "late_acquisition_count": 0,
+    "budget_violation_count": 0,
+    "evidence_violation_count": 0,
+    "mean_realized_evsi": 1.875,
+    "catalogue_audio_bytes_total": 16384,
+    "catalogue_video_frames_total": 0,
+    "catalogue_energy_cost_total": 1.3,
+    "estimated_evsi_count": 3,
+    "mean_estimated_evsi_mae": 0,
+    "mean_estimated_evsi_bias": 0
+  },
+  "per_episode": [
+    {
+      "episode_id": "as-001-high-eig-zero-evsi",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 15,
+      "decision_regret": 0,
+      "acquisition_count": 0,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 0,
+      "budget_use": {
+        "audio_bytes": 0,
+        "video_frames": 0,
+        "energy_joules": 0
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
+    },
+    {
+      "episode_id": "as-002-low-eig-high-evsi",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 15,
+      "decision_regret": 0,
+      "acquisition_count": 1,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 6,
+      "budget_use": {
+        "audio_bytes": 4096,
+        "video_frames": 0,
+        "energy_joules": 0.4
+      },
+      "estimated_evsi_count": 1,
+      "estimated_evsi_mae": 0,
+      "estimated_evsi_bias": 0
+    },
+    {
+      "episode_id": "as-003-audio-necessary",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 18,
+      "decision_regret": 0,
+      "acquisition_count": 1,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 4,
+      "budget_use": {
+        "audio_bytes": 8192,
+        "video_frames": 0,
+        "energy_joules": 0.5
+      },
+      "estimated_evsi_count": 1,
+      "estimated_evsi_mae": 0,
+      "estimated_evsi_bias": 0
+    },
+    {
+      "episode_id": "as-004-common-cause-duplicate",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 22,
+      "decision_regret": 0,
+      "acquisition_count": 0,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 0,
+      "budget_use": {
+        "audio_bytes": 0,
+        "video_frames": 0,
+        "energy_joules": 0
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
+    },
+    {
+      "episode_id": "as-005-deadline-late-observation",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 19,
+      "decision_regret": 0,
+      "acquisition_count": 0,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 0,
+      "budget_use": {
+        "audio_bytes": 0,
+        "video_frames": 0,
+        "energy_joules": 0
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
+    },
+    {
+      "episode_id": "as-006-budget-allocation",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 34,
+      "decision_regret": 0,
+      "acquisition_count": 1,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 5,
+      "budget_use": {
+        "audio_bytes": 4096,
+        "video_frames": 0,
+        "energy_joules": 0.4
+      },
+      "estimated_evsi_count": 1,
+      "estimated_evsi_mae": 0,
+      "estimated_evsi_bias": 0
+    },
+    {
+      "episode_id": "as-007-partial-unavailable-action",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 15,
+      "decision_regret": 0,
+      "acquisition_count": 0,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 0,
+      "budget_use": {
+        "audio_bytes": 0,
+        "video_frames": 0,
+        "energy_joules": 0
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
+    },
+    {
+      "episode_id": "as-008-sufficient-stop",
+      "answer_correct": true,
+      "decision_correct": true,
+      "action_policy_correct": true,
+      "answered": true,
+      "response_tick": 10,
+      "decision_regret": 0,
+      "acquisition_count": 0,
+      "wasted_acquisition_count": 0,
+      "late_acquisition_count": 0,
+      "budget_violations": [],
+      "evidence_violations": [],
+      "realized_evsi": 0,
+      "budget_use": {
+        "audio_bytes": 0,
+        "video_frames": 0,
+        "energy_joules": 0
+      },
+      "estimated_evsi_count": 0,
+      "estimated_evsi_mae": null,
+      "estimated_evsi_bias": null
+    }
+  ]
+}

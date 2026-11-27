@@ -1,0 +1,154 @@
+name: AV Active Sensing Decision-Value Fixture Integrity
+
+on:
+  push:
+    branches:
+      - research/av-active-sensing-decision-value-v0
+    paths:
+      - "research/av-active-sensing-decision-value-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
+      - ".github/workflows/av-active-sensing-decision-value.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "research/av-active-sensing-decision-value-v0/**"
+      - "tools/av-modality-necessity-evaluator/**"
+      - ".github/workflows/av-active-sensing-decision-value.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-active-sensing-decision-value-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  fixture-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "$QUALIFIED_SHA"
+      - name: Validate workload and submission schemas
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-active-sensing-decision-value-v0/"
+          workload_schema = json.load(open(base + "schemas/workload-v1.schema.json", encoding="utf-8"))
+          submission_schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          score_schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          for schema in (workload_schema, submission_schema, score_schema):
+              Draft202012Validator.check_schema(schema)
+          workload = json.load(open(base + "fixtures/agent/workload-v1.json", encoding="utf-8"))
+          truth = json.load(open(base + "fixtures/evaluator-only/action-truth-v1.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/known-answer-v1.json", encoding="utf-8"))
+          Draft202012Validator(workload_schema).validate(workload)
+          ids = [e["episode_id"] for e in workload["episodes"]]
+          assert len(ids) == 8 and len(set(ids)) == 8
+          assert ids == [e["episode_id"] for e in truth["episodes"]]
+          assert ids == [e["episode_id"] for e in expected["episodes"]]
+          forbidden = {"optimal_action_ids", "expected_answer", "action_outcomes", "optimal_final_decision", "initial_optimal_decision", "decision_after", "realized_eig_nats", "evsi", "required_observation_refs", "decision_regret_if_request", "decision_regret_if_no_request", "decision_regret_if_wrong_action", "decision_regret_if_wait_past_deadline", "decision_regret_if_wrong_answer"}
+          def scan(value):
+              if isinstance(value, dict):
+                  assert not forbidden.intersection(value.keys()), "evaluator truth leaked into candidate workload"
+                  for child in value.values(): scan(child)
+              elif isinstance(value, list):
+                  for child in value: scan(child)
+          scan(workload)
+          PY
+      - name: Validate reference policy submission
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-active-sensing-decision-value-v0/"
+          schema = json.load(open(base + "schemas/submission-v1.schema.json", encoding="utf-8"))
+          submissions = [
+              "reference-submission-v1.json",
+              "max-eig-reference-submission-v1.json",
+          ]
+          for filename in submissions:
+              submission = json.load(open(base + "fixtures/agent/" + filename, encoding="utf-8"))
+              Draft202012Validator(schema).validate(submission)
+          PY
+      - name: Run active sensing adversarial evaluator tests
+        run: python -m unittest discover -s tools/av-modality-necessity-evaluator -p "test_*active_sensing*.py" -v
+      - name: Score finite active sensing reference policy
+        run: |
+          python tools/av-modality-necessity-evaluator/active_sensing_evaluate.py \
+            --workload research/av-active-sensing-decision-value-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-active-sensing-decision-value-v0/fixtures/evaluator-only/action-truth-v1.json \
+            --submission research/av-active-sensing-decision-value-v0/fixtures/agent/reference-submission-v1.json \
+            --output /tmp/av-active-sensing-reference-scorecard.json
+      - name: Validate scorecard against frozen reference
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          base = "research/av-active-sensing-decision-value-v0/"
+          schema = json.load(open(base + "schemas/scorecard-v1.schema.json", encoding="utf-8"))
+          actual = json.load(open("/tmp/av-active-sensing-reference-scorecard.json", encoding="utf-8"))
+          expected = json.load(open(base + "fixtures/expected/reference-scorecard-v1.json", encoding="utf-8"))
+          Draft202012Validator(schema).validate(actual)
+          assert actual == expected, "active sensing reference scorecard mismatch"
+          assert actual["totals"]["answer_accuracy"] == 1.0
+          assert actual["totals"]["safe_decision_accuracy"] == 1.0
+          assert actual["totals"]["decision_regret_total"] == 0
+          assert actual["totals"]["acquisition_count"] == 3
+          assert actual["totals"]["wasted_acquisition_count"] == 0
+          assert actual["totals"]["late_acquisition_count"] == 0
+          assert actual["totals"]["budget_violation_count"] == 0
+          assert actual["totals"]["evidence_violation_count"] == 0
+          assert actual["totals"]["estimated_evsi_count"] == 3
+          assert actual["totals"]["mean_estimated_evsi_mae"] == 0
+          assert actual["totals"]["mean_estimated_evsi_bias"] == 0
+          PY
+      - name: Compare decision-value policy with greedy maximum-EIG baseline
+        run: |
+          python tools/av-modality-necessity-evaluator/compare_active_sensing_policies.py \
+            --workload research/av-active-sensing-decision-value-v0/fixtures/agent/workload-v1.json \
+            --truth research/av-active-sensing-decision-value-v0/fixtures/evaluator-only/action-truth-v1.json \
+            --decision-value research/av-active-sensing-decision-value-v0/fixtures/agent/reference-submission-v1.json \
+            --max-eig research/av-active-sensing-decision-value-v0/fixtures/agent/max-eig-reference-submission-v1.json \
+            --output /tmp/av-active-sensing-policy-comparison.json
+      - name: Assert finite EIG-versus-EVSI counterexample
+        run: |
+          python - <<'PY'
+          import json
+          report = json.load(open("/tmp/av-active-sensing-policy-comparison.json", encoding="utf-8"))
+          dv, eig = report["per_policy"]["decision_value"], report["per_policy"]["max_eig"]
+          assert dv["answer_accuracy"] == 1.0 and eig["answer_accuracy"] == 0.75
+          assert dv["safe_decision_accuracy"] == 1.0 and eig["safe_decision_accuracy"] == 0.25
+          assert dv["acquisition_count"] == 3 and eig["acquisition_count"] == 8
+          assert eig["wasted_acquisition_count"] == 6 and eig["late_acquisition_count"] == 1
+          assert dv["decision_regret_total"] == 0 and eig["decision_regret_total"] == 11.5
+          assert report["paired"]["safe_decision_correctness"]["candidate_wins"] == 6
+          PY
+      - name: Assert causal deadlines and resource bounds
+        run: |
+          python - <<'PY'
+          import json
+          p = "research/av-active-sensing-decision-value-v0/fixtures/agent/workload-v1.json"
+          data = json.load(open(p, encoding="utf-8"))
+          for episode in data["episodes"]:
+              task, budget = episode["task"], episode["budget"]
+              assert task["deadline_tick"] >= task["query_tick"]
+              assert len({a["action_id"] for a in episode["action_catalogue"]}) == len(episode["action_catalogue"])
+              for action in episode["action_catalogue"]:
+                  cost = action["resource_cost"]
+                  assert cost["audio_bytes"] <= budget["max_audio_bytes"]
+                  assert cost["video_frames"] <= budget["max_video_frames"]
+                  assert cost["energy_joules"] <= budget["max_energy_joules"]
+                  assert action["latency_ticks"] >= 0
+          PY

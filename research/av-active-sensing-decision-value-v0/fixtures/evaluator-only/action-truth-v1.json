@@ -1,0 +1,198 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-active-sensing-decision-value-v0",
+  "warning": "Evaluator-only action outcomes and decision values. Must remain outside candidate process for blind evaluations.",
+  "episodes": [
+    {
+      "episode_id": "as-001-high-eig-zero-evsi",
+      "initial_optimal_decision": "proceed",
+      "expected_answer": "proceed",
+      "optimal_action_ids": [],
+      "action_outcomes": {
+        "inspect-uniform-label": {
+          "status": "delivered",
+          "arrival_tick": 15,
+          "observation_ref": "obs-uniform-label",
+          "realized_eig_nats": 1.4,
+          "decision_after": "proceed",
+          "evsi": 0,
+          "independent_source": true
+        }
+      },
+      "optimal_final_decision": "proceed",
+      "decision_regret_if_request": 0.8,
+      "required_observation_refs": [],
+      "decision_regret_if_wrong_answer": 5
+    },
+    {
+      "episode_id": "as-002-low-eig-high-evsi",
+      "initial_optimal_decision": "stop",
+      "expected_answer": "stop",
+      "optimal_action_ids": [
+        "inspect-hazard-tone"
+      ],
+      "action_outcomes": {
+        "inspect-hazard-tone": {
+          "status": "delivered",
+          "arrival_tick": 14,
+          "observation_ref": "obs-hazard-tone",
+          "realized_eig_nats": 0.12,
+          "decision_after": "stop",
+          "evsi": 6,
+          "independent_source": true
+        }
+      },
+      "optimal_final_decision": "stop",
+      "decision_regret_if_no_request": 6,
+      "required_observation_refs": [
+        "obs-hazard-tone"
+      ],
+      "decision_regret_if_wrong_answer": 6
+    },
+    {
+      "episode_id": "as-003-audio-necessary",
+      "initial_optimal_decision": "insufficient evidence",
+      "expected_answer": "alarm",
+      "optimal_action_ids": [
+        "capture-machine-audio"
+      ],
+      "action_outcomes": {
+        "capture-machine-audio": {
+          "status": "delivered",
+          "arrival_tick": 17,
+          "observation_ref": "obs-machine-audio",
+          "realized_eig_nats": 0.4,
+          "decision_after": "alarm",
+          "evsi": 4,
+          "independent_source": true
+        }
+      },
+      "optimal_final_decision": "alarm",
+      "decision_regret_if_no_request": 4,
+      "required_observation_refs": [
+        "obs-machine-audio"
+      ],
+      "decision_regret_if_wrong_answer": 4
+    },
+    {
+      "episode_id": "as-004-common-cause-duplicate",
+      "initial_optimal_decision": "one shared event",
+      "expected_answer": "one shared event",
+      "optimal_action_ids": [],
+      "action_outcomes": {
+        "capture-impact-audio": {
+          "status": "delivered",
+          "arrival_tick": 23,
+          "observation_ref": "obs-impact-audio",
+          "realized_eig_nats": 0.3,
+          "decision_after": "one shared event",
+          "evsi": 0,
+          "independent_source": false,
+          "source_dependency_group": "root-impact-4"
+        }
+      },
+      "optimal_final_decision": "one shared event",
+      "decision_regret_if_request": 0.2,
+      "required_observation_refs": [],
+      "decision_regret_if_wrong_answer": 3
+    },
+    {
+      "episode_id": "as-005-deadline-late-observation",
+      "initial_optimal_decision": "insufficient evidence",
+      "expected_answer": "insufficient evidence",
+      "optimal_action_ids": [],
+      "action_outcomes": {
+        "request-delayed-camera-frame": {
+          "status": "late",
+          "arrival_tick": 25,
+          "observation_ref": "obs-delayed-frame",
+          "realized_eig_nats": 1.2,
+          "decision_after": "hazard present",
+          "evsi": 0,
+          "independent_source": true
+        }
+      },
+      "optimal_final_decision": "insufficient evidence",
+      "decision_regret_if_wait_past_deadline": 2,
+      "required_observation_refs": [],
+      "decision_regret_if_wrong_answer": 2
+    },
+    {
+      "episode_id": "as-006-budget-allocation",
+      "initial_optimal_decision": "neither",
+      "expected_answer": "cell B",
+      "optimal_action_ids": [
+        "capture-cell-b-alarm"
+      ],
+      "action_outcomes": {
+        "inspect-cell-a-label": {
+          "status": "delivered",
+          "arrival_tick": 34,
+          "observation_ref": "obs-cell-a-label",
+          "realized_eig_nats": 1,
+          "decision_after": "neither",
+          "evsi": 0,
+          "independent_source": true
+        },
+        "capture-cell-b-alarm": {
+          "status": "delivered",
+          "arrival_tick": 33,
+          "observation_ref": "obs-cell-b-alarm",
+          "realized_eig_nats": 0.08,
+          "decision_after": "cell B",
+          "evsi": 5,
+          "independent_source": true
+        }
+      },
+      "optimal_final_decision": "cell B",
+      "decision_regret_if_wrong_action": 5,
+      "required_observation_refs": [
+        "obs-cell-b-alarm"
+      ],
+      "decision_regret_if_wrong_answer": 5
+    },
+    {
+      "episode_id": "as-007-partial-unavailable-action",
+      "initial_optimal_decision": "insufficient evidence",
+      "expected_answer": "insufficient evidence",
+      "optimal_action_ids": [],
+      "action_outcomes": {
+        "request-pump-audio": {
+          "status": "partial",
+          "arrival_tick": 18,
+          "observation_ref": null,
+          "realized_eig_nats": 0,
+          "decision_after": "insufficient evidence",
+          "evsi": 0,
+          "independent_source": false
+        }
+      },
+      "optimal_final_decision": "insufficient evidence",
+      "decision_regret_if_fabricated_delivery": 3,
+      "required_observation_refs": [],
+      "decision_regret_if_wrong_answer": 3,
+      "decision_regret_if_request": 3
+    },
+    {
+      "episode_id": "as-008-sufficient-stop",
+      "initial_optimal_decision": "clear",
+      "expected_answer": "clear",
+      "optimal_action_ids": [],
+      "action_outcomes": {
+        "inspect-exit-sign": {
+          "status": "delivered",
+          "arrival_tick": 8,
+          "observation_ref": "obs-exit-sign",
+          "realized_eig_nats": 0.6,
+          "decision_after": "clear",
+          "evsi": 0,
+          "independent_source": true
+        }
+      },
+      "optimal_final_decision": "clear",
+      "decision_regret_if_request": 0.5,
+      "required_observation_refs": [],
+      "decision_regret_if_wrong_answer": 2
+    }
+  ]
+}
