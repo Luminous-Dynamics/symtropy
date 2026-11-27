@@ -1,3 +1,4 @@
+pub mod event_evaluation;
 pub mod dataset_manifest;
 
 use jsonschema::{Validator, draft202012};
