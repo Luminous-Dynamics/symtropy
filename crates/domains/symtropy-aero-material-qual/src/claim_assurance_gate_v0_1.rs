@@ -2049,6 +2049,7 @@ mod tests {
             .iter_mut()
             .find(|item| item.evidence_ref == model_cut.evidence_ref)
             .unwrap();
+        record.record_sha256 = model_cut.compute_sha256().unwrap();
         record.subject_ref = "instrument:unrelated-caliper".to_owned();
         let mut context = context_for_evidence(&evidence);
         context.evidence_knowledge_cut_sha256 = owner_cut.compute_sha256().unwrap();
