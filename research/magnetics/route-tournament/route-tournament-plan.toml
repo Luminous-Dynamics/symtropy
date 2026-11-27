@@ -136,5 +136,7 @@ dependencies = []
 unit_tests_authored = 22
 unit_tests_executed = false
 exact_head_ci_pass = false
+geometry_inspection_requires_method_and_calibration = true
+observation_binds_process_material_magnetization_and_geometry_records = true
 evaluator_semantics = ["exact_cohort_scope", "as_built_evidence_closure", "calibrated_geometry_inspection", "admissible_evidence_roles", "interval_hard_limits", "robust_interval_pareto"]
 no_scalar_score = true
