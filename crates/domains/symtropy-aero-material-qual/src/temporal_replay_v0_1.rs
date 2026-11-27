@@ -180,10 +180,7 @@ fn identity_label(event: &Value, colliding_local_ids: &BTreeSet<String>) -> Stri
     }
 }
 
-fn selected_snapshots(
-    case: &Value,
-    mode: TemporalQueryMode,
-) -> Option<(&Value, &Value)> {
+fn selected_snapshots(case: &Value, mode: TemporalQueryMode) -> Option<(&Value, &Value)> {
     let original = case.get("snapshot")?;
     let current = case.get("current_reassessment")?;
     if mode.current_evidence() {
