@@ -1,6 +1,6 @@
 # Broadphase industry comparison and research plan
 
-Date: 2026-11-26
+Date: 2026-11-27
 
 This document separates documented engine capabilities, Symtropy's current experiments, and prospective research targets. It is not a performance comparison. No external engine has yet been run on the same frozen temporal scenes and hardware.
 
@@ -155,3 +155,91 @@ These are targets, not achieved results:
 8. Publish raw per-frame receipts and scripts. Keep the selector shadow-only until exact correctness and held-out regret gates pass.
 
 The current internal CPU tournament is only the first AABB-level lane. It is not an external SOTA result.
+
+
+## 7. Updated industry state and benchmark strategy (2026-11-27)
+
+This section updates the architecture map with newer engine documentation and a stronger external benchmark methodology. It remains an architecture comparison, not a matched performance result.
+
+### 7.1 Industry developments to include in the next baseline
+
+| Engine / suite | Newer documented capability or benchmark practice | Consequence for Symtropy |
+|---|---|---|
+| MuJoCo 3.17 / MuJoCo Warp 3.17 | The incremental sleeping pass emits contacts involving newly awakened bodies; persistent batch simulation state supports sleep; GPU SAP has tiled and segmented sort lanes. | Measure idle-no-wake skip, wake-frontier size, island propagation, and CPU/GPU paths separately. Wake-only pair emission is baseline functionality, not the novelty claim. |
+| Jolt 5.4 | Lockless quadtree update path expands ancestor bounds during concurrent mutations and performs tighter rebuild in separate prepare/finalize phases. | Add concurrent update/query, expansion debt, background rebuild overlap, synchronization and worst-frame consistency tests. |
+| PhysX 5.5 | SAP, MBP, ABP, PABP and GPU broadphase have workload-specific trade-offs; GPU may be sensitive to dense projected intervals and transfer/synchronization costs. | Treat broadphase as a strategy portfolio. Benchmark region topology, migration, density, high-churn and GPU transfer costs, not just CPU query time. |
+| Rapier / Nexus / Physmark | Dimforge's Q3 2026 engineering report describes persistent graph coloring, intra-island parallelism and parallelized broadphase work in Rapier. It reports a separate GPU physics lane for Nexus. Physmark publishes reproducible engine trials across several physics backends, including pinned source revisions, shared scenes, warm-up/synchronized runs, replay checks, and retained failure evidence. | Add parallel CPU and GPU lanes. Preserve the difference between vendor-reported results and independently repeated matched results. Use Physmark's evidence discipline as a model; do not compare its full physics-step throughput directly to our current AABB microbenchmark. |
+
+References:
+- [MuJoCo 3.17 API](https://mujoco.readthedocs.io/en/3.17.0/mjwarp/api.html)
+- [Jolt 5.4 Quadtree broadphase](https://jrouwe.github.io/JoltPhysicsDocs/5.4.0/)
+- [PhysX 5.5 collision and broadphase choices](https://nvidia-omniverse.github.io/PhysX/physx/5.5.0/docs/RigidBodyCollision.html)
+- [Dimforge Q3 2026 technical report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/)
+- [Physmark benchmark suite](https://github.com/dimforge/physmark)
+- [Rapier / Godot benchmark methodology and results](https://godot.rapier.rs/docs/documentation/performance/)
+
+The Dimforge performance figures are vendor engineering results, not independent cross-engine adjudication. The Rapier/Godot tables are application-integrated physics-step results. Neither is directly comparable to Symtropy's stage-level AABB time. Preserve source type and output contract next to every imported result.
+
+### 7.2 Three separate leaderboards—not one blended score
+
+**Lane A: algorithm-stage microbenchmarks**
+
+- Same frozen AABB streams and proxy IDs.
+- Compare brute force, SAP, dynamic tree, LBVH, scan pair delta and indexed pair delta.
+- Report candidate/event output contract, per-frame p50/p95/p99, full work counters, memory and exact oracle errors.
+- This lane answers: which algorithm does less work for the same stage-level contract?
+
+**Lane B: shape and contact-maintenance stage**
+
+- Same transformed shapes, filters, lifecycle and exact contact reference.
+- Use independent 2D and 3D OBB SAT from PR #7622; admit 4D only after issue #7684 passes its 56-direction generalized zonotope SAT acceptance gates.
+- Enforce the conservative broadphase safety property:
+  `ExactShapeContacts(frame) ⊆ BroadphaseCandidates(frame)`.
+- Report candidate recall (must be 100%), candidate amplification, exact-shape FP/FN separately, contact-stamp reuse, refreshes, warm-start resets, eligibility rechecks, and solver reactivations.
+- Keep this lane linked to [#7691 — shape coverage + contact freshness](https://github.com/Luminous-Dynamics/symtropy/issues/7691).
+
+**Lane C: full-engine temporal scenes**
+
+- Export the same scene trajectories to Symtropy and each supported external engine.
+- Compare full simulation ticks: body integration, shape-to-AABB, broadphase, filtering, narrowphase, manifolds, CCD, sleeping/islands and solver.
+- Pin engine commit, compiler/toolchain, feature flags, device/driver, deterministic mode, timestep, solver iterations, warm-up, sync, scene seed and hardware.
+- Publish unsupported features, failed/timeout trials and engine-version incompatibilities. Never remove a failed row from aggregation; mark it failed/unsupported and explain why.
+- CPU and GPU trials are separate lanes; include launch/synchronization/transfer costs in GPU results.
+- Do not pool the full-engine leaderboard with Lane A or B.
+
+### 7.3 Reproducible external benchmark protocol
+
+Adopt the evidence discipline used by public multi-engine benchmarking systems:
+1. Pin each upstream engine to an exact commit or immutable release tag.
+2. Generate scenes once and export one canonical, versioned scene artifact per seed.
+3. Verify identical object counts, shape geometry, transforms, masses/inertias, filters, timestep and lifecycle chronology. Publish a semantic mapping where engines differ.
+4. Warm each engine with the same declared pre-roll; synchronize devices before and after measured windows.
+5. Preserve every raw trial, including crashes, timeouts, numerical divergence, memory exhaustion and unsupported configuration.
+6. Attach run receipts: source/toolchain/hardware manifest, input hashes, seed, frame count, p50/p95/p99, peak RSS/device memory, allocations if available, and per-frame correctness counters.
+7. Replay each scene/receipt independently. A result without reproducible replay is exploratory, not a promotion result.
+8. Separate vendor-reported reference figures from Symtropy's own reproduced figures.
+
+### 7.4 Stronger correctness and performance gates
+
+Retain the existing zero pair-FN / exact AABB oracle requirements, and add:
+- 100% exact-shape-contact recall at the broadphase candidate boundary for the frozen OBB corpus;
+- zero false positives/negatives in the independent SAT subset used for exact contact classification;
+- zero stale manifold or warm-start reuse; zero unaccounted revalidation reason;
+- independent receipt replay agrees on every added/removed/revalidated pair and every post-transition contact stamp;
+- zero missed generation changes, world revision gaps or collision-policy updates;
+- candidate amplification reported by family and by density; do not hide high-candidate dense projections in an aggregate;
+- all p50/p95/p99 measurements include journal production, index maintenance, replay verifier, contact work and end-to-end tick;
+- the current prospective promotion threshold remains at least 20% lower p95 on two held-out sleeping/mixed families with no more than 5% p95 regression on any other declared workload, plus zero correctness failures.
+
+### 7.5 Research differentiators that remain open
+
+The strongest contribution hypothesis is now an evidence-qualified state-maintenance protocol, not a new generic data structure:
+
+1. **Revision-bound contact retention:** prove exactly which manifold and warm-start state remains reusable.
+2. **Commit-after-action receipts:** only advance a contact stamp after the required narrowphase refresh, warm-start reset, filter recheck and solver activation actually completed.
+3. **Geometric recall composition:** prove exact shape contacts are contained in the conservative broadphase candidate set, while separately reporting false-positive amplification.
+4. **Motion-class portfolio with bounded regret:** use static/sleeping/active/high-speed/churn classes and hardware/workload observations; keep the selector shadow-only until held-out regret and switching costs qualify.
+5. **Temporal negative-space certificates:** cache non-overlap only with exact node/bound/policy generations and explicit expiry/invalidation proof.
+6. **Motion-budgeted bounds:** retain temporal envelopes only while conservative translational, angular and acceleration budgets remain valid; route teleports and uncertain motion to a safe full query.
+
+All six are falsifiable research hypotheses. Do not claim any is novel until the relevant prior art is checked and the matched experiments are published.
