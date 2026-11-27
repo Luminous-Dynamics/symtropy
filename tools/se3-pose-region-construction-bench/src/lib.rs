@@ -327,7 +327,7 @@ fn next_down(value: f64) -> f64 {
         return value;
     }
     if value == 0.0 {
-        return -f64::from_bits(1)
+        return -f64::from_bits(1);
     }
     let bits = value.to_bits();
     if value > 0.0 {
@@ -427,13 +427,15 @@ fn conformal_rank(sample_count: u64, nominal_level_bps: u16) -> Option<u64> {
 /// bytes, or turn statistical uncertainty into deterministic physical clearance.
 pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
     if !runtime_shape_valid(input) || !profile_shape_valid(&input.profile) {
-        return empty_result(input, Disposition::InvalidInput, "RUNTIME_OR_PROFILE_SHAPE_INVALID");
+        return empty_result(
+            input,
+            Disposition::InvalidInput,
+            "RUNTIME_OR_PROFILE_SHAPE_INVALID",
+        );
     }
 
     let profile = &input.profile;
-    if input.disposition != "CANDIDATE_STATISTICAL_REGION"
-        || !input.candidate_only
-    {
+    if input.disposition != "CANDIDATE_STATISTICAL_REGION" || !input.candidate_only {
         return empty_result(
             input,
             Disposition::AbstainRuntimePoseNotCandidate,
@@ -460,7 +462,11 @@ pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
         || profile.nominal_level_bps != NOMINAL_LEVEL_BPS
         || input.nominal_level_bps != NOMINAL_LEVEL_BPS
     {
-        return empty_result(input, Disposition::OutOfScope, "UNSUPPORTED_REGION_OR_TANGENT_CONVENTION");
+        return empty_result(
+            input,
+            Disposition::OutOfScope,
+            "UNSUPPORTED_REGION_OR_TANGENT_CONVENTION",
+        );
     }
 
     if input.profile_id != profile.profile_id
@@ -471,56 +477,107 @@ pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
         || input.camera_calibration_sha256 != profile.camera_calibration_sha256
         || input.target_population_sha256 != profile.target_population_sha256
     {
-        return empty_result(input, Disposition::OutOfScope, "RUNTIME_PROFILE_SCOPE_OR_DIGEST_MISMATCH");
+        return empty_result(
+            input,
+            Disposition::OutOfScope,
+            "RUNTIME_PROFILE_SCOPE_OR_DIGEST_MISMATCH",
+        );
     }
 
     if !input.upstream_source_bytes_authenticated || !profile.source_bytes_authenticated {
-        return empty_result(input, Disposition::AbstainUncalibrated, "UPSTREAM_SOURCE_AUTHENTICATION_CLAIM_MISSING");
+        return empty_result(
+            input,
+            Disposition::AbstainUncalibrated,
+            "UPSTREAM_SOURCE_AUTHENTICATION_CLAIM_MISSING",
+        );
     }
     if profile.profile_state != "CURRENT"
         || profile.heldout_coverage_lower_ci_ppm < profile.required_coverage_lower_ci_ppm
     {
-        return empty_result(input, Disposition::AbstainUncalibrated, "PROFILE_STALE_OR_HELDOUT_COVERAGE_TOO_WEAK");
+        return empty_result(
+            input,
+            Disposition::AbstainUncalibrated,
+            "PROFILE_STALE_OR_HELDOUT_COVERAGE_TOO_WEAK",
+        );
     }
     if profile.sample_count < MIN_CALIBRATION_SAMPLES {
-        return empty_result(input, Disposition::AbstainUncalibrated, "INSUFFICIENT_CALIBRATION_SAMPLE_COUNT");
+        return empty_result(
+            input,
+            Disposition::AbstainUncalibrated,
+            "INSUFFICIENT_CALIBRATION_SAMPLE_COUNT",
+        );
     }
 
-    let Some(expected_rank) = conformal_rank(profile.sample_count, profile.nominal_level_bps) else {
-        return empty_result(input, Disposition::InvalidInput, "CONFORMAL_RANK_UNREPRESENTABLE");
+    let Some(expected_rank) = conformal_rank(profile.sample_count, profile.nominal_level_bps)
+    else {
+        return empty_result(
+            input,
+            Disposition::InvalidInput,
+            "CONFORMAL_RANK_UNREPRESENTABLE",
+        );
     };
     if expected_rank > profile.sample_count {
-        return empty_result(input, Disposition::AbstainUncalibrated, "NO_FINITE_SPLIT_CONFORMAL_ORDER_STATISTIC");
+        return empty_result(
+            input,
+            Disposition::AbstainUncalibrated,
+            "NO_FINITE_SPLIT_CONFORMAL_ORDER_STATISTIC",
+        );
     }
     if profile.order_statistic_rank != expected_rank {
-        return empty_result(input, Disposition::InvalidInput, "CONFORMAL_ORDER_STATISTIC_RANK_MISMATCH");
+        return empty_result(
+            input,
+            Disposition::InvalidInput,
+            "CONFORMAL_ORDER_STATISTIC_RANK_MISMATCH",
+        );
     }
     if profile.quantile_radius_q32_32 > MAX_EXACT_Q32_INTEGER {
-        return empty_result(input, Disposition::InvalidInput, "Q32_32_QUANTILE_EXCEEDS_EXACT_CONVERSION_RANGE");
+        return empty_result(
+            input,
+            Disposition::InvalidInput,
+            "Q32_32_QUANTILE_EXCEEDS_EXACT_CONVERSION_RANGE",
+        );
     }
 
     if !quaternion_is_unit_xyzw(input.predicted_quaternion_xyzw) {
-        return empty_result(input, Disposition::InvalidInput, "PREDICTED_QUATERNION_NOT_UNIT_XYZW");
+        return empty_result(
+            input,
+            Disposition::InvalidInput,
+            "PREDICTED_QUATERNION_NOT_UNIT_XYZW",
+        );
     }
     if !covariance_is_spd(&input.covariance_row_major) {
-        return empty_result(input, Disposition::InvalidCovariance, "COVARIANCE_NOT_FINITE_SYMMETRIC_POSITIVE_DEFINITE");
+        return empty_result(
+            input,
+            Disposition::InvalidCovariance,
+            "COVARIANCE_NOT_FINITE_SYMMETRIC_POSITIVE_DEFINITE",
+        );
     }
 
     let q = (profile.quantile_radius_q32_32 as f64) / Q32_SCALE;
     let translation_lambda = gershgorin_upper_3(&input.covariance_row_major, 0);
     let rotation_lambda = gershgorin_upper_3(&input.covariance_row_major, 3);
-    let (Some(translation_lambda), Some(rotation_lambda)) = (translation_lambda, rotation_lambda) else {
+    let (Some(translation_lambda), Some(rotation_lambda)) = (translation_lambda, rotation_lambda)
+    else {
         return empty_result(input, Disposition::Overflow, "COVARIANCE_ROW_SUM_OVERFLOW");
     };
     let translation_root = sqrt_upper(translation_lambda);
     let rotation_root = sqrt_upper(rotation_lambda);
     let (Some(translation_root), Some(rotation_root)) = (translation_root, rotation_root) else {
-        return empty_result(input, Disposition::Overflow, "COVARIANCE_SQUARE_ROOT_OVERFLOW");
+        return empty_result(
+            input,
+            Disposition::Overflow,
+            "COVARIANCE_SQUARE_ROOT_OVERFLOW",
+        );
     };
     let translation_radius = upper_mul(q, translation_root);
     let rotation_radius = upper_mul(q, rotation_root);
-    let (Some(translation_radius), Some(rotation_radius)) = (translation_radius, rotation_radius) else {
-        return empty_result(input, Disposition::Overflow, "CONFORMAL_REGION_RADIUS_OVERFLOW");
+    let (Some(translation_radius), Some(rotation_radius)) = (translation_radius, rotation_radius)
+    else {
+        return empty_result(
+            input,
+            Disposition::Overflow,
+            "CONFORMAL_REGION_RADIUS_OVERFLOW",
+        );
     };
 
     let mut bounds = [[0_i64; 2]; 3];
@@ -528,16 +585,28 @@ pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
         let lower = lower_um(input.predicted_translation_m[axis], translation_radius);
         let upper = upper_um(input.predicted_translation_m[axis], translation_radius);
         let (Some(lower), Some(upper)) = (lower, upper) else {
-            return empty_result(input, Disposition::Overflow, "TRANSLATION_BOUND_CONVERSION_OVERFLOW");
+            return empty_result(
+                input,
+                Disposition::Overflow,
+                "TRANSLATION_BOUND_CONVERSION_OVERFLOW",
+            );
         };
         if lower > upper {
-            return empty_result(input, Disposition::InvalidInput, "TRANSLATION_INTERVAL_ORDER_INVALID");
+            return empty_result(
+                input,
+                Disposition::InvalidInput,
+                "TRANSLATION_INTERVAL_ORDER_INVALID",
+            );
         }
         bounds[axis] = [lower, upper];
     }
 
     let Some(orientation_cap) = orientation_cap_urad(rotation_radius) else {
-        return empty_result(input, Disposition::Overflow, "ORIENTATION_CAP_CONVERSION_OVERFLOW");
+        return empty_result(
+            input,
+            Disposition::Overflow,
+            "ORIENTATION_CAP_CONVERSION_OVERFLOW",
+        );
     };
 
     candidate_result(
@@ -564,7 +633,11 @@ pub fn evaluate_manifest(inputs: &[RuntimePoseReceipt]) -> Vec<RegionResult> {
         .iter()
         .map(|input| {
             if duplicates.contains(input.sample_id.as_str()) {
-                empty_result(input, Disposition::DuplicateSample, "SAMPLE_ID_DUPLICATED_IN_MANIFEST")
+                empty_result(
+                    input,
+                    Disposition::DuplicateSample,
+                    "SAMPLE_ID_DUPLICATED_IN_MANIFEST",
+                )
             } else {
                 evaluate(input)
             }
@@ -575,8 +648,8 @@ pub fn evaluate_manifest(inputs: &[RuntimePoseReceipt]) -> Vec<RegionResult> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ConformalProfile, Disposition, RuntimePoseReceipt, evaluate, evaluate_manifest,
-        PERTURBATION_CONVENTION, SCORE_DEFINITION, TANGENT_CONVENTION,
+        ConformalProfile, Disposition, PERTURBATION_CONVENTION, RuntimePoseReceipt,
+        SCORE_DEFINITION, TANGENT_CONVENTION, evaluate, evaluate_manifest,
     };
 
     fn profile() -> ConformalProfile {
@@ -646,7 +719,10 @@ mod tests {
     #[test]
     fn matched_profile_constructs_statistical_outer_region() {
         let result = evaluate(&input());
-        assert_eq!(result.disposition, Disposition::CandidateStatisticalPoseRegion);
+        assert_eq!(
+            result.disposition,
+            Disposition::CandidateStatisticalPoseRegion
+        );
         assert!(result.region_is_statistical);
         assert!(result.outer_approximation_of_joint_tangent_region);
         assert!(!result.deterministic_safety_bound);
@@ -657,7 +733,11 @@ mod tests {
         let region = result.region.expect("candidate must carry a region");
         assert_eq!(
             region.translation_bounds_um,
-            [[997_999, 1_002_001], [-2_002_001, -1_997_999], [497_999, 502_001]]
+            [
+                [997_999, 1_002_001],
+                [-2_002_001, -1_997_999],
+                [497_999, 502_001]
+            ]
         );
         assert_eq!(region.orientation_cap_urad, 4_001);
     }
@@ -667,7 +747,10 @@ mod tests {
         let mut value = input();
         value.profile.sample_count = 1_000;
         value.profile.order_statistic_rank = 951;
-        assert_eq!(evaluate(&value).disposition, Disposition::CandidateStatisticalPoseRegion);
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::CandidateStatisticalPoseRegion
+        );
         value.profile.order_statistic_rank = 950;
         assert_eq!(evaluate(&value).disposition, Disposition::InvalidInput);
     }
@@ -677,7 +760,10 @@ mod tests {
         let mut value = input();
         value.profile.sample_count = 99;
         value.profile.order_statistic_rank = 95;
-        assert_eq!(evaluate(&value).disposition, Disposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::AbstainUncalibrated
+        );
     }
 
     #[test]
@@ -691,14 +777,20 @@ mod tests {
     fn heldout_coverage_below_profile_floor_abstains() {
         let mut value = input();
         value.profile.heldout_coverage_lower_ci_ppm = 899_999;
-        assert_eq!(evaluate(&value).disposition, Disposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::AbstainUncalibrated
+        );
     }
 
     #[test]
     fn stale_profile_abstains() {
         let mut value = input();
         value.profile.profile_state = "STALE".to_owned();
-        assert_eq!(evaluate(&value).disposition, Disposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::AbstainUncalibrated
+        );
     }
 
     #[test]
@@ -740,7 +832,10 @@ mod tests {
         let mut value = input();
         value.disposition = "ABSTAIN_UNOBSERVABLE".to_owned();
         value.candidate_only = false;
-        assert_eq!(evaluate(&value).disposition, Disposition::AbstainRuntimePoseNotCandidate);
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::AbstainRuntimePoseNotCandidate
+        );
     }
 
     #[test]
@@ -748,7 +843,9 @@ mod tests {
         let mut value = input();
         value.covariance_row_major[3] = 1.0e-6;
         value.covariance_row_major[18] = 1.0e-6;
-        let region = evaluate(&value).region.expect("correlated SPD input remains admissible");
+        let region = evaluate(&value)
+            .region
+            .expect("correlated SPD input remains admissible");
         assert!(region.translation_bounds_um[0][0] < 998_000);
         assert!(region.orientation_cap_urad > 4_000);
     }
@@ -784,13 +881,22 @@ mod tests {
     fn asymmetric_or_non_spd_covariance_is_rejected() {
         let mut asymmetric = input();
         asymmetric.covariance_row_major[1] = 1.0e-4;
-        assert_eq!(evaluate(&asymmetric).disposition, Disposition::InvalidCovariance);
+        assert_eq!(
+            evaluate(&asymmetric).disposition,
+            Disposition::InvalidCovariance
+        );
         let mut negative = input();
         negative.covariance_row_major[0] = -1.0;
-        assert_eq!(evaluate(&negative).disposition, Disposition::InvalidCovariance);
+        assert_eq!(
+            evaluate(&negative).disposition,
+            Disposition::InvalidCovariance
+        );
         let mut singular = input();
         singular.covariance_row_major[0] = 0.0;
-        assert_eq!(evaluate(&singular).disposition, Disposition::InvalidCovariance);
+        assert_eq!(
+            evaluate(&singular).disposition,
+            Disposition::InvalidCovariance
+        );
     }
 
     #[test]
@@ -811,7 +917,11 @@ mod tests {
         let mut second = input();
         second.case_id = "REG-002".to_owned();
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|result| result.disposition == Disposition::DuplicateSample));
+        assert!(
+            results
+                .iter()
+                .all(|result| result.disposition == Disposition::DuplicateSample)
+        );
     }
 
     #[test]
@@ -819,7 +929,10 @@ mod tests {
         let mut value = input();
         value.profile.sample_count = 18;
         value.profile.order_statistic_rank = 19;
-        assert_eq!(evaluate(&value).disposition, Disposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::AbstainUncalibrated
+        );
     }
 
     #[test]
@@ -827,7 +940,10 @@ mod tests {
         let mut value = input();
         value.profile.quantile_radius_q32_32 = 0;
         let result = evaluate(&value);
-        assert_eq!(result.disposition, Disposition::CandidateStatisticalPoseRegion);
+        assert_eq!(
+            result.disposition,
+            Disposition::CandidateStatisticalPoseRegion
+        );
         assert!(result.region.is_some());
     }
 
