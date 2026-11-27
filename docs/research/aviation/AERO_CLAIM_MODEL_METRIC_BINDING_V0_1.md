@@ -95,7 +95,7 @@ The composite gate must reject or abstain if the binding is absent, unsupported,
 
 ## 7. Challenge programme
 
-The companion corpus contains 25 proposed cases spanning correct mapping, wrong metric, unit/aggregation/population/quantifier/predicate/uncertainty substitutions, incomplete and adverse strata, stale or missing owner records, historical receiver time, effectivity, raw-versus-semantic digest substitution, reused receipt roles and coupled faults.
+The companion corpus contains 27 proposed cases spanning correct mapping, wrong metric, unit/aggregation/population/quantifier/predicate/uncertainty substitutions, incomplete and adverse strata, stale or missing owner records, historical receiver time, effectivity, raw-versus-semantic digest substitution, reused receipt roles and coupled faults.
 
 The corpus status is explicitly `NOT_INDEPENDENTLY_REVIEWED` and `NOT_EXECUTED`. CI validates the Draft 2020-12 schema and census only. Rust unit tests exercise this implementation's invariants; they are not an independent engineering oracle.
 
