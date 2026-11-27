@@ -1,0 +1,32 @@
+{
+  "schema_version": "wpt-exact-service-oracle-v0",
+  "scenario_id": "three-vehicle-two-interval-known-truth",
+  "evidence_kind": "SYNTHETIC_KNOWN_TRUTH",
+  "interval_count": 2,
+  "segment_slots": [
+    { "segment_id": "segment-a", "interval_index": 0, "available_deliverable_energy_mwh": 8 },
+    { "segment_id": "segment-b", "interval_index": 0, "available_deliverable_energy_mwh": 5 },
+    { "segment_id": "segment-a", "interval_index": 1, "available_deliverable_energy_mwh": 6 },
+    { "segment_id": "segment-b", "interval_index": 1, "available_deliverable_energy_mwh": 6 }
+  ],
+  "receivers": [
+    { "receiver_id": "vehicle-01", "arrival_interval": 0, "departure_interval": 2, "minimum_service_mwh": 7 },
+    { "receiver_id": "vehicle-02", "arrival_interval": 0, "departure_interval": 1, "minimum_service_mwh": 4 },
+    { "receiver_id": "vehicle-03", "arrival_interval": 1, "departure_interval": 2, "minimum_service_mwh": 5 }
+  ],
+  "receiver_slots": [
+    { "receiver_id": "vehicle-01", "interval_index": 0, "max_acceptance_mwh": 4 },
+    { "receiver_id": "vehicle-02", "interval_index": 0, "max_acceptance_mwh": 4 },
+    { "receiver_id": "vehicle-01", "interval_index": 1, "max_acceptance_mwh": 5 },
+    { "receiver_id": "vehicle-03", "interval_index": 1, "max_acceptance_mwh": 5 }
+  ],
+  "transfer_links": [
+    { "link_id": "a0-to-v1", "segment_id": "segment-a", "receiver_id": "vehicle-01", "interval_index": 0, "max_deliverable_energy_mwh": 4 },
+    { "link_id": "b0-to-v1", "segment_id": "segment-b", "receiver_id": "vehicle-01", "interval_index": 0, "max_deliverable_energy_mwh": 4 },
+    { "link_id": "a0-to-v2", "segment_id": "segment-a", "receiver_id": "vehicle-02", "interval_index": 0, "max_deliverable_energy_mwh": 4 },
+    { "link_id": "a1-to-v1", "segment_id": "segment-a", "receiver_id": "vehicle-01", "interval_index": 1, "max_deliverable_energy_mwh": 5 },
+    { "link_id": "a1-to-v3", "segment_id": "segment-a", "receiver_id": "vehicle-03", "interval_index": 1, "max_deliverable_energy_mwh": 5 },
+    { "link_id": "b1-to-v3", "segment_id": "segment-b", "receiver_id": "vehicle-03", "interval_index": 1, "max_deliverable_energy_mwh": 5 }
+  ],
+  "quality_flags": ["SYNTHETIC_ONLY"]
+}
