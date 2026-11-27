@@ -80,9 +80,10 @@ fn make_records(
 #[test]
 fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
     let plans = owner_plans(OWNER_RECEIPT);
-    assert!(OWNER_RECEIPT.lines().any(|line| line == "RESOURCE\\tREGIONAL-PLATE\\tYARD-A\\tP1\\t3.000\\tt"));
-    assert!(OWNER_RECEIPT.lines().any(|line| line == "RESOURCE\\tREGIONAL-WELD\\tYARD-A\\tP1\\t12.000\\th"));
-    assert!(OWNER_RECEIPT.lines().any(|line| line == "RESOURCE\\tREGIONAL-NDT\\tYARD-A\\tP1\\t2.000\\tjob"));
+    let declared_resources = OWNER_RECEIPT.lines().collect::<Vec<_>>();
+    assert!(declared_resources.contains(&"RESOURCE\\tREGIONAL-PLATE\\tYARD-A\\tP1\\t3.000\\tt"));
+    assert!(declared_resources.contains(&"RESOURCE\\tREGIONAL-WELD\\tYARD-A\\tP1\\t12.000\\th"));
+    assert!(declared_resources.contains(&"RESOURCE\\tREGIONAL-NDT\\tYARD-A\\tP1\\t2.000\\tjob"));
     assert_eq!(plans.len(), 4);
     assert_eq!(plans.values().filter(|plan| plan.feasible).count(), 3);
     assert_eq!(plans.values().filter(|plan| plan.pareto).count(), 3);
@@ -195,7 +196,14 @@ fn censored_receiver_units_produce_bounds_and_unknown_floor_not_assumed_success(
     };
     let report = evaluate_receiver_service(&records, &[floor], 30).unwrap();
     let result = &report.cohorts[0];
-    assert_eq!((result.scheduled_quantity, result.on_time_quantity, result.unresolved_quantity), (10, 6, 4));
+    assert_eq!(
+        (
+            result.scheduled_quantity,
+            result.on_time_quantity,
+            result.unresolved_quantity,
+        ),
+        (10, 6, 4)
+    );
     assert_eq!(
         (result.conservative_lower_numerator, result.conservative_lower_denominator),
         (6, 10)
