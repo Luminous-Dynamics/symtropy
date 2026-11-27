@@ -43,10 +43,10 @@ fn scenario_input(
             }
             "SHOCK" => {}
             "INSPECTION" => {
-                records.push(apply_disposition_override(line, fields, inspection_override));
+                records.push(apply_disposition_override(line, &fields, inspection_override));
             }
             "RECEIVER_ACCEPTANCE" => {
-                records.push(apply_disposition_override(line, fields, receiver_override));
+                records.push(apply_disposition_override(line, &fields, receiver_override));
             }
             _ => records.push(line.to_owned()),
         }
@@ -64,7 +64,7 @@ fn scenario_input(
     records.join("\n") + "\n"
 }
 
-fn apply_disposition_override(line: &str, fields: Vec<&str>, override_spec: &str) -> String {
+fn apply_disposition_override(line: &str, fields: &[&str], override_spec: &str) -> String {
     if override_spec == "NONE" {
         return line.to_owned();
     }
