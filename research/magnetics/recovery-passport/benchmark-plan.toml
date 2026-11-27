@@ -32,7 +32,7 @@ elemental_product_requires = ["composition_evidence", "purity_evidence"]
 waste_residue_requires = ["classification_evidence", "disposition_evidence"]
 
 [closed_loop]
-requires = ["recovered_product_identity", "exact_source_lot_and_input_mass_binding", "new_material_lot_identity", "downstream_build_genealogy", "reusable_product_form", "as_built_functional_acceptance_receipt"]
+requires = ["recovered_product_identity", "exact_source_lot_and_input_mass_binding", "positive_consumed_mass_measurement", "consumption_not_exceeding_recovered_output", "new_material_lot_identity", "downstream_build_genealogy", "reusable_product_form", "as_built_functional_acceptance_receipt"]
 recovered_mass_alone_proves_closed_loop = false
 
 [claim_policy]
@@ -51,7 +51,7 @@ synthetic_fixture = "evaluator/fixtures/synthetic-recovery-passport-v0.1.json"
 source_register = "fixtures/recovery-route-source-register-v0.1.json"
 language = "Rust 2024"
 dependencies = []
-unit_tests_authored = 26
+unit_tests_authored = 28
 unit_tests_executed = false
 exact_head_ci_pass = false
 
