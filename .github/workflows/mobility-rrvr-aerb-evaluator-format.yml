@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/mobility-rrvr-aerb-v0-1
+      - research/mobility-rrvr-aerb-probe-value-v0-1
     paths:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - ".github/workflows/mobility-rrvr-aerb-evaluator-format.yml"

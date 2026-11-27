@@ -132,3 +132,14 @@ A SOTA claim is permitted only after:
 - source/robot/simulator and held-out transfer limits are disclosed.
 
 Otherwise publish a process-model conformance result, a null result, or an explicitly limited simulator result.
+
+
+## 8. Blind-corpus leakage audit (required before learned-agent comparison)
+
+The public v0.1 `aerb_generate` CLI is a deterministic conformance fixture, not a blind test generator. Its sequential IDs, `index % 8` scenario labels, deterministic eight-world cycle and public CI seed make hidden assignments recoverable from public source/workflow metadata or inferable across stateful episode sequences.
+
+Use the tool only for known-answer/schema/CLI smoke testing. Do not report candidate performance, blind generalization, hidden-world calibration or SOTA from its balanced corpus.
+
+A separate evaluator-only blind corpus is required. It must use cryptographically unpredictable hidden assignments, opaque candidate identifiers and ordering, no candidate-visible exact-quota cycle, isolated evaluator custody and a post-run seed/manifest commitment/reveal. Run metadata-only and stateful-candidate leakage attacks before opening the blind set.
+
+Tracked in [Symtropy #7732](https://github.com/Luminous-Dynamics/symtropy/issues/7732).

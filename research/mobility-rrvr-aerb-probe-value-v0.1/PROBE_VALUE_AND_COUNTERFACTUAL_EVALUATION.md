@@ -1,0 +1,338 @@
+# AERB v0.2 design: anticipatory probe value and counterfactual response policies
+
+**Date:** 2026-11-27  
+**Parent:** AERB #7631 / v0.1 draft PR #7633  
+**Implementation work item:** #7694  
+**Status:** design proposal; not an implementation or benchmark result
+
+## 1. Why this extension exists
+
+AERB v0.1 defines a useful finite set of ambiguous execution histories, keeps candidate-visible evidence separate from evaluator truth, validates probe support partitions, and checks whether a requested observation is permitted, affordable and available before the decision deadline.
+
+The present evaluator does not yet score the *decision value* of the requested probe. It validates `ProbeOutcomeSupport`, then reports admission, cost and delay. It does not calculate a before/after minimax risk contrast, compare the selected probe with other eligible probes, or evaluate a contingent post-observation response plan.
+
+The v0.2 objective is to answer:
+
+> Before another action can create a physical effect, did the observer preserve the plausible execution histories, select a permitted observation that can change the safety-relevant decision, and specify a defensible response for every possible result?
+
+This is an assurance overlay. Native task success, policy recovery success and violation severity remain separate host-benchmark outcomes.
+
+## 2. Four distinct epistemic objects
+
+Never merge these objects:
+
+1. **Factual execution history.** The single history that actually occurred, represented only by source-qualified evidence admitted at the decision cut.
+2. **Candidate belief/support.** The candidate's set of possible histories and predicted probe outcomes, submitted before the evaluator reveals hidden truth.
+3. **Evaluator counterfactual model.** The hidden world catalog, actual outcome supports and loss table used only after candidate inference.
+4. **Executed observation branch.** The one probe the harness actually runs, with its own returned raw evidence and provenance.
+
+A candidate prediction, model rollout or counterfactual branch is not physical evidence. Counterfactual branches must be labelled `counterfactual_only`; they must never be appended to the factual actuation/evidence ledger.
+
+## 3. Probe value without invented probabilities
+
+Reuse Symthaea's existing `decision-relevant-predictability` robust evaluator in `research/decision-predictability-benchmark/src/robust.rs`. Do not fork or reimplement its minimax algorithm.
+
+For a possible-world set (S), non-actuating dispositions (A), and frozen loss (L(a,w)):
+
+```text
+R(S) = min over a in A [ max over w in S L(a,w) ]
+```
+
+For probe (p), with possible outcomes (z) and evaluator-admissible supports (S_z):
+
+```text
+R_p(S) = max over z [ R(S_z) ]
+Delta_p = R(S) - R_p(S)
+```
+
+`Delta_p` is a **guaranteed worst-case decision-loss reduction**. It is not expected value of information, mutual information or entropy reduction. Acquisition cost, result delay, energy and deadline feasibility remain separate axes. Overlapping outcome supports are permitted when a probe is nondeterministic or noisy; every evaluator world must be covered by at least one outcome support.
+
+The candidate may rank probes using its own predicted supports. The evaluator must independently recompute the actual value using evaluator-held supports after inference. Never send the actual supports or the hidden loss table to the candidate.
+
+## 4. Candidate contract additions
+
+Version the contract explicitly (proposed v0.2); do not reinterpret v0.1 fields.
+
+A candidate submission should add:
+
+- a digest-bound list of **candidate-predicted probe models**, keyed by public probe ID;
+- candidate-local outcome labels and the possible public world-vocabulary IDs consistent with each outcome;
+- a selected probe ID, or an explicit no-probe / hold / abstain result;
+- a bounded **contingent response policy** mapping each candidate-predicted outcome label to a future non-actuating disposition;
+- the exact observation IDs and decision-cut digest used by the policy;
+- a reason code for decision-sufficient stopping, probe unavailability, deadline infeasibility or unresolved ambiguity.
+
+The candidate model must not contain evaluator truth, actual evaluator outcome supports, evaluator-only likelihoods, evaluator loss rows or generator seed. Candidate support can be conservative; unsupported narrowing and false exclusion must be measured rather than rewarded.
+
+The public eight-world vocabulary can serve as the initial shared state alphabet, but candidate-local hypothesis aliases should be allowed in later versions. The evaluator must bind aliases independently, following the omission/false-exclusion protections from Symtropy #7555/#7577.
+
+## 5. Evaluator-owned scoring
+
+The evaluator recomputes, from frozen evaluator artifacts:
+
+1. Pre-observation minimax loss (R(S)).
+2. Worst-case post-observation minimax loss (R_p(S)) for each permitted, eligible probe.
+3. Guaranteed decision-loss reduction `Delta_p`.
+4. Cost/deadline admission and the Pareto frontier across risk reduction, cost and latency.
+5. The selected probe's regret relative to the best eligible probe under the same support/loss assumptions.
+6. Candidate predicted-support coverage and false-exclusion by actual outcome.
+7. Candidate contingent-policy loss over all compatible world/outcome pairs:
+   `max L(pi_p(z), w)` for every evaluator-admissible pair where `w in S_z`.
+8. The best evaluator response after each outcome as an oracle bound, not as a candidate result.
+9. Decision-sufficient stop correctness, unnecessary probe requests and abstention when a useful, legal probe existed.
+
+A result is a protocol violation if the candidate omits a world and that omission causes an unsafe decision. Do not convert malformed, unknown, disputed or uncovered support into zero loss.
+
+## 6. Decision-sufficient observation
+
+Use the decision-sufficiency principle from #7555:
+
+- If every surviving possible history implies the same downstream disposition under a frozen decision-equivalence/tolerance contract, the observer may stop without acquiring another sensor reading.
+- If compatible histories imply materially different decisions, acquire only when a permitted probe can reduce worst-case disagreement/loss within budget and deadline.
+- If no legal probe can resolve the decision in time, hold or abstain. Do not claim a unique physical history.
+
+Decision sufficiency is scoped to one frozen DecisionNeed, evidence prefix, utility/disposition contract, observer revision, probe catalogue and deadline/budget context. It is not a global claim that the robot's world model or memory is complete.
+
+## 7. Counterfactual retry / wait / observe / reconcile
+
+The candidate may compare non-actuating plans:
+
+- **retry recommendation:** only when the declared NoEffect and execution-scope closure requirements are independently supported;
+- **wait:** allow bounded time for delayed acknowledgement/physical settling, without treating silence as NoEffect;
+- **observe:** request a permitted independent probe;
+- **reconcile/fence:** request endpoint and command-holder reconciliation / scope closure;
+- **abstain:** decline to recommend a new actuation while the support remains decision-ambiguous.
+
+The counterfactual engine may evaluate alternative branches in a process model. Only the selected real branch is executed by the harness. A prediction that a retry *would* be safe is not authority to retry. The live endpoint and existing RRVR authority/finality controls remain responsible for execution admission.
+
+## 8. Baselines and adversarial challenge matrix
+
+Match candidate-visible evidence, action/probe menu, latency and cost budgets, inference compute and deadlines.
+
+Required comparators:
+
+- no probe / fixed wait;
+- immediate retry as a synthetic negative control only;
+- endpoint journal only;
+- independent pose/force/contact sensing only;
+- cheapest eligible probe;
+- random eligible probe;
+- fixed-cadence and event-triggered sensing;
+- maximum-entropy / EIG ranking only with a justified calibrated joint probability model;
+- Bayesian EVSI only with frozen priors and joint observation likelihoods;
+- prior-free robust minimax ranking;
+- HDC-only, temporal-only (CfC/LTC), constant-velocity, Kalman/LQG, autoregressive, GRU/LSTM/TCN/state-space and NG-RC baselines;
+- HDC + temporal prediction + calibrated selective support + robust decision evaluation;
+- evaluator-only optimal probe as a non-deployable upper bound.
+
+Adversarial controls:
+
+- high-entropy observation with zero decision-loss reduction;
+- low-information observation that avoids an unsafe retry;
+- cheapest probe with no decision value;
+- overlapping and correlated observation outcomes;
+- unsupported/omitted world and open-world residual;
+- missing, stale, delayed, duplicated, reordered, disputed and cross-clock evidence;
+- probe response arriving after the decision deadline;
+- probe denied, unavailable or over budget;
+- decision-equivalent worlds with different physical explanations;
+- a false scope-closure receipt or stale authority/queue generation;
+- a contingent policy that is unsafe for only one admissible outcome;
+- counterfactual data accidentally admitted into the factual evidence ledger.
+
+## 9. Metrics and publication rules
+
+Publish independent axes, with exact numerators and denominators:
+
+- pre-effect unsafe retry recommendation;
+- false Applied / false NoEffect / false closure / false unique-history claims;
+- support coverage, false-exclusion and candidate support size;
+- pre-probe and post-probe minimax decision loss;
+- guaranteed worst-case risk reduction;
+- selected-probe regret and contingent-policy worst-case loss;
+- unnecessary observation and missed useful-probe rates;
+- decision-sufficient stop correctness and abstention rates;
+- acquisition cost, result latency, deadline miss, observation failure and evidence staleness;
+- native task/recovery success, time-to-safe-recovery and violation severity;
+- p50/p95/p99 runtime, memory, CPU/GPU use, network bytes and measured energy.
+
+Report by trajectory/scenario cluster, task family, command effect class, robot/controller/sensor profile, source and clock domain. Use paired scenario conditions but preserve independent realized outcomes. Do not treat episodes, frames or repeated attempts from one trajectory as independent samples. Publish confirmatory intervals only after the independent-cluster assumptions and coverage have been validated.
+
+No single weighted AERB leaderboard score. No probability calibration claim from balanced synthetic world cycles. No SOTA claim without same benchmark version, pinned checkpoints, matched episodes, source/task holdouts, reproducible raw artifacts and independent review.
+
+## 10. Competitive positioning and evidence tiers
+
+- **Task capability:** RoboCasa365 and the host manipulation suites remain task-success anchors.
+- **Safety:** SafeVLA-Bench remains the comparator for safety, successful-but-unsafe episodes and violation severity.
+- **Failure diagnosis/recovery:** VLA-FixBench and LIBERO-RECOVER remain diagnosis and recovery comparators.
+- **Action-conditioned prediction:** WorldOracle is a complementary benchmark for whether predicted rollouts match paired real executions; AERB asks whether the prediction and observations justify a decision under ambiguous execution history.
+- **Execution finality:** the 2026 IETF individual Internet-Drafts on actuation-bound finality are adjacent architecture work, not a robotics benchmark or an IETF-endorsed standard. Track them as related prior art and compare exact claims, boundary definitions and evidence requirements.
+
+Evidence tiers must stay distinct:
+
+1. formal/synthetic finite-world conformance;
+2. deterministic process-model campaign;
+3. independently reset and replay-verified simulator episodes;
+4. HIL with independently captured controller/actuator receipts;
+5. controlled physical trials with independent safety oversight.
+
+Passing a lower tier never upgrades claims at a higher tier. This benchmark does not certify a robot or safety function.
+
+## 11. First implementation sequence
+
+1. Add v0.2 candidate-prediction and contingent-policy schemas without modifying v0.1.
+2. Implement a narrow AERB-to-Symthaea robust-evaluator adapter, pinning upstream source revision and preserving upstream ownership.
+3. Build an exhaustive small-world brute-force oracle independent of the adapter.
+4. Add campaign score fields for probe regret, risk reduction, contingent-policy loss and false-exclusion.
+5. Add mutation and metamorphic tests for renamed IDs, row order, support inclusion, clock/scope changes and all deadline/budget edge cases.
+6. Compare fixed-wait, cheapest, random, EIG-if-calibrated and robust-minimax baselines on a preregistered development set.
+7. Freeze a blind evaluator set and only then run confirmatory campaigns.
+
+## 12. Explicit non-claims
+
+This document defines a proposed v0.2 research contract only. It does not claim that the adapter, v0.2 schemas, candidate model, blind test, simulator/HIL/physical campaigns or benchmark improvements have been implemented or passed.
+
+## 13. Critical modeling guard: probe acquisition is not a post-probe decision
+
+The action set (A) in the minimax calculation must contain **post-observation disposition choices**, not the act of acquiring the observation. In particular, AERB's current `Disposition::RequestObservation` is the pre-decision action used to select probe (p); it must not also be inserted into the response action set (A). That would be circular and can mask the value of acquiring a probe.
+
+Keep the decision stages explicit:
+
+- pre-observation: choose one permitted probe (p), or choose a non-probing safe disposition;
+- observation: the harness acquires one result (z), if feasible and admitted;
+- post-observation: choose among hold/no-new-actuation, abstain/abort, or a newly authorized attempt, subject to the independent effect-finality gates.
+
+### Worked audit of the v0.1 synthetic generator
+
+The published generator's synthetic loss table assigns (among other rows) hold losses of 0.35 for no-dispatch/no-effect, 0.05 for applied-once, 0.10 for partial, 0.15 for duplicate, 0.25 for stale/unresolved, and 0.30 for open-world residual. Abstention has loss 0.45; recommending a fresh attempt has loss 0 for no-effect, 0.95 for applied-once/partial, 1.0 for duplicate/stale/open-world, and 0.90 for unresolved-holder.
+
+For this diagnostic, the post-observation action set is `{hold, abstain, fresh_attempt}`; `RequestObservation` is excluded because it is the probe, not the post-probe response. With all eight worlds initially possible:
+
+- baseline minimax loss (R(S)=0.35);
+- endpoint-journal probe worst-case post-observation loss (R_p=0.35), so `Delta=0`;
+- independent-pose probe worst-case post-observation loss (R_p=0.35), so `Delta=0`;
+- holder-inventory probe worst-case post-observation loss (R_p=0.35), so `Delta=0`;
+- combined effect-and-scope reconciliation probe worst-case post-observation loss (R_p=0.30), so `Delta=0.05).
+
+These are deterministic calculations over the current synthetic fixture's declared supports/losses, not a benchmark measurement, learned observer result or claim about real sensors. They show two things: (a) a probe may separate several histories yet provide no guaranteed minimax decision improvement; and (b) the existing combined reconciliation probe is the only one of these four that reduces the frozen toy worst-case loss, because it admits closed-scope outcomes while retaining an unresolved outcome.
+
+If `RequestObservation` is incorrectly left in the post-observation action set with its current constant 0.30 loss, the baseline and every probe's worst-case loss become 0.30, making every `Delta` appear to be zero. This is a contract/modeling error, not evidence that every probe is useless.
+
+### Required regression tests
+
+1. Reject or structurally prevent a probe-acquisition action from appearing in the post-observation decision table.
+2. Recompute the four diagnostic values above in an independent brute-force reference test.
+3. Preserve the unresolved/open-world outcome in scope closure; do not force a positive `Delta` by deleting the hard case.
+4. Include a high-entropy, zero-`Delta` probe and a lower-entropy, positive-`Delta` probe as synthetic controls.
+5. Ensure candidate policy-tree scoring uses only post-observation dispositions and counts every compatible (outcome, world) pair.
+
+
+## 14. Interpreting zero observed safety events
+
+A target such as “zero unsafe fresh-attempt recommendations” is a finite-sample observation, not proof of zero risk. Under an explicitly justified independent Bernoulli-cluster sampling model, observing zero events in (n) independent clusters gives a one-sided (1-\alpha) upper bound:
+
+```text
+p_upper = 1 - alpha^(1/n)
+```
+
+At 95% one-sided confidence, approximately 2,995 independent clusters with zero observed events are required for this bound to fall below 0.1%. Three thousand frames or retries from one trajectory do not constitute three thousand independent clusters. When cluster independence is not defensible, use a justified cluster-level model or report descriptive outcomes without a population-risk claim.
+
+This calculation is a statistical planning aid only. It does not establish physical safety, cover out-of-distribution hazards, validate the world model, or replace a robot-cell risk assessment and independent safety review.
+
+
+## 15. Orthogonalize the actuation guard and probe request
+
+A second v0.1 contract limitation should be corrected explicitly in v0.2. The current submission uses one `Disposition` enum for both `request_observation` and decisions such as `abstain` / `recommend_fresh_attempt`. Its validator also requires abstention whenever any scheduled observation is stale, unknown or disputed. This cannot directly represent the operationally important combination:
+
+> Keep the next actuation blocked **and** request a fresh, independent observation to resolve the ambiguity.
+
+In v0.2, separate at least these dimensions:
+
+- `actuation_guard`: a non-authorizing current control posture such as `hold_no_new_effect` (the candidate cannot open the physical effect gate);
+- `probe_request`: optional permitted probe ID with explicit budget/deadline context;
+- `post_probe_policy`: candidate's bounded mapping from each predicted observation outcome to a future disposition;
+- `evidence_status`: admitted, stale, unknown, disputed or unavailable records with explicit reason codes.
+
+A probe request must not authorize motion or imply that the ambiguity is resolved. A stale record must be excluded from current positive evidence, but its presence should not prevent requesting a new observation. The external, independently enforced execution-finality/authority gate remains the only component able to permit a physical effect.
+
+This also gives the evaluator two separate metrics: unsafe actuation-gate recommendations and probe-selection quality. Do not reward a candidate for issuing no probe if it simply abstains forever; do not penalize a safe hold because it requests useful new evidence.
+
+## 16. Cross-language digest semantics
+
+The v0.1 Rust helper explicitly uses compact `serde_json::Value` serialization with sorted object keys and notes that it is **not general RFC 8785 JSON Canonicalization Scheme**. That is acceptable as a scoped implementation detail only while every producer and verifier uses precisely the same algorithm.
+
+Before v0.2 supports independent polyglot candidates/evaluators, either:
+- adopt a published canonicalization profile such as RFC 8785 and add cross-language byte-for-byte test vectors; or
+- hash the exact immutable raw snapshot bytes and make the wire contract preserve those bytes unambiguously.
+
+Do not call a bespoke sorted-JSON encoding “canonical JSON” without naming its exact implementation/profile. Keep digest equality separate from source authentication, clock validity and physical truth.
+
+
+## 17. First candidate-visible v0.2 envelope (draft schema)
+
+A concrete candidate submission envelope now exists at:
+
+- `schemas/aerb_candidate_submission_v0_2.schema.json`
+- `fixtures/candidate_submission_adaptive_synthetic_v0_2.json`
+
+The fixture binds to the published AERB synthetic candidate episode `aerb-synthetic-0001` using snapshot digest `4ae21c204ec9b5f8b9e6f701c3f6305be7464162715ff27bde5e10f4aa83efc7`. The digest is over the exact v0.1 candidate episode JSON under the currently declared sorted compact-JSON profile; it is not a source-authentication claim.
+
+The candidate envelope introduces:
+- an explicit `actuation_guard = block_new_effect`;
+- candidate-owned initial possible-world support that must retain `open_world_residual`;
+- candidate-predicted outcome supports, separate from evaluator actual supports;
+- a flat, bounded policy-node graph with probe nodes and terminal non-actuating dispositions;
+- `counterfactual_only = true` on every policy node;
+- digests for the DecisionNeed, decision contract, probe catalogue, model and observer profile.
+
+The synthetic plan reads the endpoint journal first. It requests scope reconciliation only on the journal's NoEffect-plus-open-world branch; the other first-stage outcomes stop and hold. The closed NoEffect terminal is only a recommendation, not authorization: `block_new_effect` remains set and the independent RRVR finality/authority gate still owns any actual dispatch.
+
+### Evaluator obligations not expressible in JSON Schema alone
+
+The Rust evaluator must reject:
+- duplicate node IDs, missing root/reference IDs, unreachable nodes and cycles;
+- a probe node not present in the candidate-visible permitted probe menu;
+- a branch whose outcome ID is not in that candidate's predicted outcomes for the selected probe;
+- omitted/extra candidate branches relative to the predicted outcomes reachable under that node's current candidate support;
+- a terminal recommendation that is not consistent with the candidate's own support and declared decision contract;
+- predicted support that omits a world later shown possible by evaluator truth;
+- any policy branch or candidate artifact that attempts to act as a physical dispatch or claims an executed counterfactual.
+
+A schema pass proves only structural shape. It does not prove candidate/evaluator isolation, source authenticity, outcome-support correctness, policy optimality, a safe physical effect, or a correct command-holder inventory. The evaluator must independently check these properties against its owner-held evidence after candidate inference.
+
+This is a draft schema and synthetic fixture, not an implemented evaluator or hidden test.
+
+
+## 18. Evidence content and temporal-closure composition
+
+AERB must not treat an opaque evidence digest or an `observation_kind` string as enough information for the candidate to reason. The v0.1 candidate observation shape currently carries identity, source role, quality, ingest sequence, event/acquisition time, artifact digest and a kind label—but no typed result payload or host-mediated retrieval capability. This is tracked separately in [#7728 — materialize source-qualified observation payloads](https://github.com/Luminous-Dynamics/symtropy/issues/7728).
+
+Use the existing [Evidence Capsules v0.1 schema](https://github.com/Luminous-Dynamics/symtropy/blob/research/mobility-rrvr-evidence-capsules-v0-1-r1/research/mobility-rrvr-evidence-capsules-v0.1/schemas/evidence_bundle_v0_1.schema.json) and [domain-qualified harness adapter #7565](https://github.com/Luminous-Dynamics/symtropy/pull/7565) as the source/evidence owners. The candidate-visible v0.2 snapshot should expose an admitted, typed and bounded payload together with its exact source/profile identity, event/acquisition intervals, ingest sequence, parent evidence IDs, raw digest and quality disposition. Raw-data access, if needed, should be host-mediated, read-only, size/type-bounded and unable to reach evaluator-only stores.
+
+The current evidence-capsule payload union already includes effect findings with coverage/calibration references, endpoint fence receipts, per-edge closure receipts and holder inventories. Extend it only for missing domain data such as typed pose/force/contact/gripper measurements. Do not fork capsule sealing, trust/key management or source-role validation.
+
+**Temporal-closure composition:** reuse [#7433](https://github.com/Luminous-Dynamics/symtropy/issues/7433) / [#7435](https://github.com/Luminous-Dynamics/symtropy/pull/7435) and the existing command-holding graph owner (#6817/#6866). AERB consumes a scope/temporal-closure result bound to the exact command, attempt, graph/profile, authority epoch, queue generation and decision cut. Do not implement a second late-arrival or quiescence checker.
+
+Keep the claims orthogonal:
+- `TemporalClosure=Closed` means no old-epoch work can still be admitted or arrive through the *declared and qualified* graph under its proof path.
+- `EffectOutcome=NoEffect` means the prior command did not produce the physical effect over the declared observation coverage.
+- Closure does not imply NoEffect: the command may have acted before the path became quiescent.
+- If any path is unbounded, unqueryable, unaccounted, wrong-profile, clock-invalid or otherwise unresolved, closure remains Hold/Unknown regardless of elapsed time and the candidate must retain `open_world_residual`.
+
+The existing temporal-closure PR #7435 had a failure at the workflow's source-pin stage: its JSON/schema check passed, then a stale Git blob pin rejected the intentional HiddenEdge mutant and prevented TLC, rustfmt, tests and Clippy from running. The expected hashes for HiddenEdge and InvalidClock have been corrected in its new head; the rerun is queued and must independently demonstrate the formal model and Rust checks before any qualification claim.
+
+
+## 19. Physical safety-to-observe is stricter than a logical deadline
+
+The v0.2 policy validator currently checks that the cumulative probe cost and declared result delay fit the candidate-visible budget/deadline. This is a logical admission check, not a physical claim that it is safe to wait for the result.
+
+During stop/settle, sensing, transport, evidence admission and replanning, the robot's physical state and command path may continue to evolve. The probe itself may require a camera/head/arm/base motion. A nominally timely observation can arrive after the lower bound to a collision/contact hazard, actuator/thermal derating, certificate expiry or loss of the only robust recovery continuation.
+
+New issue [#7738 — physical safety-to-observe](https://github.com/Luminous-Dynamics/symtropy/issues/7738) specifies the next composition:
+- consume #4696's joint adaptive-horizon envelope, #4588's observation-constrained common continuation, #4117's certificate freshness, #4083's set-valued dynamics, #4610's thermal horizon, #4206's actuator response, #4382's independent policy-to-dynamics/viability gate, #4310/#4313's viability-conditioned probe values and #7433/#7435 temporal closure;
+- evaluate a complete physical hold/probe trajectory, not just an acquisition cost and result timestamp;
+- distinguish a probe that is logically permitted from one physically safe to wait for;
+- reject Unknown/incompatible horizons rather than treating them as infinite or dropping them from the minimum;
+- score hard constraint events, safe continuation loss, time-to-hazard and time-to-qualified-evidence separately.
+
+AERB must not create another viability solver, action projector, thermal/actuator model, clock service or late-arrival checker. The actual safe-to-wait qualification must be issued by the existing independent physical/authority owners. AERB receives their exact, source-qualified result and benchmarks the candidate's use of it.

@@ -8,12 +8,14 @@ on:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - "research/mobility-rrvr-aerb-v0.1/schemas/**"
       - "research/mobility-rrvr-aerb-v0.1/fixtures/**"
+      - "research/mobility-rrvr-aerb-probe-value-v0.1/**"
       - ".github/workflows/mobility-rrvr-aerb-evaluator.yml"
   pull_request:
     paths:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - "research/mobility-rrvr-aerb-v0.1/schemas/**"
       - "research/mobility-rrvr-aerb-v0.1/fixtures/**"
+      - "research/mobility-rrvr-aerb-probe-value-v0.1/**"
       - ".github/workflows/mobility-rrvr-aerb-evaluator.yml"
   workflow_dispatch:
 
@@ -42,6 +44,40 @@ jobs:
           jq empty "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
           jq empty "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
           jq empty "$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"
+          V02="research/mobility-rrvr-aerb-probe-value-v0.1"
+          jq empty "$V02/schemas/aerb_candidate_submission_v0_2.schema.json"
+          jq empty "$V02/fixtures/candidate_submission_adaptive_synthetic_v0_2.json"
+
+          jq -e '
+            . as $candidate
+            | ($candidate.counterfactual_policy.nodes | map(.node_id)) as $node_ids
+            | ($candidate.candidate_predicted_probe_models) as $probe_models
+            | $candidate.schema_version == "0.2"
+            and $candidate.benchmark == "AERB"
+            and $candidate.actuation_guard == "block_new_effect"
+            and ($candidate.initial_possible_world_support_ids | index("open_world_residual") != null)
+            and ($node_ids | length == (unique | length))
+            and ($node_ids | index($candidate.counterfactual_policy.root_node_id) != null)
+            and all($candidate.counterfactual_policy.nodes[];
+              . as $node
+              | $node.counterfactual_only == true
+                and (if $node.node_type == "probe" then
+                  any($probe_models[]; .probe_id == $node.probe_id)
+                  and all($node.outcome_branches[];
+                    . as $branch
+                    | ($node_ids | index($branch.next_node_id) != null)
+                      and any($probe_models[] | select(.probe_id == $node.probe_id) | .outcomes[]; .outcome_id == $branch.outcome_id)
+                  )
+                elif $node.node_type == "terminal" then
+                  ($node.terminal_disposition == "hold_reconcile" or $node.terminal_disposition == "abstain" or $node.terminal_disposition == "recommend_fresh_attempt")
+                else false end)
+            )
+            and (has("hidden_truth_world_id") | not)
+            and (has("decision_losses") | not)
+            and (has("probe_outcome_supports") | not)
+            and (has("evaluator_profile_sha256") | not)
+            and (has("seed") | not)
+          ' "$V02/fixtures/candidate_submission_adaptive_synthetic_v0_2.json"
 
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml -- --check

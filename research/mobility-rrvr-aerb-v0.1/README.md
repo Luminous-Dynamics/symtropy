@@ -254,3 +254,12 @@ No tier promotion by metadata. RoboRecover host reproduction remains conditional
 ## 13. Claim ceiling
 
 AERB v0.1 is a synthetic benchmark protocol, typed Rust evaluator and conformance fixture. The evaluator can score candidate support/decision outputs on synthetic inputs, but no campaign result, SOTA superiority, calibrated sensor reliability, causal identification, physical effect truth, simulator/HIL/physical qualification or robot safety certification is claimed. The first benchmark result must be a reproducible, independently challengeable process-model experiment—not a leaderboard claim.
+
+
+## Corpus classification: public conformance is not blind evaluation
+
+The `aerb_generate` implementation and CI invocation currently form a **public deterministic conformance corpus** only. It uses sequential candidate IDs, `scenario_id = index % 8`, seed-shuffled eight-world cycles, and the public CI smoke seed `42`. These choices make the sample repeatable and balanced for known-answer validation, but also make hidden assignments reconstructable from public source/workflow metadata or inferable across a stateful campaign.
+
+Do not use this corpus to claim blind candidate performance, OOD generalization, independent hidden-world coverage or SOTA. Keep it for schema, evaluator and CLI smoke checks.
+
+A separate blind generator and leakage audit are required before comparative evaluation. See [#7732 — harden AERB blind challenge generation against metadata leakage](https://github.com/Luminous-Dynamics/symtropy/issues/7732). The blind corpus must use evaluator-only cryptographic entropy, opaque candidate IDs/order, no observable block-balancing pattern, separate candidate/evaluator custody and post-run seed/manifest reveal under an auditable commitment.

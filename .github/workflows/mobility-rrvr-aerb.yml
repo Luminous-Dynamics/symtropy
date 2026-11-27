@@ -6,10 +6,12 @@ on:
       - research/mobility-rrvr-aerb-v0-1
     paths:
       - "research/mobility-rrvr-aerb-v0.1/**"
+      - "research/mobility-rrvr-aerb-probe-value-v0.1/**"
       - ".github/workflows/mobility-rrvr-aerb.yml"
   pull_request:
     paths:
       - "research/mobility-rrvr-aerb-v0.1/**"
+      - "research/mobility-rrvr-aerb-probe-value-v0.1/**"
       - ".github/workflows/mobility-rrvr-aerb.yml"
   workflow_dispatch:
 
@@ -27,8 +29,11 @@ jobs:
         run: |
           set -euo pipefail
           ROOT="research/mobility-rrvr-aerb-v0.1"
-          find "$ROOT" -name '*.json' -print0 | while IFS= read -r -d '' file; do
-            jq empty "$file"
+          V02="research/mobility-rrvr-aerb-probe-value-v0.1"
+          for directory in "$ROOT" "$V02"; do
+            find "$directory" -name '*.json' -print0 | while IFS= read -r -d '' file; do
+              jq empty "$file"
+            done
           done
 
       - name: Validate candidate episode decision cut and scope identity
