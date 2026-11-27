@@ -165,3 +165,9 @@ A state of Watch is not a probability of failure. A threshold crossing is not a 
 - DPC Digital Preservation Handbook — Storage: https://www.dpconline.org/handbook/organisational-activities/storage
 - SNIA Emerald power measurement: https://www.snia.org/tech_activities/standards/curr_standards
 - SPECstorage Solution 2020: https://www.spec.org/storage/
+
+### Remediation receipt closure and alert monotonicity
+
+A previous Alert is a durable state transition, not a transient level reading. A later Unknown, absent or expired observation cannot downgrade it. The receipt preserves every unresolved alert ID and emits proposals against the alert that created the condition.
+
+Only a fresh Verified Healthy observation can clear an alert. It must name exactly one existing alert ID and reference a distinct remediation receipt ID plus the SHA-256 digest of that receipt. A receipt ID can be used for only one alert clear in the evaluated history. Unknown references, missing receipt IDs/digests, receipt reuse and non-Healthy supersession are rejected. External evidence adapters must independently retrieve/authenticate the remediation receipt and establish its provenance; the Rust kernel checks only its binding shape and the verifier-supplied provenance status.
