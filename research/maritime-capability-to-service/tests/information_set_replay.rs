@@ -146,7 +146,9 @@ fn parse_bool(value: &str, field: &str, case_id: &str) -> Result<bool, String> {
 
 fn parse_manifest(input: &str) -> Result<Vec<ReplayCase>, String> {
     const HEADER: &str = "case_id\tcontrol\tevent_time_s\tsource_observed_at_s\tfirst_available_at_s\tingested_at_s\tvalidated_at_s\tvalid_until_s\trights_state\tauthority_state_at_cutoff\tauthority_state_current\tcurrent_authority_available_at_s\tevidence_state\tclock_quality\tfeature_uses_future_data\taction_requested\tdecision_cutoff_s\tplan_published_at_s\tauthorized_at_s\tservice_deadline_s\tvisible_at_cutoff\tevidence_admissible_at_cutoff\taction_executable_at_cutoff\texpected_disposition";
-    let mut lines = input.lines().filter(|line| !line.trim().is_empty() && !line.starts_with('#'));
+    let mut lines = input
+        .lines()
+        .filter(|line| !line.trim().is_empty() && !line.starts_with('#'));
     if lines.next() != Some(HEADER) {
         return Err("KITE manifest header does not match v0.1 schema".to_owned());
     }
@@ -164,7 +166,10 @@ fn parse_manifest(input: &str) -> Result<Vec<ReplayCase>, String> {
         }
         let id = fields[0].to_owned();
         if id.is_empty() || !seen_ids.insert(id.clone()) {
-            return Err(format!("manifest row {} has empty or duplicate case ID", index + 2));
+            return Err(format!(
+                "manifest row {} has empty or duplicate case ID",
+                index + 2
+            ));
         }
 
         let case = ReplayCase {
@@ -209,7 +214,9 @@ fn parse_manifest(input: &str) -> Result<Vec<ReplayCase>, String> {
                 .authority_current_available_at
                 .ok_or_else(|| format!("{id}: changed authority state lacks availability time"))?;
             if known_at <= case.decision_cutoff {
-                return Err(format!("{id}: current authority change predates decision cutoff"));
+                return Err(format!(
+                    "{id}: current authority change predates decision cutoff"
+                ));
             }
         }
         if !case.expected_disposition.is_empty() {
@@ -240,7 +247,9 @@ fn evidence_admissibility(case: &ReplayCase) -> Truth {
 
     if case.ingested_at > case.decision_cutoff
         || case.validated_at > case.decision_cutoff
-        || case.valid_until.is_some_and(|expiry| expiry <= case.decision_cutoff)
+        || case
+            .valid_until
+            .is_some_and(|expiry| expiry <= case.decision_cutoff)
         || case.rights == RightsState::Denied
         || case.authority_at_cutoff == AuthorityState::Revoked
         || case.feature_uses_future_data
@@ -298,7 +307,14 @@ fn by_id(cases: &[ReplayCase], id: &str) -> &ReplayCase {
 fn manifest_schema_and_evidence_clocks_are_well_formed() {
     let cases = parse_manifest(MANIFEST).expect("KITE fixture parses");
     assert_eq!(cases.len(), 20);
-    assert_eq!(cases.iter().map(|case| case.id.as_str()).collect::<BTreeSet<_>>().len(), 20);
+    assert_eq!(
+        cases
+            .iter()
+            .map(|case| case.id.as_str())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        20
+    );
     for case in &cases {
         assert_eq!(visibility(case), case.expected_visible, "{}", case.id);
         assert_eq!(
@@ -340,9 +356,18 @@ fn evidence_admission_fails_closed_on_rights_expiry_authority_and_future_feature
     for id in ["KITE-009", "KITE-011", "KITE-012", "KITE-018"] {
         assert_eq!(evidence_admissibility(by_id(&cases, id)), Truth::No, "{id}");
     }
-    assert_eq!(evidence_admissibility(by_id(&cases, "KITE-013")), Truth::Indeterminate);
-    assert_eq!(evidence_admissibility(by_id(&cases, "KITE-014")), Truth::Indeterminate);
-    assert_eq!(evidence_admissibility(by_id(&cases, "KITE-017")), Truth::Yes);
+    assert_eq!(
+        evidence_admissibility(by_id(&cases, "KITE-013")),
+        Truth::Indeterminate
+    );
+    assert_eq!(
+        evidence_admissibility(by_id(&cases, "KITE-014")),
+        Truth::Indeterminate
+    );
+    assert_eq!(
+        evidence_admissibility(by_id(&cases, "KITE-017")),
+        Truth::Yes
+    );
 }
 
 #[test]
@@ -352,19 +377,26 @@ fn late_revocation_changes_current_state_without_rewriting_historical_admission(
     assert_eq!(late_revocation.authority_at_cutoff, AuthorityState::Valid);
     assert_eq!(late_revocation.authority_current, AuthorityState::Revoked);
     assert_eq!(late_revocation.authority_current_available_at, Some(106));
-    assert!(late_revocation.authority_current_available_at.unwrap() > late_revocation.decision_cutoff);
+    assert!(
+        late_revocation.authority_current_available_at.unwrap() > late_revocation.decision_cutoff
+    );
     assert_eq!(evidence_admissibility(late_revocation), Truth::Yes);
     assert_eq!(action_executability(late_revocation), Truth::Yes);
 
     let known_revocation = by_id(&cases, "KITE-009");
-    assert_eq!(known_revocation.authority_at_cutoff, AuthorityState::Revoked);
+    assert_eq!(
+        known_revocation.authority_at_cutoff,
+        AuthorityState::Revoked
+    );
     assert_eq!(action_executability(known_revocation), Truth::No);
 }
 
 #[test]
 fn a_plan_is_not_executable_before_publication_authorization_and_service_deadline() {
     let cases = parse_manifest(MANIFEST).expect("KITE fixture parses");
-    for id in ["KITE-001", "KITE-015", "KITE-016", "KITE-009", "KITE-011", "KITE-012"] {
+    for id in [
+        "KITE-001", "KITE-015", "KITE-016", "KITE-009", "KITE-011", "KITE-012",
+    ] {
         assert_eq!(
             action_executability(by_id(&cases, id)),
             by_id(&cases, id).expected_executable,
@@ -379,11 +411,26 @@ fn a_plan_is_not_executable_before_publication_authorization_and_service_deadlin
 #[test]
 fn censored_conflicting_and_duplicate_evidence_remain_distinct_states() {
     let cases = parse_manifest(MANIFEST).expect("KITE fixture parses");
-    assert_eq!(by_id(&cases, "KITE-013").evidence_state, EvidenceState::Conflict);
-    assert_eq!(by_id(&cases, "KITE-014").evidence_state, EvidenceState::Censored);
-    assert_eq!(by_id(&cases, "KITE-017").evidence_state, EvidenceState::Duplicate);
-    assert_eq!(action_executability(by_id(&cases, "KITE-019")), Truth::Indeterminate);
-    assert_eq!(by_id(&cases, "KITE-014").expected_disposition, "UNKNOWN_NOT_ZERO_OR_SUCCESS");
+    assert_eq!(
+        by_id(&cases, "KITE-013").evidence_state,
+        EvidenceState::Conflict
+    );
+    assert_eq!(
+        by_id(&cases, "KITE-014").evidence_state,
+        EvidenceState::Censored
+    );
+    assert_eq!(
+        by_id(&cases, "KITE-017").evidence_state,
+        EvidenceState::Duplicate
+    );
+    assert_eq!(
+        action_executability(by_id(&cases, "KITE-019")),
+        Truth::Indeterminate
+    );
+    assert_eq!(
+        by_id(&cases, "KITE-014").expected_disposition,
+        "UNKNOWN_NOT_ZERO_OR_SUCCESS"
+    );
 }
 
 #[test]
