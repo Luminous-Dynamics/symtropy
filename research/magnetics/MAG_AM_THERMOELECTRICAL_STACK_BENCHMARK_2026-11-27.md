@@ -77,7 +77,7 @@ Hotspot reduction is not a benefit if it requires more pump power or higher copp
 
 ## 5. Candidate and baseline strategy
 
-At minimum compare an optimized conventional winding + cooling baseline against the AM-enabled stack. A hybrid thermal subassembly and a second conventional comparator (e.g. optimized jacket, slot exchanger or direct cooling) are recommended. A reluctance-only or unrelated control may add context but cannot replace the conventional baseline.
+At minimum compare an optimized conventional winding + cooling baseline against the AM-enabled stack. In addition, preregister an applicability decision for each of the seven conventional comparator families: housing/water jacket, high-performance conventional cooling, direct end-winding oil/dielectric-liquid cooling, axial multi-nozzle oil jets, hairpin oil spray, slot-embedded channels, and hollow conductors. Every applicable family becomes a required optimized baseline. Every excluded family must carry an explicit rationale, supporting evidence IDs and a decision digest, frozen before candidate comparison. The evaluator checks that all seven decisions are present and consistent with the required baseline list; it does not authenticate issuers or validate the truth of the application rationale. A reluctance-only or unrelated control may add context but cannot replace a conventional baseline.
 
 Baseline optimization receipts are frozen before candidate comparison and bind search space, objective, constraints, evaluation budget and independent restarts. The v0.1 floor is 100 evaluations and 3 independent restarts; this is a fairness minimum, not proof of global optimality.
 
