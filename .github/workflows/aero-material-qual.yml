@@ -889,8 +889,9 @@ jobs:
           mismatched_applicability["applicability"]["applicability_profile_sha256"] = "abababababababababababababababababababababababababababababababab"
           hostile.append(("applicability profile differs from claim context", mismatched_applicability))
           reversed_receiver_time = copy.deepcopy(example)
-          reversed_receiver_time["receiver_time"]["first_seen_earliest_unix_ms"] += 1
-          reversed_receiver_time["receiver_time"]["first_seen_latest_unix_ms"] -= 1
+          reversed_receiver_time["receiver_time"]["first_seen_earliest_unix_ms"] = (
+              reversed_receiver_time["receiver_time"]["first_seen_latest_unix_ms"] + 1
+          )
           hostile.append(("reversed receiver-first-seen interval", reversed_receiver_time))
           unknown_field = copy.deepcopy(example)
           unknown_field["integrity"]["caller_supplied_trust"] = True
