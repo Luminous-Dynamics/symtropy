@@ -107,3 +107,16 @@ synthetic_cases_prove_physical_manufacturing_performance = false
 one_best_specimen_establishes_route_repeatability = false
 nominal_cad_pass_qualifies_as_built_component = false
 certification_or_product_release_authority_granted = false
+
+
+[evidence_maturity]
+framework = "MOEM_M1_M5"
+source_doi = "10.1002/adem.71259"
+formal_standard = false
+levels = ["M1_CONCEPTUAL", "M2_COUPON_MATERIAL", "M3_CONTROLLED_PSPP", "M4_FUNCTIONAL_COMPONENT", "M5_QUALIFICATION_RELEVANT"]
+cross_maturity_results_are_directly_comparable = false
+m5_requires = ["reproducible_builds", "variability_control", "durability_evidence", "qualification_relevant_component_performance"]
+single_best_specimen_can_support_m5 = false
+build_count_alone_supports_m5 = false
+permanent_magnet_metrics = ["Br_temperature", "Hcj_temperature", "recoil_behavior", "demagnetization_margin", "magnetization_repeatability", "mechanical_retention", "interface_stability"]
+application_economics = ["cost_per_torque", "cost_per_power", "accepted_part_cost", "yield", "scrap", "inspection", "post_processing", "process_capability"]
