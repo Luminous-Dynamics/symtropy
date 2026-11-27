@@ -694,8 +694,11 @@ impl ClaimMetricSemanticBindingV0_1 {
             .iter()
             .map(String::as_str)
             .collect::<BTreeSet<_>>();
-        for (_, evidence_ref, _) in required_owner_records {
-            if !required_refs.contains(evidence_ref) {
+        for (role, evidence_ref, _) in required_owner_records {
+            if evidence_ref.trim().is_empty() {
+                incomplete = true;
+                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REFERENCE_MISSING"));
+            } else if !required_refs.contains(evidence_ref) {
                 rejected = true;
                 reasons.insert(
                     "CLAIM_METRIC_BINDING_OWNER_RECEIPT_NOT_IN_REQUIRED_MANIFEST".to_owned(),
