@@ -162,3 +162,14 @@ Source artifact and calibration/clock-transform references now carry explicit di
 
 
 Spatial projection v0 now requires an explicit epistemic origin on every transform, as it already does for entity and relation claims. The origin remains a candidate assertion; it is not a calibration or physical truth attestation.
+
+
+## Extended external benchmark lanes
+
+The spatial-state comparison protocol now adds two complementary geometry tracks and one separate long-horizon memory comparator:
+
+- **LaMAria (ICCV 2025):** egocentric, city-scale multi-sensor visual-inertial SLAM with 63 main sequences, more than 22 hours / 70 km of trajectories, low-light and moving-platform challenges, and centimeter-accurate sparse surveyed control points. Use its native 2D control-point score, CP@1m and pseudo-GT R@5m rather than converting them into TUM-style dense ATE. Its short controlled-set pseudo-ground-truth uses Aria SLAM API output; the full benchmark has separate surveyed-control-point evaluation. The paper reports Aria's commercial SLAM API as a non-causal reference with online calibration and full visual-inertial bundle adjustment, so it must not be treated as an equivalent causal baseline.
+- **CROSS:** multi-session mapping, stored-map localization and cold-start relocalization. Its published reference reports 93% T3 relocalization, 93% T2 stored-map localization and 0.35% path-normalized T1 ATE for a stereo-plus-odometry mode. Odometry provenance differs by dataset, so these values are not camera-only or sensor-neutral. Compare only with identical sessions, sensor modes and odometry inputs, and retain failures and per-dataset results. The code is MIT-licensed; learned VGGT-Omega / Depth Anything 3 models are marked for non-commercial research, while RGB-D PnP modes do not use those learned weights.
+- **EgoWitness / EgoClue:** recent long-horizon instance-level memory comparator. Keep its tool-using observer/controller results separate from geometric SLAM and OVO-S; verify access, rights and observer-model dependencies before using its dataset.
+
+Full metrics, roles, and caveats are in [spatial-state-construction-protocol-v0.md](./spatial-state-construction-protocol-v0.md), sections 7, 13, 18 and 19. These additions change the comparison protocol only; they do not claim a LaMAria/CROSS run or any benchmark result from Symthaea.
