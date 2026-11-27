@@ -75,9 +75,26 @@ fn validate_scenario_identities(scenarios: &[CoherentScenario]) -> Result<(), St
         return Err("coherent scenario set must contain at least one scenario".to_string());
     }
 
+    // A min/max range is meaningful only on one shared dimensional and
+    // temporal basis. Scenario capacities may vary; the comparison contract
+    // (commodity, units, quantity boundary, timebase and horizon) may not.
+    let reference = &scenarios[0].profile;
     let mut scenario_ids = BTreeSet::new();
     let mut case_ids = BTreeSet::new();
     for scenario in scenarios {
+        let profile = &scenario.profile;
+        if profile.schema_version != reference.schema_version
+            || profile.commodity_ref != reference.commodity_ref
+            || profile.capacity_unit_ref != reference.capacity_unit_ref
+            || profile.quantity_boundary_ref != reference.quantity_boundary_ref
+            || profile.period_timebase_ref != reference.period_timebase_ref
+            || profile.horizon_last_period != reference.horizon_last_period
+        {
+            return Err(format!(
+                "scenario {} comparison context mismatch: all scenarios must share schema, commodity, unit, quantity boundary, period timebase and horizon",
+                scenario.scenario_id
+            ));
+        }
         require_nonempty(&scenario.scenario_id, "scenario_id")?;
         if !scenario_ids.insert(scenario.scenario_id.as_str()) {
             return Err(format!(
@@ -369,6 +386,58 @@ mod tests {
             spliced_maximum > report.maximum_scenario_maximum,
             "component-wise optimistic capacities must not be mislabeled as a coherent possibility"
         );
+    }
+
+    #[test]
+    fn scenario_range_requires_one_shared_dimensional_and_temporal_context() {
+        let pair = || {
+            vec![
+                CoherentScenario {
+                    scenario_id: "mode-a".to_string(),
+                    profile: profile("case-a", 10, 0),
+                },
+                CoherentScenario {
+                    scenario_id: "mode-b".to_string(),
+                    profile: profile("case-b", 0, 10),
+                },
+            ]
+        };
+
+        let mut scenarios = pair();
+        scenarios[1].profile.commodity_ref = "water".to_string();
+        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
+            .unwrap_err()
+            .contains("comparison context mismatch"));
+
+        let mut scenarios = pair();
+        scenarios[1].profile.capacity_unit_ref = "gallon".to_string();
+        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
+            .unwrap_err()
+            .contains("comparison context mismatch"));
+
+        let mut scenarios = pair();
+        scenarios[1].profile.quantity_boundary_ref = "facility-output-litres".to_string();
+        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
+            .unwrap_err()
+            .contains("comparison context mismatch"));
+
+        let mut scenarios = pair();
+        scenarios[1].profile.period_timebase_ref = "synthetic:weekly-periods".to_string();
+        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
+            .unwrap_err()
+            .contains("comparison context mismatch"));
+
+        let mut scenarios = pair();
+        scenarios[1].profile.horizon_last_period = 2;
+        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
+            .unwrap_err()
+            .contains("comparison context mismatch"));
+
+        let mut scenarios = pair();
+        scenarios[1].profile.schema_version = "temporal-profile-v0.2".to_string();
+        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
+            .unwrap_err()
+            .contains("comparison context mismatch"));
     }
 
     #[test]
