@@ -184,3 +184,8 @@ The follow-on [conformal decision protocol](conformal-decision-contract-v0.1.md)
 Finite intervals now retain model, feature-schema and calibration-data SHA-256 digests, model-fit cutoff and calibration-window boundaries. A public validator checks exact finite-sample rank, claim semantics, provenance encoding, chronology and endpoint arithmetic before a downstream action gate can use an interval.
 
 This remains a calibration and decision-gate primitive, not a predictive model, full berth/crane optimizer or evidence that a Durban deployment achieves nominal coverage. Conditional coverage and distribution shift remain explicit research questions.
+## Joint conformal risk budget and multi-resource robust action gate
+
+The follow-on [joint-risk-budget protocol](joint-conformal-risk-budget-v0.1.md) is tracked in [MCSC-ROBUST-ACTION-ENVELOPE-001 #7858](https://github.com/Luminous-Dynamics/symtropy/issues/7858). The Rust module src/robust_action.rs predeclares alpha allocations for arrival, handling, crane minutes, shore power and yard slots, checks their sum against a joint miscoverage budget using the union bound, validates each interval with the canonical conformal validator and evaluates adverse resource bounds for one candidate action.
+
+This prevents the mistaken inference that multiple marginal 90% intervals automatically provide 90% simultaneous feasibility. The adapter is a bounded single-action feasibility filter, not a multi-vessel berth/quay-crane/yard optimizer or live action authority.
