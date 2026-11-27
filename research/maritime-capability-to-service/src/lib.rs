@@ -561,6 +561,131 @@ pub fn compare_service_options(
     })
 }
 
+/// Per-scenario recovery outcome. The reference outcome may be a clairvoyant
+/// upper bound; it is not an implementable policy and carries no probability weight.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryServiceOutcome {
+    pub instance_id: String,
+    pub instance_version: String,
+    pub scenario_id: String,
+    pub policy_id: String,
+    pub service_id: String,
+    pub deadline_day: u64,
+    pub horizon_day: u64,
+    pub expected_units: u64,
+    pub receiver_accepted_units: u64,
+    pub on_time_accepted_units: u64,
+    pub unresolved_units: u64,
+    pub service_deficit_unit_hours: u64,
+    pub time_to_minimum_viable_service_day: u64,
+    pub time_to_full_service_day: u64,
+    pub recovery_cost_units: u64,
+    pub recovery_emissions_units: u64,
+    pub requalification_actions: u64,
+}
+
+/// Candidate-minus-reference regret vector. Positive values mean the candidate
+/// incurred more loss/cost/time than the reference on that dimension. This is
+/// deliberately not scalarized.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryRegretVector {
+    pub instance_id: String,
+    pub instance_version: String,
+    pub scenario_id: String,
+    pub candidate_policy_id: String,
+    pub reference_policy_id: String,
+    pub unmet_units_at_deadline_delta: i128,
+    pub late_accepted_units_delta: i128,
+    pub unresolved_units_delta: i128,
+    pub service_deficit_unit_hours_delta: i128,
+    pub time_to_minimum_viable_service_day_delta: i128,
+    pub time_to_full_service_day_delta: i128,
+    pub recovery_cost_units_delta: i128,
+    pub recovery_emissions_units_delta: i128,
+    pub requalification_actions_delta: i128,
+}
+
+fn validate_recovery_outcome(outcome: &RecoveryServiceOutcome) -> Result<(), String> {
+    if outcome.instance_id.is_empty()
+        || outcome.instance_version.is_empty()
+        || outcome.scenario_id.is_empty()
+        || outcome.policy_id.is_empty()
+        || outcome.service_id.is_empty()
+    {
+        return Err("recovery outcome has an empty identity field".to_owned());
+    }
+    if outcome.expected_units == 0
+        || outcome.receiver_accepted_units > outcome.expected_units
+        || outcome.on_time_accepted_units > outcome.receiver_accepted_units
+        || outcome.unresolved_units > outcome.expected_units - outcome.receiver_accepted_units
+    {
+        return Err("recovery outcome has inconsistent expected/accepted/on-time/unresolved units".to_owned());
+    }
+    if outcome.time_to_minimum_viable_service_day > outcome.time_to_full_service_day
+        || outcome.time_to_full_service_day > outcome.horizon_day
+    {
+        return Err("recovery outcome has inconsistent minimum/full recovery times or horizon".to_owned());
+    }
+    Ok(())
+}
+
+pub fn compare_recovery_regret(
+    candidate: &RecoveryServiceOutcome,
+    reference: &RecoveryServiceOutcome,
+) -> Result<RecoveryRegretVector, String> {
+    validate_recovery_outcome(candidate)?;
+    validate_recovery_outcome(reference)?;
+    if candidate.instance_id != reference.instance_id
+        || candidate.instance_version != reference.instance_version
+        || candidate.scenario_id != reference.scenario_id
+        || candidate.service_id != reference.service_id
+        || candidate.deadline_day != reference.deadline_day
+        || candidate.horizon_day != reference.horizon_day
+        || candidate.expected_units != reference.expected_units
+    {
+        return Err(
+            "recovery regret comparison context does not match the frozen scenario and service obligation"
+                .to_owned(),
+        );
+    }
+
+    let candidate_late =
+        candidate.receiver_accepted_units - candidate.on_time_accepted_units;
+    let reference_late =
+        reference.receiver_accepted_units - reference.on_time_accepted_units;
+    let candidate_unmet =
+        candidate.expected_units - candidate.on_time_accepted_units;
+    let reference_unmet =
+        reference.expected_units - reference.on_time_accepted_units;
+
+    Ok(RecoveryRegretVector {
+        instance_id: candidate.instance_id.clone(),
+        instance_version: candidate.instance_version.clone(),
+        scenario_id: candidate.scenario_id.clone(),
+        candidate_policy_id: candidate.policy_id.clone(),
+        reference_policy_id: reference.policy_id.clone(),
+        unmet_units_at_deadline_delta: i128::from(candidate_unmet)
+            - i128::from(reference_unmet),
+        late_accepted_units_delta: i128::from(candidate_late)
+            - i128::from(reference_late),
+        unresolved_units_delta: i128::from(candidate.unresolved_units)
+            - i128::from(reference.unresolved_units),
+        service_deficit_unit_hours_delta: i128::from(candidate.service_deficit_unit_hours)
+            - i128::from(reference.service_deficit_unit_hours),
+        time_to_minimum_viable_service_day_delta: i128::from(
+            candidate.time_to_minimum_viable_service_day,
+        ) - i128::from(reference.time_to_minimum_viable_service_day),
+        time_to_full_service_day_delta: i128::from(candidate.time_to_full_service_day)
+            - i128::from(reference.time_to_full_service_day),
+        recovery_cost_units_delta: i128::from(candidate.recovery_cost_units)
+            - i128::from(reference.recovery_cost_units),
+        recovery_emissions_units_delta: i128::from(candidate.recovery_emissions_units)
+            - i128::from(reference.recovery_emissions_units),
+        requalification_actions_delta: i128::from(candidate.requalification_actions)
+            - i128::from(reference.requalification_actions),
+    })
+}
+
 fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
     let mut lines = vec![
         "MCSC_RECEIPT\t0.2".to_owned(),
@@ -1020,6 +1145,109 @@ mod tests {
             .unwrap_err()
             .contains("same frozen instance")
         );
+    }
+
+    fn recovery_outcome(policy_id: &str) -> RecoveryServiceOutcome {
+        RecoveryServiceOutcome {
+            instance_id: "MCSC-RECOVERY-001".to_owned(),
+            instance_version: "v0.1".to_owned(),
+            scenario_id: "SHARED-FEEDER-AND-MILL".to_owned(),
+            policy_id: policy_id.to_owned(),
+            service_id: "ESSENTIAL-CARGO".to_owned(),
+            deadline_day: 10,
+            horizon_day: 20,
+            expected_units: 100,
+            receiver_accepted_units: 80,
+            on_time_accepted_units: 60,
+            unresolved_units: 10,
+            service_deficit_unit_hours: 1_200,
+            time_to_minimum_viable_service_day: 3,
+            time_to_full_service_day: 8,
+            recovery_cost_units: 500,
+            recovery_emissions_units: 300,
+            requalification_actions: 2,
+        }
+    }
+
+    #[test]
+    fn recovery_regret_is_a_vector_against_the_same_scenario_oracle() {
+        let candidate = recovery_outcome("ROBUST-POLICY");
+        let mut oracle = recovery_outcome("CLAIRVOYANT-BOUND");
+        oracle.receiver_accepted_units = 90;
+        oracle.on_time_accepted_units = 85;
+        oracle.unresolved_units = 5;
+        oracle.service_deficit_unit_hours = 300;
+        oracle.time_to_minimum_viable_service_day = 2;
+        oracle.time_to_full_service_day = 4;
+        oracle.recovery_cost_units = 400;
+        oracle.recovery_emissions_units = 250;
+        oracle.requalification_actions = 1;
+
+        let regret = compare_recovery_regret(&candidate, &oracle).unwrap();
+        assert_eq!(regret.unmet_units_at_deadline_delta, 25);
+        assert_eq!(regret.late_accepted_units_delta, 15);
+        assert_eq!(regret.unresolved_units_delta, 5);
+        assert_eq!(regret.service_deficit_unit_hours_delta, 900);
+        assert_eq!(regret.time_to_minimum_viable_service_day_delta, 1);
+        assert_eq!(regret.time_to_full_service_day_delta, 4);
+        assert_eq!(regret.recovery_cost_units_delta, 100);
+        assert_eq!(regret.recovery_emissions_units_delta, 50);
+        assert_eq!(regret.requalification_actions_delta, 1);
+    }
+
+    #[test]
+    fn recovery_regret_rejects_mismatched_scenario_version_deadline_and_denominator() {
+        let candidate = recovery_outcome("ROBUST-POLICY");
+        for mutation in 0..4 {
+            let mut reference = recovery_outcome("CLAIRVOYANT-BOUND");
+            match mutation {
+                0 => reference.instance_version = "v0.2".to_owned(),
+                1 => reference.scenario_id = "DIFFERENT-SCENARIO".to_owned(),
+                2 => reference.deadline_day = 11,
+                3 => reference.expected_units = 101,
+                _ => unreachable!(),
+            }
+            assert!(
+                compare_recovery_regret(&candidate, &reference)
+                    .unwrap_err()
+                    .contains("context does not match")
+            );
+        }
+    }
+
+    #[test]
+    fn recovery_regret_rejects_inconsistent_service_and_recovery_inputs() {
+        let mut invalid_units = recovery_outcome("INVALID");
+        invalid_units.on_time_accepted_units = 81;
+        assert!(
+            compare_recovery_regret(&invalid_units, &recovery_outcome("ORACLE"))
+                .unwrap_err()
+                .contains("inconsistent expected/accepted")
+        );
+
+        let mut invalid_time = recovery_outcome("INVALID-TIME");
+        invalid_time.time_to_full_service_day = 21;
+        assert!(
+            compare_recovery_regret(&invalid_time, &recovery_outcome("ORACLE"))
+                .unwrap_err()
+                .contains("recovery times or horizon")
+        );
+    }
+
+    #[test]
+    fn identical_candidate_and_reference_have_zero_vector_regret() {
+        let candidate = recovery_outcome("POLICY-A");
+        let reference = recovery_outcome("ORACLE-A");
+        let regret = compare_recovery_regret(&candidate, &reference).unwrap();
+        assert_eq!(regret.unmet_units_at_deadline_delta, 0);
+        assert_eq!(regret.late_accepted_units_delta, 0);
+        assert_eq!(regret.unresolved_units_delta, 0);
+        assert_eq!(regret.service_deficit_unit_hours_delta, 0);
+        assert_eq!(regret.time_to_minimum_viable_service_day_delta, 0);
+        assert_eq!(regret.time_to_full_service_day_delta, 0);
+        assert_eq!(regret.recovery_cost_units_delta, 0);
+        assert_eq!(regret.recovery_emissions_units_delta, 0);
+        assert_eq!(regret.requalification_actions_delta, 0);
     }
 
     #[test]
