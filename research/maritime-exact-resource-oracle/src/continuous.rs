@@ -527,10 +527,7 @@ fn solve_square_system(matrix: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
             if factor.abs() <= EPS {
                 continue;
             }
-            for (value, pivot_value) in augmented[row]
-                .iter_mut()
-                .zip(pivot_row.iter())
-                .skip(column)
+            for (value, pivot_value) in augmented[row].iter_mut().zip(pivot_row.iter()).skip(column)
             {
                 *value -= factor * *pivot_value;
             }
