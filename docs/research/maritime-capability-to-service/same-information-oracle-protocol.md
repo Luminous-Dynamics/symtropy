@@ -20,7 +20,7 @@ R0, R1 and R2 must remain separate in scorecards. R1 v0.1 does not estimate what
 
 ## Information-set identity
 
-The Rust implementation derives a deterministic grouping signature from:
+The Rust implementation requires an `observable_state_digest`: a 64-character lowercase SHA-256 commitment to the complete canonical evidence state visible at the cutoff. The committed bundle must include evidence payload/value digests, source/vintage identities, rights, authority, freshness, and admissibility dispositions. The key also binds:
 - decision epoch and cutoff;
 - logical evidence IDs and selected vintage IDs/revisions;
 - visibility and admissibility dispositions;
@@ -28,7 +28,7 @@ The Rust implementation derives a deterministic grouping signature from:
 
 Vintages not yet first-available are excluded from the observable signature. Event time does not make a backfilled record visible. A post-cutoff correction cannot alter the prior KITE snapshot.
 
-The current signature is a deterministic grouping key, not a cryptographic commitment or source-authentication proof. Owner adapters still need exact source identity, immutable raw/vintage digests, authority and rights verification.
+The oracle validates the digest's encoding and includes it in the information-set key; it does not recalculate or authenticate the underlying commitment. The owner adapter must compute the SHA-256 over a canonical serialization and verify source identity, immutable payload bytes, rights, authority and freshness. Same IDs with different committed payload state must produce different information sets.
 
 ## Feasible action intersection
 
@@ -39,17 +39,17 @@ All scenarios sharing an information-set key must expose the same action-ID cata
 
 An explicit safe-abstention action should be included in the action catalog where applicable. If no common action is feasible, v0.1 returns an error rather than inventing a fallback.
 
-All scenarios in a solve must share exact instance ID/version, service ID, expected-unit denominator, deadline, decision epoch and cutoff. Outcome quantities are checked against the denominator; accepted, on-time, late, unmet and unresolved units cannot exceed the declared obligation. Minimum-viable recovery cannot occur after full restoration.
+All scenarios in a solve must share exact instance ID/version, service ID, expected-unit denominator, deadline, decision epoch and cutoff. Outcome quantities are exact partitions: receiver-accepted + unmet + unresolved must equal the expected denominator, while on-time + late + acceptance-time-unknown must equal receiver-accepted quantity. Missing timing evidence stays explicitly unresolved at the acceptance-timing layer. Minimum-viable recovery cannot occur after full restoration.
 
 ## Exhaustive enumeration and Pareto output
 
 The solver enumerates one action for each distinct information-set group. It checks the Cartesian-product policy count before enumeration against a caller-supplied maximum. Overflow or budget exhaustion returns an error; no partial search is labelled optimal.
 
-For each complete policy, the implementation constructs a **component-wise adverse envelope** across all frozen scenarios:
+For each complete policy, the implementation returns a typed `AdverseEnvelope` with both component-wise adverse bounds and a `worst_scenario_by_dimension` witness map:
 - receiver-accepted and on-time accepted quantities use the minimum;
-- unmet, late, unresolved, service-deficit, recovery time, cost, emissions, requalification, replanning, plan churn and latency use the maximum.
+- acceptance-time-unknown, unmet, late, unresolved, service-deficit, recovery time, cost, emissions, requalification, replanning, plan churn and latency use the maximum.
 
-This envelope may combine worst values from different scenarios and therefore need not equal any one realized scenario. It is a conservative vector summary, not a probability-weighted expectation or a physically realizable joint outcome.
+The witness map names which frozen scenario attained each component bound, using lexicographic scenario-ID tie-breaking for deterministic results. This envelope may combine worst values from different scenarios and therefore need not equal any one realized scenario. It is explicitly not a realizable joint outcome or a probability-weighted expectation.
 
 The Pareto frontier preserves all non-dominated vectors. It does not scalarize cost against service or choose one universal winner. Any later scalar selection requires a documented decision-authority preference model after hard constraints, protected floors, rights and authority have passed.
 
@@ -100,3 +100,11 @@ Next:
 3. extend to 2–4 decision epochs using explicit scenario trees and non-anticipativity constraints at every node;
 4. compare R2 policies under matched runtime budgets;
 5. reproduce a published rolling/robust port benchmark before any SOTA claim.
+
+
+## Additional integrity controls
+
+- Two scenarios using the same evidence IDs but different canonical observable-state SHA-256 commitments must be grouped separately.
+- Malformed observable-state commitments are rejected.
+- Every receiver-accepted unit is classified as on-time, late or acceptance-time-unknown; no accepted quantity may silently disappear from timing accounting.
+- Every adverse component reports its scenario witness; the envelope type is separate from a realized scenario outcome.
