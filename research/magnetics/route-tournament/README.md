@@ -44,3 +44,14 @@ The fixture is synthetic and must not be interpreted as a MEX, LPBF or LCM perfo
 ## Claim boundary
 
 The initial tranche is a literature-stratified protocol. It does not claim matched route superiority, physical specimen manufacture, raw-data reproduction, solver qualification, or product certification.
+
+
+## Executable evaluator
+
+The standalone evaluator is in `evaluator/`. It checks exact cohort scope, specimen/lot/build identity, inspected as-built geometry, process genealogy, material state, post-magnetization, method/calibration/reference evidence, metric units, evidence roles and interval hard limits. The robust Pareto output retains overlapping candidates as incomparable; it does not create a scalar winner.
+
+- [Rust evaluator](evaluator/src/lib.rs)
+- [Synthetic fixture schema](evaluator/route-tournament-fixture-v0.1.schema.json)
+- [Synthetic known-answer fixture](evaluator/fixtures/synthetic-route-tournament-v0.1.json)
+
+The fixture is synthetic only. It does not represent actual MEX/LPBF/LCM measurements or route superiority.
