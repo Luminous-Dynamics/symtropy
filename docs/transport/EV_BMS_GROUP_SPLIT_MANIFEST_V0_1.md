@@ -10,7 +10,8 @@ Random sample/window splits can overstate generalization when adjacent windows o
 
 It distinguishes:
 - **Primary group holdout:** e.g. whole vehicle for onboard BMS, whole station or data owner for charger-side generalization.
-- **Leakage keys:** sequences, events or transactions that must stay within one partition even if the primary split axis is different.
+- **Required leakage keys:** sequence or transaction identifiers that must exist and stay within one partition.
+- **Optional leakage keys:** event identifiers that are only present for some records. Missing values stay missing; present values must remain within one partition. Do not fill missing event IDs with synthetic labels.
 - **Temporal exclusion:** windows for the same entity may occur in different partitions only when their half-open intervals do not overlap.
 
 A station-held-out benchmark may intentionally contain the same vehicle at different stations. That is not the same experiment as vehicle-held-out generalization; separate manifests are required.
@@ -30,7 +31,8 @@ The validator fails closed on:
 - repeated/missing partitions or empty partition;
 - duplicate record IDs or record digests;
 - primary group identity appearing in more than one partition;
-- transaction/event/sequence identity appearing in more than one partition;
+- required transaction/sequence identity appearing in more than one partition;
+- any present optional event identity appearing in more than one partition, without imputing absent labels;
 - missing grouping values or malformed time windows;
 - overlapping windows for the same declared temporal-exclusion entity;
 - pretending a metadata-only source is an admitted physical snapshot.
