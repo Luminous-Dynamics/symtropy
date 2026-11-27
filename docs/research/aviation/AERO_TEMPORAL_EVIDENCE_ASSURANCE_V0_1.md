@@ -341,6 +341,20 @@ Report absolute numbers and environment details, not only speedup. Compare exact
 
 This benchmark deliberately does not create a temporal database or ledger in Symtropy. It measures how the aviation evaluator composes existing owner-native event, receipt, trust and artifact systems.
 
+### 7.2 Executable replay kernel and scale probe
+
+A research-only Rust reference evaluator is now available in `crates/domains/symtropy-aero-material-qual/src/temporal_replay_v0_1.rs`. It consumes the frozen v0.1 corpus, selects the evidence/trust coordinate for each query mode, and compares normalized disposition, reason codes, applied event IDs and excluded event IDs. Unit tests exercise all 29 cases × 3 modes (87 expected results), plus late-evidence separation, historical-vs-current trust, event-order permutation and issuer-recorded-time non-substitution.
+
+A deterministic scale probe is available at `crates/domains/symtropy-aero-material-qual/examples/temporal_replay_scale.rs`:
+
+`cargo run --locked --package symtropy-aero-material-qual --example temporal_replay_scale -- 10000 5`
+
+It reports p50/p95/p99 separately for each of the three modes. The targeted GitHub Actions workflow runs a 10,000-event, five-iteration smoke. Larger 100k/1M/10M runs remain explicit research workloads and should be gated by a published resource envelope.
+
+The probe's event history is synthetic and deliberately simple (unique, valid issuance events). It measures reference-kernel JSON parsing-independent in-memory disposition logic for one fully admitted profile; it does not measure source ingestion, durable persistence, checkpoint creation, cryptographic verification, observer completeness, trust-root distribution, concurrency, compaction, incremental update cost or a real temporal database. The smoke is useful for detecting gross scaling/latency regressions in this evaluator, not for claiming database or vendor superiority.
+
+The Rust module reads `SYNTHETIC_VALID`/coverage fixture dispositions as inputs. It is not a production signature, TSA, clock or receipt verifier. Its corpus tests establish conformance to a fixture whose oracle review status remains `NOT_INDEPENDENTLY_REVIEWED`. Independent oracle adjudication remains a promotion gate.
+
 ### Metrics
 
 | Dimension | Metric |
