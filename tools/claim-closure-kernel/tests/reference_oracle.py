@@ -248,11 +248,24 @@ def evaluate(document: dict) -> set[str]:
 
 def main() -> int:
     fixture = json.loads((ROOT / "fixtures/positive-v0.1.json").read_text())
+    mutation_base = json.loads((ROOT / "fixtures/mutation-base-v0.1.json").read_text())
     corpus = json.loads((ROOT / "fixtures/mutation-cases-v0.1.json").read_text())
 
     positive_findings = evaluate(fixture)
     if positive_findings:
         print("positive fixture unexpectedly blocked:", sorted(positive_findings), file=sys.stderr)
+        return 1
+
+    mutation_base_findings = evaluate(mutation_base)
+    if mutation_base_findings:
+        print(
+            "mutation base unexpectedly blocked:",
+            sorted(mutation_base_findings),
+            file=sys.stderr,
+        )
+        return 1
+    if len(mutation_base["evidence_records"]) != 3:
+        print("mutation base does not contain the frozen three-record dependency chain", file=sys.stderr)
         return 1
 
     case_ids: set[str] = set()
@@ -262,7 +275,7 @@ def main() -> int:
             print(f"duplicate mutation ID: {case_id}", file=sys.stderr)
             return 1
         case_ids.add(case_id)
-        mutated = copy.deepcopy(fixture)
+        mutated = copy.deepcopy(mutation_base)
         apply_mutation(mutated, mutation["operation"], mutation["target"], mutation["value"])
         findings = evaluate(mutated)
         expected = mutation["expected_finding_code"]
@@ -276,14 +289,14 @@ def main() -> int:
             print(f"{case_id}: mutation produced no finding", file=sys.stderr)
             return 1
 
-    reordered = copy.deepcopy(fixture)
+    reordered = copy.deepcopy(mutation_base)
     reordered["evidence_records"].reverse()
-    if evaluate(reordered) != positive_findings:
-        print("positive fixture finding set changed under evidence-record permutation", file=sys.stderr)
+    if evaluate(reordered) != mutation_base_findings:
+        print("mutation-base finding set changed under evidence-record permutation", file=sys.stderr)
         return 1
 
     print(
-        f"PASS: independent Python reference oracle; positive control and "
+        f"PASS: independent Python reference oracle; positive fixture, shared mutation base and "
         f"{len(case_ids)} adversarial mutations; evidence-order invariance"
     )
     return 0
