@@ -183,7 +183,12 @@ pub struct ClaimAssuranceAssessment {
     pub model_ref: String,
     pub model_artifact_sha256: String,
     pub solver_configuration_sha256: String,
+    pub model_applicability_profile_sha256: String,
+    pub model_risk_classification_sha256: String,
     pub model_validation_package_sha256: String,
+    pub model_validation_protocol_sha256: String,
+    pub model_confirmatory_manifest_sha256: String,
+    pub model_independent_reference_manifest_sha256: String,
     pub model_domain_coverage_status: String,
     pub model_split_integrity_status: String,
     /// Component report digests in coverage, causal-cut, effectivity order.
@@ -800,9 +805,34 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         model_ref: input.model_credibility_cut.model_ref.clone(),
         model_artifact_sha256: input.model_credibility_cut.model_artifact_sha256.clone(),
         solver_configuration_sha256: input.model_credibility_cut.solver_configuration_sha256.clone(),
+        model_applicability_profile_sha256: input
+            .model_credibility_cut
+            .applicability_profile_sha256
+            .clone(),
+        model_risk_classification_sha256: input
+            .model_credibility_cut
+            .risk_classification_sha256
+            .clone(),
         model_validation_package_sha256: input.model_credibility_cut.validation_package_sha256.clone(),
-        model_domain_coverage_status: format!("{:?}", input.model_credibility_cut.domain_coverage_status),
-        model_split_integrity_status: format!("{:?}", input.model_credibility_cut.split_integrity_status),
+        model_validation_protocol_sha256: input.model_credibility_cut.validation_protocol_sha256.clone(),
+        model_confirmatory_manifest_sha256: input
+            .model_credibility_cut
+            .confirmatory_manifest_sha256
+            .clone(),
+        model_independent_reference_manifest_sha256: input
+            .model_credibility_cut
+            .independent_reference_manifest_sha256
+            .clone(),
+        model_domain_coverage_status: input
+            .model_credibility_cut
+            .domain_coverage_status
+            .as_str()
+            .to_owned(),
+        model_split_integrity_status: input
+            .model_credibility_cut
+            .split_integrity_status
+            .as_str()
+            .to_owned(),
         owner_evidence_cut_sha256,
         owner_component_packet_id: input.owner_evidence_cut.component_packet_id.clone(),
         owner_component_packet_sha256: input.owner_evidence_cut.component_packet_sha256.clone(),
