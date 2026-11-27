@@ -1,6 +1,6 @@
 use orbital_inspection_chord_tube_bench::CaseInput;
 use orbital_inspection_horizon_composition_bench::{
-    BoundaryKind, Horizon, HorizonDisposition, HorizonScope, Segment, evaluate, RECEIPT_SCHEMA,
+    BoundaryKind, Horizon, HorizonScope, Segment, evaluate, RECEIPT_SCHEMA,
 };
 use std::collections::BTreeMap;
 use std::env;
