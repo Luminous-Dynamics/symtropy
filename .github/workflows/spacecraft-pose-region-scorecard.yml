@@ -61,6 +61,9 @@ jobs:
           assert cases["SC001"]["disposition"] == "SCORED"
           assert all(row["joint_covered"] for row in cases["SC001"]["regions"])
           assert cases["SC005"]["regions"][0]["orientation_error_urad"] == 0
+          assert cases["SC001"]["translation_error_l2_um"] == 0
+          assert cases["SC002"]["translation_error_l2_um"] == 2
+          assert cases["SC003"]["orientation_error_urad"] == 3141593
           assert cases["SC024"]["disposition"] == "ABSTAINED"
           assert cases["SC025"]["disposition"] == "MISSING"
           assert cases["SC037"]["disposition"] == "SPLIT_LEAKAGE"
