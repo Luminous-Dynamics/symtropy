@@ -1211,6 +1211,17 @@ mod tests {
         ]
     }
 
+    fn fuel_only_atoms() -> Vec<PairedObjectiveAtom> {
+        contrast_atoms_shifted()
+            .into_iter()
+            .map(|mut atom| {
+                atom.outcomes
+                    .retain(|outcome| outcome.objective_id == OBJECTIVE_FUEL);
+                atom
+            })
+            .collect()
+    }
+
     #[test]
     fn paired_contrasts_prove_dominance_when_marginal_worst_case_envelopes_do_not() {
         let process = campaign(
@@ -1221,7 +1232,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
             ],
         );
-        let report = process.evaluate(&contrast_atoms_shifted()).unwrap();
+        let report = process.evaluate(&fuel_only_atoms()).unwrap();
 
         assert_eq!(report.pairwise_contrasts.len(), 2);
         assert_eq!(
@@ -1258,7 +1269,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
             ],
         );
-        let mut rows = contrast_atoms_shifted();
+        let mut rows = fuel_only_atoms();
         for row in rows.iter_mut().filter(|row| row.scenario_id == SCENARIO_B) {
             for outcome in &mut row.outcomes {
                 if outcome.portfolio_id == PORTFOLIO_A {
@@ -1295,7 +1306,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
             ],
         );
-        let mut rows = contrast_atoms_shifted();
+        let mut rows = fuel_only_atoms();
         for (index, row) in rows.iter_mut().enumerate() {
             if index < 4 {
                 for outcome in &mut row.outcomes {
@@ -1325,7 +1336,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
             ],
         );
-        let mut rows = contrast_atoms_shifted();
+        let mut rows = fuel_only_atoms();
         rows.pop();
         assert_eq!(
             process.evaluate(&rows),
@@ -1383,7 +1394,7 @@ mod tests {
             ],
         );
         assert_eq!(
-            process.evaluate(&contrast_atoms_shifted()),
+            process.evaluate(&fuel_only_atoms()),
             Err(PairedObjectiveParetoError::ObjectiveOutcomeOutsideBound)
         );
     }
@@ -1426,7 +1437,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
             ],
         );
-        let report = process.evaluate(&contrast_atoms_shifted()).unwrap();
+        let report = process.evaluate(&fuel_only_atoms()).unwrap();
         assert_eq!(report.ineligible_portfolio_ids, vec![PORTFOLIO_B]);
         assert!(!report.pareto_frontier_portfolio_ids.contains(&PORTFOLIO_B));
     }
@@ -1488,7 +1499,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 3, 9),
             ],
         );
-        let rows = contrast_atoms_shifted()
+        let rows = fuel_only_atoms()
             .into_iter()
             .map(|mut atom| {
                 for outcome in &mut atom.outcomes {
@@ -1517,7 +1528,7 @@ mod tests {
                 bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
             ],
         );
-        let mut rows = contrast_atoms_shifted();
+        let mut rows = fuel_only_atoms();
         for row in &mut rows {
             let left = row
                 .outcomes
