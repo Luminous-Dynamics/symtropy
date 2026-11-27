@@ -185,6 +185,7 @@ def base_result(row: dict[str, str], disposition: str, reason: str | None) -> di
         "translation_error_m": None,
         "rotation_error_rad": None,
         "mahalanobis_squared": None,
+        "gaussian_negative_log_likelihood": None,
         "covariance_log_determinant": None,
         "prediction_region_log_volume_95": None,
         "coverage_50": None,
@@ -291,6 +292,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     rotation_error = math.sqrt(sum(value * value for value in rotation_vector))
     coverages = [mahal <= threshold for _, threshold in CHI2]
     covariance_logdet = 2.0 * sum(math.log(lower[index][index]) for index in range(6))
+    gaussian_nll = 0.5 * (mahal + covariance_logdet + 6.0 * math.log(2.0 * math.pi))
     region_log_volume_95 = (
         math.log(math.pi ** 3 / 6.0)
         + 0.5 * covariance_logdet
@@ -321,6 +323,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             "translation_error_m": f"{translation_error:.12f}",
             "rotation_error_rad": f"{rotation_error:.12f}",
             "mahalanobis_squared": f"{mahal:.12f}",
+            "gaussian_negative_log_likelihood": f"{gaussian_nll:.12f}",
             "covariance_log_determinant": f"{covariance_logdet:.12f}",
             "prediction_region_log_volume_95": f"{region_log_volume_95:.12f}",
             "coverage_50": coverages[0],
@@ -404,6 +407,10 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         float(result["rotation_error_rad"]) for result in accepted
         if result["rotation_error_rad"] is not None
     ]
+    gaussian_nll = [
+        float(result["gaussian_negative_log_likelihood"]) for result in accepted
+        if result["gaussian_negative_log_likelihood"] is not None
+    ]
     covariance_logd = [
         float(result["covariance_log_determinant"]) for result in accepted
         if result["covariance_log_determinant"] is not None
@@ -443,6 +450,7 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         "accepted_coverage_99": coverage("coverage_99"),
         "accepted_translation_p95_m": fmt_optional(translations, 0.95),
         "accepted_rotation_p95_rad": fmt_optional(rotations, 0.95),
+        "accepted_gaussian_nll_mean": None if not gaussian_nll else f"{sum(gaussian_nll) / len(gaussian_nll):.12f}",
         "accepted_covariance_logdet_median": fmt_optional(covariance_logd, 0.5),
         "accepted_95_region_log_volume_median": fmt_optional(region_log_volume, 0.5),
         "risk_coverage": risk,
