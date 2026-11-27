@@ -38,3 +38,6 @@ This crate owns cohort accounting and claim gating only. It does not reproduce s
 ## Claim boundary
 
 The fixture tests denominator, identity, missingness, rework, scrap and replication semantics only. It is not physical route-yield evidence, process capability, a production-quality estimate, certification or product-release authority.
+
+
+Replication coverage counts only unique build IDs with valid build/process/genealogy identity and a valid linked feedstock lot; distinct lots count only when used by such builds. All initiated build records and manifested specimens remain visible in the descriptive denominators. Duplicate qualification, rework and scrap receipt IDs invalidate cohort structure.
