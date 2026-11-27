@@ -105,7 +105,10 @@ fn sha256_hex(bytes: &[u8]) -> String {
 pub fn compute_required_evidence_manifest_sha256(
     evidence_refs: &[String],
 ) -> Result<String, String> {
-    if evidence_refs.iter().any(|reference| !valid_identifier(reference)) {
+    if evidence_refs
+        .iter()
+        .any(|reference| !valid_identifier(reference))
+    {
         return Err("REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned());
     }
     let mut sorted_refs = evidence_refs.iter().map(String::as_str).collect::<Vec<_>>();
