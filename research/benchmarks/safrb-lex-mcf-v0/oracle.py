@@ -94,6 +94,7 @@ def solve_fixed_flow_mcf(
         else nx.DiGraph()
     )
     graph.add_nodes_from(nodes)
+    edge_node_ids: Dict[str, Node] = {}
 
     for arc in arcs:
         edge_id = str(arc["id"])
@@ -128,6 +129,7 @@ def solve_fixed_flow_mcf(
             while edge_node in graph:
                 edge_node += "_"
             graph.add_node(edge_node)
+            edge_node_ids[edge_id] = edge_node
             demand[tail] += lower
             demand[edge_node] = -lower
             graph.add_edge(
@@ -160,7 +162,7 @@ def solve_fixed_flow_mcf(
     _, flow_dict = nx.network_simplex(graph)
     return {
         str(arc["id"]): int(
-            flow_dict[f"__scfk_arc__{arc['id']}"].get(str(arc["head"]), 0)
+            flow_dict[edge_node_ids[str(arc["id"])]].get(str(arc["head"]), 0)
         )
         for arc in arcs
     }
