@@ -361,8 +361,9 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
         + counts.first_pass_not_evaluable
         + counts.missing_specimen_outcomes;
 
-    let generalization_status = if counts.initiated_builds
-        < u64::from(cohort.replication_policy.minimum_independent_builds)
+    let generalization_status = if !blockers.is_empty()
+        || counts.initiated_builds
+            < u64::from(cohort.replication_policy.minimum_independent_builds)
         || counts.distinct_material_lots
             < u64::from(cohort.replication_policy.minimum_distinct_material_lots)
     {
@@ -847,6 +848,10 @@ mod tests {
         assert_eq!(result.summary.counts.initiated_specimens, 3);
         assert_eq!(result.summary.counts.missing_specimen_outcomes, 1);
         assert_eq!(result.summary.first_pass_acceptance, Rate::new(1, 3));
+        assert_eq!(
+            result.summary.generalization_status,
+            GeneralizationStatus::GeneralizationUnavailable
+        );
     }
 
     #[test]
