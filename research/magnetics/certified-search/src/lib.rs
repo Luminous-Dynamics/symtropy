@@ -10,8 +10,8 @@
 use std::collections::VecDeque;
 
 use magnetic_interval_ad::{
-    certify_expression_centered, Interval, IntervalAdError, IntervalDual, ParameterDomain,
-    ValidatedDerivativeEnclosure,
+    Interval, IntervalAdError, IntervalDual, ParameterDomain, ValidatedDerivativeEnclosure,
+    certify_expression_centered,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -164,10 +164,7 @@ fn stable_midpoint(lower: f64, upper: f64) -> Option<f64> {
     (midpoint.is_finite() && midpoint > lower && midpoint < upper).then_some(midpoint)
 }
 
-fn validate_policy(
-    policy: &SearchPolicy,
-    design_dimension: usize,
-) -> Result<(), SearchError> {
+fn validate_policy(policy: &SearchPolicy, design_dimension: usize) -> Result<(), SearchError> {
     if policy.maximum_nodes == 0
         || !nonempty(&policy.compliance_expression_id)
         || policy.minimum_design_widths.len() != design_dimension
@@ -179,8 +176,7 @@ fn validate_policy(
         || policy.absolute_optimality_gap < 0.0
         || !policy.relative_optimality_gap.is_finite()
         || policy.relative_optimality_gap < 0.0
-        || (policy.absolute_optimality_gap == 0.0
-            && policy.relative_optimality_gap == 0.0)
+        || (policy.absolute_optimality_gap == 0.0 && policy.relative_optimality_gap == 0.0)
         || !(policy.absolute_optimality_gap + policy.relative_optimality_gap).is_finite()
         || !policy.objective_sensitivity_scale.is_finite()
         || policy.objective_sensitivity_scale <= 0.0
@@ -320,9 +316,7 @@ fn validate_root<const N: usize>(
     if design_dimension == 0 || design_dimension > N {
         return Err(SearchError::InvalidDesignDimension);
     }
-    if !nonempty(&root.record_id)
-        || !nonempty(&root.expression_id)
-        || !nonempty(&root.input_sha256)
+    if !nonempty(&root.record_id) || !nonempty(&root.expression_id) || !nonempty(&root.input_sha256)
     {
         return Err(SearchError::InvalidRootIdentity);
     }
@@ -390,8 +384,7 @@ where
         }
 
         explored_node_count += 1;
-        let objective_result =
-            objective_lower_bound(root, &node, design_dimension, &objective);
+        let objective_result = objective_lower_bound(root, &node, design_dimension, &objective);
         let margin_result = margin_enclosure(
             root,
             &node,
@@ -553,9 +546,10 @@ where
         }
 
         let objective_lower = objective_record.value_enclosure.lower();
-        if incumbent.as_ref().is_some_and(|best| {
-            objective_lower >= best.worst_case_objective_upper_bound
-        }) {
+        if incumbent
+            .as_ref()
+            .is_some_and(|best| objective_lower >= best.worst_case_objective_upper_bound)
+        {
             objective_dominated_count += 1;
             records.push(DesignBoxRecord {
                 node_id: node.node_id,
@@ -584,11 +578,9 @@ where
                 continue;
             }
             any_axis_wide_enough = true;
-            let objective_score = objective_record.derivative_abs_supremum[axis]
-                * width
+            let objective_score = objective_record.derivative_abs_supremum[axis] * width
                 / policy.objective_sensitivity_scale;
-            let margin_score = margin_record.derivative_abs_supremum[axis]
-                * width
+            let margin_score = margin_record.derivative_abs_supremum[axis] * width
                 / policy.margin_sensitivity_scale;
             let score = objective_score.max(margin_score);
             let lexical_tie_break = selected_axis.is_some_and(|selected| {
@@ -635,8 +627,8 @@ where
         };
 
         let bounds = node.design_bounds[axis];
-        let midpoint = stable_midpoint(bounds.lower(), bounds.upper())
-            .expect("selected axis midpoint");
+        let midpoint =
+            stable_midpoint(bounds.lower(), bounds.upper()).expect("selected axis midpoint");
         let mut left_bounds = node.design_bounds.clone();
         let mut right_bounds = node.design_bounds.clone();
         left_bounds[axis] = Interval::new(bounds.lower(), midpoint)
@@ -712,8 +704,9 @@ where
     } else {
         terminal_lower_bounds.into_iter().reduce(f64::min)
     };
-    let global_objective_upper_bound =
-        incumbent.as_ref().map(|candidate| candidate.worst_case_objective_upper_bound);
+    let global_objective_upper_bound = incumbent
+        .as_ref()
+        .map(|candidate| candidate.worst_case_objective_upper_bound);
     let gaps = match (global_objective_lower_bound, global_objective_upper_bound) {
         (Some(lower), Some(upper)) => Some(normalized_gap(upper, lower)?),
         _ => None,
@@ -761,8 +754,7 @@ where
         geometry_sha256: root.geometry_sha256.clone(),
         material_sha256: root.material_sha256.clone(),
         policy: policy.clone(),
-        arithmetic_contract:
-            "binary64-nearest-plus-one-ulp-outward-mean-value-v0.1".to_owned(),
+        arithmetic_contract: "binary64-nearest-plus-one-ulp-outward-mean-value-v0.1".to_owned(),
         design_parameter_ids: root.parameter_ids[..design_dimension].to_vec(),
         nuisance_parameter_ids: root.parameter_ids[design_dimension..].to_vec(),
         explored_node_count,
@@ -829,16 +821,12 @@ mod tests {
         }
     }
 
-    fn objective(
-        [x, u]: [IntervalDual<2>; 2],
-    ) -> Result<IntervalDual<2>, IntervalAdError> {
+    fn objective([x, u]: [IntervalDual<2>; 2]) -> Result<IntervalDual<2>, IntervalAdError> {
         let tenth = IntervalDual::constant(interval(0.1, 0.1));
         Ok(x.square() + tenth * u.square())
     }
 
-    fn margin(
-        [x, u]: [IntervalDual<2>; 2],
-    ) -> Result<IntervalDual<2>, IntervalAdError> {
+    fn margin([x, u]: [IntervalDual<2>; 2]) -> Result<IntervalDual<2>, IntervalAdError> {
         let threshold = IntervalDual::constant(interval(0.51, 0.51));
         Ok(x - threshold - u.square())
     }
@@ -868,21 +856,28 @@ mod tests {
         assert_eq!(result.geometry_sha256, DIGEST_A);
         assert_eq!(result.material_sha256, DIGEST_B);
         assert_eq!(result.policy, policy(0.002));
-        assert_eq!(result.termination, SearchTermination::OptimalityGapSatisfied);
+        assert_eq!(
+            result.termination,
+            SearchTermination::OptimalityGapSatisfied
+        );
         assert!(result.global_objective_lower_bound.is_some());
         assert!(result.global_objective_upper_bound.is_some());
     }
 
     #[test]
     fn search_discovers_a_robust_feasible_candidate_after_subdivision() {
-        let result =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
-                .expect("valid search");
+        let result = branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
+            .expect("valid search");
         let incumbent = result.incumbent.expect("feasible candidate discovered");
         assert!(incumbent.design_point[0] >= 0.52);
         assert!(incumbent.robust_margin_lower_bound >= 0.0);
         assert!(result.robust_infeasible_count > 0);
-        assert!(result.nodes.iter().any(|node| node.disposition == BoxDisposition::Split));
+        assert!(
+            result
+                .nodes
+                .iter()
+                .any(|node| node.disposition == BoxDisposition::Split)
+        );
         let certified_lower = result
             .global_objective_lower_bound
             .expect("all terminal regions have finite objective lower bounds");
@@ -898,35 +893,38 @@ mod tests {
     fn a_wholly_failing_design_box_is_pruned_as_robust_infeasible() {
         let mut domain = root_domain();
         domain.parameter_bounds[0] = interval(-1.0, 0.0);
-        let result =
-            branch_and_bound(&domain, 1, policy(0.01), objective, margin)
-                .expect("valid infeasible search");
+        let result = branch_and_bound(&domain, 1, policy(0.01), objective, margin)
+            .expect("valid infeasible search");
         assert_eq!(result.robust_infeasible_count, 1);
         assert!(result.incumbent.is_none());
-        assert_eq!(result.termination, SearchTermination::NoRobustFeasibleDesign);
+        assert_eq!(
+            result.termination,
+            SearchTermination::NoRobustFeasibleDesign
+        );
     }
 
     #[test]
     fn node_budget_exhaustion_never_claims_global_optimality() {
         let mut bounded_policy = policy(1.0e-12);
         bounded_policy.maximum_nodes = 1;
-        let result =
-            branch_and_bound(&root_domain(), 1, bounded_policy, objective, margin)
-                .expect("valid bounded search");
+        let result = branch_and_bound(&root_domain(), 1, bounded_policy, objective, margin)
+            .expect("valid bounded search");
         assert!(!result.certified_within_gap);
         assert_eq!(result.termination, SearchTermination::NodeBudgetExhausted);
-        assert!(result.nodes.iter().any(|node| {
-            node.disposition == BoxDisposition::UnresolvedNodeBudget
-        }));
+        assert!(
+            result
+                .nodes
+                .iter()
+                .any(|node| { node.disposition == BoxDisposition::UnresolvedNodeBudget })
+        );
     }
 
     #[test]
     fn depth_exhaustion_is_not_mislabeled_optimal() {
         let mut bounded_policy = policy(1.0e-12);
         bounded_policy.maximum_depth = 0;
-        let result =
-            branch_and_bound(&root_domain(), 1, bounded_policy, objective, margin)
-                .expect("valid depth-limited search");
+        let result = branch_and_bound(&root_domain(), 1, bounded_policy, objective, margin)
+            .expect("valid depth-limited search");
         assert!(!result.certified_within_gap);
         assert_eq!(result.termination, SearchTermination::UnresolvedBoxesRemain);
         assert!(result.unresolved_leaf_count > 0);
@@ -934,12 +932,10 @@ mod tests {
 
     #[test]
     fn deterministic_input_replay_produces_identical_report() {
-        let first =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
-                .expect("first search");
+        let first = branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
+            .expect("first search");
         let second =
-            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin)
-                .expect("replay");
+            branch_and_bound(&root_domain(), 1, policy(0.02), objective, margin).expect("replay");
         assert_eq!(first, second);
     }
 
@@ -949,9 +945,7 @@ mod tests {
             &root_domain(),
             1,
             policy(1.0e-12),
-            | _variables | {
-                Ok(IntervalDual::constant(interval(1.0, 1.0)))
-            },
+            |_variables| Ok(IntervalDual::constant(interval(1.0, 1.0))),
             |_variables| Ok(IntervalDual::constant(interval(0.5, 0.5))),
         )
         .expect("constant robust problem");
@@ -961,7 +955,10 @@ mod tests {
         assert_eq!(result.global_objective_lower_bound, Some(1.0));
         assert_eq!(result.global_objective_upper_bound, Some(1.0));
         assert!(result.certified_within_gap);
-        assert_eq!(result.termination, SearchTermination::OptimalityGapSatisfied);
+        assert_eq!(
+            result.termination,
+            SearchTermination::OptimalityGapSatisfied
+        );
     }
 
     #[test]
@@ -972,7 +969,10 @@ mod tests {
             .expect("valid minimum width budget");
         assert!(result.incumbent.is_some());
         assert_eq!(result.unresolved_leaf_count, 1);
-        assert_eq!(result.nodes[0].disposition, BoxDisposition::UnresolvedMinimumWidth);
+        assert_eq!(
+            result.nodes[0].disposition,
+            BoxDisposition::UnresolvedMinimumWidth
+        );
         assert!(!result.certified_within_gap);
     }
 
@@ -993,20 +993,13 @@ mod tests {
         let root = root_domain();
         let one = IntervalDual::constant(Interval::ONE);
         let singular_objective = |[x, _u]: [IntervalDual<2>; 2]| Ok(one / x);
-        let always_feasible = |_variables: [IntervalDual<2>; 2]| {
-            Ok(IntervalDual::constant(interval(1.0, 1.0)))
-        };
+        let always_feasible =
+            |_variables: [IntervalDual<2>; 2]| Ok(IntervalDual::constant(interval(1.0, 1.0)));
         let mut bounded = policy(1.0e-6);
         bounded.maximum_depth = 8;
 
-        let result = branch_and_bound(
-            &root,
-            1,
-            bounded,
-            singular_objective,
-            always_feasible,
-        )
-        .expect("singular regions are retained, not treated as fatal");
+        let result = branch_and_bound(&root, 1, bounded, singular_objective, always_feasible)
+            .expect("singular regions are retained, not treated as fatal");
         assert!(result.incumbent.is_some());
         assert!(result.unresolved_leaf_count > 0);
         assert_eq!(result.global_objective_lower_bound, None);
