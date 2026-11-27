@@ -309,15 +309,17 @@ impl ClaimSpecificationV0_1 {
                 self.acceptance_authority_role_ref.as_str(),
             ),
         ] {
-            if !valid_identifier(value) {
-                reasons.insert(format!(
-                    "CLAIM_SPECIFICATION_{code}_MISSING_OR_NONCANONICAL"
-                ));
+            if value.trim().is_empty() {
+                reasons.insert(format!("CLAIM_SPECIFICATION_{code}_MISSING"));
+            } else if !valid_identifier(value) {
+                reasons.insert(format!("CLAIM_SPECIFICATION_{code}_NONCANONICAL"));
             }
         }
 
-        if !valid_description(&self.measurand.definition) {
+        if self.measurand.definition.trim().is_empty() {
             reasons.insert("CLAIM_SPECIFICATION_MEASURAND_DEFINITION_MISSING".to_owned());
+        } else if !valid_description(&self.measurand.definition) {
+            reasons.insert("CLAIM_SPECIFICATION_MEASURAND_DEFINITION_NONCANONICAL".to_owned());
         }
 
         if self.validity.effective_from_unix_ms >= self.validity.effective_until_unix_ms {
@@ -341,13 +343,16 @@ impl ClaimSpecificationV0_1 {
         }
         let mut stratum_ids = BTreeSet::new();
         for stratum in &self.population.required_strata {
-            if !valid_identifier(&stratum.stratum_id)
-                || !valid_identifier(&stratum.dimension_ref)
-                || !valid_identifier(&stratum.level_ref)
-            {
-                reasons.insert(
-                    "CLAIM_SPECIFICATION_STRATUM_IDENTITY_MISSING_OR_NONCANONICAL".to_owned(),
-                );
+            for (field, value) in [
+                ("ID", stratum.stratum_id.as_str()),
+                ("DIMENSION_REF", stratum.dimension_ref.as_str()),
+                ("LEVEL_REF", stratum.level_ref.as_str()),
+            ] {
+                if value.trim().is_empty() {
+                    reasons.insert(format!("CLAIM_SPECIFICATION_STRATUM_{field}_MISSING"));
+                } else if !valid_identifier(value) {
+                    reasons.insert(format!("CLAIM_SPECIFICATION_STRATUM_{field}_NONCANONICAL"));
+                }
             }
             if !stratum_ids.insert(stratum.stratum_id.as_str()) {
                 reasons.insert("CLAIM_SPECIFICATION_STRATUM_ID_DUPLICATE".to_owned());
@@ -366,10 +371,12 @@ impl ClaimSpecificationV0_1 {
         if !unique_identifiers(&self.exclusions) {
             reasons.insert("CLAIM_SPECIFICATION_EXCLUSION_ID_INVALID_OR_DUPLICATE".to_owned());
         }
-        if self.limitations.is_empty()
-            || self.limitations.iter().any(|item| !valid_description(item))
-        {
-            reasons.insert("CLAIM_SPECIFICATION_LIMITATIONS_MISSING_OR_INVALID".to_owned());
+        if self.limitations.is_empty() {
+            reasons.insert("CLAIM_SPECIFICATION_LIMITATIONS_MISSING".to_owned());
+        } else if self.limitations.iter().any(|item| item.trim().is_empty()) {
+            reasons.insert("CLAIM_SPECIFICATION_LIMITATIONS_EMPTY_ITEM".to_owned());
+        } else if self.limitations.iter().any(|item| !valid_description(item)) {
+            reasons.insert("CLAIM_SPECIFICATION_LIMITATIONS_NONCANONICAL".to_owned());
         }
 
         let population_confidence_required =
@@ -379,10 +386,11 @@ impl ClaimSpecificationV0_1 {
             self.population.confidence_level_ppm,
         ) {
             (true, Some(value)) if (1..1_000_000).contains(&value) => {}
-            (true, _) => {
-                reasons.insert(
-                    "CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING_OR_INVALID".to_owned(),
-                );
+            (true, None) => {
+                reasons.insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING".to_owned());
+            }
+            (true, Some(_)) => {
+                reasons.insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_INVALID".to_owned());
             }
             (false, None) => {}
             (false, Some(_)) => {
@@ -402,11 +410,11 @@ impl ClaimSpecificationV0_1 {
             self.uncertainty.confidence_level_ppm,
         ) {
             (true, Some(value)) if (1..1_000_000).contains(&value) => {}
-            (true, _) => {
-                reasons.insert(
-                    "CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING_OR_INVALID"
-                        .to_owned(),
-                );
+            (true, None) => {
+                reasons.insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING".to_owned());
+            }
+            (true, Some(_)) => {
+                reasons.insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_INVALID".to_owned());
             }
             (false, None) => {}
             (false, Some(_)) => {
@@ -419,11 +427,9 @@ impl ClaimSpecificationV0_1 {
         let unsupported = reasons
             .iter()
             .any(|reason| reason == "CLAIM_SPECIFICATION_SCHEMA_UNSUPPORTED");
-        let incomplete = reasons.iter().any(|reason| {
-            reason.ends_with("_MISSING")
-                || reason.ends_with("_EMPTY")
-                || reason.contains("_MISSING_OR_")
-        });
+        let incomplete = reasons
+            .iter()
+            .any(|reason| reason.ends_with("_MISSING") || reason.contains("_EMPTY"));
 
         let disposition = if unsupported {
             ClaimSpecificationDispositionV0_1::UnsupportedProfile
@@ -595,6 +601,29 @@ mod tests {
         assert!(!result.physical_truth_established);
         assert!(!result.engineering_acceptance_granted);
         assert!(!result.execution_authority_granted);
+    }
+
+    #[test]
+    fn missing_identity_is_incomplete_but_noncanonical_identity_is_rejected() {
+        let mut missing = valid_specification();
+        missing.acceptance_authority_role_ref.clear();
+        assert_eq!(
+            missing.assess().disposition,
+            ClaimSpecificationDispositionV0_1::Incomplete
+        );
+
+        let mut malformed = valid_specification();
+        malformed.acceptance_authority_role_ref = "not a canonical ref".to_owned();
+        assert_eq!(
+            malformed.assess().disposition,
+            ClaimSpecificationDispositionV0_1::Rejected
+        );
+        assert!(
+            malformed
+                .assess()
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_ACCEPTANCE_AUTHORITY_ROLE_REF_NONCANONICAL".to_owned())
+        );
     }
 
     #[test]
