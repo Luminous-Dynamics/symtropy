@@ -642,7 +642,7 @@ mod tests {
     fn u128_overflow_is_nonpass() {
         let mut value = input();
         value.mu_upper_mm3_per_s2 = u128::MAX;
-        value.relative_separation_upper_mm = u64::MAX;
+        value.relative_separation_upper_mm = 0;
         value.chief_radius_lower_mm = u64::MAX;
         value.transform_operator_norm_upper_scaled = u64::MAX;
         assert_eq!(derive(&value).disposition, CurvatureDisposition::Overflow);
