@@ -892,27 +892,11 @@ mod tests {
         material.material += 1;
         let next = next_global();
         assert_eq!(
-            stamp.commit_transition(
-                next,
-                endpoint(1),
-                material,
-                false,
-                false,
-                false,
-                false,
-            ),
+            stamp.commit_transition(next, endpoint(1), material, false, false, false, false,),
             Err(ContactFreshnessError::WarmStartResetNotCommitted)
         );
         let committed = stamp
-            .commit_transition(
-                next,
-                endpoint(1),
-                material,
-                false,
-                true,
-                false,
-                false,
-            )
+            .commit_transition(next, endpoint(1), material, false, true, false, false)
             .expect("warm-start reset completed");
         let next_step = GlobalContactRevisions {
             world: next.world + 1,
@@ -933,27 +917,11 @@ mod tests {
         awake.wake_epoch += 1;
         let next = next_global();
         assert_eq!(
-            stamp.commit_transition(
-                next,
-                awake,
-                endpoint(2),
-                false,
-                false,
-                false,
-                false,
-            ),
+            stamp.commit_transition(next, awake, endpoint(2), false, false, false, false,),
             Err(ContactFreshnessError::SolverActivationNotCommitted)
         );
         let committed = stamp
-            .commit_transition(
-                next,
-                awake,
-                endpoint(2),
-                false,
-                false,
-                false,
-                true,
-            )
+            .commit_transition(next, awake, endpoint(2), false, false, false, true)
             .expect("solver island has been reactivated");
         let next_step = GlobalContactRevisions {
             world: next.world + 1,
@@ -973,15 +941,7 @@ mod tests {
         let mut moved = endpoint(1);
         moved.transform += 1;
         assert_eq!(
-            stamp.commit_transition(
-                next_global(),
-                moved,
-                endpoint(2),
-                true,
-                false,
-                false,
-                false,
-            ),
+            stamp.commit_transition(next_global(), moved, endpoint(2), true, false, false, false,),
             Err(ContactFreshnessError::WarmStartResetNotCommitted)
         );
     }
@@ -994,28 +954,14 @@ mod tests {
         let mut next = next_global();
         next.collision_policy += 1;
         assert_eq!(
-            stamp.commit_transition(
-                next,
-                filtered,
-                endpoint(2),
-                true,
-                true,
-                false,
-                false,
-            ),
+            stamp.commit_transition(next, filtered, endpoint(2), true, true, false, false,),
             Err(ContactFreshnessError::PairEligibilityRecheckNotCommitted)
         );
-        assert!(stamp
-            .commit_transition(
-                next,
-                filtered,
-                endpoint(2),
-                true,
-                true,
-                true,
-                false,
-            )
-            .is_ok());
+        assert!(
+            stamp
+                .commit_transition(next, filtered, endpoint(2), true, true, true, false,)
+                .is_ok()
+        );
     }
 
 }
