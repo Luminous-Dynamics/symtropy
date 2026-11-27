@@ -113,3 +113,13 @@ Next:
 ## Independent finite reference
 
 The public integration test `tests/independent_r1_reference.rs` includes a deliberately simple challenger for a tiny one-information-set case. It manually enumerates the common actions, constructs the adverse metrics from the scenario rows, and independently applies component-wise dominance. It does not call the production information-set key, solver, or dominance helper. The hosted run must still establish whether the source compiles and the challenger matches the production output.
+
+## Multi-epoch policy-tree validator (follow-on)
+
+The module `research/maritime-capability-to-service/src/policy_tree.rs` validates a supplied multi-epoch policy tree before multistage optimization is implemented.
+
+It checks common service context, aligned and strictly increasing epoch/cutoff schedules, 64-character lowercase observable-state commitments, action-catalogue consistency, action feasibility, and one identical selected action per information set. Information sets are keyed by decision epoch, decision cutoff and observable-state digest.
+
+A scenario pair may share an action at the first epoch and choose different actions at a later epoch only after observed histories diverge. The validator returns a deterministic report with scenario membership and action selection per information set.
+
+This is a policy validator, not a multistage optimizer. It does not prove that the supplied digest was correctly computed or that scenario transitions are true. The next increment is a bounded extensive-form R1 enumerator over validated information sets, with cumulative service and resource-state transitions.
