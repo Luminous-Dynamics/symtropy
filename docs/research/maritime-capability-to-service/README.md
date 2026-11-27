@@ -187,3 +187,8 @@ This is a calibration and decision-gate primitive, not a predictive model, full 
 The follow-on [joint-risk-budget protocol](joint-conformal-risk-budget-v0.1.md) is tracked in [MCSC-ROBUST-ACTION-ENVELOPE-001 #7858](https://github.com/Luminous-Dynamics/symtropy/issues/7858). The Rust module src/robust_action.rs predeclares alpha allocations for arrival, handling, crane minutes, shore power and yard slots, checks their sum against a joint miscoverage budget using the union bound, and evaluates adverse resource bounds for one candidate action.
 
 This avoids claiming that several marginal 90% intervals automatically provide 90% simultaneous feasibility. The adapter is a bounded single-action feasibility filter, not a multi-vessel berth/quay-crane/yard optimizer or live action authority.
+## Joint conformal risk budget and multi-resource robust action gate
+
+The follow-on [joint-risk-budget protocol](joint-conformal-risk-budget-v0.1.md) is tracked in [MCSC-ROBUST-ACTION-ENVELOPE-001 #7858](https://github.com/Luminous-Dynamics/symtropy/issues/7858). The Rust module src/robust_action.rs predeclares alpha allocations for arrival, handling, crane minutes, shore power and yard slots, checks their sum against a joint miscoverage budget using the union bound, validates each interval's finite-sample rank and evaluates adverse resource bounds for one candidate action.
+
+This prevents the mistaken inference that multiple marginal 90% intervals automatically provide 90% simultaneous feasibility. The adapter is a bounded single-action feasibility filter, not a multi-vessel berth/quay-crane/yard optimizer or live action authority.
