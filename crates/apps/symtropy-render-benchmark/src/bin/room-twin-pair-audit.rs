@@ -34,6 +34,11 @@ fn sha256_hex(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
 
+fn png_receipt_matches_bytes(receipt_image: &Value, frame: &DecodedCapture) -> bool {
+    receipt_image["byte_len"].as_u64() == Some(frame.png_byte_len)
+        && receipt_image["sha256"].as_str() == Some(frame.png_sha256.as_str())
+}
+
 fn decode_capture(path: &Path) -> Result<DecodedCapture, Box<dyn Error>> {
     let metadata = fs::metadata(path)?;
     if metadata.len() > MAX_PNG_BYTES {
@@ -152,9 +157,7 @@ fn validate_receipt(
         }
         let path = directory.join(&expected_name);
         let frame = decode_capture(&path)?;
-        if image["byte_len"].as_u64() != Some(frame.png_byte_len)
-            || image["sha256"].as_str() != Some(frame.png_sha256.as_str())
-        {
+        if !png_receipt_matches_bytes(image, &frame) {
             return Err(format!(
                 "capture {index} PNG bytes do not match the receipt digest/length"
             )
@@ -242,5 +245,46 @@ fn main() {
     if let Err(error) = run() {
         eprintln!("room-twin-pair-audit: {error}");
         std::process::exit(1);
+    }
+}\n
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sha256_matches_the_standard_known_answer() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
+
+    #[test]
+    fn receipt_rejects_changed_png_digest_or_byte_length() {
+        let frame = DecodedCapture {
+            width: 1,
+            height: 1,
+            png_byte_len: 3,
+            png_sha256: sha256_hex(b"abc"),
+            rgba: vec![0, 0, 0, 255],
+            rgba_sha256: sha256_hex(&[0, 0, 0, 255]),
+        };
+        let valid = json!({
+            "byte_len": 3,
+            "sha256": frame.png_sha256
+        });
+        assert!(png_receipt_matches_bytes(&valid, &frame));
+
+        let bad_digest = json!({
+            "byte_len": 3,
+            "sha256": "0".repeat(64)
+        });
+        assert!(!png_receipt_matches_bytes(&bad_digest, &frame));
+
+        let bad_length = json!({
+            "byte_len": 4,
+            "sha256": frame.png_sha256
+        });
+        assert!(!png_receipt_matches_bytes(&bad_length, &frame));
     }
 }
