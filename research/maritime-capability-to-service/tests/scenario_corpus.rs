@@ -35,9 +35,12 @@ fn scenario_input(
                     .split_once(':')
                     .unwrap_or(("NONE", "0"));
                 let availability = if dependency == fields[1] {
-                    day.parse::<u64>().expect("corpus dependency day is numeric")
+                    day.parse::<u64>()
+                        .expect("corpus dependency day is numeric")
                 } else {
-                    fields[2].parse::<u64>().expect("base dependency day is numeric")
+                    fields[2]
+                        .parse::<u64>()
+                        .expect("base dependency day is numeric")
                 };
                 records.push(format!("DEPENDENCY\t{}\t{availability}", fields[1]));
             }
