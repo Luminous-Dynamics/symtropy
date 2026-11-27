@@ -769,8 +769,7 @@ mod tests {
     use super::*;
 
     const POSITIVE_FIXTURE: &str = include_str!("../fixtures/positive-v0.1.json");
-    const MUTATION_BASE_FIXTURE: &str =
-        include_str!("../fixtures/mutation-base-v0.1.json");
+    const MUTATION_BASE_FIXTURE: &str = include_str!("../fixtures/mutation-base-v0.1.json");
     const MUTATION_CORPUS: &str = include_str!("../fixtures/mutation-cases-v0.1.json");
 
     #[derive(Deserialize)]
@@ -839,8 +838,7 @@ mod tests {
     }
 
     fn sample_input() -> ClaimClosureInput {
-        serde_json::from_str(MUTATION_BASE_FIXTURE)
-            .expect("frozen mutation base fixture parses")
+        serde_json::from_str(MUTATION_BASE_FIXTURE).expect("frozen mutation base fixture parses")
     }
 
     fn has_code(report: &ClosureReport, code: &str) -> bool {
