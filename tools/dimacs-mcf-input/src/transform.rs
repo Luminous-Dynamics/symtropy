@@ -27,6 +27,7 @@ pub struct McfResidualArc {
 pub struct McfResidualInstance {
     pub node_count: u32,
     pub arc_count: u32,
+    pub original_supplies: Vec<i64>,
     pub adjusted_supplies: Vec<i128>,
     pub lower_bounds: Vec<i64>,
     pub arcs: Vec<McfResidualArc>,
@@ -47,13 +48,20 @@ impl McfResidualInstance {
             .ok()
             .and_then(|count| count.checked_add(1))
             .ok_or_else(|| McfTransformError::new("node supply vector length overflow"))?;
-        if self.adjusted_supplies.len() != expected_supply_len
+        if self.original_supplies.len() != expected_supply_len
+            || self.original_supplies.first().copied() != Some(0)
+            || self.adjusted_supplies.len() != expected_supply_len
             || self.adjusted_supplies.first().copied() != Some(0)
         {
             return Err(McfTransformError::new(
-                "adjusted supply vector shape or zero sentinel is invalid",
+                "original/adjusted supply vector shape or zero sentinel is invalid",
             ));
         }
+        let mut expected_adjusted = self
+            .original_supplies
+            .iter()
+            .map(|&supply| i128::from(supply))
+            .collect::<Vec<_>>();
         if self.arc_count as usize != self.arcs.len()
             || self.lower_bounds.len() != self.arcs.len()
         {
@@ -80,6 +88,18 @@ impl McfResidualInstance {
                     "negative lower bound or residual capacity on arc {ordinal}"
                 )));
             }
+            let upper = lower.checked_add(arc.capacity).ok_or_else(|| {
+                McfTransformError::new(format!(
+                    "lower bound plus residual capacity overflows i64 on arc {ordinal}"
+                ))
+            })?;
+            let _ = upper;
+            expected_adjusted[arc.tail as usize] = expected_adjusted[arc.tail as usize]
+                .checked_sub(i128::from(lower))
+                .ok_or_else(|| McfTransformError::new("recomputed tail supply underflow"))?;
+            expected_adjusted[arc.head as usize] = expected_adjusted[arc.head as usize]
+                .checked_add(i128::from(lower))
+                .ok_or_else(|| McfTransformError::new("recomputed head supply overflow"))?;
             let contribution = i128::from(lower)
                 .checked_mul(i128::from(arc.unit_cost))
                 .ok_or_else(|| {
@@ -94,6 +114,11 @@ impl McfResidualInstance {
         if expected_offset != self.lower_bound_cost_offset {
             return Err(McfTransformError::new(
                 "lower-bound cost offset does not match arc baselines",
+            ));
+        }
+        if expected_adjusted != self.adjusted_supplies {
+            return Err(McfTransformError::new(
+                "adjusted supplies do not match original supplies and lower bounds",
             ));
         }
         Ok(())
@@ -259,6 +284,7 @@ pub fn remove_lower_bounds(
     let residual = McfResidualInstance {
         node_count: instance.node_count,
         arc_count: instance.arc_count,
+        original_supplies: instance.node_supplies.clone(),
         adjusted_supplies,
         lower_bounds,
         arcs: residual_arcs,
@@ -351,7 +377,7 @@ mod tests {
     #[test]
     fn lower_bounds_shift_supply_and_preserve_residual_capacity_and_cost() {
         let instance = parse_dimacs_mcf(
-            "p min 3 2\nn 1 5\nn 3 -5\na 1 2 2 5 7\na 2 3 1 4 -3",
+            "p min 3 2\nn 1 5\nn 2 -1\nn 3 -4\na 1 2 2 5 7\na 2 3 1 4 -3",
         )
         .unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
