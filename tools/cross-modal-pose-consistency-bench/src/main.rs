@@ -1,6 +1,6 @@
 use cross_modal_pose_consistency_bench::{
-    ConsistencyReceipt, DependencyDigests, EstimateStatus, GatePolicy, Modality,
-    PoseEstimate, Q30_ONE, evaluate_pair,
+    ConsistencyReceipt, DependencyDigests, EstimateStatus, GatePolicy, Modality, PoseEstimate,
+    evaluate_pair,
 };
 use std::collections::BTreeSet;
 use std::error::Error;
@@ -26,17 +26,22 @@ fn parse_bool(value: &str, field: &str) -> Result<bool, Box<dyn Error>> {
     }
 }
 
-fn dependencies(fields: &[&str], offset: usize, complete: bool) -> DependencyDigests {
+fn dependencies(
+    fields: &[&str],
+    offset: usize,
+    stride: usize,
+    complete: bool,
+) -> DependencyDigests {
     DependencyDigests {
         clock: fields[offset].to_owned(),
-        optics: fields[offset + 1].to_owned(),
-        extrinsics: fields[offset + 2].to_owned(),
-        model: fields[offset + 3].to_owned(),
-        training_data: fields[offset + 4].to_owned(),
-        target_geometry: fields[offset + 5].to_owned(),
-        renderer: fields[offset + 6].to_owned(),
-        annotation: fields[offset + 7].to_owned(),
-        translator: fields[offset + 8].to_owned(),
+        optics: fields[offset + stride].to_owned(),
+        extrinsics: fields[offset + 2 * stride].to_owned(),
+        model: fields[offset + 3 * stride].to_owned(),
+        training_data: fields[offset + 4 * stride].to_owned(),
+        target_geometry: fields[offset + 5 * stride].to_owned(),
+        renderer: fields[offset + 6 * stride].to_owned(),
+        annotation: fields[offset + 7 * stride].to_owned(),
+        translator: fields[offset + 8 * stride].to_owned(),
         declarations_complete: complete,
     }
 }
@@ -106,8 +111,8 @@ fn render_result(result: &ConsistencyReceipt) -> String {
 }
 
 fn parse_pair(fields: &[&str], line: usize) -> Result<(PoseEstimate, PoseEstimate, GatePolicy), Box<dyn Error>> {
-    if fields.len() != 54 {
-        return Err(format!("line {line}: expected 54 fields, got {}", fields.len()).into());
+    if fields.len() != 52 {
+        return Err(format!("line {line}: expected 52 fields, got {}", fields.len()).into());
     }
 
     let policy = GatePolicy {
@@ -148,7 +153,7 @@ fn parse_pair(fields: &[&str], line: usize) -> Result<(PoseEstimate, PoseEstimat
         status: EstimateStatus::parse(fields[26])?,
         ood: parse_bool(fields[28], "rgb_ood")?,
         low_observability: parse_bool(fields[30], "rgb_low_observability")?,
-        dependencies: dependencies(fields, 34, rgb_complete),
+        dependencies: dependencies(fields, 34, 2, rgb_complete),
     };
     let event = PoseEstimate {
         modality: Modality::Event,
@@ -174,7 +179,7 @@ fn parse_pair(fields: &[&str], line: usize) -> Result<(PoseEstimate, PoseEstimat
         status: EstimateStatus::parse(fields[27])?,
         ood: parse_bool(fields[29], "event_ood")?,
         low_observability: parse_bool(fields[31], "event_low_observability")?,
-        dependencies: dependencies(fields, 35, event_complete),
+        dependencies: dependencies(fields, 35, 2, event_complete),
     };
     Ok((rgb, event, policy))
 }
@@ -226,6 +231,5 @@ fn main() -> Result<(), Box<dyn Error>> {
         results.len(),
         body
     );
-    let _ = Q30_ONE;
     Ok(())
 }
