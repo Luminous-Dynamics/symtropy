@@ -12,8 +12,8 @@ use std::fmt;
 
 pub mod certificate;
 pub use certificate::{
-    McfArcFlow, McfCertificateError, McfOptimalityCertificate,
-    MCF_OPTIMALITY_CERTIFICATE_SCHEMA, canonical_instance_sha256, verify_mcf_optimality,
+    MCF_OPTIMALITY_CERTIFICATE_SCHEMA, McfArcFlow, McfCertificateError,
+    McfOptimalityCertificate, canonical_instance_sha256, verify_mcf_optimality,
 };
 
 const DIMACS_INTEGER_MAX: u32 = i32::MAX as u32;
