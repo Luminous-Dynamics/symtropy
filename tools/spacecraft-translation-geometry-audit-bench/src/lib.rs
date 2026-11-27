@@ -1018,6 +1018,12 @@ mod tests {
     }
 
     #[test]
+    fn extreme_i64_coordinate_difference_fails_closed_without_signed_overflow() {
+        let delta = i128::from(i64::MAX) - i128::from(i64::MIN);
+        assert_eq!(super::displacement_mpx(delta, 0), None);
+    }
+
+    #[test]
     fn malformed_mask_hex_rejects_manifest() {
         let mut frames = clean_unit("SEQ-012");
         frames[1].masks[0].translated_mask_hex = "not-hex".to_owned();
