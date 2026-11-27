@@ -1035,7 +1035,6 @@ mod tests {
     }
 
     #[test]
-    fn summary_reports_selective_risk_and_coverage() {    #[test]
     fn summary_reports_selective_risk_and_coverage() {
         let first = input();
         let mut second = input();
