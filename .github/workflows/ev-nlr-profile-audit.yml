@@ -91,13 +91,19 @@ jobs:
             --output nlr-profile-audit-report.json
           jq -e '.report.reference_profile_count == 81 and .report.expected_intervals_per_profile == 96 and .report.reference_total_interval_count == 7776 and .report.candidate_comparison.profile_count == 81 and .report.candidate_comparison.interval_count == 7776 and (.report.candidate_comparison.mean_absolute_error_kw - 0.5 | fabs < 0.000001) and (.report.candidate_comparison.mean_bias_kw - 0.5 | fabs < 0.000001)' nlr-profile-audit-report.json
           sha256sum nlr-profile-audit-report.json > nlr-profile-audit-report.sha256
-      - name: Upload synthetic contract report and checksums
+      - name: Capture standalone lockfile digest
+        run: |
+          test -s tools/ev-nlr-profile-audit/Cargo.lock
+          sha256sum tools/ev-nlr-profile-audit/Cargo.lock > nlr-profile-audit-cargo-lock.sha256
+      - name: Upload synthetic contract report, lockfile and checksums
         uses: actions/upload-artifact@v4
         with:
           name: ev-nlr-profile-audit-synthetic
           path: |
             nlr-profile-audit-report.json
             nlr-profile-audit-report.sha256
+            tools/ev-nlr-profile-audit/Cargo.lock
+            nlr-profile-audit-cargo-lock.sha256
             tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json
           if-no-files-found: error
           retention-days: 14
