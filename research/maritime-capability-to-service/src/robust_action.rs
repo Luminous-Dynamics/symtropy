@@ -302,7 +302,9 @@ mod tests {
             radius,
             alpha_ppm,
             sample_count: 100,
-            quantile_rank_1based: 91,
+            quantile_rank_1based: (u128::from(101u64)
+                * u128::from(1_000_000 - alpha_ppm))
+                .div_ceil(1_000_000) as u64,
             coverage_claim: crate::conformal::CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability,
             nominal_coverage_claim_ppm: Some(1_000_000 - alpha_ppm),
             model_fit_cutoff: 10,
