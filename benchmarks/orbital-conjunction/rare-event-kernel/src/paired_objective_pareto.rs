@@ -253,19 +253,39 @@ pub enum PairedObjectiveParetoError {
 impl core::fmt::Display for PairedObjectiveParetoError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let message = match self {
-            Self::InvalidMissionRiskGate => "upstream mission-risk gate is invalid or grants authority",
-            Self::InvalidScenarioUniverse => "scenario universe is invalid or inconsistent with the risk gate",
-            Self::InvalidScenarioAtomUniverse => "scenario latent-atom universe is empty or invalid",
+            Self::InvalidMissionRiskGate => {
+                "upstream mission-risk gate is invalid or grants authority"
+            }
+            Self::InvalidScenarioUniverse => {
+                "scenario universe is invalid or inconsistent with the risk gate"
+            }
+            Self::InvalidScenarioAtomUniverse => {
+                "scenario latent-atom universe is empty or invalid"
+            }
             Self::InvalidPortfolioUniverse => "eligible portfolio universe is invalid",
             Self::InvalidObjectiveUniverse => "objective specification universe is invalid",
-            Self::IncompleteObjectiveBoundMatrix => "portfolio/objective bound matrix is incomplete or duplicated",
+            Self::IncompleteObjectiveBoundMatrix => {
+                "portfolio/objective bound matrix is incomplete or duplicated"
+            }
             Self::InvalidObjectiveBound => "a frozen objective bound has reversed endpoints",
-            Self::CardinalityOrWorkLimit => "paired objective oracle exceeds its exact finite-work limit",
-            Self::IncompleteScenarioAtomEvidence => "scenario/latent-atom evidence matrix is incomplete or contains extras",
-            Self::InvalidScenarioAtomIdentity => "scenario or latent atom identity is invalid or duplicated",
-            Self::InvalidObjectiveOutcomeIdentity => "objective outcome identity is unknown or zero",
-            Self::IncompleteObjectiveOutcomeMatrix => "joint atom does not contain exactly one outcome per portfolio/objective",
-            Self::ObjectiveOutcomeOutsideBound => "objective outcome is outside its frozen per-portfolio bound",
+            Self::CardinalityOrWorkLimit => {
+                "paired objective oracle exceeds its exact finite-work limit"
+            }
+            Self::IncompleteScenarioAtomEvidence => {
+                "scenario/latent-atom evidence matrix is incomplete or contains extras"
+            }
+            Self::InvalidScenarioAtomIdentity => {
+                "scenario or latent atom identity is invalid or duplicated"
+            }
+            Self::InvalidObjectiveOutcomeIdentity => {
+                "objective outcome identity is unknown or zero"
+            }
+            Self::IncompleteObjectiveOutcomeMatrix => {
+                "joint atom does not contain exactly one outcome per portfolio/objective"
+            }
+            Self::ObjectiveOutcomeOutsideBound => {
+                "objective outcome is outside its frozen per-portfolio bound"
+            }
             Self::ArithmeticFailure => "exact paired contrast arithmetic failed",
         };
         formatter.write_str(message)
