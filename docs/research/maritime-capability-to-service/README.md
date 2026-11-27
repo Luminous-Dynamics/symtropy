@@ -177,3 +177,15 @@ A passing fixture is evidence of this model's arithmetic and declared topology o
 The one-epoch finite R1 implementation is specified in [same-information-oracle-protocol.md](same-information-oracle-protocol.md) and tracked in [MCSC-SAME-INFO-ORACLE-001 #7834](https://github.com/Luminous-Dynamics/symtropy/issues/7834). It composes KITE's as-of evidence snapshots and enforces one common action across scenarios with identical observable information. It enumerates bounded action policies and reports component-wise adverse bounds with scenario witnesses and a Pareto frontier without probabilities or scalar weights.
 
 The first executable slice solves one decision epoch only. It is not a multistage optimizer or deployable recovery policy. R0 clairvoyant bounds, R1 same-information oracle results, and R2 compute-budget-matched operational policies remain separate.
+## Decision-time conformal contract
+
+The follow-on [conformal decision protocol](conformal-decision-contract-v0.1.md) is tracked in [MCSC-CONFORMAL-ACTION-001 #7855](https://github.com/Luminous-Dynamics/symtropy/issues/7855). The Rust module implements exact finite-sample absolute-residual split-conformal rank arithmetic, calibration/model/decision chronology, explicit unbounded output for insufficient samples, applicability-aware coverage claims and a conservative single-deadline interval gate.
+
+Finite intervals now retain model, feature-schema and calibration-data SHA-256 digests, model-fit cutoff and calibration-window boundaries. A public validator checks exact finite-sample rank, claim semantics, provenance encoding, chronology and endpoint arithmetic before a downstream action gate can use an interval.
+
+This remains a calibration and decision-gate primitive, not a predictive model, full berth/crane optimizer or evidence that a Durban deployment achieves nominal coverage. Conditional coverage and distribution shift remain explicit research questions.
+## Sequential conformal benchmark under maritime drift
+
+The follow-on [sequential conformal protocol](sequential-conformal-benchmark-protocol-v0.1.md) is tracked in [MCSC-SEQUENTIAL-CONFORMAL-001 #7866](https://github.com/Luminous-Dynamics/symtropy/issues/7866). It compares fixed split conformal with rolling windows, ACI, ECI, SAOCP, heterogeneous-horizon ensembles and fresh-fold sequential calibration under temporal dependence, regime shifts, delayed labels and multistage selection.
+
+The protocol preserves each method's guarantee class and evaluates prequential coverage, interval width, subgroup gaps, shift-recovery time and online compute. It is a benchmark plan; it does not claim these methods have already been implemented or reproduced here.

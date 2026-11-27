@@ -8,7 +8,7 @@ on:
       - "docs/research/maritime-capability-to-service/**"
       - ".github/workflows/maritime-capability-to-service.yml"
   push:
-    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-kite-reusable-replay-v0-3, research/mcsc-r1-finite-oracle-v0-3]
+    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-kite-reusable-replay-v0-3, research/mcsc-r1-finite-oracle-v0-3, research/mcsc-conformal-decision-contract-v1]
     paths:
       - "research/maritime-capability-to-service/**"
       - "docs/research/maritime-capability-to-service/**"
