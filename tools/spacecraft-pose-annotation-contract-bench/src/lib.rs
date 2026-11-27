@@ -606,7 +606,7 @@ mod tests {
     #[test]
     fn fixed_point_i64_edges_are_checked_without_saturation() {
         let lower = (i64::MIN as f64) / super::PIXEL_SCALE;
-        let upper = -((i64::MIN as f64) / PIXEL_SCALE);
+        let upper = -((i64::MIN as f64) / super::PIXEL_SCALE);
         assert_eq!(super::scaled_i64(lower), Some(i64::MIN));
         assert_eq!(super::scaled_i64(upper), None);
     }
