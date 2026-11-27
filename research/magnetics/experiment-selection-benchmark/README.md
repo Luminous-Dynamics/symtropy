@@ -47,3 +47,8 @@ No universal weighted score is emitted. A method that produces high hypervolume 
 ## Claim ceiling
 
 The synthetic known-answer validates trace and metric semantics only. It does not establish magnetic route performance, real experiment savings or SOTA superiority.
+
+
+Batch-aware cost accounting counts every experiment in the iteration where the first qualified candidate appears; it does not award a policy an impossible mid-batch stop. Simple regret uses the declared objective direction: minimum for minimizing objectives and maximum for maximizing objectives. The evaluator uses saturating cost accumulation rather than integer wraparound.
+
+Eighteen Rust tests are authored, including matched known-answer metrics, lot leakage, random-row split rejection, missing outcomes, seed/budget mismatch, holdout identity, duplicate IDs, feasibility calibration, direction-aware regret and full-batch cost accounting.
