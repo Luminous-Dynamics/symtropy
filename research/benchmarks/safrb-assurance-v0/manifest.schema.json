@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/assurance-benchmark-manifest-v0.schema.json",
+  "title": "SAFRB Assurance Benchmark Manifest v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "benchmark_id",
+    "case_id",
+    "status",
+    "model_class",
+    "source",
+    "artifact",
+    "objective",
+    "quantity",
+    "solver_comparators",
+    "resource_budget",
+    "expected_result",
+    "mutation_families"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "safrb-assurance-benchmark-manifest-v0"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "frozen",
+        "executed",
+        "independently_verified",
+        "retired"
+      ]
+    },
+    "model_class": {
+      "enum": [
+        "single_commodity_max_flow",
+        "single_commodity_min_cost_flow",
+        "temporal_single_commodity_flow",
+        "coherent_temporal_scenarios",
+        "multi_commodity",
+        "process_coupled",
+        "integer_schedule",
+        "other"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "uri",
+        "license"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "dimacs_official",
+            "derived_synthetic",
+            "owner_authorized_replay",
+            "vendor_sandbox",
+            "field_observation",
+            "other"
+          ]
+        },
+        "uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generator": {
+          "type": "string"
+        },
+        "generator_version": {
+          "type": "string"
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_revision": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_or_uri",
+        "digest_algorithm",
+        "digest"
+      ],
+      "properties": {
+        "path_or_uri": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest_algorithm": {
+          "enum": [
+            "sha256",
+            "git_blob_sha1",
+            "other"
+          ]
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9:]{40,80}$"
+        },
+        "canonical_model_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "raw_and_canonical_digests_distinct": {
+          "const": true
+        }
+      }
+    },
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordered_components",
+        "scalarization"
+      ],
+      "properties": {
+        "ordered_components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "direction",
+              "meaning"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "direction": {
+                "enum": [
+                  "maximize",
+                  "minimize",
+                  "fixed"
+                ]
+              },
+              "meaning": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unit": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "scalarization": {
+          "enum": [
+            "none",
+            "exact_sequential_passes",
+            "proved_equivalent_scalarization",
+            "unsupported"
+          ]
+        },
+        "objective_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commodity_ref",
+        "unit_ref",
+        "boundary_ref",
+        "timebase_ref"
+      ],
+      "properties": {
+        "commodity_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundary_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timebase_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period_semantics": {
+          "type": "string"
+        }
+      }
+    },
+    "evidence_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "issuer_authority_ref": {
+          "type": "string"
+        },
+        "validity_profile": {
+          "type": "string"
+        },
+        "scenario_set_id": {
+          "type": "string"
+        },
+        "common_cause_closure_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "admission_status": {
+          "enum": [
+            "synthetic_only",
+            "admitted_replay",
+            "owner_authorized",
+            "indeterminate",
+            "not_applicable"
+          ]
+        }
+      }
+    },
+    "solver_comparators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "version",
+          "configuration_digest"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          },
+          "reference_role": {
+            "enum": [
+              "primary",
+              "secondary",
+              "production_baseline",
+              "independent_verifier"
+            ]
+          }
+        }
+      }
+    },
+    "resource_budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu_seconds",
+        "memory_bytes",
+        "timeout_seconds"
+      ],
+      "properties": {
+        "cpu_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeout_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hardware_manifest_ref": {
+          "type": "string"
+        },
+        "toolchain_manifest_ref": {
+          "type": "string"
+        },
+        "warmup_runs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "measured_repetitions": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "expected_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "oracle_kind"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "known_answer",
+            "range",
+            "infeasible",
+            "unsupported",
+            "indeterminate",
+            "not_yet_known"
+          ]
+        },
+        "oracle_kind": {
+          "enum": [
+            "exhaustive_integral",
+            "independent_solver",
+            "owner_record",
+            "measured_field",
+            "analytical",
+            "none"
+          ]
+        },
+        "expected_objective_vector": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "number",
+              "string"
+            ]
+          }
+        },
+        "expected_service_floor": {
+          "type": "object"
+        },
+        "expected_min_cut": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "mutation_families": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "decision_time_budget_ms": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "held_out": {
+      "type": "boolean"
+    },
+    "result_uri": {
+      "type": "string",
+      "format": "uri"
+    },
+    "result_digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
