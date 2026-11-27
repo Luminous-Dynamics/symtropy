@@ -1021,9 +1021,10 @@ mod tests {
         let rows = contracts()
             .into_iter()
             .flat_map(|contract| {
+                let scenario_id = contract.scenario_id;
                 contract.atom_ids.into_iter().map(move |atom_id| {
                     CounterfactualTrajectoryAtom {
-                        shared_world: shared_world(contract.scenario_id, atom_id),
+                        shared_world: shared_world(scenario_id, atom_id),
                         portfolio_trajectories: Vec::new(),
                     }
                 })
