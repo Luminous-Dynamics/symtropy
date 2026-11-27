@@ -21,7 +21,10 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const FLOOR_CUT_EXPLANATION_SCHEMA: &str =
     "safrb-beneficiary-floor-cut-explanation-v0.1";
 
+const AUX_SOURCE: &str = "__safrb-floor-feasibility/super-source-v0.1";
+const AUX_SINK: &str = "__safrb-floor-feasibility/super-sink-v0.1";
 const RETURN_EDGE_ID: &str = "__safrb-floor-feasibility/return-v0.1";
+const RETURN_METADATA: &str = "safrb-beneficiary-floor-feasibility-v0.1/return";
 const SUPER_SOURCE_PREFIX: &str = "__safrb-floor-feasibility/ss/";
 const SUPER_SINK_PREFIX: &str = "__safrb-floor-feasibility/tt/";
 const SUPER_SOURCE_META_PREFIX: &str =
@@ -78,7 +81,7 @@ pub struct FloorInfeasibilityExplanation {
     pub min_cut_capacity: u64,
     pub source_side_nodes: Vec<String>,
     pub cut_edges: Vec<SemanticCutEdge>,
-    pub affected_service_ids: Vec<String>,
+    pub directly_referenced_service_ids: Vec<String>,
     pub claim_ceiling: String,
 }
 
@@ -310,7 +313,10 @@ fn node_for_balance_edge(
         .iter()
         .flat_map(|physical| {
             let mut ids = Vec::new();
-            let period_count = profile.horizon_last_period.saturating_add(1);
+            let period_count = profile
+        .horizon_last_period
+        .checked_add(1)
+        .ok_or_else(|| "temporal horizon overflows while attributing balance edge".to_string())?;
             for period in 0..period_count {
                 ids.push(state_node_id(&physical.node_id, period));
                 ids.push(handling_node_id(&physical.node_id, period));
@@ -370,6 +376,12 @@ fn attribute_cut_edge(
         }
         value
     } else if edge.id == RETURN_EDGE_ID {
+        if edge.from != AUX_SINK
+            || edge.to != AUX_SOURCE
+            || edge.metadata_ref.as_deref() != Some(RETURN_METADATA)
+        {
+            return Err("circulation return cut edge has invalid identity or endpoints".to_string());
+        }
         EdgeAttribution {
             family: FloorCutConstraintFamily::CirculationReturnClosure,
             original_edge_id: None,
@@ -377,8 +389,14 @@ fn attribute_cut_edge(
             period: None,
             related_service_ids: Vec::new(),
         }
-    } else if edge.from == "__safrb-floor-feasibility/super-source-v0.1" {
+    } else if edge.from == AUX_SOURCE {
         let node_id = node_for_balance_edge(profile, edge, SUPER_SOURCE_PREFIX)?;
+        if edge.to != node_id
+            || edge.metadata_ref.as_deref()
+                != Some(format!("{SUPER_SOURCE_META_PREFIX}{node_id}").as_str())
+        {
+            return Err(format!("positive lower-bound balance edge {} has invalid endpoints or metadata", edge.id));
+        }
         EdgeAttribution {
             family: FloorCutConstraintFamily::LowerBoundPositiveBalanceDemand,
             original_edge_id: None,
@@ -386,8 +404,14 @@ fn attribute_cut_edge(
             period: None,
             related_service_ids: balance_node_services(profile, &node_id),
         }
-    } else if edge.to == "__safrb-floor-feasibility/super-sink-v0.1" {
+    } else if edge.to == AUX_SINK {
         let node_id = node_for_balance_edge(profile, edge, SUPER_SINK_PREFIX)?;
+        if edge.from != node_id
+            || edge.metadata_ref.as_deref()
+                != Some(format!("{SUPER_SINK_META_PREFIX}{node_id}").as_str())
+        {
+            return Err(format!("negative lower-bound balance edge {} has invalid endpoints or metadata", edge.id));
+        }
         EdgeAttribution {
             family: FloorCutConstraintFamily::LowerBoundNegativeBalanceDischarge,
             original_edge_id: None,
@@ -452,7 +476,7 @@ pub fn explain_beneficiary_floor_infeasibility(
         .collect::<Result<Vec<_>, _>>()?;
     cut_edges.sort_by(|left, right| left.auxiliary_edge_id.cmp(&right.auxiliary_edge_id));
 
-    let affected_service_ids = cut_edges
+    let directly_referenced_service_ids = cut_edges
         .iter()
         .flat_map(|edge| edge.related_service_ids.iter().cloned())
         .collect::<BTreeSet<_>>()
@@ -470,7 +494,7 @@ pub fn explain_beneficiary_floor_infeasibility(
         min_cut_capacity: certificate.result.min_cut.capacity,
         source_side_nodes: certificate.result.source_side_nodes.clone(),
         cut_edges,
-        affected_service_ids,
+        directly_referenced_service_ids,
         claim_ceiling: FLOOR_CUT_CLAIM_CEILING.to_string(),
     })
 }
@@ -629,7 +653,7 @@ mod tests {
             explain_beneficiary_floor_infeasibility(&model, &floor_set, &report).unwrap();
         assert!(explanation.cut_edges.iter().any(|edge| {
             edge.constraint_family == FloorCutConstraintFamily::RouteCapacityAndTransit
-                && edge.original_edge_id.as_deref() == Some("transfer/8/route-a")
+                && edge.original_edge_id.as_deref() == Some("transfer/7/route-a")
                 && edge.node_id.as_deref() == Some("origin-yard")
                 && edge.period == Some(0)
         }));
@@ -673,6 +697,17 @@ mod tests {
             .unwrap_err()
             .contains("does not match")
         );
+    }
+
+    #[test]
+    fn published_floor_cut_schema_is_valid_and_strict() {
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/beneficiary-floor-cut-explanation-v0.1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(schema["properties"]["schema_version"]["const"], FLOOR_CUT_EXPLANATION_SCHEMA);
+        assert_eq!(schema["properties"]["cut_edges"]["type"], "array");
+        assert_eq!(schema["additionalProperties"], false);
     }
 
     #[test]
