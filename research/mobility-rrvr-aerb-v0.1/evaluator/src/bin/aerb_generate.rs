@@ -13,7 +13,7 @@ use mobility_rrvr_aerb_evaluator::{
     CommandContext, DecisionLoss, DispatchState, Disposition, EffectState, EvaluatorWorld,
     EvaluatorWorldPack, EvidenceDomain, OPEN_WORLD_RESIDUAL, Observation, ObservationQuality,
     PermittedProbe, ProbeOutcomeSupport, ProbeSupport, SCHEMA_VERSION, SourceRole,
-    WORLD_VOCABULARY_VERSION, canonical_sorted_json_sha256, sha256_hex,
+    WORLD_VOCABULARY_VERSION, canonical_sorted_json_sha256, evaluate_json, sha256_hex,
 };
 use serde::Serialize;
 
