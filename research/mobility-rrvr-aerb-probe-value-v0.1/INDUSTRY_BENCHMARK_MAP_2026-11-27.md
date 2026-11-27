@@ -345,3 +345,77 @@ New issue [#7732](https://github.com/Luminous-Dynamics/symtropy/issues/7732) sep
 - a **blind challenge corpus**, where hidden assignments are made with evaluator-only cryptographic entropy, candidate IDs/order are opaque and uncorrelated, and the assignment is revealed only after the campaign under an auditable commitment.
 
 The blind-corpus acceptance test includes metadata-only classifiers and stateful sequential inference attacks. Exact quota balancing must not create candidate-visible sequence leakage. The evaluator must keep the true cluster/stratum labels separately while candidate metadata remains non-informative about hidden world identity.
+
+
+## 2.15 DiMuRe — diagnosis-guided multilevel recovery
+
+**Added in the 2026-11-27 literature refresh.**
+
+DiMuRe (arXiv:2611.04226, 2026-11-03) is a direct recovery comparator. It uses phase-specific evidence and method preconditions to select program reuse or recovery skills, can generate corrective code after program exit, and locally verifies recovery attempts. Its LIBERO-Disturb benchmark targets mid-execution disturbances.
+
+The abstract reports, on 801 scheduled disturbed Encore development cases:
+- Local DiMuRe: 77.65% complete-task success.
+- Original program under the same physical-step allowance: 58.68%.
+- Full DiMuRe: 81.90%, with terminal replanning, additional step allowance and early handoff.
+
+Do not compare the 81.90% result to the 58.68% baseline as though the physical-step and replanning budgets were equal. Preserve the protocol differences and report physical actions/steps separately.
+
+**AERB addition:** measure whether the previous attempt's physical effect is independently known before another recovery attempt, whether a recovery probe can discriminate decision-relevant histories, and whether its acquisition is safe over the full sensing interval. DiMuRe's local verification is complementary; this is not a claim that DiMuRe lacks verification.
+
+Source: https://arxiv.org/abs/2611.04226
+
+## 2.16 EmbodiedGovBench — capability and lifecycle governance
+
+**Added in the 2026-11-27 literature refresh.**
+
+EmbodiedGovBench (arXiv:2604.11174, 2026-04-13) frames embodied-agent governance as a first-class evaluation dimension. It covers seven areas: unauthorized capability invocation, runtime drift robustness, recovery success, policy portability, version-upgrade safety, human override responsiveness and audit completeness.
+
+This expands the comparator set beyond task-level manipulation. AERB/RRVR should align its evidence and commit records with governance requirements rather than presenting recovery as an isolated skill.
+
+**AERB addition:** bind the decision's evidence dependencies, possible-world support and counterfactual policy to the exact current action-ticket at the pre-effect boundary. #7788 implements the first narrow adapter slice; it is not yet qualified.
+
+Source: https://arxiv.org/abs/2604.11174
+
+## 2.17 Standards and industrial assurance boundary — 2026-11-27
+
+Benchmarks and standards answer different questions. AERB scores observable assurance behaviour in bounded experiments; it does not replace a machine risk assessment, a safety-related control system, a validated safety function or conformity assessment.
+
+Relevant published and draft references:
+
+| Standard / draft | Scope and current status | RRVR integration boundary |
+|---|---|---|
+| ISO 10218-1:2025 | Published 2025-02; industrial robots as partly completed machinery | Bind the robot identity/configuration, safety-function and evidence references; do not claim robot-level compliance from an AERB result |
+| ISO 10218-2:2025 | Published 2025-02; industrial robot applications and robot cells, including integration and lifecycle operation | Keep application/cell hazards, end-effectors, workspace and integration evidence in the application safety case |
+| ISO 13849-1:2023 | Published methodology for safety-related parts of control systems in high-demand/continuous modes | AERB must not substitute software decision tests for required PLr, architecture, validation or safety-function evidence |
+| ISO 12100:2010 | Current risk-assessment and risk-reduction methodology; ISO/DIS 12100.3 is under development | AERB evidence can support hazard-analysis traceability, but cannot make risk acceptance decisions |
+| ISO 3691-4:2023 / ISO/DIS 3691-4 (Edition 3) | 2023 version is published; a replacement DIS is in enquiry/development in 2026 for driverless industrial trucks and their systems, including relevant AMR classes | Use only for the in-scope industrial truck operating domain; preserve the exact edition and draft status in every compliance mapping |
+
+Important scope caveats:
+- ISO 10218-1:2025 excludes, among other applications, airborne/space robots, service robots with public access, consumer products and robots integrated on mobile platforms. Do not use it as a universal robot standard.
+- The 2026 ISO/DIS 3691-4 draft describes driverless industrial-truck hazards and verification, but explicitly excludes hazards related to self-evolving behaviour or logic (e.g. AI). It is a draft, not a published final replacement standard.
+- ISO 13849-1:2023 provides a methodology; it does not define the required performance level for a specific application and does not itself provide cybersecurity requirements.
+- ISO 12100 establishes risk-assessment/risk-reduction principles; it does not make an empirical benchmark a safety case.
+
+**Strategic consequence:** RRVR should be a versioned evidence and verification layer that helps preserve traceable claims, assumptions, configuration and change history for the applicable safety lifecycle. It must not claim to certify an AI policy, qualify a safety PLC, prove functional-safety performance or satisfy a standard merely because its software tests pass.
+
+Official sources:
+- https://www.iso.org/standard/73933.html
+- https://www.iso.org/standard/73934.html
+- https://www.iso.org/standard/73481.html
+- https://www.iso.org/standard/51528.html
+- https://www.iso.org/standard/83545.html
+- https://www.iso.org/standard/88615.html
+
+## 2.18 Updated research differentiation
+
+The refreshed comparison supports a narrower, stronger proposition:
+
+**AERB is an execution-ambiguity and evidence-to-effect assurance overlay. It does not compete to replace active perception, fault diagnosis, VLA recovery, temporal safety monitoring, runtime assurance, safety-related control systems or industrial safety standards.**
+
+Its research claims should be tested across three additional boundaries:
+
+1. **Recovery decision boundary:** whether independently admitted evidence justifies reusing, adapting, stopping or retrying the original task.
+2. **Observation boundary:** whether a proposed information-gathering trajectory is safe and decision-relevant over its entire physical duration.
+3. **Effect boundary:** whether the evidence-supported decision remains current at the exact action-ticket/commit cut, including late arrivals, revocation, scope changes and A→B→A revision histories.
+
+The claim ceiling remains synthetic/process-model software conformance until there is independent simulator, HIL and controlled physical evidence. Standards mapping remains an applicability aid, not conformity assessment.
