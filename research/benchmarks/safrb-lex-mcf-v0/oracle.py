@@ -101,12 +101,13 @@ def solve_fixed_flow_mcf(
         head = str(arc["head"])
         capacity = int(arc["capacity"])
         lower = int(frozen_lower_bounds.get(edge_id, 0))
-        if lower < 0 or lower > capacity:
-            raise ValueError(f"invalid frozen lower bound for {edge_id}")
+        upper = lower if edge_id in frozen_lower_bounds else capacity
+        if lower < 0 or upper < lower or upper > capacity:
+            raise ValueError(f"invalid frozen bound for {edge_id}")
 
         demand[tail] += lower
         demand[head] -= lower
-        residual_capacity = capacity - lower
+        residual_capacity = upper - lower
         unit_cost = int(stage_costs.get(edge_id, 0))
 
         if implementation == "capacity_scaling":
