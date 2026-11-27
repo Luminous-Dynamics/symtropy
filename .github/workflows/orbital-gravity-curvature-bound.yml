@@ -1,0 +1,93 @@
+name: Orbital Gravity Curvature Bound Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-gravity-curvature-bound-bench/**"
+      - ".github/workflows/orbital-gravity-curvature-bound.yml"
+  push:
+    branches:
+      - "research/orbital-gravity-curvature-bound-v0-1"
+    paths:
+      - "tools/orbital-gravity-curvature-bound-bench/**"
+      - ".github/workflows/orbital-gravity-curvature-bound.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Fixed-point curvature bound and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/orbital-gravity-curvature-bound-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-gravity-curvature-bound-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-gravity-curvature-bound-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Bind frozen corpus digest
+        run: |
+          echo "CORPUS_SHA256=$(sha256sum tools/orbital-gravity-curvature-bound-bench/fixtures/gravity-curvature-corpus-v0_1.csv | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Deterministic Rust receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-gravity-curvature-bound-bench/Cargo.toml --bin orbital-gravity-curvature-bound-bench -- tools/orbital-gravity-curvature-bound-bench/fixtures/gravity-curvature-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/curvature-rust.json
+          cargo run --quiet --locked --manifest-path tools/orbital-gravity-curvature-bound-bench/Cargo.toml --bin orbital-gravity-curvature-bound-bench -- tools/orbital-gravity-curvature-bound-bench/fixtures/gravity-curvature-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/curvature-rust-replay.json
+          cmp /tmp/curvature-rust.json /tmp/curvature-rust-replay.json
+      - name: Independent Python integer oracle
+        run: |
+          python3 tools/orbital-gravity-curvature-bound-bench/tests/reference_oracle.py tools/orbital-gravity-curvature-bound-bench/fixtures/gravity-curvature-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/curvature-python.json
+      - name: Compare complete receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/curvature-rust.json").read_text())
+          oracle = json.loads(Path("/tmp/curvature-python.json").read_text())
+          assert rust == oracle
+          assert rust["case_count"] == 36
+          assert rust["expected_disposition_matches"] == 36
+          assert rust["expected_disposition_mismatches"] == 0
+          assert rust["claim_ready"] is False
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["authority_granted"] is False
+          assert rust["physical_validation"] == "NOT_ASSESSED"
+          cases = {item["case_id"]: item for item in rust["results"]}
+          assert cases["CB001"]["disposition"] == "BOUND_READY"
+          assert cases["CB009"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["CB015"]["disposition"] == "INDETERMINATE"
+          assert cases["CB024"]["disposition"] == "OVERFLOW"
+          assert cases["CB027"]["disposition"] == "BOUND_READY"
+          assert cases["CB028"]["disposition"] == "OVERFLOW"
+          assert cases["CB031"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["CB033"]["disposition"] == "BOUND_READY"
+          assert cases["CB033"]["bound_ready"] is True
+          assert cases["CB001"]["m_scale"] == 1000000
+          assert cases["CB001"]["m_unit"] == "s^-2"
+          assert cases["CB001"]["bound_ready"] is True
+          assert cases["CB026"]["disposition"] == "BOUND_READY"
+          assert cases["CB026"]["bound_ready"] is True
+          assert cases["CB027"]["disposition"] == "BOUND_READY"
+          assert cases["CB027"]["bound_ready"] is True
+          assert cases["CB030"]["disposition"] == "BOUND_READY"
+          assert cases["CB030"]["bound_ready"] is True
+          print("36 curvature cases: exact Rust/Python receipt equality with overflow-safe decomposition")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-gravity-curvature-bound-evidence
+          path: |
+            /tmp/curvature-rust.json
+            /tmp/curvature-python.json
+            tools/orbital-gravity-curvature-bound-bench/fixtures/gravity-curvature-corpus-v0_1.csv
+          if-no-files-found: error
+          retention-days: 30
