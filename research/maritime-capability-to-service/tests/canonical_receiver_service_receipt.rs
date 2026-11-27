@@ -26,7 +26,15 @@ struct Cohort {
     disposition: String,
 }
 
-fn parse_receipt(input: &str) -> Result<(BTreeMap<String, (usize, usize)>, BTreeMap<(String, String, String), Cohort>), String> {
+fn parse_receipt(
+    input: &str,
+) -> Result<
+    (
+        BTreeMap<String, (usize, usize)>,
+        BTreeMap<(String, String, String), Cohort>,
+    ),
+    String,
+> {
     let mut lines = input.lines();
     if lines.next() != Some("RECEIVER_SERVICE_RECEIPT\t0.1") {
         return Err("unsupported receiver-service receipt header".to_owned());
@@ -105,7 +113,12 @@ fn parse_receipt(input: &str) -> Result<(BTreeMap<String, (usize, usize)>, BTree
                     return Err("receiver-service owner summary did not pass 10/10".to_owned());
                 }
             }
-            other => return Err(format!("line {}: unknown/malformed receipt row {other}", index + 3)),
+            other => {
+                return Err(format!(
+                    "line {}: unknown/malformed receipt row {other}",
+                    index + 3
+                ));
+            }
         }
     }
 
@@ -129,10 +142,14 @@ fn parse_receipt(input: &str) -> Result<(BTreeMap<String, (usize, usize)>, BTree
     // Unit-level adjudication remains the canonical #7554 implementation.
     for ((case_id, _, _), row) in &cohorts {
         if row.adjudicated + row.unresolved + row.reconciliation_failure != row.scheduled {
-            return Err(format!("{case_id}: adjudicated + unresolved + reconciliation must equal scheduled"));
+            return Err(format!(
+                "{case_id}: adjudicated + unresolved + reconciliation must equal scheduled"
+            ));
         }
         if row.on_time + row.late + row.not_accepted + row.lost != row.adjudicated {
-            return Err(format!("{case_id}: adjudicated outcome categories do not reconcile"));
+            return Err(format!(
+                "{case_id}: adjudicated outcome categories do not reconcile"
+            ));
         }
         if row.observed_numerator != row.on_time
             || row.observed_denominator != row.adjudicated
@@ -141,18 +158,18 @@ fn parse_receipt(input: &str) -> Result<(BTreeMap<String, (usize, usize)>, BTree
             || row.upper_numerator != row.on_time + row.unresolved
             || row.upper_denominator != row.scheduled
         {
-            return Err(format!("{case_id}: observed or conservative service bounds do not reconcile"));
+            return Err(format!(
+                "{case_id}: observed or conservative service bounds do not reconcile"
+            ));
         }
         let expected_disposition = match row.floor {
             None => "NOT_CONFIGURED",
             Some(_) if row.reconciliation_failure > 0 => "INVALID_EVIDENCE",
             Some(floor) => {
-                let lower_passes =
-                    u128::from(row.lower_numerator) * 10_000
-                        >= u128::from(floor) * u128::from(row.lower_denominator);
-                let upper_fails =
-                    u128::from(row.upper_numerator) * 10_000
-                        < u128::from(floor) * u128::from(row.upper_denominator);
+                let lower_passes = u128::from(row.lower_numerator) * 10_000
+                    >= u128::from(floor) * u128::from(row.lower_denominator);
+                let upper_fails = u128::from(row.upper_numerator) * 10_000
+                    < u128::from(floor) * u128::from(row.upper_denominator);
                 if lower_passes {
                     "PASS"
                 } else if upper_fails {
@@ -183,7 +200,10 @@ fn canonical_receiver_service_receipt_preserves_unknown_and_protected_floor_boun
         "essential".to_owned(),
         "container".to_owned(),
     )];
-    assert_eq!((accepted.scheduled, accepted.adjudicated, accepted.on_time), (2, 2, 2));
+    assert_eq!(
+        (accepted.scheduled, accepted.adjudicated, accepted.on_time),
+        (2, 2, 2)
+    );
     assert_eq!(accepted.disposition, "PASS");
 
     let terminal_only = &cohorts[&(
@@ -201,7 +221,10 @@ fn canonical_receiver_service_receipt_preserves_unknown_and_protected_floor_boun
         "essential".to_owned(),
         "container".to_owned(),
     )];
-    assert_eq!((late.scheduled, late.adjudicated, late.late, late.on_time), (1, 1, 1, 0));
+    assert_eq!(
+        (late.scheduled, late.adjudicated, late.late, late.on_time),
+        (1, 1, 1, 0)
+    );
     assert_eq!(late.disposition, "FAIL");
 
     let censored = &cohorts[&(
@@ -209,9 +232,22 @@ fn canonical_receiver_service_receipt_preserves_unknown_and_protected_floor_boun
         "essential".to_owned(),
         "container".to_owned(),
     )];
-    assert_eq!((censored.scheduled, censored.adjudicated, censored.unresolved), (10, 6, 4));
-    assert_eq!((censored.lower_numerator, censored.lower_denominator), (6, 10));
-    assert_eq!((censored.upper_numerator, censored.upper_denominator), (10, 10));
+    assert_eq!(
+        (
+            censored.scheduled,
+            censored.adjudicated,
+            censored.unresolved
+        ),
+        (10, 6, 4)
+    );
+    assert_eq!(
+        (censored.lower_numerator, censored.lower_denominator),
+        (6, 10)
+    );
+    assert_eq!(
+        (censored.upper_numerator, censored.upper_denominator),
+        (10, 10)
+    );
     assert_eq!(censored.disposition, "UNKNOWN");
 
     let container = &cohorts[&(
