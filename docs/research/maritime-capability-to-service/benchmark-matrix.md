@@ -220,6 +220,24 @@ Accepted quantity cannot exceed inspection-qualified quantity or expected units.
 
 The distinction prevents an internal NDT/QA pass from being promoted into proof that an intended receiver took custody and accepted the output. Production adapters must bind these records to Mycelix-owned custody, dispatch, handoff and participant-authority evidence.
 
+## Port-city service-equivalence and shared-PCC comparator
+
+MCSC now consumes the exact 48-disposition port-city service-equivalence trace from Mycelix #6343 / draft PR #6344. Its source is pinned by commit `654d37bc1aac06ece189c8fb0c0a0202c69bf6eb` and blob `ee9ecb7fc42009c6658e644b57e8f459aa68b979`; the checked-in JSON is unchanged and the TSV is a deterministic projection of dispositions, policy vectors and heat partitions.
+
+The three source policies offer a useful negative-control experiment:
+
+| Policy | PCC peak | PCC energy | Cap breach | Useful compute work |
+|---|---:|---:|---:|---:|
+| Baseline inflexible | 7.4 MW | 6.125 MWh | 0 | 100 |
+| Naive objective-only shift | 9.2 MW | 6.125 MWh | 1.0 MW | 100 |
+| No-new-peak admitted | 7.2 MW | 6.125 MWh | 0 | 100 |
+
+The MCSC integration test reconstructs every interval's PCC load from the independent resource profiles, recalculates energy, checks service equivalence and validates the three heat partitions. It also verifies all 48 source dispositions remain individually identifiable and keep their Positive/Negative/Unknown/Conflict classes.
+
+This benchmark is a cross-owner contract and hand-computable synthetic known-answer trace. It is not a site simulation, real power-flow model, RO process qualification or physical heat-recovery measurement. Water product quality/volume and environmental limits remain unknown. The independent owner engines remain authoritative for PCC verification, compute flexibility, cooling/thermal storage, RO, marine forecasts, rights and common-cause dependency closure.
+
+The frontier is therefore no longer simply “co-optimize more assets.” It is to prove that a coordinated schedule preserves the same vessel, terminal, compute and water obligations under one shared grid envelope, and that its evidence/time/authority frontiers are consistent across independent owners.
+
 ## Causal interpretation and evidence ladder
 
 The option-value vector is a **model counterfactual** until the intervention is identified from actual assignments and independently measured outcomes. Do not call modelled regional value, predicted jobs or simulated service recovery a causal industrial impact.
