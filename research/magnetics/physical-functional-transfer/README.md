@@ -19,7 +19,7 @@ For a two-channel sensor:
 - `o`: interval channel offsets;
 - `e`: whole-cell response residual envelope for declared nonlinearity, hysteresis, temperature/electronics effects not represented by `H`.
 
-The matrix coefficient unit is `output_unit / field_unit`. Offset and response residual units match the output unit. The first implementation requires dimensionless phasor output. The intervals are component-wise; correlations are not encoded, so overestimation is possible. The adapter also rechecks the upstream certificate's midpoint, residual-radius, centre-residual and physical-field addition identities before using its field enclosure.
+The matrix coefficient unit is `output_unit / field_unit`. Offset and response residual units match the output unit. The first implementation requires dimensionless phasor output. The intervals are component-wise; correlations are not encoded, so overestimation is possible. The adapter also rechecks the upstream certificate's midpoint, centre residual, physical-field addition and whole-cell residual-Jacobian scope. It recomputes the required residual-variation radius from the supplied cell-wide Jacobian supremum matrix and cell half-widths and rejects an understated radius. The returned certificate retains the complete upstream field certificate, sensor-transfer contract and functional requirements verbatim, in addition to the derived phasor and margins.
 
 The sensor calibration is required to carry the Calibration evidence role, while the evaluated physical field and independent reference retain their own roles. A frozen calibration may therefore score a sealed blind-holdout field/reference pair without collapsing their evidence classes. Adaptive-exploration or blind-holdout evidence cannot be presented as the calibration source. The independent angular reference binds its own instrument ID, calibration ID/digest, sample digest, rotor-state ID and operating condition. The transfer model, artifact, environment, frontend and exact upstream physical scope are identity-bound. The external evidence behind those identities is not cryptographically authenticated by this crate.
 
@@ -49,7 +49,7 @@ The result is conditional on the correctness of the physical field, sensor trans
 
 ## Tests and benchmark targets
 
-The initial test suite covers identity transfer, Z-axis cross-coupling and channel offsets, independent phase/amplitude failure, a branch-cut challenge, a potentially zero measured phasor, nonzero reference and reference-calibration provenance, uncertainty widening, exact cell scope, upstream-certificate closure, sensor-calibration digest, independent calibration/holdout role handling and unit controls.
+The initial 16-test suite covers identity transfer, Z-axis cross-coupling and channel offsets, independent phase/amplitude failure, a branch-cut challenge, a potentially zero measured phasor, nonzero reference and reference-calibration provenance, uncertainty widening, exact cell scope, upstream-certificate closure, understated Jacobian-derived residual-radius rejection, complete input-provenance retention, sensor-calibration digest, independent calibration/holdout role handling and unit controls.
 
 Research targets:
 - zero false-safe classifications on preregistered analytic and physical holdouts;
