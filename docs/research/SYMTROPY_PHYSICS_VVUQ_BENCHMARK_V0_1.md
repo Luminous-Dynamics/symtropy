@@ -53,7 +53,7 @@ The focused workflow pins the repository Rust toolchain, runs formatting and thi
 - Next geometry tiers: 3D 15-axis OBB SAT, convex polygon/hull pairs, degeneracy and grazing corpus, EPA depth and witness error, then public analytic TOI/CCD datasets.
 - Next VVUQ tiers: oscillator/pendulum reference, energy/momentum budgets for closed systems, constrained-system residuals, independent inertia/asymmetric-top solutions, and finally blind experimental points with measurement uncertainty.
 
-ASME V&V 20 requires simulation accuracy to be assessed at specified validation points while accounting for both numerical and experimental uncertainty. These two synthetic seed tests cover only the analytical/code-verification part of that larger process; they cannot establish physical validation or a global model-validity claim.
+ASME V&V 20 requires simulation accuracy to be assessed at specified validation points while accounting for both numerical and experimental uncertainty; VVUQ 20.1-2024 offers a multivariate metric for a global discrepancy assessment across observables and operating points. These two synthetic seed tests cover only analytical/code verification for two narrow behaviors; they cannot establish experimental physical validation or a global model-validity claim.
 
 ## Evidence to publish
 
@@ -71,11 +71,23 @@ The test suite now includes a separate 3D OBB corpus, not just the 2D seed:
 
 This extends the narrowphase reference coverage from 2D to 3D. It still does not qualify 4D simplex logic, EPA penetration depth, continuous collision detection, contact manifolds, or physical experiments. The next N-dimensional stage should have its own independent oracle (for example, bounded convex polytopes and linear-program feasibility), rather than extrapolating 3D SAT.
 
-## Industry benchmark snapshot and fair-comparison rules (2026-11-26)
+## Industry benchmark snapshot and fair-comparison rules (2026-11-27)
 
-A useful current external reference is the Rapier 0.35 / Godot 4.7 performance comparison. The published Godot Rapier table reports p50 physics-step times on the same M1 machine, release builds, and with rendering excluded. Examples include a 10k-body 2D box pyramid (Rapier2D 15.6 ms vs Box2D 17.0 ms), mixed 3D piles (Rapier3D 10.8 ms vs Jolt 12.4 ms), and query storms (Rapier3D 5.7 ms vs Jolt 22.3 ms). The table also includes an unstable/timeout joint-grid result for Jolt; that must remain a failure/unsupported result, not be omitted from an aggregate. These are Godot-integrated scene results, not isolated engine microbenchmarks and not directly comparable with Symtropy's current GJK nanosecond measurements. See the [published benchmark table](https://godot.rapier.rs/docs/documentation/performance/) and [Rapier 2026 update](https://godot.rapier.rs/blog/2026-updates/).
+The current public Rapier/Godot performance page reports **p50 physics-step time on identical scenes, release builds, Godot 4.7, an M1 machine, and rendering excluded**. Its published rows are a useful scene-level comparator:
 
-Jolt documents an optional cross-platform deterministic build mode with an approximately 8% performance cost and lists compiler, configuration, OS and architecture targets. It also documents that broadphase queries remain non-deterministic due to multithreaded broadphase mutation. This is a useful comparator for Symtropy's deterministic-replay work: the comparison must name which APIs are deterministic, not generalize one deterministic path to every query. See [Jolt's architecture and determinism notes](https://jrouwe.github.io/JoltPhysics/).
+| Scene | Rapier2D | Box2D v3 | Rapier3D | Jolt |
+|---|---:|---:|---:|---:|
+| 10k-body 2D box pyramid | 15.6 ms | 17.0 ms | 20.6 ms | 25.1 ms |
+| Mixed-shape pile | 6.9 ms | 5.5 ms | 10.8 ms | 12.4 ms |
+| Joint grid | 6.4 ms | 3.9 ms | 11.5 ms | Timeout |
+| Smash (3k bodies) | 7.8 ms | 8.9 ms | 13.3 ms | 12.6 ms |
+| Query storm | 5.7 ms | 4.0 ms | 5.7 ms | 22.3 ms |
+
+The Jolt joint-grid timeout is a failed/unsupported result and must stay visible rather than being omitted from an aggregate. These are Godot-integrated scene results, not isolated engine microbenchmarks and not directly comparable with Symtropy's current GJK nanosecond measurements. Reproduce the same scenes and hardware before making a relative-performance claim. See the [published benchmark table](https://godot.rapier.rs/docs/documentation/performance/).
+
+Jolt 5.5 documents an optional cross-platform deterministic build mode with an approximately 8% performance cost. Its documentation explicitly excludes broadphase queries from the guarantee because the broadphase is mutated from multiple threads; narrowphase result order can also vary even when the returned narrowphase results are consistent. It also documents world-scale precision limitations caused by float-based broadphase bounds. This is a valuable comparator for Symtropy's determinism and large-world work: publish determinism coverage by API, not as one global Boolean. See [Jolt 5.5 architecture and determinism notes](https://jrouwe.github.io/JoltPhysicsDocs/5.5.0/).
+
+For scientific VVUQ, ASME V&V 20-2009 is the pointwise CFD/heat-transfer validation reference; **ASME VVUQ 20.1-2024** adds a multivariate metric for global discrepancies across several variables, positions and times, accounting for shared or independent uncertainties. Symtropy should progress from isolated analytical point checks to multivariate validation envelopes over several observables and operating points. See [ASME V&V 20](https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer) and [ASME VVUQ 20.1-2024](https://www.asme.org/codes-standards/find-codes-standards/vvuq201-vvuq-20-1-multivariate-metric-for-validation).
 
 Dimforge's Q3 2026 report describes recent Rapier/Nexus performance work and discusses scaling limits reported for MuJoCo, MJX, Newton and Genesis in the workloads it measured. This is a vendor engineering report, not an independent cross-engine adjudication; treat it as hypothesis-generating evidence and rerun matched workloads before using it for comparative claims. See [Dimforge Q3 2026 technical report](https://dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/).
 
@@ -101,4 +113,8 @@ Symtropy already has dedicated internal AABB broadphase tournaments (#7588 / #75
 - [Symtropy research validation envelope](../../crates/core/symtropy-physics/RESEARCH_VALIDATION.md).
 - [Orientation-aware collision validation limits](../../crates/core/symtropy-physics/ORIENTED_COLLISION_VALIDATION.md).
 - [ASME V&V 20: Verification and Validation in CFD and Heat Transfer](https://www.asme.org/codes-standards/find-codes-standards/standard-for-verification-and-validation-in-computational-fluid-dynamics-and-heat-transfer).
+
+- [ASME VVUQ 20.1-2024: Multivariate Metric for Validation](https://www.asme.org/codes-standards/find-codes-standards/vvuq201-vvuq-20-1-multivariate-metric-for-validation).
+- [Jolt Physics 5.5 determinism and limitations](https://jrouwe.github.io/JoltPhysicsDocs/5.5.0/).
+- [Rapier/Godot scene benchmark](https://godot.rapier.rs/docs/documentation/performance/).
 - [NASA CFD verification assessment](https://www.grc.nasa.gov/www/wind/valid/tutorial/verassess.html).
