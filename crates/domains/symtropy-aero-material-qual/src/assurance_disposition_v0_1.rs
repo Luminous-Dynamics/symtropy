@@ -642,6 +642,7 @@ mod tests {
                 obligation("semantic", Kind::SemanticValidity),
                 obligation("temporal", Kind::TemporalKnowledge),
                 obligation("observer", Kind::DependencyObservation),
+                obligation("integrity", Kind::EvidenceIntegrity),
             ],
             defeaters: Vec::new(),
         }
@@ -793,6 +794,20 @@ mod tests {
         case.replay_mode = Replay::CurrentPolicyCounterfactual;
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.replay_mode, Replay::CurrentPolicyCounterfactual);
+    }
+
+    #[test]
+    fn positive_control_declares_all_intrinsic_hard_gates() {
+        let case = positive_case();
+        for required_kind in [
+            Kind::ClaimIdentity,
+            Kind::EvidenceIntegrity,
+            Kind::ProducerAuthority,
+        ] {
+            assert!(case.obligations.iter().any(|item| {
+                item.kind == required_kind && item.mandatory && item.hard_gate
+            }));
+        }
     }
 
     #[test]
