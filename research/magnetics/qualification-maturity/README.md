@@ -39,3 +39,10 @@ These are complementary layers. None substitutes for the others.
 ## Claim boundary
 
 The evaluator checks receipt identity, evidence class, scope joins and maturity-gate semantics. It does not authenticate issuers, verify a certification registry, confer ISO/ASTM/IEC conformity, qualify a real process, or prove route superiority. Invalid or mismatched evidence cannot promote a candidate.
+
+
+## Stronger specimen and process evidence gates
+
+M2 requires measured remanence (`Br`) and intrinsic coercivity (`Hcj`) under method-scoped measurement evidence and a matching laboratory-method-scope receipt. M3 requires same-specimen/same-lot/same-build process–microstructure–property linkage plus phase, texture/orientation and porosity/defect characterization. Empty evidence returns `Unestablished`, not M1.
+
+M4 binds geometry inspection, functional response and component acceptance to the same component and specimen. M5 binds variability analysis to the exact cohort summary, site quality to a production-site ID, and PBF-LB IQ/OQ/PQ records to the exact machine ID.
