@@ -32,3 +32,5 @@ The authoring environment has no Cargo, rustc or rustfmt; tests are authored but
 - `../PRESERVATION_WATCH_INTERVENTION_001.md`: protocol, OAIS mapping, policy and evidence boundary.
 
 The fixture is not a physical observation dataset, failure-probability model or lifetime study.
+
+Alert history is monotonic until remediated: an expired or later Unknown observation cannot downgrade a previously verified alert. Each active alert ID is preserved in the receipt. A Healthy observation clears exactly one named alert and must reference a unique remediation receipt ID plus its SHA-256 digest; the same remediation receipt ID cannot clear multiple alerts. The watch kernel validates receipt binding shape and provenance claims but does not authenticate or hash the external receipt itself.
