@@ -194,28 +194,43 @@ fn obb2_intersects(left: Obb2, right: Obb2) -> bool {
 struct Obb3 {
     center: [f64; 3],
     half: [f64; 3],
-    euler_xyz: [f64; 3],
+    plane_angles_xy_yz_xz: [f64; 3],
+}
+
+fn multiply3(left: [[f64; 3]; 3], right: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    std::array::from_fn(|row| {
+        std::array::from_fn(|column| {
+            left[row][0] * right[0][column]
+                + left[row][1] * right[1][column]
+                + left[row][2] * right[2][column]
+        })
+    })
 }
 
 impl Obb3 {
-    /// Row-major Rz * Ry * Rx rotation matrix.
+    /// Compose the same independent plane rotations used by #7622:
+    /// XY, then YZ, then XZ (Rotor::compose outer-to-inner order).
     fn rotation(self) -> [[f64; 3]; 3] {
-        let (sx, cx) = self.euler_xyz[0].sin_cos();
-        let (sy, cy) = self.euler_xyz[1].sin_cos();
-        let (sz, cz) = self.euler_xyz[2].sin_cos();
-        [
-            [
-                cz * cy,
-                cz * sy * sx - sz * cx,
-                cz * sy * cx + sz * sx,
-            ],
-            [
-                sz * cy,
-                sz * sy * sx + cz * cx,
-                sz * sy * cx - cz * sx,
-            ],
-            [-sy, cy * sx, cy * cx],
-        ]
+        let [xy, yz, xz] = self.plane_angles_xy_yz_xz;
+        let (sin_xy, cos_xy) = xy.sin_cos();
+        let (sin_yz, cos_yz) = yz.sin_cos();
+        let (sin_xz, cos_xz) = xz.sin_cos();
+        let rotate_xy = [
+            [cos_xy, -sin_xy, 0.0],
+            [sin_xy, cos_xy, 0.0],
+            [0.0, 0.0, 1.0],
+        ];
+        let rotate_yz = [
+            [1.0, 0.0, 0.0],
+            [0.0, cos_yz, -sin_yz],
+            [0.0, sin_yz, cos_yz],
+        ];
+        let rotate_xz = [
+            [cos_xz, 0.0, -sin_xz],
+            [0.0, 1.0, 0.0],
+            [sin_xz, 0.0, cos_xz],
+        ];
+        multiply3(rotate_xz, multiply3(rotate_yz, rotate_xy))
     }
 
     /// World-space local axes, represented as the rotation matrix columns.
@@ -390,14 +405,16 @@ fn row_from_audit(
 /// implication from broadphase candidate discovery to exact shape contacts.
 pub fn run_shape_coverage_campaign(
     cases_per_dimension: usize,
-    seed: u64,
 ) -> Result<Vec<ShapeCoverageRow>, TournamentError> {
     if cases_per_dimension == 0 {
         return Err(TournamentError::EmptyScene);
     }
+    // These are the frozen independent-reference seeds in physics VVUQ PR #7622.
+    const SEED_2D: u64 = 0x4551_4356_5655_3031;
+    const SEED_3D: u64 = 0x3344_4f42_4256_5655;
     Ok(vec![
-        run_2d(cases_per_dimension, seed)?,
-        run_3d(cases_per_dimension, seed ^ 0x3344_4f42_4256_5655)?,
+        run_2d(cases_per_dimension, SEED_2D)?,
+        run_3d(cases_per_dimension, SEED_3D)?,
     ])
 }
 
@@ -409,6 +426,10 @@ fn run_2d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
 
     for index in 0..cases {
         let center_a = [0.0, 0.0];
+        let angle_a =
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI);
+        let angle_b =
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI);
         let center_b = [
             super::next_between(&mut state, -3.0, 3.0),
             super::next_between(&mut state, -2.0, 2.0),
@@ -416,12 +437,12 @@ fn run_2d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
         let left = Obb2 {
             center: center_a,
             half: half_a,
-            angle: super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            angle: angle_a,
         };
         let right = Obb2 {
             center: center_b,
             half: half_b,
-            angle: super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            angle: angle_b,
         };
         let id = u64::try_from(index).map_err(|_| TournamentError::CounterOverflow)?;
         let left_id = id.checked_mul(2).ok_or(TournamentError::CounterOverflow)?;
@@ -449,6 +470,16 @@ fn run_3d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
 
     for index in 0..cases {
         let center_a = [0.0, 0.0, 0.0];
+        let plane_angles_a = [
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+        ];
+        let plane_angles_b = [
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+        ];
         let center_b = [
             super::next_between(&mut state, -1.62, 1.62),
             super::next_between(&mut state, -0.90, 0.90),
@@ -457,20 +488,12 @@ fn run_3d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
         let left = Obb3 {
             center: center_a,
             half: half_a,
-            euler_xyz: [
-                super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
-                super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
-                super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
-            ],
+            plane_angles_xy_yz_xz: plane_angles_a,
         };
         let right = Obb3 {
             center: center_b,
             half: half_b,
-            euler_xyz: [
-                super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
-                super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
-                super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
-            ],
+            plane_angles_xy_yz_xz: plane_angles_b,
         };
         let id = u64::try_from(index).map_err(|_| TournamentError::CounterOverflow)?;
         let left_id = id.checked_mul(2).ok_or(TournamentError::CounterOverflow)?;
