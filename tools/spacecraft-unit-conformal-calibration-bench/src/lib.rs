@@ -375,7 +375,10 @@ fn conformal_rank(unit_count: u64, nominal_level_bps: u16) -> Option<u64> {
 
 /// Returns the exact one-based conformal order statistic. None means the rank exceeds n
 /// or the selected order statistic is +infinity because the calibration unit was unscored.
-fn conformal_quantile(scores: &[Option<u64>], nominal_level_bps: u16) -> Option<(u64, Option<u64>)> {
+fn conformal_quantile(
+    scores: &[Option<u64>],
+    nominal_level_bps: u16,
+) -> Option<(u64, Option<u64>)> {
     let sample_count = u64::try_from(scores.len()).ok()?;
     let rank = conformal_rank(sample_count, nominal_level_bps)?;
     if rank > sample_count {
@@ -456,11 +459,7 @@ fn evaluate_threshold(
 
     for unit in units.values() {
         let has_unscored = unit.scores.iter().any(Option::is_none);
-        let has_silent_miss = unit
-            .scores
-            .iter()
-            .flatten()
-            .any(|score| *score > threshold);
+        let has_silent_miss = unit.scores.iter().flatten().any(|score| *score > threshold);
         if has_unscored {
             result.units_with_unscored_frames += 1;
         }
@@ -506,11 +505,9 @@ fn threshold_result(
     test_units: &BTreeMap<String, UnitRows>,
 ) -> ThresholdResult {
     let (frame_rank, frame_threshold) =
-        conformal_quantile(calibration_frame_scores, nominal_level_bps)
-            .unwrap_or((0, None));
+        conformal_quantile(calibration_frame_scores, nominal_level_bps).unwrap_or((0, None));
     let (unit_rank, unit_threshold) =
-        conformal_quantile(calibration_unit_scores, nominal_level_bps)
-            .unwrap_or((0, None));
+        conformal_quantile(calibration_unit_scores, nominal_level_bps).unwrap_or((0, None));
 
     let (test_frame_count, test_scored, test_abstained, test_missing, test_invalid) =
         count_status(test_units);
@@ -732,7 +729,11 @@ mod tests {
         }
     }
 
-    fn clean_manifest(calibration_units: u32, test_units: u32, frame_budget: u32) -> Vec<Observation> {
+    fn clean_manifest(
+        calibration_units: u32,
+        test_units: u32,
+        frame_budget: u32,
+    ) -> Vec<Observation> {
         let mut rows = Vec::new();
         for unit_index in 0..calibration_units {
             for frame in 0..frame_budget {
@@ -873,10 +874,12 @@ mod tests {
         rows.extend(other);
         let receipt = evaluate_manifest(&rows).expect("valid separate domains");
         assert_eq!(receipt.scope_count, 2);
-        assert!(receipt
-            .results
-            .iter()
-            .all(|scope| scope.levels[2].unitwise_threshold_q32_32 == Some(1_000)));
+        assert!(
+            receipt
+                .results
+                .iter()
+                .all(|scope| scope.levels[2].unitwise_threshold_q32_32 == Some(1_000))
+        );
     }
 
     #[test]
