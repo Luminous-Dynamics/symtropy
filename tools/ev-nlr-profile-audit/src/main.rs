@@ -586,9 +586,7 @@ fn verify_source_archive(options: &Options) -> Result<Option<String>, String> {
             Ok(Some(actual))
         }
         (None, None) => Ok(None),
-        (Some(_), None) => Err(
-            "--source-archive-path requires --source-archive-sha256".into(),
-        ),
+        (Some(_), None) => Err("--source-archive-path requires --source-archive-sha256".into()),
         (None, Some(_)) => Err(
             "--source-archive-sha256 requires --source-archive-path so the hash can be verified"
                 .into(),
