@@ -385,7 +385,7 @@ pub fn plan_contact_lifecycle(
             decision: Some(ContactReuseDecision {
                 geometry: ReuseDisposition::RefreshRequired,
                 warm_start: ReuseDisposition::RefreshRequired,
-                pair_eligibility_recheck_required: false,
+                pair_eligibility_recheck_required: true,
                 solver_activation_required: true,
                 reasons: vec![FreshnessReason::NewPair],
             }),
