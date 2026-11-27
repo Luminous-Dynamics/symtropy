@@ -1,0 +1,111 @@
+name: Runtime Spacecraft Pose Admission
+
+on:
+  pull_request:
+    paths:
+      - "tools/runtime-pose-admission-bench/**"
+      - ".github/workflows/runtime-pose-admission.yml"
+  push:
+    branches:
+      - "research/runtime-pose-admission-bench-v0-1"
+    paths:
+      - "tools/runtime-pose-admission-bench/**"
+      - ".github/workflows/runtime-pose-admission.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: No-ground-truth runtime admission and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/runtime-pose-admission-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/runtime-pose-admission-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/runtime-pose-admission-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Bind frozen corpus digest
+        run: |
+          echo "CORPUS_SHA256=$(sha256sum tools/runtime-pose-admission-bench/fixtures/runtime-pose-admission-corpus-v0_1.csv | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Deterministic runtime admission receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/runtime-pose-admission-bench/Cargo.toml --bin runtime-pose-admission-bench -- tools/runtime-pose-admission-bench/fixtures/runtime-pose-admission-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/runtime-pose-rust.json
+          cargo run --quiet --locked --manifest-path tools/runtime-pose-admission-bench/Cargo.toml --bin runtime-pose-admission-bench -- tools/runtime-pose-admission-bench/fixtures/runtime-pose-admission-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/runtime-pose-rust-replay.json
+          cmp /tmp/runtime-pose-rust.json /tmp/runtime-pose-rust-replay.json
+      - name: Independent Python runtime admission oracle
+        run: |
+          python3 tools/runtime-pose-admission-bench/tests/reference_oracle.py tools/runtime-pose-admission-bench/fixtures/runtime-pose-admission-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/runtime-pose-python.json
+      - name: Compare complete no-ground-truth receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/runtime-pose-rust.json").read_text())
+          oracle = json.loads(Path("/tmp/runtime-pose-python.json").read_text())
+          if rust != oracle:
+              print("Top-level receipt keys:", sorted(set(rust) | set(oracle)))
+              for key in sorted(set(rust) | set(oracle)):
+                  if rust.get(key) != oracle.get(key) and key != "results":
+                      print("TOP-LEVEL DIFF", key, repr(rust.get(key)), repr(oracle.get(key)))
+              rust_cases = {item["case_id"]: item for item in rust.get("results", [])}
+              oracle_cases = {item["case_id"]: item for item in oracle.get("results", [])}
+              for case_id in sorted(set(rust_cases) | set(oracle_cases)):
+                  left = rust_cases.get(case_id, {})
+                  right = oracle_cases.get(case_id, {})
+                  for key in sorted(set(left) | set(right)):
+                      if left.get(key) != right.get(key):
+                          print("CASE DIFF", case_id, key, repr(left.get(key)), repr(right.get(key)))
+          assert rust == oracle
+          assert rust["case_count"] == 50
+          assert rust["expected_disposition_matches"] == 50
+          assert rust["expected_disposition_mismatches"] == 0
+          assert rust["contains_ground_truth_fields"] is False
+          assert rust["contains_offline_evaluation_labels"] is False
+          assert rust["claim_ready"] is False
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["physical_calibration_validated"] is False
+          assert rust["deterministic_safety_bound"] is False
+          assert rust["maneuver_authority_granted"] is False
+          cases = {item["case_id"]: item for item in rust["results"]}
+          assert cases["RPA001"]["disposition"] == "CANDIDATE_STATISTICAL_REGION"
+          assert cases["RPA013"]["disposition"] == "ABSTAIN_UNCALIBRATED"
+          assert cases["RPA035"]["disposition"] == "INVALID_INPUT"
+          assert cases["RPA037"]["disposition"] == "INVALID_COVARIANCE"
+          assert cases["RPA039"]["disposition"] == "ABSTAIN_UNOBSERVABLE"
+          assert cases["RPA044"]["disposition"] == "CANDIDATE_STATISTICAL_REGION"
+          assert cases["RPA045"]["disposition"] == "DUPLICATE_SAMPLE"
+          assert cases["RPA046"]["disposition"] == "DUPLICATE_SAMPLE"
+          assert cases["RPA001"]["frame_source_bytes_authenticated"] is True
+          assert cases["RPA001"]["profile_source_bytes_authenticated"] is True
+          assert cases["RPA001"]["upstream_source_bytes_authenticated"] is True
+          assert cases["RPA001"]["source_authentication_verified_here"] is False
+          assert cases["RPA001"]["source_bytes_authenticated"] is False
+          assert cases["RPA050"]["disposition"] == "ABSTAIN_UNCALIBRATED"
+          assert cases["RPA050"]["frame_source_bytes_authenticated"] is False
+          assert cases["RPA050"]["upstream_source_bytes_authenticated"] is False
+          assert cases["RPA050"]["source_authentication_verified_here"] is False
+          assert cases["RPA050"]["source_bytes_authenticated"] is False
+          assert cases["RPA001"]["deterministic_safety_bound"] is False
+          assert cases["RPA001"]["maneuver_authority_granted"] is False
+          print("50 runtime pose cases: exact Rust/Python receipt equality; no ground truth in runtime API")
+          PY
+      - name: Retain exact-head evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-pose-admission-evidence
+          path: |
+            /tmp/runtime-pose-rust.json
+            /tmp/runtime-pose-python.json
+            tools/runtime-pose-admission-bench/fixtures/runtime-pose-admission-corpus-v0_1.csv
+          if-no-files-found: error
+          retention-days: 30
