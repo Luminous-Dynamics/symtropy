@@ -22,6 +22,29 @@ pub enum ReplayModeV0_1 {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum SubjectTimeEffectivityV0_1 {
+    #[serde(rename = "DEFINITELY_EFFECTIVE")]
+    DefinitelyEffective,
+    #[serde(rename = "DEFINITELY_NOT_YET_EFFECTIVE")]
+    DefinitelyNotYetEffective,
+    #[serde(rename = "BOUNDARY_AMBIGUOUS")]
+    BoundaryAmbiguous,
+    #[serde(rename = "INVALID_INTERVAL")]
+    InvalidInterval,
+}
+
+impl SubjectTimeEffectivityV0_1 {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DefinitelyEffective => "DEFINITELY_EFFECTIVE",
+            Self::DefinitelyNotYetEffective => "DEFINITELY_NOT_YET_EFFECTIVE",
+            Self::BoundaryAmbiguous => "BOUNDARY_AMBIGUOUS",
+            Self::InvalidInterval => "INVALID_INTERVAL",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum PropositionEvidenceStateV0_1 {
     #[serde(rename = "NEITHER")]
     Neither,
@@ -180,6 +203,7 @@ pub struct AssuranceStateCaseV0_1 {
     pub case_id: String,
     pub description: String,
     pub replay_mode: ReplayModeV0_1,
+    pub subject_time_effectivity: SubjectTimeEffectivityV0_1,
     pub claim_context: ClaimContextV0_1,
     pub obligations: Vec<AssuranceObligationV0_1>,
     pub defeaters: Vec<DefeaterV0_1>,
@@ -193,6 +217,8 @@ pub enum AssuranceDispositionV0_1 {
     OutOfScope,
     #[serde(rename = "NOT_KNOWN_AT_SNAPSHOT")]
     NotKnownAtSnapshot,
+    #[serde(rename = "NOT_EFFECTIVE_AT_SUBJECT_TIME")]
+    NotEffectiveAtSubjectTime,
     #[serde(rename = "UNVERIFIED")]
     Unverified,
     #[serde(rename = "INCOMPLETE")]
@@ -207,6 +233,7 @@ impl AssuranceDispositionV0_1 {
             Self::Rejected => "REJECTED",
             Self::OutOfScope => "OUT_OF_SCOPE",
             Self::NotKnownAtSnapshot => "NOT_KNOWN_AT_SNAPSHOT",
+            Self::NotEffectiveAtSubjectTime => "NOT_EFFECTIVE_AT_SUBJECT_TIME",
             Self::Unverified => "UNVERIFIED",
             Self::Incomplete => "INCOMPLETE",
             Self::ReviewableForIndependentDecision => "REVIEWABLE_FOR_INDEPENDENT_DECISION",
@@ -227,6 +254,7 @@ pub struct AssuranceDispositionAssessmentV0_1 {
     pub reason_codes: Vec<String>,
     pub blocking_obligations: Vec<BlockingObligationV0_1>,
     pub blocking_defeater_ids: Vec<String>,
+    pub subject_time_effectivity: String,
     pub authority_granted: bool,
     pub physical_qualification_status: String,
     pub certification_status: String,
@@ -261,8 +289,25 @@ pub fn evaluate_assurance_state_case_v0_1(
     let mut rejected = false;
     let mut out_of_scope = false;
     let mut not_known = false;
+    let mut not_effective_at_subject_time = false;
     let mut unverified = false;
     let mut incomplete = false;
+
+    match case.subject_time_effectivity {
+        SubjectTimeEffectivityV0_1::DefinitelyEffective => {}
+        SubjectTimeEffectivityV0_1::DefinitelyNotYetEffective => {
+            not_effective_at_subject_time = true;
+            reasons.insert("EVENT_EFFECTIVE_AFTER_EVERY_POSSIBLE_ACQUISITION".to_owned());
+        }
+        SubjectTimeEffectivityV0_1::BoundaryAmbiguous => {
+            incomplete = true;
+            reasons.insert("EVENT_AND_ACQUISITION_TIME_BOUNDS_OVERLAP".to_owned());
+        }
+        SubjectTimeEffectivityV0_1::InvalidInterval => {
+            rejected = true;
+            reasons.insert("TEMPORAL_INTERVAL_START_AFTER_END".to_owned());
+        }
+    }
 
     if !nonempty_canonical(&case.case_id)
         || !nonempty_canonical(&case.claim_context.claim_id)
@@ -471,6 +516,8 @@ pub fn evaluate_assurance_state_case_v0_1(
         AssuranceDispositionV0_1::Unverified
     } else if incomplete {
         AssuranceDispositionV0_1::Incomplete
+    } else if not_effective_at_subject_time {
+        AssuranceDispositionV0_1::NotEffectiveAtSubjectTime
     } else {
         AssuranceDispositionV0_1::ReviewableForIndependentDecision
     };
@@ -481,6 +528,7 @@ pub fn evaluate_assurance_state_case_v0_1(
         reason_codes: reasons.into_iter().collect(),
         blocking_obligations,
         blocking_defeater_ids: blocking_defeaters.into_iter().collect(),
+        subject_time_effectivity: case.subject_time_effectivity.as_str().to_owned(),
         authority_granted: false,
         physical_qualification_status: "OUT_OF_SCOPE_NOT_CLAIMED".to_owned(),
         certification_status: "NOT_CLAIMED".to_owned(),
@@ -492,6 +540,7 @@ mod tests {
     use super::{
         ApplicabilityStateV0_1 as Applicability, AssuranceDispositionV0_1 as Disposition,
         AssuranceObligationV0_1 as Obligation, AssuranceStateCaseV0_1 as Case,
+        SubjectTimeEffectivityV0_1 as SubjectEffectivity,
         AuthorityStateV0_1 as Authority, ClaimContextV0_1 as Context,
         DefeaterMaterialityV0_1 as Materiality, DefeaterStatusV0_1 as DefeaterStatus,
         DefeaterV0_1 as Defeater, ObligationKindV0_1 as Kind,
@@ -522,6 +571,7 @@ mod tests {
             case_id: "ASV-TEST-01".to_owned(),
             description: "All mandatory obligations pass.".to_owned(),
             replay_mode: Replay::HistoricalAsKnown,
+            subject_time_effectivity: super::SubjectTimeEffectivityV0_1::DefinitelyEffective,
             claim_context: Context {
                 claim_id: "CLAIM-001".to_owned(),
                 physical_subject_ref: "ARTICLE-001".to_owned(),
@@ -702,6 +752,32 @@ mod tests {
         let mut case = positive_case();
         case.obligations[1].authority = Authority::NotRequired;
         assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn definitely_not_yet_effective_is_distinct_from_late_receiver_knowledge() {
+        let mut case = positive_case();
+        case.subject_time_effectivity = SubjectEffectivity::DefinitelyNotYetEffective;
+        assert_eq!(
+            disposition(&case),
+            Disposition::NotEffectiveAtSubjectTime
+        );
+        case.obligations[3].temporal_knowledge = Temporal::NotKnownAtCutoff;
+        assert_eq!(disposition(&case), Disposition::NotKnownAtSnapshot);
+    }
+
+    #[test]
+    fn ambiguous_subject_effectivity_abstains() {
+        let mut case = positive_case();
+        case.subject_time_effectivity = SubjectEffectivity::BoundaryAmbiguous;
+        assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn malformed_subject_effectivity_interval_rejects() {
+        let mut case = positive_case();
+        case.subject_time_effectivity = SubjectEffectivity::InvalidInterval;
+        assert_eq!(disposition(&case), Disposition::Rejected);
     }
 
     #[test]
