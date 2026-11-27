@@ -352,7 +352,7 @@ mod tests {
         for (index, row) in rows.iter_mut().enumerate() {
             row.translation_kind = "IMAGE_TRANSLATED".to_owned();
             row.translator_sha256 = digest('1');
-            row.translated_sha256 = digest(if index == 2 { '2' } else { '3' });
+            row.translated_sha256 = digest(['2', '3', '4'][index]);
             row.label_audit_sha256 = digest('4');
             row.label_audit_state = "PASS".to_owned();
         }
