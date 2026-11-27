@@ -46,3 +46,6 @@ The authoring environment has no Cargo, rustc or rustfmt; tests are authored but
 Energy passes now require a pinned workload meter boundary plus a non-empty meter ID, calibration reference, raw meter-evidence SHA-256 digest and positive sampling interval. The measured boundary must match the frozen workload contract. A number without a reproducible meter/evidence record cannot pass.
 
 Migration workload contracts now require an explicit migration_required flag. When true, the scorer requires source physical read/fixity, migration write, destination readback/verification and provenance stages, plus separate source-digest, destination-digest and migration-lineage statuses. The dedicated six-case migration KAT is in ../fixtures/preservation_migration_receipts_v0_1.json with schema ../preservation_migration_receipts_v0_1.schema.json.
+
+
+**CI qualification:** `.github/workflows/preservation-service-reference.yml` runs this standalone crate with Rust 1.96.0, rustfmt, strict Clippy and its unit tests. The workflow formats/commits only this crate's source on the research PR branch before checking it; push-to-main qualification is check-only.
