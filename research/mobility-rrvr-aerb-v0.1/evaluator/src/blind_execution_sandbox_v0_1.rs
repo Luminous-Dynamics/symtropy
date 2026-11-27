@@ -37,6 +37,8 @@ pub struct SandboxLimits {
     pub max_open_files: u64,
     /// RLIMIT_FSIZE per-file output ceiling.
     pub max_file_bytes: u64,
+    /// Maximum size for the private in-sandbox /tmp tmpfs.
+    pub tmpfs_bytes: u64,
 }
 
 impl SandboxLimits {
@@ -46,6 +48,7 @@ impl SandboxLimits {
             || self.max_processes == 0
             || self.max_open_files == 0
             || self.max_file_bytes == 0
+            || self.tmpfs_bytes == 0
         {
             return Err(SandboxError::ZeroResourceLimit);
         }
@@ -255,6 +258,8 @@ pub fn build_candidate_sandbox_command(
         "--new-session",
         "--unshare-all",
         "--unshare-net",
+        "--disable-userns",
+        "--assert-userns-disabled",
         "--cap-drop",
         "ALL",
         "--dir",
@@ -282,6 +287,8 @@ pub fn build_candidate_sandbox_command(
         "/proc",
         "--dev",
         "/dev",
+        "--size",
+        &limits.tmpfs_bytes.to_string(),
         "--tmpfs",
         "/tmp",
         "--chdir",
@@ -290,6 +297,12 @@ pub fn build_candidate_sandbox_command(
         "--setenv",
         "HOME",
         "/tmp",
+        "--setenv",
+        "PWD",
+        "/candidate/input",
+        "--setenv",
+        "TZ",
+        "UTC",
         "--setenv",
         "TMPDIR",
         "/tmp",
@@ -408,6 +421,7 @@ mod tests {
                 max_processes: 32,
                 max_open_files: 128,
                 max_file_bytes: 16_777_216,
+                tmpfs_bytes: 67_108_864,
             },
         )
     }
@@ -553,4 +567,33 @@ mod tests {
         );
         assert!(strings(&command).contains(&"/runtime/bin/candidate".to_owned()));
     }
+
+    #[test]
+    fn private_tmpfs_is_explicitly_size_bounded() {
+        let (_tree, paths, limits) = fixture();
+        let args = strings(&build_candidate_sandbox_command(&paths, limits, &[]).expect("command"));
+        let size = args.iter().position(|arg| arg == "--size").expect("size option");
+        assert_eq!(args[size + 1], "67108864");
+        assert_eq!(args[size + 2], "--tmpfs");
+        assert_eq!(args[size + 3], "/tmp");
+    }
+
+    #[test]
+    fn nested_user_namespaces_must_be_disabled_not_best_effort() {
+        let (_tree, paths, limits) = fixture();
+        let args = strings(&build_candidate_sandbox_command(&paths, limits, &[]).expect("command"));
+        assert!(args.contains(&"--disable-userns".to_owned()));
+        assert!(args.contains(&"--assert-userns-disabled".to_owned()));
+    }
+
+    #[test]
+    fn zero_tmpfs_limit_is_rejected() {
+        let (_tree, paths, mut limits) = fixture();
+        limits.tmpfs_bytes = 0;
+        assert_eq!(
+            build_candidate_sandbox_command(&paths, limits, &[]),
+            Err(SandboxError::ZeroResourceLimit)
+        );
+    }
+
 }
