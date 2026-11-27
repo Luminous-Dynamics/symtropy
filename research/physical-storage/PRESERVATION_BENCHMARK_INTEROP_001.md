@@ -95,3 +95,25 @@ A standard SPEC or SNIA pass never implies a preservation pass. A preservation r
 - SPECstorage Solution 2020 results and same-workload comparison guidance: https://open.spec.org/storage2020/results/
 - SNIA Emerald standards and specification index: https://www.snia.org/tech_activities/standards/curr_standards
 - SNIA Emerald program: https://www.snia.org/emerald
+
+
+## 7. Current public comparison context (reviewed 27 November 2026)
+
+The latest published SPECstorage Solution 2020 Q4 2026 page currently lists:
+- WEKAIO WEKApod3, 31-server AI_IMAGE run: 9,000 AI jobs, 880,157 MB/s result field, 1.8 PiB usable capacity; published 12 November 2026.
+- H3C UniStor Polaris UltraStor EDA_BLENDED run: 4,500 job sets, 32,225 MB/s result field, 104.79 TiB capacity; published 10 November 2026.
+- The Q4 page lists no Genomics, software-build or VDA result entries at review time.
+
+These are official SPEC workload-specific results; they are context for application-style storage scale, not preservation-service baselines. Do not convert either result into archive restore throughput or compare across AI_IMAGE and EDA_BLENDED.
+
+The SNIA Emerald programme page currently identifies Power Efficiency Measurement Specification v4.0.0, adopted 3 July 2020, as the revision it describes and makes all versions available. Pin v4.0.0 when performing the corresponding procedure and record the exact taxonomy/configuration. SNIA's page describes ISO/IEC 24091:2019 as technically equivalent to Emerald v3.0.3, so do not conflate that ISO edition with Emerald v4.0.0.
+
+A contemporaneous technology context:
+- Fujifilm announced US availability of LTO-10 40 TB cartridges on 2 April 2026; published native transfer rate is up to 400 MB/s and advertised archival life is 30+ years under recommended conditions. Its WORM option is listed for the 30 TB variant, not the 40 TB cartridge.
+- Microsoft's 18 February 2026 Project Silica publication reports accelerated-ageing evidence suggesting at least 10,000 years for written borosilicate glass. The programme describes a research demonstrator and says it continues to consider learnings; this is not a measured 10,000-year operational archive service.
+
+Sources:
+- SPECstorage Q4 2026 results: https://www.spec.org/storage2020/results/res2026q4/
+- SNIA Emerald programme: https://www.snia.org/emerald/programs
+- Fujifilm LTO-10 40 TB announcement: https://newsroom-us.fujifilm.com/press-releases/press-release-details/2026/FUJIFILM-North-America-Corporation-Announces-U-S--Availability-of-FUJIFILM-LTO-Ultrium-Generation-10-40TB-Data-Cartridges-04-02-2026/default.aspx
+- Microsoft Project Silica research update: https://www.microsoft.com/en-us/research/blog/project-silicas-advances-in-glass-storage-technology/
