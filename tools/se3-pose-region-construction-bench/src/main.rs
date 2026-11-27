@@ -1,6 +1,5 @@
 use se3_pose_region_construction_bench::{
-    ConformalProfile, RuntimePoseReceipt, RECEIPT_SCHEMA,
-    evaluate_manifest,
+    ConformalProfile, RECEIPT_SCHEMA, RuntimePoseReceipt, evaluate_manifest,
 };
 use std::error::Error;
 use std::fmt::Write as _;
@@ -190,8 +189,13 @@ fn result_json(
             let bounds = region.translation_bounds_um;
             format!(
                 "{{\"translation_bounds_um\":[[{},{}],[{},{}],[{},{}]],\"orientation_cap_urad\":{}}}",
-                bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1],
-                bounds[2][0], bounds[2][1], region.orientation_cap_urad
+                bounds[0][0],
+                bounds[0][1],
+                bounds[1][0],
+                bounds[1][1],
+                bounds[2][0],
+                bounds[2][1],
+                region.orientation_cap_urad
             )
         }
         None => "null".to_owned(),
