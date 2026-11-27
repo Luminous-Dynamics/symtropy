@@ -63,6 +63,24 @@ References:
 - [Siemens: Digital approach to airworthiness](https://static.sw.cdn.siemens.com/siemens-disw-assets/public/OuFPhhtGA5To47IB60A4m/en-US/VM---Technical-guide---Digital-approach-to-airworthiness_tcm27-106699.pdf).
 - [IEEE Aerospace 2024: Automating Model Validation for Quantifying System Maturity & Quality Assurance](https://doi.org/10.1109/AERO58975.2024.10521227).
 
+### Certification acceptance and existing assurance tooling
+
+AERO must operate alongside established certification and assurance infrastructure, not imply that it replaces it.
+
+The FAA describes DO-178C/ED-12C, DO-254/ED-80 and aspects of ARP4754 as established development-assurance references for airborne software, electronic hardware and aircraft/system development. Its joint FAA/EASA Abstraction Layer work explicitly recognises that emerging methods may be evaluated as alternatives only through defined assessment criteria; the Task Force published twenty criteria and guidance for considering alternate standards. AERO's evidence contracts and benchmark are therefore best positioned as a complementing integration/replay method until an applicable authority accepts a method for a defined use.
+
+Reference: [FAA Abstraction Layer Information](https://www.faa.gov/aircraft/air_cert/design_approvals/air_software/abstraction_layer).
+
+The tooling landscape is also non-empty. NIST's assurance-case tools page lists ASCE (Adelard) and its Claims-Arguments-Evidence / GSN support. Siemens markets integrated aircraft-certification and digital-thread workflows connecting certification plans, verification data and lifecycle information. These are important comparison arms and integration targets, not straw-man competitors.
+
+References:
+- [NIST Assurance Case Tools](https://www.nist.gov/itl/csd/secure-systems-and-applications/assurance-case-tools).
+- [Siemens Aircraft Certification](https://www.siemens.com/en-us/digital-thread/integrated-lifecycle-management/aircraft-certification/).
+- [Siemens traceable certification data chain](https://blogs.sw.siemens.com/aerospace-defense/2025/03/20/streamline-the-aircraft-certification-process-part-2-establishing-a-traceable-chain-of-data/).
+- [SAE ARP4754B](https://saemobilus.sae.org/standards/arp4754b-guidelines-development-civil-aircraft-systems).
+
+**Positioning consequence:** compare AERO against both assurance-case authoring/analysis tools and PLM/QMS/digital-thread workflows. The measurable gap is not "traceability exists" but whether a third party can independently reconstruct a claim-level decision across owner boundaries, temporal trust-policy cuts and qualified observer coverage, while preserving source-owner authority and a clear non-approval ceiling.
+
 ## 3. Competitive capability matrix
 
 | Capability | Established industry/research position | AERO's testable opportunity |
