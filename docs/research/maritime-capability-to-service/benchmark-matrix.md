@@ -161,6 +161,18 @@ The research hypothesis to test—not assume—is that **regional productive cap
 
 That reframes local industrial policy from an expenditure quota into a portfolio of service-capable options, and reframes maritime optimization from isolated asset efficiency into whole-chain capability formation, operation and recovery.
 
+
+
+### Quality-qualified vs receiver-accepted service
+
+The micro-reference uses two distinct event records:
+- `INSPECTION`: PASS/FAIL/UNKNOWN, configuration revision and qualified quantity.
+- `RECEIVER_ACCEPTANCE`: ACCEPTED/REJECTED/UNKNOWN, the same configuration revision and accepted quantity.
+
+Accepted quantity cannot exceed inspection-qualified quantity or expected units. FAIL/UNKNOWN inspection yields zero qualified units; REJECTED/UNKNOWN receiver disposition yields zero accepted units. The expected-service denominator is never reduced to match the accepted quantity. Late receiver acceptance remains accepted-but-late. This is still a single batch completion-time model; per-unit arrival distributions and custody timelines are follow-on work.
+
+The distinction prevents an internal NDT/QA pass from being promoted into proof that an intended receiver took custody and accepted the output. Production adapters must bind these records to Mycelix-owned custody, dispatch, handoff and participant-authority evidence.
+
 ## Causal interpretation and evidence ladder
 
 The option-value vector is a **model counterfactual** until the intervention is identified from actual assignments and independently measured outcomes. Do not call modelled regional value, predicted jobs or simulated service recovery a causal industrial impact.
@@ -185,7 +197,7 @@ For a candidate capability investment/qualification package (c), baseline capabi
 \mathbf{Y}(P_0,\omega)
 ]
 
-where \(\mathbf{Y}\) separately contains receiver-accepted and on-time units, time to minimum service and full recovery, lifecycle cost, emissions, regional value added and capability retention. The result is a **vector-valued service option profile**, not a single scalar score.
+where \(\mathbf{Y}\) separately contains receiver-accepted and on-time units, time to minimum service and full recovery, lifecycle cost, emissions, regional value added and capability retention. The result is a **vector-valued service option profile**, not a single scalar score. The underlying service contract distinguishes inspection-qualified quantity from receiver-accepted quantity. A quality pass alone is not a delivery or acceptance event; on-time accepted service is counted only when the receiver record is configuration-matched, explicitly ACCEPTED and within the deadline.
 
 Rules:
 - The capability is available only from its demonstrated qualification/commissioning date and only within its evidenced material, labour, process, inspection, energy and logistics windows.
