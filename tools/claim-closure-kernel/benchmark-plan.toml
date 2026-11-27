@@ -19,7 +19,9 @@ max_graph_depth = 256
 
 [mutation_corpus]
 fixture = "fixtures/mutation-cases-v0.1.json"
+shared_base_fixture = "fixtures/mutation-base-v0.1.json"
 schema = "schemas/mutation-corpus-v0.1.schema.json"
+shared_base_contract = "same positive dependency graph consumed by Rust and Python oracles"
 mutation_cases_authored = 25
 unit_tests_authored = 34
 oracle_review_status = "NOT_INDEPENDENTLY_REVIEWED"
