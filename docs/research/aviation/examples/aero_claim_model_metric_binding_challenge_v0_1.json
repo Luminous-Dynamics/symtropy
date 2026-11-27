@@ -243,6 +243,51 @@
       "expected_reason_codes": [
         "CLAIM_METRIC_BINDING_OWNER_RECORD_ROLE_REUSED"
       ]
+    },
+    {
+      "case_id": "MB28",
+      "case_class": "single_fault",
+      "mutation": "Remove the receiver-first-seen receipt reference and omit that role from the decision's required-evidence manifest.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_MISSING"
+      ]
+    },
+    {
+      "case_id": "MB29",
+      "case_class": "single_fault",
+      "mutation": "Replace the receiver-first-seen owner receipt reference with a noncanonical identifier.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_NONCANONICAL"
+      ]
+    },
+    {
+      "case_id": "MB30",
+      "case_class": "single_fault",
+      "mutation": "Omit the externally supplied raw claim-specification payload digest.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISSING"
+      ]
+    },
+    {
+      "case_id": "MB31",
+      "case_class": "single_fault",
+      "mutation": "Omit the raw claim-specification payload commitment from the typed metric binding while supplying the raw source digest.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_SPECIFICATION_PAYLOAD_DIGEST_MISSING"
+      ]
+    },
+    {
+      "case_id": "MB32",
+      "case_class": "single_fault",
+      "mutation": "Supply a malformed raw claim-specification payload digest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_INVALID"
+      ]
     }
   ]
 }
