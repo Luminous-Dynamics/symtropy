@@ -1049,6 +1049,7 @@ pub fn certify_domain(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use magnetic_interval_ad::{certify_expression_centered, Interval, IntervalDual, ParameterDomain};
 
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -1098,6 +1099,75 @@ mod tests {
             maximum_depth: 8,
             maximum_leaf_count: 64,
         }
+    }
+
+    fn binding_scope() -> SpatialDomainScope {
+        SpatialDomainScope {
+            domain_id: "encoder-domain-001".to_owned(),
+            cell_id: "encoder-cell-xyz-001".to_owned(),
+            bounds: AxisAlignedBox3 {
+                minimum_m: [-0.1, -0.2, -0.05],
+                maximum_m: [0.1, 0.2, 0.05],
+            },
+            coordinate_frame_id: "encoder-frame-v1".to_owned(),
+            operating_condition_id: "temperature-80C-speed-3000rpm".to_owned(),
+            model_set_id: "encoder-response-model-v1".to_owned(),
+            solver_run_id: "encoder-response-run-001".to_owned(),
+            geometry_sha256: DIGEST_A.to_owned(),
+            material_sha256: DIGEST_B.to_owned(),
+            requirement_id: "minimum-phase-margin".to_owned(),
+        }
+    }
+
+    fn centre_observation(scope: &SpatialDomainScope) -> CentreMarginObservation {
+        CentreMarginObservation {
+            sample_id: "traceable-centre-sample-001".to_owned(),
+            sample_sha256: DIGEST_C.to_owned(),
+            sample_position_m: scope.bounds.centre_m(),
+            margin_lower_bound: 0.8,
+            margin_upper_bound: 0.9,
+            margin_unit: "dimensionless".to_owned(),
+            probe_calibration_id: "probe-calibration-2026-11-27".to_owned(),
+        }
+    }
+
+    fn validated_xyz_derivative(
+        scope: &SpatialDomainScope,
+    ) -> ValidatedDerivativeEnclosure<3> {
+        let bounds = scope.bounds;
+        let interval = |lower, upper| Interval::new(lower, upper).expect("finite interval");
+        let domain = ParameterDomain {
+            record_id: "interval-ad-phase-margin-xyz-001".to_owned(),
+            expression_id: "normalized-phasor-cosine-margin-v0.1".to_owned(),
+            cell_id: scope.cell_id.clone(),
+            input_sha256: DIGEST_A.to_owned(),
+            source_revision: "phasor-expression-source-v1".to_owned(),
+            implementation_id: "magnetic-phasor-margin-v0.1".to_owned(),
+            artifact_sha256: DIGEST_B.to_owned(),
+            environment_sha256: DIGEST_C.to_owned(),
+            parameter_ids: ["x".to_owned(), "y".to_owned(), "z".to_owned()],
+            parameter_units: ["metre".to_owned(), "metre".to_owned(), "metre".to_owned()],
+            parameter_bounds: [
+                interval(bounds.minimum_m[0], bounds.maximum_m[0]),
+                interval(bounds.minimum_m[1], bounds.maximum_m[1]),
+                interval(bounds.minimum_m[2], bounds.maximum_m[2]),
+            ],
+            output_unit: "dimensionless".to_owned(),
+            coordinate_frame_id: scope.coordinate_frame_id.clone(),
+            operating_condition_id: scope.operating_condition_id.clone(),
+            model_set_id: scope.model_set_id.clone(),
+            solver_run_id: scope.solver_run_id.clone(),
+            geometry_sha256: scope.geometry_sha256.clone(),
+            material_sha256: scope.material_sha256.clone(),
+            requirement_id: scope.requirement_id.clone(),
+        };
+        certify_expression_centered(&domain, |[x, y, z]: [IntervalDual<3>; 3]| {
+            let dx = IntervalDual::constant(interval(0.1, 0.1));
+            let dy = IntervalDual::constant(interval(0.2, 0.2));
+            let dz = IntervalDual::constant(interval(0.3, 0.3));
+            Ok(dx * x + dy * y + dz * z)
+        })
+        .expect("validated affine spatial derivative record")
     }
 
     #[test]
@@ -1396,6 +1466,203 @@ mod tests {
         assert!(!result.all_domain_safe);
         assert_eq!(result.certified_safe_cell_count, 1);
         assert_eq!(result.unresolved_cell_count, 1);
+    }
+
+    #[test]
+    fn interval_ad_record_and_independent_centre_sample_bind_into_cell_evidence() {
+        let scope = binding_scope();
+        let observation = centre_observation(&scope);
+        let derivative = validated_xyz_derivative(&scope);
+        let evidence = bind_centre_observation_to_validated_derivative(
+            &scope,
+            &observation,
+            &derivative,
+            EvidenceRole::AdaptiveExploration,
+        )
+        .expect("exactly scope-matched centre and derivative evidence");
+
+        assert_eq!(evidence.centre_sample_id, observation.sample_id);
+        assert_eq!(evidence.centre_sample_sha256, observation.sample_sha256);
+        assert_eq!(evidence.centre_sample_position_m, scope.bounds.centre_m());
+        assert_eq!(evidence.derivative_bound_cell_id, scope.cell_id);
+        assert_eq!(
+            evidence.derivative_bound_record_ids,
+            [
+                derivative.record_id.clone(),
+                derivative.record_id.clone(),
+                derivative.record_id.clone()
+            ]
+        );
+        assert_eq!(evidence.derivative_unit, "dimensionless/metre");
+        assert_eq!(evidence.evidence_role, EvidenceRole::AdaptiveExploration);
+
+        let certificate = certify_cell(&evidence).expect("joined evidence certifies a cell");
+        assert_eq!(certificate.classification, CellClassification::CertifiedSafe);
+    }
+
+    #[test]
+    fn binder_rejects_centre_sample_away_from_exact_cell_midpoint() {
+        let scope = binding_scope();
+        let mut observation = centre_observation(&scope);
+        observation.sample_position_m[0] += 1.0e-12;
+        let derivative = validated_xyz_derivative(&scope);
+        assert_eq!(
+            bind_centre_observation_to_validated_derivative(
+                &scope,
+                &observation,
+                &derivative,
+                EvidenceRole::AdaptiveExploration,
+            )
+            .expect_err("a nearby but non-centre sample is not interchangeable"),
+            EvidenceBindingError::CentreSampleNotAtCellCentre
+        );
+    }
+
+    #[test]
+    fn binder_rejects_a_different_derivative_cell_identity() {
+        let scope = binding_scope();
+        let observation = centre_observation(&scope);
+        let mut derivative = validated_xyz_derivative(&scope);
+        derivative.cell_id = "another-cell".to_owned();
+        assert_eq!(
+            bind_centre_observation_to_validated_derivative(
+                &scope,
+                &observation,
+                &derivative,
+                EvidenceRole::AdaptiveExploration,
+            )
+            .expect_err("cell ID must match the declared scope"),
+            EvidenceBindingError::IntervalMapping(SpatialMappingError::CellIdentityMismatch)
+        );
+    }
+
+    #[test]
+    fn binder_rejects_a_different_xyz_box_even_with_the_same_cell_id() {
+        let mut scope = binding_scope();
+        let derivative = validated_xyz_derivative(&scope);
+        scope.bounds.maximum_m[0] = 0.11;
+        let observation = centre_observation(&scope);
+        assert_eq!(
+            bind_centre_observation_to_validated_derivative(
+                &scope,
+                &observation,
+                &derivative,
+                EvidenceRole::AdaptiveExploration,
+            )
+            .expect_err("exact derivative cell bounds must match"),
+            EvidenceBindingError::DerivativeBoxMismatch { axis: Axis::X }
+        );
+    }
+
+    #[test]
+    fn binder_rejects_frame_condition_and_requirement_mismatches() {
+        let original = binding_scope();
+        let observation = centre_observation(&original);
+        let derivative = validated_xyz_derivative(&original);
+
+        for (field, mutation) in [
+            ("coordinate_frame_id", 0_u8),
+            ("operating_condition_id", 1_u8),
+            ("requirement_id", 2_u8),
+        ] {
+            let mut wrong = original.clone();
+            match mutation {
+                0 => wrong.coordinate_frame_id = "wrong-frame".to_owned(),
+                1 => wrong.operating_condition_id = "wrong-condition".to_owned(),
+                _ => wrong.requirement_id = "wrong-requirement".to_owned(),
+            }
+            assert_eq!(
+                bind_centre_observation_to_validated_derivative(
+                    &wrong,
+                    &observation,
+                    &derivative,
+                    EvidenceRole::AdaptiveExploration,
+                )
+                .expect_err("all scope identities are binding keys"),
+                EvidenceBindingError::SpatialCertification(
+                    CertificationError::InvalidIdentity
+                ),
+                "mismatch field: {field}"
+            );
+        }
+    }
+
+    #[test]
+    fn binder_rejects_unit_and_digest_mismatches() {
+        let scope = binding_scope();
+        let derivative = validated_xyz_derivative(&scope);
+        let mut observation = centre_observation(&scope);
+        observation.margin_unit = "tesla".to_owned();
+        assert_eq!(
+            bind_centre_observation_to_validated_derivative(
+                &scope,
+                &observation,
+                &derivative,
+                EvidenceRole::AdaptiveExploration,
+            )
+            .expect_err("centre margin unit must equal derivative output unit"),
+            EvidenceBindingError::DerivativeUnitMismatch
+        );
+
+        let mut observation = centre_observation(&scope);
+        observation.sample_sha256 = "not-a-digest".to_owned();
+        assert_eq!(
+            bind_centre_observation_to_validated_derivative(
+                &scope,
+                &observation,
+                &derivative,
+                EvidenceRole::AdaptiveExploration,
+            )
+            .expect_err("centre observation must have a valid digest"),
+            EvidenceBindingError::InvalidSha256 {
+                field: "centre_sample_sha256"
+            }
+        );
+    }
+
+    #[test]
+    fn binder_preserves_blind_holdout_role_without_promoting_it() {
+        let scope = binding_scope();
+        let observation = centre_observation(&scope);
+        let derivative = validated_xyz_derivative(&scope);
+        let evidence = bind_centre_observation_to_validated_derivative(
+            &scope,
+            &observation,
+            &derivative,
+            EvidenceRole::BlindHoldout,
+        )
+        .expect("blind holdout remains bindable for classification");
+        assert_eq!(evidence.evidence_role, EvidenceRole::BlindHoldout);
+        assert!(matches!(
+            plan_refinement(
+                &evidence,
+                RefinementPolicy {
+                    minimum_child_width_m: [0.001; 3],
+                    maximum_depth: 4,
+                    maximum_leaf_count: 16,
+                },
+                1,
+            ),
+            Err(CertificationError::ProtectedEvidenceRole)
+        ));
+    }
+
+    #[test]
+    fn binder_rejects_missing_probe_calibration_identity() {
+        let scope = binding_scope();
+        let mut observation = centre_observation(&scope);
+        observation.probe_calibration_id.clear();
+        let derivative = validated_xyz_derivative(&scope);
+        assert_eq!(
+            bind_centre_observation_to_validated_derivative(
+                &scope,
+                &observation,
+                &derivative,
+                EvidenceRole::AdaptiveExploration,
+            )
+            .expect_err("probe calibration identity is mandatory"),
+            EvidenceBindingError::InvalidIdentity
+        );
     }
 
     #[test]
