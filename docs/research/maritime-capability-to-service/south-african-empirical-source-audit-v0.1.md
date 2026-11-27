@@ -58,6 +58,57 @@ Not admissible:
 - claims about which port, vessel, cargo or receiver achieved service;
 - event-time or first-available-time observations.
 
+## 3. SAaff / BUSA Cargo Movement Update #306 (1 November 2026)
+
+Source: [BUSA Cargo Movement Update #306, dated 1 November 2026](https://ewc.org.za/wp-content/uploads/2026/11/BUSA-Cargo-Movement-Update-2026-11-01.pdf), authored by SAaff and distributed by BUSA.
+
+This is the strongest identified public South African terminal-level aggregate snapshot in this audit. It contains two different source families that must remain separate:
+
+### Vessel dwell table (Table 4, PDF page 6)
+
+The report provides average anchorage and berth time in days for eight terminal/port combinations:
+
+| Port | Terminal | Anchorage days | Berth days |
+|---|---|---:|---:|
+| Cape Town | CTCT | 0.2 | 1.8 |
+| Cape Town | FPT | 0.1 | 3.2 |
+| Durban | MPT | 4.9 | 4.1 |
+| Durban | DGT | 10.3 | 4.9 |
+| Durban | Pier 1 | 5.4 | 3.3 |
+| East London | MPT | 0.1 | 2.0 |
+| Ngqura | NCT | 1.8 | 2.6 |
+| Port Elizabeth | PECT | 0.7 | 1.5 |
+
+The table attributes these values to MarineTraffic AIS, calculated for the report and marked updated 3 November 2026. The text introduces them as average vessel time at anchorage and average time at berth “as of Thursday morning,” without a precise observation window or named vessel-call denominator. The report's cover date is 1 November 2026, while other narrative references vessel queue observations on 3 and 5 November. These dates must not be collapsed into one assumed report cutoff.
+
+**Admission class:** PUBLISHED_AGGREGATE / AIS_DERIVED.
+
+**Claim ceiling:** terminal-level reported averages only. Not raw vessel-event intervals, official port-limit arrival/departure times, a complete vessel-call sample, independent metrology, cargo completion, or receiver acceptance. The report does not publish the vessel-level MarineTraffic rows, coverage denominator, missing-call treatment, or exact observation window for Table 4.
+
+### Weekly container flow table (Table 2, PDF page 5)
+
+For 26 October–1 November 2026, the report attributes weekly terminal flow to Transnet Port Terminals (TPT), calculated by SAaff:
+
+| Port/terminal | Daily average TEU | Weekly total TEU | Week-on-week |
+|---|---:|---:|---:|
+| Durban Gateway Terminal (DGT) | 4,997 | 34,976 | +12% |
+| Durban New Pier (Pier 1) | 1,931 | 13,517 | -13% |
+| Cape Town CTCT | 2,698 | 18,886 | +76% |
+| Ngqura NCT | 2,608 | 18,257 | +15% |
+| Port Elizabeth PECT | 860 | 6,017 | +204% |
+| Other | 1,253 | 8,770 | +7% |
+| All terminals | 14,346 | 100,423 | +20% |
+
+**Admission class:** PUBLISHED_AGGREGATE / OPERATOR_DERIVED.
+
+**Claim ceiling:** weekly terminal TEU throughput as reported/calculated from TPT data. Not vessel counts, dwell-time denominators, individual cargo acceptance or a per-receiver delivery record. “Other” must not be allocated to named ports.
+
+### Frozen source projection
+
+The values above are frozen in [busa-cargo-movement-update-306-vessel-dwell-v0.tsv](fixtures/busa-cargo-movement-update-306-vessel-dwell-v0.tsv). The file retains the separate report date and source-update date, uses empty period boundaries where the PDF does not state a precise dwell observation window, and stores the two source families under different record_type and source_basis values.
+
+This is a useful first local benchmark baseline for terminal-level congestion and throughput comparisons. It still does not provide source event timestamps, first-availability timestamps, per-vessel traces or a historical decision-time corpus for KITE.
+
 ## 3. UNCTAD 2026 international comparator
 
 Sources:
