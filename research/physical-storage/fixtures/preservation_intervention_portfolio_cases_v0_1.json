@@ -3,7 +3,7 @@
   "corpus_id": "PIP-001-CASES-V0.1",
   "evidence_class": "synthetic_semantic_fixture",
   "qualification_status": "not_run",
-  "case_count": 18,
+  "case_count": 19,
   "cases": [
     {
       "case_id": "PIP-001-SINGLE-VERIFIED-PLAN",
@@ -21,7 +21,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -77,7 +81,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -191,7 +199,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -275,7 +287,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -334,7 +350,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -393,7 +413,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -452,7 +476,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -504,7 +532,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -596,7 +628,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -650,7 +686,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -731,7 +771,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -784,7 +828,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 1
+        "max_actions": 1,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -858,7 +906,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [],
       "expected_disposition": "NoActionRequired",
@@ -867,7 +919,7 @@
       "expected_exclusions": []
     },
     {
-      "case_id": "PIP-015-MORE-THAN-16-CANDIDATES",
+      "case_id": "PIP-014-MORE-THAN-16-CANDIDATES",
       "policy": {
         "target_id": "archive-A",
         "unresolved_alert_ids": [
@@ -882,7 +934,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -1351,7 +1407,7 @@
       "expected_exclusions": []
     },
     {
-      "case_id": "PIP-016-UNKNOWN-ALERT-ADDRESS",
+      "case_id": "PIP-015-UNKNOWN-ALERT-ADDRESS",
       "policy": {
         "target_id": "archive-A",
         "unresolved_alert_ids": [
@@ -1366,7 +1422,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -1403,7 +1463,7 @@
       "expected_exclusions": []
     },
     {
-      "case_id": "PIP-017-REDUNDANT-ZERO-COST-HELPER-DOMINATED",
+      "case_id": "PIP-016-REDUNDANT-ZERO-COST-HELPER-DOMINATED",
       "policy": {
         "target_id": "archive-A",
         "unresolved_alert_ids": [
@@ -1418,7 +1478,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -1513,7 +1577,7 @@
       "expected_exclusions": []
     },
     {
-      "case_id": "PIP-018-RECEIPT-MAY-COVER-SEPARATE-ACTION-ESTIMATES",
+      "case_id": "PIP-017-RECEIPT-MAY-COVER-SEPARATE-ACTION-ESTIMATES",
       "policy": {
         "target_id": "archive-A",
         "unresolved_alert_ids": [
@@ -1528,7 +1592,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -1599,7 +1667,7 @@
       "expected_exclusions": []
     },
     {
-      "case_id": "PIP-019-INVALID-OPTIONAL-CANDIDATE-WITH-VALID-FALLBACK",
+      "case_id": "PIP-018-INVALID-OPTIONAL-CANDIDATE-WITH-VALID-FALLBACK",
       "policy": {
         "target_id": "archive-A",
         "unresolved_alert_ids": [
@@ -1614,7 +1682,11 @@
         "max_energy_millijoules": 100000,
         "max_duration_ms": 20000,
         "max_downtime_ms": 5000,
-        "max_actions": 8
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
       },
       "candidates": [
         {
@@ -1684,6 +1756,68 @@
           "action_id": "invalid-alternative",
           "reasons": [
             "BoundsInvalid"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "PIP-019-APPROVAL-AUTHORITY-UNAVAILABLE",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 4000000,
+          "energy_upper_millijoules": 10000,
+          "duration_upper_ms": 1000,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "EvidenceIncomplete",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": [
+        {
+          "action_id": "verify-fixity",
+          "reasons": [
+            "MissingApprovalAuthority"
           ]
         }
       ]
