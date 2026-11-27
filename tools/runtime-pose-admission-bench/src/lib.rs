@@ -132,6 +132,8 @@ pub struct AdmissionResult {
     pub profile_revision: String,
     pub profile_sha256: String,
     pub profile_source_bytes_authenticated: bool,
+    pub upstream_source_bytes_authenticated: bool,
+    pub source_authentication_verified_here: bool,
     pub sensor_mode: String,
     pub frame_convention: String,
     pub tangent_convention: String,
@@ -316,6 +318,9 @@ fn base_result(
         profile_revision: input.profile.profile_revision.clone(),
         profile_sha256: input.profile.profile_sha256.clone(),
         profile_source_bytes_authenticated: input.profile.source_bytes_authenticated,
+        upstream_source_bytes_authenticated: input.frame_source_bytes_authenticated
+            && input.profile.source_bytes_authenticated,
+        source_authentication_verified_here: false,
         sensor_mode: input.sensor_mode.clone(),
         frame_convention: input.frame_convention.clone(),
         tangent_convention: input.tangent_convention.clone(),
@@ -336,8 +341,7 @@ fn base_result(
         statistical_region_only: disposition == AdmissionDisposition::CandidateStatisticalRegion,
         deterministic_safety_bound: false,
         physical_calibration_validated: false,
-        source_bytes_authenticated: input.frame_source_bytes_authenticated
-            && input.profile.source_bytes_authenticated,
+        source_bytes_authenticated: false,
         maneuver_authority_granted: false,
     }
 }
@@ -387,6 +391,13 @@ pub fn evaluate(input: &RuntimePosePrediction) -> AdmissionResult {
             input,
             AdmissionDisposition::AbstainUncalibrated,
             "FRAME_BUNDLE_NOT_SYNCHRONIZED",
+        );
+    }
+    if !input.frame_source_bytes_authenticated {
+        return base_result(
+            input,
+            AdmissionDisposition::AbstainUncalibrated,
+            "FRAME_SOURCE_BYTES_NOT_AUTHENTICATED",
         );
     }
 
@@ -590,6 +601,8 @@ mod tests {
         assert!(result.statistical_region_only);
         assert!(!result.deterministic_safety_bound);
         assert!(!result.physical_calibration_validated);
+        assert!(result.upstream_source_bytes_authenticated);
+        assert!(!result.source_authentication_verified_here);
         assert!(!result.source_bytes_authenticated);
         assert!(!result.maneuver_authority_granted);
     }
