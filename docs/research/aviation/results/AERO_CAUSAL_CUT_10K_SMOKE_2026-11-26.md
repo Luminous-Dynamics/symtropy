@@ -52,3 +52,42 @@ The GitHub runner's detailed CPU model was not recorded in this smoke result. Th
 The proposed >=2x p95 improvement or >=30% index/compute reduction remains a prospective tournament target at matched semantics, correctness and resource envelope.
 
 The synthetic oracle and workload are not independently reviewed. Do not use this result as evidence of physical qualification or airworthiness.
+
+
+## Repeatability datapoint 2
+
+**Evidence class:** synthetic typed in-memory benchmark only  
+**Workflow:** [GitHub Actions run 45865035759](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45865035759)  
+**Tested commit:** `d6d8e4b4f1dc6d5a07b7b6d2f70100ba870bdfe3`  
+**Branch:** `research/aero-compositional-claim-gate-v0.1`  
+**Toolchain:** Rust 1.96.0 (`ac68faa20`, 2026-05-25)  
+**Runner image:** Ubuntu 26.04
+
+### Workload and observed latency
+
+| Parameter | Value |
+|---|---:|
+| Events | 10,000 |
+| Source partitions | 32 |
+| Explicit causal dependencies | 10,092 |
+| Measurement iterations | 31 |
+| Final disposition | `CAUSALLY_CLOSED` |
+| p50 | 24.739 µs |
+| p95 | 25.457 µs |
+| p99 | 31.386 µs |
+
+### Verification context
+
+The same exact-head workflow passed:
+- Rust formatting;
+- all targeted schema and fixture checks, including v0.2 evidence binding, temporal replay, observer coverage, effectivity intervals, vector evidence cut, evidence-gap packet and SHM manifest;
+- **97 Rust tests**, zero failures;
+- Clippy with warnings denied;
+- the 10k causal-cut smoke;
+- material-process and v0.2 evidence-binding CLI smoke tests.
+
+### Comparison with datapoint 1
+
+The first datapoint (run 45775103370) measured p50 17.823 µs, p95 19.322 µs and p99 19.871 µs. This repeatability datapoint is slower. The runner CPU model and several hardware-level controls were not recorded, and there is no matched-baseline trial. Therefore the difference cannot be attributed to a code regression or improvement; it is evidence that the benchmark protocol needs stronger hardware capture and repeated paired trials.
+
+This smoke measures only the typed in-memory causal-cut validator. It does not measure the claim gate, durable storage, event ingestion, owner-receipt cryptography, sensor/observer completeness, source-clock truth, physical SHM/NDE or end-to-end engineering cost. It does not establish a SOTA advantage.
