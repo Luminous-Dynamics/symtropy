@@ -886,6 +886,24 @@ mod tests {
     }
 
     #[test]
+    fn quaternion_sign_is_canonical_at_the_pi_rotation_boundary() {
+        let mut positive = input();
+        let mut negative = input();
+        positive.ground_truth_quaternion_xyzw = [1.0, 0.0, 0.0, 0.0];
+        negative.ground_truth_quaternion_xyzw = [-1.0, 0.0, 0.0, 0.0];
+        let positive_result = evaluate(&positive);
+        let negative_result = evaluate(&negative);
+        assert_eq!(
+            positive_result.rotation_error_rad,
+            negative_result.rotation_error_rad
+        );
+        assert_eq!(
+            positive_result.mahalanobis_squared,
+            negative_result.mahalanobis_squared
+        );
+    }
+
+    #[test]
     fn one_metre_translation_with_unit_covariance_has_mahalanobis_one() {
         let mut value = input();
         value.ground_truth_translation_m[0] = 1.0;
