@@ -175,7 +175,8 @@
             "integer_schedule",
             "electrical_power_flow",
             "other",
-            "nonanticipative_scenario_tree"
+            "nonanticipative_scenario_tree",
+            "capacity_evidence_schedule"
           ]
         },
         "schema_version": {
@@ -371,7 +372,9 @@
             "not_yet_known",
             "here_and_now_feasible",
             "full_recourse_only",
-            "not_feasible_within_supplied_tree"
+            "not_feasible_within_supplied_tree",
+            "capacity_schedule_admitted",
+            "capacity_schedule_rejected"
           ]
         },
         "expected_objective_vector": {
@@ -444,6 +447,18 @@
         "policy_action_count": {
           "type": "integer",
           "minimum": 1
+        },
+        "capacity_subject_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capacity_record_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "horizon_period_count": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -451,7 +466,23 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "enum": [
+          "overlap",
+          "gap",
+          "stale",
+          "revoked",
+          "unknown_issuer",
+          "invalid_receipt",
+          "unit_mismatch",
+          "boundary_mismatch",
+          "timebase_mismatch",
+          "resource_alias_split",
+          "physical_identity_change",
+          "source_digest_change",
+          "admission_receipt_change",
+          "horizon_extension"
+        ]
       }
     },
     "claim_ceiling": {
