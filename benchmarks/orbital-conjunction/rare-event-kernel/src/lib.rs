@@ -95,8 +95,8 @@ pub use adaptive_importance_sampling::{
 pub use counterfactual_trajectory_receipt::{
     CounterfactualTrajectoryAtom, CounterfactualTrajectoryReceiptCampaign,
     CounterfactualTrajectoryReceiptError, CounterfactualTrajectoryReceiptReport,
-    PortfolioTrajectoryReceipt, ScenarioAtomIdentity, ScenarioTrajectoryContract,
-    SharedExogenousWorldReceipt,
+    MissionUnionContactDisposition, PortfolioTrajectoryReceipt, ScenarioAtomIdentity,
+    ScenarioTrajectoryContract, SharedExogenousWorldReceipt,
 };
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
