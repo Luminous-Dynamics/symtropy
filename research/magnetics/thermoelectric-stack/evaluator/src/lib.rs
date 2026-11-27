@@ -99,10 +99,20 @@ pub struct MetricSpec {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct BaselineApplicability {
+    pub family: Family,
+    pub applicable: bool,
+    pub rationale: String,
+    pub supporting_evidence_ids: Vec<String>,
+    pub decision_digest: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct BenchmarkSpec {
     pub benchmark_id: String,
     pub scope: Scope,
     pub metrics: Vec<MetricSpec>,
+    pub baseline_applicability: Vec<BaselineApplicability>,
     pub required_baseline_families: Vec<Family>,
     pub minimum_baseline_evaluations: u32,
     pub minimum_independent_restarts: u32,
@@ -482,19 +492,39 @@ fn validate_spec(spec: &BenchmarkSpec) -> Vec<Blocker> {
         }
     }
 
+    const CONVENTIONAL_FAMILIES: [Family; 7] = [
+        Family::ConventionalWindingCooling,
+        Family::ConventionalHighPerformanceCooling,
+        Family::ConventionalDirectOilCooling,
+        Family::ConventionalMultiNozzleOilJetCooling,
+        Family::ConventionalHairpinOilSprayCooling,
+        Family::ConventionalSlotEmbeddedCooling,
+        Family::ConventionalHollowConductorCooling,
+    ];
+    let mut applicability_by_family = BTreeMap::new();
+    for record in &spec.baseline_applicability {
+        if !CONVENTIONAL_FAMILIES.contains(&record.family)
+            || record.rationale.trim().is_empty()
+            || record.supporting_evidence_ids.is_empty()
+            || record.supporting_evidence_ids.iter().any(|id| id.trim().is_empty())
+            || !valid_sha256(&record.decision_digest)
+            || applicability_by_family.insert(record.family, record).is_some()
+        {
+            blockers.push(Blocker::InvalidBenchmarkSpec);
+        }
+    }
+    for family in CONVENTIONAL_FAMILIES {
+        let Some(record) = applicability_by_family.get(&family) else {
+            blockers.push(Blocker::InvalidBenchmarkSpec);
+            continue;
+        };
+        if record.applicable != spec.required_baseline_families.contains(&family) {
+            blockers.push(Blocker::InvalidBenchmarkSpec);
+        }
+    }
     let mut baseline_families = BTreeSet::new();
     for family in &spec.required_baseline_families {
-        let conventional = matches!(
-            family,
-            Family::ConventionalWindingCooling
-                | Family::ConventionalHighPerformanceCooling
-                | Family::ConventionalDirectOilCooling
-                | Family::ConventionalMultiNozzleOilJetCooling
-                | Family::ConventionalHairpinOilSprayCooling
-                | Family::ConventionalSlotEmbeddedCooling
-                | Family::ConventionalHollowConductorCooling
-        );
-        if !conventional || !baseline_families.insert(*family) {
+        if !CONVENTIONAL_FAMILIES.contains(family) || !baseline_families.insert(*family) {
             blockers.push(Blocker::InvalidBenchmarkSpec);
         }
     }
@@ -785,6 +815,58 @@ mod tests {
         BenchmarkSpec {
             benchmark_id: "THERMO-STACK-001".to_string(),
             scope: scope(),
+            baseline_applicability: vec![
+                BaselineApplicability {
+                    family: Family::ConventionalWindingCooling,
+                    applicable: true,
+                    rationale: "Synthetic conventional comparator for known-answer semantics"
+                        .to_string(),
+                    supporting_evidence_ids: vec!["BASELINE-SOURCE-001".to_string()],
+                    decision_digest: digest('a'),
+                },
+                BaselineApplicability {
+                    family: Family::ConventionalHighPerformanceCooling,
+                    applicable: false,
+                    rationale: "Synthetic exclusion for known-answer semantics".to_string(),
+                    supporting_evidence_ids: vec!["EXCLUSION-SOURCE-001".to_string()],
+                    decision_digest: digest('b'),
+                },
+                BaselineApplicability {
+                    family: Family::ConventionalDirectOilCooling,
+                    applicable: false,
+                    rationale: "Synthetic exclusion for known-answer semantics".to_string(),
+                    supporting_evidence_ids: vec!["EXCLUSION-SOURCE-002".to_string()],
+                    decision_digest: digest('c'),
+                },
+                BaselineApplicability {
+                    family: Family::ConventionalMultiNozzleOilJetCooling,
+                    applicable: false,
+                    rationale: "Synthetic exclusion for known-answer semantics".to_string(),
+                    supporting_evidence_ids: vec!["EXCLUSION-SOURCE-003".to_string()],
+                    decision_digest: digest('d'),
+                },
+                BaselineApplicability {
+                    family: Family::ConventionalHairpinOilSprayCooling,
+                    applicable: false,
+                    rationale: "Synthetic exclusion for known-answer semantics".to_string(),
+                    supporting_evidence_ids: vec!["EXCLUSION-SOURCE-004".to_string()],
+                    decision_digest: digest('e'),
+                },
+                BaselineApplicability {
+                    family: Family::ConventionalSlotEmbeddedCooling,
+                    applicable: false,
+                    rationale: "Synthetic exclusion for known-answer semantics".to_string(),
+                    supporting_evidence_ids: vec!["EXCLUSION-SOURCE-005".to_string()],
+                    decision_digest: digest('f'),
+                },
+                BaselineApplicability {
+                    family: Family::ConventionalHollowConductorCooling,
+                    applicable: false,
+                    rationale: "Synthetic exclusion for known-answer semantics".to_string(),
+                    supporting_evidence_ids: vec!["EXCLUSION-SOURCE-006".to_string()],
+                    decision_digest: digest('1'),
+                },
+            ],
             metrics: vec![
                 MetricSpec {
                     metric_id: "winding_hotspot_temperature".to_string(),
@@ -1207,6 +1289,13 @@ mod tests {
         benchmark
             .required_baseline_families
             .push(Family::ConventionalDirectOilCooling);
+        let oil_record = benchmark
+            .baseline_applicability
+            .iter_mut()
+            .find(|record| record.family == Family::ConventionalDirectOilCooling)
+            .expect("direct-oil applicability decision");
+        oil_record.applicable = true;
+        oil_record.rationale = "Synthetic direct-oil comparator is applicable".to_string();
         let mut trials = known_trials();
         trials.push(trial(
             "CONVENTIONAL-HIGH",
@@ -1216,6 +1305,52 @@ mod tests {
         ));
         let result = evaluate(&benchmark, &trials);
         assert_eq!(result[0].decision, Decision::NonInferiorNoStackBenefit);
+    }
+
+    #[test]
+    fn every_conventional_family_requires_an_applicability_decision() {
+        let mut benchmark = spec();
+        benchmark
+            .baseline_applicability
+            .retain(|record| record.family != Family::ConventionalDirectOilCooling);
+        let result = evaluate(&benchmark, &known_trials());
+        assert_eq!(result[0].decision, Decision::NotComparable);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::InvalidBenchmarkSpec));
+    }
+
+    #[test]
+    fn applicable_direct_oil_baseline_cannot_be_omitted() {
+        let mut benchmark = spec();
+        benchmark
+            .baseline_applicability
+            .iter_mut()
+            .find(|record| record.family == Family::ConventionalDirectOilCooling)
+            .expect("direct-oil applicability decision")
+            .applicable = true;
+        let result = evaluate(&benchmark, &known_trials());
+        assert_eq!(result[0].decision, Decision::NotComparable);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::InvalidBenchmarkSpec));
+    }
+
+    #[test]
+    fn non_applicable_baseline_requires_rationale_and_evidence() {
+        let mut benchmark = spec();
+        let record = benchmark
+            .baseline_applicability
+            .iter_mut()
+            .find(|record| record.family == Family::ConventionalDirectOilCooling)
+            .expect("direct-oil applicability decision");
+        record.rationale.clear();
+        record.supporting_evidence_ids.clear();
+        let result = evaluate(&benchmark, &known_trials());
+        assert_eq!(result[0].decision, Decision::NotComparable);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::InvalidBenchmarkSpec));
     }
 
     #[test]
