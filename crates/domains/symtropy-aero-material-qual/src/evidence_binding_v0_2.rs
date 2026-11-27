@@ -30,6 +30,10 @@ pub struct MeasurementDisposition {
     pub observation_id: String,
     pub status: String,
     pub reasons: Vec<String>,
+    /// Events in the supplied extract whose source-recorded time is after this report snapshot.
+    ///
+    /// This is a source assertion, not receiver-first-seen evidence.
+    pub source_recorded_after_snapshot_event_ids: Vec<String>,
     /// Known events retained as non-applicable to this subject-time acquisition.
     pub non_applicable_event_ids: Vec<String>,
 }
@@ -716,6 +720,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
     for observation in &observations {
         let observation_id = field_str(observation, "id").unwrap_or("observation");
         let mut reasons = BTreeSet::new();
+        let mut source_recorded_after_snapshot_event_ids = BTreeSet::new();
         let mut non_applicable_event_ids = BTreeSet::new();
         let acquisition_interval = match hard_time_interval(
             observation,
@@ -831,6 +836,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                 // Recorded time remains a source assertion and is not promoted
                 // to receiver-first-seen evidence by this evaluator.
                 if recorded_at > evaluated {
+                    source_recorded_after_snapshot_event_ids.insert(event_id.to_owned());
                     continue;
                 }
                 let event_interval = match hard_time_interval(
@@ -929,6 +935,9 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
             observation_id: observation_id.to_owned(),
             status: status.to_owned(),
             reasons,
+            source_recorded_after_snapshot_event_ids: source_recorded_after_snapshot_event_ids
+                .into_iter()
+                .collect(),
             non_applicable_event_ids: non_applicable_event_ids.into_iter().collect(),
         });
     }
@@ -1355,6 +1364,10 @@ mod tests {
             report.measurement_dispositions[0]
                 .non_applicable_event_ids
                 .is_empty()
+        );
+        assert_eq!(
+            report.measurement_dispositions[0].source_recorded_after_snapshot_event_ids,
+            vec!["EVENT-RECORDED-LATE".to_owned()]
         );
     }
 
