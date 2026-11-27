@@ -600,11 +600,12 @@ mod tests {
         let a = scenario_report(SCENARIO_A, [0.0, 10.0, 20.0], 0.025);
         let b = scenario_report(SCENARIO_B, [20.0, 0.0, 10.0], 0.025);
         assert_eq!(
-            evaluator().aggregate(&[a.clone()]),
+            evaluator().aggregate(std::slice::from_ref(&a)),
             Err(EpistemicMinimaxRegretError::IncompleteOrDuplicateScenarioReport)
         );
+        let duplicate_a = scenario_report(SCENARIO_A, [0.0, 10.0, 20.0], 0.025);
         assert_eq!(
-            evaluator().aggregate(&[a.clone(), a.clone()]),
+            evaluator().aggregate(&[a, duplicate_a]),
             Err(EpistemicMinimaxRegretError::IncompleteOrDuplicateScenarioReport)
         );
         let substituted = scenario_report([3; 32], [20.0, 0.0, 10.0], 0.025);
