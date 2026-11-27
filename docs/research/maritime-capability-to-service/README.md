@@ -88,11 +88,11 @@ cargo clippy --locked --manifest-path research/maritime-capability-to-service/Ca
 cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo.toml
 ```
 
-The current Rust reference parses the frozen service obligation, dependency inventory, day-zero shock and alternatives; rejects unknown/duplicate dependencies and unsupported shock timing; computes no-shock and shocked receiver days; preserves the expected-unit denominator; and emits a deterministic tab-delimited receipt containing source inputs and outcomes.
+The Rust reference parses the frozen service obligation, dependency inventory, day-zero shocks, alternatives, configuration revisions and inspection dispositions. Every option must have exactly one inspection record bound to its configuration revision. `PASS` may accept a partial quantity up to the expected denominator; `FAIL` and `UNKNOWN` must carry zero accepted units. The receipt separately reports expected units, receiver-accepted units and on-time accepted units. Failed/unknown inspection, revision mismatch, missing/duplicate inspection evidence, unknown/duplicate dependencies, unsupported shock timing, accepted-quantity overflow and receiver-day overflow fail closed.
 
-Six Rust unit tests and one separately implemented Rust integration-test oracle are authored. The unit suite covers the five hand-calculated known answers, full denominator retention for a late option, input-record-order invariance, unknown-dependency rejection, duplicate-dependency rejection and rejection of later-starting shocks. The integration test independently parses the fixture and reconstructs every receipt outcome without calling the library parser or evaluator. The exact-head GitHub Actions workflow also runs formatting, locked tests, strict Clippy and the CLI receipt.
+Twelve Rust unit tests and three integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial acceptance, failed/unknown inspection, revision mismatch, missing/duplicate inspection records, quantity and receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. One integration oracle independently reconstructs the base receipt; a second independently adjudicates the 22-case corpus, including two common-cause shocks, partial inspection acceptance, rejected/unknown inspection and revision mismatch. The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
 
-**Qualification status:** the dedicated exact-head GitHub Actions workflow passed on 27 November 2026 at PR head `eef4ee4200953e69535b3d2b335d76b5b69d0186` (run [#17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837)). It passed pinned Rust 1.96.0 formatting, locked unit and integration tests, strict Clippy, and deterministic receipt emission. The emitted receipt contains all five alternatives and the expected receiver days / accepted on-time units. The repository-wide Symtropy CI was still queued when this status was recorded; the dedicated research workflow is the qualification evidence for this standalone crate. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
+**Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The present v0.2 extension adds explicit inspection/revision binding and a 22-case adversarial corpus; it has not yet completed its own exact-head qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
 
 ## What this fixture does not establish
 
@@ -102,9 +102,10 @@ The result is conditional on the exact declared synthetic dependency topology an
 
 ## Next qualification steps
 
-1. Observe exact-head formatting, test, strict-Clippy and deterministic receipt results; address every failure without weakening gates.
-2. Add mutation controls for shared transitive dependencies, stale/revoked evidence, inspection failure, revision mismatch, unknown dependency remainder, partial delivery and denominator deletion.
-3. Extend to at least 15 tiny cases and 30 total cases, then hold out complete disruption families.
+1. Complete exact-head qualification of v0.2; address every failure without weakening gates.
+2. Extend the inspection/acceptance record to actual source IDs, timestamped inspection observations and authority/rights provenance from Mycelix's owner-native artifacts.
+3. Add transitive dependency closure, stale/revoked source evidence, unknown dependency remainder, inspection measurement uncertainty, partial dispatch/receipt and cancellation/rework states.
+4. Extend beyond the current 22 cases to at least 30 frozen cases and held-out facility/shock families.
 4. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 5. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
 
