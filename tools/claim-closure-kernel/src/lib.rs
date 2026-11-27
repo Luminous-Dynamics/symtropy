@@ -217,7 +217,7 @@ fn validate_claim(claim: &Claim, findings: &mut BTreeSet<Finding>) {
         if !valid_identifier(value) {
             add_finding(
                 findings,
-                &format!("CLAIM_{field.to_ascii_uppercase()}_INVALID"),
+                &format!("CLAIM_{}_INVALID", field.to_ascii_uppercase()),
                 FindingClass::Invalid,
                 None,
             );
@@ -322,7 +322,7 @@ fn validate_record(record: &EvidenceRecord, claim: &Claim, findings: &mut BTreeS
         if !valid_identifier(value) {
             add_finding(
                 findings,
-                &format!("EVIDENCE_{field.to_ascii_uppercase()}_INVALID"),
+                &format!("EVIDENCE_{}_INVALID", field.to_ascii_uppercase()),
                 FindingClass::Invalid,
                 Some(evidence_ref),
             );
