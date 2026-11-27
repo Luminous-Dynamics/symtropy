@@ -166,7 +166,7 @@ The intended contribution is not a new generic AABB tree or a claim that pair ca
 
 Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, manifold and warm-start payload revisions/digests, a post-action stamp commit barrier, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, immutable before/after receipt replay with post-stamp payload checks, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
 
-Not yet implemented or established: live world mutation journal integration; cryptographic receipt serialization; independent verifier/replay; real contact-manager or solver integration; matched external-engine runs; Rust formatting, tests, Clippy or release timings on this exact branch head.
+Not yet implemented or established: authoritative live world mutation journal integration; canonical serialization and independent re-hashing of actual contact/manifold/impulse payload bytes; separate verifier process/trust anchor; live contact-manager or solver integration; matched external-engine runs; exact-head Rust formatting, tests, Clippy or release timings.
 
 No speedup, correctness qualification or SOTA superiority claim is made until these gaps close.
 
@@ -223,5 +223,9 @@ The verifier includes tests for:
 - reconstructing addition and removal events from before/after relation snapshots;
 - rejecting omitted post-stamps after wake-only transitions and stale post-stamps;
 - rejecting a missing global solver-config revalidation even when a replacement post-stamp is supplied.
+- rejecting payload digest mutation when geometry or warm-start state should have been retained;
+- rejecting missing payload digests;
+- rejecting shape refresh without manifold revision advancement;
+- rejecting material refresh without warm-start revision advancement.
 
 The benchmark follow-on should measure receipt construction, independent replay CPU, serialization size, verifier memory and the ratio of safe-fallback transitions. These costs must be included in the end-to-end tick and in any speed claims.
