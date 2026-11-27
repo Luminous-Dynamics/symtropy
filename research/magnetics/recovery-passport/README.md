@@ -32,3 +32,6 @@ This is not a recovery-process operating manual, chemistry recipe, LCA/TEA engin
 ## Claim boundary
 
 The evaluator validates identity, declared scope, route-eligibility receipts, event sequencing, mass-flow identities and supplied quality/acceptance evidence. It does not authenticate evidence producers, validate laboratory methods, establish process safety, calculate magnetic fields, perform LCA/TEA, or authorize physical recovery operations.
+
+
+The recovery stage input mass is now bound to the exact feedstock-lot mass record. Downstream closed-loop reuse can reference only a recovered magnet-feedstock or remanufacturable-alloy output; residues and elemental products cannot be relabelled as reused magnet feedstock. Definite mass-balance contradictions are non-compensatory FAIL outcomes, while unsupported route/form combinations are NOT_EVALUABLE.
