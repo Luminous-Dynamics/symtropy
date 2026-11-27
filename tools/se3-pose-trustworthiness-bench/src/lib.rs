@@ -868,6 +868,15 @@ mod tests {
     }
 
     #[test]
+    fn exact_pose_has_known_unit_covariance_gaussian_nll() {
+        let result = evaluate(&input());
+        let expected = 3.0 * (2.0 * std::f64::consts::PI).ln();
+        assert!(
+            (result.gaussian_negative_log_likelihood.unwrap() - expected).abs() < 1.0e-12
+        );
+    }
+
+    #[test]
     fn quaternion_sign_does_not_change_pose_error() {
         let mut value = input();
         value.ground_truth_quaternion_xyzw = [0.0, 0.0, 0.0, -1.0];
