@@ -16,4 +16,8 @@ path = "src/lib.rs"
 name = "broadphase-tournament"
 path = "src/main.rs"
 
+[[bin]]
+name = "contact-lease-benchmark"
+path = "src/bin/contact-lease-benchmark.rs"
+
 [workspace]
