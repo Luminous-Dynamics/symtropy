@@ -91,10 +91,7 @@ fn validate_instance(instance: &McfInstance) -> Result<(), McfCertificateError> 
                 "arc {ordinal} endpoint is outside the declared node range"
             )));
         }
-        if arc.lower_bound < 0
-            || arc.upper_bound < 0
-            || arc.upper_bound < arc.lower_bound
-        {
+        if arc.lower_bound < 0 || arc.upper_bound < 0 || arc.upper_bound < arc.lower_bound {
             return Err(McfCertificateError::new(format!(
                 "arc {ordinal} has invalid lower/upper bounds"
             )));
@@ -108,9 +105,7 @@ fn validate_instance(instance: &McfInstance) -> Result<(), McfCertificateError> 
 /// Source line numbers and comments are intentionally excluded; node supplies
 /// are normalized by vertex ID while arc order and parallel-arc identities
 /// are preserved by the canonical serializer.
-pub fn canonical_instance_sha256(
-    instance: &McfInstance,
-) -> Result<String, McfCertificateError> {
+pub fn canonical_instance_sha256(instance: &McfInstance) -> Result<String, McfCertificateError> {
     validate_instance(instance)?;
     let canonical = instance.to_dimacs();
     let digest = Sha256::digest(canonical.as_bytes());
@@ -192,11 +187,7 @@ pub fn verify_mcf_optimality(
     balances.resize(potential_len, 0_i128);
 
     let mut objective = 0_i128;
-    for (index, (arc, flow_record)) in instance
-        .arcs
-        .iter()
-        .zip(&certificate.arc_flows)
-        .enumerate()
+    for (index, (arc, flow_record)) in instance.arcs.iter().zip(&certificate.arc_flows).enumerate()
     {
         if flow_record.ordinal != arc.ordinal {
             return Err(McfCertificateError::new(format!(
@@ -215,22 +206,24 @@ pub fn verify_mcf_optimality(
         }
 
         let amount = i128::from(flow);
-        balances[arc.tail as usize] = balances[arc.tail as usize]
-            .checked_add(amount)
-            .ok_or_else(|| {
-                McfCertificateError::new(format!(
-                    "outflow balance overflow at node {}",
-                    arc.tail
-                ))
-            })?;
-        balances[arc.head as usize] = balances[arc.head as usize]
-            .checked_sub(amount)
-            .ok_or_else(|| {
-                McfCertificateError::new(format!(
-                    "inflow balance overflow at node {}",
-                    arc.head
-                ))
-            })?;
+        balances[arc.tail as usize] =
+            balances[arc.tail as usize]
+                .checked_add(amount)
+                .ok_or_else(|| {
+                    McfCertificateError::new(format!(
+                        "outflow balance overflow at node {}",
+                        arc.tail
+                    ))
+                })?;
+        balances[arc.head as usize] =
+            balances[arc.head as usize]
+                .checked_sub(amount)
+                .ok_or_else(|| {
+                    McfCertificateError::new(format!(
+                        "inflow balance overflow at node {}",
+                        arc.head
+                    ))
+                })?;
 
         let arc_cost = amount
             .checked_mul(i128::from(arc.unit_cost))
@@ -240,9 +233,9 @@ pub fn verify_mcf_optimality(
                     arc.ordinal
                 ))
             })?;
-        objective = objective.checked_add(arc_cost).ok_or_else(|| {
-            McfCertificateError::new("objective accumulation overflowed i128")
-        })?;
+        objective = objective
+            .checked_add(arc_cost)
+            .ok_or_else(|| McfCertificateError::new("objective accumulation overflowed i128"))?;
 
         let tail_potential = certificate.node_potentials[arc.tail as usize];
         let head_potential = certificate.node_potentials[arc.head as usize];
@@ -338,20 +331,16 @@ mod tests {
 
     #[test]
     fn verifies_parallel_arc_identity_and_optimality() {
-        let instance = parse_dimacs_mcf(
-            "p min 2 2\nn 1 3\nn 2 -3\na 1 2 0 3 1\na 1 2 0 3 3",
-        )
-        .unwrap();
+        let instance =
+            parse_dimacs_mcf("p min 2 2\nn 1 3\nn 2 -3\na 1 2 0 3 1\na 1 2 0 3 3").unwrap();
         let cert = certificate(&instance, &[3, 0], &[0, 0, 1], 3);
         verify_mcf_optimality(&instance, &cert).unwrap();
     }
 
     #[test]
     fn rejects_a_feasible_but_nonoptimal_parallel_arc_flow() {
-        let instance = parse_dimacs_mcf(
-            "p min 2 2\nn 1 3\nn 2 -3\na 1 2 0 3 1\na 1 2 0 3 3",
-        )
-        .unwrap();
+        let instance =
+            parse_dimacs_mcf("p min 2 2\nn 1 3\nn 2 -3\na 1 2 0 3 1\na 1 2 0 3 3").unwrap();
         let cert = certificate(&instance, &[0, 3], &[0, 0, 1], 9);
         assert!(
             verify_mcf_optimality(&instance, &cert)
