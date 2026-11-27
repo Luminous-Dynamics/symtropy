@@ -101,7 +101,7 @@ cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo
 
 The Rust reference parses the frozen service obligation, dependency inventory, day-zero shocks, alternatives, configuration revisions, inspection dispositions and receiver-acceptance dispositions. Every option must have exactly one inspection record and one receiver-acceptance record, both bound to its configuration revision. Inspection PASS can qualify a partial quantity; FAIL/UNKNOWN qualifies zero. Receiver ACCEPTED may accept no more than the inspection-qualified quantity; REJECTED/UNKNOWN accepts zero. The receipt separately reports expected, inspection-qualified, receiver-accepted and on-time accepted units. Missing/duplicate evidence, revision mismatch, over-qualification/over-acceptance, unknown/duplicate dependencies, unsupported shock timing and receiver-day overflow fail closed.
 
-Seventeen Rust unit tests and three integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. One integration oracle independently reconstructs both evidence stages and the base receipt; a second independently adjudicates the 26-case corpus, including common-cause shocks, resource availability changes, deadline boundaries, partial receiver acceptance, inspection failure/unknown, receiver rejection/unknown, separate revision mismatches and over-acceptance. The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
+Eighteen Rust unit tests and four integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. Integration coverage includes an independent base-receipt oracle, a 26-case adversarial corpus, and a Mycelix #6774 owner-receipt composition test that independently parses capacity/feasibility outputs and checks their downstream service effect. The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
 
 **Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The present v0.4 extension separates inspection qualification from receiver acceptance and adds a 26-case adversarial corpus; it has not yet completed its own exact-head qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
 
@@ -114,10 +114,11 @@ The result is conditional on the exact declared synthetic dependency topology, i
 ## Next qualification steps
 
 1. Complete exact-head qualification of v0.4; address every failure without weakening gates.
-2. Extend both evidence records to actual source IDs, timestamped observations, custody/dispatch/handoff provenance and participant authority from Mycelix's owner-native artifacts.
-3. Add transitive dependency closure, stale/revoked source evidence, unknown dependency remainder, inspection measurement uncertainty, partial dispatch/receipt and cancellation/rework states.
-4. Extend beyond the current 26 cases to at least 30 frozen cases and held-out facility/shock families.
-4. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
-5. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
+2. Replace the frozen Mycelix receipt snapshot with an exact-digest, freshness-, rights- and authority-bound owner adapter.
+3. Extend both evidence records to actual source IDs, timestamped observations, custody/dispatch/handoff provenance and participant authority from Mycelix's owner-native artifacts.
+4. Add transitive dependency closure, stale/revoked source evidence, unknown dependency remainder, inspection measurement uncertainty, partial dispatch/receipt and cancellation/rework states.
+5. Extend beyond the current 26 cases to at least 30 frozen cases and held-out facility/shock families.
+6. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
+7. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
 
 A passing fixture is evidence of this model's arithmetic and declared topology only. It is not a physical or industry qualification.
