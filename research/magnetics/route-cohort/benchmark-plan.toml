@@ -54,6 +54,8 @@ dependencies = []
 unit_tests_authored = 19
 unit_tests_executed = false
 exact_head_ci_pass = false
+unit_tests_executed = false
+exact_head_ci_pass = false
 
 [claim_policy]
 synthetic_cohort_is_physical_yield = false
