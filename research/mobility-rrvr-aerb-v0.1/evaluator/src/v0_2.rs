@@ -180,10 +180,16 @@ fn validate_submission(
     }
     for (name, digest) in [
         ("decision_need_sha256", &submission.decision_need_sha256),
-        ("decision_contract_sha256", &submission.decision_contract_sha256),
+        (
+            "decision_contract_sha256",
+            &submission.decision_contract_sha256,
+        ),
         ("probe_catalogue_sha256", &submission.probe_catalogue_sha256),
         ("model_sha256", &submission.model_sha256),
-        ("observer_profile_sha256", &submission.observer_profile_sha256),
+        (
+            "observer_profile_sha256",
+            &submission.observer_profile_sha256,
+        ),
     ] {
         if !valid_digest(digest) {
             return fail(format!("INVALID_DIGEST: {name}"));
@@ -220,7 +226,9 @@ fn validate_submission(
             return fail(format!("UNKNOWN_EXPLANATION_OBSERVATION: {observation_id}"));
         }
         if !cited_observations.insert(observation_id.as_str()) {
-            return fail(format!("DUPLICATE_EXPLANATION_OBSERVATION: {observation_id}"));
+            return fail(format!(
+                "DUPLICATE_EXPLANATION_OBSERVATION: {observation_id}"
+            ));
         }
     }
     let mut reason_codes = BTreeSet::new();
@@ -247,13 +255,19 @@ fn validate_submission(
             return fail("EMPTY_PREDICTED_PROBE_ID");
         }
         if !permitted_probes.contains_key(prediction.probe_id.as_str()) {
-            return fail(format!("PREDICTED_PROBE_NOT_PERMITTED: {}", prediction.probe_id));
+            return fail(format!(
+                "PREDICTED_PROBE_NOT_PERMITTED: {}",
+                prediction.probe_id
+            ));
         }
         if predictions
             .insert(prediction.probe_id.as_str(), prediction)
             .is_some()
         {
-            return fail(format!("DUPLICATE_PREDICTED_PROBE: {}", prediction.probe_id));
+            return fail(format!(
+                "DUPLICATE_PREDICTED_PROBE: {}",
+                prediction.probe_id
+            ));
         }
         validate_probe_prediction(prediction, &initial_support)?;
     }
@@ -274,7 +288,10 @@ fn validate_probe_prediction(
     initial_support: &BTreeSet<String>,
 ) -> Result<(), CandidateV02Error> {
     if prediction.outcomes.is_empty() || prediction.outcomes.len() > MAX_PREDICTED_OUTCOMES {
-        return fail(format!("PREDICTED_OUTCOME_COUNT_OUT_OF_RANGE: {}", prediction.probe_id));
+        return fail(format!(
+            "PREDICTED_OUTCOME_COUNT_OUT_OF_RANGE: {}",
+            prediction.probe_id
+        ));
     }
     let mut outcome_ids = BTreeSet::new();
     let mut covered_worlds = BTreeSet::new();
@@ -376,7 +393,10 @@ fn validate_policy_graph(
             return fail(format!("DUPLICATE_POLICY_NODE_ID: {}", node.node_id));
         }
         if !node.counterfactual_only {
-            return fail(format!("POLICY_NODE_NOT_COUNTERFACTUAL_ONLY: {}", node.node_id));
+            return fail(format!(
+                "POLICY_NODE_NOT_COUNTERFACTUAL_ONLY: {}",
+                node.node_id
+            ));
         }
         match node.node_type.as_str() {
             "probe" => {
@@ -426,11 +446,18 @@ fn validate_policy_graph(
             }
         }
     }
-    if incoming.get(policy.root_node_id.as_str()).copied().unwrap_or(0) != 0 {
+    if incoming
+        .get(policy.root_node_id.as_str())
+        .copied()
+        .unwrap_or(0)
+        != 0
+    {
         return fail("POLICY_ROOT_HAS_INCOMING_EDGE");
     }
     for node_id in nodes.keys() {
-        if *node_id != policy.root_node_id.as_str() && incoming.get(*node_id).copied().unwrap_or(0) != 1 {
+        if *node_id != policy.root_node_id.as_str()
+            && incoming.get(*node_id).copied().unwrap_or(0) != 1
+        {
             return fail(format!("POLICY_NODE_MUST_HAVE_ONE_PARENT: {node_id}"));
         }
     }
@@ -492,11 +519,13 @@ fn walk_policy(
         }
         let disposition = node
             .terminal_disposition
-            .ok_or_else(|| CandidateV02Error(format!("TERMINAL_DISPOSITION_MISSING: {node_id}")))?;
+            .ok_or_else(|| {
+                CandidateV02Error(format!("TERMINAL_DISPOSITION_MISSING: {node_id}"))
+            })?;
         if disposition == TerminalDisposition::RecommendFreshAttempt
-            && possible_support.iter().any(|world_id| {
-                world_id != "not_dispatched" && world_id != "dispatched_no_effect"
-            })
+            && possible_support
+                .iter()
+                .any(|world_id| world_id != "not_dispatched" && world_id != "dispatched_no_effect")
         {
             return fail(format!(
                 "FRESH_ATTEMPT_RECOMMENDED_WITH_NON_NO_EFFECT_SUPPORT: {node_id}"
@@ -553,17 +582,21 @@ fn walk_policy(
         .iter()
         .map(|branch| branch.outcome_id.as_str())
         .collect();
-    let active_outcome_ids: BTreeSet<&str> =
-        active_outcomes.keys().map(String::as_str).collect();
+    let active_outcome_ids: BTreeSet<&str> = active_outcomes.keys().map(String::as_str).collect();
     if declared_outcomes != active_outcome_ids {
-        return fail(format!("POLICY_BRANCHES_DO_NOT_MATCH_REACHABLE_OUTCOMES: {node_id}"));
+        return fail(format!(
+            "POLICY_BRANCHES_DO_NOT_MATCH_REACHABLE_OUTCOMES: {node_id}"
+        ));
     }
 
     visiting.insert(node_id.to_owned());
     for branch in branches {
-        let child_support = active_outcomes
-            .get(&branch.outcome_id)
-            .ok_or_else(|| CandidateV02Error(format!("POLICY_BRANCH_OUTCOME_UNKNOWN: {}", branch.outcome_id)))?;
+        let child_support = active_outcomes.get(&branch.outcome_id).ok_or_else(|| {
+            CandidateV02Error(format!(
+                "POLICY_BRANCH_OUTCOME_UNKNOWN: {}",
+                branch.outcome_id
+            ))
+        })?;
         walk_policy(
             branch.next_node_id.as_str(),
             child_support,
@@ -588,8 +621,7 @@ mod tests {
     use super::*;
     use serde_json::{Value, json};
 
-    const EPISODE_JSON: &str =
-        include_str!("../../fixtures/candidate_episode_synthetic_v0_1.json");
+    const EPISODE_JSON: &str = include_str!("../../fixtures/candidate_episode_synthetic_v0_1.json");
     const SUBMISSION_JSON: &str = include_str!(
         "../../../mobility-rrvr-aerb-probe-value-v0.1/fixtures/candidate_submission_adaptive_synthetic_v0_2.json"
     );
@@ -603,12 +635,15 @@ mod tests {
 
     fn reseal_snapshot(episode: &Value, submission: &mut Value) {
         let raw = serde_json::to_string(episode).expect("episode serialization");
-        let digest = super::super::canonical_sorted_json_sha256(&raw)
-            .expect("candidate episode digest");
+        let digest =
+            super::super::canonical_sorted_json_sha256(&raw).expect("candidate episode digest");
         submission["candidate_snapshot_sha256"] = json!(digest);
     }
 
-    fn evaluate_values(episode: &Value, submission: &Value) -> Result<CandidateSubmissionV02, CandidateV02Error> {
+    fn evaluate_values(
+        episode: &Value,
+        submission: &Value,
+    ) -> Result<CandidateSubmissionV02, CandidateV02Error> {
         let episode_json = serde_json::to_string(episode).expect("episode serialization");
         let submission_json = serde_json::to_string(submission).expect("submission serialization");
         validate_candidate_submission_v0_2(&episode_json, &submission_json)
