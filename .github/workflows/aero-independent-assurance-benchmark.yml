@@ -24,6 +24,12 @@ on:
     paths:
       - ".github/workflows/aero-independent-assurance-benchmark.yml"
       - "tools/aero/validate_independent_assurance_benchmark.py"
+      - "crates/domains/symtropy-aero-material-qual/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "docs/research/aviation/AERO_ASSURANCE_DISPOSITION_SEMANTICS_V0_1.md"
+      - "docs/research/aviation/schemas/aero_assurance_state_vector_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_state_vectors_v0_1.json"
       - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
       - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
       - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
@@ -36,7 +42,7 @@ permissions:
 
 jobs:
   validate:
-    name: Benchmark schema and metric contract
+    name: Benchmark and Rust disposition contract
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
