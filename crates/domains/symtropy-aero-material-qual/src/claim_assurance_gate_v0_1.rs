@@ -1098,10 +1098,13 @@ mod tests {
         let coverage = coverage(coverage_status);
         let cut = cut(cut_status);
         let decision_context = context_for_evidence(evidence);
+        let owner_evidence_cut = owner_cut_for_evidence(evidence);
+        let model_credibility_cut = model_cut_for_context(&decision_context);
         evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
             decision_context: &decision_context,
-            owner_evidence_cut: &owner_cut_for_evidence(evidence),
+            owner_evidence_cut: &owner_evidence_cut,
+            model_credibility_cut: &model_credibility_cut,
             bindings: component_bindings,
             coverage: &coverage,
             causal_cut: &cut,
@@ -1134,10 +1137,12 @@ mod tests {
             effectivity,
             &decision_context,
         );
+        let model_credibility_cut = model_cut_for_context(&decision_context);
         evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
             decision_context: &decision_context,
             owner_evidence_cut: owner_cut,
+            model_credibility_cut: &model_credibility_cut,
             bindings: &component_bindings,
             coverage: &coverage_result,
             causal_cut: &cut_result,
@@ -1174,6 +1179,10 @@ mod tests {
         let mut result = vec![
             evidence(EvidenceAdmissionState::Admitted, "receipt:inspection-01"),
             evidence(EvidenceAdmissionState::Admitted, "receipt:calibration-02"),
+            evidence(
+                EvidenceAdmissionState::Admitted,
+                "aeroweift:validation:wing-panel-001",
+            ),
         ];
         let context = context_for_evidence(&result);
         let digest = context_digest(&context);
@@ -1205,8 +1214,8 @@ mod tests {
             &all_admitted(),
         );
         reviewable(&result);
-        assert_eq!(result.admitted_required_evidence_count, 2);
-        assert_eq!(result.required_evidence_count, 2);
+        assert_eq!(result.admitted_required_evidence_count, 3);
+        assert_eq!(result.required_evidence_count, 3);
     }
 
     #[test]
@@ -1541,6 +1550,7 @@ mod tests {
             claim_id: "claim-wing-panel-001",
             decision_context: &context,
             owner_evidence_cut: &owner_cut_for_evidence(&evidence),
+            model_credibility_cut: &model_cut_for_context(&context),
             bindings: &bindings,
             coverage: &coverage_result,
             causal_cut: &cut_result,
@@ -1567,6 +1577,7 @@ mod tests {
             claim_id: "claim-wing-panel-001",
             decision_context: &context,
             owner_evidence_cut: &owner_cut_for_evidence(&evidence),
+            model_credibility_cut: &model_cut_for_context(&context),
             bindings: &bindings,
             coverage: &coverage_result,
             causal_cut: &cut_result,
