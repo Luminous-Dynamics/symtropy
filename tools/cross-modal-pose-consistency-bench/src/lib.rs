@@ -162,7 +162,11 @@ fn ceil_sqrt(value: u128) -> Option<u64> {
         }
     }
     let square = low.checked_mul(low)?;
-    let root = if square == value { low } else { low.checked_add(1)? };
+    let root = if square == value {
+        low
+    } else {
+        low.checked_add(1)?
+    };
     u64::try_from(root).ok()
 }
 
@@ -220,7 +224,9 @@ fn validate_estimate(estimate: &PoseEstimate) -> Result<(), String> {
     }
     for (name, digest) in estimate.dependencies.fields() {
         if !valid_digest(digest) {
-            return Err(format!("dependency digest {name} is not a SHA-256 hex string"));
+            return Err(format!(
+                "dependency digest {name} is not a SHA-256 hex string"
+            ));
         }
     }
     if !quaternion_is_unit(estimate.quaternion_xyzw_q30) {
@@ -295,10 +301,9 @@ pub fn evaluate_pair(
     validate_estimate(rgb)?;
     validate_estimate(event)?;
 
-    let timestamp_skew = i128::from(rgb.timestamp_ms)
-        .abs_diff(i128::from(event.timestamp_ms));
-    let timestamp_skew_ms = u64::try_from(timestamp_skew)
-        .map_err(|_| "timestamp skew does not fit u64".to_owned())?;
+    let timestamp_skew = i128::from(rgb.timestamp_ms).abs_diff(i128::from(event.timestamp_ms));
+    let timestamp_skew_ms =
+        u64::try_from(timestamp_skew).map_err(|_| "timestamp skew does not fit u64".to_owned())?;
 
     if !identity_compatible(rgb, event) {
         return Ok(base_receipt(
@@ -325,7 +330,9 @@ pub fn evaluate_pair(
             || event.ood
         {
             "MODALITY_OUT_OF_DISTRIBUTION"
-        } else if rgb.status == EstimateStatus::Abstained || event.status == EstimateStatus::Abstained {
+        } else if rgb.status == EstimateStatus::Abstained
+            || event.status == EstimateStatus::Abstained
+        {
             "MODALITY_ABSTAINED"
         } else {
             "MODALITY_ESTIMATE_INVALID"
@@ -350,11 +357,8 @@ pub fn evaluate_pair(
 
     let translation = translation_disagreement(rgb.translation_um, event.translation_um)
         .ok_or_else(|| "translation disagreement overflow".to_owned())?;
-    let orientation = orientation_chord_q30(
-        rgb.quaternion_xyzw_q30,
-        event.quaternion_xyzw_q30,
-    )
-    .ok_or_else(|| "orientation chord calculation overflow".to_owned())?;
+    let orientation = orientation_chord_q30(rgb.quaternion_xyzw_q30, event.quaternion_xyzw_q30)
+        .ok_or_else(|| "orientation chord calculation overflow".to_owned())?;
 
     let mut receipt = base_receipt(
         rgb,
@@ -370,7 +374,9 @@ pub fn evaluate_pair(
         || orientation > policy.maximum_orientation_chord_q30
     {
         receipt.disposition = "DISAGREEMENT".to_owned();
-        receipt.reason_codes.push("POSE_DISAGREEMENT_EXCEEDS_POLICY".to_owned());
+        receipt
+            .reason_codes
+            .push("POSE_DISAGREEMENT_EXCEEDS_POLICY".to_owned());
     }
 
     let mut shared = shared_dependencies(rgb, event);
@@ -379,11 +385,15 @@ pub fn evaluate_pair(
         && (!rgb.dependencies.declarations_complete || !event.dependencies.declarations_complete)
     {
         receipt.disposition = "DEPENDENCE_UNKNOWN".to_owned();
-        receipt.reason_codes.push("DEPENDENCY_DECLARATIONS_INCOMPLETE".to_owned());
+        receipt
+            .reason_codes
+            .push("DEPENDENCY_DECLARATIONS_INCOMPLETE".to_owned());
     }
     if policy.shared_dependencies_fail_closed && !shared.is_empty() {
         receipt.disposition = "DEPENDENCE_UNKNOWN".to_owned();
-        receipt.reason_codes.push("SHARED_COMMON_CAUSE_DEPENDENCY".to_owned());
+        receipt
+            .reason_codes
+            .push("SHARED_COMMON_CAUSE_DEPENDENCY".to_owned());
     }
 
     receipt.reason_codes.sort();
@@ -396,8 +406,8 @@ pub fn evaluate_pair(
 #[cfg(test)]
 mod tests {
     use super::{
-        DependencyDigests, EstimateStatus, GatePolicy, Modality, PoseEstimate,
-        evaluate_pair, Q30_ONE,
+        DependencyDigests, EstimateStatus, GatePolicy, Modality, PoseEstimate, Q30_ONE,
+        evaluate_pair,
     };
 
     fn digest(character: char) -> String {
@@ -481,7 +491,10 @@ mod tests {
         event.dependencies.training_data = rgb.dependencies.training_data.clone();
         let receipt = evaluate_pair(&rgb, &event, &policy()).expect("valid pair");
         assert_eq!(receipt.disposition, "DEPENDENCE_UNKNOWN");
-        assert_eq!(receipt.shared_dependency_kinds, ["target_geometry", "training_data"]);
+        assert_eq!(
+            receipt.shared_dependency_kinds,
+            ["target_geometry", "training_data"]
+        );
     }
 
     #[test]
@@ -500,7 +513,11 @@ mod tests {
         let event = estimate(Modality::Event, 50_000);
         let receipt = evaluate_pair(&rgb, &event, &policy()).expect("valid pair");
         assert_eq!(receipt.disposition, "DISAGREEMENT");
-        assert!(receipt.reason_codes.contains(&"POSE_DISAGREEMENT_EXCEEDS_POLICY".to_owned()));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"POSE_DISAGREEMENT_EXCEEDS_POLICY".to_owned())
+        );
     }
 
     #[test]
@@ -520,7 +537,11 @@ mod tests {
         event.timestamp_ms += 10;
         let receipt = evaluate_pair(&rgb, &event, &policy()).expect("valid pair");
         assert_eq!(receipt.disposition, "OUT_OF_SCOPE");
-        assert!(receipt.reason_codes.contains(&"TIMESTAMP_SKEW_EXCEEDS_POLICY".to_owned()));
+        assert!(
+            receipt
+                .reason_codes
+                .contains(&"TIMESTAMP_SKEW_EXCEEDS_POLICY".to_owned())
+        );
     }
 
     #[test]
@@ -529,13 +550,17 @@ mod tests {
         let mut event = estimate(Modality::Event, 0);
         event.frame_id = "frame-002".to_owned();
         assert_eq!(
-            evaluate_pair(&rgb, &event, &policy()).expect("valid pair").disposition,
+            evaluate_pair(&rgb, &event, &policy())
+                .expect("valid pair")
+                .disposition,
             "OUT_OF_SCOPE"
         );
         let mut event = estimate(Modality::Event, 0);
         event.frame_convention = "CAMERA_RIGHT_HANDED".to_owned();
         assert_eq!(
-            evaluate_pair(&rgb, &event, &policy()).expect("valid pair").disposition,
+            evaluate_pair(&rgb, &event, &policy())
+                .expect("valid pair")
+                .disposition,
             "OUT_OF_SCOPE"
         );
     }
