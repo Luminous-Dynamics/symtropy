@@ -14,7 +14,7 @@ use super::decision_context_v0_1::{
 };
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::model_credibility_cut_v0_1::{
-    ModelCredibilityCutV0_1, ModelDomainCoverageStatus, ModelPackageStatus,
+    ModelCredibilityCutV0_1, ModelDomainCoverageStatus, ModelPackageStatus, SplitIntegrityStatus,
 };
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::owner_evidence_cut_v0_1::{
@@ -1448,6 +1448,7 @@ mod tests {
         let valid = all_admitted();
         let context = context_for_evidence(&valid);
         let owner_cut = owner_cut_for_evidence(&valid);
+        let model_cut = model_cut_for_context(&context);
         let coverage = coverage(CoverageStatus::QualifiedCompleteForScope);
         let causal_cut = cut(CutStatus::Closed);
         let bindings = bindings_for(
@@ -1461,6 +1462,7 @@ mod tests {
                 claim_id: "claim-wing-panel-001",
                 decision_context: &context,
                 owner_evidence_cut: &owner_cut,
+                model_credibility_cut: &model_cut,
                 bindings: &bindings,
                 coverage: &coverage,
                 causal_cut: &causal_cut,
