@@ -768,7 +768,7 @@ mod tests {
 
     #[test]
     // Incomplete required metering cannot support a full-success claim; honest abstention is Incomplete.
-fn missing_energy_measurement_requires_honest_abstention() {
+    fn missing_energy_measurement_requires_honest_abstention() {
         let mut receipt = passing_receipt();
         receipt.energy_meter_status = EvidenceStatus::Incomplete;
         receipt.energy_millijoules = None;
