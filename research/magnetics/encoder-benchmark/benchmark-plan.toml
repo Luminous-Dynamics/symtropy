@@ -1,0 +1,111 @@
+[protocol]
+id = "MAG-ENCODER-BENCH-001"
+revision = "0.1-draft"
+status = "provisional_preregistration"
+date = "2026-11-27"
+units = "SI; angles in degrees unless stated"
+
+[baseline]
+manufacturer = "RLS"
+family = "AksIM-2"
+ring_part = "MRA080"
+readhead_part = "MB080"
+datasheet = "MBD01 Issue 15"
+datasheet_date = "2026-05-13"
+resolution_bits_max = 20
+system_accuracy_deg = 0.004
+typical_calibrated_installed_accuracy_deg = 0.009
+typical_uncalibrated_installed_accuracy_deg = 0.029
+maximum_speed_rpm = 4700
+bandwidth_hz = 9000
+sampling_hz = 18000
+refresh_hz_max = 54000
+temperature_min_c = -40
+temperature_max_c = 105
+self_calibration_supported = true
+two_readhead_supported = true
+external_field_temporary_malfunction_threshold_mt = 20
+external_field_possible_permanent_damage_threshold_mt = 50
+
+[comparator]
+manufacturer = "RLS"
+family = "AksIM-4 HIPERFACE DSL"
+variant = "MC080"
+ring_size_class_mm = 80
+datasheet_revision_status = "current_MCD06_pdf_and_ordering_code_required"
+ordering_code_status = "unconfirmed"
+resolution_options_bits = [20, 22]
+system_accuracy_deg = 0.004
+calibrated_installed_accuracy_status = "not_published_in_verified_current_MCD06_pdf"
+uncalibrated_installed_accuracy_status = "not_published_in_verified_current_MCD06_pdf"
+maximum_speed_status = "not_published_in_verified_current_MCD06_pdf"
+bandwidth_status = "not_published_in_verified_current_MCD06_pdf"
+datasheet_temperature_readhead_c = [-40, 115]
+datasheet_temperature_ring_c = [-40, 125]
+common_comparison_temperature_c = [-40, 105]
+notes = "Do not treat legacy MCD05 product-page PDF as current MCD06 documentation."
+
+[common_test_envelope]
+ring_size_class_mm = 80
+temperature_min_c = -40
+temperature_max_c = 105
+rotation_span_deg = 360
+directions = ["clockwise", "counterclockwise"]
+nominal_angle_step_deg = 1.0
+minimum_engineering_specimens_per_configuration = 5
+speed_points_rpm = [300, 1000, 3000]
+include_4700_rpm_only_if_all_exact_variants_are_rated = true
+temperature_setpoints_c = [-40, 23, 85, 105]
+require_steady_state_soak_record = true
+randomize_test_order = true
+
+[metrology]
+reference_instrument_id_status = "unselected"
+calibration_certificate_id_status = "unselected"
+expanded_uncertainty_coverage_factor = 2.0
+expanded_uncertainty_target_deg = 0.001
+uncertainty_target_status = "engineering_goal_not_yet_demonstrated"
+require_timestamp_synchronization = true
+require_raw_reference_samples = true
+
+[calibration]
+modes = ["uncalibrated_single_head", "calibrated_or_self_calibrated_single_head", "two_head_180deg_if_supported"]
+freeze_calibration_data_digest = true
+freeze_calibration_procedure_digest = true
+seal_blind_holdout_before_fit = true
+blind_data_may_not_drive_calibration = true
+blind_data_may_not_drive_active_sampling = true
+
+[metrics]
+separate_vendor_system_accuracy = true
+separate_uncalibrated_installed_accuracy = true
+separate_calibrated_installed_accuracy = true
+report_max_absolute_error = true
+report_rms_error = true
+report_repeatability = true
+report_hysteresis = true
+report_sde_and_noise = true
+report_harmonic_spectrum = true
+report_thermal_drift = true
+report_bandwidth_sample_rate_refresh_latency_jitter = true
+report_runout_eccentricity_airgap_sensitivity = true
+report_external_field_susceptibility = true
+report_power_diagnostics_calibration_installation_cost = true
+
+[research_targets]
+system_accuracy_parity_deg = 0.004
+system_accuracy_stretch_deg = 0.003
+calibrated_installed_target_deg = 0.007
+uncalibrated_installed_stretch_deg = 0.020
+zero_false_safe_spatial_classifications = true
+targets_are_achieved_results = false
+
+[protocol_gates]
+current_mcd06_datasheet_received = false
+mcd06_ordering_code_frozen = false
+metrology_chain_selected = false
+uncertainty_budget_approved = false
+test_fixture_drawings_frozen = false
+test_sequence_preregistered = false
+blind_holdout_partition_frozen = false
+hardware_specimens_received = false
