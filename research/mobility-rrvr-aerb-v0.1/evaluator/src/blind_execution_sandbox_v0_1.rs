@@ -69,6 +69,18 @@ pub struct SandboxCommand {
     pub candidate_executable_in_sandbox: PathBuf,
 }
 
+impl SandboxCommand {
+    /// Create the host launcher with a cleared environment. Callers should use
+    /// this method rather than reconstructing Command manually: host environment
+    /// secrets must not reach prlimit or the Bubblewrap setup process.
+    pub fn process_command(&self) -> std::process::Command {
+        let mut command = std::process::Command::new(&self.program);
+        command.args(&self.args);
+        command.env_clear();
+        command
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SandboxError {
     MissingPath(&'static str),
