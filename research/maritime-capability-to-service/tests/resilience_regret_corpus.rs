@@ -129,7 +129,6 @@ fn lifecycle_and_recovery_edge_cases_keep_service_and_knowledge_bounds() {
     assert_eq!(after_deadline.expected, "NO_CURRENT_SERVICE_CREDIT");
 }
 
-
 #[test]
 fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
     let candidate = RecoveryServiceOutcome {
