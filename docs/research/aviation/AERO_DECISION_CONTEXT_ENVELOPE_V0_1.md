@@ -30,7 +30,9 @@ The versioned `DecisionContextV0_1` contains:
 | risk-classification digest | Risk tier and consequence assessment |
 | model-applicability-profile digest | Model/configuration/domain applicability envelope |
 
-Every external digest must be lower-case SHA-256. Identifiers must be non-empty and trimmed. Acquisition time must be a valid ordered interval and its latest possible time cannot exceed the selected as-known snapshot.
+Every external digest must be lower-case SHA-256. Claim, subject, configuration, operating-envelope and required-evidence identifiers must be non-empty printable ASCII tokens without spaces or control characters; this restriction keeps the current JSON serialization profile reproducible across Rust and Python without Unicode-normalization or escape-policy ambiguity. Acquisition time must be a valid ordered interval and its latest possible time cannot exceed the selected as-known snapshot.
+
+The companion JSON fixture also carries `required_evidence_refs` as the exact manifest input. That list is not serialized as a second field in `DecisionContextV0_1`; instead the evaluator recomputes its manifest digest and requires it to equal the context's `required_evidence_manifest_sha256`. Duplicate references remain represented in the manifest digest and are then rejected by the claim gate.
 
 ## 3. Required-evidence manifest
 
@@ -53,6 +55,7 @@ The implementation uses a versioned Rust/Serde JSON struct-order profile:
 - evidence manifest schema: `AeroRequiredEvidenceManifestV1`;
 - canonicalization profile: `rust-serde-json-struct-order-v1`;
 - UTF-8 JSON with fixed field order and no insignificant whitespace;
+- printable ASCII only for identifiers and lower-case hexadecimal digests;
 - SHA-256 over the exact serialized bytes.
 
 This is intentionally explicit but is **not** a general RFC 8785/JCS implementation. Cross-language consumers must implement this exact profile and pass shared byte/digest vectors, or agree a new canonicalization profile before interoperation. JSON Schema alone cannot express the cross-field chronology conditions; the Rust validator enforces them.
