@@ -1,6 +1,6 @@
 {
   "manifest_version": "ev-bms-generated-reference/v0.1",
-  "dataset_id": "ch-batteryg-en-iclr-2026-v1",
+  "dataset_id": "ch-batterygen-iclr-2026-v1",
   "title": "CAERI-Huawei AI-Generated Power Battery Dataset for New Energy Vehicles (CH-BatteryGen)",
   "paper_url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/0d781fa5f639bf2caf728a68e9678362-Paper-Conference.pdf",
   "source_repository_url": "https://github.com/CH-BatteryGen/dataset-warehouse",
