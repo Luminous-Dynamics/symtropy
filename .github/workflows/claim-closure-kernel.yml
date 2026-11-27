@@ -54,10 +54,12 @@ jobs:
           root = Path("tools/claim-closure-kernel")
           schema = json.loads((root / "schemas/input-v0.1.schema.json").read_text())
           fixture = json.loads((root / "fixtures/positive-v0.1.json").read_text())
+          mutation_base = json.loads((root / "fixtures/mutation-base-v0.1.json").read_text())
           mutation_schema = json.loads((root / "schemas/mutation-corpus-v0.1.schema.json").read_text())
           mutation_corpus = json.loads((root / "fixtures/mutation-cases-v0.1.json").read_text())
           for document, instance, label in (
               (schema, fixture, "positive input"),
+              (schema, mutation_base, "shared mutation base"),
               (mutation_schema, mutation_corpus, "mutation corpus"),
           ):
               Draft202012Validator.check_schema(document)
@@ -68,7 +70,10 @@ jobs:
                   raise SystemExit(1)
           assert fixture["claim"]["requirements"]
           assert len(fixture["evidence_records"]) == 3
+          assert mutation_base["claim"]["requirements"]
+          assert len(mutation_base["evidence_records"]) == 3
+          assert mutation_base["claim"]["requirements"][0]["evidence_ref"] == "evidence:measurement"
           assert mutation_corpus["mutation_count"] == len(mutation_corpus["cases"]) == 25
           assert len({case["case_id"] for case in mutation_corpus["cases"]}) == 25
-          print("PASS: Draft 2020-12 input and mutation schemas; three-node positive fixture; 25 unique mutation cases")
+          print("PASS: Draft 2020-12 input and mutation schemas; positive fixture and shared mutation base; 25 unique mutation cases")
           PY
