@@ -20,6 +20,20 @@ CPPI's six timestamps are: arrival at anchorage/pilot station; movement to berth
 
 DCSA's current implementation guidance also points adopters to its conformance framework and sandbox. We should use the conformance scenarios as the interop acceptance gate; an internally successful adapter is not proof of DCSA conformance.
 
+## Port digital-twin benchmarking and synchronization
+
+A 2026 European port digital-twin benchmarking study reviewed seven port/logistics initiatives and found recurring interoperability and modular-architecture principles, but persistent gaps in data availability, model transparency, operational-performance reporting and synchronization mechanisms. [Digital twin architectures for smart port operations: Lessons from European benchmarking](https://doi.org/10.1016/j.rineng.2026.110485).
+
+This creates a concrete comparative test for MCSC: do not merely assert that a port digital twin is integrated. Measure:
+- event-time, first-available time, ingestion time and decision cutoff separately;
+- cross-owner receipt and model-version synchronization;
+- stale/late/revoked evidence admission;
+- time from disruption event to admissible replacement plan;
+- service-equivalent outputs preserved across owners;
+- operational performance and uncertainty bounds on held-out events.
+
+The 2026 NIST digital-twin workshops also emphasize VVUQ, interoperability, cybersecurity and workforce readiness. MCSC's claim ceiling remains explicit: a synthetically synchronized trace is not proof of a synchronized physical port twin.
+
 ## 2. Manufacturing intelligence and digital-twin assurance
 
 The NIST comparator has advanced beyond a broad trustworthy-manufacturing agenda. Its **2026 Roadmap on AI and ML for Smart Manufacturing** covers industrial big-data, sensing, autonomous systems, robotics, supply-chain/logistics optimization, advanced digital twins, reliability/maintainability and safety. NIST's **NISTIR 8620 Digital Twins Workshops Summary Report** identifies interoperability, VVUQ, cybersecurity and workforce readiness as persistent adoption barriers. [Roadmap](https://doi.org/10.1088/3049-4761/ae5967) · [NISTIR 8620](https://doi.org/10.6028/NIST.IR.8620)
