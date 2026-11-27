@@ -289,7 +289,8 @@
         "rotation_wxyz",
         "pose_uncertainty",
         "source_observation_refs",
-        "transform_revision"
+        "transform_revision",
+        "epistemic_origin"
       ],
       "properties": {
         "transform_id": {
