@@ -5,11 +5,13 @@ on:
     paths:
       - ".github/workflows/ev-nlr-profile-audit.yml"
       - "tools/ev-nlr-profile-audit/**"
+      - "tools/ev-nlr-profile-audit/Cargo.lock"
   push:
     branches: [main, "research/**"]
     paths:
       - ".github/workflows/ev-nlr-profile-audit.yml"
       - "tools/ev-nlr-profile-audit/**"
+      - "tools/ev-nlr-profile-audit/Cargo.lock"
   workflow_dispatch:
 
 permissions:
@@ -30,9 +32,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all -- --check
       - name: Run unit and adversarial contract tests
-        run: cargo test --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets
+        run: cargo test --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets --locked
       - name: Run warnings-denied Clippy
-        run: cargo clippy --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets --locked -- -D warnings
       - name: Generate synthetic 81-profile reference and candidate archives
         shell: bash
         run: |
@@ -82,7 +84,7 @@ jobs:
           done
       - name: Audit archive contract and compare candidate
         run: |
-          cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml -- \
+          cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --locked -- \
             --reference-dir "$RUNNER_TEMP/nlr-reference-synthetic" \
             --candidate-dir "$RUNNER_TEMP/nlr-candidate-synthetic" \
             --candidate-id deterministic-half-kw-bias \
@@ -94,6 +96,7 @@ jobs:
       - name: Capture standalone lockfile digest
         run: |
           test -s tools/ev-nlr-profile-audit/Cargo.lock
+          echo "e22782e8b2135fe5aaeaa97a7ee34baaec9e5970fe79d04d5b21dbda1ab8e8e9  tools/ev-nlr-profile-audit/Cargo.lock" | sha256sum --check
           sha256sum tools/ev-nlr-profile-audit/Cargo.lock > nlr-profile-audit-cargo-lock.sha256
       - name: Upload synthetic contract report, lockfile and checksums
         uses: actions/upload-artifact@v4
