@@ -122,9 +122,7 @@ fn validate_truth(
     if truth.admissible_hypotheses.len() > MAX_EVALUATOR_TRUTH_HYPOTHESES_V0 {
         return Err(DecisionEvaluatorErrorV0::TooManyGroundTruthHypotheses);
     }
-    if truth.probe_outcome_supports.len()
-        > MAX_EVALUATOR_TRUTH_PROBE_OUTCOME_SUPPORTS_V0
-    {
+    if truth.probe_outcome_supports.len() > MAX_EVALUATOR_TRUTH_PROBE_OUTCOME_SUPPORTS_V0 {
         return Err(DecisionEvaluatorErrorV0::TooManyGroundTruthProbeOutcomeSupports);
     }
     let required_truth_support_pairs = problem
