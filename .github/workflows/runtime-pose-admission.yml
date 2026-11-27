@@ -84,6 +84,15 @@ jobs:
           assert cases["RPA044"]["disposition"] == "CANDIDATE_STATISTICAL_REGION"
           assert cases["RPA045"]["disposition"] == "DUPLICATE_SAMPLE"
           assert cases["RPA046"]["disposition"] == "DUPLICATE_SAMPLE"
+          assert cases["RPA001"]["frame_source_bytes_authenticated"] is True
+          assert cases["RPA001"]["profile_source_bytes_authenticated"] is True
+          assert cases["RPA001"]["upstream_source_bytes_authenticated"] is True
+          assert cases["RPA001"]["source_authentication_verified_here"] is False
+          assert cases["RPA001"]["source_bytes_authenticated"] is False
+          assert cases["RPA050"]["disposition"] == "ABSTAIN_UNCALIBRATED"
+          assert cases["RPA050"]["frame_source_bytes_authenticated"] is False
+          assert cases["RPA050"]["upstream_source_bytes_authenticated"] is False
+          assert cases["RPA050"]["source_authentication_verified_here"] is False
           assert cases["RPA050"]["source_bytes_authenticated"] is False
           assert cases["RPA001"]["deterministic_safety_bound"] is False
           assert cases["RPA001"]["maneuver_authority_granted"] is False
