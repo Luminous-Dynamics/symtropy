@@ -64,6 +64,10 @@ jobs:
           awk -F, 'NR > 1 && (NF != 61 || $14 != 0 || $15 != 0 || $16 != 0 || $17 != 0) { print "invalid scale smoke row", NR, "columns", NF; failed = 1 } END { exit failed }' "$results_dir/scale-smoke.csv"
           printf 'validated_rows=%s\n' "$(($(wc -l < "$results_dir/results.csv") - 1))" >> "$results_dir/manifest.txt"
           printf 'validated_scale_rows=%s\n' "$(($(wc -l < "$results_dir/scale-smoke.csv") - 1))" >> "$results_dir/manifest.txt"
+          cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin contact-lease-benchmark -- 100000 > "$results_dir/contact-lease.csv"
+          test "$(wc -l < "$results_dir/contact-lease.csv")" -eq 28
+          awk -F, 'NR == 1 && NF != 10 { print "invalid contact lease header"; failed = 1 } NR > 1 && (NF != 10 || $3 <= 0 || $8 != 0 || ($4 + $5 + $6 + $7) != $3) { print "invalid contact lease row", NR; failed = 1 } END { exit failed }' "$results_dir/contact-lease.csv"
+          printf 'validated_contact_lease_rows=%s\n' "$(($(wc -l < "$results_dir/contact-lease.csv") - 1))" >> "$results_dir/manifest.txt"
       - name: Retain benchmark evidence
         uses: actions/upload-artifact@v4
         with:
