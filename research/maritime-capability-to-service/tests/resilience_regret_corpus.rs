@@ -97,10 +97,20 @@ fn common_cause_identity_is_preserved_across_distinct_services_and_scenarios() {
         .iter()
         .find(|row| row.id == "CC19_DIFFERENT_PATH_IDS_SHARED_UPSTREAM")
         .unwrap();
-    assert!(transitive.dependencies.contains(&"PATH:SUPPLIER-A".to_owned()));
-    assert!(transitive.dependencies.contains(&"PATH:SUPPLIER-B".to_owned()));
     assert!(
-        transitive.dependencies.contains(&"UTILITY:SUBSTATION-01".to_owned()),
+        transitive
+            .dependencies
+            .contains(&"PATH:SUPPLIER-A".to_owned())
+    );
+    assert!(
+        transitive
+            .dependencies
+            .contains(&"PATH:SUPPLIER-B".to_owned())
+    );
+    assert!(
+        transitive
+            .dependencies
+            .contains(&"UTILITY:SUBSTATION-01".to_owned()),
         "distinct path IDs must not erase the shared upstream root"
     );
 }
