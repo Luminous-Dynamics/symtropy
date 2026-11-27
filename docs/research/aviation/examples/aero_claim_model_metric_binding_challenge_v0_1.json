@@ -1,0 +1,230 @@
+{
+  "schema": "AeroClaimMetricBindingChallengeCorpusV0_1",
+  "corpus_id": "AERO-CLAIM-MODEL-METRIC-BINDING-CHALLENGE-001-V0_1",
+  "oracle_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "execution_status": "NOT_EXECUTED",
+  "cases": [
+    {
+      "case_id": "MB01",
+      "case_class": "positive_control",
+      "mutation": "Exact measurand, unit, aggregation, predicate, population, uncertainty, claim strata, model metric reports, owner receipts and receiver cutoff are bound.",
+      "expected_disposition": "SEMANTICS_BOUND",
+      "expected_reason_codes": []
+    },
+    {
+      "case_id": "MB02",
+      "case_class": "single_fault",
+      "mutation": "Change the model metric ID while retaining the correct model and configuration.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_MODEL_REQUIRED_STRATA_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB03",
+      "case_class": "single_fault",
+      "mutation": "Change the owner metric unit from MPa to Pa without an explicit conversion profile.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_UNIT_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB04",
+      "case_class": "single_fault",
+      "mutation": "Replace maximum aggregation with mean aggregation.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_AGGREGATION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB05",
+      "case_class": "single_fault",
+      "mutation": "Use a different population manifest digest for the owner metric.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_POPULATION_SEMANTICS_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB06",
+      "case_class": "single_fault",
+      "mutation": "Replace worst-case population quantifier with every-required-unit.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_POPULATION_SEMANTICS_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB07",
+      "case_class": "single_fault",
+      "mutation": "Change the owner metric predicate threshold while preserving report identity.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_PREDICATE_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB08",
+      "case_class": "single_fault",
+      "mutation": "Change the owner metric uncertainty method reference.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_UNCERTAINTY_SEMANTICS_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB09",
+      "case_class": "single_fault",
+      "mutation": "Omit one required claim stratum from the model stratum mapping.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_REQUIRED_STRATUM_COVERAGE_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB10",
+      "case_class": "single_fault",
+      "mutation": "Map two distinct claim strata to the same model stratum reference.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_STRATUM_MAPPING_NOT_ONE_TO_ONE"
+      ]
+    },
+    {
+      "case_id": "MB11",
+      "case_class": "single_fault",
+      "mutation": "Omit the model metric report for one required stratum.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_MODEL_REPORT_MISSING"
+      ]
+    },
+    {
+      "case_id": "MB12",
+      "case_class": "single_fault",
+      "mutation": "Use a model report with a population manifest different from the claim population.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_REPORT_POPULATION_MISMATCH:environment:temperature-ambient"
+      ]
+    },
+    {
+      "case_id": "MB13",
+      "case_class": "single_fault",
+      "mutation": "Set one required metric stratum outside the declared profile.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_METRIC_OUTSIDE_PROFILE:environment:temperature-ambient"
+      ]
+    },
+    {
+      "case_id": "MB14",
+      "case_class": "single_fault",
+      "mutation": "Set one required metric stratum indeterminate.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_METRIC_INDETERMINATE:environment:temperature-ambient"
+      ]
+    },
+    {
+      "case_id": "MB15",
+      "case_class": "single_fault",
+      "mutation": "Set one required metric stratum unverified.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_METRIC_UNVERIFIED:environment:temperature-ambient"
+      ]
+    },
+    {
+      "case_id": "MB16",
+      "case_class": "single_fault",
+      "mutation": "Mark the owner metric semantics record stale under BASALT freshness.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_METRIC_SEMANTICS_OWNER_EVIDENCE_STALE"
+      ]
+    },
+    {
+      "case_id": "MB17",
+      "case_class": "single_fault",
+      "mutation": "Remove owner payload verification while retaining well-formed digests.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_OWNER_PAYLOADS_UNVERIFIED"
+      ]
+    },
+    {
+      "case_id": "MB18",
+      "case_class": "single_fault",
+      "mutation": "Make receiver-first-seen later than the historical decision snapshot.",
+      "expected_disposition": "NOT_KNOWN_AT_SNAPSHOT",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_NOT_KNOWN_AT_SNAPSHOT"
+      ]
+    },
+    {
+      "case_id": "MB19",
+      "case_class": "single_fault",
+      "mutation": "End the specification validity interval at the acquisition interval's latest endpoint (half-open interval).",
+      "expected_disposition": "OUT_OF_SCOPE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_NOT_EFFECTIVE_FOR_ACQUISITION_INTERVAL"
+      ]
+    },
+    {
+      "case_id": "MB20",
+      "case_class": "single_fault",
+      "mutation": "Substitute the typed semantic digest for the raw source-byte digest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB21",
+      "case_class": "single_fault",
+      "mutation": "Reuse the owner-attestation record as the producer-authority receipt record.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_OWNER_RECORD_ROLE_REUSED"
+      ]
+    },
+    {
+      "case_id": "MB22",
+      "case_class": "single_fault",
+      "mutation": "Change the model configuration while keeping the claim and owner evidence unchanged.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_MODEL_CONFIGURATION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "MB23",
+      "case_class": "single_fault",
+      "mutation": "Omit the producer-authority receipt from the decision's required-evidence manifest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_OWNER_RECEIPT_NOT_IN_REQUIRED_MANIFEST"
+      ]
+    },
+    {
+      "case_id": "MB24",
+      "case_class": "coupled_fault",
+      "mutation": "Substitute both the model metric ID and a stale owner metric-definition receipt.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_MODEL_REQUIRED_STRATA_MISMATCH",
+        "CLAIM_METRIC_BINDING_METRIC_SEMANTICS_OWNER_EVIDENCE_STALE"
+      ]
+    },
+    {
+      "case_id": "MB25",
+      "case_class": "metamorphic",
+      "mutation": "Permute order of the required strata and required evidence references without changing membership.",
+      "expected_disposition": "SEMANTICS_BOUND",
+      "expected_reason_codes": []
+    }
+  ]
+}
