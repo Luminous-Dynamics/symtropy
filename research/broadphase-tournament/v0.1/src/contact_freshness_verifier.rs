@@ -405,6 +405,10 @@ pub struct ContactLifecycleReceipt {
     pub previous_endpoints: BTreeMap<ProxyId, EndpointRevisions>,
     pub current_endpoints: BTreeMap<ProxyId, EndpointRevisions>,
     pub previous_contact_stamps: BTreeMap<ProxyPair, ContactFreshnessStamp>,
+    /// Stamps committed after all required contact actions completed. A pair
+    /// without a stamp may be a conservative broadphase candidate with no
+    /// exact shape contact.
+    pub post_contact_stamps: BTreeMap<ProxyPair, ContactFreshnessStamp>,
     pub producer_plan: ContactLifecyclePlan,
 }
 
@@ -423,6 +427,9 @@ pub enum ContactLifecycleReceiptError {
         proxy: ProxyId,
         domain: RevisionDomain,
     },
+    UnexpectedPostContactStamp(ProxyPair),
+    PostContactStampMismatch(ProxyPair),
+    MissingCommittedContactStamp(ProxyPair),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -545,6 +552,55 @@ pub fn verify_contact_lifecycle_receipt(
         })
         .copied()
         .collect();
+
+    for (pair, stamp) in &receipt.post_contact_stamps {
+        if !current.contains(pair) {
+            return Err(
+                ContactLifecycleReceiptError::UnexpectedPostContactStamp(*pair).into()
+            );
+        }
+        let left = receipt.current_endpoints.get(&pair.0).copied();
+        let right = receipt.current_endpoints.get(&pair.1).copied();
+        if stamp.pair != *pair
+            || left != Some(stamp.left)
+            || right != Some(stamp.right)
+            || stamp.global.collision_policy != receipt.current_global.collision_policy
+            || stamp.global.narrowphase_config_sha256
+                != receipt.current_global.narrowphase_config_sha256
+            || stamp.global.solver_config_sha256
+                != receipt.current_global.solver_config_sha256
+            || stamp.global.world > receipt.current_global.world
+        {
+            return Err(
+                ContactLifecycleReceiptError::PostContactStampMismatch(*pair).into()
+            );
+        }
+    }
+
+    // If old contact geometry and eligibility remain valid, the contact must
+    // still have a committed stamp after the transition. A wake or warm-start
+    // reset alone is not a reason to silently drop existing contact state.
+    for pair in current.intersection(&previous) {
+        let Some(stamp) = receipt.previous_contact_stamps.get(pair) else {
+            continue;
+        };
+        let left = receipt.current_endpoints.get(&pair.0).copied()
+            .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.0))?;
+        let right = receipt.current_endpoints.get(&pair.1).copied()
+            .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.1))?;
+        let decision = independently_assess(stamp, receipt.current_global, &BTreeMap::from([
+            (pair.0, left),
+            (pair.1, right),
+        ]))?;
+        if decision.geometry == ReuseDisposition::Reusable
+            && !decision.pair_eligibility_recheck_required
+            && !receipt.post_contact_stamps.contains_key(pair)
+        {
+            return Err(
+                ContactLifecycleReceiptError::MissingCommittedContactStamp(*pair).into()
+            );
+        }
+    }
 
     let report = verify_contact_lifecycle_plan(
         &delta,
@@ -896,6 +952,15 @@ mod tests {
                 previous_endpoints,
                 current_endpoints,
                 previous_contact_stamps: stamps.clone(),
+                post_contact_stamps: if wake_only {
+                    let awake = current_endpoints.get(&ProxyId(1)).copied().expect("awake");
+                    let committed = stamps[&pair]
+                        .commit_transition(current_global, awake, endpoint(2), false, false, false, true)
+                        .expect("wake transition committed");
+                    BTreeMap::from([(pair, committed)])
+                } else {
+                    stamps.clone()
+                },
                 producer_plan: plan,
             },
             delta,
@@ -1005,6 +1070,7 @@ mod tests {
             previous_endpoints,
             current_endpoints,
             previous_contact_stamps: stamps,
+            post_contact_stamps: BTreeMap::new(),
             producer_plan: plan,
         };
         let report =
@@ -1012,6 +1078,58 @@ mod tests {
         assert_eq!(report.added_pairs, 1);
         assert_eq!(report.removed_pairs, 1);
         assert_eq!(report.full_contact_builds, 1);
+    }
+
+
+    #[test]
+    fn receipt_replay_rejects_uncommitted_wake_contact_stamp() {
+        let (mut receipt, _, _) = receipt_fixture(true);
+        receipt.post_contact_stamps.clear();
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::MissingCommittedContactStamp(
+                    ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair")
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_post_stamp_with_stale_endpoint_revision() {
+        let (mut receipt, _, _) = receipt_fixture(true);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut stale = receipt.post_contact_stamps[&pair];
+        stale.left.wake_epoch -= 1;
+        receipt.post_contact_stamps.insert(pair, stale);
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::PostContactStampMismatch(pair)
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_requires_revalidation_for_global_solver_change() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        receipt.current_global.solver_config_sha256 = [42; 32];
+        let plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &PairDeltaFrame::default(),
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("no revalidation plan is valid only for empty old/new relations");
+        receipt.producer_plan = plan;
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::MissingCommittedContactStamp(
+                    ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair")
+                )
+            ))
+        );
     }
 
 }
