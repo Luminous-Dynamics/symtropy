@@ -1,0 +1,43 @@
+name: SAFRB lexicographic MCF tiny-oracle conformance
+
+on:
+  push:
+    branches:
+      - research/safrb-lex-mcf-conformance-v0
+    paths:
+      - "research/benchmarks/safrb-lex-mcf-v0/**"
+      - ".github/workflows/safrb-lex-mcf-conformance.yml"
+  pull_request:
+    branches:
+      - research/safrb-v0.3-mincost-flow
+    paths:
+      - "research/benchmarks/safrb-lex-mcf-v0/**"
+      - ".github/workflows/safrb-lex-mcf-conformance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saf-lex-mcf-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact tested revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned research dependency
+        run: python -m pip install -r research/benchmarks/safrb-lex-mcf-v0/requirements.txt
+
+      - name: Run exhaustive lexicographic oracle
+        run: python research/benchmarks/safrb-lex-mcf-v0/oracle.py
