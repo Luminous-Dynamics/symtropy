@@ -1,6 +1,6 @@
 # symtropy-bevy-scene
 
-Opinionated scene/camera/light scaffolding for Bevy 0.18 apps. Eliminates the
+Opinionated scene/camera/light scaffolding for Bevy 0.19 apps. Eliminates the
 camera-light-clear-color boilerplate every Symtropy demo otherwise repeats.
 
 ```toml
@@ -31,16 +31,18 @@ fn setup(mut commands: Commands) {
 - `GlobalAmbientLight` — cool tint, brightness 200 cd/m² so shadowed sides
   aren't fully black
 - One `DirectionalLight` ("sun") at a stage-lighting angle (upper-front-right),
-  illuminance 8000 lux
+  illuminance 8000 lux, with shadow maps enabled by default
 
-Everything is overridable via `SymtropyScenePlugin::with_config(...)`.
+Everything is overridable via `SymtropyScenePlugin::with_config(...)`. Set `sun_shadow_maps_enabled: false` for a low-power profile or when real-time shadows are not wanted. The default light helper stays shadow-free; use `fixed_light_with_shadows(...)` when an additional light should cast shadows.
 
 ## Helpers
 
 - `fixed_camera(position: Vec3, target: Vec3)` — `Camera3d + Transform`
   one-liner.
 - `fixed_light(illuminance, color, euler_xyz)` — secondary directional
-  light spawn.
+  light spawn without shadow maps
+- `fixed_light_with_shadows(illuminance, color, euler_xyz, enabled)` —
+  secondary directional light with explicit shadow-map control.
 
 ## License
 
