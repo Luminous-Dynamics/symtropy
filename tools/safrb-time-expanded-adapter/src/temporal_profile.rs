@@ -1035,6 +1035,34 @@ mod tests {
     }
 
     #[test]
+    fn temporal_profile_json_round_trip_is_strict() {
+        let model = profile(
+            0,
+            vec![node("yard", 100, 100, 100)],
+            vec![TemporalReceipt {
+                receipt_id: "receipt".to_string(),
+                node_id: "yard".to_string(),
+                available_period: 0,
+                quantity: 10,
+            }],
+            vec![],
+            vec![TemporalService {
+                service_id: "service".to_string(),
+                node_id: "yard".to_string(),
+                period: 0,
+                requested_quantity: 10,
+            }],
+        );
+        let encoded = serde_json::to_vec(&model).unwrap();
+        let decoded: TemporalProfile = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, model);
+
+        let mut unknown = serde_json::to_value(&model).unwrap();
+        unknown["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<TemporalProfile>(unknown).is_err());
+    }
+
+    #[test]
     fn profile_input_order_does_not_change_canonical_graph_bytes() {
         let mut first = profile(
             1,
