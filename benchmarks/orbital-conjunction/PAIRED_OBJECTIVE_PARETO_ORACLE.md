@@ -19,10 +19,11 @@ The new oracle evaluates both portfolio consequences on the same scenario/latent
 The campaign freezes:
 
 - the completed upstream hard mission-risk gate;
+- a scenario-specific physical-world/force-model manifest binding, separate from the objective-function configuration digest;
 - its eligible and ineligible portfolio partition;
-- the epistemic scenario universe;
+- the epistemic scenario universe and each scenario's physical-world/force-model manifest digest, which must match every upstream hard-risk check for that scenario;
 - the complete finite latent-atom universe inside each scenario;
-- objective identity, unit, scale, model-configuration digest, and minimize/maximize direction;
+- objective identity, unit, scale, objective-function model/configuration digest, and minimize/maximize direction;
 - per-portfolio/per-objective integer lower and upper bounds.
 
 The evaluator independently recomputes exact finite-support risk-budget classifications from the upstream gate's rational masses and rejects a forged or inconsistent eligibility partition. Only portfolios admitted by that gate enter the contrast matrix. Ineligible portfolio IDs remain in the report and cannot be reintroduced by objective performance.
