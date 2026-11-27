@@ -184,7 +184,6 @@ fn render_result(result: &PoseScore) -> String {
         regions,
     )
 }
-
 fn render_aggregate(level: &spacecraft_pose_region_scorecard_bench::LevelAggregate) -> String {
     format!(
         "{{\"nominal_percent\":{},\"accepted_count\":{},\"translation_axis_covered\":[{},{},{}],\"translation_joint_covered\":{},\"orientation_covered\":{},\"joint_covered\":{},\"false_confident\":{},\"sum_width_um\":[{},{},{}],\"sum_box_volume_um3\":{},\"sum_orientation_radius_urad\":{}}}",
@@ -206,28 +205,48 @@ fn render_aggregate(level: &spacecraft_pose_region_scorecard_bench::LevelAggrega
 }
 
 fn render_scorecard(card: &Scorecard) -> String {
-    let levels = card.levels.iter().map(render_aggregate).collect::<Vec<_>>().join(",");
-    let groups = card.groups.iter().map(|group| {
-        let group_levels = group.levels.iter().map(render_aggregate).collect::<Vec<_>>().join(",");
-        format!(
-            "{{\"target_id\":\"{}\",\"crop_stratum\":\"{}\",\"modality\":\"{}\",\"ood_group\":\"{}\",\"sample_count\":{},\"accepted_count\":{},\"abstained_count\":{},\"missing_count\":{},\"invalid_count\":{},\"sum_translation_error_l2_um\":{},\"max_translation_error_l2_um\":{},\"sum_orientation_error_urad\":{},\"max_orientation_error_urad\":{},\"levels\":[{}]}}",
-            json_escape(&group.target_id),
-            json_escape(&group.crop_stratum),
-            json_escape(&group.modality),
-            json_escape(&group.ood_group),
-            group.sample_count,
-            group.accepted_count,
-            group.abstained_count,
-            group.missing_count,
-            group.invalid_count,
-            group.sum_translation_error_l2_um,
-            group.max_translation_error_l2_um,
-            group.sum_orientation_error_urad,
-            group.max_orientation_error_urad,
-            group_levels,
-        )
-    }).collect::<Vec<_>>().join(",");
-    let results = card.results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let levels = card
+        .levels
+        .iter()
+        .map(render_aggregate)
+        .collect::<Vec<_>>()
+        .join(",");
+    let groups = card
+        .groups
+        .iter()
+        .map(|group| {
+            let group_levels = group
+                .levels
+                .iter()
+                .map(render_aggregate)
+                .collect::<Vec<_>>()
+                .join(",");
+            format!(
+                "{{\"target_id\":\"{}\",\"crop_stratum\":\"{}\",\"modality\":\"{}\",\"ood_group\":\"{}\",\"sample_count\":{},\"accepted_count\":{},\"abstained_count\":{},\"missing_count\":{},\"invalid_count\":{},\"sum_translation_error_l2_um\":{},\"max_translation_error_l2_um\":{},\"sum_orientation_error_urad\":{},\"max_orientation_error_urad\":{},\"levels\":[{}]}}",
+                json_escape(&group.target_id),
+                json_escape(&group.crop_stratum),
+                json_escape(&group.modality),
+                json_escape(&group.ood_group),
+                group.sample_count,
+                group.accepted_count,
+                group.abstained_count,
+                group.missing_count,
+                group.invalid_count,
+                group.sum_translation_error_l2_um,
+                group.max_translation_error_l2_um,
+                group.sum_orientation_error_urad,
+                group.max_orientation_error_urad,
+                group_levels,
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let results = card
+        .results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     format!(
         "{{\"case_count\":{},\"scored_count\":{},\"abstained_count\":{},\"missing_count\":{},\"invalid_count\":{},\"duplicate_sample_count\":{},\"split_leakage_count\":{},\"levels\":[{}],\"groups\":[{}],\"results\":[{}]}}",
         card.case_count,
@@ -242,7 +261,6 @@ fn render_scorecard(card: &Scorecard) -> String {
         results,
     )
 }
-
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
     let corpus_path = args.next().ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
