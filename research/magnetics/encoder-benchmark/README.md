@@ -31,3 +31,17 @@ For the 80 mm magnetic challenge, the current proposal is:
 - zero false-safe spatial classifications on the preregistered challenge set.
 
 These remain aspirational until hardware exists, the protocol is frozen and independently measured results are available.
+
+
+## Comparator classes and computational frontier (reviewed 2026-11-27)
+
+Keep four scoreboards separate:
+
+1. **Magnetic absolute encoders:** RLS AksIM-2 MRA080 is the primary frozen comparator. Its MBD01 Issue 15 gives ±0.004° system accuracy, typical ±0.009° installed accuracy after calibration and ±0.029° uncalibrated. AksIM-4 MC080/MCD06 is a provisional comparator with a public catalogue ±0.004° variant; the exact current MCD06 PDF and order code must be obtained because the accessible page has also served legacy MCD05 documentation.
+2. **Optical metrology:** Renishaw RESOLUTE installed accuracy varies with ring diameter (examples: ±12.7 arcsec at 52 mm, ±4.3 at 200 mm, ±1.9 at 550 mm). It is a metrology ceiling/reference candidate, not a like-for-like 80 mm magnetic competitor. Resolution below noise floor must not be treated as useful accuracy.
+3. **Incremental Hall latches:** TI TMAG5111 (2D dual-channel, 40 kHz bandwidth) benchmarks digital edge, speed/direction and threshold integrity, not absolute angle.
+4. **Field solvers:** Magpylib Material Response 0.15.0 (25 November 2026) reports high-precision checked WebAssembly kernels and JAX/PyTorch differentiation for its Python face-charge kernel. Freeze it as an external solver/differentiation arm rather than duplicate its kernels. Compare solver residuals and gradient/reference coverage independently from encoder system accuracy.
+
+The next step up the competitive stack is **decision assurance**: propagate physically bounded field and sensor transfer through distinct phase and amplitude requirements, certify unsampled spatial cells, and test the final result against sealed angle/field observations. This remains conditional until the sensor, reference and physical bounds are independently validated.
+
+Useful external methods: RLS MBD01 Issue 15, TI TMAG5111, Renishaw RESOLUTE/REXA30, Magpylib 0.15.0, and EURAMET Calibration Guide No. 23. Exact source URLs and comparison caveats are in `BENCHMARK_PROTOCOL_80MM.md`.
