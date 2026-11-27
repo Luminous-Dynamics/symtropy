@@ -126,7 +126,10 @@ fn parse_owner_receipt(receipt: &str) -> OwnerReport {
         feasible_count,
         plans.values().filter(|plan| plan.feasible).count()
     );
-    assert_eq!(infeasible_count, plans.values().filter(|plan| !plan.feasible).count());
+    assert_eq!(
+        infeasible_count,
+        plans.values().filter(|plan| !plan.feasible).count()
+    );
 
     for plan in plans.values() {
         assert_eq!(plan.selected_options.len(), 2);
@@ -166,7 +169,12 @@ fn build_service_case(owner: &OwnerReport) -> (String, BTreeMap<String, String>)
     ];
     let mut option_to_plan = BTreeMap::new();
 
-    for (index, (plan_id, plan)) in owner.plans.iter().filter(|(_, plan)| plan.feasible).enumerate() {
+    for (index, (plan_id, plan)) in owner
+        .plans
+        .iter()
+        .filter(|(_, plan)| plan.feasible)
+        .enumerate()
+    {
         let option_id = format!("OWNER-PLAN-{index:02}");
         let has_local = plan
             .selected_options
@@ -189,10 +197,7 @@ fn build_service_case(owner: &OwnerReport) -> (String, BTreeMap<String, String>)
         // handoff stages in this service integration case.
         rows.push(format!(
             "OPTION\t{option_id}\t{region}\t{}\t{}\t1\t1\t1\t{}\t{}\t-\tREV-MPCB-001",
-            plan.cost_units,
-            plan.max_lead_days,
-            plan.embodied_co2_units,
-            plan.regional_value_units
+            plan.cost_units, plan.max_lead_days, plan.embodied_co2_units, plan.regional_value_units
         ));
 
         // These downstream dispositions are explicit synthetic scenario assumptions
@@ -248,9 +253,15 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
     );
 
     let (service_case, option_to_plan) = build_service_case(&owner);
-    assert_eq!(option_to_plan.len(), 3, "only owner-feasible plans enter service evaluation");
+    assert_eq!(
+        option_to_plan.len(),
+        3,
+        "only owner-feasible plans enter service evaluation"
+    );
     assert!(
-        !option_to_plan.values().any(|plan_id| plan_id == &all_local.0),
+        !option_to_plan
+            .values()
+            .any(|plan_id| plan_id == &all_local.0),
         "resource-infeasible all-local plan must not receive a hypothetical completion time"
     );
     let mut seen = BTreeMap::new();
@@ -267,10 +278,8 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
         let owner_plan = &owner.plans[plan_id];
         let receiver_day: u64 = fields[4].parse().expect("receiver day is numeric");
         let expected_units: u64 = fields[5].parse().expect("expected units are numeric");
-        let inspection_qualified: u64 =
-            fields[6].parse().expect("inspection units are numeric");
-        let receiver_accepted: u64 =
-            fields[7].parse().expect("accepted units are numeric");
+        let inspection_qualified: u64 = fields[6].parse().expect("inspection units are numeric");
+        let receiver_accepted: u64 = fields[7].parse().expect("accepted units are numeric");
         let on_time: u64 = fields[8].parse().expect("on-time units are numeric");
 
         assert_eq!(expected_units, 10);
@@ -278,10 +287,7 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
         assert_eq!(inspection_qualified, 10);
         assert_eq!(receiver_accepted, 10);
         assert_eq!(on_time, if receiver_day <= 20 { 10 } else { 0 });
-        assert_eq!(
-            fields[12].parse::<u64>().unwrap(),
-            owner_plan.cost_units
-        );
+        assert_eq!(fields[12].parse::<u64>().unwrap(), owner_plan.cost_units);
         assert_eq!(
             fields[13].parse::<u64>().unwrap(),
             owner_plan.embodied_co2_units
@@ -306,9 +312,7 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
         .plans
         .iter()
         .find(|(id, plan)| {
-            plan.feasible
-                && id.contains("A-LOCAL@REGIONAL")
-                && id.contains("B-IMPORT@IMPORTED")
+            plan.feasible && id.contains("A-LOCAL@REGIONAL") && id.contains("B-IMPORT@IMPORTED")
         })
         .map(|(id, _)| id)
         .expect("timely hybrid owner plan exists");
