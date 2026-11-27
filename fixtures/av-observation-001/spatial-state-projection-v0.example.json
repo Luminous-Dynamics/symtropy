@@ -10,32 +10,66 @@
       "observation_id": "obs-frame-41",
       "modality": "video_frame",
       "artifact_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "clock_domain_id": "camera-clock-0",
-      "clock_generation": 0,
-      "capture_start_ns": 4100000000,
-      "capture_end_ns": 4133000000,
-      "known_at_ns": 4160000000
+      "capture_support": {
+        "clock_domain_ref": {
+          "namespace": "sensor:camera-serial-redacted",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "support_kind": "interval",
+        "start_tick": 4100000000,
+        "end_tick": 4133000000
+      },
+      "known_at": {
+        "clock_domain_ref": {
+          "namespace": "runtime:agent-process",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "tick": 4160000000
+      }
     },
     {
       "observation_id": "obs-frame-57",
       "modality": "video_frame",
       "artifact_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-      "clock_domain_id": "camera-clock-0",
-      "clock_generation": 0,
-      "capture_start_ns": 5700000000,
-      "capture_end_ns": 5733000000,
-      "known_at_ns": 5760000000
+      "capture_support": {
+        "clock_domain_ref": {
+          "namespace": "sensor:camera-serial-redacted",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "support_kind": "interval",
+        "start_tick": 5700000000,
+        "end_tick": 5733000000
+      },
+      "known_at": {
+        "clock_domain_ref": {
+          "namespace": "runtime:agent-process",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "tick": 5760000000
+      }
     }
   ],
   "coordinate_frames": [
     {
-      "frame_id": "camera-frame-0",
+      "frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
+      },
       "frame_kind": "camera",
       "units": "meters",
       "candidate_only": true
     },
     {
-      "frame_id": "candidate-world-0",
+      "frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "world-frame-0",
+        "generation": 0
+      },
       "frame_kind": "candidate_world",
       "units": "meters",
       "candidate_only": true
@@ -43,22 +77,42 @@
   ],
   "transforms": [
     {
-      "transform_id": "transform-camera-world-r3",
-      "source_frame_id": "camera-frame-0",
-      "target_frame_id": "candidate-world-0",
-      "translation": [
+      "transform_id": "pose-camera-in-candidate-world-r3",
+      "reference_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "world-frame-0",
+        "generation": 0
+      },
+      "local_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
+      },
+      "pose_convention": "T_reference_from_local",
+      "translation_m": [
         1.2,
         0,
         0.4
       ],
-      "rotation_xyzw": [
+      "rotation_wxyz": [
+        1,
         0,
         0,
-        0,
-        1
+        0
       ],
-      "translation_stddev": 0.08,
-      "rotation_stddev_rad": 0.04,
+      "pose_uncertainty": {
+        "profile": "pose-uncertainty-independent-marginals-v1",
+        "translation_sigma_m": [
+          0.08,
+          0.08,
+          0.08
+        ],
+        "rotation_tangent_sigma_rad": [
+          0.04,
+          0.04,
+          0.04
+        ]
+      },
       "calibration_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "source_observation_refs": [
         "obs-frame-41",
@@ -74,13 +128,21 @@
       "candidate_label": "doorway-like landmark",
       "state": "hypothesis",
       "epistemic_origin": "inferred",
-      "frame_id": "candidate-world-0",
+      "frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "world-frame-0",
+        "generation": 0
+      },
       "position_m": [
         3.4,
         0,
         1.1
       ],
-      "position_stddev_m": 0.18,
+      "position_sigma_m": [
+        0.18,
+        0.18,
+        0.18
+      ],
       "source_observation_refs": [
         "obs-frame-41",
         "obs-frame-57"
