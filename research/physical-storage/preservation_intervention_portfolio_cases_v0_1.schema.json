@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/preservation-intervention-portfolio-001/research/physical-storage/preservation_intervention_portfolio_cases_v0_1.schema.json",
+  "title": "Preservation Intervention Portfolio Cases v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "qualification_status",
+    "case_count",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "preservation-intervention-portfolio-cases-v0.1"
+    },
+    "corpus_id": {
+      "const": "PIP-001-CASES-V0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_semantic_fixture"
+    },
+    "qualification_status": {
+      "const": "not_run"
+    },
+    "case_count": {
+      "const": 19
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 19,
+      "maxItems": 19,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "policy",
+          "candidates",
+          "expected_disposition",
+          "expected_contract_error",
+          "expected_frontier_action_sets",
+          "expected_exclusions"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "policy": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target_id",
+              "unresolved_alert_ids",
+              "available_evidence_ids",
+              "currency_code",
+              "max_cost_microunits",
+              "max_energy_millijoules",
+              "max_duration_ms",
+              "max_downtime_ms",
+              "max_actions"
+            ],
+            "properties": {
+              "target_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "unresolved_alert_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "available_evidence_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "currency_code": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "max_cost_microunits": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_energy_millijoules": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_duration_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_downtime_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_actions": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "addresses_alert_ids",
+                "prerequisite_evidence_ids",
+                "depends_on_action_ids",
+                "currency_code",
+                "cost_upper_microunits",
+                "energy_upper_millijoules",
+                "duration_upper_ms",
+                "downtime_upper_ms",
+                "bounds_status",
+                "bounds_receipt_id",
+                "bounds_receipt_sha256",
+                "required_approvals",
+                "required_postcondition_evidence",
+                "preserves_source_until_acceptance",
+                "destructive"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "addresses_alert_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "prerequisite_evidence_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "depends_on_action_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "currency_code": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{3}$"
+                },
+                "cost_upper_microunits": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "energy_upper_millijoules": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "duration_upper_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "downtime_upper_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bounds_status": {
+                  "enum": [
+                    "Verified",
+                    "Unverified",
+                    "Invalid"
+                  ]
+                },
+                "bounds_receipt_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "bounds_receipt_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{64}$"
+                },
+                "required_approvals": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required_postcondition_evidence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "preserves_source_until_acceptance": {
+                  "type": "boolean"
+                },
+                "destructive": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "NoActionRequired",
+              "Feasible",
+              "Infeasible",
+              "EvidenceIncomplete",
+              "InvalidEvidence",
+              null
+            ]
+          },
+          "expected_contract_error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "UnknownActionDependency",
+              "DependencyCycle",
+              "CurrencyMismatch",
+              "ArithmeticOverflow",
+              "TooManyCandidates",
+              "UnknownAddressedAlert",
+              null
+            ]
+          },
+          "expected_frontier_action_sets": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "expected_exclusions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "reasons"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "reasons": {
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "enum": [
+                      "BoundsUnverified",
+                      "BoundsInvalid",
+                      "MissingPrerequisiteEvidence",
+                      "DestructiveAction",
+                      "SourceNotPreserved"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
