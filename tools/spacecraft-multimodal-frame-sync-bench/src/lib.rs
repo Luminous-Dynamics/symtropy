@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub const RECEIPT_SCHEMA: &str = "luminous.spacecraft-multimodal-frame-sync.receipt.v0.1";
 pub const SPACESENSE_REVISION: &str = "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e";
 pub const SPACESENSE_POSE_CORRECTION_DATE: &str = "2026-05-19";
+pub const SPACESENSE_POSE_CSV_RELEASE: &str = "pose-ground-truth-regenerated-2026-05-19";
 pub const TIMESTAMP_FORMAT: &str = "YYYYMMDDHHMMSSmmm";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,6 +91,7 @@ pub struct BundleResult {
     pub split: String,
     pub capture_timestamp: String,
     pub pose_csv_revision: String,
+    pub corrected_pose_revision: String,
     pub camera_calibration_revision: String,
     pub camera_calibration_sha256: String,
     pub lidar_to_camera_revision: String,
@@ -193,6 +195,7 @@ fn result(
         split: input.split.clone(),
         capture_timestamp: input.capture_timestamp.clone(),
         pose_csv_revision: input.pose_csv_revision.clone(),
+        corrected_pose_revision: input.corrected_pose_revision.clone(),
         camera_calibration_revision: input.camera_calibration_revision.clone(),
         camera_calibration_sha256: input.camera_calibration_sha256.clone(),
         lidar_to_camera_revision: input.lidar_to_camera_revision.clone(),
@@ -254,7 +257,7 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         || input.dataset_revision != SPACESENSE_REVISION
         || input.license != "CC-BY-NC-4.0"
         || input.intended_use != "NONCOMMERCIAL"
-        || input.corrected_pose_revision != SPACESENSE_REVISION
+        || input.corrected_pose_revision != SPACESENSE_POSE_CSV_RELEASE
         || input.camera_frame != "FRD_X_FORWARD_Y_RIGHT_Z_DOWN"
         || input.world_frame != "AIRSIM_NED"
         || input.lidar_coordinate_frame != "SENSOR_LOCAL_FRAME"
@@ -450,8 +453,8 @@ mod tests {
             split: "train".to_owned(),
             timestamp_format: "YYYYMMDDHHMMSSmmm".to_owned(),
             capture_timestamp: "20260120165126242".to_owned(),
-            corrected_pose_revision: SPACESENSE_REVISION.to_owned(),
-            pose_csv_revision: SPACESENSE_REVISION.to_owned(),
+            corrected_pose_revision: SPACESENSE_POSE_CSV_RELEASE.to_owned(),
+            pose_csv_revision: SPACESENSE_POSE_CSV_RELEASE.to_owned(),
             camera_frame: "FRD_X_FORWARD_Y_RIGHT_Z_DOWN".to_owned(),
             world_frame: "AIRSIM_NED".to_owned(),
             lidar_coordinate_frame: "SENSOR_LOCAL_FRAME".to_owned(),
