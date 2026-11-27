@@ -41,11 +41,11 @@ The builder emits a direct prlimit → bubblewrap → candidate argv chain, with
 - cleared environment and explicit HOME, PWD, TMPDIR, PATH, LANG and TZ;
 - rlimits for address space, CPU time, process count, open files, per-file output size and core dumps disabled.
 
-The tests inspect command construction and reject path-overlap, evaluator-root overlap, host paths in arguments, path traversal, an executable outside the runtime, and zero limits.
+The unit tests inspect command construction and reject path-overlap, evaluator-root overlap, host paths in arguments, path traversal, an executable outside the runtime, and zero limits. A separate static musl canary probes the actual Bubblewrap runtime and is executed by the dedicated workflow.
 
 ## What this does not establish
 
-The code does not launch a process. It proves only that a proposed argv is consistent with the intended mount/namespace profile. It does not prove that:
+The builder itself does not launch a process. The separate canary binary exercises a real launch when its CI workflow passes. Until that exact-head canary succeeds, the process boundary remains unqualified. It does not prove that:
 - the current host permits user/PID/network namespaces or that Bubblewrap is trustworthy and correctly configured;
 - the requested namespace was actually created (the launcher's successful exit and canary tests must prove this);
 - the candidate cannot exploit the host kernel or Bubblewrap;
@@ -64,7 +64,13 @@ For high-adversary campaigns, the production target should be a microVM or a har
 
 ## Required execution canary before any blind claim
 
-The next runner/CI slice must execute an actual canary binary through the generated argv and produce signed/hash-chained host-side receipts for:
+An executable canary binary and dedicated CI workflow are now authored:
+- evaluator/src/bin/aerb_sandbox_canary.rs;
+- .github/workflows/aerb-blind-sandbox-canary.yml.
+
+The workflow builds the canary as a static musl binary, installs Bubblewrap, and invokes it through the exact command builder. **Its exact-head CI result is pending.** A successful unit test of the argv builder is not a process-isolation pass.
+
+The CI canary executes the binary and reports:
 1. evaluator canary path and host secret path are not visible;
 2. candidate input and runtime writes fail with read-only errors;
 3. candidate output writes succeed and are confined to the output mount;
