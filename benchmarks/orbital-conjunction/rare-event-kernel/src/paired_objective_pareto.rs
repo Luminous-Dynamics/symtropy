@@ -821,6 +821,31 @@ impl PairedObjectiveParetoCampaign {
             return Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch);
         }
 
+        let trajectory_digest_by_portfolio_atom = trajectory_report
+            .canonical_atoms
+            .iter()
+            .flat_map(|atom| {
+                atom.portfolio_trajectories.iter().map(move |receipt| {
+                    (
+                        (receipt.scenario_id, receipt.atom_id, receipt.portfolio_id),
+                        receipt.propagated_trajectory_digest,
+                    )
+                })
+            })
+            .collect::<BTreeMap<_, _>>();
+        for atom in atoms {
+            for outcome in &atom.outcomes {
+                let expected_digest = trajectory_digest_by_portfolio_atom
+                    .get(&(atom.scenario_id, atom.atom_id, outcome.portfolio_id))
+                    .ok_or(PairedObjectiveParetoError::TrajectoryReceiptMismatch)?;
+                if is_zero(&outcome.source_trajectory_digest)
+                    || outcome.source_trajectory_digest != *expected_digest
+                {
+                    return Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch);
+                }
+            }
+        }
+
         let mut report = self.evaluate(atoms)?;
         report.trajectory_receipt_digest = Some(trajectory_report.result_digest);
         report.result_digest = digest_report(&report);
@@ -1091,6 +1116,7 @@ fn digest_report(report: &PairedObjectiveParetoReport) -> [u8; 32] {
             hasher.update(outcome.portfolio_id);
             hasher.update(outcome.objective_id);
             hasher.update(outcome.value_ticks.to_be_bytes());
+            hasher.update(outcome.source_trajectory_digest);
         }
     }
     hasher.update((report.pairwise_contrasts.len() as u64).to_be_bytes());
