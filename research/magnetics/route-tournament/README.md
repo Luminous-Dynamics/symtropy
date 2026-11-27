@@ -44,3 +44,7 @@ The initial tranche is a literature-stratified protocol. It does not claim match
 The September 2026 NdFeB AM review reports literature remanence generally around 0.6–1.0 T; MEX is the most competitive surveyed printed route for bonded NdFeB; LPBF density is promising but magnetic texture remains a limiting gap; SLS/binder jet are porosity-limited. Conventional anisotropic sintered NdFeB is reported around 1.4–1.5 T. These are literature aggregates, not common-condition matched trials.
 
 The route tournament therefore compares functionally equivalent components against optimized conventional sintered-PM, bonded-PM and PM-assisted reluctance baselines. The AM hypothesis is architecture value—topology-specific placement, integrated retention, segmentation, lower PM mass/inertia/scrap or improved cost per torque—not a raw-Br contest. All hard constraints, including Hcj(T), demagnetization margin, retention and durability, remain non-compensatory.
+
+## Current digital-thread standards references
+
+The 2025–2026 crosswalk now includes ISO/ASTM 52951:2026 (part data packages), 52953:2025 (process-monitoring/QC data registration for metallic PBF-LB), 52948:2026 (metallic PBF imperfection classification; no acceptance criteria), TR 52958:2026 (coaxial photodiode LOF monitoring in PBF-LB), and 52941:2026 (aerospace PBF-LB/M machine-system reliability tests only). See the protocol's scope notes; these references do not establish component acceptance or standards conformity.
