@@ -90,7 +90,7 @@ The `room-twin-observation-import` binary imports the decoded `RGBA8` files prod
 cargo run --manifest-path research/av-observation-replay-v0/Cargo.toml --bin room-twin-observation-import -- \
   target/room-twin/world-a/decoded-rgba8 \
   benchmarks/render/ROOM-TWIN-01.camera-profile.json \
-  target/room-twin/candidate-bundle-a
+  target/room-twin/replay-fixture-a
 ```
 
 Run once for each variant into a distinct, new output directory. The emitted `agent-observations-v1.json` uses only variant-neutral stream, observation and event IDs; it binds raw RGBA8 artifacts, exact camera-profile digest, typed frame dimensions/stride/color semantics, the declared clock generation and conservative capture-time bounds. The cursor test releases the two common observations at availability tick 2 and the final observation at tick 3.

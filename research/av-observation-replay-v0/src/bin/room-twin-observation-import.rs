@@ -285,12 +285,27 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     let mut cursor = ReplayCursorV1::new(&bundle)?;
     let prefix = cursor.advance_to(2)?;
-    if prefix.len() != 2 || cursor.pending_event_count() != 1 {
-        return Err("prefix replay did not release exactly the two common observations".into());
+    let prefix_ids: Vec<&str> = prefix
+        .iter()
+        .filter_map(|delivery| delivery.observation.map(AgentObservationV1::observation_id))
+        .collect();
+    let prefix_ticks: Vec<u64> = prefix
+        .iter()
+        .map(|delivery| delivery.transport.availability_tick)
+        .collect();
+    if prefix_ids != ["room-twin-frame-0001", "room-twin-frame-0002"]
+        || prefix_ticks != [1, 2]
+        || cursor.pending_event_count() != 1
+    {
+        return Err("prefix replay did not release only observations 1 and 2 at ticks 1 and 2".into());
     }
     let reveal = cursor.advance_to(3)?;
-    if reveal.len() != 1 || cursor.pending_event_count() != 0 {
-        return Err("delayed distinguishing observation did not arrive at availability tick 3".into());
+    let reveal_ids: Vec<&str> = reveal
+        .iter()
+        .filter_map(|delivery| delivery.observation.map(AgentObservationV1::observation_id))
+        .collect();
+    if reveal_ids != ["room-twin-frame-0003"] || cursor.pending_event_count() != 0 {
+        return Err("delayed observation 3 did not arrive at availability tick 3".into());
     }
 
     let report = json!({
