@@ -45,6 +45,8 @@ No failure probability is assigned to v0.1. Scenario frequencies, expected loss 
 
 The MCSC Rust reference now exposes `compare_recovery_regret(candidate, reference)`. It accepts two outcome records only when the frozen instance identity/version, scenario ID, service ID, deadline, horizon and expected-unit denominator are identical.
 
+For a finite scenario family, `worst_case_recovery_regret(&[...])` constructs one adverse bound per dimension. It uses the larger candidate-minus-reference delta for loss, lateness, deficit hours, recovery time, cost, emissions and requalification burden; it uses the smaller delta for inspection-qualified and receiver-accepted quantities. Each bound names its worst scenario. The reducer rejects duplicate scenario IDs and any mismatch in frozen instance/version, service, deadline, horizon, denominator or candidate/reference policy. It assigns no scenario weights.
+
 It computes candidate-minus-reference deltas separately for:
 - unmet expected units at the deadline;
 - inspection-qualified units;
