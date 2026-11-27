@@ -761,8 +761,7 @@ mod tests {
         assert_eq!(tradeoffs, BTreeSet::from([(7, 10), (10, 20)]));
 
         for policy in &result.pareto_frontier {
-            let chosen: BTreeSet<&str> =
-                policy.choices.values().map(String::as_str).collect();
+            let chosen: BTreeSet<&str> = policy.choices.values().map(String::as_str).collect();
             assert_eq!(chosen, BTreeSet::from(["LOCAL", "IMPORT"]));
         }
     }
