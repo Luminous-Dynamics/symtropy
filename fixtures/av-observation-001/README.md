@@ -140,6 +140,14 @@ The spatial-state protocol now adds separate TUM RGB-D, EuRoC MAV, KITTI Odometr
 The [geometric-validation matrix](./scenario-matrix-geometric-validation-v0.tsv) adds 20 metadata-only cases (10 paired controls/mutations) for transform direction, pose-graph cycles, calibration drift/revision, monocular scale ambiguity, false loop closure, dynamic scenes, map correction/retraction, camera–IMU clock alignment, ground-truth common-cause provenance and lifelong relocalization. It complements the 22 spatial decision-sufficiency cases; neither matrix yet represents rendered or replayed sensor data.
 
 
+## Spatial identifiability and observability fixtures
+
+The [identifiability matrix](./scenario-matrix-identifiability-v0.tsv) adds 16 metadata-only cases in 8 paired controls/mutations. It tests observationally indistinguishable worlds, delayed disambiguation, global SE(3) gauge equivalence, late metric-scale anchoring, physical-instance identity ambiguity, ego/object-motion decomposition, symmetric topology and coverage-qualified absence.
+
+This is deliberately different from ordinary map accuracy: before a distinguishing observation, preserving multiple source-consistent hypotheses is correct; after a distinguishing observation becomes available, failing to revise is incorrect. Paired worlds with byte-identical candidate prefixes must produce the same candidate belief semantics even when evaluator truth differs. Global coordinate-gauge changes must not alter relative-geometry scores.
+
+Additional score planes are false resolution under ambiguity, hypothesis-set coverage, time-to-identifiability, gauge-invariant geometry, identity-resolution correctness and bounded negative-evidence qualification. These cases remain metadata-only development specifications; they do not establish observability on rendered media or physical sensors. Runtime map scoring remains with #7693 and sealed custody with #6754.
+
 ## Candidate spatial-state projection
 
 The separate [spatial-state-projection-v0.schema.json](./spatial-state-projection-v0.schema.json) and [example](./spatial-state-projection-v0.example.json) define the candidate-only map-state interchange. The schema keeps source observations, candidate frame/transform/geometry claims, entity hypotheses, relation claims and source-linked unresolved constraints separate from evaluator truth. Structural negative checks reject hidden-truth fields, malformed digests, missing candidate frame markers, source-free inferred entities and invalid quaternion arity. Runtime cross-reference and geometry validation are not implemented yet.
