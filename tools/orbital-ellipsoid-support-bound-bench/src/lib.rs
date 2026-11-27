@@ -93,6 +93,8 @@ impl SupportScope {
         ]
         .iter()
         .all(|value| !value.trim().is_empty())
+            && self.length_unit == "metre"
+            && self.direction_convention == "unit-along-track-positive-y"
             && valid_sha256(&self.matrix_sha256)
             && valid_sha256(&self.direction_sha256)
     }
@@ -141,7 +143,9 @@ pub struct SupportResult {
     pub disposition: SupportDisposition,
     pub q_lower_numerator: u128,
     pub q_lower_denominator: u128,
+    pub q_unit: String,
     pub rho_y_upper_um: Option<u128>,
+    pub rho_unit: String,
     pub scale_um_per_m: u128,
     pub q_scaled_ceiling: Option<u128>,
     pub floor_sqrt: Option<u128>,
@@ -206,7 +210,9 @@ fn base_result(input: &SupportInput, disposition: SupportDisposition, reason: &s
         disposition,
         q_lower_numerator: input.q_lower_numerator,
         q_lower_denominator: input.q_lower_denominator,
+        q_unit: "m^-2".to_owned(),
         rho_y_upper_um: None,
+        rho_unit: "um".to_owned(),
         scale_um_per_m: SUPPORT_SCALE_UM_PER_M,
         q_scaled_ceiling: None,
         floor_sqrt: None,
