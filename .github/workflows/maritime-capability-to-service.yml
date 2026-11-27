@@ -8,7 +8,7 @@ on:
       - "docs/research/maritime-capability-to-service/**"
       - ".github/workflows/maritime-capability-to-service.yml"
   push:
-    branches: [main, research/mcsc-kite-information-set-replay-v0]
+    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-kite-reusable-replay-v0-3]
     paths:
       - "research/maritime-capability-to-service/**"
       - "docs/research/maritime-capability-to-service/**"
