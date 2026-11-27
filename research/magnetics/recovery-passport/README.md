@@ -27,11 +27,15 @@ This is not a recovery-process operating manual, chemistry recipe, LCA/TEA engin
 - [Benchmark plan](benchmark-plan.toml)
 - [Schema](evaluator/recovery-passport-v0.1.schema.json)
 - [Synthetic known-answer fixture](evaluator/fixtures/synthetic-recovery-passport-v0.1.json)
+- [Recovery-route source register](fixtures/recovery-route-source-register-v0.1.json)
 - [Rust evaluator](evaluator/src/lib.rs)
 
 ## Claim boundary
 
-The evaluator validates identity, declared scope, route-eligibility receipts, event sequencing, mass-flow identities and supplied quality/acceptance evidence. It does not authenticate evidence producers, validate laboratory methods, establish process safety, calculate magnetic fields, perform LCA/TEA, or authorize physical recovery operations.
+The evaluator validates identity, declared scope, route-eligibility receipts, event sequencing, mass-flow identities and supplied quality/acceptance evidence. The v0.1 implementation computes total mass-balance intervals only; element-specific balance is a later method-scoped assay adapter. It does not authenticate evidence producers, validate laboratory methods, establish process safety, calculate magnetic fields, perform LCA/TEA, or authorize physical recovery operations.
 
 
 The recovery stage input mass is now bound to the exact feedstock-lot mass record. Downstream closed-loop reuse can reference only a recovered magnet-feedstock or remanufacturable-alloy output; residues and elemental products cannot be relabelled as reused magnet feedstock. Definite mass-balance contradictions are non-compensatory FAIL outcomes, while unsupported route/form combinations are NOT_EVALUABLE.
+
+
+The route-source register distinguishes paper/review evidence from local specimen receipts. A literature source establishes neither route eligibility nor downstream product quality for a specific source lot.
