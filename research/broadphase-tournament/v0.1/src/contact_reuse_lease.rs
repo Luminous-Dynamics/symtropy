@@ -265,7 +265,7 @@ pub fn evaluate_contact_geometry_lease<const D: usize>(
             motion_bound: Some(motion_bound),
         });
     }
-    if lease.updated_gap.upper > lease.contact_slop {
+    if lease.updated_gap.upper >= lease.contact_slop {
         return Ok(ContactLeaseDecision {
             disposition: ContactLeaseDisposition::RefreshRequired(
                 ContactLeaseRefreshReason::GapIntervalStraddlesContactBoundary,
@@ -568,4 +568,24 @@ mod tests {
         assert!(bound.rotation_displacement_upper > 0.0 || bound.rotation_displacement_upper == 0.0);
         assert!(bound.total_displacement_upper < 1.0e-9);
     }
+
+    #[test]
+    fn gap_interval_touching_contact_slop_refreshes() {
+        let mut witness = lease();
+        witness.updated_gap = SeparationInterval {
+            lower: 0.01,
+            upper: 0.01,
+        };
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0))
+                .expect("boundary contact"),
+            ContactLeaseDecision {
+                disposition: ContactLeaseDisposition::RefreshRequired(
+                    ContactLeaseRefreshReason::GapIntervalStraddlesContactBoundary
+                ),
+                motion_bound: Some(motion([0.0; 3], 0.0, 1.0).displacement_upper_bound().expect("bound")),
+            }
+        );
+    }
+
 }
