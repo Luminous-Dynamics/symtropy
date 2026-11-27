@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - research/mobility-rrvr-aerb-v0-1
+      - research/aerb-blind-corpus-assignments-v0-1
     paths:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - "research/mobility-rrvr-aerb-v0.1/schemas/**"
@@ -41,6 +42,8 @@ jobs:
           jq empty "$ROOT/schemas/aerb_candidate_submission_v0_1.schema.json"
           jq empty "$ROOT/schemas/aerb_evaluator_world_pack_v0_1.schema.json"
           jq empty "$ROOT/schemas/aerb_evaluator_report_v0_1.schema.json"
+          jq empty "$ROOT/schemas/aerb_candidate_blind_manifest_v0_1.schema.json"
+          jq empty "$ROOT/schemas/aerb_evaluator_blind_manifest_v0_1.schema.json"
           jq empty "$ROOT/fixtures/candidate_episode_synthetic_v0_1.json"
           jq empty "$ROOT/fixtures/candidate_submission_synthetic_v0_1.json"
           jq empty "$ROOT/fixtures/evaluator_only/world_pack_synthetic_v0_1.json"

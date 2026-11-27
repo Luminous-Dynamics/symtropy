@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aerb_evaluator_blind_manifest_v0_1.schema.json",
+  "title": "AERB evaluator-only blind campaign reveal v0.1",
+  "description": "Evaluator-custodied hidden assignments and reveal salt. Must never be mounted into or serialized to the candidate process.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_class",
+    "campaign_id",
+    "manifest_salt_hex",
+    "assignments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-blind-campaign-v0.1"
+    },
+    "corpus_class": {
+      "const": "blind_evaluation"
+    },
+    "campaign_id": {
+      "type": "string",
+      "pattern": "^camp_[0-9a-f]{32}$"
+    },
+    "manifest_salt_hex": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "assignments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "hidden_truth_world_id"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string",
+            "pattern": "^ep_[0-9a-f]{32}$"
+          },
+          "hidden_truth_world_id": {
+            "enum": [
+              "not_dispatched",
+              "dispatched_no_effect",
+              "applied_once_ack_lost",
+              "partial_effect",
+              "duplicate_effect",
+              "stale_authority_effect",
+              "unresolved_command_holder",
+              "open_world_residual"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

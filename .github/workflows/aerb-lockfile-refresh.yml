@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - research/mobility-rrvr-aerb-probe-value-v0-1
+      - research/aerb-blind-corpus-assignments-v0-1
     paths:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - ".github/workflows/aerb-lockfile-refresh.yml"

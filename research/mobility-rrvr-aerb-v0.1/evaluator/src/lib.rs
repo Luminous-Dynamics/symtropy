@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #![forbid(unsafe_code)]
 
+pub mod blind_assignment_v0_1;
 pub mod v0_2;
 
 use std::collections::{BTreeMap, BTreeSet};
