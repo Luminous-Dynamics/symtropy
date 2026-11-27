@@ -67,6 +67,8 @@ jobs:
           assert cases["CB027"]["disposition"] == "OVERFLOW"
           assert cases["CB028"]["disposition"] == "OVERFLOW"
           assert cases["CB031"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["CB033"]["disposition"] == "BOUND_READY"
+          assert cases["CB033"]["bound_ready"] is True
           assert cases["CB001"]["m_scale"] == 1000000
           assert cases["CB001"]["m_unit"] == "s^-2"
           assert cases["CB001"]["bound_ready"] is True
