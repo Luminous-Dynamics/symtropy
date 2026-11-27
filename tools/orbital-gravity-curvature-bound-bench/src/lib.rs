@@ -588,10 +588,8 @@ mod tests {
         value.differential_acceleration_upper_mm_per_s2 = 3;
         let result = derive(&value);
         assert_eq!(result.central_gravity_numerator, Some(0));
-        assert_eq!(
-            result.differential_acceleration_numerator,
-            Some(3 * result.radial_domain_denominator.unwrap())
-        );
+        assert_eq!(result.scaled_perturbation_term, Some(6));
+        assert_eq!(result.m_upper_scaled_per_s2, Some(6));
         assert_eq!(result.disposition, CurvatureDisposition::BoundReady);
     }
 
