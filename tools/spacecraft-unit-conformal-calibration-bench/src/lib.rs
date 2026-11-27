@@ -34,7 +34,7 @@ impl UnitKind {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Partition {
     Calibration,
     Test,
@@ -703,7 +703,7 @@ mod tests {
         sample: &str,
         unit: &str,
         split: Partition,
-        frame: u32,
+        _frame: u32,
         budget: u32,
         status: ObservationStatus,
         score: Option<u64>,
