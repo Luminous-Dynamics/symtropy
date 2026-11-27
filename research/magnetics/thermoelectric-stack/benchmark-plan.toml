@@ -13,7 +13,7 @@ language = "Rust 2024"
 dependencies = []
 
 [scope]
-required = ["application_id", "duty_digest", "waveform_digest", "coolant_digest", "thermal_boundary_digest", "insulation_policy_digest", "measurement_setup_digest", "acceptance_policy_digest", "objective_digest", "constraint_digest"]
+required = ["application_id", "comparison_scope_digest", "duty_digest", "waveform_digest", "coolant_digest", "thermal_boundary_digest", "insulation_policy_digest", "measurement_setup_digest", "acceptance_policy_digest", "objective_digest", "constraint_digest"]
 matching = "exact_digest_equality"
 
 [baseline]
