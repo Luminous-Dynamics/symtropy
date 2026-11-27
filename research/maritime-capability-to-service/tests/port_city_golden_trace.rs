@@ -207,7 +207,7 @@ fn policy_traces_recompute_the_same_pcc_power_and_energy_without_service_loss() 
     assert_eq!(trace.policies.len(), 3);
     close(trace.profile.limit_kw, 8_200.0);
 
-    for (id, policy) in &trace.policies {
+    for policy in trace.policies.values() {
         let mut recomputed_peak = 0.0_f64;
         let mut recomputed_energy_mwh = 0.0_f64;
         for interval in 0..4 {
