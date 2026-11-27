@@ -777,7 +777,9 @@ mod tests {
             .as_str()
             .expect("firmware digest")
             .to_owned();
-        let changed_digest = if original_digest == "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" {
+        let changed_digest = if original_digest
+            == "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        {
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         } else {
             "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
