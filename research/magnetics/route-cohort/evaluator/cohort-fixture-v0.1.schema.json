@@ -132,7 +132,7 @@
     },
     "summary": {
       "type": "object",
-      "required": ["initiated_builds", "completed_builds", "pre_inspection_build_failures", "initiated_specimens", "completed_specimens", "inspected_specimens", "first_pass_qualified", "first_pass_fail", "first_pass_indeterminate", "first_pass_not_evaluable", "missing_specimen_outcomes", "reworked_specimens", "rework_recovered", "scrapped_specimens", "final_accepted_specimens", "distinct_material_lots", "first_pass_acceptance", "confirmed_failure", "unresolved", "inspection_coverage", "build_completion", "rework_recovery", "final_accepted_fraction", "generalization_status", "inferential_yield_claim_available"],
+      "required": ["initiated_builds", "completed_builds", "pre_inspection_build_failures", "initiated_specimens", "completed_specimens", "inspected_specimens", "first_pass_qualified", "first_pass_fail", "first_pass_indeterminate", "first_pass_not_evaluable", "missing_specimen_outcomes", "reworked_specimens", "rework_recovered", "scrapped_specimens", "final_accepted_specimens", "distinct_material_lots", "replication_eligible_builds", "first_pass_acceptance", "confirmed_failure", "unresolved", "inspection_coverage", "build_completion", "rework_recovery", "final_accepted_fraction", "generalization_status", "inferential_yield_claim_available"],
       "properties": {
         "initiated_builds": { "$ref": "#/$defs/count" },
         "completed_builds": { "$ref": "#/$defs/count" },
@@ -150,6 +150,7 @@
         "scrapped_specimens": { "$ref": "#/$defs/count" },
         "final_accepted_specimens": { "$ref": "#/$defs/count" },
         "distinct_material_lots": { "$ref": "#/$defs/count" },
+        "replication_eligible_builds": { "$ref": "#/$defs/count" },
         "first_pass_acceptance": { "$ref": "#/$defs/rate" },
         "confirmed_failure": { "$ref": "#/$defs/rate" },
         "unresolved": { "$ref": "#/$defs/rate" },
