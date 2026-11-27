@@ -357,16 +357,16 @@ impl NonAnticipativePolicyCampaign {
         let mut ineligible_portfolio_ids = trajectory_report.ineligible_portfolio_ids.clone();
         ineligible_portfolio_ids.sort_unstable();
 
-        let frozen_input_digest = digest_frozen_input(
+        let frozen_input_digest = digest_frozen_input(&FrozenPolicyInput {
             decision_epoch,
             decision_schedule_digest,
-            mission_risk_gate_digest,
-            trajectory_report.result_digest,
-            &scenario_ids,
-            &derived_world_ids,
-            &eligible_portfolio_ids,
-            &ineligible_portfolio_ids,
-        );
+            gate_digest: mission_risk_gate_digest,
+            trajectory_receipt_digest: trajectory_report.result_digest,
+            scenarios: &scenario_ids,
+            worlds: &derived_world_ids,
+            eligible: &eligible_portfolio_ids,
+            ineligible: &ineligible_portfolio_ids,
+        });
 
         Ok(Self {
             decision_epoch,
@@ -487,8 +487,11 @@ impl NonAnticipativePolicyCampaign {
                 .filter(|measurement| measurement.available_at_epoch <= self.decision_epoch)
                 .copied()
                 .collect::<Vec<_>>();
-            let observable_history_digest =
-                digest_observable_history(self.decision_epoch, &visible_measurements);
+            let observable_history_digest = digest_observable_history(
+                self.decision_epoch,
+                self.decision_schedule_digest,
+                &visible_measurements,
+            );
             let selected_portfolio_id = policy_nodes
                 .get(&observable_history_digest)
                 .copied()
@@ -547,30 +550,32 @@ impl NonAnticipativePolicyCampaign {
     }
 }
 
-fn digest_frozen_input(
+struct FrozenPolicyInput<'a> {
     decision_epoch: u32,
     decision_schedule_digest: [u8; 32],
     gate_digest: [u8; 32],
     trajectory_receipt_digest: [u8; 32],
-    scenarios: &[[u8; 32]],
-    worlds: &[ScenarioAtomIdentity],
-    eligible: &[[u8; 32]],
-    ineligible: &[[u8; 32]],
-) -> [u8; 32] {
+    scenarios: &'a [[u8; 32]],
+    worlds: &'a [ScenarioAtomIdentity],
+    eligible: &'a [[u8; 32]],
+    ineligible: &'a [[u8; 32]],
+}
+
+fn digest_frozen_input(input: &FrozenPolicyInput<'_>) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital.non-anticipative-policy.frozen.v0.1\0");
-    hasher.update(decision_epoch.to_be_bytes());
-    hasher.update(decision_schedule_digest);
-    hasher.update(gate_digest);
-    hasher.update(trajectory_receipt_digest);
-    hash_ids(&mut hasher, scenarios);
-    hasher.update((worlds.len() as u64).to_be_bytes());
-    for world in worlds {
+    hasher.update(input.decision_epoch.to_be_bytes());
+    hasher.update(input.decision_schedule_digest);
+    hasher.update(input.gate_digest);
+    hasher.update(input.trajectory_receipt_digest);
+    hash_ids(&mut hasher, input.scenarios);
+    hasher.update((input.worlds.len() as u64).to_be_bytes());
+    for world in input.worlds {
         hasher.update(world.scenario_id);
         hasher.update(world.atom_id);
     }
-    hash_ids(&mut hasher, eligible);
-    hash_ids(&mut hasher, ineligible);
+    hash_ids(&mut hasher, input.eligible);
+    hash_ids(&mut hasher, input.ineligible);
     hasher.finalize().into()
 }
 
@@ -593,11 +598,13 @@ fn digest_observation_inventory(measurements: &[ObservableMeasurement]) -> [u8; 
 /// measurements and source receipt IDs are absent.
 fn digest_observable_history(
     decision_epoch: u32,
+    decision_schedule_digest: [u8; 32],
     visible_measurements: &[ObservableMeasurement],
 ) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital.non-anticipative-policy.observable-history.v0.1\0");
     hasher.update(decision_epoch.to_be_bytes());
+    hasher.update(decision_schedule_digest);
     hasher.update((visible_measurements.len() as u64).to_be_bytes());
     for measurement in visible_measurements {
         hasher.update(measurement.sensor_id);
@@ -674,6 +681,7 @@ mod tests {
     const SCENARIO_B: [u8; 32] = [2; 32];
     const WORLD_1: [u8; 32] = [3; 32];
     const WORLD_2: [u8; 32] = [4; 32];
+    const TEST_DECISION_SCHEDULE: [u8; 32] = [210; 32];
     const PORTFOLIO_A: [u8; 32] = [10; 32];
     const PORTFOLIO_B: [u8; 32] = [20; 32];
     const PORTFOLIO_C: [u8; 32] = [30; 32];
@@ -907,7 +915,13 @@ mod tests {
     }
 
     fn campaign() -> NonAnticipativePolicyCampaign {
-        NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [210; 32]).unwrap()
+        NonAnticipativePolicyCampaign::new(
+            &gate(),
+            &trajectory_report(),
+            2,
+            TEST_DECISION_SCHEDULE,
+        )
+        .unwrap()
     }
 
     fn policy_node(
@@ -927,7 +941,11 @@ mod tests {
             )
         });
         NonAnticipativePolicyNode {
-            observable_history_digest: digest_observable_history(2, &visible),
+            observable_history_digest: digest_observable_history(
+                2,
+                TEST_DECISION_SCHEDULE,
+                &visible,
+            ),
             selected_portfolio_id,
         }
     }
@@ -953,11 +971,21 @@ mod tests {
     #[test]
     fn decision_schedule_identity_is_required_and_changes_the_frozen_campaign() {
         assert_eq!(
-            NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [0; 32]),
+            NonAnticipativePolicyCampaign::new(
+                &gate(),
+                &trajectory_report(),
+                2,
+                [0; 32],
+            ),
             Err(NonAnticipativePolicyError::InvalidDecisionSchedule)
         );
         let first =
-            NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [210; 32])
+            NonAnticipativePolicyCampaign::new(
+                &gate(),
+                &trajectory_report(),
+                2,
+                TEST_DECISION_SCHEDULE,
+            )
                 .unwrap();
         let second =
             NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [211; 32])
@@ -1044,7 +1072,16 @@ mod tests {
         let traces = complete_traces(false);
         let visible_histories = traces
             .iter()
-            .map(|trace| digest_observable_history(2, &trace.measurements))
+            .map(|trace| digest_observable_history(
+                    2,
+                    TEST_DECISION_SCHEDULE,
+                    &trace
+                        .measurements
+                        .iter()
+                        .filter(|measurement| measurement.available_at_epoch <= 2)
+                        .copied()
+                        .collect::<Vec<_>>(),
+                ))
             .collect::<BTreeSet<_>>();
         assert_eq!(visible_histories.len(), 1);
         let inventory_ids = traces
