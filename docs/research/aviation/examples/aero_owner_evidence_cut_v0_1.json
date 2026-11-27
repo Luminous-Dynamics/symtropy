@@ -1,0 +1,51 @@
+{
+  "schema": "AeroOwnerEvidenceCutV0_1",
+  "owner_namespace": "mycelix:aerocommons",
+  "component_packet_id": "packet:coupon-001-r1",
+  "physical_unit_ref": "part:wing-panel-001",
+  "configuration_ref": "configuration:wing-r17",
+  "component_packet_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "component_packet_byte_length": 4096,
+  "artifact_payloads_verified": true,
+  "evidence_records": [
+    {
+      "evidence_ref": "receipt:inspection-01",
+      "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "subject_ref": "part:wing-panel-001",
+      "configuration_ref": "configuration:wing-r17",
+      "lifecycle": "active",
+      "predecessor_ref": null,
+      "freshness": "fresh",
+      "dependency_coverage": "complete",
+      "unresolved_inputs": [],
+      "requires_reverification": false,
+      "eligible_under_declared_coverage": true
+    },
+    {
+      "evidence_ref": "receipt:calibration-02",
+      "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "subject_ref": "instrument:caliper-01",
+      "configuration_ref": "configuration:wing-r17",
+      "lifecycle": "active",
+      "predecessor_ref": null,
+      "freshness": "fresh",
+      "dependency_coverage": "complete",
+      "unresolved_inputs": [],
+      "requires_reverification": false,
+      "eligible_under_declared_coverage": true
+    }
+  ],
+  "basalt_run_id": "basalt:run-001",
+  "basalt_report_version": 1,
+  "basalt_timeline_input_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "basalt_final_state_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "basalt_report_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "basalt_confirmatory_eligible": true,
+  "receiver_receipt_manifest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+  "receiver_receipt_watermark_unix_ms": 1795516700000,
+  "trust_policy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "observer_coverage_profile_id": "basalt-coverage-v0.1",
+  "observer_coverage_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+  "observer_coverage_status": "qualified_complete_for_scope",
+  "observer_coverage_watermark_unix_ms": 1795516600000
+}

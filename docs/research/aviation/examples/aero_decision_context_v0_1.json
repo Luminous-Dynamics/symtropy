@@ -7,7 +7,7 @@
   "acquisition_time_latest_unix_ms": 1795514400100,
   "as_known_at_unix_ms": 1795516800000,
   "source_scope_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "evidence_knowledge_cut_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "evidence_knowledge_cut_sha256": "da95f7ba160dc5883cea7ab6828cbf3abd84246a0aaf596121a846377e735ec8",
   "trust_policy_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "claim_specification_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "required_evidence_manifest_sha256": "17656ee262a7455dfc652ba667379f8696160c7a567a559a5d8fb7bbced45032",
