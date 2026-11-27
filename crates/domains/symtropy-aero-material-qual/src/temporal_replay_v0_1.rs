@@ -631,7 +631,9 @@ pub fn evaluate_temporal_replay_case(
     // Corrections are never interpreted as a generic latest-row replacement.
     for event in &events {
         let event_type = string(event, "event_type").unwrap_or("");
-        if !matches!(event_type, "corrected" | "superseded") {
+        if !matches!(event_type, "corrected" | "superseded")
+            || cycles.contains(&source_key(event))
+        {
             continue;
         }
         let identity = identity_label(event, &colliding_ids);
