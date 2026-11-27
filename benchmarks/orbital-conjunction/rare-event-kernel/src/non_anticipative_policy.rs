@@ -305,12 +305,35 @@ impl NonAnticipativePolicyCampaign {
             return Err(NonAnticipativePolicyError::InvalidTrajectoryReceiptReport);
         }
 
+        let eligible_set = trajectory_report
+            .eligible_portfolio_ids
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let world_set = derived_world_ids.iter().copied().collect::<BTreeSet<_>>();
         let expected_trajectory_count = derived_world_ids
             .len()
-            .checked_mul(trajectory_report.eligible_portfolio_ids.len())
+            .checked_mul(eligible_set.len())
             .ok_or(NonAnticipativePolicyError::InvalidTrajectoryReceiptReport)?;
+        let trajectory_keys_are_exact = trajectory_digest_by_world_portfolio
+            .keys()
+            .all(|(scenario_id, world_id, portfolio_id)| {
+                world_set.contains(&ScenarioAtomIdentity {
+                    scenario_id: *scenario_id,
+                    atom_id: *world_id,
+                }) && eligible_set.contains(portfolio_id)
+            }) && derived_world_ids.iter().all(|world| {
+            eligible_set.iter().all(|portfolio_id| {
+                trajectory_digest_by_world_portfolio.contains_key(&(
+                    world.scenario_id,
+                    world.atom_id,
+                    *portfolio_id,
+                ))
+            })
+        });
         if trajectory_digest_by_world_portfolio.len() != expected_trajectory_count
             || trajectory_digest_by_world_portfolio.values().any(is_zero)
+            || !trajectory_keys_are_exact
         {
             return Err(NonAnticipativePolicyError::InvalidTrajectoryReceiptReport);
         }
