@@ -519,15 +519,16 @@ fn solve_square_system(matrix: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
         }
         // Snapshot the pivot row so target-row mutation never aliases it.
         let pivot_row = augmented[column].clone();
-        for row in 0..n {
+        for (row, augmented_row) in augmented.iter_mut().enumerate() {
             if row == column {
                 continue;
             }
-            let factor = augmented[row][column];
+            let factor = augmented_row[column];
             if factor.abs() <= EPS {
                 continue;
             }
-            for (value, pivot_value) in augmented[row].iter_mut().zip(pivot_row.iter()).skip(column)
+            for (value, pivot_value) in
+                augmented_row.iter_mut().zip(pivot_row.iter()).skip(column)
             {
                 *value -= factor * *pivot_value;
             }
