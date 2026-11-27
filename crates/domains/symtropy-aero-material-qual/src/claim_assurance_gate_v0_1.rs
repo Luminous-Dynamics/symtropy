@@ -212,19 +212,31 @@ pub fn compute_component_report_sha256<T: Serialize>(
     Ok(digest_hex)
 }
 
+struct ComponentBindingExpectation<'a> {
+    claim_id: &'a str,
+    subject_ref: &'a str,
+    expected_context_sha256: &'a str,
+    coverage: &'a CoverageAssessment,
+    causal_cut: &'a CutAssessment,
+    effectivity: &'a EffectivityRelation,
+}
+
 /// Validate that the three typed component results refer to exactly the same
 /// claim, physical subject and canonical decision context. Each supplied
 /// report digest must match a fresh digest of its actual typed assessment.
 fn validate_component_bindings(
-    claim_id: &str,
-    subject_ref: &str,
-    expected_context_sha256: &str,
+    expected: ComponentBindingExpectation<'_>,
     bindings: &ClaimComponentBindings,
-    coverage: &CoverageAssessment,
-    causal_cut: &CutAssessment,
-    effectivity: &EffectivityRelation,
     reasons: &mut BTreeSet<String>,
 ) -> bool {
+    let ComponentBindingExpectation {
+        claim_id,
+        subject_ref,
+        expected_context_sha256,
+        coverage,
+        causal_cut,
+        effectivity,
+    } = expected;
     let components = [
         ("COVERAGE", "OBSERVER_COVERAGE", &bindings.coverage),
         ("CAUSAL_CUT", "CAUSAL_CUT", &bindings.causal_cut),
@@ -332,13 +344,15 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         reasons.insert("DECISION_CONTEXT_CLAIM_ID_MISMATCH".to_owned());
     }
     if !validate_component_bindings(
-        input.claim_id,
-        &input.decision_context.subject_ref,
-        &decision_context_sha256,
+        ComponentBindingExpectation {
+            claim_id: input.claim_id,
+            subject_ref: &input.decision_context.subject_ref,
+            expected_context_sha256: &decision_context_sha256,
+            coverage: input.coverage,
+            causal_cut: input.causal_cut,
+            effectivity: &input.effectivity,
+        },
         input.bindings,
-        input.coverage,
-        input.causal_cut,
-        &input.effectivity,
         &mut reasons,
     ) {
         invalid = true;
