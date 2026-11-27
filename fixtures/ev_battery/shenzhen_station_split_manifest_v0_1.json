@@ -1,0 +1,102 @@
+{
+  "manifest_version": "ev-bms-split-manifest/v0.1",
+  "split_id": "shenzhen-charger-station-holdout-synthetic-v0.1",
+  "dataset_id": "shenzhen-charger-side-mendeley-c7gg94tmvz-v3",
+  "dataset_domain": "charger_side",
+  "dataset_admission_state": "metadata_only",
+  "dataset_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "dataset_snapshot_sha256": null,
+  "evidence_class": "synthetic_fixture",
+  "split_strategy": "group_disjoint_with_sequence_guards",
+  "group_key": "station_id",
+  "leakage_keys": [
+    "transaction_id",
+    "sequence_id"
+  ],
+  "temporal_exclusion_keys": [
+    "vehicle_id"
+  ],
+  "split_seed": 20261127,
+  "generator_revision": "synthetic-hand-assigned-v0.1",
+  "partitions": [
+    {
+      "name": "train",
+      "records": [
+        {
+          "record_id": "sz-rec-001",
+          "record_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "group_values": {
+            "station_id": "station-01",
+            "vehicle_id": "vehicle-X",
+            "transaction_id": "txn-001",
+            "sequence_id": "seq-001"
+          },
+          "window_start_unix_ms": 1000,
+          "window_end_unix_ms": 2000
+        },
+        {
+          "record_id": "sz-rec-002",
+          "record_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "group_values": {
+            "station_id": "station-02",
+            "vehicle_id": "vehicle-Y",
+            "transaction_id": "txn-002",
+            "sequence_id": "seq-002"
+          },
+          "window_start_unix_ms": 2500,
+          "window_end_unix_ms": 3500
+        }
+      ]
+    },
+    {
+      "name": "calibration",
+      "records": [
+        {
+          "record_id": "sz-rec-003",
+          "record_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "group_values": {
+            "station_id": "station-03",
+            "vehicle_id": "vehicle-X",
+            "transaction_id": "txn-003",
+            "sequence_id": "seq-003"
+          },
+          "window_start_unix_ms": 3000,
+          "window_end_unix_ms": 4000
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "records": [
+        {
+          "record_id": "sz-rec-004",
+          "record_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "group_values": {
+            "station_id": "station-04",
+            "vehicle_id": "vehicle-X",
+            "transaction_id": "txn-004",
+            "sequence_id": "seq-004"
+          },
+          "window_start_unix_ms": 5000,
+          "window_end_unix_ms": 6000
+        },
+        {
+          "record_id": "sz-rec-005",
+          "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "group_values": {
+            "station_id": "station-04",
+            "vehicle_id": "vehicle-Z",
+            "transaction_id": "txn-005",
+            "sequence_id": "seq-005"
+          },
+          "window_start_unix_ms": 7000,
+          "window_end_unix_ms": 8000
+        }
+      ]
+    }
+  ],
+  "claim_ceiling": "Synthetic split-integrity fixture only. Station-held-out design permits vehicle repetition across stations but forbids overlapping windows for the same vehicle.",
+  "optional_leakage_keys": [
+    "event_id"
+  ]
+}

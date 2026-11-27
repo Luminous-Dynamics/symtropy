@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transport/ev-bms-split-manifest/0.1",
+  "title": "EV BMS group-disjoint split manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "split_id",
+    "dataset_id",
+    "dataset_domain",
+    "dataset_admission_state",
+    "dataset_manifest_sha256",
+    "dataset_snapshot_sha256",
+    "evidence_class",
+    "split_strategy",
+    "group_key",
+    "leakage_keys",
+    "optional_leakage_keys",
+    "temporal_exclusion_keys",
+    "split_seed",
+    "generator_revision",
+    "partitions",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "ev-bms-split-manifest/v0.1"
+    },
+    "split_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_id": {
+      "enum": [
+        "cao-onboard-bms-zenodo-10656500",
+        "shenzhen-charger-side-mendeley-c7gg94tmvz-v3"
+      ]
+    },
+    "dataset_domain": {
+      "enum": [
+        "onboard_bms",
+        "charger_side"
+      ]
+    },
+    "dataset_admission_state": {
+      "enum": [
+        "metadata_only",
+        "snapshot_admitted"
+      ]
+    },
+    "dataset_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dataset_snapshot_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "operator_collected_field_observation"
+      ]
+    },
+    "split_strategy": {
+      "const": "group_disjoint_with_sequence_guards"
+    },
+    "group_key": {
+      "enum": [
+        "vehicle_id",
+        "manufacturer_group",
+        "station_id",
+        "data_owner_group"
+      ]
+    },
+    "leakage_keys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "temporal_exclusion_keys": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "split_seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "generator_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "partitions": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "records"
+        ],
+        "properties": {
+          "name": {
+            "enum": [
+              "train",
+              "calibration",
+              "test"
+            ]
+          },
+          "records": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "record_id",
+                "record_sha256",
+                "group_values",
+                "window_start_unix_ms",
+                "window_end_unix_ms"
+              ],
+              "properties": {
+                "record_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "record_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "group_values": {
+                  "type": "object",
+                  "minProperties": 1,
+                  "additionalProperties": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "window_start_unix_ms": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "window_end_unix_ms": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "optional_leakage_keys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  }
+}

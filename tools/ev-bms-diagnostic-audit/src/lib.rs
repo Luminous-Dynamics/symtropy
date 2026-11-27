@@ -1,3 +1,4 @@
+pub mod split_manifest;
 pub mod dataset_manifest;
 
 use jsonschema::{Validator, draft202012};
