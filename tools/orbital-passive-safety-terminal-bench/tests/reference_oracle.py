@@ -69,15 +69,25 @@ def has_period_witness(row: dict[str, str]) -> bool:
 
 
 def outcome(
-    case_id: str,
+    row: dict[str, str],
     disposition: str,
     branch: str,
     margin: int | None,
     reason: str | None,
     period_consumed: bool,
 ) -> dict[str, object]:
+    scope = scope_tuple(row)
+    period_present = has_period_witness(row)
     return {
-        "case_id": case_id,
+        "case_id": row["case_id"],
+        "scope": dict(zip(SCOPE_FIELDS, scope, strict=True)),
+        "terminal_epoch_tai_ns": int(row["terminal_epoch_tai_ns"]),
+        "bounds_provider_id": row["bounds_provider_id"],
+        "bounds_provider_revision": row["bounds_provider_revision"],
+        "bounds_receipt_sha256": row["bounds_receipt_sha256"],
+        "bounds_state": row["bounds_state"],
+        "period_witness_id": row["period_horizon_id"] if period_present else None,
+        "period_witness_receipt_sha256": row["period_receipt_sha256"] if period_present else None,
         "disposition": disposition,
         "delta_a_branch": branch,
         "margin_scaled": margin,
@@ -90,8 +100,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     case_id = row["case_id"]
     scope = scope_tuple(row)
     if not valid_text(case_id) or any(not valid_text(value) for value in scope):
-        return outcome(
-            case_id,
+        return outcome(row,
             "INVALID_INPUT",
             "UNCLASSIFIED",
             None,
@@ -115,10 +124,12 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         y_lower,
         y_upper,
         rho,
-        int(row["terminal_epoch_tai_ns"]),
     )
+    terminal_epoch = int(row["terminal_epoch_tai_ns"])
     if (
         any(value < I64_MIN or value > I64_MAX for value in integer_values)
+        or terminal_epoch < 0
+        or terminal_epoch > U64_MAX
         or not valid_text(provider_id)
         or not valid_text(provider_revision)
         or not valid_sha(receipt_sha)
@@ -126,8 +137,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         or y_lower > y_upper
         or rho <= 0
     ):
-        return outcome(
-            case_id,
+        return outcome(row,
             "INVALID_INPUT",
             "UNCLASSIFIED",
             None,
@@ -136,8 +146,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         )
 
     if state == "FAIL":
-        return outcome(
-            case_id,
+        return outcome(row,
             "NOT_PASSIVE_SAFE",
             "UPSTREAM_BOUND_FAIL",
             None,
@@ -145,8 +154,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             False,
         )
     if state in ("UNKNOWN", "STALE", "REVOKED"):
-        return outcome(
-            case_id,
+        return outcome(row,
             "INDETERMINATE",
             "UPSTREAM_BOUND_UNRESOLVED",
             None,
@@ -154,8 +162,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             False,
         )
     if state != "PASS":
-        return outcome(
-            case_id,
+        return outcome(row,
             "INVALID_INPUT",
             "UNCLASSIFIED",
             None,
@@ -164,12 +171,10 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         )
 
     period_present = has_period_witness(row)
-    terminal_epoch = int(row["terminal_epoch_tai_ns"])
 
     if delta_lo == 0 and delta_hi == 0:
         if not period_present:
-            return outcome(
-                case_id,
+            return outcome(row,
                 "PERIODIC_RELATIVE_MOTION_ONLY",
                 "EXACT_ZERO_DELTA_A",
                 None,
@@ -197,8 +202,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             or period_end > U64_MAX
             or period_start >= period_end
         ):
-            return outcome(
-                case_id,
+            return outcome(row,
                 "INVALID_INPUT",
                 "EXACT_ZERO_DELTA_A",
                 None,
@@ -207,8 +211,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             )
 
         if period_scope_tuple(row) != scope:
-            return outcome(
-                case_id,
+            return outcome(row,
                 "OUT_OF_SCOPE",
                 "EXACT_ZERO_DELTA_A",
                 None,
@@ -217,8 +220,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             )
 
         if period_start != terminal_epoch:
-            return outcome(
-                case_id,
+            return outcome(row,
                 "OUT_OF_SCOPE",
                 "EXACT_ZERO_DELTA_A",
                 None,
@@ -228,8 +230,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
 
         covered_duration = period_end - period_start
         if covered_duration < relative_period:
-            return outcome(
-                case_id,
+            return outcome(row,
                 "INDETERMINATE",
                 "EXACT_ZERO_DELTA_A",
                 None,
@@ -241,8 +242,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             row["period_complete_time_coverage"] != "true"
             or row["period_disposition"] != "COMPLETE_CONDITIONAL_CLEAR"
         ):
-            return outcome(
-                case_id,
+            return outcome(row,
                 "INDETERMINATE",
                 "EXACT_ZERO_DELTA_A",
                 None,
@@ -250,8 +250,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
                 True,
             )
 
-        return outcome(
-            case_id,
+        return outcome(row,
             "PERIODIC_PASSIVE_SAFE",
             "EXACT_ZERO_DELTA_A",
             None,
@@ -260,8 +259,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         )
 
     if period_present:
-        return outcome(
-            case_id,
+        return outcome(row,
             "INVALID_INPUT",
             "NONZERO_DELTA_A",
             None,
@@ -272,16 +270,14 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if delta_hi < 0:
         margin = y_lower - rho
         if margin > 0:
-            return outcome(
-                case_id,
+            return outcome(row,
                 "SECULAR_OUTBOUND_PASSIVE_SAFE",
                 "NEGATIVE_DELTA_A_MOVES_POSITIVE_Y",
                 margin,
                 None,
                 False,
             )
-        return outcome(
-            case_id,
+        return outcome(row,
             "NOT_PASSIVE_SAFE",
             "NEGATIVE_DELTA_A_MOVES_POSITIVE_Y",
             margin,
@@ -292,16 +288,14 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if delta_lo > 0:
         margin = -rho - y_upper
         if margin > 0:
-            return outcome(
-                case_id,
+            return outcome(row,
                 "SECULAR_OUTBOUND_PASSIVE_SAFE",
                 "POSITIVE_DELTA_A_MOVES_NEGATIVE_Y",
                 margin,
                 None,
                 False,
             )
-        return outcome(
-            case_id,
+        return outcome(row,
             "NOT_PASSIVE_SAFE",
             "POSITIVE_DELTA_A_MOVES_NEGATIVE_Y",
             margin,
@@ -309,8 +303,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             False,
         )
 
-    return outcome(
-        case_id,
+    return outcome(row,
         "INDETERMINATE",
         "DELTA_A_SIGN_UNRESOLVED",
         None,
