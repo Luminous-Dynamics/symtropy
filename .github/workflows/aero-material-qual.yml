@@ -602,6 +602,9 @@ jobs:
       - name: Run typed causal-cut 10k benchmark smoke
         run: cargo run --locked --package symtropy-aero-material-qual --example vector_cut_scale -- 10000 31
 
+      - name: Run three-axis temporal replay 10k benchmark smoke
+        run: cargo run --locked --package symtropy-aero-material-qual --example temporal_replay_scale -- 10000 5
+
       - name: Run evaluator CLI smoke test
         shell: bash
         run: |
