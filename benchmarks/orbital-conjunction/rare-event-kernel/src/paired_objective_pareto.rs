@@ -60,6 +60,11 @@ pub struct PairedObjectiveSpec {
 pub struct ScenarioAtomUniverse {
     /// Frozen epistemic scenario identity.
     pub scenario_id: [u8; 32],
+    /// Physical-world/force-model manifest digest for this scenario.
+    ///
+    /// This is scenario-specific and must match the manifest identity in every
+    /// upstream hard-risk check for this scenario.
+    pub scenario_model_manifest_digest: [u8; 32],
     /// Complete finite set of equally weighted latent uncertainty atoms.
     pub atom_ids: Vec<[u8; 32]>,
 }
@@ -134,6 +139,15 @@ pub struct PairedObjectiveContrast {
     pub declared_difference_upper_ticks: i64,
 }
 
+/// Scenario identity bound to its physical-world/force-model manifest.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScenarioModelBinding {
+    /// Epistemic scenario identity.
+    pub scenario_id: [u8; 32],
+    /// Physical-world/force-model manifest digest.
+    pub scenario_model_manifest_digest: [u8; 32],
+}
+
 /// Exact per-scenario sign witness for one robust Pareto comparison.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ScenarioObjectiveContrastWitness {
@@ -177,6 +191,8 @@ pub struct PairedObjectiveParetoReport {
     pub mission_risk_gate_digest: [u8; 32],
     /// Canonical epistemic scenario universe.
     pub scenario_ids: Vec<[u8; 32]>,
+    /// Scenario-to-physical-model manifest bindings.
+    pub scenario_model_bindings: Vec<ScenarioModelBinding>,
     /// Canonical eligible portfolio universe.
     pub eligible_portfolio_ids: Vec<[u8; 32]>,
     /// Portfolios excluded by the upstream hard-risk gate.
@@ -206,6 +222,8 @@ pub enum PairedObjectiveParetoError {
     InvalidMissionRiskGate,
     /// Scenario universe is empty, too large, duplicated or inconsistent with the gate.
     InvalidScenarioUniverse,
+    /// Scenario physical-model manifest does not match the upstream risk gate.
+    ScenarioModelBindingMismatch,
     /// An admitted scenario has an empty or invalid latent atom universe.
     InvalidScenarioAtomUniverse,
     /// Eligible portfolio identities are invalid, duplicated or exceed the bound.
@@ -237,6 +255,7 @@ impl core::fmt::Display for PairedObjectiveParetoError {
         let message = match self {
             Self::InvalidMissionRiskGate => "upstream mission-risk gate is invalid or grants authority",
             Self::InvalidScenarioUniverse => "scenario universe is invalid or inconsistent with the risk gate",
+            Self::ScenarioModelBindingMismatch => "scenario physical-model manifest differs from the hard-risk gate",
             Self::InvalidScenarioAtomUniverse => "scenario latent-atom universe is empty or invalid",
             Self::InvalidPortfolioUniverse => "eligible portfolio universe is invalid",
             Self::InvalidObjectiveUniverse => "objective specification universe is invalid",
@@ -293,7 +312,10 @@ impl PairedObjectiveParetoCampaign {
         scenario_supports.sort_by_key(|support| support.scenario_id);
         let mut total_atom_count = 0_usize;
         for support in &mut scenario_supports {
-            if is_zero(&support.scenario_id) || support.atom_ids.is_empty() {
+            if is_zero(&support.scenario_id)
+                || is_zero(&support.scenario_model_manifest_digest)
+                || support.atom_ids.is_empty()
+            {
                 return Err(PairedObjectiveParetoError::InvalidScenarioAtomUniverse);
             }
             support.atom_ids.sort_unstable();
@@ -326,6 +348,21 @@ impl PairedObjectiveParetoCampaign {
             .collect::<BTreeSet<_>>();
         if gate_scenarios.len() != gate.scenario_count || gate_scenarios != supplied_scenarios {
             return Err(PairedObjectiveParetoError::InvalidScenarioUniverse);
+        }
+        let mut gate_manifest_by_scenario = BTreeMap::new();
+        for check in &gate.scenario_portfolio_risk_checks {
+            if gate_manifest_by_scenario
+                .insert(check.scenario_id, check.manifest_digest)
+                .is_some_and(|existing| existing != check.manifest_digest)
+            {
+                return Err(PairedObjectiveParetoError::InvalidMissionRiskGate);
+            }
+        }
+        if scenario_supports.iter().any(|support| {
+            gate_manifest_by_scenario.get(&support.scenario_id)
+                != Some(&support.scenario_model_manifest_digest)
+        }) {
+            return Err(PairedObjectiveParetoError::ScenarioModelBindingMismatch);
         }
 
         let mut eligible_portfolio_ids = gate.eligible_portfolio_ids.clone();
@@ -658,6 +695,14 @@ impl PairedObjectiveParetoCampaign {
                 .iter()
                 .map(|support| support.scenario_id)
                 .collect(),
+            scenario_model_bindings: self
+                .scenario_supports
+                .iter()
+                .map(|support| ScenarioModelBinding {
+                    scenario_id: support.scenario_id,
+                    scenario_model_manifest_digest: support.scenario_model_manifest_digest,
+                })
+                .collect(),
             eligible_portfolio_ids: self.eligible_portfolio_ids.clone(),
             ineligible_portfolio_ids: self.ineligible_portfolio_ids.clone(),
             objective_specs: self.objective_specs.clone(),
@@ -766,6 +811,7 @@ fn validate_and_digest_gate(
 
     let mut scenario_ids = BTreeSet::new();
     let mut portfolio_ids = BTreeSet::new();
+    let mut scenario_manifests = BTreeMap::new();
     let mut checks = BTreeMap::new();
     let mut derived_ineligible = BTreeMap::<[u8; 32], Vec<[u8; 32]>>::new();
     for check in &gate.scenario_portfolio_risk_checks {
@@ -793,6 +839,12 @@ fn validate_and_digest_gate(
                 .entry(check.portfolio_id)
                 .or_default()
                 .push(check.scenario_id);
+        }
+        if scenario_manifests
+            .insert(check.scenario_id, check.manifest_digest)
+            .is_some_and(|existing| existing != check.manifest_digest)
+        {
+            return Err(PairedObjectiveParetoError::InvalidMissionRiskGate);
         }
         scenario_ids.insert(check.scenario_id);
         portfolio_ids.insert(check.portfolio_id);
@@ -880,6 +932,7 @@ fn digest_frozen_inputs(
     hasher.update((scenario_supports.len() as u64).to_be_bytes());
     for support in scenario_supports {
         hasher.update(support.scenario_id);
+        hasher.update(support.scenario_model_manifest_digest);
         hash_ids(&mut hasher, &support.atom_ids);
     }
     hash_ids(&mut hasher, eligible_portfolios);
@@ -908,6 +961,11 @@ fn digest_report(report: &PairedObjectiveParetoReport) -> [u8; 32] {
     hasher.update(report.mission_risk_gate_digest);
     hasher.update(report.frozen_input_digest);
     hash_ids(&mut hasher, &report.scenario_ids);
+    hasher.update((report.scenario_model_bindings.len() as u64).to_be_bytes());
+    for binding in &report.scenario_model_bindings {
+        hasher.update(binding.scenario_id);
+        hasher.update(binding.scenario_model_manifest_digest);
+    }
     hash_ids(&mut hasher, &report.eligible_portfolio_ids);
     hash_ids(&mut hasher, &report.ineligible_portfolio_ids);
     hasher.update((report.objective_specs.len() as u64).to_be_bytes());
@@ -1041,7 +1099,7 @@ mod tests {
         crate::scenario_mission_risk_gate::PortfolioScenarioRiskCheck {
             scenario_id,
             portfolio_id,
-            manifest_digest: [50; 32],
+            manifest_digest: if scenario_id == SCENARIO_A { [50; 32] } else { [70; 32] },
             target_measure_digest: if scenario_id == SCENARIO_A {
                 [51; 32]
             } else {
@@ -1135,10 +1193,12 @@ mod tests {
         vec![
             ScenarioAtomUniverse {
                 scenario_id: SCENARIO_A,
+                scenario_model_manifest_digest: [50; 32],
                 atom_ids: vec![[101; 32], [102; 32], [103; 32], [104; 32]],
             },
             ScenarioAtomUniverse {
                 scenario_id: SCENARIO_B,
+                scenario_model_manifest_digest: [70; 32],
                 atom_ids: vec![[101; 32], [102; 32], [103; 32], [104; 32]],
             },
         ]
