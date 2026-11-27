@@ -336,7 +336,7 @@
         "catalog_uri",
         "source_repository_uri",
         "source_code_revision",
-        "source_archive_sha256_declared_by_caller",
+        "source_archive_sha256_verified",
         "reference_archive_content_sha256",
         "reference_profile_count",
         "expected_profile_count",
@@ -377,13 +377,6 @@
         "source_code_revision": {
           "type": "string",
           "minLength": 7
-        },
-        "source_archive_sha256_declared_by_caller": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^[a-f0-9]{64}$"
         },
         "reference_archive_content_sha256": {
           "type": "string",
@@ -485,6 +478,13 @@
         "claim_ceiling": {
           "type": "string",
           "minLength": 1
+        },
+        "source_archive_sha256_verified": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     }
