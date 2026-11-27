@@ -63,7 +63,7 @@ For each exact-head run, preserve the source commit, toolchain, seed, case count
 
 The test suite now includes a separate 3D OBB corpus, not just the 2D seed:
 
-- 4,096 deterministic pairs using fixed half-extents and arbitrary composed 3D rotations in XY, YZ and XZ planes.
+- 4,096 deterministic pairs using fixed half-extents and arbitrary composed 3D rotations in XY, YZ and XZ planes. Pair centres are sampled inside 90% of the unrotated AABB-overlap band, so the translation-only negative control predicts overlap for every case and the corpus stresses orientation-sensitive separations.
 - Independent 15-axis separating-axis theorem: three face axes from each box plus nine pairwise edge cross products.
 - The oracle uses only rotated basis vectors, projection radii and scalar dot/cross products; it does not call the engine's support-map or GJK implementation.
 - The transformed public GJK API is compared to the SAT oracle, with false-positive and false-negative counts accumulated separately.
