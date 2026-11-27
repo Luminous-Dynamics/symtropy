@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/ev-fleet-resilience/schemas/ev_fleet_resilience_v0_1.schema.json",
+  "title": "EV fleet charging resilience corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "suite_id",
+    "claim_ceiling",
+    "vehicle_templates",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "suite_id": {
+      "const": "EV-CHARGE-RESILIENCE-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vehicle_templates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/vehicleTemplate"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "fraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "positiveFraction": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "positive": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "nonNegative": {
+      "type": "number",
+      "minimum": 0
+    },
+    "evidenceClass": {
+      "enum": [
+        "synthetic",
+        "measured",
+        "manufacturer",
+        "literature",
+        "estimate",
+        "unknown"
+      ]
+    },
+    "vehicleTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "template_id",
+        "label",
+        "evidence_class",
+        "evidence_reference",
+        "evidence_note",
+        "nominal_pack_capacity_kwh",
+        "state_of_health_fraction",
+        "temperature_capacity_fraction",
+        "temperature_acceptance_fraction",
+        "charging_efficiency_fraction",
+        "maximum_port_input_power_kw",
+        "acceptance_curve"
+      ],
+      "properties": {
+        "template_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "evidence_reference": {
+          "type": "string"
+        },
+        "evidence_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_pack_capacity_kwh": {
+          "$ref": "#/$defs/positive"
+        },
+        "state_of_health_fraction": {
+          "$ref": "#/$defs/positiveFraction"
+        },
+        "temperature_capacity_fraction": {
+          "$ref": "#/$defs/positiveFraction"
+        },
+        "temperature_acceptance_fraction": {
+          "$ref": "#/$defs/positiveFraction"
+        },
+        "charging_efficiency_fraction": {
+          "$ref": "#/$defs/positiveFraction"
+        },
+        "maximum_port_input_power_kw": {
+          "$ref": "#/$defs/positive"
+        },
+        "acceptance_curve": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/curveBand"
+          }
+        }
+      }
+    },
+    "curveBand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "soc_lower_fraction",
+        "soc_upper_fraction",
+        "max_battery_acceptance_kw"
+      ],
+      "properties": {
+        "soc_lower_fraction": {
+          "$ref": "#/$defs/fraction"
+        },
+        "soc_upper_fraction": {
+          "$ref": "#/$defs/positiveFraction"
+        },
+        "max_battery_acceptance_kw": {
+          "$ref": "#/$defs/positive"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "label",
+        "evidence_class",
+        "evidence_reference",
+        "evidence_note",
+        "charger_port_count",
+        "site_power_budget_kw",
+        "jobs",
+        "capacity_events"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidenceClass"
+        },
+        "evidence_reference": {
+          "type": "string"
+        },
+        "evidence_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "charger_port_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "site_power_budget_kw": {
+          "$ref": "#/$defs/positive"
+        },
+        "jobs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/job"
+          }
+        },
+        "capacity_events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/capacityEvent"
+          }
+        },
+        "port_release_policy": {
+          "type": "string",
+          "enum": [
+            "release_on_charge_completion",
+            "hold_until_departure"
+          ],
+          "default": "release_on_charge_completion",
+          "description": "Connector occupancy after target energy is reached. release_on_charge_completion is an optimistic zero-turnover reference assumption; hold_until_departure blocks the connector until the vehicle's declared departure. The field is optional for backward compatibility."
+        }
+      }
+    },
+    "job": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "template_id",
+        "arrival_minute",
+        "departure_minute",
+        "initial_soc_fraction",
+        "target_soc_fraction"
+      ],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "template_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "arrival_minute": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "departure_minute": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "initial_soc_fraction": {
+          "$ref": "#/$defs/fraction"
+        },
+        "target_soc_fraction": {
+          "$ref": "#/$defs/fraction"
+        }
+      }
+    },
+    "capacityEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_minute",
+        "end_minute",
+        "site_power_budget_kw",
+        "available_port_count"
+      ],
+      "properties": {
+        "start_minute": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "end_minute": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "site_power_budget_kw": {
+          "$ref": "#/$defs/nonNegative"
+        },
+        "available_port_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
