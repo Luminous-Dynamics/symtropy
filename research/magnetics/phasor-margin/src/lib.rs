@@ -81,11 +81,17 @@ fn validate_domain(domain: &ParameterDomain<5>) -> Result<(), PhaseMarginError> 
     }
 
     let expected_ids = expected_parameter_ids();
-    for (index, expected_id) in expected_ids.iter().enumerate() {
-        if domain.parameter_ids[index] != *expected_id {
+    for (index, ((actual_id, expected_id), unit)) in domain
+        .parameter_ids
+        .iter()
+        .zip(expected_ids.iter())
+        .zip(domain.parameter_units.iter())
+        .enumerate()
+    {
+        if actual_id != *expected_id {
             return Err(PhaseMarginError::WrongParameterOrder { index });
         }
-        if domain.parameter_units[index] != "dimensionless" {
+        if unit != "dimensionless" {
             return Err(PhaseMarginError::WrongParameterUnit { index });
         }
     }
@@ -195,11 +201,17 @@ where
     }
 
     let expected_axes = ["x", "y", "z"];
-    for (axis, expected_axis) in expected_axes.iter().enumerate() {
-        if domain.parameter_ids[axis] != *expected_axis {
+    for (axis, ((actual_axis, expected_axis), unit)) in domain
+        .parameter_ids
+        .iter()
+        .zip(expected_axes.iter())
+        .zip(domain.parameter_units.iter())
+        .enumerate()
+    {
+        if actual_axis != expected_axis {
             return Err(PhaseMarginError::InvalidSpatialParameterOrder { axis });
         }
-        if domain.parameter_units[axis] != "metre" {
+        if unit != "metre" {
             return Err(PhaseMarginError::InvalidSpatialParameterUnit { axis });
         }
     }
@@ -562,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn spatial_phase_margin_rejects_a_different_threshold_requirement() {
+    fn spatial_phase_margin_binds_the_declared_requirement_identity() {
         let mut scope = spatial_domain();
         scope.requirement_id = "other-phase-limit".to_owned();
         // Identity itself is still valid and will be carried through; the
