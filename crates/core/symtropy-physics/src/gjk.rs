@@ -90,7 +90,7 @@ pub fn intersects_support_maps<const D: usize>(
     direction = -first;
 
     for iteration in 0..MAX_ITERATIONS {
-        if direction.norm_squared() < 1e-20 {
+        if direction.norm_squared() < GJK_DISTANCE_TOLERANCE * GJK_DISTANCE_TOLERANCE {
             return GjkResult {
                 intersecting: true,
                 simplex,
@@ -173,7 +173,7 @@ fn do_simplex_line<const D: usize>(
         // Origin is between A and B (in the Voronoi region of edge AB)
         // Direction perpendicular to AB toward origin
         *direction = triple_cross_product(&ab, &ao, &ab);
-        if direction.norm_squared() < 1e-20 {
+        if direction.norm_squared() < GJK_DISTANCE_TOLERANCE * GJK_DISTANCE_TOLERANCE {
             // Origin is on the line segment
             return true;
         }
