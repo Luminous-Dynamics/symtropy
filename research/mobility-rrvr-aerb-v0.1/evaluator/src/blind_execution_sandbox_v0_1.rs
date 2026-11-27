@@ -261,8 +261,11 @@ pub fn build_candidate_sandbox_command(
     for item in [
         "--die-with-parent",
         "--new-session",
-        "--unshare-all",
+        "--unshare-user",
+        "--unshare-pid",
+        "--unshare-ipc",
         "--unshare-net",
+        "--unshare-uts",
         "--disable-userns",
         "--assert-userns-disabled",
         "--cap-drop",
@@ -455,8 +458,15 @@ mod tests {
     fn network_and_host_capabilities_are_explicitly_removed() {
         let (_tree, paths, limits) = fixture();
         let args = strings(&build_candidate_sandbox_command(&paths, limits, &[]).expect("command"));
-        assert!(args.contains(&"--unshare-all".to_owned()));
-        assert!(args.contains(&"--unshare-net".to_owned()));
+        for namespace in [
+            "--unshare-user",
+            "--unshare-pid",
+            "--unshare-ipc",
+            "--unshare-net",
+            "--unshare-uts",
+        ] {
+            assert!(args.contains(&namespace.to_owned()), "missing {namespace}");
+        }
         assert!(args.windows(2).any(|w| w[0] == "--cap-drop" && w[1] == "ALL"));
         assert!(args.contains(&"--clearenv".to_owned()));
     }
