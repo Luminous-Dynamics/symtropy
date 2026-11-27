@@ -1,0 +1,622 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-ARCHITECTURE-BENCH-001",
+  "claim_ceiling": "All component observations, qualifications and optimization receipts in this fixture are synthetic. The expected ArchitectureAdvantage result only validates evidence-gate and interval-decision semantics; it is not a physical AM motor advantage or solver output.",
+  "spec": {
+    "benchmark_id": "ARCH-BENCH-001",
+    "scope": {
+      "application_id": "MOTOR-50KW-001",
+      "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "stator_winding_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "inverter_control_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "cooling_boundary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "mechanical_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "duty_cycle_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "thermal_envelope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "acceptance_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "objective_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    "metrics": [
+      {
+        "metric_id": "torque_density",
+        "unit": "Nm/L",
+        "class": "MandatoryFunction",
+        "direction": "Maximize",
+        "hard_min": 12,
+        "non_inferiority_margin": 0.5
+      },
+      {
+        "metric_id": "efficiency",
+        "unit": "fraction",
+        "class": "MandatoryFunction",
+        "direction": "Maximize",
+        "hard_min": 0.9,
+        "non_inferiority_margin": 0.005
+      },
+      {
+        "metric_id": "maximum_magnet_temperature",
+        "unit": "degC",
+        "class": "MandatoryFunction",
+        "direction": "Minimize",
+        "hard_max": 120,
+        "non_inferiority_margin": 5
+      },
+      {
+        "metric_id": "demagnetization_margin",
+        "unit": "ratio",
+        "class": "MandatoryFunction",
+        "direction": "Maximize",
+        "hard_min": 1.3,
+        "non_inferiority_margin": 0.1
+      },
+      {
+        "metric_id": "retention_margin",
+        "unit": "ratio",
+        "class": "MandatoryFunction",
+        "direction": "Maximize",
+        "hard_min": 2,
+        "non_inferiority_margin": 0.1
+      },
+      {
+        "metric_id": "pm_mass",
+        "unit": "kg",
+        "class": "ArchitectureBenefit",
+        "direction": "Minimize"
+      },
+      {
+        "metric_id": "rotor_inertia",
+        "unit": "kg*m2",
+        "class": "ArchitectureBenefit",
+        "direction": "Minimize"
+      },
+      {
+        "metric_id": "cost_per_torque",
+        "unit": "USD/Nm",
+        "class": "ArchitectureBenefit",
+        "direction": "Minimize"
+      }
+    ],
+    "required_baseline_families": [
+      "ConventionalSinteredPm",
+      "PmAssistedSynrm"
+    ],
+    "minimum_baseline_optimization_evaluations": 100,
+    "minimum_independent_restarts": 3
+  },
+  "trials": [
+    {
+      "architecture_id": "AM-HYBRID-001",
+      "family": "AmHybridArchitecture",
+      "role": "Candidate",
+      "scope": {
+        "application_id": "MOTOR-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stator_winding_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "inverter_control_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "cooling_boundary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mechanical_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "duty_cycle_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "thermal_envelope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "acceptance_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "acceptance": {
+        "component_id": "COMP-AM-HYBRID-001",
+        "specimen_id": "SPEC-AM-HYBRID-001",
+        "receipt_id": "ACCEPT-AM-HYBRID-001",
+        "receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "physical_evidence_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "observations": [
+        {
+          "metric_id": "torque_density",
+          "unit": "Nm/L",
+          "value": 14.7,
+          "uncertainty_radius": 0.1,
+          "evidence_id": "OBS-AM-HYBRID-001-torque_density",
+          "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-torque_density",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "efficiency",
+          "unit": "fraction",
+          "value": 0.946,
+          "uncertainty_radius": 0.001,
+          "evidence_id": "OBS-AM-HYBRID-001-efficiency",
+          "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-efficiency",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "maximum_magnet_temperature",
+          "unit": "degC",
+          "value": 92,
+          "uncertainty_radius": 1,
+          "evidence_id": "OBS-AM-HYBRID-001-maximum_magnet_temperature",
+          "evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-maximum_magnet_temperature",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "demagnetization_margin",
+          "unit": "ratio",
+          "value": 1.7,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-AM-HYBRID-001-demagnetization_margin",
+          "evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-demagnetization_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "retention_margin",
+          "unit": "ratio",
+          "value": 2.6,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-AM-HYBRID-001-retention_margin",
+          "evidence_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-retention_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "pm_mass",
+          "unit": "kg",
+          "value": 0.45,
+          "uncertainty_radius": 0.01,
+          "evidence_id": "OBS-AM-HYBRID-001-pm_mass",
+          "evidence_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-pm_mass",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "rotor_inertia",
+          "unit": "kg*m2",
+          "value": 0.15,
+          "uncertainty_radius": 0.005,
+          "evidence_id": "OBS-AM-HYBRID-001-rotor_inertia",
+          "evidence_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-rotor_inertia",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "cost_per_torque",
+          "unit": "USD/Nm",
+          "value": 930,
+          "uncertainty_radius": 20,
+          "evidence_id": "OBS-AM-HYBRID-001-cost_per_torque",
+          "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-cost_per_torque",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    {
+      "architecture_id": "SINTERED-PM-001",
+      "family": "ConventionalSinteredPm",
+      "role": "RequiredBaseline",
+      "scope": {
+        "application_id": "MOTOR-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stator_winding_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "inverter_control_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "cooling_boundary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mechanical_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "duty_cycle_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "thermal_envelope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "acceptance_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "acceptance": {
+        "component_id": "COMP-SINTERED-PM-001",
+        "specimen_id": "SPEC-SINTERED-PM-001",
+        "receipt_id": "ACCEPT-SINTERED-PM-001",
+        "receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "physical_evidence_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "optimization": {
+        "receipt_id": "OPT-SINTERED-PM-001",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "optimizer_id": "MULTI-START-DOE-AND-REFINEMENT",
+        "search_space_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "objective_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "constraint_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "protocol_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "evaluations": 500,
+        "independent_restarts": 5,
+        "frozen_before_comparison": true
+      },
+      "observations": [
+        {
+          "metric_id": "torque_density",
+          "unit": "Nm/L",
+          "value": 15,
+          "uncertainty_radius": 0.1,
+          "evidence_id": "OBS-SINTERED-PM-001-torque_density",
+          "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-torque_density",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "efficiency",
+          "unit": "fraction",
+          "value": 0.94,
+          "uncertainty_radius": 0.001,
+          "evidence_id": "OBS-SINTERED-PM-001-efficiency",
+          "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-efficiency",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "maximum_magnet_temperature",
+          "unit": "degC",
+          "value": 95,
+          "uncertainty_radius": 1,
+          "evidence_id": "OBS-SINTERED-PM-001-maximum_magnet_temperature",
+          "evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-maximum_magnet_temperature",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "demagnetization_margin",
+          "unit": "ratio",
+          "value": 1.6,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-SINTERED-PM-001-demagnetization_margin",
+          "evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-demagnetization_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "retention_margin",
+          "unit": "ratio",
+          "value": 2.5,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-SINTERED-PM-001-retention_margin",
+          "evidence_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-retention_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "pm_mass",
+          "unit": "kg",
+          "value": 1,
+          "uncertainty_radius": 0.01,
+          "evidence_id": "OBS-SINTERED-PM-001-pm_mass",
+          "evidence_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-pm_mass",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "rotor_inertia",
+          "unit": "kg*m2",
+          "value": 0.2,
+          "uncertainty_radius": 0.005,
+          "evidence_id": "OBS-SINTERED-PM-001-rotor_inertia",
+          "evidence_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-rotor_inertia",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "cost_per_torque",
+          "unit": "USD/Nm",
+          "value": 1000,
+          "uncertainty_radius": 20,
+          "evidence_id": "OBS-SINTERED-PM-001-cost_per_torque",
+          "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-cost_per_torque",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    {
+      "architecture_id": "PMASS-SYNRM-001",
+      "family": "PmAssistedSynrm",
+      "role": "RequiredBaseline",
+      "scope": {
+        "application_id": "MOTOR-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stator_winding_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "inverter_control_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "cooling_boundary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mechanical_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "duty_cycle_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "thermal_envelope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "acceptance_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "acceptance": {
+        "component_id": "COMP-PMASS-SYNRM-001",
+        "specimen_id": "SPEC-PMASS-SYNRM-001",
+        "receipt_id": "ACCEPT-PMASS-SYNRM-001",
+        "receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "physical_evidence_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "optimization": {
+        "receipt_id": "OPT-PMASS-SYNRM-001",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "optimizer_id": "MULTI-START-DOE-AND-REFINEMENT",
+        "search_space_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "objective_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "constraint_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "protocol_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "evaluations": 500,
+        "independent_restarts": 5,
+        "frozen_before_comparison": true
+      },
+      "observations": [
+        {
+          "metric_id": "torque_density",
+          "unit": "Nm/L",
+          "value": 14.5,
+          "uncertainty_radius": 0.1,
+          "evidence_id": "OBS-PMASS-SYNRM-001-torque_density",
+          "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-torque_density",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "efficiency",
+          "unit": "fraction",
+          "value": 0.95,
+          "uncertainty_radius": 0.001,
+          "evidence_id": "OBS-PMASS-SYNRM-001-efficiency",
+          "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-efficiency",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "maximum_magnet_temperature",
+          "unit": "degC",
+          "value": 90,
+          "uncertainty_radius": 1,
+          "evidence_id": "OBS-PMASS-SYNRM-001-maximum_magnet_temperature",
+          "evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-maximum_magnet_temperature",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "demagnetization_margin",
+          "unit": "ratio",
+          "value": 1.8,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-PMASS-SYNRM-001-demagnetization_margin",
+          "evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-demagnetization_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "retention_margin",
+          "unit": "ratio",
+          "value": 2.7,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-PMASS-SYNRM-001-retention_margin",
+          "evidence_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-retention_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "pm_mass",
+          "unit": "kg",
+          "value": 0.6,
+          "uncertainty_radius": 0.01,
+          "evidence_id": "OBS-PMASS-SYNRM-001-pm_mass",
+          "evidence_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-pm_mass",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "rotor_inertia",
+          "unit": "kg*m2",
+          "value": 0.18,
+          "uncertainty_radius": 0.005,
+          "evidence_id": "OBS-PMASS-SYNRM-001-rotor_inertia",
+          "evidence_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-rotor_inertia",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "cost_per_torque",
+          "unit": "USD/Nm",
+          "value": 1050,
+          "uncertainty_radius": 20,
+          "evidence_id": "OBS-PMASS-SYNRM-001-cost_per_torque",
+          "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-cost_per_torque",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    {
+      "architecture_id": "RELUCTANCE-CONTROL-001",
+      "family": "ReluctanceOnlyControl",
+      "role": "SecondaryControl",
+      "scope": {
+        "application_id": "MOTOR-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "stator_winding_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "inverter_control_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "cooling_boundary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "mechanical_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "duty_cycle_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "thermal_envelope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "acceptance_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+      },
+      "acceptance": {
+        "component_id": "COMP-RELUCTANCE-CONTROL-001",
+        "specimen_id": "SPEC-RELUCTANCE-CONTROL-001",
+        "receipt_id": "ACCEPT-RELUCTANCE-CONTROL-001",
+        "receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "physical_evidence_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "observations": [
+        {
+          "metric_id": "torque_density",
+          "unit": "Nm/L",
+          "value": 13,
+          "uncertainty_radius": 0.1,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-torque_density",
+          "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-torque_density",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "efficiency",
+          "unit": "fraction",
+          "value": 0.93,
+          "uncertainty_radius": 0.001,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-efficiency",
+          "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-efficiency",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "maximum_magnet_temperature",
+          "unit": "degC",
+          "value": 96,
+          "uncertainty_radius": 1,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-maximum_magnet_temperature",
+          "evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-maximum_magnet_temperature",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "demagnetization_margin",
+          "unit": "ratio",
+          "value": 10,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-demagnetization_margin",
+          "evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-demagnetization_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "retention_margin",
+          "unit": "ratio",
+          "value": 2.8,
+          "uncertainty_radius": 0.05,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-retention_margin",
+          "evidence_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-retention_margin",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "pm_mass",
+          "unit": "kg",
+          "value": 0,
+          "uncertainty_radius": 0.01,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-pm_mass",
+          "evidence_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-pm_mass",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "rotor_inertia",
+          "unit": "kg*m2",
+          "value": 0.16,
+          "uncertainty_radius": 0.005,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-rotor_inertia",
+          "evidence_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-rotor_inertia",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "metric_id": "cost_per_torque",
+          "unit": "USD/Nm",
+          "value": 900,
+          "uncertainty_radius": 20,
+          "evidence_id": "OBS-RELUCTANCE-CONTROL-001-cost_per_torque",
+          "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "evidence_class": "PhysicalMeasurement",
+          "method_id": "METHOD-cost_per_torque",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "candidate_decisions": {
+      "AM-HYBRID-001": "ArchitectureAdvantage"
+    }
+  }
+}
