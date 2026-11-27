@@ -120,3 +120,29 @@ single_best_specimen_can_support_m5 = false
 build_count_alone_supports_m5 = false
 permanent_magnet_metrics = ["Br_temperature", "Hcj_temperature", "recoil_behavior", "demagnetization_margin", "magnetization_repeatability", "mechanical_retention", "interface_stability"]
 application_economics = ["cost_per_torque", "cost_per_power", "accepted_part_cost", "yield", "scrap", "inspection", "post_processing", "process_capability"]
+
+
+[state_of_art_nov_2026]
+ndfeb_am_reported_br_envelope_t = [0.6, 1.0]
+conventional_anisotropic_sintered_ndfeb_br_t = [1.4, 1.5]
+mex_is_most_competitive_reported_am_route_for_bonded_ndfeb = true
+lpbf_density_demonstrated_but_magnetic_texture_remains_limiting = true
+sls_and_binder_jet_porosity_is_limiting = true
+ranges_are_matched_head_to_head_results = false
+source_doi = "10.1016/j.jsamd.2026.101226"
+
+[component_architecture_benchmark]
+required_baselines = ["optimized_sintered_pm", "optimized_bonded_pm", "optimized_pm_assisted_synrm"]
+system_boundary_must_match = ["application_target", "duty_cycle", "air_gap", "temperature", "inverter", "cooling", "operating_envelope"]
+architecture_value_metrics = ["torque_density", "power_density", "pm_mass", "rotor_inertia", "retention_margin", "torque_ripple", "efficiency_over_duty", "cost_per_torque"]
+raw_remanence_is_the_only_winner_metric = false
+hard_demagnetization_and_retention_gates_are_noncompensatory = true
+
+[relevant_industry_standards]
+iso_astm_52902_2023 = "geometric capability test artefacts"
+iso_astm_52904_2024 = "PBF critical applications process characteristics"
+iso_astm_52908_2023 = "PBF finished-part post-processing inspection and testing"
+iso_astm_52927_2024 = "AM characteristics and test methods"
+iso_astm_52928_2024 = "metal powder feedstock lifecycle management"
+iso_astm_52929_2025 = "PBF material property data sheet presentation"
+iso_astm_52931_2023 = "metal AM environmental health and safety principles"
