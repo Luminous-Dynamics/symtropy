@@ -397,7 +397,7 @@
   },
   "certificate": {
     "certificate_version": "safrb-time-expanded-single-commodity-certificate-v0.1",
-    "scenario_sha256": "sha256:edfd1c2a5eb3a5eb38ab2ca8109c4de3d96fbff1215ad78f0308",
+    "scenario_sha256": "sha256:edfd1c2a5a3eb52a0026a0e63abb38ab2ca8109c4de3d96fbff1215ad78f0308",
     "model_class": "single_commodity_time_expanded_directed_capacity_network",
     "lower_bound_max_flow": 9,
     "lower_bound_min_cut_capacity": 9,
