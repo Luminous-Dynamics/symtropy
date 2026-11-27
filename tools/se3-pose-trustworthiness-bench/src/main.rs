@@ -208,26 +208,30 @@ fn render_summary(summary: &EvaluationSummary) -> String {
         .iter()
         .map(|point| {
             format!(
-                "{{\"confidence_threshold_ppm\":{},\"selected_count\":{},\"coverage_fraction\":{},\"false_confident_count\":{},\"selective_risk\":{}}}",
+                "{{\"confidence_threshold_ppm\":{},\"selected_count\":{},\"coverage_fraction\":{},\"false_confident_count\":{},\"selective_risk\":{},\"selective_risk_ci_lower\":{},\"selective_risk_ci_upper\":{}}}",
                 point.confidence_threshold_ppm,
                 point.selected_count,
                 point.coverage_fraction,
                 point.false_confident_count,
-                point.selective_risk.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+                optional_decimal(point.selective_risk),
+                optional_decimal(point.selective_risk_ci_lower),
+                optional_decimal(point.selective_risk_ci_upper),
             )
         })
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"valid_count\":{},\"accepted_count\":{},\"accepted_pose_coverage_fraction\":{},\"abstained_count\":{},\"invalid_count\":{},\"accepted_false_confident_95_count\":{},\"accepted_coverage_50\":{},\"accepted_coverage_80\":{},\"accepted_coverage_90\":{},\"accepted_coverage_95\":{},\"accepted_coverage_99\":{},\"accepted_translation_p95_m\":{},\"accepted_rotation_p95_rad\":{},\"accepted_gaussian_nll_mean\":{},\"accepted_covariance_logdet_median\":{},\"accepted_95_region_log_volume_median\":{},\"risk_coverage\":[{}]}}",
+        "{{\"valid_count\":{},\"accepted_count\":{},\"accepted_pose_coverage_fraction\":{},\"accepted_pose_coverage_ci_lower\":{},\"accepted_pose_coverage_ci_upper\":{},\"abstained_count\":{},\"invalid_count\":{},\"accepted_false_confident_95_count\":{},\"accepted_false_confident_95_rate_ci_lower\":{},\"accepted_false_confident_95_rate_ci_upper\":{},\"accepted_coverage_50\":{},\"accepted_coverage_80\":{},\"accepted_coverage_90\":{},\"accepted_coverage_95\":{},\"accepted_coverage_95_ci_lower\":{},\"accepted_coverage_95_ci_upper\":{},\"accepted_coverage_99\":{},\"accepted_translation_p95_m\":{},\"accepted_rotation_p95_rad\":{},\"accepted_gaussian_nll_mean\":{},\"accepted_covariance_logdet_median\":{},\"accepted_95_region_log_volume_median\":{},\"risk_coverage\":[{}]}}",
         summary.valid_count,
         summary.accepted_count,
-        summary
-            .accepted_pose_coverage_fraction
-            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        optional_decimal(summary.accepted_pose_coverage_fraction),
+        optional_decimal(summary.accepted_pose_coverage_ci_lower),
+        optional_decimal(summary.accepted_pose_coverage_ci_upper),
         summary.abstained_count,
         summary.invalid_count,
         summary.accepted_false_confident_95_count,
+        optional_decimal(summary.accepted_false_confident_95_rate_ci_lower),
+        optional_decimal(summary.accepted_false_confident_95_rate_ci_upper),
         summary
             .accepted_coverage_50
             .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
@@ -237,9 +241,9 @@ fn render_summary(summary: &EvaluationSummary) -> String {
         summary
             .accepted_coverage_90
             .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary
-            .accepted_coverage_95
-            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        optional_decimal(summary.accepted_coverage_95),
+        optional_decimal(summary.accepted_coverage_95_ci_lower),
+        optional_decimal(summary.accepted_coverage_95_ci_upper),
         summary
             .accepted_coverage_99
             .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
