@@ -57,7 +57,7 @@ The current source extends the original finite fixtures with:
 
 The brute-force oracle enumerates pairs independently of the evaluator's grouped-count implementation. These tests cover small finite set-valued worlds; they do not establish probabilistic calibration, continuous sensor likelihoods, runtime acquisition, or production blind custody.
 
-**Latest qualification caveat:** the previous exact-head CI attempts failed at rustfmt before test execution. The single follow-on formatting correction is at the current branch head; wait for its exact-head Rust 1.96 formatting, evaluator tests and strict Clippy evidence before describing these new tests as passed.
+**Exact source-head qualification:** exact commit `e05307002b70d3f391f4799dca32ef7021997386` passed the Rust 1.96 push workflow [#45948576423](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45948576423): formatting, evaluator tests (including the 91,125-world four-outcome oracle and truth-resource bounds) and strict Clippy all passed. The branch subsequently received this README-only update; the PR-triggered workflow for the documentation-only tip is separate. Earlier formatter-only failures were corrected before this passing source-head run.
 
 
 Tiny deterministic fixtures first:
