@@ -21,6 +21,7 @@ For each nominal level:
 - translation joint coverage (all three axes);
 - orientation geodesic coverage;
 - joint pose coverage (translation joint and orientation);
+- point translation error (Euclidean upper-rounded micrometres) and orientation geodesic error (microradians);
 - false-confident count (accepted pose outside the declared joint region);
 - average width numerators for x/y/z;
 - translation box volume proxy and orientation radius sums.
