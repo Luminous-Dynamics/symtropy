@@ -301,3 +301,22 @@ The Rust evaluator must reject:
 A schema pass proves only structural shape. It does not prove candidate/evaluator isolation, source authenticity, outcome-support correctness, policy optimality, a safe physical effect, or a correct command-holder inventory. The evaluator must independently check these properties against its owner-held evidence after candidate inference.
 
 This is a draft schema and synthetic fixture, not an implemented evaluator or hidden test.
+
+
+## 18. Evidence content and temporal-closure composition
+
+AERB must not treat an opaque evidence digest or an `observation_kind` string as enough information for the candidate to reason. The v0.1 candidate observation shape currently carries identity, source role, quality, ingest sequence, event/acquisition time, artifact digest and a kind label—but no typed result payload or host-mediated retrieval capability. This is tracked separately in [#7728 — materialize source-qualified observation payloads](https://github.com/Luminous-Dynamics/symtropy/issues/7728).
+
+Use the existing [Evidence Capsules v0.1 schema](https://github.com/Luminous-Dynamics/symtropy/blob/research/mobility-rrvr-evidence-capsules-v0-1-r1/research/mobility-rrvr-evidence-capsules-v0.1/schemas/evidence_bundle_v0_1.schema.json) and [domain-qualified harness adapter #7565](https://github.com/Luminous-Dynamics/symtropy/pull/7565) as the source/evidence owners. The candidate-visible v0.2 snapshot should expose an admitted, typed and bounded payload together with its exact source/profile identity, event/acquisition intervals, ingest sequence, parent evidence IDs, raw digest and quality disposition. Raw-data access, if needed, should be host-mediated, read-only, size/type-bounded and unable to reach evaluator-only stores.
+
+The current evidence-capsule payload union already includes effect findings with coverage/calibration references, endpoint fence receipts, per-edge closure receipts and holder inventories. Extend it only for missing domain data such as typed pose/force/contact/gripper measurements. Do not fork capsule sealing, trust/key management or source-role validation.
+
+**Temporal-closure composition:** reuse [#7433](https://github.com/Luminous-Dynamics/symtropy/issues/7433) / [#7435](https://github.com/Luminous-Dynamics/symtropy/pull/7435) and the existing command-holding graph owner (#6817/#6866). AERB consumes a scope/temporal-closure result bound to the exact command, attempt, graph/profile, authority epoch, queue generation and decision cut. Do not implement a second late-arrival or quiescence checker.
+
+Keep the claims orthogonal:
+- `TemporalClosure=Closed` means no old-epoch work can still be admitted or arrive through the *declared and qualified* graph under its proof path.
+- `EffectOutcome=NoEffect` means the prior command did not produce the physical effect over the declared observation coverage.
+- Closure does not imply NoEffect: the command may have acted before the path became quiescent.
+- If any path is unbounded, unqueryable, unaccounted, wrong-profile, clock-invalid or otherwise unresolved, closure remains Hold/Unknown regardless of elapsed time and the candidate must retain `open_world_residual`.
+
+The existing temporal-closure PR #7435 had a failure at the workflow's source-pin stage: its JSON/schema check passed, then a stale Git blob pin rejected the intentional HiddenEdge mutant and prevented TLC, rustfmt, tests and Clippy from running. The expected hashes for HiddenEdge and InvalidClock have been corrected in its new head; the rerun is queued and must independently demonstrate the formal model and Rust checks before any qualification claim.
