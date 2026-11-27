@@ -31,7 +31,7 @@ The Hugging Face card confirms 24,000 images (20k/2k/2k), 2D and 3D boxes, 2D ke
 
 The exact source quaternion order is not hard-coded. A real-file adapter must record the annotation's observed schema and an independent known-pose sample before it can select XYZW or WXYZ. No file SHA-256 or byte count is claimed until the exact files are fetched.
 
-## 41-case synthetic corpus
+## 42-case synthetic corpus
 
 The corpus covers:
 - identity and rotated camera poses;
