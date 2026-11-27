@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/aero-independent-assurance-benchmark.yml"
       - "tools/aero/validate_independent_assurance_benchmark.py"
+      - "docs/research/aviation/AERO_BENCHMARK_STATISTICAL_PROTOCOL_V0_1.md"
       - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
       - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
       - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
