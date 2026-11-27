@@ -168,6 +168,9 @@ pub struct ClaimMetricSemanticBindingV0_1 {
     pub producer_authority_receipt_sha256: String,
     pub semantic_validation_receipt_ref: String,
     pub semantic_validation_receipt_sha256: String,
+    /// Owner-native receipt that binds the per-artifact receiver-first-seen interval.
+    pub receiver_first_seen_receipt_ref: String,
+    pub receiver_first_seen_record_sha256: String,
 
     /// Receiver-observed interval for this owner binding, not issuer-asserted time.
     pub receiver_first_seen_earliest_unix_ms: u64,
@@ -208,6 +211,7 @@ impl ClaimMetricSemanticBindingV0_1 {
             self.owner_attestation_record_sha256.as_str(),
             self.producer_authority_receipt_sha256.as_str(),
             self.semantic_validation_receipt_sha256.as_str(),
+            self.receiver_first_seen_record_sha256.as_str(),
         ] {
             if !valid_sha256(value) {
                 errors.push("CLAIM_METRIC_BINDING_DIGEST_INVALID".to_owned());
@@ -228,6 +232,7 @@ impl ClaimMetricSemanticBindingV0_1 {
             self.owner_attestation_evidence_ref.as_str(),
             self.producer_authority_receipt_ref.as_str(),
             self.semantic_validation_receipt_ref.as_str(),
+            self.receiver_first_seen_receipt_ref.as_str(),
         ];
         if identifiers.iter().any(|value| !valid_identifier(value)) {
             errors.push("CLAIM_METRIC_BINDING_REFERENCE_INVALID".to_owned());
@@ -652,6 +657,11 @@ impl ClaimMetricSemanticBindingV0_1 {
                 self.semantic_validation_receipt_ref.as_str(),
                 self.semantic_validation_receipt_sha256.as_str(),
             ),
+            (
+                "RECEIVER_FIRST_SEEN_RECEIPT",
+                self.receiver_first_seen_receipt_ref.as_str(),
+                self.receiver_first_seen_record_sha256.as_str(),
+            ),
         ];
         let required_refs = self
             .required_evidence_refs
@@ -1009,6 +1019,7 @@ mod tests {
             "receipt:metric-owner-attestation",
             "receipt:metric-authority-verification",
             "receipt:metric-semantic-validation",
+            "receipt:receiver-first-seen-binding",
         ];
         let mut records = owner_cut.evidence_records.clone();
         for (index, evidence_ref) in role_refs.iter().enumerate() {
@@ -1056,6 +1067,12 @@ mod tests {
             .find(|record| record.evidence_ref == "receipt:metric-semantic-validation")
             .map(|record| record.record_sha256.clone())
             .expect("semantic validation record");
+        let receiver_first_seen_record_sha256 = owner_cut
+            .evidence_records
+            .iter()
+            .find(|record| record.evidence_ref == "receipt:receiver-first-seen-binding")
+            .map(|record| record.record_sha256.clone())
+            .expect("receiver-first-seen record");
 
         context.evidence_knowledge_cut_sha256 = owner_cut
             .compute_sha256()
@@ -1132,6 +1149,8 @@ mod tests {
             producer_authority_receipt_sha256: authority_record_sha256,
             semantic_validation_receipt_ref: "receipt:metric-semantic-validation".to_owned(),
             semantic_validation_receipt_sha256: semantic_validation_record_sha256,
+            receiver_first_seen_receipt_ref: "receipt:receiver-first-seen-binding".to_owned(),
+            receiver_first_seen_record_sha256,
             receiver_first_seen_earliest_unix_ms: 1_795_516_500_000,
             receiver_first_seen_latest_unix_ms: 1_795_516_600_000,
         };
@@ -1349,13 +1368,28 @@ mod tests {
     }
 
     #[test]
+    fn missing_receiver_first_seen_owner_record_is_unverified() {
+        let mut fixture = fixture();
+        let receiver_ref = fixture.binding.receiver_first_seen_receipt_ref.clone();
+        fixture.owner_cut.evidence_records.retain(|record| record.evidence_ref != receiver_ref);
+        fixture.binding.owner_evidence_cut_sha256 =
+            fixture.owner_cut.compute_sha256().unwrap();
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Unverified);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_RECEIPT_OWNER_RECORD_MISSING".to_owned()
+        ));
+    }
+
+    #[test]
     fn stale_owner_semantics_receipt_cannot_be_used() {
         let mut fixture = fixture();
+        let metric_semantics_ref = fixture.binding.metric_semantics_evidence_ref.clone();
         let record = fixture
             .owner_cut
             .evidence_records
             .iter_mut()
-            .find(|record| record.evidence_ref == fixture.binding.metric_semantics_evidence_ref)
+            .find(|record| record.evidence_ref == metric_semantics_ref)
             .unwrap();
         record.freshness = OwnerEvidenceFreshness::StaleDirect;
         fixture.binding.owner_evidence_cut_sha256 = fixture.owner_cut.compute_sha256().unwrap();
