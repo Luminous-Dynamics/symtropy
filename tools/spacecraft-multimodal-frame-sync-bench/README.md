@@ -18,7 +18,7 @@ The correction requires the regenerated pose CSVs. A syntactically valid but pre
 
 ## Contract
 
-Each bundle binds dataset revision/license/intended use, spacecraft, trajectory, sample, frame, split, declared timestamp, corrected pose revision, transform conventions, units and five modality records.
+Each bundle binds dataset revision/license/intended use, spacecraft, trajectory, sample, frame, split, declared timestamp, corrected pose revision, transform conventions, units, camera calibration and LiDAR-to-camera transform revision/digests, LiDAR coordinate frame, pose semantics and five modality records.
 
 The v0.1 profile requires:
 - dataset revision exactly the corrected SpaceSense card revision;
@@ -27,6 +27,9 @@ The v0.1 profile requires:
 - a valid 17-digit Gregorian timestamp in the declared format (no timezone or UTC/TAI epoch inferred);
 - sample ID equals spacecraft/trajectory/timestamp;
 - modality frame IDs and expected sensor IDs match the bundle;
+- LiDAR coordinates are explicitly in SensorLocalFrame;
+- pose semantics explicitly bind target-in-camera and camera/service-pose-in-world;
+- camera calibration and LiDAR-to-camera extrinsics have pinned revision IDs and SHA-256 references;
 - each modality path binds the same spacecraft, trajectory and frame timestamp;
 - each modality has a well-formed SHA-256 reference and an explicit presence flag;
 - exact timestamp equality across RGB, depth, segmentation, LiDAR and pose in v0.1; there is no implicit tolerance.
@@ -37,7 +40,7 @@ The naive source timestamp is used only as a dataset-local exact join key. No cl
 
 ## Frozen corpus and oracle
 
-The 36 fixtures include exact synchronized positive controls, each modality timestamp shifted, pre-correction pose revision, wrong sensor/frame/path, missing streams, malformed/invalid dates, leap-year controls, wrong convention/units, commercial intent, source revision mutation, duplicate samples and train/test spacecraft leakage.
+The 40 fixtures include exact synchronized positive controls, each modality timestamp shifted, pre-correction pose revision, wrong sensor/frame/path, missing streams, malformed/invalid dates, leap-year controls, wrong coordinate conventions/units/pose semantics, commercial intent, source revision mutation, invalid calibration/extrinsics digests, duplicate samples and train/test spacecraft leakage.
 
 The independent Python oracle implements the calendar check, source profile, timestamp identity, modality registration and manifest leakage checks separately. Exact Rust/Python JSON receipt equality is required.
 
