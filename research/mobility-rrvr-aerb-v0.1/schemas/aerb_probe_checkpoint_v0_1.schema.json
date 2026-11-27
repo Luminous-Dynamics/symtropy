@@ -157,7 +157,8 @@
         "clock_domain_id",
         "clock_mapping_profile_sha256",
         "coverage_start_ns",
-        "coverage_end_ns"
+        "coverage_end_ns",
+        "coverage_complete"
       ],
       "properties": {
         "evidence_id": {
@@ -214,6 +215,9 @@
         "coverage_end_ns": {
           "type": "integer",
           "minimum": 1
+        },
+        "coverage_complete": {
+          "type": "boolean"
         }
       }
     },
@@ -228,7 +232,8 @@
         "oracle_profile_sha256",
         "derivation_receipt_sha256",
         "derivation_complete",
-        "open_world_scope_closure_receipt_sha256"
+        "open_world_scope_closure_receipt_sha256",
+        "evidence_prefix_sha256"
       ],
       "properties": {
         "checkpoint_sequence": {
@@ -263,6 +268,10 @@
             "string",
             "null"
           ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_prefix_sha256": {
+          "type": "string",
           "pattern": "^[0-9a-f]{64}$"
         }
       }
