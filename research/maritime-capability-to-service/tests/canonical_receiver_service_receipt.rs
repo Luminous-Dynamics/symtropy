@@ -236,9 +236,13 @@ fn canonical_receiver_service_receipt_preserves_unknown_and_protected_floor_boun
 }
 
 #[test]
-fn terminal_exit_promoted_to_delivery_is_rejected_by_receipt_invariant() {
+fn contradictory_receiver_service_summary_is_rejected() {
     let original = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t0\\t0\\t0\\t0\\t0\\t1\\t0\\t0\\t0\\t0\\t1\\t1\\t1\\t10000\\tUNKNOWN";
-    let promoted = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t1\\t1\\t0\\t0\\t0\\t0\\t0\\t1\\t1\\t1\\t1\\t1\\t1\\t10000\\tPASS";
-    let invalid = RECEIPT.replace(original, promoted);
-    assert!(parse_receipt(&invalid).unwrap_err().contains("adjudicated + unresolved"));
+    let contradictory = "COHORT\\tS01_TERMINAL_EXIT_ONLY\\tessential\\tcontainer\\t1\\t0\\t1\\t0\\t0\\t0\\t1\\t0\\t1\\t0\\t0\\t1\\t1\\t1\\t10000\\tUNKNOWN";
+    let invalid = RECEIPT.replace(original, contradictory);
+    assert!(
+        parse_receipt(&invalid)
+            .unwrap_err()
+            .contains("adjudicated outcome categories do not reconcile")
+    );
 }
