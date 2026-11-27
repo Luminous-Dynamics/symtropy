@@ -199,7 +199,11 @@ fn ceil_div_nonnegative(numerator: u128, denominator: u128) -> Option<u128> {
     }
 }
 
-fn base_result(input: &CurvatureInput, disposition: CurvatureDisposition, reason: &str) -> CurvatureResult {
+fn base_result(
+    input: &CurvatureInput,
+    disposition: CurvatureDisposition,
+    reason: &str,
+) -> CurvatureResult {
     CurvatureResult {
         case_id: input.case_id.clone(),
         scope: input.scope.clone(),
@@ -216,7 +220,11 @@ fn base_result(input: &CurvatureInput, disposition: CurvatureDisposition, reason
         perturbation_inventory_id: input.perturbation_inventory_id.clone(),
         perturbation_inventory_complete: input.perturbation_inventory_complete,
         evidence: input.evidence.clone(),
-        reason_codes: if reason.is_empty() { Vec::new() } else { vec![reason.to_owned()] },
+        reason_codes: if reason.is_empty() {
+            Vec::new()
+        } else {
+            vec![reason.to_owned()]
+        },
         bound_ready: false,
         source_bytes_authenticated: false,
         authority_granted: false,
@@ -250,39 +258,80 @@ pub fn derive(input: &CurvatureInput) -> CurvatureResult {
         || !input.scope.is_valid()
         || input.perturbation_inventory_id.trim().is_empty()
     {
-        return base_result(input, CurvatureDisposition::InvalidInput, "CASE_SCOPE_OR_INVENTORY_INVALID");
+        return base_result(
+            input,
+            CurvatureDisposition::InvalidInput,
+            "CASE_SCOPE_OR_INVENTORY_INVALID",
+        );
     }
 
     if !input.transform_time_invariant {
-        return base_result(input, CurvatureDisposition::OutOfScope, "TIME_VARYING_TRANSFORM_UNSUPPORTED");
+        return base_result(
+            input,
+            CurvatureDisposition::OutOfScope,
+            "TIME_VARYING_TRANSFORM_UNSUPPORTED",
+        );
     }
 
     if !input.perturbation_inventory_complete {
-        return base_result(input, CurvatureDisposition::Indeterminate, "PERTURBATION_INVENTORY_INCOMPLETE");
+        return base_result(
+            input,
+            CurvatureDisposition::Indeterminate,
+            "PERTURBATION_INVENTORY_INCOMPLETE",
+        );
     }
 
     let evidence = input.evidence.ordered();
     if evidence.iter().any(|item| !item.shape_valid()) {
-        return base_result(input, CurvatureDisposition::InvalidInput, "PROVIDER_EVIDENCE_SHAPE_INVALID");
+        return base_result(
+            input,
+            CurvatureDisposition::InvalidInput,
+            "PROVIDER_EVIDENCE_SHAPE_INVALID",
+        );
     }
 
-    if evidence.iter().any(|item| item.scope_id != input.scope.scope_id) {
-        return base_result(input, CurvatureDisposition::OutOfScope, "PROVIDER_SCOPE_MISMATCH");
+    if evidence
+        .iter()
+        .any(|item| item.scope_id != input.scope.scope_id)
+    {
+        return base_result(
+            input,
+            CurvatureDisposition::OutOfScope,
+            "PROVIDER_SCOPE_MISMATCH",
+        );
     }
 
-    if evidence.iter().any(|item| item.state == ProviderState::Fail) {
-        return base_result(input, CurvatureDisposition::ProviderFailed, "REQUIRED_BOUND_PROVIDER_FAILED");
+    if evidence
+        .iter()
+        .any(|item| item.state == ProviderState::Fail)
+    {
+        return base_result(
+            input,
+            CurvatureDisposition::ProviderFailed,
+            "REQUIRED_BOUND_PROVIDER_FAILED",
+        );
     }
 
-    if evidence.iter().any(|item| item.state != ProviderState::Pass) {
-        return base_result(input, CurvatureDisposition::Indeterminate, "REQUIRED_BOUND_PROVIDER_NOT_CURRENT");
+    if evidence
+        .iter()
+        .any(|item| item.state != ProviderState::Pass)
+    {
+        return base_result(
+            input,
+            CurvatureDisposition::Indeterminate,
+            "REQUIRED_BOUND_PROVIDER_NOT_CURRENT",
+        );
     }
 
     if input.mu_upper_mm3_per_s2 == 0
         || input.chief_radius_lower_mm == 0
         || input.transform_operator_norm_upper_scaled == 0
     {
-        return base_result(input, CurvatureDisposition::InvalidInput, "POSITIVE_PHYSICAL_BOUND_REQUIRED");
+        return base_result(
+            input,
+            CurvatureDisposition::InvalidInput,
+            "POSITIVE_PHYSICAL_BOUND_REQUIRED",
+        );
     }
 
     let radial_slack = match input
@@ -290,7 +339,13 @@ pub fn derive(input: &CurvatureInput) -> CurvatureResult {
         .checked_sub(input.relative_separation_upper_mm)
     {
         Some(value) if value > 0 => value,
-        _ => return base_result(input, CurvatureDisposition::OutOfScope, "RADIAL_DOMAIN_NOT_STRICTLY_POSITIVE"),
+        _ => {
+            return base_result(
+                input,
+                CurvatureDisposition::OutOfScope,
+                "RADIAL_DOMAIN_NOT_STRICTLY_POSITIVE",
+            );
+        }
     };
 
     let r_min = u128::from(radial_slack);
@@ -301,32 +356,68 @@ pub fn derive(input: &CurvatureInput) -> CurvatureResult {
 
     let denominator = match r_min.checked_mul(r_min).and_then(|v| v.checked_mul(r_min)) {
         Some(value) => value,
-        None => return base_result(input, CurvatureDisposition::Overflow, "RADIAL_CUBE_OVERFLOW"),
+        None => {
+            return base_result(
+                input,
+                CurvatureDisposition::Overflow,
+                "RADIAL_CUBE_OVERFLOW",
+            );
+        }
     };
 
     let central_numerator = match mu.checked_mul(rho).and_then(|v| v.checked_mul(2)) {
         Some(value) => value,
-        None => return base_result(input, CurvatureDisposition::Overflow, "CENTRAL_GRAVITY_PRODUCT_OVERFLOW"),
+        None => {
+            return base_result(
+                input,
+                CurvatureDisposition::Overflow,
+                "CENTRAL_GRAVITY_PRODUCT_OVERFLOW",
+            );
+        }
     };
 
     let perturbation_numerator = match differential.checked_mul(denominator) {
         Some(value) => value,
-        None => return base_result(input, CurvatureDisposition::Overflow, "PERTURBATION_PRODUCT_OVERFLOW"),
+        None => {
+            return base_result(
+                input,
+                CurvatureDisposition::Overflow,
+                "PERTURBATION_PRODUCT_OVERFLOW",
+            );
+        }
     };
 
     let acceleration_numerator = match central_numerator.checked_add(perturbation_numerator) {
         Some(value) => value,
-        None => return base_result(input, CurvatureDisposition::Overflow, "ACCELERATION_SUM_OVERFLOW"),
+        None => {
+            return base_result(
+                input,
+                CurvatureDisposition::Overflow,
+                "ACCELERATION_SUM_OVERFLOW",
+            );
+        }
     };
 
     let total_numerator = match transform.checked_mul(acceleration_numerator) {
         Some(value) => value,
-        None => return base_result(input, CurvatureDisposition::Overflow, "TRANSFORMED_NUMERATOR_OVERFLOW"),
+        None => {
+            return base_result(
+                input,
+                CurvatureDisposition::Overflow,
+                "TRANSFORMED_NUMERATOR_OVERFLOW",
+            );
+        }
     };
 
     let m_upper = match ceil_div_nonnegative(total_numerator, denominator) {
         Some(value) => value,
-        None => return base_result(input, CurvatureDisposition::Overflow, "OUTWARD_DIVISION_FAILED"),
+        None => {
+            return base_result(
+                input,
+                CurvatureDisposition::Overflow,
+                "OUTWARD_DIVISION_FAILED",
+            );
+        }
     };
 
     let mut result = base_result(input, CurvatureDisposition::BoundReady, "");
@@ -425,7 +516,10 @@ mod tests {
         let baseline = derive(&input());
         let mut higher = input();
         higher.transform_operator_norm_upper_scaled = 2_000;
-        assert!(derive(&higher).m_upper_scaled_per_s2.unwrap() >= baseline.m_upper_scaled_per_s2.unwrap());
+        assert!(
+            derive(&higher).m_upper_scaled_per_s2.unwrap()
+                >= baseline.m_upper_scaled_per_s2.unwrap()
+        );
     }
 
     #[test]
@@ -433,7 +527,10 @@ mod tests {
         let baseline = derive(&input());
         let mut higher = input();
         higher.relative_separation_upper_mm = 2_000_000;
-        assert!(derive(&higher).m_upper_scaled_per_s2.unwrap() >= baseline.m_upper_scaled_per_s2.unwrap());
+        assert!(
+            derive(&higher).m_upper_scaled_per_s2.unwrap()
+                >= baseline.m_upper_scaled_per_s2.unwrap()
+        );
     }
 
     #[test]
@@ -441,7 +538,10 @@ mod tests {
         let baseline = derive(&input());
         let mut lower = input();
         lower.chief_radius_lower_mm = 6_900_000_000;
-        assert!(derive(&lower).m_upper_scaled_per_s2.unwrap() >= baseline.m_upper_scaled_per_s2.unwrap());
+        assert!(
+            derive(&lower).m_upper_scaled_per_s2.unwrap()
+                >= baseline.m_upper_scaled_per_s2.unwrap()
+        );
     }
 
     #[test]
@@ -464,7 +564,10 @@ mod tests {
         value.differential_acceleration_upper_mm_per_s2 = 3;
         let result = derive(&value);
         assert_eq!(result.central_gravity_numerator, Some(0));
-        assert_eq!(result.differential_acceleration_numerator, Some(3 * result.radial_domain_denominator.unwrap()));
+        assert_eq!(
+            result.differential_acceleration_numerator,
+            Some(3 * result.radial_domain_denominator.unwrap())
+        );
         assert_eq!(result.disposition, CurvatureDisposition::BoundReady);
     }
 
@@ -479,7 +582,10 @@ mod tests {
     fn incomplete_perturbation_inventory_is_indeterminate() {
         let mut value = input();
         value.perturbation_inventory_complete = false;
-        assert_eq!(derive(&value).disposition, CurvatureDisposition::Indeterminate);
+        assert_eq!(
+            derive(&value).disposition,
+            CurvatureDisposition::Indeterminate
+        );
     }
 
     #[test]
@@ -491,10 +597,17 @@ mod tests {
 
     #[test]
     fn stale_or_revoked_sources_never_produce_a_bound() {
-        for state in [ProviderState::Unknown, ProviderState::Stale, ProviderState::Revoked] {
+        for state in [
+            ProviderState::Unknown,
+            ProviderState::Stale,
+            ProviderState::Revoked,
+        ] {
             let mut value = input();
             value.evidence.mu.state = state;
-            assert_eq!(derive(&value).disposition, CurvatureDisposition::Indeterminate);
+            assert_eq!(
+                derive(&value).disposition,
+                CurvatureDisposition::Indeterminate
+            );
         }
     }
 
@@ -502,7 +615,10 @@ mod tests {
     fn failed_provider_is_not_a_bound() {
         let mut value = input();
         value.evidence.chief_radius.state = ProviderState::Fail;
-        assert_eq!(derive(&value).disposition, CurvatureDisposition::ProviderFailed);
+        assert_eq!(
+            derive(&value).disposition,
+            CurvatureDisposition::ProviderFailed
+        );
     }
 
     #[test]
@@ -516,7 +632,10 @@ mod tests {
     fn malformed_digest_is_invalid() {
         let mut value = input();
         value.evidence.transform_norm.receipt_sha256 = "bad".to_owned();
-        assert_eq!(derive(&value).disposition, CurvatureDisposition::InvalidInput);
+        assert_eq!(
+            derive(&value).disposition,
+            CurvatureDisposition::InvalidInput
+        );
     }
 
     #[test]
