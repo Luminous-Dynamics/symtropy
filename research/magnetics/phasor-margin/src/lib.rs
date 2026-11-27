@@ -61,7 +61,7 @@ pub struct SpatialPhasorRequirementsCertificate {
     pub amplitude_margin: SpatialPhasorAmplitudeMarginCertificate,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PhaseMarginError {
     WrongExpressionIdentity,
     WrongParameterOrder { index: usize },
