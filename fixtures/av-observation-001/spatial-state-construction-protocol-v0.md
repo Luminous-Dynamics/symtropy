@@ -461,3 +461,57 @@ The current public summary table lists Sinanju at Score 91.5 / 78.9 / 75.0 for s
 | Efficiency | >=20% lower all-in measured cost at preregistered quality non-inferiority | Better quality-latency-memory-energy Pareto frontier |
 
 Targets are deliberately lane-specific. They are not interchangeable and are not claimed as achieved. OVO-S accuracy, VideoZero evidence grounding, FPS-Bench minFPS, LaMAria Score, CROSS T1/T2/T3 and geometric ATE are not one common unit.
+
+
+## 22. Paradigm hypothesis: the observability quotient, not a single authoritative map
+
+A spatial system should distinguish two different equivalence relations over world hypotheses. They answer different questions and must never be collapsed into one confidence score.
+
+### 22.1 Observation equivalence
+
+Let W_t be the world hypotheses consistent with the candidate-visible causal prefix through time t. Two worlds are observationally equivalent under the declared sensor policy when their candidate-visible observation distributions are indistinguishable within a preregistered tolerance:
+
+`w_i \sim^{O}_{t,\epsilon} w_j \iff d(P(O_{0:t}\mid w_i),P(O_{0:t}\mid w_j))\leq\epsilon.`
+
+For deterministic twin fixtures, this is tested first as exact equality of candidate-visible bytes and metadata. For stochastic sensor profiles, use preregistered distributional-equivalence tests with held-out replicates and a declared false-distinction tolerance. Failure to reject a difference is not evidence of equivalence; an equivalence margin and test power must be declared before evaluation.
+
+The candidate must not split an observational-equivalence class using hidden truth, filenames, IDs, seed leakage or evaluator-side metadata.
+
+### 22.2 Decision equivalence
+
+For the current DecisionNeed D, utility/loss contract L, and action catalogue A, define the epsilon-optimal action set:
+
+`A_\eta(w,D)=\{a\in A: L(a,w,D)\leq\min_{a'\in A}L(a',w,D)+\eta\}.`
+
+Worlds are decision-equivalent when they induce the same declared action class (or the exact partition rule frozen by #7558/#7577). This relation is query-relative: two geometrically different maps can be decision-equivalent for a request to reach the north exit, yet become decision-distinct when the request changes to a side room.
+
+A chosen action a is robustly decision-sufficient over the retained world set W_t only when:
+
+`\max_{w\in W_t}[L(a,w,D)-\min_{a'\in A}L(a',w,D)]\leq\eta.`
+
+This is a worst-case regret gate over the evaluator-defined admissible worlds, not a claim that the candidate has reconstructed one unique map.
+
+### 22.3 The quotient-state representation
+
+The candidate state should preserve:
+1. source-grounded constraints and competing spatial/entity alternatives consistent with O_0:t;
+2. the current DecisionNeed-specific partition of those alternatives;
+3. a source-linked residual set containing distinctions intentionally left unresolved;
+4. the exact utility/action/evidence-prefix digests under which the current sufficiency claim was made.
+
+The current query may stop acquiring when every retained admissible world lies in the same decision class and the robust regret gate passes. It must not claim that the underlying map is unique. When a new observation splits an observation-equivalence class, or a new DecisionNeed splits a decision-equivalence class, the old sufficiency receipt is invalidated and only the affected residual subgraph is reopened.
+
+This composes existing #7558/#7577 decision evaluation, #6675 sequential acquisition and MACE #13284 memory cost-regret. It does not add a second scheduler, posterior engine, map store or evaluator.
+
+### 22.4 Falsifiable metrics
+
+Report separately:
+- **Observational false-split:** candidate distinguishes worlds whose sensor-observation distributions are equivalent within the registered margin.
+- **Observational false-merge:** candidate fails to distinguish worlds after a permitted observation makes their observation distributions separable.
+- **Decision-partition agreement:** candidate's query-relative partition matches the evaluator's hidden partition.
+- **Worst-case decision regret:** maximum loss regret across all admissible world hypotheses.
+- **False unique-map claim:** candidate reports a unique structural fact while an observationally equivalent alternative remains admissible.
+- **Residual completeness / reopenability:** later DecisionNeed or evidence can recover the relevant source-linked alternatives without fabricating observations.
+- **Reopen cost:** additional evidence, computation, latency and retained-state bytes needed to split a previously decision-equivalent class when a new query makes the distinction relevant.
+
+The paradigm-shift target is not maximal reconstruction. It is the smallest auditable spatial quotient that preserves the current decision, plus enough residual structure to answer a later query correctly. Evaluate storage/compute savings only at matched grounded-decision quality, coverage and regret; compression that drops future-relevant residuals is a failure.
