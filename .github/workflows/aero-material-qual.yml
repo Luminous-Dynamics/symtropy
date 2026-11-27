@@ -45,6 +45,8 @@ on:
       - "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
       - "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1"]
@@ -93,6 +95,8 @@ on:
       - "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
       - "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -941,6 +945,45 @@ jobs:
               if case["case_type"] in ("single_fault", "coupled_fault") and case["proposed_disposition"] == "ELIGIBLE_FOR_AERO_COMPOSITION":
                   raise SystemExit(f"{case['case_id']}: fault-bearing case cannot propose a positive disposition")
           print("AERO challenge seed schema and 24-case census passed; oracle review and execution remain NOT DONE.")
+          PY
+
+      - name: Validate AERO benchmark metric registry
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json").read_text())
+          registry = json.loads((root / "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("AERO benchmark metric schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(registry), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"AERO benchmark metric registry failed schema validation ({len(errors)} errors)")
+          metrics = registry["metrics"]
+          ids = [metric["metric_id"] for metric in metrics]
+          if len(metrics) != 17 or len(ids) != len(set(ids)):
+              raise SystemExit("AERO benchmark registry must contain exactly 17 unique metric IDs")
+          if registry["registry_status"] != "PROSPECTIVE_NOT_EXECUTED":
+              raise SystemExit("AERO metric registry must not be represented as executed")
+          by_id = {metric["metric_id"]: metric for metric in metrics}
+          if by_id["hard_gate_false_review_rate"]["target"]["value"] != 0:
+              raise SystemExit("hard-gate false-review target must remain zero observed")
+          if by_id["cost_per_independent_decision_ratio"]["target"]["value"] != 0.8:
+              raise SystemExit("matched-cost target must remain at most 0.80")
+          if by_id["unnecessary_requalification_rate"]["target"]["value"] != 0.05:
+              raise SystemExit("unnecessary requalification target must remain at most 5%")
+          for metric in metrics:
+              if metric["direction"] == "report_only" and metric["target"] is not None:
+                  raise SystemExit(f"{metric['metric_id']}: report-only metrics must not have optimization targets")
+          print("AERO benchmark metric registry schema, 17-entry census and prospective targets passed.")
           PY
 
       - name: Run evaluator tests
