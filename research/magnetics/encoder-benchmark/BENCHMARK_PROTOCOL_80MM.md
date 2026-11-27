@@ -250,6 +250,7 @@ The independent angular-reference budget must separately account for test-encode
 ### Sources to freeze with the preregistration
 
 - RLS AksIM-2 MBD01 Issue 15: https://www.rls.si/eng/fileuploader/download/download/?d=0&id=267&title=Data+sheet%3A+AksIM-2%E2%84%A2+off-axis+rotary+absolute+magnetic+encoder+%28MBD01%29
+- RLS AksIM-4 HDSL product listing / MCD06 reference: https://www.rls.si/eng/aksim-hdsl-rotary-absolute-magnetic-encoder?openConfigurator=true (indexed MCD06 listing; opened page body currently links legacy MCD05 documentation)
 - RLS current catalogue / MCD06 product family: https://www.rls.si/eng/products
 - TI TMAG5111 data sheet: https://www.ti.com/lit/ds/symlink/tmag5111.pdf
 - Renishaw RESOLUTE ETR data sheet: https://www.renishaw.com/resourcecentre/download/data-sheet-resolute-etr-extended-temperature-range-absolute-encoder--133590?userLanguage=en
