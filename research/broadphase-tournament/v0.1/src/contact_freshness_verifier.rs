@@ -390,6 +390,248 @@ fn audit_monotonic(
     Ok(())
 }
 
+
+/// Complete immutable transition input for one world step.
+///
+/// Pair relations are supplied as pre/post snapshots and must already have
+/// passed the broadphase's independent geometric oracle. This verifier audits
+/// lifecycle deltas and contact freshness; it does not independently derive
+/// geometric overlap from shapes or AABBs.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContactLifecycleReceipt {
+    pub previous_global: GlobalContactRevisions,
+    pub current_global: GlobalContactRevisions,
+    pub previous_pair_relation: Vec<ProxyPair>,
+    pub current_pair_relation: Vec<ProxyPair>,
+    pub previous_endpoints: BTreeMap<ProxyId, EndpointRevisions>,
+    pub current_endpoints: BTreeMap<ProxyId, EndpointRevisions>,
+    pub previous_contact_stamps: BTreeMap<ProxyPair, ContactFreshnessStamp>,
+    pub producer_plan: ContactLifecyclePlan,
+}
+
+/// Additional receipt-level failures, beyond plan/action mismatches.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContactLifecycleReceiptError {
+    WorldRevisionDidNotAdvance,
+    CollisionPolicyRevisionRegressed,
+    NonCanonicalPairRelation,
+    PairEndpointMissing(ProxyId),
+    EndpointMapKeyMismatch(ProxyId),
+    UnexpectedPriorContactStamp(ProxyPair),
+    PriorContactStampMismatch(ProxyPair),
+    PriorContactStampGlobalMismatch(ProxyPair),
+    EndpointRevisionRegressed {
+        proxy: ProxyId,
+        domain: RevisionDomain,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ContactLifecycleReceiptVerificationError {
+    Receipt(ContactLifecycleReceiptError),
+    Plan(ContactLifecycleVerificationError),
+}
+
+impl From<ContactLifecycleReceiptError> for ContactLifecycleReceiptVerificationError {
+    fn from(value: ContactLifecycleReceiptError) -> Self {
+        Self::Receipt(value)
+    }
+}
+
+impl From<ContactLifecycleVerificationError> for ContactLifecycleReceiptVerificationError {
+    fn from(value: ContactLifecycleVerificationError) -> Self {
+        Self::Plan(value)
+    }
+}
+
+/// Replay the pair/contact transition from immutable before/after snapshots.
+///
+/// The verifier derives additions/removals from pair-relation set differences
+/// and derives retained-pair revalidation from endpoint/global revision
+/// changes. A producer cannot omit a revalidation simply by omitting its event.
+/// The pre/post pair relations must have been independently checked against
+/// the geometric AABB/shape oracle before they are admitted to this receipt.
+pub fn verify_contact_lifecycle_receipt(
+    receipt: &ContactLifecycleReceipt,
+) -> Result<ContactLifecycleVerificationReport, ContactLifecycleReceiptVerificationError> {
+    if receipt.current_global.world <= receipt.previous_global.world {
+        return Err(ContactLifecycleReceiptError::WorldRevisionDidNotAdvance.into());
+    }
+    if receipt.current_global.collision_policy < receipt.previous_global.collision_policy {
+        return Err(ContactLifecycleReceiptError::CollisionPolicyRevisionRegressed.into());
+    }
+
+    validate_pair_relation(&receipt.previous_pair_relation)?;
+    validate_pair_relation(&receipt.current_pair_relation)?;
+    validate_endpoint_map(&receipt.previous_endpoints)?;
+    validate_endpoint_map(&receipt.current_endpoints)?;
+
+    let previous = receipt
+        .previous_pair_relation
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let current = receipt
+        .current_pair_relation
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+
+    for pair in &previous {
+        require_relation_endpoints(*pair, &receipt.previous_endpoints)?;
+    }
+    for pair in &current {
+        require_relation_endpoints(*pair, &receipt.current_endpoints)?;
+    }
+
+    for (key, stamp) in &receipt.previous_contact_stamps {
+        if !previous.contains(key) {
+            return Err(
+                ContactLifecycleReceiptError::UnexpectedPriorContactStamp(*key).into()
+            );
+        }
+        if stamp.pair != *key {
+            return Err(ContactLifecycleReceiptError::PriorContactStampMismatch(*key).into());
+        }
+        let left = receipt.previous_endpoints.get(&key.0).copied();
+        let right = receipt.previous_endpoints.get(&key.1).copied();
+        if left != Some(stamp.left) || right != Some(stamp.right) {
+            return Err(ContactLifecycleReceiptError::PriorContactStampMismatch(*key).into());
+        }
+        if stamp.global.collision_policy != receipt.previous_global.collision_policy
+            || stamp.global.narrowphase_config_sha256
+                != receipt.previous_global.narrowphase_config_sha256
+            || stamp.global.solver_config_sha256 != receipt.previous_global.solver_config_sha256
+            || stamp.global.world > receipt.previous_global.world
+        {
+            return Err(
+                ContactLifecycleReceiptError::PriorContactStampGlobalMismatch(*key).into()
+            );
+        }
+    }
+
+    let mut dirty_endpoints = BTreeSet::new();
+    for (id, previous_endpoint) in &receipt.previous_endpoints {
+        match receipt.current_endpoints.get(id) {
+            Some(current_endpoint) => {
+                audit_endpoint_revision_monotonicity(*previous_endpoint, *current_endpoint)?;
+                if previous_endpoint != current_endpoint {
+                    dirty_endpoints.insert(*id);
+                }
+            }
+            None => {
+                dirty_endpoints.insert(*id);
+            }
+        }
+    }
+    for id in receipt.current_endpoints.keys() {
+        if !receipt.previous_endpoints.contains_key(id) {
+            dirty_endpoints.insert(*id);
+        }
+    }
+
+    let global_contact_policy_changed = receipt.current_global.collision_policy
+        != receipt.previous_global.collision_policy
+        || receipt.current_global.narrowphase_config_sha256
+            != receipt.previous_global.narrowphase_config_sha256
+        || receipt.current_global.solver_config_sha256
+            != receipt.previous_global.solver_config_sha256;
+
+    let mut delta = PairDeltaFrame::default();
+    delta.added = current.difference(&previous).copied().collect();
+    delta.removed = previous.difference(&current).copied().collect();
+    delta.revalidated = current
+        .intersection(&previous)
+        .filter(|pair| {
+            global_contact_policy_changed
+                || dirty_endpoints.contains(&pair.0)
+                || dirty_endpoints.contains(&pair.1)
+                || !receipt.previous_contact_stamps.contains_key(pair)
+        })
+        .copied()
+        .collect();
+
+    let report = verify_contact_lifecycle_plan(
+        &delta,
+        &receipt.previous_contact_stamps,
+        receipt.current_global,
+        &receipt.current_endpoints,
+        &receipt.producer_plan,
+    )?;
+    Ok(report)
+}
+
+fn validate_pair_relation(
+    pairs: &[ProxyPair],
+) -> Result<(), ContactLifecycleReceiptVerificationError> {
+    let mut previous = None;
+    for pair in pairs {
+        if pair.0 >= pair.1 || previous.is_some_and(|last| last >= *pair) {
+            return Err(ContactLifecycleReceiptError::NonCanonicalPairRelation.into());
+        }
+        previous = Some(*pair);
+    }
+    Ok(())
+}
+
+fn validate_endpoint_map(
+    endpoints: &BTreeMap<ProxyId, EndpointRevisions>,
+) -> Result<(), ContactLifecycleReceiptVerificationError> {
+    for (id, endpoint) in endpoints {
+        if *id != endpoint.proxy {
+            return Err(ContactLifecycleReceiptError::EndpointMapKeyMismatch(*id).into());
+        }
+    }
+    Ok(())
+}
+
+fn require_relation_endpoints(
+    pair: ProxyPair,
+    endpoints: &BTreeMap<ProxyId, EndpointRevisions>,
+) -> Result<(), ContactLifecycleReceiptVerificationError> {
+    for id in [pair.0, pair.1] {
+        if !endpoints.contains_key(&id) {
+            return Err(ContactLifecycleReceiptError::PairEndpointMissing(id).into());
+        }
+    }
+    Ok(())
+}
+
+fn audit_endpoint_revision_monotonicity(
+    previous: EndpointRevisions,
+    current: EndpointRevisions,
+) -> Result<(), ContactLifecycleReceiptVerificationError> {
+    if previous.proxy != current.proxy {
+        return Err(ContactLifecycleReceiptError::EndpointMapKeyMismatch(current.proxy).into());
+    }
+    for (old, new, domain) in [
+        (previous.generation, current.generation, RevisionDomain::Generation),
+        (previous.transform, current.transform, RevisionDomain::Transform),
+        (previous.shape, current.shape, RevisionDomain::Shape),
+        (previous.eligibility, current.eligibility, RevisionDomain::Eligibility),
+        (previous.motion_class, current.motion_class, RevisionDomain::MotionClass),
+        (previous.material, current.material, RevisionDomain::Material),
+        (previous.wake_epoch, current.wake_epoch, RevisionDomain::WakeEpoch),
+    ] {
+        // Within a generation, all revision domains are monotonic. Once the
+        // generation changes, the old counter values are a different identity
+        // lifetime and are intentionally not compared.
+        if domain != RevisionDomain::Generation
+            && previous.generation != current.generation
+        {
+            continue;
+        }
+        if new < old {
+            return Err(ContactLifecycleReceiptError::EndpointRevisionRegressed {
+                proxy: current.proxy,
+                domain,
+            }
+            .into());
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -569,4 +811,160 @@ mod tests {
             ))
         );
     }
+
+    fn receipt_fixture(
+        wake_only: bool,
+    ) -> (ContactLifecycleReceipt, PairDeltaFrame, BTreeMap<ProxyPair, ContactFreshnessStamp>) {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let previous_global = global();
+        let mut current_global = global();
+        current_global.world += 1;
+        let previous_endpoints = BTreeMap::from([
+            (ProxyId(1), endpoint(1)),
+            (ProxyId(2), endpoint(2)),
+        ]);
+        let mut current_endpoints = previous_endpoints.clone();
+        if wake_only {
+            current_endpoints.get_mut(&ProxyId(1)).expect("left").wake_epoch += 1;
+        }
+        let stamps = BTreeMap::from([(pair, stamp())]);
+        let mut delta = PairDeltaFrame::default();
+        if wake_only {
+            delta.revalidated.push(pair);
+        }
+        let plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &stamps,
+            current_global,
+            &current_endpoints,
+        )
+        .expect("producer plan");
+        (
+            ContactLifecycleReceipt {
+                previous_global,
+                current_global,
+                previous_pair_relation: vec![pair],
+                current_pair_relation: vec![pair],
+                previous_endpoints,
+                current_endpoints,
+                previous_contact_stamps: stamps.clone(),
+                producer_plan: plan,
+            },
+            delta,
+            stamps,
+        )
+    }
+
+    #[test]
+    fn receipt_replay_derives_wake_only_revalidation() {
+        let (receipt, _, _) = receipt_fixture(true);
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("replay verifies wake-only pair");
+        assert_eq!(report.revalidated_pairs, 1);
+        assert_eq!(report.geometry_reuses, 1);
+        assert_eq!(report.warm_start_reuses, 1);
+        assert_eq!(report.solver_activations, 1);
+    }
+
+    #[test]
+    fn receipt_replay_rejects_omitted_wake_revalidation() {
+        let (mut receipt, _, _) = receipt_fixture(true);
+        receipt.producer_plan.actions.clear();
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Plan(
+                ContactLifecycleVerificationError::ActionCountMismatch {
+                    expected: 1,
+                    actual: 0,
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_nonadvancing_world_revision() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        receipt.current_global.world = receipt.previous_global.world;
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::WorldRevisionDidNotAdvance
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_prior_stamp_that_does_not_match_snapshot() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        receipt.previous_endpoints.get_mut(&ProxyId(1)).expect("left").transform += 1;
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::PriorContactStampMismatch(
+                    ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair")
+                )
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_pair_relation_without_endpoint() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        receipt.current_endpoints.remove(&ProxyId(2));
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::PairEndpointMissing(ProxyId(2))
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_derives_new_and_removed_pair_events() {
+        let old_pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("old pair");
+        let new_pair = ProxyPair::new(ProxyId(2), ProxyId(3)).expect("new pair");
+        let previous_global = global();
+        let mut current_global = global();
+        current_global.world += 1;
+        let previous_endpoints = BTreeMap::from([
+            (ProxyId(1), endpoint(1)),
+            (ProxyId(2), endpoint(2)),
+        ]);
+        let current_endpoints = BTreeMap::from([
+            (ProxyId(2), endpoint(2)),
+            (ProxyId(3), endpoint(3)),
+        ]);
+        let stamps = BTreeMap::from([(old_pair, ContactFreshnessStamp::new(
+            old_pair,
+            previous_global,
+            endpoint(1),
+            endpoint(2),
+        ).expect("old stamp"))]);
+        let mut delta = PairDeltaFrame::default();
+        delta.added.push(new_pair);
+        delta.removed.push(old_pair);
+        let plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &stamps,
+            current_global,
+            &current_endpoints,
+        )
+        .expect("producer plan");
+        let receipt = ContactLifecycleReceipt {
+            previous_global,
+            current_global,
+            previous_pair_relation: vec![old_pair],
+            current_pair_relation: vec![new_pair],
+            previous_endpoints,
+            current_endpoints,
+            previous_contact_stamps: stamps,
+            producer_plan: plan,
+        };
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("replay exact set differences");
+        assert_eq!(report.added_pairs, 1);
+        assert_eq!(report.removed_pairs, 1);
+        assert_eq!(report.full_contact_builds, 1);
+    }
+
 }
