@@ -1,0 +1,61 @@
+schema_version = "claim-closure-benchmark-plan-v0.1"
+status = "PROPOSED_EXECUTABLE_BENCHMARK"
+
+[scope]
+claim = "Structural closure of a declared engineering evidence dependency graph for independent review"
+not_claimed = [
+  "cryptographic signature verification",
+  "producer identity authentication",
+  "truth of physical observations",
+  "model calibration or physical validation",
+  "completeness of a domain-specific evidence requirement set",
+  "engineering release or operational authorization"
+]
+
+[limits]
+max_evidence_records = 20000
+max_dependency_edges = 100000
+max_graph_depth = 256
+
+[functional_targets]
+false_closure_on_adversarial_mutations = 0
+false_block_on_valid_positive_controls = 0
+permutation_invariance = 1.0
+independent_report_tamper_detection = 1.0
+deterministic_replay = 1.0
+
+[scale_cases]
+nodes = [100, 1000, 10000]
+fanout = [1, 3, 8]
+max_depth = [8, 64, 256]
+
+[reported_metrics]
+required = [
+  "precision_closed_claims",
+  "recall_closed_claims",
+  "false_closure_rate",
+  "false_block_rate",
+  "mutation_kill_rate",
+  "permutation_invariance_rate",
+  "report_tamper_detection_rate",
+  "p50_latency_ms",
+  "p95_latency_ms",
+  "p99_latency_ms",
+  "peak_memory_bytes",
+  "records_per_second",
+  "dependency_edges_per_second"
+]
+
+[comparators]
+standards_and_systems = [
+  "NASA-STD-7009B: model-and-simulation credibility process",
+  "ASME VVUQ 20.1-2024: multivariate experimental/simulation validation metric",
+  "IETF RFC 9943 SCITT: signed-statement transparency and receipts",
+  "SLSA/in-toto: software provenance and attestations"
+]
+comparison_rule = "Compare only matched input graphs and identical mutation suites; do not equate structural closure with physical validation or cryptographic authenticity."
+
+[qualification]
+unit_tests_executed = false
+exact_head_ci_pass = false
+independent_oracle_reviewed = false
