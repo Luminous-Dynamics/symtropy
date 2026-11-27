@@ -211,18 +211,34 @@ pub enum CheckpointError {
 impl std::fmt::Display for CheckpointError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidIdentity(field) => write!(formatter, "invalid checkpoint identity: {field}"),
+            Self::InvalidIdentity(field) => {
+                write!(formatter, "invalid checkpoint identity: {field}")
+            }
             Self::UnsupportedSchema => formatter.write_str("unsupported checkpoint schema"),
             Self::InvalidDigest(field) => write!(formatter, "invalid digest: {field}"),
             Self::InvalidScope(field) => write!(formatter, "invalid evidence scope: {field}"),
-            Self::InvalidSupport(field) => write!(formatter, "invalid possible-world support: {field}"),
-            Self::InvalidSupportTransition(field) => write!(formatter, "invalid support transition: {field}"),
-            Self::InvalidSupportReceipt(field) => write!(formatter, "invalid support receipt: {field}"),
-            Self::InvalidDecisionReceipt(field) => write!(formatter, "invalid decision receipt: {field}"),
-            Self::InvalidPathReceipt(field) => write!(formatter, "invalid physical-path receipt: {field}"),
+            Self::InvalidSupport(field) => {
+                write!(formatter, "invalid possible-world support: {field}")
+            }
+            Self::InvalidSupportTransition(field) => {
+                write!(formatter, "invalid support transition: {field}")
+            }
+            Self::InvalidSupportReceipt(field) => {
+                write!(formatter, "invalid support receipt: {field}")
+            }
+            Self::InvalidDecisionReceipt(field) => {
+                write!(formatter, "invalid decision receipt: {field}")
+            }
+            Self::InvalidPathReceipt(field) => {
+                write!(formatter, "invalid physical-path receipt: {field}")
+            }
             Self::SequenceOverflow => formatter.write_str("checkpoint sequence overflow"),
-            Self::SequenceMismatch => formatter.write_str("checkpoint sequence is not the next sequence"),
-            Self::PreviousCheckpointMismatch => formatter.write_str("previous checkpoint digest mismatch"),
+            Self::SequenceMismatch => {
+                formatter.write_str("checkpoint sequence is not the next sequence")
+            }
+            Self::PreviousCheckpointMismatch => {
+                formatter.write_str("previous checkpoint digest mismatch")
+            }
             Self::SerializationFailed => formatter.write_str("checkpoint serialization failed"),
         }
     }
@@ -236,7 +252,8 @@ pub fn possible_world_support_sha256(ids: &[String]) -> Result<String, Checkpoin
     let canonical = canonical_support(ids)?;
     let mut bytes = b"AERB-POSSIBLE-WORLD-SUPPORT-V0.1\0".to_vec();
     for id in canonical {
-        let length = u64::try_from(id.len()).map_err(|_| CheckpointError::InvalidSupport("ID length"))?;
+        let length =
+            u64::try_from(id.len()).map_err(|_| CheckpointError::InvalidSupport("ID length"))?;
         bytes.extend_from_slice(&length.to_be_bytes());
         bytes.extend_from_slice(id.as_bytes());
     }
@@ -271,7 +288,9 @@ fn support_update_commitment(receipt: &SupportUpdateReceipt) -> Result<String, C
     serialized_digest(&payload, b"AERB-SUPPORT-UPDATE-RECEIPT-V0.1\0")
 }
 
-fn decision_sufficiency_commitment(receipt: &DecisionSufficiencyReceipt) -> Result<String, CheckpointError> {
+fn decision_sufficiency_commitment(
+    receipt: &DecisionSufficiencyReceipt,
+) -> Result<String, CheckpointError> {
     let mut payload = receipt.clone();
     payload.receipt_sha256.clear();
     serialized_digest(&payload, b"AERB-DECISION-SUFFICIENCY-RECEIPT-V0.1\0")
@@ -326,20 +345,30 @@ fn classify_partial_evidence(
     }
     validate_digest(&prefix.artifact_sha256, "evidence_artifact")?;
     validate_digest(&prefix.source_profile_sha256, "evidence_source_profile")?;
-    validate_digest(&prefix.calibration_profile_sha256, "evidence_calibration_profile")?;
-    validate_digest(&prefix.clock_mapping_profile_sha256, "evidence_clock_profile")?;
+    validate_digest(
+        &prefix.calibration_profile_sha256,
+        "evidence_calibration_profile",
+    )?;
+    validate_digest(
+        &prefix.clock_mapping_profile_sha256,
+        "evidence_clock_profile",
+    )?;
 
     if prefix.proposition_id != requested.proposition_id
         || prefix.clock_domain_id != requested.clock_domain_id
         || prefix.clock_mapping_profile_sha256 != requested.clock_mapping_profile_sha256
     {
-        return Err(CheckpointError::InvalidScope("evidence identity or clock profile mismatch"));
+        return Err(CheckpointError::InvalidScope(
+            "evidence identity or clock profile mismatch",
+        ));
     }
     if prefix.coverage_start_ns != requested.start_ns
         || prefix.coverage_end_ns <= prefix.coverage_start_ns
         || prefix.coverage_end_ns > requested.end_ns
     {
-        return Err(CheckpointError::InvalidScope("observed range is not a prefix of requested scope"));
+        return Err(CheckpointError::InvalidScope(
+            "observed range is not a prefix of requested scope",
+        ));
     }
 
     if prefix.quality != EvidenceQuality::Admitted {
@@ -374,25 +403,40 @@ fn validate_support_update(
 
     if before == after {
         if receipt.is_some() {
-            return Err(CheckpointError::InvalidSupportReceipt("receipt supplied without a support change"));
+            return Err(CheckpointError::InvalidSupportReceipt(
+                "receipt supplied without a support change",
+            ));
         }
         return Ok(before);
     }
 
-    if !after.iter().all(|world| before.binary_search(world).is_ok()) {
-        return Err(CheckpointError::InvalidSupportTransition("this reducer does not widen support; use the upstream invalidation owner"));
+    if !after
+        .iter()
+        .all(|world| before.binary_search(world).is_ok())
+    {
+        return Err(CheckpointError::InvalidSupportTransition(
+            "this reducer does not widen support; use the upstream invalidation owner",
+        ));
     }
     if !matches!(
         evidence_disposition,
         PartialEvidenceDisposition::AdmittedForDeclaredScope
             | PartialEvidenceDisposition::AdmittedForSubscope
     ) {
-        return Err(CheckpointError::InvalidSupportTransition("unqualified or insufficient evidence cannot narrow support"));
+        return Err(CheckpointError::InvalidSupportTransition(
+            "unqualified or insufficient evidence cannot narrow support",
+        ));
     }
-    let evidence = evidence.ok_or(CheckpointError::InvalidSupportTransition("support narrowed without evidence"))?;
-    let receipt = receipt.ok_or(CheckpointError::InvalidSupportReceipt("support narrowing requires an upstream derivation receipt"))?;
+    let evidence = evidence.ok_or(CheckpointError::InvalidSupportTransition(
+        "support narrowed without evidence",
+    ))?;
+    let receipt = receipt.ok_or(CheckpointError::InvalidSupportReceipt(
+        "support narrowing requires an upstream derivation receipt",
+    ))?;
     if receipt.checkpoint_sequence != checkpoint_sequence {
-        return Err(CheckpointError::InvalidSupportReceipt("checkpoint sequence"));
+        return Err(CheckpointError::InvalidSupportReceipt(
+            "checkpoint sequence",
+        ));
     }
     validate_digest(&receipt.base_support_sha256, "base_support")?;
     validate_digest(&receipt.resulting_support_sha256, "resulting_support")?;
@@ -402,16 +446,28 @@ fn validate_support_update(
     validate_digest(&receipt.derivation_receipt_sha256, "support_derivation")?;
 
     if !receipt.derivation_complete {
-        return Err(CheckpointError::InvalidSupportReceipt("derivation coverage incomplete"));
+        return Err(CheckpointError::InvalidSupportReceipt(
+            "derivation coverage incomplete",
+        ));
     }
-    if before.iter().any(|world| world == super::OPEN_WORLD_RESIDUAL)
-        && !after.iter().any(|world| world == super::OPEN_WORLD_RESIDUAL)
+    if before
+        .iter()
+        .any(|world| world == super::OPEN_WORLD_RESIDUAL)
+        && !after
+            .iter()
+            .any(|world| world == super::OPEN_WORLD_RESIDUAL)
     {
-        let closure = receipt.open_world_scope_closure_receipt_sha256.as_deref()
-            .ok_or(CheckpointError::InvalidSupportReceipt("open-world residual removal requires scope-closure receipt"))?;
+        let closure = receipt
+            .open_world_scope_closure_receipt_sha256
+            .as_deref()
+            .ok_or(CheckpointError::InvalidSupportReceipt(
+                "open-world residual removal requires scope-closure receipt",
+            ))?;
         validate_digest(closure, "open_world_scope_closure")?;
         if evidence_disposition != PartialEvidenceDisposition::AdmittedForDeclaredScope {
-            return Err(CheckpointError::InvalidSupportReceipt("open-world residual cannot be removed by partial scope"));
+            return Err(CheckpointError::InvalidSupportReceipt(
+                "open-world residual cannot be removed by partial scope",
+            ));
         }
     }
     if receipt.base_support_sha256 != possible_world_support_sha256(&before)?
@@ -420,7 +476,9 @@ fn validate_support_update(
         || receipt.evidence_prefix_sha256 != evidence_prefix_commitment(evidence)?
         || receipt.derivation_receipt_sha256 != support_update_commitment(receipt)?
     {
-        return Err(CheckpointError::InvalidSupportReceipt("receipt does not bind exact support and evidence"));
+        return Err(CheckpointError::InvalidSupportReceipt(
+            "receipt does not bind exact support and evidence",
+        ));
     }
     Ok(after)
 }
@@ -434,7 +492,9 @@ fn validate_decision_sufficiency(
         return Ok(false);
     };
     if receipt.checkpoint_sequence != checkpoint_sequence {
-        return Err(CheckpointError::InvalidDecisionReceipt("checkpoint sequence"));
+        return Err(CheckpointError::InvalidDecisionReceipt(
+            "checkpoint sequence",
+        ));
     }
     validate_digest(&receipt.support_sha256, "decision_support")?;
     validate_digest(&receipt.oracle_profile_sha256, "decision_oracle_profile")?;
@@ -442,13 +502,13 @@ fn validate_decision_sufficiency(
     if receipt.support_sha256 != possible_world_support_sha256(support)?
         || receipt.receipt_sha256 != decision_sufficiency_commitment(receipt)?
     {
-        return Err(CheckpointError::InvalidDecisionReceipt("support digest mismatch"));
+        return Err(CheckpointError::InvalidDecisionReceipt(
+            "support digest mismatch",
+        ));
     }
-    Ok(
-        receipt.oracle_complete
-            && receipt.all_supported_worlds_share_terminal_recommendation
-            && receipt.no_remaining_probe_strictly_reduces_worst_case_loss,
-    )
+    Ok(receipt.oracle_complete
+        && receipt.all_supported_worlds_share_terminal_recommendation
+        && receipt.no_remaining_probe_strictly_reduces_worst_case_loss)
 }
 
 fn path_is_qualified(
@@ -467,7 +527,9 @@ fn path_is_qualified(
             && receipt.physical_plan_sha256 == expected_physical_plan_sha256
             && receipt.qualification == SafetyQualification::Qualified
             && receipt.full_trajectory_covered
-            && receipt.safe_horizon_ns.is_some_and(|horizon| horizon >= receipt.required_duration_ns)
+            && receipt
+                .safe_horizon_ns
+                .is_some_and(|horizon| horizon >= receipt.required_duration_ns)
             && receipt.required_duration_ns > 0
             && valid_sha256(&receipt.path_profile_sha256)
             && valid_sha256(&receipt.receipt_sha256)
@@ -477,7 +539,9 @@ fn path_is_qualified(
 fn checkpoint_fingerprint(checkpoint: &ProbeCheckpoint) -> Result<String, CheckpointError> {
     let mut canonical = checkpoint.clone();
     canonical.proposed_possible_world_support_ids.sort();
-    canonical.physical_path_receipts.sort_by_key(|receipt| receipt.path_kind);
+    canonical
+        .physical_path_receipts
+        .sort_by_key(|receipt| receipt.path_kind);
     let bytes = serde_json::to_vec(&canonical).map_err(|_| CheckpointError::SerializationFailed)?;
     Ok(super::sha256_hex(&bytes))
 }
@@ -499,8 +563,14 @@ pub fn evaluate_checkpoint(
         (checkpoint.attempt_id.as_str(), "attempt_id"),
         (checkpoint.probe_id.as_str(), "probe_id"),
         (checkpoint.checkpoint_id.as_str(), "checkpoint_id"),
-        (checkpoint.requested_scope.proposition_id.as_str(), "scope.proposition_id"),
-        (checkpoint.requested_scope.clock_domain_id.as_str(), "scope.clock_domain_id"),
+        (
+            checkpoint.requested_scope.proposition_id.as_str(),
+            "scope.proposition_id",
+        ),
+        (
+            checkpoint.requested_scope.clock_domain_id.as_str(),
+            "scope.clock_domain_id",
+        ),
     ] {
         if !nonempty(value) {
             return Err(CheckpointError::InvalidIdentity(field));
@@ -515,13 +585,19 @@ pub fn evaluate_checkpoint(
         "requested_clock_profile",
     )?;
     if checkpoint.requested_scope.end_ns <= checkpoint.requested_scope.start_ns {
-        return Err(CheckpointError::InvalidScope("requested interval is empty or reversed"));
+        return Err(CheckpointError::InvalidScope(
+            "requested interval is empty or reversed",
+        ));
     }
     if cursor.last_sequence == 0 {
         if cursor.last_checkpoint_sha256.is_some() {
             return Err(CheckpointError::PreviousCheckpointMismatch);
         }
-    } else if !cursor.last_checkpoint_sha256.as_deref().is_some_and(valid_sha256) {
+    } else if !cursor
+        .last_checkpoint_sha256
+        .as_deref()
+        .is_some_and(valid_sha256)
+    {
         return Err(CheckpointError::PreviousCheckpointMismatch);
     }
     let expected_sequence = cursor
@@ -567,7 +643,9 @@ pub fn evaluate_checkpoint(
         if receipt.physical_plan_sha256 != checkpoint.physical_plan_sha256
             || receipt.receipt_sha256 != physical_path_commitment(receipt)?
         {
-            return Err(CheckpointError::InvalidPathReceipt("plan binding or receipt commitment mismatch"));
+            return Err(CheckpointError::InvalidPathReceipt(
+                "plan binding or receipt commitment mismatch",
+            ));
         }
     }
 
@@ -747,23 +825,30 @@ mod tests {
             all_supported_worlds_share_terminal_recommendation: true,
             no_remaining_probe_strictly_reduces_worst_case_loss: true,
         };
-        receipt.receipt_sha256 = decision_sufficiency_commitment(&receipt).expect("decision receipt commitment");
+        receipt.receipt_sha256 =
+            decision_sufficiency_commitment(&receipt).expect("decision receipt commitment");
         receipt
     }
 
-    fn support_receipt(before: &[String], after: &[String], evidence: &EvidencePrefix) -> SupportUpdateReceipt {
+    fn support_receipt(
+        before: &[String],
+        after: &[String],
+        evidence: &EvidencePrefix,
+    ) -> SupportUpdateReceipt {
         let mut receipt = SupportUpdateReceipt {
             checkpoint_sequence: 1,
             base_support_sha256: possible_world_support_sha256(before).expect("before digest"),
             resulting_support_sha256: possible_world_support_sha256(after).expect("after digest"),
             evidence_artifact_sha256: evidence.artifact_sha256.clone(),
-            evidence_prefix_sha256: evidence_prefix_commitment(evidence).expect("evidence prefix commitment"),
+            evidence_prefix_sha256: evidence_prefix_commitment(evidence)
+                .expect("evidence prefix commitment"),
             oracle_profile_sha256: digest('3'),
             derivation_receipt_sha256: String::new(),
             derivation_complete: true,
             open_world_scope_closure_receipt_sha256: None,
         };
-        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("support receipt commitment");
+        receipt.derivation_receipt_sha256 =
+            support_update_commitment(&receipt).expect("support receipt commitment");
         receipt
     }
 
@@ -780,7 +865,9 @@ mod tests {
         let mut input = checkpoint();
         input.physical_path_receipts[0].safe_horizon_ns = None;
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::NoSafeContinuation
         );
     }
@@ -803,7 +890,9 @@ mod tests {
             ),
         ];
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::AbortProbe
         );
     }
@@ -836,7 +925,9 @@ mod tests {
             Some(30),
         ));
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::AbortProbe
         );
     }
@@ -895,11 +986,7 @@ mod tests {
     fn stale_or_disputed_prefix_cannot_narrow_possible_world_support() {
         let cursor = initial_cursor();
         let mut input = checkpoint();
-        let evidence = prefix(
-            ClaimSemantics::PositiveEvent,
-            EvidenceQuality::Disputed,
-            15,
-        );
+        let evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Disputed, 15);
         input.evidence_prefix = Some(evidence);
         input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
         input.support_update_receipt = Some(support_receipt(
@@ -917,11 +1004,7 @@ mod tests {
     fn admitted_prefix_can_narrow_support_only_with_exact_derivation_receipt() {
         let cursor = initial_cursor();
         let mut input = checkpoint();
-        let evidence = prefix(
-            ClaimSemantics::PositiveEvent,
-            EvidenceQuality::Admitted,
-            15,
-        );
+        let evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Admitted, 15);
         input.evidence_prefix = Some(evidence);
         input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
         input.support_update_receipt = Some(support_receipt(
@@ -930,7 +1013,10 @@ mod tests {
             input.evidence_prefix.as_ref().expect("prefix"),
         ));
         let result = evaluate_checkpoint(&cursor, &input).expect("qualified support update");
-        assert_eq!(result.possible_world_support_ids, vec!["world-a".to_owned()]);
+        assert_eq!(
+            result.possible_world_support_ids,
+            vec!["world-a".to_owned()]
+        );
     }
 
     #[test]
@@ -960,7 +1046,11 @@ mod tests {
     #[test]
     fn incomplete_prefix_with_wrong_clock_profile_is_rejected() {
         let mut input = checkpoint();
-        input.evidence_prefix.as_mut().expect("prefix").clock_mapping_profile_sha256 = digest('9');
+        input
+            .evidence_prefix
+            .as_mut()
+            .expect("prefix")
+            .clock_mapping_profile_sha256 = digest('9');
         assert!(matches!(
             evaluate_checkpoint(&initial_cursor(), &input),
             Err(CheckpointError::InvalidScope(_))
@@ -996,7 +1086,9 @@ mod tests {
         let mut input = checkpoint();
         input.physical_path_receipts[0].checkpoint_sequence = 2;
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::NoSafeContinuation
         );
     }
@@ -1038,7 +1130,9 @@ mod tests {
     #[test]
     fn duplicate_path_kinds_are_rejected_not_resolved_by_input_order() {
         let mut input = checkpoint();
-        input.physical_path_receipts.push(input.physical_path_receipts[0].clone());
+        input
+            .physical_path_receipts
+            .push(input.physical_path_receipts[0].clone());
         assert_eq!(
             evaluate_checkpoint(&initial_cursor(), &input),
             Err(CheckpointError::InvalidPathReceipt("duplicate path kind"))
@@ -1048,13 +1142,13 @@ mod tests {
     #[test]
     fn decision_receipt_for_another_support_set_is_rejected() {
         let mut input = checkpoint();
-        input.decision_sufficiency_receipt = Some(decision_receipt(
-            &["different-world".to_owned()],
-            1,
-        ));
+        input.decision_sufficiency_receipt =
+            Some(decision_receipt(&["different-world".to_owned()], 1));
         assert_eq!(
             evaluate_checkpoint(&initial_cursor(), &input),
-            Err(CheckpointError::InvalidDecisionReceipt("support digest mismatch"))
+            Err(CheckpointError::InvalidDecisionReceipt(
+                "support digest mismatch"
+            ))
         );
     }
 
@@ -1070,7 +1164,9 @@ mod tests {
         let support = initial_cursor().possible_world_support_ids;
         input.decision_sufficiency_receipt = Some(decision_receipt(&support, 1));
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::NoSafeContinuation
         );
     }
@@ -1097,7 +1193,8 @@ mod tests {
         let mut receipt = decision_receipt(&support, 1);
         receipt.oracle_complete = false;
         receipt.receipt_sha256.clear();
-        receipt.receipt_sha256 = decision_sufficiency_commitment(&receipt).expect("resealed receipt");
+        receipt.receipt_sha256 =
+            decision_sufficiency_commitment(&receipt).expect("resealed receipt");
         input.decision_sufficiency_receipt = Some(receipt);
         let result = evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint");
         assert!(!result.decision_sufficient);
@@ -1113,7 +1210,9 @@ mod tests {
         receipt.receipt_sha256 = physical_path_commitment(&receipt).expect("resealed path");
         input.physical_path_receipts[0] = receipt;
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::NoSafeContinuation
         );
     }
@@ -1124,7 +1223,9 @@ mod tests {
         input.physical_path_receipts[0].safe_horizon_ns = Some(1_000_000);
         assert_eq!(
             evaluate_checkpoint(&initial_cursor(), &input),
-            Err(CheckpointError::InvalidPathReceipt("plan binding or receipt commitment mismatch"))
+            Err(CheckpointError::InvalidPathReceipt(
+                "plan binding or receipt commitment mismatch"
+            ))
         );
     }
 
@@ -1146,11 +1247,14 @@ mod tests {
         );
         receipt.open_world_scope_closure_receipt_sha256 = Some(digest('5'));
         receipt.derivation_receipt_sha256.clear();
-        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("resealed receipt");
+        receipt.derivation_receipt_sha256 =
+            support_update_commitment(&receipt).expect("resealed receipt");
         input.support_update_receipt = Some(receipt);
         assert_eq!(
             evaluate_checkpoint(&cursor, &input),
-            Err(CheckpointError::InvalidSupportReceipt("open-world residual cannot be removed by partial scope"))
+            Err(CheckpointError::InvalidSupportReceipt(
+                "open-world residual cannot be removed by partial scope"
+            ))
         );
     }
 
@@ -1163,7 +1267,11 @@ mod tests {
         ];
         let mut input = checkpoint();
         input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
-        let evidence = prefix(ClaimSemantics::GeneralMeasurement, EvidenceQuality::Admitted, 20);
+        let evidence = prefix(
+            ClaimSemantics::GeneralMeasurement,
+            EvidenceQuality::Admitted,
+            20,
+        );
         input.evidence_prefix = Some(evidence.clone());
         let mut receipt = support_receipt(
             &cursor.possible_world_support_ids,
@@ -1173,15 +1281,21 @@ mod tests {
         input.support_update_receipt = Some(receipt.clone());
         assert_eq!(
             evaluate_checkpoint(&cursor, &input),
-            Err(CheckpointError::InvalidSupportReceipt("open-world residual removal requires scope-closure receipt"))
+            Err(CheckpointError::InvalidSupportReceipt(
+                "open-world residual removal requires scope-closure receipt"
+            ))
         );
 
         receipt.open_world_scope_closure_receipt_sha256 = Some(digest('5'));
         receipt.derivation_receipt_sha256.clear();
-        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("resealed receipt");
+        receipt.derivation_receipt_sha256 =
+            support_update_commitment(&receipt).expect("resealed receipt");
         input.support_update_receipt = Some(receipt);
         let result = evaluate_checkpoint(&cursor, &input).expect("qualified full-scope closure");
-        assert_eq!(result.possible_world_support_ids, vec!["world-a".to_owned()]);
+        assert_eq!(
+            result.possible_world_support_ids,
+            vec!["world-a".to_owned()]
+        );
     }
 
     #[test]
@@ -1198,24 +1312,22 @@ mod tests {
         );
         receipt.derivation_complete = false;
         receipt.derivation_receipt_sha256.clear();
-        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("resealed receipt");
+        receipt.derivation_receipt_sha256 =
+            support_update_commitment(&receipt).expect("resealed receipt");
         input.support_update_receipt = Some(receipt);
         assert_eq!(
             evaluate_checkpoint(&cursor, &input),
-            Err(CheckpointError::InvalidSupportReceipt("derivation coverage incomplete"))
+            Err(CheckpointError::InvalidSupportReceipt(
+                "derivation coverage incomplete"
+            ))
         );
     }
-
 
     #[test]
     fn incomplete_coverage_cannot_narrow_possible_world_support() {
         let cursor = initial_cursor();
         let mut input = checkpoint();
-        let mut evidence = prefix(
-            ClaimSemantics::PositiveEvent,
-            EvidenceQuality::Admitted,
-            15,
-        );
+        let mut evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Admitted, 15);
         evidence.coverage_complete = false;
         input.evidence_prefix = Some(evidence.clone());
         input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
@@ -1235,11 +1347,7 @@ mod tests {
     fn evidence_prefix_metadata_is_bound_into_support_update_receipt() {
         let cursor = initial_cursor();
         let mut input = checkpoint();
-        let evidence = prefix(
-            ClaimSemantics::PositiveEvent,
-            EvidenceQuality::Admitted,
-            15,
-        );
+        let evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Admitted, 15);
         input.evidence_prefix = Some(evidence.clone());
         input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
         input.support_update_receipt = Some(support_receipt(
@@ -1247,7 +1355,11 @@ mod tests {
             &input.proposed_possible_world_support_ids,
             &evidence,
         ));
-        input.evidence_prefix.as_mut().expect("prefix").coverage_end_ns = 14;
+        input
+            .evidence_prefix
+            .as_mut()
+            .expect("prefix")
+            .coverage_end_ns = 14;
         assert_eq!(
             evaluate_checkpoint(&cursor, &input),
             Err(CheckpointError::InvalidSupportReceipt(
@@ -1283,11 +1395,12 @@ mod tests {
             ),
         ];
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::StopSensingHold
         );
     }
-
 
     #[test]
     fn finite_lifecycle_oracle_matches_all_48_path_and_decision_combinations() {
@@ -1318,8 +1431,7 @@ mod tests {
                     }
                     if decision_sufficient {
                         let support = initial_cursor().possible_world_support_ids;
-                        input.decision_sufficiency_receipt =
-                            Some(decision_receipt(&support, 1));
+                        input.decision_sufficiency_receipt = Some(decision_receipt(&support, 1));
                     }
 
                     let can_continue = mask & 0b001 != 0;
@@ -1376,11 +1488,8 @@ mod tests {
             ] {
                 for coverage_complete in [false, true] {
                     for full_scope in [false, true] {
-                        let mut evidence = prefix(
-                            semantics,
-                            quality,
-                            if full_scope { 20 } else { 15 },
-                        );
+                        let mut evidence =
+                            prefix(semantics, quality, if full_scope { 20 } else { 15 });
                         evidence.coverage_complete = coverage_complete;
                         let expected = if quality != EvidenceQuality::Admitted {
                             PartialEvidenceDisposition::Unqualified
@@ -1394,8 +1503,11 @@ mod tests {
                             PartialEvidenceDisposition::AdmittedForSubscope
                         };
                         assert_eq!(
-                            classify_partial_evidence(&checkpoint().requested_scope, Some(&evidence))
-                                .expect("finite evidence oracle"),
+                            classify_partial_evidence(
+                                &checkpoint().requested_scope,
+                                Some(&evidence)
+                            )
+                            .expect("finite evidence oracle"),
                             expected,
                             "semantics={semantics:?}, quality={quality:?}, complete={coverage_complete}, full={full_scope}"
                         );
@@ -1407,17 +1519,10 @@ mod tests {
 
     #[test]
     fn support_receipt_rejects_source_and_calibration_metadata_changes() {
-        for mutate in [
-            0_u8,
-            1_u8,
-        ] {
+        for mutate in [0_u8, 1_u8] {
             let cursor = initial_cursor();
             let mut input = checkpoint();
-            let evidence = prefix(
-                ClaimSemantics::PositiveEvent,
-                EvidenceQuality::Admitted,
-                15,
-            );
+            let evidence = prefix(ClaimSemantics::PositiveEvent, EvidenceQuality::Admitted, 15);
             input.evidence_prefix = Some(evidence.clone());
             input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
             input.support_update_receipt = Some(support_receipt(
@@ -1439,5 +1544,4 @@ mod tests {
             );
         }
     }
-
 }
