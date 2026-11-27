@@ -653,24 +653,44 @@ mod tests {
 
     #[test]
     fn preflights_node_arc_and_memory_budgets_before_allocating() {
-        let mut limits = ImportLimits::default();
-        limits.max_nodes = 2;
-        let nodes = parse_dimacs_mcf(b"p min 3 0\n", limits).unwrap_err();
+        let nodes = parse_dimacs_mcf(
+            b"p min 3 0\n",
+            ImportLimits {
+                max_nodes: 2,
+                ..ImportLimits::default()
+            },
+        )
+        .unwrap_err();
         assert!(nodes.message.contains("exceeds configured limit"));
 
-        let mut limits = ImportLimits::default();
-        limits.max_arcs = 1;
-        let arcs = parse_dimacs_mcf(b"p min 2 2\n", limits).unwrap_err();
+        let arcs = parse_dimacs_mcf(
+            b"p min 2 2\n",
+            ImportLimits {
+                max_arcs: 1,
+                ..ImportLimits::default()
+            },
+        )
+        .unwrap_err();
         assert!(arcs.message.contains("exceeds configured limit"));
 
-        let mut limits = ImportLimits::default();
-        limits.max_working_bytes = 1;
-        let memory = parse_dimacs_mcf(b"p min 2 1\n", limits).unwrap_err();
+        let memory = parse_dimacs_mcf(
+            b"p min 2 1\n",
+            ImportLimits {
+                max_working_bytes: 1,
+                ..ImportLimits::default()
+            },
+        )
+        .unwrap_err();
         assert!(memory.message.contains("exceeds configured budget"));
 
-        let mut limits = ImportLimits::default();
-        limits.max_input_bytes = 4;
-        let bytes = parse_dimacs_mcf(b"p min 2 0\n", limits).unwrap_err();
+        let bytes = parse_dimacs_mcf(
+            b"p min 2 0\n",
+            ImportLimits {
+                max_input_bytes: 4,
+                ..ImportLimits::default()
+            },
+        )
+        .unwrap_err();
         assert!(bytes.message.contains("input byte length"));
     }
 
