@@ -19,16 +19,30 @@ pub enum CallbackEventKind {
     Work,
 }
 
+/// Canonical subject for one callback event.
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub enum CallbackEventSubject {
+    /// Collision, trauma and contact dissipation are bound to a contact pair.
+    Pair {
+        pair: ProxyPair,
+        generations: [u64; 2],
+        manifold_revision: u64,
+    },
+    /// Mechanical work is attributed to one body/actuator rather than a pair.
+    Body {
+        proxy: ProxyId,
+        generation: u64,
+        actuator_revision: u64,
+    },
+}
+
 /// Stable identity for one event emitted during one world step.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct CallbackEventId {
     pub world_revision: u64,
-    pub pair: ProxyPair,
-    /// Generations are ordered consistently with the canonical pair.
-    pub generations: [u64; 2],
-    pub manifold_revision: u64,
+    pub subject: CallbackEventSubject,
     pub kind: CallbackEventKind,
-    /// Deterministic ordinal for multiple same-kind events on one pair/tick.
+    /// Deterministic ordinal for multiple same-kind events on one subject/tick.
     pub ordinal: u32,
 }
 
@@ -69,6 +83,7 @@ pub struct CallbackEventVerificationReport {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CallbackEventVerificationError {
     NonCanonicalPair(ProxyPair),
+    SubjectKindMismatch(CallbackEventId),
     WrongWorldRevision(CallbackEventId),
     MissingResponsePolicyDigest(CallbackEventId),
     MissingPayloadDigest(CallbackEventId),
@@ -167,8 +182,19 @@ fn validate_snapshot(
     current_world_revision: u64,
 ) -> Result<(), CallbackEventVerificationError> {
     let id = snapshot.id;
-    if id.pair.0 >= id.pair.1 {
-        return Err(CallbackEventVerificationError::NonCanonicalPair(id.pair));
+    match (id.subject, id.kind) {
+        (
+            CallbackEventSubject::Pair { pair, .. },
+            CallbackEventKind::Collision
+            | CallbackEventKind::Trauma
+            | CallbackEventKind::Dissipation,
+        ) => {
+            if pair.0 >= pair.1 {
+                return Err(CallbackEventVerificationError::NonCanonicalPair(pair));
+            }
+        }
+        (CallbackEventSubject::Body { .. }, CallbackEventKind::Work) => {}
+        _ => return Err(CallbackEventVerificationError::SubjectKindMismatch(id)),
     }
     if id.world_revision != current_world_revision {
         return Err(CallbackEventVerificationError::WrongWorldRevision(id));
@@ -190,9 +216,11 @@ mod tests {
         CallbackEventSnapshot {
             id: CallbackEventId {
                 world_revision,
-                pair: ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair"),
-                generations: [3, 4],
-                manifold_revision: 8,
+                subject: CallbackEventSubject::Pair {
+                    pair: ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair"),
+                    generations: [3, 4],
+                    manifold_revision: 8,
+                },
                 kind: CallbackEventKind::Collision,
                 ordinal,
             },
@@ -327,4 +355,51 @@ mod tests {
             Err(CallbackEventVerificationError::WrongWorldRevision(event.id))
         );
     }
+
+    #[test]
+    fn body_scoped_work_event_has_a_valid_body_subject() {
+        let event = CallbackEventSnapshot {
+            id: CallbackEventId {
+                world_revision: 10,
+                subject: CallbackEventSubject::Body {
+                    proxy: ProxyId(9),
+                    generation: 2,
+                    actuator_revision: 5,
+                },
+                kind: CallbackEventKind::Work,
+                ordinal: 0,
+            },
+            response_policy_sha256: [21; 32],
+            endpoint_response_state: [8, 0],
+            payload_sha256: [22; 32],
+        };
+        let report = verify_callback_event_receipts(10, &[event], &[receipt(event)])
+            .expect("body-scoped work receipt");
+        assert_eq!(report.delivered_count, 1);
+    }
+
+    #[test]
+    fn pair_scoped_collision_cannot_use_body_subject() {
+        let event = CallbackEventSnapshot {
+            id: CallbackEventId {
+                world_revision: 10,
+                subject: CallbackEventSubject::Body {
+                    proxy: ProxyId(9),
+                    generation: 2,
+                    actuator_revision: 5,
+                },
+                kind: CallbackEventKind::Collision,
+                ordinal: 0,
+            },
+            response_policy_sha256: [21; 32],
+            endpoint_response_state: [8, 0],
+            payload_sha256: [22; 32],
+        };
+        assert_eq!(
+            verify_callback_event_receipts(10, &[event], &[receipt(event)]),
+            Err(CallbackEventVerificationError::SubjectKindMismatch(event.id))
+        );
+    }
+
+
 }
