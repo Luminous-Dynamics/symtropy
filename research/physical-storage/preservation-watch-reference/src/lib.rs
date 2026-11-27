@@ -544,7 +544,6 @@ pub fn evaluate_watch(
             }
         }
         let unresolved = unresolved_alerts(&ordered, evaluated_at_unix)?;
-        let unresolved = unresolved_alerts(&ordered, evaluated_at_unix)?;
         if let Some(latest) = ordered.last().copied() {
             let state = if unresolved.iter().any(|alert| alert.provenance != EvidenceProvenance::Unverified) {
                 ObservationState::Alert
@@ -763,6 +762,8 @@ mod tests {
         let alert = observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1);
         let mut clear = observation("FIX-CLEAR", WatchSignal::Fixity, ObservationState::Healthy, 2);
         clear.supersedes_observation_id = Some("FIX-ALERT".into());
+        clear.remediation_receipt_id = Some("REM-FIX-001".into());
+        clear.remediation_receipt_sha256 = Some("c".repeat(64));
         let observations = vec![
             alert,
             clear,
@@ -771,6 +772,84 @@ mod tests {
         ];
         let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
         assert_eq!(receipt.disposition, WatchDisposition::Stable);
+    }
+
+    #[test]
+    fn unknown_latest_observation_cannot_downgrade_unresolved_verified_alert() {
+        let alert = observation("FIX-ALERT", WatchSignal::Fixity, ObservationState::Alert, 1);
+        let unknown = observation("FIX-UNKNOWN", WatchSignal::Fixity, ObservationState::Unknown, 2);
+        let observations = vec![
+            alert, unknown,
+            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
+            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+        ];
+        let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
+        assert_eq!(receipt.disposition, WatchDisposition::Blocked);
+        let fixity = receipt.signal_results.iter().find(|item| item.signal == WatchSignal::Fixity).unwrap();
+        assert_eq!(fixity.state, ObservationState::Alert);
+        assert_eq!(fixity.unresolved_alert_ids, vec!["FIX-ALERT"]);
+    }
+
+    #[test]
+    fn every_unresolved_alert_requires_its_own_remediation_receipt() {
+        let alert_one = observation("FIX-ALERT-1", WatchSignal::Fixity, ObservationState::Alert, 1);
+        let alert_two = observation("FIX-ALERT-2", WatchSignal::Fixity, ObservationState::Alert, 2);
+        let mut clear_two = observation("FIX-CLEAR-2", WatchSignal::Fixity, ObservationState::Healthy, 3);
+        clear_two.supersedes_observation_id = Some("FIX-ALERT-2".into());
+        clear_two.remediation_receipt_id = Some("REM-FIX-002".into());
+        clear_two.remediation_receipt_sha256 = Some("d".repeat(64));
+        let observations = vec![
+            alert_one, alert_two, clear_two,
+            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
+            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+        ];
+        let receipt = evaluate_watch("archive-A", 150, &policy(), &observations).unwrap();
+        assert_eq!(receipt.disposition, WatchDisposition::Blocked);
+        let fixity = receipt.signal_results.iter().find(|item| item.signal == WatchSignal::Fixity).unwrap();
+        assert_eq!(fixity.unresolved_alert_ids, vec!["FIX-ALERT-1"]);
+    }
+
+    #[test]
+    fn supersession_requires_an_existing_alert_and_receipt_digest() {
+        let mut unknown_supersession = observation(
+            "FIX-CLEAR",
+            WatchSignal::Fixity,
+            ObservationState::Healthy,
+            1,
+        );
+        unknown_supersession.supersedes_observation_id = Some("DOES-NOT-EXIST".into());
+        unknown_supersession.remediation_receipt_id = Some("REM-MISSING".into());
+        unknown_supersession.remediation_receipt_sha256 = Some("e".repeat(64));
+        let observations = vec![
+            unknown_supersession,
+            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
+            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+        ];
+        assert_eq!(
+            evaluate_watch("archive-A", 150, &policy(), &observations),
+            Err(WatchContractError::UnknownSupersededAlert)
+        );
+
+        let mut missing_receipt = observation(
+            "FIX-ALERT",
+            WatchSignal::Fixity,
+            ObservationState::Alert,
+            1,
+        );
+        let mut clear = observation("FIX-CLEAR", WatchSignal::Fixity, ObservationState::Healthy, 2);
+        clear.supersedes_observation_id = Some("FIX-ALERT".into());
+        clear.remediation_receipt_id = Some("REM-EMPTY".into());
+        clear.remediation_receipt_sha256 = None;
+        let observations = vec![
+            missing_receipt.clone(), clear,
+            observation("CAL-1", WatchSignal::Calibration, ObservationState::Healthy, 1),
+            observation("TRUST-1", WatchSignal::TrustAnchor, ObservationState::Healthy, 1),
+        ];
+        assert_eq!(
+            evaluate_watch("archive-A", 150, &policy(), &observations),
+            Err(WatchContractError::InvalidRemediationReceiptDigest)
+        );
+        missing_receipt.observation_id.clear();
     }
 
     #[test]
