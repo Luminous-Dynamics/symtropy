@@ -173,10 +173,7 @@ where
     T: std::str::FromStr,
 {
     token.parse::<T>().map_err(|_| {
-        DimacsMcfParseError::new(
-            line,
-            format!("invalid {field} integer token {token:?}"),
-        )
+        DimacsMcfParseError::new(line, format!("invalid {field} integer token {token:?}"))
     })
 }
 
@@ -279,9 +276,10 @@ pub fn parse_dimacs_mcf(
             "input is not ASCII as required by the DIMACS format",
         ));
     }
-    if input.iter().any(|byte| {
-        *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t')
-    }) {
+    if input
+        .iter()
+        .any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
+    {
         return Err(DimacsMcfParseError::new(
             0,
             "input contains an unsupported ASCII control character",
@@ -387,8 +385,7 @@ pub fn parse_dimacs_mcf(
                         format!("node ID {node_id} is outside the required 1..={nodes} range"),
                     ));
                 }
-                let supply: i64 =
-                    parse_number(supply_token.unwrap(), line_number, "node supply")?;
+                let supply: i64 = parse_number(supply_token, line_number, "node supply")?;
                 if supply == 0 {
                     return Err(DimacsMcfParseError::new(
                         line_number,
@@ -452,16 +449,12 @@ pub fn parse_dimacs_mcf(
                         ),
                     ));
                 }
-                let lower_bound: i64 =
-                    parse_number(lower_token, line_number, "arc lower bound")?;
-                let upper_bound: i64 =
-                    parse_number(upper_token, line_number, "arc upper bound")?;
+                let lower_bound: i64 = parse_number(lower_token, line_number, "arc lower bound")?;
+                let upper_bound: i64 = parse_number(upper_token, line_number, "arc upper bound")?;
                 if lower_bound > upper_bound {
                     return Err(DimacsMcfParseError::new(
                         line_number,
-                        format!(
-                            "arc lower bound {lower_bound} exceeds upper bound {upper_bound}"
-                        ),
+                        format!("arc lower bound {lower_bound} exceeds upper bound {upper_bound}"),
                     ));
                 }
                 let unit_cost: i32 = parse_number(cost_token, line_number, "arc unit cost")?;
@@ -503,7 +496,11 @@ pub fn parse_dimacs_mcf(
         ));
     }
 
-    let total_supply = supplies.iter().skip(1).map(|value| i128::from(*value)).sum();
+    let total_supply = supplies
+        .iter()
+        .skip(1)
+        .map(|value| i128::from(*value))
+        .sum();
     let raw_sha256 = format!("sha256:{:x}", Sha256::digest(input));
     let mut instance = DimacsMcfInstance {
         format_version: DIMACS_MCF_FORMAT_VERSION.to_string(),
@@ -527,7 +524,8 @@ pub fn parse_dimacs_mcf(
 mod tests {
     use super::*;
 
-    const VALID_PARALLEL: &str = "c parallel arcs stay separate\np min 2 2\nn 1 5\nn 2 -5\na 1 2 0 5 3\na 1 2 0 5 -1\n";
+    const VALID_PARALLEL: &str =
+        "c parallel arcs stay separate\np min 2 2\nn 1 5\nn 2 -5\na 1 2 0 5 3\na 1 2 0 5 -1\n";
 
     fn parse(text: &str) -> Result<DimacsMcfInstance, DimacsMcfParseError> {
         parse_dimacs_mcf(text.as_bytes(), ImportLimits::default())
@@ -555,7 +553,8 @@ mod tests {
     #[test]
     fn canonical_identity_ignores_comments_whitespace_and_node_record_order() {
         let first = "c source\np min 2 2\nn 1 5\nn 2 -5\na 1 2 0 5 3\na 1 2 0 5 -1\n";
-        let second = "c a different comment\np   min  2 2\nn 2 -5\nn 1 5\na 1 2 0 5 3\na 1 2 0 5 -1\n";
+        let second =
+            "c a different comment\np   min  2 2\nn 2 -5\nn 1 5\na 1 2 0 5 3\na 1 2 0 5 -1\n";
         let a = parse(first).unwrap();
         let b = parse(second).unwrap();
         assert_ne!(a.raw_sha256, b.raw_sha256);
@@ -572,14 +571,8 @@ mod tests {
         assert_eq!(a.canonical_sha256, b.canonical_sha256);
         assert_eq!(a.arcs.len(), 3);
         assert_eq!(b.arcs.len(), 3);
-        assert_eq!(
-            a.arcs.iter().filter(|arc| arc.upper_bound == 4).count(),
-            2
-        );
-        assert_eq!(
-            b.arcs.iter().filter(|arc| arc.upper_bound == 4).count(),
-            2
-        );
+        assert_eq!(a.arcs.iter().filter(|arc| arc.upper_bound == 4).count(), 2);
+        assert_eq!(b.arcs.iter().filter(|arc| arc.upper_bound == 4).count(), 2);
     }
 
     #[test]
