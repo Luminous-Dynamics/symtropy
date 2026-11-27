@@ -7,13 +7,13 @@ on:
       - research/safrb-time-expanded-adapter-v0
       - research/safrb-temporal-semantics-v0
       - research/dimacs-mcf-input-v0
+      - research/dimacs-lower-bound-transform-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
       - "tools/single-commodity-flow-kernel/**"
       - "tools/wpt-exact-service-oracle/**"
       - "tools/safrb-time-expanded-adapter/**"
-      - "tools/dimacs-mcf-input/**"
       - "tools/dimacs-mcf-input/**"
       - ".github/workflows/safrb-flow-rust.yml"
   pull_request:
@@ -21,12 +21,14 @@ on:
     branches:
       - research/wpt-exact-service-oracle-v0
       - research/single-commodity-flow-kernel-v0
+      - research/dimacs-mcf-input-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
       - "tools/single-commodity-flow-kernel/**"
       - "tools/wpt-exact-service-oracle/**"
       - "tools/safrb-time-expanded-adapter/**"
+      - "tools/dimacs-mcf-input/**"
       - ".github/workflows/safrb-flow-rust.yml"
 
 permissions:

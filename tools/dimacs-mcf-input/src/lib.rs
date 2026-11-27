@@ -10,6 +10,12 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
+pub mod transform;
+pub use transform::{
+    McfResidualArc, McfResidualInstance, McfTransformError, reconstruct_objective,
+    remove_lower_bounds, restore_original_flows,
+};
+
 const DIMACS_INTEGER_MAX: u32 = i32::MAX as u32;
 
 /// Resource ceilings applied before allocating node/arc storage.
