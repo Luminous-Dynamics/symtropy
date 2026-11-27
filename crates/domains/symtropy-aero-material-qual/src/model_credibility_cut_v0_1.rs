@@ -84,6 +84,16 @@ pub enum SplitIntegrityStatus {
     Unverified,
 }
 
+impl SplitIntegrityStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DisjointByIndependentUnit => "disjoint_by_independent_unit",
+            Self::LeakageDetected => "leakage_detected",
+            Self::Unverified => "unverified",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelDomainCoverageStatus {
@@ -91,6 +101,17 @@ pub enum ModelDomainCoverageStatus {
     NotCovered,
     Indeterminate,
     Unverified,
+}
+
+impl ModelDomainCoverageStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Covered => "covered",
+            Self::NotCovered => "not_covered",
+            Self::Indeterminate => "indeterminate",
+            Self::Unverified => "unverified",
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
