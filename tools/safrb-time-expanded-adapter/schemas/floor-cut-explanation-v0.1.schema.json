@@ -6,6 +6,7 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
+    "node_state",
     "schema_version",
     "case_id",
     "base_graph_sha256",
@@ -140,6 +141,19 @@
               "minLength": 1
             },
             "uniqueItems": true
+          },
+          "node_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "inventory",
+              "handling",
+              "service_issue",
+              null
+            ],
+            "description": "Temporal state represented by the cut edge when it is tied to a specific physical node-period."
           }
         }
       }
