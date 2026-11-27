@@ -20,3 +20,8 @@ It does not parse raw laboratory data, calculate electromagnetic fields, propaga
 The crate uses Rust 2024 and the standard library only. Unit tests are authored for positive closure, wrong-specimen and nominal/as-built mismatches, missing magnetization, definite versus unresolved failures, spatial coverage, holdout leakage, common-cause evidence, unsupported regimes, comparison binding and uncertainty monotonicity.
 
 The current execution environment has no Rust toolchain, so compilation and test execution have **not** been performed locally. CI / exact-head workflow evidence remains separate.
+
+
+## Cargo workspace isolation
+
+The evaluator manifest includes an empty `[workspace]` table intentionally. This keeps the nested, zero-dependency package out of Symtropy's root Cargo workspace without modifying the root workspace membership or its gates. The initial focused workflow exposed Cargo's automatic parent-workspace discovery; the explicit boundary is now in the manifest.
