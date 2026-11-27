@@ -254,7 +254,7 @@ The research crate now exports `callback_event_receipt`. `CallbackEventId` binds
 
 `verify_callback_event_receipts` compares a supplied ordered delivery receipt stream against an independently supplied expected event set. It rejects noncanonical/duplicate/omitted/unexpected event identities, wrong world revisions, missing digest fields, and payload/response-state mismatches. It reports delivered, pending and failed outcomes separately; failed or pending is never reported as delivered.
 
-The module has 12 authored tests. It does not invoke PhysicsCallback, derive the expected event set from solver impulses, hash actual callback payload bytes, or provide a durable outbox. Exactly-once delivery across process failure is not claimed. A production adapter should use an idempotent receiver/outbox; without a receiver-side transaction the honest contract is at-least-once delivery with stable deduplication identity. The remaining integration is tracked in [#7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718).
+The module has 16 authored tests. It validates each supplied/expected event against a current endpoint snapshot and current global response-policy digest: pair subjects must match both proxy generations and response-state revisions; body-scoped work must match the body generation, response-state and actuator revision. It does not invoke PhysicsCallback, derive the expected event set from solver impulses, hash actual callback payload bytes, or provide a durable outbox. Exactly-once delivery across process failure is not claimed. A production adapter should use an idempotent receiver/outbox; without a receiver-side transaction the honest contract is at-least-once delivery with stable deduplication identity. The remaining integration is tracked in [#7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718).
 
 ### 8.2 Candidate topology is not exact contact topology
 
@@ -321,6 +321,6 @@ At the current research branch state, the authored test counts are:
 - contact freshness producer and commit barrier: 33 tests;
 - independent lifecycle/receipt verifier: 31 tests;
 - relative-motion geometric lease predicate: 23 tests;
-- callback event identity and delivery receipt verifier: 12 tests.
+- callback event identity and delivery receipt verifier: 16 tests.
 
 These counts describe source annotations only. They are not evidence that the tests have compiled or run. Exact-head Rust formatting, tests, strict Clippy and scale-campaign results must be read from the current GitHub Actions run before any pass claim.
