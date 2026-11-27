@@ -1108,8 +1108,8 @@ fn build_findings(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::MaturityLevel::{M1, M2, M3, M4, M5};
+    use super::*;
 
     fn digest(ch: char) -> String {
         format!("sha256:{}", ch.to_string().repeat(64))
