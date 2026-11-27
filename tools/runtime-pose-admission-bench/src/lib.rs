@@ -1,6 +1,6 @@
 #![deny(unsafe_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 pub const RECEIPT_SCHEMA: &str = "luminous.spacecraft-runtime-pose-admission.receipt.v0.1";
 pub const TANGENT_CONVENTION: &str = "BODY_LOCAL_TRANSLATION_XYZ_ROTATION_VECTOR_XYZ";
