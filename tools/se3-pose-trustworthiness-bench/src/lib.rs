@@ -148,6 +148,7 @@ pub struct PoseResult {
     pub translation_error_m: Option<f64>,
     pub rotation_error_rad: Option<f64>,
     pub mahalanobis_squared: Option<f64>,
+    pub gaussian_negative_log_likelihood: Option<f64>,
     pub covariance_log_determinant: Option<f64>,
     pub prediction_region_log_volume_95: Option<f64>,
     pub coverage_50: Option<bool>,
@@ -197,6 +198,7 @@ pub struct EvaluationSummary {
     pub accepted_coverage_99: Option<f64>,
     pub accepted_translation_p95_m: Option<f64>,
     pub accepted_rotation_p95_rad: Option<f64>,
+    pub accepted_gaussian_nll_mean: Option<f64>,
     pub accepted_covariance_logdet_median: Option<f64>,
     pub accepted_95_region_log_volume_median: Option<f64>,
     pub risk_coverage: Vec<RiskCoveragePoint>,
@@ -402,6 +404,7 @@ fn base_result(
         translation_error_m: None,
         rotation_error_rad: None,
         mahalanobis_squared: None,
+        gaussian_negative_log_likelihood: None,
         covariance_log_determinant: None,
         prediction_region_log_volume_95: None,
         coverage_50: None,
@@ -581,6 +584,10 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
     let [cov50, cov80, cov90, cov95, cov99] = covariance_coverage(mahalanobis);
     let covariance_log_determinant =
         2.0 * (0..6).map(|index| cholesky[index][index].ln()).sum::<f64>();
+    let gaussian_negative_log_likelihood = 0.5
+        * (mahalanobis
+            + covariance_log_determinant
+            + 6.0 * (2.0 * std::f64::consts::PI).ln());
     let prediction_region_log_volume_95 = (std::f64::consts::PI.powi(3) / 6.0).ln()
         + 0.5 * covariance_log_determinant
         + 3.0 * quantile(ADMISSION_LEVEL_BPS)
@@ -613,6 +620,7 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
     result.translation_error_m = Some(translation_error);
     result.rotation_error_rad = Some(rotation_error);
     result.mahalanobis_squared = Some(mahalanobis);
+    result.gaussian_negative_log_likelihood = Some(gaussian_negative_log_likelihood);
     result.covariance_log_determinant = Some(covariance_log_determinant);
     result.prediction_region_log_volume_95 = Some(prediction_region_log_volume_95);
     result.coverage_50 = Some(cov50);
@@ -724,6 +732,10 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         .iter()
         .filter_map(|result| result.rotation_error_rad)
         .collect();
+    let gaussian_nll: Vec<f64> = accepted
+        .iter()
+        .filter_map(|result| result.gaussian_negative_log_likelihood)
+        .collect();
     let mut covariance_logd: Vec<f64> = accepted
         .iter()
         .filter_map(|result| result.covariance_log_determinant)
@@ -784,6 +796,11 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         accepted_coverage_99: coverage(|result| result.coverage_99),
         accepted_translation_p95_m: percentile(&mut translation_errors, 0.95),
         accepted_rotation_p95_rad: percentile(&mut rotation_errors, 0.95),
+        accepted_gaussian_nll_mean: if gaussian_nll.is_empty() {
+            None
+        } else {
+            Some(gaussian_nll.iter().sum::<f64>() / gaussian_nll.len() as f64)
+        },
         accepted_covariance_logdet_median: percentile(&mut covariance_logd, 0.5),
         accepted_95_region_log_volume_median: percentile(&mut region_log_volume, 0.5),
         risk_coverage,
