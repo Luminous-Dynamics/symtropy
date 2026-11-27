@@ -213,7 +213,7 @@ fn build_reduction(
         .iter()
         .map(|node| (node.id.clone(), 0_i128))
         .collect::<BTreeMap<_, _>>();
-    let mut residual_edges = Vec::with_capacity(base_graph.edges.len() + graph_edge_ceiling);
+    let mut residual_edges = Vec::with_capacity(graph_edge_ceiling);
     let mut source_capacity_bound = 0_u64;
 
     for edge in &base_graph.edges {
@@ -271,7 +271,7 @@ fn build_reduction(
             residual_edges.push(FlowEdge::new(
                 format!("{SUPER_SOURCE_PREFIX}{}{node_id}", node_id.len()),
                 AUX_SOURCE,
-                node_id,
+                node_id.clone(),
                 capacity,
                 Some(format!("{FLOOR_FEASIBILITY_SCHEMA}/super-source/{node_id}")),
             ));
@@ -575,7 +575,10 @@ fn verify_original_allocation(
         return Err("original allocation source/sink balances do not reconcile".to_string());
     }
     for (node_id, balance) in &node_balance {
-        if *node_id != base_graph.source && *node_id != base_graph.sink && *balance != 0 {
+        if *node_id != base_graph.source.as_str()
+            && *node_id != base_graph.sink.as_str()
+            && *balance != 0
+        {
             return Err(format!("original allocation violates conservation at {node_id}"));
         }
     }
@@ -943,6 +946,24 @@ mod tests {
                 .unwrap_err()
                 .contains("allocation does not match")
         );
+    }
+
+    #[test]
+    fn published_floor_schemas_are_valid_json_documents() {
+        let report_schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/beneficiary-floor-feasibility-v0.1.schema.json"
+        ))
+        .unwrap();
+        let input_schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/beneficiary-floor-feasibility-input-v0.1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            report_schema["properties"]["schema_version"]["const"],
+            FLOOR_FEASIBILITY_SCHEMA
+        );
+        assert_eq!(input_schema["required"][0], "profile");
+        assert_eq!(input_schema["required"][1], "floors");
     }
 
     #[test]
