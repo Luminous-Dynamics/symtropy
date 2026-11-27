@@ -208,7 +208,8 @@ impl<const D: usize> RelativeMotionEnvelope<D> {
         }
 
         let translation_upper = norm_upper(&self.relative_translation_delta)?;
-        let rotation_matrix_delta_upper = frobenius_norm_upper(&self.relative_rotation_delta_abs_upper)?;
+        let rotation_matrix_delta_upper =
+            frobenius_norm_upper(&self.relative_rotation_delta_abs_upper)?;
         let rotation_displacement_upper =
             multiply_upper(self.maximum_lever_arm_radius, rotation_matrix_delta_upper)?;
         let combined = add_upper(translation_upper, rotation_displacement_upper)?;
