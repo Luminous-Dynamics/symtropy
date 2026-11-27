@@ -13,7 +13,7 @@ use mobility_rrvr_aerb_evaluator::{
     CommandContext, DecisionLoss, DispatchState, Disposition, EffectState, EvaluatorWorld,
     EvaluatorWorldPack, EvidenceDomain, OPEN_WORLD_RESIDUAL, Observation, ObservationQuality,
     PermittedProbe, ProbeOutcomeSupport, ProbeSupport, SCHEMA_VERSION, SourceRole,
-    WORLD_VOCABULARY_VERSION, canonical_sorted_json_sha256, evaluate_json, sha256_hex,
+    WORLD_VOCABULARY_VERSION, evaluate_json, sha256_hex,
 };
 use serde::Serialize;
 
@@ -345,9 +345,9 @@ fn build_episode(index: usize, profile_sha256: &str) -> CandidateEpisode {
                 observation_id: format!("obs-{index:06}-endpoint"),
                 source_id: "endpoint-journal-0".to_owned(),
                 source_role: SourceRole::EndpointJournal,
-                quality: if index % 17 == 0 {
+                quality: if index.is_multiple_of(17) {
                     ObservationQuality::Unknown
-                } else if index % 11 == 0 {
+                } else if index.is_multiple_of(11) {
                     ObservationQuality::Stale
                 } else {
                     ObservationQuality::Admitted
