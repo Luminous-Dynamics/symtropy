@@ -44,28 +44,32 @@ fn independent_parser_reconstructs_inspection_and_receiver_service() {
             }
             "OPTION" => option_rows.push(fields),
             "INSPECTION" => {
-                assert!(inspections
-                    .insert(
-                        fields[1].clone(),
-                        (
-                            fields[2].clone(),
-                            fields[3].parse().expect("qualified units are numeric"),
-                            fields[4].clone(),
-                        ),
-                    )
-                    .is_none());
+                assert!(
+                    inspections
+                        .insert(
+                            fields[1].clone(),
+                            (
+                                fields[2].clone(),
+                                fields[3].parse().expect("qualified units are numeric"),
+                                fields[4].clone(),
+                            ),
+                        )
+                        .is_none()
+                );
             }
             "RECEIVER_ACCEPTANCE" => {
-                assert!(receivers
-                    .insert(
-                        fields[1].clone(),
-                        (
-                            fields[2].clone(),
-                            fields[3].parse().expect("accepted units are numeric"),
-                            fields[4].clone(),
-                        ),
-                    )
-                    .is_none());
+                assert!(
+                    receivers
+                        .insert(
+                            fields[1].clone(),
+                            (
+                                fields[2].clone(),
+                                fields[3].parse().expect("accepted units are numeric"),
+                                fields[4].clone(),
+                            ),
+                        )
+                        .is_none()
+                );
             }
             "INSTANCE" => {}
             other => panic!("unexpected fixture record: {other}"),
@@ -99,9 +103,8 @@ fn independent_parser_reconstructs_inspection_and_receiver_service() {
         let (inspection_status, qualified_reported, inspection_revision) = inspections
             .get(&option[1])
             .expect("inspection record exists");
-        let (receiver_status, accepted_reported, receiver_revision) = receivers
-            .get(&option[1])
-            .expect("receiver record exists");
+        let (receiver_status, accepted_reported, receiver_revision) =
+            receivers.get(&option[1]).expect("receiver record exists");
         assert_eq!(inspection_revision, &option[11]);
         assert_eq!(receiver_revision, &option[11]);
         assert!(qualified_reported <= &expected_units);
@@ -151,7 +154,9 @@ fn independent_parser_reconstructs_inspection_and_receiver_service() {
                 fields[5].parse().expect("expected units are numeric"),
                 fields[6].parse().expect("qualified units are numeric"),
                 fields[7].parse().expect("accepted units are numeric"),
-                fields[8].parse().expect("on-time accepted units are numeric"),
+                fields[8]
+                    .parse()
+                    .expect("on-time accepted units are numeric"),
                 fields[9].to_owned(),
                 fields[10].to_owned(),
                 fields[11].to_owned(),
@@ -161,5 +166,9 @@ fn independent_parser_reconstructs_inspection_and_receiver_service() {
     }
 
     assert_eq!(observed, expected);
-    assert_eq!(observed.len(), 5, "no portfolio may disappear from the receipt");
+    assert_eq!(
+        observed.len(),
+        5,
+        "no portfolio may disappear from the receipt"
+    );
 }
