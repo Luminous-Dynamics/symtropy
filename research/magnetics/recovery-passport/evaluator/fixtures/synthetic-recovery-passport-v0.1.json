@@ -29,6 +29,10 @@
       "feedstock_mass": {
         "value_mg": 1000,
         "uncertainty_mg": 0
+      },
+      "feedstock_mass_record": {
+        "record_id": "SOURCE-MASS-001",
+        "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
       }
     },
     "route_eligibility": {
@@ -102,7 +106,11 @@
           }
         }
       ],
-      "closure_tolerance_mg": 5
+      "closure_tolerance_mg": 5,
+      "input_mass_record": {
+        "record_id": "STAGE-MASS-001",
+        "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+      }
     },
     "downstream_use": {
       "recovered_output_id": "MAGNET-FEED",
