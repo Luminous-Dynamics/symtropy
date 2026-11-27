@@ -1641,6 +1641,156 @@ mod tests {
         assert_eq!(report.pairwise_contrasts[0].declared_difference_upper_ticks, 5);
     }
 
+
+    fn all_eligible_gate_report() -> ScenarioMissionRiskGateReport {
+        let mut gate = gate_report();
+        for check in &mut gate.scenario_portfolio_risk_checks {
+            if check.portfolio_id == PORTFOLIO_B {
+                check.within_declared_finite_support_budget = true;
+                check.mission_union_mass = ExactMass {
+                    numerator: 1,
+                    denominator: 100,
+                };
+            }
+        }
+        gate.eligible_portfolio_ids = vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C];
+        gate.ineligible_portfolio_ids.clear();
+        gate.ineligible_scenarios_by_portfolio.clear();
+        gate.minimax_regret_undominated_eligible_portfolio_ids =
+            vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C];
+        gate
+    }
+
+    fn independent_frontier_challenger(
+        atoms: &[PairedObjectiveAtom],
+        scenario_ids: &[[u8; 32]],
+        portfolio_ids: &[[u8; 32]],
+        objective_specs: &[PairedObjectiveSpec],
+    ) -> Vec<[u8; 32]> {
+        let mut dominated = BTreeSet::new();
+        for (left_index, left_id) in portfolio_ids.iter().enumerate() {
+            for right_id in portfolio_ids.iter().skip(left_index + 1) {
+                for (dominating_id, dominated_id) in
+                    [(*left_id, *right_id), (*right_id, *left_id)]
+                {
+                    let mut all_no_worse = true;
+                    let mut any_strict = false;
+                    for spec in objective_specs {
+                        for scenario_id in scenario_ids {
+                            let mut sum_dominating = 0_i128;
+                            let mut sum_dominated = 0_i128;
+                            let mut count = 0_i128;
+                            for atom in atoms.iter().filter(|atom| {
+                                atom.scenario_id == *scenario_id
+                            }) {
+                                let dominating_value = atom
+                                    .outcomes
+                                    .iter()
+                                    .find(|outcome| {
+                                        outcome.portfolio_id == dominating_id
+                                            && outcome.objective_id == spec.objective_id
+                                    })
+                                    .unwrap()
+                                    .value_ticks;
+                                let dominated_value = atom
+                                    .outcomes
+                                    .iter()
+                                    .find(|outcome| {
+                                        outcome.portfolio_id == dominated_id
+                                            && outcome.objective_id == spec.objective_id
+                                    })
+                                    .unwrap()
+                                    .value_ticks;
+                                sum_dominating += i128::from(dominating_value);
+                                sum_dominated += i128::from(dominated_value);
+                                count += 1;
+                            }
+                            if count == 0 {
+                                all_no_worse = false;
+                                continue;
+                            }
+                            let difference = sum_dominating - sum_dominated;
+                            let (no_worse, strict) = match spec.direction {
+                                PairedObjectiveDirection::Minimize => {
+                                    (difference <= 0, difference < 0)
+                                }
+                                PairedObjectiveDirection::Maximize => {
+                                    (difference >= 0, difference > 0)
+                                }
+                            };
+                            all_no_worse &= no_worse;
+                            any_strict |= strict;
+                        }
+                    }
+                    if all_no_worse && any_strict {
+                        dominated.insert(dominated_id);
+                    }
+                }
+            }
+        }
+        portfolio_ids
+            .iter()
+            .filter(|portfolio_id| !dominated.contains(*portfolio_id))
+            .copied()
+            .collect()
+    }
+
+    #[test]
+    fn independent_exhaustive_frontier_challenger_matches_seeded_campaigns() {
+        let gate = all_eligible_gate_report();
+        let supports = standard_supports();
+        let objective_specs = specs();
+        let bounds = vec![
+            bound(PORTFOLIO_A, OBJECTIVE_FUEL, 0, 100),
+            bound(PORTFOLIO_B, OBJECTIVE_FUEL, 0, 100),
+            bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 100),
+            bound(PORTFOLIO_A, OBJECTIVE_SERVICE, 0, 100),
+            bound(PORTFOLIO_B, OBJECTIVE_SERVICE, 0, 100),
+            bound(PORTFOLIO_C, OBJECTIVE_SERVICE, 0, 100),
+        ];
+        let process =
+            PairedObjectiveParetoCampaign::new(&gate, supports.clone(), objective_specs.clone(), bounds)
+                .unwrap();
+        let scenario_ids = supports
+            .iter()
+            .map(|support| support.scenario_id)
+            .collect::<Vec<_>>();
+        let portfolio_ids = vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C];
+
+        for seed in 0_i32..64 {
+            let mut atoms = Vec::new();
+            for (scenario_index, support) in supports.iter().enumerate() {
+                for (atom_index, atom_id) in support.atom_ids.iter().enumerate() {
+                    let s = scenario_index as i32;
+                    let u = atom_index as i32;
+                    let a_fuel = (seed * 3 + s * 7 + u * 2 + 1).rem_euclid(31);
+                    let b_fuel = (seed * 5 + s * 11 + u * 3 + 4).rem_euclid(31);
+                    let c_fuel = (seed * 7 + s * 13 + u * 5 + 9).rem_euclid(31);
+                    let a_service = (seed * 11 + s * 5 + u * 7 + 2).rem_euclid(31);
+                    let b_service = (seed * 13 + s * 3 + u * 11 + 6).rem_euclid(31);
+                    let c_service = (seed * 17 + s * 9 + u * 13 + 3).rem_euclid(31);
+                    atoms.push(atom(
+                        support.scenario_id,
+                        *atom_id,
+                        &[
+                            (10, a_fuel, a_service),
+                            (20, b_fuel, b_service),
+                            (30, c_fuel, c_service),
+                        ],
+                    ));
+                }
+            }
+            let expected = independent_frontier_challenger(
+                &atoms,
+                &scenario_ids,
+                &portfolio_ids,
+                &objective_specs,
+            );
+            let actual = process.evaluate(&atoms).unwrap();
+            assert_eq!(actual.pareto_frontier_portfolio_ids, expected, "seed {seed}");
+        }
+    }
+
     #[test]
     fn exact_ties_do_not_create_a_dominance_witness() {
         let process = campaign(
