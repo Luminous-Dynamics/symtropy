@@ -183,6 +183,8 @@ fn render_result(result: &CurvatureResult) -> String {
         optional_u128(result.exact_total_numerator),
         optional_u128(result.exact_total_denominator),
         optional_u128(result.m_upper_scaled_per_s2),
+        result.m_scale,
+        json_escape(&result.m_unit),
         result.radial_slack_mm.map_or_else(|| "null".to_owned(), |value| value.to_string()),
         json_escape(&result.perturbation_inventory_id),
         result.perturbation_inventory_complete,
