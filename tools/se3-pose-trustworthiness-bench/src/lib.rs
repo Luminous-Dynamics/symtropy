@@ -181,6 +181,8 @@ pub struct RiskCoveragePoint {
     pub coverage_fraction: f64,
     pub false_confident_count: usize,
     pub selective_risk: Option<f64>,
+    pub selective_risk_ci_lower: Option<f64>,
+    pub selective_risk_ci_upper: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -188,6 +190,8 @@ pub struct EvaluationSummary {
     pub valid_count: usize,
     pub accepted_count: usize,
     pub accepted_pose_coverage_fraction: Option<f64>,
+    pub accepted_pose_coverage_ci_lower: Option<f64>,
+    pub accepted_pose_coverage_ci_upper: Option<f64>,
     pub abstained_count: usize,
     pub invalid_count: usize,
     pub accepted_false_confident_95_count: usize,
@@ -195,7 +199,11 @@ pub struct EvaluationSummary {
     pub accepted_coverage_80: Option<f64>,
     pub accepted_coverage_90: Option<f64>,
     pub accepted_coverage_95: Option<f64>,
+    pub accepted_coverage_95_ci_lower: Option<f64>,
+    pub accepted_coverage_95_ci_upper: Option<f64>,
     pub accepted_coverage_99: Option<f64>,
+    pub accepted_false_confident_95_rate_ci_lower: Option<f64>,
+    pub accepted_false_confident_95_rate_ci_upper: Option<f64>,
     pub accepted_translation_p95_m: Option<f64>,
     pub accepted_rotation_p95_rad: Option<f64>,
     pub accepted_gaussian_nll_mean: Option<f64>,
@@ -680,6 +688,23 @@ pub fn evaluate_manifest(inputs: &[PoseInput]) -> Vec<PoseResult> {
         .collect()
 }
 
+/// Two-sided 95% Wilson score interval for a binomial proportion.
+pub fn wilson_interval(successes: usize, total: usize) -> Option<(f64, f64)> {
+    if total == 0 || successes > total {
+        return None;
+    }
+    const Z: f64 = 1.959_963_984_540_054;
+    let n = total as f64;
+    let p = successes as f64 / n;
+    let z2 = Z * Z;
+    let denominator = 1.0 + z2 / n;
+    let center = (p + z2 / (2.0 * n)) / denominator;
+    let half_width = Z
+        * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt())
+        / denominator;
+    Some(((center - half_width).max(0.0), (center + half_width).min(1.0)))
+}
+
 fn percentile(values: &mut [f64], percentile: f64) -> Option<f64> {
     if values.is_empty() {
         return None;
@@ -761,6 +786,7 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
                 .iter()
                 .filter(|result| result.false_confident_95)
                 .count();
+            let interval = wilson_interval(false_confident, selected.len());
             RiskCoveragePoint {
                 confidence_threshold_ppm: *threshold,
                 selected_count: selected.len(),
@@ -775,9 +801,20 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
                 } else {
                     Some(false_confident as f64 / selected.len() as f64)
                 },
+                selective_risk_ci_lower: interval.map(|bounds| bounds.0),
+                selective_risk_ci_upper: interval.map(|bounds| bounds.1),
             }
         })
         .collect();
+
+    let accepted_pose_interval = wilson_interval(accepted.len(), valid.len());
+    let accepted_coverage_95_count = accepted
+        .iter()
+        .filter(|result| result.coverage_95 == Some(true))
+        .count();
+    let accepted_coverage_95_interval =
+        wilson_interval(accepted_coverage_95_count, accepted.len());
+    let false_confident_interval = wilson_interval(false_confident_count, accepted.len());
 
     EvaluationSummary {
         valid_count: valid.len(),
@@ -787,6 +824,8 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         } else {
             Some(accepted.len() as f64 / valid.len() as f64)
         },
+        accepted_pose_coverage_ci_lower: accepted_pose_interval.map(|bounds| bounds.0),
+        accepted_pose_coverage_ci_upper: accepted_pose_interval.map(|bounds| bounds.1),
         abstained_count: valid.len().saturating_sub(accepted.len()),
         invalid_count: results.len().saturating_sub(valid.len()),
         accepted_false_confident_95_count: false_confident_count,
@@ -794,7 +833,11 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         accepted_coverage_80: coverage(|result| result.coverage_80),
         accepted_coverage_90: coverage(|result| result.coverage_90),
         accepted_coverage_95: coverage(|result| result.coverage_95),
+        accepted_coverage_95_ci_lower: accepted_coverage_95_interval.map(|bounds| bounds.0),
+        accepted_coverage_95_ci_upper: accepted_coverage_95_interval.map(|bounds| bounds.1),
         accepted_coverage_99: coverage(|result| result.coverage_99),
+        accepted_false_confident_95_rate_ci_lower: false_confident_interval.map(|bounds| bounds.0),
+        accepted_false_confident_95_rate_ci_upper: false_confident_interval.map(|bounds| bounds.1),
         accepted_translation_p95_m: percentile(&mut translation_errors, 0.95),
         accepted_rotation_p95_rad: percentile(&mut rotation_errors, 0.95),
         accepted_gaussian_nll_mean: if gaussian_nll.is_empty() {
@@ -1036,6 +1079,15 @@ mod tests {
     }
 
     #[test]
+    fn wilson_interval_is_bounded_and_refuses_empty_denominators() {
+        assert!(super::wilson_interval(0, 0).is_none());
+        assert!(super::wilson_interval(11, 10).is_none());
+        let (lower, upper) = super::wilson_interval(10, 10).unwrap();
+        assert!(lower > 0.7 && lower < 1.0);
+        assert_eq!(upper, 1.0);
+    }
+
+    #[test]
     fn summary_reports_selective_risk_and_coverage() {
         let first = input();
         let mut second = input();
@@ -1049,6 +1101,10 @@ mod tests {
         assert_eq!(summary.accepted_count, 2);
         assert_eq!(summary.accepted_false_confident_95_count, 1);
         assert_eq!(summary.accepted_coverage_95, Some(0.5));
+        assert!(summary.accepted_coverage_95_ci_lower.unwrap() < 0.5);
+        assert!(summary.accepted_coverage_95_ci_upper.unwrap() > 0.5);
+        assert!(summary.accepted_false_confident_95_rate_ci_lower.unwrap() < 0.5);
+        assert!(summary.accepted_false_confident_95_rate_ci_upper.unwrap() > 0.5);
         assert_eq!(summary.risk_coverage.len(), 8);
     }
 }
