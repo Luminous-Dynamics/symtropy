@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[2]
 AVIATION = ROOT / "docs" / "research" / "aviation"
@@ -26,7 +26,7 @@ def load_json(path: Path) -> Any:
 
 def validate_instance(instance: Any, schema: Any, label: str) -> None:
     Draft202012Validator.check_schema(schema)
-    validator = Draft202012Validator(schema)
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
     errors = sorted(
         validator.iter_errors(instance),
         key=lambda error: (list(map(str, error.absolute_path)), error.message),
@@ -166,9 +166,12 @@ def main() -> int:
                 raise SystemExit(f"FAIL: reviewable fixture has unresolved blocking defeater in {case['case_id']}")
         elif disposition == "REJECTED":
             if not any(
-                (item["hard_gate"] and item["proposition_evidence"] == "REFUTED_ONLY"
-                 and item["verification"] == "VERIFIED")
-                or item["authority"] == "DENIED"
+                (item["hard_gate"] and (
+                    (item["proposition_evidence"] == "REFUTED_ONLY"
+                     and item["verification"] == "VERIFIED")
+                    or item["verification"] == "FAILED"
+                ))
+                or (item["authority"] == "DENIED" and item["verification"] == "VERIFIED")
                 for item in mandatory
             ):
                 raise SystemExit(f"FAIL: rejected fixture has no verified hard blocker in {case['case_id']}")
