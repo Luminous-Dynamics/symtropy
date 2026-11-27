@@ -146,14 +146,19 @@ fn validate_receipt(
             .and_then(|name| name.to_str())
             != Some(expected_name.as_str())
         {
-            return Err(format!("capture {index} receipt path does not match {expected_name}").into());
+            return Err(
+                format!("capture {index} receipt path does not match {expected_name}").into(),
+            );
         }
         let path = directory.join(&expected_name);
         let frame = decode_capture(&path)?;
         if image["byte_len"].as_u64() != Some(frame.png_byte_len)
             || image["sha256"].as_str() != Some(frame.png_sha256.as_str())
         {
-            return Err(format!("capture {index} PNG bytes do not match the receipt digest/length").into());
+            return Err(format!(
+                "capture {index} PNG bytes do not match the receipt digest/length"
+            )
+            .into());
         }
         if frame.width != width || frame.height != height {
             return Err(format!(

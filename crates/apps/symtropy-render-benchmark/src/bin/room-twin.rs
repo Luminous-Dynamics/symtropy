@@ -27,9 +27,8 @@ impl WorldVariant {
     fn from_env() -> Result<Self, String> {
         let value = env::var("SYMTROPY_ROOM_TWIN_VARIANT")
             .map_err(|_| "SYMTROPY_ROOM_TWIN_VARIANT must be set to A or B".to_owned())?;
-        Self::from_value(&value).ok_or_else(|| {
-            format!("SYMTROPY_ROOM_TWIN_VARIANT must be A or B, got {value:?}")
-        })
+        Self::from_value(&value)
+            .ok_or_else(|| format!("SYMTROPY_ROOM_TWIN_VARIANT must be A or B, got {value:?}"))
     }
 
     fn from_value(value: &str) -> Option<Self> {
@@ -399,4 +398,3 @@ mod tests {
         assert_eq!(WorldVariant::from_value("C"), None);
     }
 }
-
