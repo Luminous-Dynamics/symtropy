@@ -1,0 +1,38 @@
+name: preservation-watch-reference isolated qualification
+
+on:
+  pull_request:
+    paths:
+      - 'research/physical-storage/preservation-watch-reference/**'
+      - 'research/physical-storage/preservation-watch-reference/Cargo.lock'
+      - '.github/workflows/preservation-watch-reference.yml'
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'research/physical-storage/preservation-watch-reference/**'
+      - 'research/physical-storage/preservation-watch-reference/Cargo.lock'
+      - '.github/workflows/preservation-watch-reference.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: preservation-watch-reference (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      MANIFEST: research/physical-storage/preservation-watch-reference/Cargo.toml
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path "$MANIFEST" -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path "$MANIFEST" --all-targets -- -D warnings
+      - name: Run unit tests
+        run: cargo test --locked --manifest-path "$MANIFEST" --all-targets
