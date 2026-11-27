@@ -13,19 +13,27 @@ struct ParsedCase {
 }
 
 fn parse_f64(value: &str, name: &str) -> Result<f64, Box<dyn Error>> {
-    value.parse::<f64>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<f64>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_u16(value: &str, name: &str) -> Result<u16, Box<dyn Error>> {
-    value.parse::<u16>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<u16>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_u32(value: &str, name: &str) -> Result<u32, Box<dyn Error>> {
-    value.parse::<u32>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<u32>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_u64(value: &str, name: &str) -> Result<u64, Box<dyn Error>> {
-    value.parse::<u64>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<u64>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_bool(value: &str, name: &str) -> Result<bool, Box<dyn Error>> {
@@ -126,17 +134,11 @@ fn json_escape(value: &str) -> String {
 }
 
 fn optional_decimal(value: Option<f64>) -> String {
-    value.map_or_else(
-        || "null".to_owned(),
-        |number| format!("\"{number:.12}\""),
-    )
+    value.map_or_else(|| "null".to_owned(), |number| format!("\"{number:.12}\""))
 }
 
 fn optional_bool(value: Option<bool>) -> String {
-    value.map_or_else(
-        || "null".to_owned(),
-        |flag| flag.to_string(),
-    )
+    value.map_or_else(|| "null".to_owned(), |flag| flag.to_string())
 }
 
 fn render_result(result: &PoseResult) -> String {
@@ -187,8 +189,12 @@ fn render_result(result: &PoseResult) -> String {
         result.geometry_condition,
         result.ood_flag,
         result.symmetry_ambiguous,
-        result.latency_us.map_or_else(|| "null".to_owned(), |value| value.to_string()),
-        result.energy_uj.map_or_else(|| "null".to_owned(), |value| value.to_string()),
+        result
+            .latency_us
+            .map_or_else(|| "null".to_owned(), |value| value.to_string()),
+        result
+            .energy_uj
+            .map_or_else(|| "null".to_owned(), |value| value.to_string()),
         reasons,
         result.source_bytes_authenticated,
         result.physical_calibration_validated,
@@ -216,27 +222,51 @@ fn render_summary(summary: &EvaluationSummary) -> String {
         "{{\"valid_count\":{},\"accepted_count\":{},\"accepted_pose_coverage_fraction\":{},\"abstained_count\":{},\"invalid_count\":{},\"accepted_false_confident_95_count\":{},\"accepted_coverage_50\":{},\"accepted_coverage_80\":{},\"accepted_coverage_90\":{},\"accepted_coverage_95\":{},\"accepted_coverage_99\":{},\"accepted_translation_p95_m\":{},\"accepted_rotation_p95_rad\":{},\"accepted_gaussian_nll_mean\":{},\"accepted_covariance_logdet_median\":{},\"accepted_95_region_log_volume_median\":{},\"risk_coverage\":[{}]}}",
         summary.valid_count,
         summary.accepted_count,
-        summary.accepted_pose_coverage_fraction.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_pose_coverage_fraction
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         summary.abstained_count,
         summary.invalid_count,
         summary.accepted_false_confident_95_count,
-        summary.accepted_coverage_50.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_coverage_80.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_coverage_90.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_coverage_95.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_coverage_99.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_translation_p95_m.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_rotation_p95_rad.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_gaussian_nll_mean.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_covariance_logdet_median.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
-        summary.accepted_95_region_log_volume_median.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_coverage_50
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_coverage_80
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_coverage_90
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_coverage_95
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_coverage_99
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_translation_p95_m
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_rotation_p95_rad
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_gaussian_nll_mean
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_covariance_logdet_median
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary
+            .accepted_95_region_log_volume_median
+            .map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         risk,
     )
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let corpus_path = args.next().ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
+    let corpus_path = args
+        .next()
+        .ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
     let source_commit = args.next().ok_or("missing source_commit")?;
     let corpus_sha256 = args.next().ok_or("missing corpus_sha256")?;
     let content = fs::read_to_string(&corpus_path)?;
@@ -253,7 +283,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         if !case_ids.insert(item.input.case_id.clone()) {
             return Err(format!("duplicate case ID: {}", item.input.case_id).into());
         }
-        if expected.insert(item.input.case_id.clone(), item.expected).is_some() {
+        if expected
+            .insert(item.input.case_id.clone(), item.expected)
+            .is_some()
+        {
             return Err(format!("duplicate expectation: {}", item.input.case_id).into());
         }
         parsed.push(item.input);
@@ -279,7 +312,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let summary = summarize(&results);
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     println!(
         "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"covariance_order\":\"{}\",\"covariance_units\":\"{}\",\"admission_level_bps\":9500,\"case_count\":{},\"expected_disposition_matches\":{},\"expected_disposition_mismatches\":0,\"claim_ready\":false,\"source_bytes_authenticated\":false,\"physical_calibration_validated\":false,\"maneuver_authority_granted\":false,\"summary\":{},\"results\":[{}]}}",
         RECEIPT_SCHEMA,
