@@ -642,6 +642,52 @@ mod tests {
     }
 
     #[test]
+    fn model_credibility_cut_matches_frozen_python_digest_vector() {
+        assert_eq!(
+            fixture().compute_sha256().expect("model cut is valid"),
+            "970cae8ea26f237e528952ec458049e97d8992a7f7f055c89c415fd3814ccf2e"
+        );
+    }
+
+    #[test]
+    fn modality_requirements_are_owner_defined_not_a_universal_ladder() {
+        let mut cut = fixture();
+        cut.required_modalities.push(ValidationModality::HardwareInLoop);
+        let blockers = cut.reviewability_blockers();
+        assert!(blockers.contains(
+            &"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:hardware_in_loop".to_owned()
+        ));
+        assert!(!blockers.contains(
+            &"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:synthetic_known_truth".to_owned()
+        ));
+    }
+
+    #[test]
+    fn one_out_of_profile_stratum_is_not_compensated_by_another() {
+        let mut cut = fixture();
+        let report = cut
+            .metric_stratum_reports
+            .iter_mut()
+            .find(|item| item.metric_id == "out_of_domain_recall")
+            .unwrap();
+        report.status = MetricStratumStatus::OutsideDeclaredProfile;
+        let blockers = cut.reviewability_blockers();
+        assert!(blockers.contains(
+            &"MODEL_METRIC_OUTSIDE_DECLARED_PROFILE:out_of_domain_recall:environment:temperature-extremes".to_owned()
+        ));
+    }
+
+    #[test]
+    fn model_outside_domain_and_missing_independent_reference_remain_separate_blockers() {
+        let mut cut = fixture();
+        cut.domain_coverage_status = ModelDomainCoverageStatus::NotCovered;
+        cut.independent_reference_status = IndependentReferenceStatus::Absent;
+        let blockers = cut.reviewability_blockers();
+        assert!(blockers.contains(&"MODEL_CLAIM_OUTSIDE_VALIDATED_DOMAIN".to_owned()));
+        assert!(blockers.contains(&"MODEL_INDEPENDENT_REFERENCE_ABSENT".to_owned()));
+    }
+
+    #[test]
     fn model_credibility_cut_hash_is_order_invariant() {
         let cut = fixture();
         let mut reversed = cut.clone();
