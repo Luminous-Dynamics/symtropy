@@ -96,16 +96,14 @@ pub fn evaluate_circular_shade(
         return Err("module_transmittance_fraction must be finite and in [0, 1]");
     }
 
-    let total_distance_m =
-        input.sun_to_shade_distance_m + input.shade_to_target_distance_m;
+    let total_distance_m = input.sun_to_shade_distance_m + input.shade_to_target_distance_m;
     if !total_distance_m.is_finite() {
         return Err("source-to-target distance overflowed its finite domain");
     }
 
     let source_to_shade_fraction = input.sun_to_shade_distance_m / total_distance_m;
     let shade_to_target_fraction = input.shade_to_target_distance_m / total_distance_m;
-    let projected_sun_radius_at_shade_m =
-        shade_to_target_fraction * input.sun_radius_m;
+    let projected_sun_radius_at_shade_m = shade_to_target_fraction * input.sun_radius_m;
     let projected_sun_center_xy_at_shade_m = input
         .target_point_xy_m
         .map(|component| source_to_shade_fraction * component);
@@ -139,10 +137,9 @@ pub fn evaluate_circular_shade(
 
     // Clamp only numerical roundoff; the analytic intersection is bounded by
     // both circle areas.
-    let geometric_blocked_fraction =
-        (overlap_area_m2 / projected_sun_area_m2).clamp(0.0, 1.0);
-    let attenuation_fraction = geometric_blocked_fraction
-        * (1.0 - input.module_transmittance_fraction);
+    let geometric_blocked_fraction = (overlap_area_m2 / projected_sun_area_m2).clamp(0.0, 1.0);
+    let attenuation_fraction =
+        geometric_blocked_fraction * (1.0 - input.module_transmittance_fraction);
     let target_transmittance_fraction = 1.0 - attenuation_fraction;
 
     let outputs = [
@@ -186,9 +183,7 @@ pub fn circle_overlap_area(
         return Ok(0.0);
     }
 
-    let scale = first_radius_m
-        .max(second_radius_m)
-        .max(centre_separation_m);
+    let scale = first_radius_m.max(second_radius_m).max(centre_separation_m);
     if !finite_positive(scale) {
         return Err("circle geometry scale must be finite and positive");
     }
@@ -217,19 +212,16 @@ pub fn circle_overlap_area(
     let denominator_first = 2.0 * separation * first_radius;
     let denominator_second = 2.0 * separation * second_radius;
 
-    let first_cosine = ((distance_squared + first_squared - second_squared)
-        / denominator_first)
-        .clamp(-1.0, 1.0);
-    let second_cosine = ((distance_squared + second_squared - first_squared)
-        / denominator_second)
-        .clamp(-1.0, 1.0);
+    let first_cosine =
+        ((distance_squared + first_squared - second_squared) / denominator_first).clamp(-1.0, 1.0);
+    let second_cosine =
+        ((distance_squared + second_squared - first_squared) / denominator_second).clamp(-1.0, 1.0);
 
     let radicand = (-separation + first_radius + second_radius)
         * (separation + first_radius - second_radius)
         * (separation - first_radius + second_radius)
         * (separation + first_radius + second_radius);
-    let unit_area = first_squared * first_cosine.acos()
-        + second_squared * second_cosine.acos()
+    let unit_area = first_squared * first_cosine.acos() + second_squared * second_cosine.acos()
         - 0.5 * radicand.max(0.0).sqrt();
     let area = unit_area.max(0.0) * scale.powi(2);
 
@@ -387,21 +379,27 @@ mod tests {
 
     #[test]
     fn invalid_geometry_and_non_finite_values_are_rejected() {
-        assert!(evaluate_circular_shade(CircularShadeInput {
-            sun_to_shade_distance_m: 0.0,
-            ..base_input()
-        })
-        .is_err());
-        assert!(evaluate_circular_shade(CircularShadeInput {
-            module_transmittance_fraction: 1.1,
-            ..base_input()
-        })
-        .is_err());
-        assert!(evaluate_circular_shade(CircularShadeInput {
-            target_point_xy_m: [f64::NAN, 0.0],
-            ..base_input()
-        })
-        .is_err());
+        assert!(
+            evaluate_circular_shade(CircularShadeInput {
+                sun_to_shade_distance_m: 0.0,
+                ..base_input()
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_circular_shade(CircularShadeInput {
+                module_transmittance_fraction: 1.1,
+                ..base_input()
+            })
+            .is_err()
+        );
+        assert!(
+            evaluate_circular_shade(CircularShadeInput {
+                target_point_xy_m: [f64::NAN, 0.0],
+                ..base_input()
+            })
+            .is_err()
+        );
         assert!(circle_overlap_area(f64::INFINITY, 1.0, 0.0).is_err());
     }
 }
