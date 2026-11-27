@@ -515,7 +515,9 @@ mod tests {
         assert!((report.event_warning_coverage_fraction - 0.5).abs() < 1e-12);
         assert_eq!(report.false_alarm_episode_count, 2);
         assert!((report.negative_control_exposure_hours - 10.0).abs() < 1e-12);
-        assert!((report.false_alarms_per_1000_negative_hours - Some(200.0)).unwrap().abs() < 1e-12);
+        assert!(
+            (report.false_alarms_per_1000_negative_hours.unwrap() - 200.0).abs() < 1e-12
+        );
         assert_eq!(report.primary_event_alarm_count, 1);
         assert_eq!(report.repeated_event_alarm_count, 1);
         assert_eq!(report.unmatched_event_exposure_alarm_count, 1);
