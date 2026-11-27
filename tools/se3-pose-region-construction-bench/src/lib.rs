@@ -898,7 +898,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn even_small_covariance_asymmetry_is_rejected() {
         let mut value = input();
