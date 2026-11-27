@@ -107,10 +107,8 @@ pub fn validate_non_anticipative_policy_tree(
     let expected_schedule = stage_schedule(&first_path.stages, &first_path.scenario_id)?;
 
     let mut scenario_ids = BTreeSet::new();
-    let mut information_sets: BTreeMap<
-        PolicyInformationSetKey,
-        InformationSetAccumulator,
-    > = BTreeMap::new();
+    let mut information_sets: BTreeMap<PolicyInformationSetKey, InformationSetAccumulator> =
+        BTreeMap::new();
     let mut stage_decision_count = 0usize;
 
     for path in paths {
@@ -174,12 +172,14 @@ pub fn validate_non_anticipative_policy_tree(
                 }
             }
 
-            let selected = actions.get(stage.selected_action_id.as_str()).ok_or_else(|| {
-                format!(
-                    "{} at epoch {}: selected action '{}' is absent from its action catalogue",
-                    path.scenario_id, stage.decision_epoch, stage.selected_action_id
-                )
-            })?;
+            let selected = actions
+                .get(stage.selected_action_id.as_str())
+                .ok_or_else(|| {
+                    format!(
+                        "{} at epoch {}: selected action '{}' is absent from its action catalogue",
+                        path.scenario_id, stage.decision_epoch, stage.selected_action_id
+                    )
+                })?;
 
             if selected.admissibility != Gate::Yes
                 || !selected.hard_constraints_passed
@@ -191,8 +191,10 @@ pub fn validate_non_anticipative_policy_tree(
                 ));
             }
 
-            let action_catalog: Vec<String> =
-                actions.keys().map(|action_id| (*action_id).to_owned()).collect();
+            let action_catalog: Vec<String> = actions
+                .keys()
+                .map(|action_id| (*action_id).to_owned())
+                .collect();
             let key = PolicyInformationSetKey {
                 decision_epoch: stage.decision_epoch,
                 decision_cutoff: stage.decision_cutoff,
@@ -273,10 +275,7 @@ fn validate_context(context: &DecisionContext) -> Result<(), String> {
     Ok(())
 }
 
-fn stage_schedule(
-    stages: &[PlannedStage],
-    scenario_id: &str,
-) -> Result<Vec<(u64, u64)>, String> {
+fn stage_schedule(stages: &[PlannedStage], scenario_id: &str) -> Result<Vec<(u64, u64)>, String> {
     let mut schedule = Vec::with_capacity(stages.len());
     let mut previous: Option<(u64, u64)> = None;
 
@@ -326,12 +325,7 @@ mod tests {
         }
     }
 
-    fn stage(
-        epoch: u64,
-        cutoff: u64,
-        digest: &str,
-        selected: &str,
-    ) -> PlannedStage {
+    fn stage(epoch: u64, cutoff: u64, digest: &str, selected: &str) -> PlannedStage {
         PlannedStage {
             decision_epoch: epoch,
             decision_cutoff: cutoff,
@@ -392,23 +386,22 @@ mod tests {
         let mut second = stage(1, 100, &"a".repeat(64), "LOCAL");
         second.available_actions.pop();
 
-        let error =
-            validate_non_anticipative_policy_tree(&[path("A", vec![first]), path("B", vec![second])])
-                .unwrap_err();
+        let error = validate_non_anticipative_policy_tree(&[
+            path("A", vec![first]),
+            path("B", vec![second]),
+        ])
+        .unwrap_err();
         assert!(error.contains("inconsistent action catalogues"));
     }
 
     #[test]
     fn selected_action_must_exist_and_be_admissible() {
         let unavailable = stage(1, 100, &"a".repeat(64), "UNKNOWN");
-        assert!(
-            validate_non_anticipative_policy_tree(&[path("A", vec![unavailable])]).is_err()
-        );
+        assert!(validate_non_anticipative_policy_tree(&[path("A", vec![unavailable])]).is_err());
 
         let mut blocked = stage(1, 100, &"a".repeat(64), "LOCAL");
         blocked.available_actions[1].admissibility = Gate::Indeterminate;
-        let error =
-            validate_non_anticipative_policy_tree(&[path("A", vec![blocked])]).unwrap_err();
+        let error = validate_non_anticipative_policy_tree(&[path("A", vec![blocked])]).unwrap_err();
         assert!(error.contains("fails admissibility"));
     }
 
@@ -416,15 +409,11 @@ mod tests {
     fn hard_constraint_and_protected_floor_failures_are_rejected() {
         let mut hard_failure = stage(1, 100, &"a".repeat(64), "LOCAL");
         hard_failure.available_actions[1].hard_constraints_passed = false;
-        assert!(
-            validate_non_anticipative_policy_tree(&[path("A", vec![hard_failure])]).is_err()
-        );
+        assert!(validate_non_anticipative_policy_tree(&[path("A", vec![hard_failure])]).is_err());
 
         let mut floor_failure = stage(1, 100, &"a".repeat(64), "LOCAL");
         floor_failure.available_actions[1].protected_floor_breach_unit_hours = 1;
-        assert!(
-            validate_non_anticipative_policy_tree(&[path("A", vec![floor_failure])]).is_err()
-        );
+        assert!(validate_non_anticipative_policy_tree(&[path("A", vec![floor_failure])]).is_err());
     }
 
     #[test]
@@ -447,25 +436,19 @@ mod tests {
             stage(1, 100, &"a".repeat(64), "LOCAL"),
             stage(1, 200, &"b".repeat(64), "LOCAL"),
         ];
-        assert!(
-            validate_non_anticipative_policy_tree(&[path("A", repeated_epoch)]).is_err()
-        );
+        assert!(validate_non_anticipative_policy_tree(&[path("A", repeated_epoch)]).is_err());
 
         let repeated_cutoff = vec![
             stage(1, 100, &"a".repeat(64), "LOCAL"),
             stage(2, 100, &"b".repeat(64), "LOCAL"),
         ];
-        assert!(
-            validate_non_anticipative_policy_tree(&[path("A", repeated_cutoff)]).is_err()
-        );
+        assert!(validate_non_anticipative_policy_tree(&[path("A", repeated_cutoff)]).is_err());
     }
 
     #[test]
     fn malformed_observable_state_digest_is_rejected() {
         let invalid = stage(1, 100, "not-a-sha256", "LOCAL");
-        assert!(
-            validate_non_anticipative_policy_tree(&[path("A", vec![invalid])]).is_err()
-        );
+        assert!(validate_non_anticipative_policy_tree(&[path("A", vec![invalid])]).is_err());
     }
 
     #[test]
