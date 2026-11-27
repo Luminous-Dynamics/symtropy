@@ -13,6 +13,10 @@ use super::decision_context_v0_1::{
     DecisionContextV0_1, compute_required_evidence_manifest_sha256,
 };
 use super::effectivity_interval_v0_1::EffectivityRelation;
+use super::model_credibility_cut_v0_1::{
+    ModelCredibilityCutV0_1, ModelDomainCoverageStatus, ModelPackageStatus,
+    MetricStratumStatus, SplitIntegrityStatus,
+};
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::owner_evidence_cut_v0_1::{
     OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
@@ -130,6 +134,8 @@ pub struct ClaimGateInput<'a> {
     pub decision_context: &'a DecisionContextV0_1,
     /// Exact owner-native Mycelix/AeroCommons and BASALT evidence cut.
     pub owner_evidence_cut: &'a OwnerEvidenceCutV0_1,
+    /// Exact AeroWeft/model-credibility cut for this claim and domain.
+    pub model_credibility_cut: &'a ModelCredibilityCutV0_1,
     /// Exact identity/context/report bindings for all three component reports.
     pub bindings: &'a ClaimComponentBindings,
     /// Result of the separately-owned observer-coverage evaluator.
@@ -171,6 +177,15 @@ pub struct ClaimAssuranceAssessment {
     pub owner_observer_coverage_status: String,
     /// Selected receiver-evidence cutoff.
     pub owner_receiver_receipt_watermark_unix_ms: u64,
+    /// Exact model-credibility evidence reference and typed report commitment.
+    pub model_credibility_evidence_ref: String,
+    pub model_credibility_sha256: String,
+    pub model_ref: String,
+    pub model_artifact_sha256: String,
+    pub solver_configuration_sha256: String,
+    pub model_validation_package_sha256: String,
+    pub model_domain_coverage_status: String,
+    pub model_split_integrity_status: String,
     /// Component report digests in coverage, causal-cut, effectivity order.
     pub component_report_sha256: [String; 3],
     /// Sorted mandatory evidence references included in this assessment.
@@ -455,6 +470,134 @@ fn validate_owner_evidence_cut(
     }
 }
 
+/// Validate AeroWeft's typed model-credibility cut against the exact claim context
+/// and owner evidence cut. This composes model-owner outputs; it does not
+/// calculate VVUQ or independently authenticate the referenced reports.
+fn validate_model_credibility_cut(
+    input: &ClaimGateInput<'_>,
+    reasons: &mut BTreeSet<String>,
+    unverified: &mut bool,
+    incomplete: &mut bool,
+    out_of_scope: &mut bool,
+    invalid: &mut bool,
+) {
+    let model = input.model_credibility_cut;
+    match model.compute_sha256() {
+        Ok(digest) => {
+            match input.owner_evidence_cut.find_evidence(&model.evidence_ref) {
+                Some(record) if record.record_sha256 == digest => {}
+                Some(_) => {
+                    *invalid = true;
+                    reasons.insert("MODEL_CREDIBILITY_OWNER_RECORD_DIGEST_MISMATCH".to_owned());
+                }
+                None => {
+                    *incomplete = true;
+                    reasons.insert("MODEL_CREDIBILITY_OWNER_RECORD_MISSING".to_owned());
+                }
+            }
+            if !input
+                .required_evidence
+                .iter()
+                .any(|item| item.evidence_ref == model.evidence_ref)
+            {
+                *invalid = true;
+                reasons.insert("MODEL_CREDIBILITY_REF_NOT_IN_REQUIRED_EVIDENCE".to_owned());
+            }
+        }
+        Err(errors) => {
+            *invalid = true;
+            reasons.extend(errors);
+        }
+    }
+
+    for (reason, condition) in [
+        (
+            "MODEL_CREDIBILITY_CLAIM_ID_MISMATCH",
+            model.claim_id != input.decision_context.claim_id,
+        ),
+        (
+            "MODEL_CREDIBILITY_CONFIGURATION_MISMATCH",
+            model.configuration_ref != input.decision_context.configuration_ref,
+        ),
+        (
+            "MODEL_CREDIBILITY_OPERATING_ENVELOPE_MISMATCH",
+            model.operating_envelope_ref != input.decision_context.operating_envelope_ref,
+        ),
+        (
+            "MODEL_CREDIBILITY_APPLICABILITY_PROFILE_MISMATCH",
+            model.applicability_profile_sha256
+                != input.decision_context.model_applicability_profile_sha256,
+        ),
+        (
+            "MODEL_CREDIBILITY_RISK_CLASSIFICATION_MISMATCH",
+            model.risk_classification_sha256 != input.decision_context.risk_classification_sha256,
+        ),
+    ] {
+        if condition {
+            *invalid = true;
+            reasons.insert(reason.to_owned());
+        }
+    }
+
+    match model.package_status {
+        ModelPackageStatus::StructurallyComplete => {}
+        ModelPackageStatus::Incomplete => {
+            *incomplete = true;
+            reasons.insert("MODEL_VALIDATION_PACKAGE_INCOMPLETE".to_owned());
+        }
+        ModelPackageStatus::Rejected => {
+            *invalid = true;
+            reasons.insert("MODEL_VALIDATION_PACKAGE_REJECTED".to_owned());
+        }
+    }
+    match model.split_integrity_status {
+        SplitIntegrityStatus::DisjointByIndependentUnit => {}
+        SplitIntegrityStatus::LeakageDetected => {
+            *invalid = true;
+            reasons.insert("MODEL_CONFIRMATORY_SPLIT_LEAKAGE".to_owned());
+        }
+        SplitIntegrityStatus::Unverified => {
+            *unverified = true;
+            reasons.insert("MODEL_CONFIRMATORY_SPLIT_UNVERIFIED".to_owned());
+        }
+    }
+    match model.domain_coverage_status {
+        ModelDomainCoverageStatus::Covered => {}
+        ModelDomainCoverageStatus::NotCovered => {
+            *out_of_scope = true;
+            reasons.insert("MODEL_CLAIM_OUTSIDE_VALIDATED_DOMAIN".to_owned());
+        }
+        ModelDomainCoverageStatus::Indeterminate => {
+            *incomplete = true;
+            reasons.insert("MODEL_DOMAIN_COVERAGE_INDETERMINATE".to_owned());
+        }
+        ModelDomainCoverageStatus::Unverified => {
+            *unverified = true;
+            reasons.insert("MODEL_DOMAIN_COVERAGE_UNVERIFIED".to_owned());
+        }
+    }
+
+    for blocker in model.reviewability_blockers() {
+        if blocker == "MODEL_CLAIM_OUTSIDE_VALIDATED_DOMAIN"
+            || blocker.starts_with("MODEL_METRIC_OUTSIDE_DECLARED_PROFILE:")
+        {
+            *out_of_scope = true;
+        } else if blocker == "MODEL_VALIDATION_PACKAGE_REJECTED"
+            || blocker == "MODEL_CONFIRMATORY_SPLIT_LEAKAGE"
+        {
+            *invalid = true;
+        } else if blocker.starts_with("MODEL_METRIC_STRATUM_INDETERMINATE:")
+            || blocker.starts_with("MODEL_METRIC_STRATUM_REPORT_MISSING:")
+            || blocker == "MODEL_VALIDATION_PACKAGE_INCOMPLETE"
+        {
+            *incomplete = true;
+        } else {
+            *unverified = true;
+        }
+        reasons.insert(blocker);
+    }
+}
+
 fn component_reasons(prefix: &str, reasons: &[String], target: &mut BTreeSet<String>) {
     for reason in reasons {
         target.insert(format!("{prefix}_{reason}"));
@@ -510,6 +653,14 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
     validate_owner_evidence_cut(
         &input,
         &decision_context_sha256,
+        &mut reasons,
+        &mut unverified,
+        &mut incomplete,
+        &mut out_of_scope,
+        &mut invalid,
+    );
+    validate_model_credibility_cut(
+        &input,
         &mut reasons,
         &mut unverified,
         &mut incomplete,
@@ -637,9 +788,21 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
     };
 
     let required_evidence_refs = seen_refs.into_iter().map(str::to_owned).collect();
+    let model_credibility_sha256 = input
+        .model_credibility_cut
+        .compute_sha256()
+        .unwrap_or_default();
     ClaimAssuranceAssessment {
         claim_id: input.claim_id.to_owned(),
         decision_context_sha256,
+        model_credibility_evidence_ref: input.model_credibility_cut.evidence_ref.clone(),
+        model_credibility_sha256,
+        model_ref: input.model_credibility_cut.model_ref.clone(),
+        model_artifact_sha256: input.model_credibility_cut.model_artifact_sha256.clone(),
+        solver_configuration_sha256: input.model_credibility_cut.solver_configuration_sha256.clone(),
+        model_validation_package_sha256: input.model_credibility_cut.validation_package_sha256.clone(),
+        model_domain_coverage_status: format!("{:?}", input.model_credibility_cut.domain_coverage_status),
+        model_split_integrity_status: format!("{:?}", input.model_credibility_cut.split_integrity_status),
         owner_evidence_cut_sha256,
         owner_component_packet_id: input.owner_evidence_cut.component_packet_id.clone(),
         owner_component_packet_sha256: input.owner_evidence_cut.component_packet_sha256.clone(),
