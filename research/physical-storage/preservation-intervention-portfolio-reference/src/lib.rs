@@ -130,7 +130,6 @@ pub enum PortfolioContractError {
     InvalidBoundsReceiptId,
     InvalidBoundsReceiptDigest,
     EmptyRequiredApprovals,
-    EmptyApprovalId,
     EmptyPostconditionEvidence,
     EmptyPostconditionId,
     DuplicateActionCoverage,
@@ -199,6 +198,7 @@ fn plan_order(left: &PortfolioPlan, right: &PortfolioPlan) -> std::cmp::Ordering
         .then_with(|| left.energy_upper_millijoules.cmp(&right.energy_upper_millijoules))
         .then_with(|| left.duration_upper_ms.cmp(&right.duration_upper_ms))
         .then_with(|| left.downtime_upper_ms.cmp(&right.downtime_upper_ms))
+        .then_with(|| left.action_ids.len().cmp(&right.action_ids.len()))
         .then_with(|| left.action_ids.cmp(&right.action_ids))
 }
 
@@ -488,7 +488,9 @@ pub fn plan_portfolio(
     } else if excluded_candidates.iter().any(|candidate| candidate.reasons.iter().any(
         |reason| matches!(
             reason,
-            ExclusionReason::BoundsUnverified | ExclusionReason::MissingPrerequisiteEvidence
+            ExclusionReason::BoundsUnverified
+                | ExclusionReason::MissingPrerequisiteEvidence
+                | ExclusionReason::MissingApprovalAuthority
         )
     )) {
         PortfolioDisposition::EvidenceIncomplete
