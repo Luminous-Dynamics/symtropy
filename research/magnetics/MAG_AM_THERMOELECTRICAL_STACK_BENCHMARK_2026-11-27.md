@@ -29,6 +29,27 @@ Every candidate and reference must share the exact same:
 
 A candidate with a different waveform, coolant, duty, boundary or acceptance policy is **NotComparable**, not “normalized” after the fact.
 
+## 2A. Industry baseline: direct cooling is already deployed
+
+A 2025 teardown-based review benchmarks 48 traction motors across 31 EVs and identifies direct end-winding cooling in nine motors in its sample, including the Hyundai Ioniq 5 Project 45, Honda e:Advanced, Renault Megane E-Tech Iconic, Toyota bZ4X, BYD Seal Excellence and Nissan Ariya Evolve. The same review describes both direct winding-head spray rings/lances and direct end-winding plus stator-stack cooling. This makes direct oil/liquid cooling an incumbent—not an AM novelty. [6]
+
+The benchmark must compare to the strongest applicable conventional incumbent:
+- indirect housing water jacket / stator jacket;
+- direct end-winding oil or dielectric-liquid spray;
+- axial multi-nozzle impinging oil jets;
+- hairpin end-winding oil spray;
+- slot-embedded cooling channels;
+- hollow-conductor cooling;
+- combined direct end-winding + stator-stack cooling.
+
+A 2025 experimental study of axial multi-nozzle impinging oil jets compared 12–90-nozzle arrangements against water-jacket and axial spray systems. It reported that the multi-nozzle approach could nearly double maximum current density versus its water-jacket reference, with thermal performance comparable to spray cooling at lower pump power and pressure levels. These are study-specific results, not a universal performance multiplier. [7]
+
+A 2026 multi-physics study compared five hairpin cooling concepts—end-winding oil cooling, slot-bottom, slot-middle and slot-opening channels, and hollow conductors. At its base-speed point, its model reported hotspot values around 166 °C for slot-opening, 63 °C for end-winding cooling and 54 °C for hollow conductors. At another operating point the hollow-conductor system had a materially greater hydraulic penalty (reported pressure drop 11.7 kPa versus roughly 0.5 kPa for slot-channel configurations). Its conclusion is explicit: cooling topology, AC copper loss, efficiency, hydraulic cost and manufacturability must be co-optimized. The figures are specific to that machine and model, not transferable targets. [8]
+
+A 2026 experimental axial oil-spray study found that increasing flow improved cooling uniformity/capacity but increased pump power; nozzle and branch-flow distribution affected temperature uniformity. It reported up to 33.5% reduction in temperature standard deviation with increased motor speed, and 5.2–18.8% improvement in uniformity from branch-flow optimization at the same total flow in its own test rig, with some loss of overall cooling capacity. [9]
+
+Consequently, an AM-enabled stack must not only beat a water jacket. It must beat every preregistered applicable direct-cooling incumbent on identical duty, PWM waveform, flow/inlet state, thermal boundary, AC loss, electrical insulation policy and full pump/auxiliary-energy boundary—or show another robust benefit without sacrificing any mandatory function. The exact comparator family and excluded alternatives must be declared before comparison.
+
 ## 3. Mandatory function metrics
 
 The protocol requires application-specific hard limits for:
@@ -108,3 +129,11 @@ Aim beyond the current literature by publishing a reproducible test pack: frozen
 [4] ISO/ASTM 52953:2025, https://www.iso.org/standard/84117.html.
 
 [5] ISO/ASTM 52948:2026, https://www.iso.org/standard/84919.html.
+
+[6] Drexler et al., “Advances in electric motors: a review and benchmarking of product design and manufacturing technologies,” e+i Elektrotechnik und Informationstechnik, 15 July 2025, DOI: 10.1007/s00502-025-01331-3. The review analyses 48 traction motors from 31 EVs and records nine with direct end-winding cooling in its sample; it is a product teardown benchmark, not a controlled cooling comparison.
+
+[7] Maddumage et al., “Experimental Evaluation of Axial Multinozzle Impinging Oil Jets for End-Winding Cooling in Electric Vehicle Hairpin Traction Motors,” IEEE Transactions on Transportation Electrification 11(6), 12951–12963, DOI: 10.1109/TTE.2025.3600151. The reported near-doubling of maximum current density is study-specific and compared with that study's water-jacket reference.
+
+[8] Zarghani, Sergeant & Ibrahim, “Multi-Physics Study of Hairpin Winding Cooling Systems in Less-Rare-Earth Permanent Magnet Traction Motors,” Machines 14(7), 776 (10 July 2026), DOI: 10.3390/machines14070776. The paper uses a coupled electromagnetic–thermal model; report its results as model-specific, not AM test results.
+
+[9] “Experimental study of axial oil spray cooling in hairpin motor for end windings,” Results in Engineering 30 (June 2026), 111097, DOI: 10.1016/j.rineng.2026.111097.
