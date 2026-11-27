@@ -151,7 +151,9 @@ The first machine-readable and executable contract increment is now present:
 - `schemas/cfi-space/evaluator-ledger-v0.1.schema.json`: evaluator-side fault identity, variant type, independent-unit group, split and expected disposition. This file must not be mounted in a candidate process.
 - `schemas/cfi-space/predictions-v0.1.schema.json`: candidate output disposition and detected fault-family labels.
 - `research/spacecraft/cfi-space/fixtures/`: ten public synthetic episodes across two independent units and two counterfactual groups, including clean, single-fault and interaction cases. The public evaluator ledger is a scorer fixture, not a blind secret.
-- `tools/cfi-space-bench/`: dependency-light Rust scorer that checks schema versions, strict frame sequence/time/horizon continuity, digest syntax and identity binding, independent-unit split isolation, counterfactual sibling integrity, exact prediction coverage, and disposition outcomes.
+- `tools/cfi-space-bench/`: strict typed Rust scorer that checks schema versions, recomputes SHA-256 over exact source-bundle bytes, rejects path traversal/symlink escapes, binds predictions to the verified digest, validates frame sequence/time/horizon continuity, independent-unit split isolation, counterfactual sibling integrity and complete prediction coverage.
+- `scripts/cfi-space-challenger.py`: independent standard-library implementation of the joins, byte-digest verification and score counts. CI compares complete Rust/Python JSON receipts for positive and unsafe-acceptance controls.
+- `fixtures/bundles/*.bin`: tiny, deliberately labelled **non-image synthetic payloads** used to test byte commitment and path semantics only; they are not spacecraft images or sensor captures.
 
 Run locally:
 
@@ -164,17 +166,17 @@ cargo run --quiet --manifest-path tools/cfi-space-bench/Cargo.toml -- \
   --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
   --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json \
   --predictions research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json \
-  --expect-unsafe 0
+  --expect-unsafe 0 --bundle-root .
 ```
 
 The paired unsafe prediction fixture deliberately marks a common-cause-corrupted episode `qualified`; the scorer must report exactly one unsafe acceptance when run with `--expect-unsafe 1`. The focused workflow runs both controls.
 
 ### P1 scorer limits
 
-The scorer validates the *contract and the supplied result joins*. It does not decode images, authenticate the producer of a source bundle, recompute the named source bundle hash from unavailable pixels, estimate pose, measure physical fault prevalence, prove real statistical independence, or establish blind custody. The fixture digests are schema/identity test values; they are not spacecraft data commitments.
+The scorer recomputes SHA-256 over the committed synthetic non-image payload bytes and validates the supplied result joins. This establishes byte integrity for those fixtures only; it does not decode images, authenticate a sensor/source or camera capture chain, estimate pose, measure physical fault prevalence, prove real statistical independence, or establish blind custody.
 
 The scorecard reports raw counts and per-family detection counts. It intentionally does not claim a meaningful precision/recall confidence interval from this ten-episode synthetic fixture. Those statistics require independently sampled target/session/trajectory units and prospective holdout data.
 
 ### Next P1 increment
 
-Add source-bundle byte verification, canonical manifest receipts and an independent scorer challenger, then test malformed/incomplete episode variants. After that, integrate the Symthaea observer witness as an additional candidate output without changing the pose/authority gates.
+Add canonical manifest receipts and broader malformed/incomplete episode variants. After that, integrate the Symthaea observer witness as an additional candidate output without changing the pose/authority gates.
