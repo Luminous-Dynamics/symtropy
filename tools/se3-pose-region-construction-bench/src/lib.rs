@@ -655,11 +655,11 @@ mod tests {
         assert!(!result.source_bytes_authenticated);
         assert!(!result.maneuver_authority_granted);
         let region = result.region.expect("candidate must carry a region");
-        assert!(region.translation_bounds_um[0][0] <= 998_000);
-        assert!(region.translation_bounds_um[0][1] >= 1_002_000);
-        assert!(region.translation_bounds_um[1][0] <= -2_002_000);
-        assert!(region.translation_bounds_um[1][1] >= -1_998_000);
-        assert!(region.orientation_cap_urad >= 4_000);
+        assert_eq!(
+            region.translation_bounds_um,
+            [[997_999, 1_002_001], [-2_002_001, -1_997_999], [497_999, 502_001]]
+        );
+        assert_eq!(region.orientation_cap_urad, 4_001);
     }
 
     #[test]
@@ -815,7 +815,7 @@ mod tests {
     }
 
     #[test]
-    fn conformal_rank_without_finite_order_statistic_abstains() {
+    fn minimum_calibration_sample_floor_abstains_before_rank_evaluation() {
         let mut value = input();
         value.profile.sample_count = 18;
         value.profile.order_statistic_rank = 19;
