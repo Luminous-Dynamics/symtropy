@@ -71,7 +71,7 @@ jobs:
           set -euo pipefail
           FILE="research/mobility-rrvr-aerb-observation-projection-v0.2/fixtures/candidate_evidence_snapshot_synthetic_v0_2.json"
           jq -e '
-            all($observations[] | select(.payload.kind == "temporal_closure_receipt");
+            all(.observations[] | select(.payload.kind == "temporal_closure_receipt");
               .payload.closure_disposition != "closed"
               or (.payload | has("effect_outcome") | not)
             )
