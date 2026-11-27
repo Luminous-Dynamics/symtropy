@@ -106,3 +106,11 @@ The exported `callback_event_receipt` module defines stable per-step callback ev
 ## OBB shape-contact coverage
 
 The exported `shape_coverage` module uses the same frozen 2D/3D OBB geometry corpora as PR #7622, computes conservative world AABBs with outward rounding at every extent operation, and verifies `ExactOBBContacts ⊆ AabbOraclePairs`. Run `cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin shape-coverage-benchmark -- 4096` to emit 2D/3D recall and candidate-amplification rows. CI requires 4,096 pairs per dimension, zero missed contacts and 100% recall. This is shape-to-AABB oracle composition; same-frame timed backend and full PhysicsWorld integration remain follow-on work.
+
+## Same-frame OBB coverage across all broadphase backends
+
+The separate `shape-backend-coverage-benchmark` builds a common 8,192-proxy frame from 4,096 transformed OBB pairs in 2D and again in 3D, then runs all nine tournament backends on the exact same OBB-derived AABBs. It emits 18 rows with exact shape-contact count, backend candidates, backend AABB false negatives, derived shape-contact recall, candidate amplification and one cold-frame time. CI requires zero backend AABB false negatives and 100% derived shape-contact recall on every row.
+
+Run: `cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin shape-backend-coverage-benchmark -- 4096`.
+
+The cold-frame time is a one-sample diagnostic, not a stable backend performance distribution. Use the multi-frame temporal tournament for comparative performance. This benchmark provides the stronger same-frame correctness link between the independent OBB oracle and each backend.
