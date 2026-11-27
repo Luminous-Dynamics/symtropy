@@ -44,10 +44,10 @@ fn envelope_for_policy(
     worst_case_recovery_regret(&vectors).expect("unique frozen scenario set")
 }
 
-fn bound<'a>(
-    envelope: &'a RecoveryRegretEnvelope,
+fn bound(
+    envelope: &RecoveryRegretEnvelope,
     metric: RecoveryRegretMetric,
-) -> &'a maritime_capability_to_service::WorstCaseRecoveryRegret {
+) -> &maritime_capability_to_service::WorstCaseRecoveryRegret {
     envelope
         .worst_case
         .iter()
