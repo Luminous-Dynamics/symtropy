@@ -12,3 +12,6 @@ path = "src/lib.rs"
 [[bin]]
 name = "mcsc-audit"
 path = "src/main.rs"
+
+# Keep this synthetic research oracle outside the repository production workspace.
+[workspace]
