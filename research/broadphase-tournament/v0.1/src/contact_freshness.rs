@@ -302,6 +302,7 @@ impl ContactFreshnessStamp {
     /// actions have been performed. It avoids repeatedly invalidating a
     /// retained manifold after a material/solver-only warm-start reset, while
     /// preventing premature stamp advancement.
+    #[allow(clippy::too_many_arguments)]
     pub fn commit_transition(
         &self,
         global: GlobalContactRevisions,
