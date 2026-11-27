@@ -47,7 +47,7 @@
     },
     "feedstock": {
       "type": "object",
-      "required": ["component_id", "specimen_id", "lot_id", "magnet_family", "feedstock_form", "grade_or_composition_record", "provenance_record", "manufacturing_genealogy", "process_history_digest", "modification_history_digest", "feedstock_mass"],
+      "required": ["component_id", "specimen_id", "lot_id", "magnet_family", "feedstock_form", "grade_or_composition_record", "provenance_record", "manufacturing_genealogy", "process_history_digest", "modification_history_digest", "feedstock_mass_record", "feedstock_mass"],
       "properties": {
         "component_id": { "type": "string", "minLength": 1 },
         "specimen_id": { "type": "string", "minLength": 1 },
@@ -59,6 +59,7 @@
         "manufacturing_genealogy": { "$ref": "#/$defs/record" },
         "process_history_digest": { "$ref": "#/$defs/digest" },
         "modification_history_digest": { "$ref": "#/$defs/digest" },
+        "feedstock_mass_record": { "$ref": "#/$defs/record" },
         "feedstock_mass": { "$ref": "#/$defs/mass" },
         "service_history_digest": { "$ref": "#/$defs/digest" }
       },
@@ -96,13 +97,14 @@
     },
     "stage": {
       "type": "object",
-      "required": ["stage_id", "stage_record", "feedstock_lot_id", "route", "method_id", "input_mass", "outputs", "closure_tolerance_mg"],
+      "required": ["stage_id", "stage_record", "feedstock_lot_id", "route", "method_id", "input_mass_record", "input_mass", "outputs", "closure_tolerance_mg"],
       "properties": {
         "stage_id": { "type": "string", "minLength": 1 },
         "stage_record": { "$ref": "#/$defs/record" },
         "feedstock_lot_id": { "type": "string", "minLength": 1 },
         "route": { "enum": ["PolymerHydrolysis", "HydrogenShortLoop", "MechanicalLiberation", "Hydrometallurgy", "Pyrometallurgy", "Electrochemical", "Other"] },
         "method_id": { "type": "string", "minLength": 1 },
+        "input_mass_record": { "$ref": "#/$defs/record" },
         "input_mass": { "$ref": "#/$defs/mass" },
         "outputs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/output" } },
         "closure_tolerance_mg": { "type": "integer", "minimum": 0 }
