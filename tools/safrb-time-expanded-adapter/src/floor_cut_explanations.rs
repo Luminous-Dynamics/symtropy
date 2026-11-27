@@ -718,7 +718,7 @@ mod tests {
     #[test]
     fn published_floor_cut_schema_is_valid_and_strict() {
         let schema: serde_json::Value = serde_json::from_str(include_str!(
-            "../schemas/beneficiary-floor-cut-explanation-v0.1.schema.json"
+            "../schemas/floor-cut-explanation-v0.1.schema.json"
         ))
         .unwrap();
         assert_eq!(schema["properties"]["schema_version"]["const"], FLOOR_CUT_EXPLANATION_SCHEMA);
