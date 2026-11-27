@@ -543,6 +543,150 @@ mod tests {
         assert!(restore_original_flows(&residual, &[]).is_err());
     }
 
+    fn brute_min_cost(
+        node_count: u32,
+        arcs: &[(usize, usize, i64, i64, i32)],
+        supplies: &[i128],
+        objective_offset: i128,
+    ) -> Option<i128> {
+        fn visit(
+            position: usize,
+            arcs: &[(usize, usize, i64, i64, i32)],
+            supplies: &[i128],
+            balance: &mut [i128],
+            cost: i128,
+            best: &mut Option<i128>,
+        ) {
+            if position == arcs.len() {
+                if balance == supplies {
+                    *best = Some(best.map_or(cost, |current| current.min(cost)));
+                }
+                return;
+            }
+            let (tail, head, lower, upper, unit_cost) = arcs[position];
+            for flow in lower..=upper {
+                let amount = i128::from(flow);
+                balance[tail] += amount;
+                balance[head] -= amount;
+                visit(
+                    position + 1,
+                    arcs,
+                    supplies,
+                    balance,
+                    cost + amount * i128::from(unit_cost),
+                    best,
+                );
+                balance[tail] -= amount;
+                balance[head] += amount;
+            }
+        }
+
+        let mut balance = vec![0_i128; node_count as usize + 1];
+        let mut best = None;
+        visit(
+            0,
+            arcs,
+            supplies,
+            &mut balance,
+            objective_offset,
+            &mut best,
+        );
+        best
+    }
+
+    #[test]
+    fn exhaustive_small_instances_preserve_lower_bound_feasibility_and_objective() {
+        fn next(state: &mut u64) -> u32 {
+            *state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (*state >> 32) as u32
+        }
+
+        for seed in 0_u64..128 {
+            let mut state = seed.wrapping_add(0x5A17_2026);
+            let mut rows = Vec::new();
+            let mut chosen_flows = Vec::new();
+            let mut supplies = vec![0_i64; 4];
+            for _ in 0..5 {
+                let tail = (next(&mut state) % 3 + 1) as usize;
+                let head = (next(&mut state) % 3 + 1) as usize;
+                let lower = i64::from(next(&mut state) % 2);
+                let upper = lower + i64::from(next(&mut state) % 3);
+                let chosen = lower
+                    + i64::from(next(&mut state) % u32::try_from(upper - lower + 1).unwrap());
+                let unit_cost = i32::try_from(next(&mut state) % 9).unwrap() - 4;
+                supplies[tail] += chosen;
+                supplies[head] -= chosen;
+                rows.push((tail, head, lower, upper, unit_cost));
+                chosen_flows.push(chosen);
+            }
+
+            let mut text = "p min 3 5\\n".to_string();
+            for (node, supply) in supplies.iter().enumerate().skip(1) {
+                if *supply != 0 {
+                    text.push_str(&format!("n {node} {supply}\\n"));
+                }
+            }
+            for (tail, head, lower, upper, cost) in &rows {
+                text.push_str(&format!("a {tail} {head} {lower} {upper} {cost}\\n"));
+            }
+
+            let instance = parse_dimacs_mcf(&text).unwrap();
+            let residual = remove_lower_bounds(&instance).unwrap();
+            let original_supplies = instance
+                .node_supplies
+                .iter()
+                .map(|&supply| i128::from(supply))
+                .collect::<Vec<_>>();
+            let original_rows = instance
+                .arcs
+                .iter()
+                .map(|arc| {
+                    (
+                        arc.tail as usize,
+                        arc.head as usize,
+                        arc.lower_bound,
+                        arc.upper_bound,
+                        arc.unit_cost,
+                    )
+                })
+                .collect::<Vec<_>>();
+            let residual_rows = residual
+                .arcs
+                .iter()
+                .map(|arc| {
+                    (
+                        arc.tail as usize,
+                        arc.head as usize,
+                        0,
+                        arc.capacity,
+                        arc.unit_cost,
+                    )
+                })
+                .collect::<Vec<_>>();
+
+            let original_best = brute_min_cost(
+                instance.node_count,
+                &original_rows,
+                &original_supplies,
+                0,
+            );
+            let residual_best = brute_min_cost(
+                residual.node_count,
+                &residual_rows,
+                &residual.adjusted_supplies,
+                residual.lower_bound_cost_offset,
+            );
+            assert_eq!(
+                residual_best,
+                original_best,
+                "lower-bound transform mismatch for deterministic seed {seed}; chosen feasible flow {chosen_flows:?}"
+            );
+            assert!(original_best.is_some(), "seed {seed} was constructed from a feasible flow");
+        }
+    }
+
     #[test]
     fn objective_reconstruction_rejects_incomplete_or_out_of_range_witness() {
         let instance = parse_dimacs_mcf("p min 2 1\na 1 2 2 5 -3").unwrap();
