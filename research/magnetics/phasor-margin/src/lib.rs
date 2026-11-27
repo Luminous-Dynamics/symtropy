@@ -8,8 +8,8 @@
 //! provenance-bound cosine threshold.
 
 use magnetic_interval_ad::{
-    certify_expression_centered, Interval, IntervalAdError, IntervalDual, ParameterDomain,
-    ValidatedDerivativeEnclosure,
+    Interval, IntervalAdError, IntervalDual, ParameterDomain, ValidatedDerivativeEnclosure,
+    certify_expression_centered,
 };
 
 pub const PHASE_MARGIN_EXPRESSION_ID: &str = "normalized-phasor-cosine-margin-v0.1";
@@ -86,7 +86,13 @@ fn validate_domain(domain: &ParameterDomain<5>) -> Result<(), PhaseMarginError> 
 }
 
 fn phase_similarity_expression(
-    [measured_x, measured_y, reference_x, reference_y, minimum_cosine]: [IntervalDual<5>; 5],
+    [
+        measured_x,
+        measured_y,
+        reference_x,
+        reference_y,
+        minimum_cosine,
+    ]: [IntervalDual<5>; 5],
 ) -> Result<IntervalDual<5>, IntervalAdError> {
     let measured_norm_squared = measured_x.square() + measured_y.square();
     let reference_norm_squared = reference_x.square() + reference_y.square();
@@ -116,16 +122,15 @@ pub fn certify_phasor_phase_margin(
     let reference_norm_squared =
         domain.parameter_bounds[2].square() + domain.parameter_bounds[3].square();
 
-    let derivative_enclosure =
-        certify_expression_centered(domain, phase_similarity_expression)?;
+    let derivative_enclosure = certify_expression_centered(domain, phase_similarity_expression)?;
 
     Ok(PhasorPhaseMarginCertificate {
         derivative_enclosure,
         measured_norm_squared_enclosure: measured_norm_squared,
         reference_norm_squared_enclosure: reference_norm_squared,
         metric_id: "normalized-phasor-dot-product".to_owned(),
-        shortest_arc_contract:
-            "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi".to_owned(),
+        shortest_arc_contract: "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi"
+            .to_owned(),
     })
 }
 
@@ -199,72 +204,55 @@ mod tests {
         let result = certify_phasor_phase_margin(&scope)
             .expect("nonzero phasors across the angle branch cut");
         assert!(result.derivative_enclosure.value_enclosure.lower() > 0.0);
-        assert!(result
-            .derivative_enclosure
-            .derivative_abs_supremum
-            .iter()
-            .all(|bound| bound.is_finite()));
+        assert!(
+            result
+                .derivative_enclosure
+                .derivative_abs_supremum
+                .iter()
+                .all(|bound| bound.is_finite())
+        );
         assert_eq!(result.metric_id, "normalized-phasor-dot-product");
     }
 
     #[test]
     fn phase_pair_outside_the_tolerance_has_a_negative_margin() {
         // Opposite vectors are separated by pi; cos(pi) = -1 < 0.9.
-        let scope = domain([
-            point(1.0),
-            point(0.0),
-            point(-1.0),
-            point(0.0),
-            point(0.9),
-        ]);
-        let result = certify_phasor_phase_margin(&scope)
-            .expect("nonzero opposite phasors");
+        let scope = domain([point(1.0), point(0.0), point(-1.0), point(0.0), point(0.9)]);
+        let result = certify_phasor_phase_margin(&scope).expect("nonzero opposite phasors");
         assert!(result.derivative_enclosure.value_enclosure.upper() < 0.0);
     }
 
     #[test]
     fn common_quarter_turn_rotation_preserves_the_margin() {
-        let original = domain([
-            point(1.0),
-            point(0.0),
-            point(0.8),
-            point(0.6),
-            point(0.7),
-        ]);
+        let original = domain([point(1.0), point(0.0), point(0.8), point(0.6), point(0.7)]);
         // Apply the exact rotation (x,y) -> (-y,x) to both vectors.
-        let rotated = domain([
-            point(0.0),
-            point(1.0),
-            point(-0.6),
-            point(0.8),
-            point(0.7),
-        ]);
+        let rotated = domain([point(0.0), point(1.0), point(-0.6), point(0.8), point(0.7)]);
         let a = certify_phasor_phase_margin(&original).expect("original frame");
         let b = certify_phasor_phase_margin(&rotated).expect("rotated frame");
-        assert!(enclosure_contains(a.derivative_enclosure.value_enclosure, 0.1));
-        assert!(enclosure_contains(b.derivative_enclosure.value_enclosure, 0.1));
+        assert!(enclosure_contains(
+            a.derivative_enclosure.value_enclosure,
+            0.1
+        ));
+        assert!(enclosure_contains(
+            b.derivative_enclosure.value_enclosure,
+            0.1
+        ));
     }
 
     #[test]
     fn positive_phasor_scaling_preserves_the_margin() {
-        let original = domain([
-            point(1.0),
-            point(0.0),
-            point(0.8),
-            point(0.6),
-            point(0.7),
-        ]);
-        let scaled = domain([
-            point(2.0),
-            point(0.0),
-            point(2.4),
-            point(1.8),
-            point(0.7),
-        ]);
+        let original = domain([point(1.0), point(0.0), point(0.8), point(0.6), point(0.7)]);
+        let scaled = domain([point(2.0), point(0.0), point(2.4), point(1.8), point(0.7)]);
         let a = certify_phasor_phase_margin(&original).expect("original amplitudes");
         let b = certify_phasor_phase_margin(&scaled).expect("positive scaled amplitudes");
-        assert!(enclosure_contains(a.derivative_enclosure.value_enclosure, 0.1));
-        assert!(enclosure_contains(b.derivative_enclosure.value_enclosure, 0.1));
+        assert!(enclosure_contains(
+            a.derivative_enclosure.value_enclosure,
+            0.1
+        ));
+        assert!(enclosure_contains(
+            b.derivative_enclosure.value_enclosure,
+            0.1
+        ));
     }
 
     #[test]
@@ -309,8 +297,7 @@ mod tests {
             interval(0.99, 1.01),
         ]);
         assert_eq!(
-            certify_phasor_phase_margin(&high)
-                .expect_err("cosine threshold cannot exceed one"),
+            certify_phasor_phase_margin(&high).expect_err("cosine threshold cannot exceed one"),
             PhaseMarginError::InvalidThresholdCosineDomain
         );
 
@@ -330,13 +317,7 @@ mod tests {
 
     #[test]
     fn phase_parameter_order_and_dimensionless_units_are_enforced() {
-        let mut wrong_order = domain([
-            point(1.0),
-            point(0.0),
-            point(0.8),
-            point(0.6),
-            point(0.7),
-        ]);
+        let mut wrong_order = domain([point(1.0), point(0.0), point(0.8), point(0.6), point(0.7)]);
         wrong_order.parameter_ids.swap(0, 1);
         assert_eq!(
             certify_phasor_phase_margin(&wrong_order)
@@ -344,13 +325,7 @@ mod tests {
             PhaseMarginError::WrongParameterOrder { index: 0 }
         );
 
-        let mut wrong_unit = domain([
-            point(1.0),
-            point(0.0),
-            point(0.8),
-            point(0.6),
-            point(0.7),
-        ]);
+        let mut wrong_unit = domain([point(1.0), point(0.0), point(0.8), point(0.6), point(0.7)]);
         wrong_unit.parameter_units[0] = "tesla".to_owned();
         assert_eq!(
             certify_phasor_phase_margin(&wrong_unit)
@@ -370,11 +345,13 @@ mod tests {
         ]);
         let result = certify_phasor_phase_margin(&scope)
             .expect("all phasor norms are bounded away from zero");
-        assert!(result
-            .derivative_enclosure
-            .derivative_abs_supremum
-            .iter()
-            .all(|bound| bound.is_finite()));
+        assert!(
+            result
+                .derivative_enclosure
+                .derivative_abs_supremum
+                .iter()
+                .all(|bound| bound.is_finite())
+        );
         assert!(result.derivative_enclosure.value_enclosure.is_finite());
         assert!(result.measured_norm_squared_enclosure.lower() > 0.0);
         assert!(result.reference_norm_squared_enclosure.lower() > 0.0);
