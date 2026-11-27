@@ -11,7 +11,10 @@
       "publication_date": "2026-09",
       "evidence_class": "review_synthesis",
       "source_claims": {
-        "published_am_ndfeb_remanence_tesla_range": [0.6, 1.0],
+        "published_am_ndfeb_remanence_tesla_range": [
+          0.6,
+          1
+        ],
         "mex_described_as_highest_remanence_am_route": true,
         "laser_powder_bed_texture_challenge": true,
         "sls_binder_jet_porosity_challenge": true
@@ -69,7 +72,10 @@
       "source_claims": {
         "multi_material_patterned_poles_demonstrated": true,
         "build_field_millitesla": 230,
-        "post_magnetization_field_tesla_range": [1.5, 1.9]
+        "post_magnetization_field_tesla_range": [
+          1.5,
+          1.9
+        ]
       },
       "limitations": [
         "build field, post-magnetization field and probe field are distinct",
@@ -103,6 +109,34 @@
       "limitations": [
         "powder extrusion moulding is an adjacent near-net-shape route, not a matched LPBF or MEX route",
         "Br/Js alignment ratio is not interchangeable with <cos(theta)>"
+      ]
+    },
+    {
+      "source_id": "FODOR-MOEM-2026",
+      "route_stratum": "cross_route_evidence_maturity",
+      "doi": "10.1002/adem.71259",
+      "publication_date": "2026-09-09",
+      "evidence_class": "perspective_framework",
+      "source_claims": {
+        "evidence_levels": [
+          "M1_CONCEPTUAL",
+          "M2_COUPON_MATERIAL",
+          "M3_CONTROLLED_PSPP",
+          "M4_FUNCTIONAL_COMPONENT",
+          "M5_QUALIFICATION_RELEVANT"
+        ],
+        "current_am_em_evidence_concentrated_at": [
+          "M2",
+          "M3"
+        ],
+        "m4_is_limited": true,
+        "m5_qualification_grade_evidence_rare_or_absent": true,
+        "industrial_metric_is_cost_per_performance_at_target_volume": true
+      },
+      "limitations": [
+        "MOEM is a proposed research reporting framework, not a formal standard or certification",
+        "the paper addresses AM-enabled electrical-machine materials and assemblies broadly; apply only where the magnetic component/use case matches its scope",
+        "maturity labels describe evidence demonstrated, not intended capability or route superiority"
       ]
     }
   ]
