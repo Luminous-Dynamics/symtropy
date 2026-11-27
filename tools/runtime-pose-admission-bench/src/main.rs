@@ -1,5 +1,5 @@
 use runtime_pose_admission_bench::{
-    AdmissionDisposition, CalibrationProfile, RuntimePosePrediction, RECEIPT_SCHEMA,
+    AdmissionDisposition, CalibrationProfile, RECEIPT_SCHEMA, RuntimePosePrediction,
     evaluate_manifest,
 };
 use std::collections::BTreeSet;
@@ -21,19 +21,27 @@ fn parse_bool(value: &str, name: &str) -> Result<bool, Box<dyn Error>> {
 }
 
 fn parse_u16(value: &str, name: &str) -> Result<u16, Box<dyn Error>> {
-    value.parse::<u16>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<u16>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_u32(value: &str, name: &str) -> Result<u32, Box<dyn Error>> {
-    value.parse::<u32>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<u32>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_u64(value: &str, name: &str) -> Result<u64, Box<dyn Error>> {
-    value.parse::<u64>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<u64>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_f64(value: &str, name: &str) -> Result<f64, Box<dyn Error>> {
-    value.parse::<f64>().map_err(|error| format!("invalid {name}: {error}").into())
+    value
+        .parse::<f64>()
+        .map_err(|error| format!("invalid {name}: {error}").into())
 }
 
 fn parse_f64_array<const N: usize>(
@@ -112,7 +120,10 @@ fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn 
             frame_bundle_revision: fields[20].to_owned(),
             frame_bundle_sha256: fields[21].to_owned(),
             frame_bundle_state: fields[22].to_owned(),
-            frame_source_bytes_authenticated: parse_bool(fields[23], "frame_source_bytes_authenticated")?,
+            frame_source_bytes_authenticated: parse_bool(
+                fields[23],
+                "frame_source_bytes_authenticated",
+            )?,
             bundle_sample_id: fields[24].to_owned(),
             bundle_frame_id: fields[25].to_owned(),
             bundle_target_id: fields[26].to_owned(),
@@ -256,7 +267,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     let candidate_count = results
         .iter()
         .filter(|result| result.disposition == AdmissionDisposition::CandidateStatisticalRegion)
