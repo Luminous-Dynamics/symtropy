@@ -415,6 +415,25 @@ impl ClaimSpecificationV0_1 {
         }
     }
 
+    /// Verify the typed semantic commitment against an independently supplied digest.
+    ///
+    /// The caller must retain the raw-payload digest separately. A matching
+    /// semantic digest proves only equality under this typed profile.
+    pub fn verify_semantic_sha256(&self, expected: &str) -> Result<(), Vec<String>> {
+        if !valid_sha256(expected) {
+            return Err(vec![
+                "CLAIM_SPECIFICATION_SEMANTIC_DIGEST_INVALID".to_owned(),
+            ]);
+        }
+        let actual = self.compute_semantic_sha256()?;
+        if actual != expected {
+            return Err(vec![
+                "CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned(),
+            ]);
+        }
+        Ok(())
+    }
+
     /// Compute the typed semantic commitment for a well-specified object.
     ///
     /// This uses the versioned Rust/Serde struct-order profile, not raw source
@@ -643,6 +662,11 @@ mod tests {
         let baseline = specification
             .compute_semantic_sha256()
             .expect("valid specification has semantic digest");
+        assert!(specification.verify_semantic_sha256(&baseline).is_ok());
+        assert_eq!(
+            specification.verify_semantic_sha256(&"0".repeat(64)),
+            Err(vec!["CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned()])
+        );
 
         let mut changed_threshold = specification.clone();
         changed_threshold.predicate.threshold.numerator += 1;
