@@ -123,9 +123,7 @@ impl core::fmt::Display for FiniteAdaptivePortfolioError {
             Self::InvalidCampaignIdentity => {
                 "scenario, density-space or consequence identity is zero"
             }
-            Self::InvalidDefensiveFraction => {
-                "defensive proposal fraction must lie in (0,1]"
-            }
+            Self::InvalidDefensiveFraction => "defensive proposal fraction must lie in (0,1]",
             Self::InvalidPortfolioUniverse => "portfolio universe is invalid",
             Self::InvalidConsequenceBound => "portfolio consequence bound is reversed",
             Self::IncompleteAtomOutcomeUniverse => {
@@ -920,7 +918,14 @@ mod tests {
         branch_ticket: u16,
         atom_ticket: u16,
     ) -> FiniteProposalExecutionReceipt {
-        receipt_for_config(&config(), sequence_index, sample_id, prior_event, branch_ticket, atom_ticket)
+        receipt_for_config(
+            &config(),
+            sequence_index,
+            sample_id,
+            prior_event,
+            branch_ticket,
+            atom_ticket,
+        )
     }
 
     #[test]
