@@ -1,0 +1,400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-assurance-benchmark-metrics-v0.2.schema.json",
+  "title": "AERO Assurance Benchmark Metric Registry v0.2",
+  "description": "Prospective benchmark preregistration. Schema validity is not benchmark execution, independent adjudication or engineering qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "registry_id",
+    "supersedes_registry_id",
+    "registry_status",
+    "case_adjudication_status",
+    "benchmark_scope",
+    "protocol",
+    "metric_count",
+    "metrics"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "AERO_ASSURANCE_BENCHMARK_METRIC_REGISTRY_V0_2"
+    },
+    "schema_version": {
+      "const": "0.2"
+    },
+    "registry_id": {
+      "const": "aero-assurance-metrics-v0.2"
+    },
+    "supersedes_registry_id": {
+      "const": "aero-assurance-metrics-v0.1"
+    },
+    "registry_status": {
+      "const": "PROSPECTIVE_NOT_EXECUTED"
+    },
+    "case_adjudication_status": {
+      "const": "NOT_INDEPENDENTLY_ADJUDICATED"
+    },
+    "benchmark_scope": {
+      "type": "string",
+      "minLength": 60
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "status",
+        "adjudication",
+        "partitioning",
+        "statistical_policy",
+        "matched_comparison"
+      ],
+      "properties": {
+        "protocol_id": {
+          "const": "AERO-ASSURANCE-BENCHMARK-PROTOCOL-V0_2"
+        },
+        "status": {
+          "const": "PROSPECTIVE_NOT_EXECUTED"
+        },
+        "adjudication": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_independent_reviewers_per_case",
+            "independent_oracle_required",
+            "oracle_separation",
+            "dissent_retained",
+            "reviewer_qualification",
+            "unresolved_case_policy"
+          ],
+          "properties": {
+            "minimum_independent_reviewers_per_case": {
+              "const": 2
+            },
+            "independent_oracle_required": {
+              "const": true
+            },
+            "oracle_separation": {
+              "type": "string",
+              "minLength": 60
+            },
+            "dissent_retained": {
+              "const": true
+            },
+            "reviewer_qualification": {
+              "type": "string",
+              "minLength": 50
+            },
+            "unresolved_case_policy": {
+              "type": "string",
+              "minLength": 50
+            }
+          }
+        },
+        "partitioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "public_development",
+            "exposed_challenge",
+            "blinded_holdout",
+            "root_cause_partition_policy"
+          ],
+          "properties": {
+            "public_development": {
+              "type": "string",
+              "minLength": 20
+            },
+            "exposed_challenge": {
+              "type": "string",
+              "minLength": 20
+            },
+            "blinded_holdout": {
+              "type": "string",
+              "minLength": 20
+            },
+            "root_cause_partition_policy": {
+              "type": "string",
+              "minLength": 80
+            }
+          }
+        },
+        "statistical_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "adverse_rate_interval",
+            "zero_failure_bound_formula",
+            "initial_screen_independent_units",
+            "qualification_independent_units",
+            "independence_unit",
+            "correlation_policy",
+            "economic_comparison_interval"
+          ],
+          "properties": {
+            "adverse_rate_interval": {
+              "type": "string",
+              "minLength": 40
+            },
+            "zero_failure_bound_formula": {
+              "type": "string",
+              "minLength": 20
+            },
+            "initial_screen_independent_units": {
+              "const": 300
+            },
+            "qualification_independent_units": {
+              "const": 2995
+            },
+            "independence_unit": {
+              "type": "string",
+              "minLength": 50
+            },
+            "correlation_policy": {
+              "type": "string",
+              "minLength": 70
+            },
+            "economic_comparison_interval": {
+              "type": "string",
+              "minLength": 50
+            }
+          }
+        },
+        "matched_comparison": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "same_claim_set",
+            "same_evidence_cutoffs",
+            "same_risk_classification",
+            "same_reviewer_task",
+            "comparator_arms",
+            "freeze_requirements"
+          ],
+          "properties": {
+            "same_claim_set": {
+              "const": true
+            },
+            "same_evidence_cutoffs": {
+              "const": true
+            },
+            "same_risk_classification": {
+              "const": true
+            },
+            "same_reviewer_task": {
+              "const": true
+            },
+            "comparator_arms": {
+              "type": "array",
+              "minItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 4
+              }
+            },
+            "freeze_requirements": {
+              "type": "array",
+              "minItems": 5,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 20
+              }
+            }
+          }
+        }
+      }
+    },
+    "metric_count": {
+      "const": 28
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 28,
+      "maxItems": 28,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "relation",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "relation": {
+          "enum": [
+            "equal",
+            "less_than_or_equal",
+            "greater_than_or_equal"
+          ]
+        },
+        "status": {
+          "const": "prospective"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "dimension",
+        "unit",
+        "aggregation",
+        "numerator_definition",
+        "denominator_definition",
+        "population",
+        "inclusions",
+        "exclusions",
+        "stratify_by",
+        "direction",
+        "target",
+        "interpretation",
+        "sampling_unit",
+        "independence_unit",
+        "confidence_interval_method",
+        "benchmark_arms",
+        "gating_class"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{2,95}$"
+        },
+        "dimension": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "enum": [
+            "rate",
+            "ratio",
+            "minutes",
+            "milliseconds"
+          ]
+        },
+        "aggregation": {
+          "enum": [
+            "ratio",
+            "median",
+            "p95"
+          ]
+        },
+        "numerator_definition": {
+          "type": "string",
+          "minLength": 20
+        },
+        "denominator_definition": {
+          "type": "string",
+          "minLength": 20
+        },
+        "population": {
+          "type": "string",
+          "minLength": 10
+        },
+        "inclusions": {
+          "type": "string",
+          "minLength": 10
+        },
+        "exclusions": {
+          "type": "string",
+          "minLength": 10
+        },
+        "stratify_by": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "direction": {
+          "enum": [
+            "lower_is_better",
+            "higher_is_better",
+            "report_only"
+          ]
+        },
+        "target": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/target"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 10
+        },
+        "sampling_unit": {
+          "type": "string",
+          "minLength": 20
+        },
+        "independence_unit": {
+          "type": "string",
+          "minLength": 20
+        },
+        "confidence_interval_method": {
+          "type": "string",
+          "minLength": 30
+        },
+        "benchmark_arms": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "gating_class": {
+          "enum": [
+            "hard_safety_gate",
+            "coverage",
+            "efficiency",
+            "economics",
+            "performance",
+            "diagnostic"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "direction": {
+                "const": "report_only"
+              }
+            },
+            "required": [
+              "direction"
+            ]
+          },
+          "then": {
+            "properties": {
+              "target": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

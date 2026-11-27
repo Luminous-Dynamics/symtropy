@@ -1,0 +1,973 @@
+{
+  "schema_id": "AERO_ASSURANCE_BENCHMARK_METRIC_REGISTRY_V0_2",
+  "schema_version": "0.2",
+  "registry_id": "aero-assurance-metrics-v0.2",
+  "supersedes_registry_id": "aero-assurance-metrics-v0.1",
+  "registry_status": "PROSPECTIVE_NOT_EXECUTED",
+  "case_adjudication_status": "NOT_INDEPENDENTLY_ADJUDICATED",
+  "benchmark_scope": "Cross-owner engineering claim assurance for model-backed and evidence-backed propositions; this benchmark measures specification, provenance, context and semantic-binding integrity, not physical qualification, airworthiness or the scientific correctness of model-owner methods.",
+  "protocol": {
+    "protocol_id": "AERO-ASSURANCE-BENCHMARK-PROTOCOL-V0_2",
+    "status": "PROSPECTIVE_NOT_EXECUTED",
+    "adjudication": {
+      "minimum_independent_reviewers_per_case": 2,
+      "independent_oracle_required": true,
+      "oracle_separation": "The oracle must be authored from frozen source facts by people who do not reuse the validator implementation, helper functions, generated reason tables or implementation-derived expected outputs. Preserve the oracle source, authorship, reviewer records and version digest.",
+      "dissent_retained": true,
+      "reviewer_qualification": "At least one reviewer must be competent in the relevant engineering discipline and one in requirements/assurance methods; reviewers disclose programme familiarity, conflicts and scope limits.",
+      "unresolved_case_policy": "Unresolved ground truth is reported as unresolved/abstained and excluded from false-accept denominators only with an explicit count and reason; it is never counted as a pass."
+    },
+    "partitioning": {
+      "public_development": "Public synthetic cases may guide development and schema evolution but are not held-out performance evidence.",
+      "exposed_challenge": "A separately frozen exposed challenge partition tests known defect families and supports debugging; it is not a blind qualification sample.",
+      "blinded_holdout": "Blinded holdout cases are authored independently and withheld from implementation authors until the evaluation version and protocol are frozen.",
+      "root_cause_partition_policy": "Partition whole root-cause families, engineering campaigns, model families and claim families. Do not randomly split near-identical JSON mutations or individual rows derived from one injected fault across development and holdout."
+    },
+    "statistical_policy": {
+      "adverse_rate_interval": "For hard-gate adverse rates, report a one-sided 95% exact Clopper-Pearson upper confidence bound, plus raw numerator and denominator, stratified by root-cause family.",
+      "zero_failure_bound_formula": "For n independent units and zero observed failures, p_upper = 1 - 0.05^(1/n).",
+      "initial_screen_independent_units": 300,
+      "qualification_independent_units": 2995,
+      "independence_unit": "The independent unit is an independently adjudicated root-cause family or engineering campaign, not a generated event row, text mutation, replay mode or repeated seed.",
+      "correlation_policy": "When several cases share one initiating fault, resource, model, supplier, trust transition or engineering campaign, treat them as a cluster. Report cluster counts and use cluster-aware resampling or hierarchical analysis; do not count correlated rows as independent Bernoulli trials.",
+      "economic_comparison_interval": "For paired review-time and cost comparisons, resample whole claim-family clusters and preserve matched AERO/comparator pairs; publish p50/p95 and 95% cluster-bootstrap intervals."
+    },
+    "matched_comparison": {
+      "same_claim_set": true,
+      "same_evidence_cutoffs": true,
+      "same_risk_classification": true,
+      "same_reviewer_task": true,
+      "comparator_arms": [
+        "expert_human_review",
+        "structured_checklist",
+        "plm_qms_workflow",
+        "llm_single_model",
+        "llm_rag",
+        "llm_multi_agent",
+        "aero_claim_and_evidence_assurance"
+      ],
+      "freeze_requirements": [
+        "Freeze claim set, physical subject/configuration identity and intended use.",
+        "Freeze source documents, owner receipts, evidence cutoff and trust-policy snapshot.",
+        "Freeze model, solver, validation profile and applicability domain.",
+        "Freeze software version, workflow configuration and evidence-selection rules for every arm.",
+        "Record reviewer qualifications, task instructions, hardware, compute budget and cache state."
+      ]
+    }
+  },
+  "metric_count": 28,
+  "metrics": [
+    {
+      "metric_id": "hard_gate_false_review_rate",
+      "dimension": "decision_safety",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Independently adjudicated non-reviewable claims AERO marks reviewable.",
+      "denominator_definition": "All independently adjudicated non-reviewable claims presented.",
+      "population": "Public and blinded negative claims.",
+      "inclusions": "Include every executed negative case.",
+      "exclusions": "Exclude unresolved ground truth but report count separately.",
+      "stratify_by": [
+        "risk_class",
+        "claim_family",
+        "fault_family"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No false review; publish denominator and one-sided exact confidence bound.",
+      "sampling_unit": "One independently adjudicated claim disposition.",
+      "independence_unit": "Distinct engineering claim root-cause family; repeated variants within one family are one cluster.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper confidence bound for adverse outcomes; cluster by claim root-cause family.",
+      "benchmark_arms": [
+        "aero_composite_gate",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "cross_context_substitution_acceptance_rate",
+      "dimension": "context_integrity",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Injected claim, article, configuration, envelope, model, solver, profile or trust-policy substitutions accepted as reviewable.",
+      "denominator_definition": "All executed context-substitution attempts.",
+      "population": "Single and coupled substitution controls.",
+      "inclusions": "Include every tested substitution dimension.",
+      "exclusions": "Exclude invalid harness executions and enumerate them.",
+      "stratify_by": [
+        "substitution_dimension",
+        "risk_class",
+        "fault_coupling"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No cross-context substitution may pass.",
+      "sampling_unit": "One injected claim-context substitution challenge.",
+      "independence_unit": "Distinct substitution root-cause family, subject to claim-family clustering.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster by substitution root cause.",
+      "benchmark_arms": [
+        "aero_composite_gate",
+        "plm_qms_workflow",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "owner_integrity_authority_bypass_rate",
+      "dimension": "owner_trust",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Cases with missing/rejected payload, producer, key, authority, trust-snapshot or receipt proof that still become reviewable.",
+      "denominator_definition": "All owner-integrity and producer-authority challenges.",
+      "population": "Owner receipt and trust boundary controls.",
+      "inclusions": "Separate byte integrity, producer authority, key state and historical trust.",
+      "exclusions": "Exclude unexecuted verifier outages only with explicit reporting.",
+      "stratify_by": [
+        "owner_proof_axis",
+        "source_owner",
+        "trust_mode"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "A digest or signature alone is not semantic correctness or authority.",
+      "sampling_unit": "One owner-artifact and producer-authority challenge.",
+      "independence_unit": "Distinct owner-proof failure family and issuer/authority domain.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster by owner-proof root cause.",
+      "benchmark_arms": [
+        "aero_owner_adapter",
+        "owner_evidence_workflow",
+        "independent_owner_verifier"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "mandatory_obligation_acceptance_rate",
+      "dimension": "obligation_completeness",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims marked reviewable despite a missing, stale, rejected, unresolved or out-of-scope mandatory obligation.",
+      "denominator_definition": "All executed mandatory-obligation negative cases.",
+      "population": "Claim-gate hard negatives.",
+      "inclusions": "Stratify by obligation owner and state.",
+      "exclusions": "Exclude advisory items unless claim profile makes them mandatory.",
+      "stratify_by": [
+        "owner",
+        "obligation_state",
+        "claim_family"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No positive obligation compensates for a failed mandatory obligation.",
+      "sampling_unit": "One claim x mandatory-obligation state evaluation.",
+      "independence_unit": "Distinct obligation root-cause family within a claim family.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster by obligation and claim family.",
+      "benchmark_arms": [
+        "aero_composite_gate",
+        "aerocommons_obligation_workflow",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "unsupported_domain_reviewability_rate",
+      "dimension": "model_applicability",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Unsupported or indeterminate model domains returned as reviewable.",
+      "denominator_definition": "All adjudicated out-of-domain and applicability-indeterminate cases.",
+      "population": "AeroWeft applicability challenges.",
+      "inclusions": "Separate out-of-scope from indeterminate and identity mismatch.",
+      "exclusions": "Exclude in-domain controls.",
+      "stratify_by": [
+        "model_family",
+        "operating_stratum",
+        "applicability_state"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "In-domain performance cannot expand a model's validated domain.",
+      "sampling_unit": "One claim x model applicability-domain challenge.",
+      "independence_unit": "Distinct model-domain or operating-envelope root-cause family.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster by model family and domain family.",
+      "benchmark_arms": [
+        "aero_model_credibility_gate",
+        "model_owner_validation_workflow",
+        "independent_domain_review"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "required_stratum_omission_acceptance_rate",
+      "dimension": "model_credibility",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims reviewable when a required metric/material/load/environment stratum is missing, failed or unverified.",
+      "denominator_definition": "All required-stratum omission/non-positive cases.",
+      "population": "AeroWeft metric/stratum challenges.",
+      "inclusions": "Report each required stratum separately.",
+      "exclusions": "Exclude strata not required by owner-approved profile.",
+      "stratify_by": [
+        "metric",
+        "material",
+        "load_case",
+        "environment",
+        "operating_stratum"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No averaging may hide a non-positive required stratum.",
+      "sampling_unit": "One required model metric x claim-stratum obligation.",
+      "independence_unit": "Distinct validation-stratum omission root-cause family, not individual generated rows.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster by metric and validation campaign.",
+      "benchmark_arms": [
+        "aero_model_credibility_gate",
+        "model_owner_validation_workflow",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "temporal_replay_disagreement_rate",
+      "dimension": "temporal_correctness",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Case/mode outputs whose disposition or exact reason set differs from independent oracle.",
+      "denominator_definition": "All executed case x temporal-mode evaluations.",
+      "population": "Three-mode bitemporal replay corpus.",
+      "inclusions": "Report AS_KNOWN_AT, CURRENT_TRUST and CURRENT_EVIDENCE_AND_TRUST separately.",
+      "exclusions": "Exclude only independently marked non-executable cases and disclose them.",
+      "stratify_by": [
+        "mode",
+        "event_type",
+        "trust_transition",
+        "chronology_fault"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Oracle must be independently authored and not call the implementation under test.",
+      "sampling_unit": "One adjudicated case x temporal replay mode evaluation.",
+      "independence_unit": "Distinct event/trust-transition root-cause family; three modes from one event are a cluster.",
+      "confidence_interval_method": "Exact disagreement rate and one-sided 95% Clopper-Pearson upper bound, clustered by temporal case family.",
+      "benchmark_arms": [
+        "aero_temporal_replay",
+        "independent_temporal_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "independent_oracle_exact_agreement_rate",
+      "dimension": "oracle_conformance",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Cases where disposition and complete reason-code set match independent adjudication.",
+      "denominator_definition": "All executed, independently adjudicated cases.",
+      "population": "Adjudicated public seed plus blinded holdout.",
+      "inclusions": "Report disposition-only and exact reason-set agreement separately.",
+      "exclusions": "Unadjudicated seed cases are not passes.",
+      "stratify_by": [
+        "oracle_version",
+        "case_family",
+        "partition",
+        "reviewer"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Correct disposition with missing or misleading reason codes is not exact agreement.",
+      "sampling_unit": "One independently adjudicated claim challenge.",
+      "independence_unit": "Distinct root-cause family and engineering campaign.",
+      "confidence_interval_method": "Two-sided 95% exact binomial interval; cluster by root-cause family; report disposition and complete reason-set agreement separately.",
+      "benchmark_arms": [
+        "aero_assurance_gate",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "hard_gate_mutation_survival_rate",
+      "dimension": "mutation_resilience",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Valid non-equivalent hard-gate mutants that survive because tests still pass.",
+      "denominator_definition": "All valid non-equivalent hard-gate mutants executed.",
+      "population": "Mutations across claim, time, trust, obligation, model and owner boundaries.",
+      "inclusions": "Report surviving mutants by operator and gate.",
+      "exclusions": "Equivalent mutants excluded only with independent written justification.",
+      "stratify_by": [
+        "operator",
+        "gate_family",
+        "severity",
+        "owner"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Publish all survivors and all excluded equivalent mutants.",
+      "sampling_unit": "One valid non-equivalent hard-gate mutation.",
+      "independence_unit": "Distinct mutation operator x semantic root-cause family; equivalent mutants excluded only by independent adjudication.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; publish mutation counts and surviving mutants.",
+      "benchmark_arms": [
+        "aero_assurance_gate",
+        "mutation_harness",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "affected_claim_invalidation_miss_rate",
+      "dimension": "change_impact",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims invalidated by adjudicated dependency change but not marked for requalification, contradiction or indeterminate review.",
+      "denominator_definition": "All independently adjudicated affected claims under qualified dependency observation.",
+      "population": "Track U/BASALT dependency-impact challenges.",
+      "inclusions": "Separate known change, incomplete observation, correction and policy-only change.",
+      "exclusions": "Do not call unqualified observer scope unaffected.",
+      "stratify_by": [
+        "dependency_type",
+        "resource_generation",
+        "claim_family",
+        "impact_dimension"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Zero missed invalidations is prior to reducing unnecessary requalification.",
+      "sampling_unit": "One claim x dependency-change impact evaluation.",
+      "independence_unit": "Distinct resource-change root-cause family; claims affected by one shared change are clustered.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster by resource-change family.",
+      "benchmark_arms": [
+        "track_u_basalt",
+        "aero_change_impact_composition",
+        "independent_dependency_review"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "unnecessary_requalification_rate",
+      "dimension": "change_impact",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Unaffected claims unnecessarily sent for full requalification after proven unrelated change under qualified complete observation.",
+      "denominator_definition": "All adjudicated unaffected claims in qualified complete observation scope.",
+      "population": "Disjoint-resource metamorphic cases.",
+      "inclusions": "Report graph size and claim fan-out.",
+      "exclusions": "Exclude incomplete/unqualified dependency observation; those remain indeterminate.",
+      "stratify_by": [
+        "change_type",
+        "claim_family",
+        "graph_size",
+        "fanout"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0.05,
+        "relation": "less_than_or_equal",
+        "status": "prospective"
+      },
+      "interpretation": "At most 5% prospective efficiency target, subordinate to zero missed invalidations.",
+      "sampling_unit": "One adjudicated unaffected claim under qualified complete observer coverage.",
+      "independence_unit": "Distinct unrelated resource-change family; claims affected by one change are clustered.",
+      "confidence_interval_method": "Two-sided 95% cluster bootstrap interval over resource-change families; only after zero observed invalidation misses.",
+      "benchmark_arms": [
+        "track_u_basalt",
+        "aero_change_impact_composition",
+        "manual_dependency_review"
+      ],
+      "gating_class": "efficiency"
+    },
+    {
+      "metric_id": "unrelated_change_preservation_rate",
+      "dimension": "change_impact",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Disjoint claims that remain unchanged/reviewable after a proven unrelated mutation.",
+      "denominator_definition": "All unrelated-change controls under qualified complete observation.",
+      "population": "Public and blinded metamorphic controls.",
+      "inclusions": "Stratify graph topology, owner and fan-out.",
+      "exclusions": "Exclude changes later adjudicated causally relevant.",
+      "stratify_by": [
+        "topology",
+        "owner",
+        "claim_family"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Reject-everything cannot pass the benchmark.",
+      "sampling_unit": "One unrelated claim after one proven disjoint resource mutation.",
+      "independence_unit": "Distinct disjoint-resource mutation root-cause family.",
+      "confidence_interval_method": "Two-sided 95% exact binomial interval with clustering by change family.",
+      "benchmark_arms": [
+        "track_u_basalt",
+        "aero_change_impact_composition",
+        "independent_dependency_review"
+      ],
+      "gating_class": "coverage"
+    },
+    {
+      "metric_id": "abstention_rate",
+      "dimension": "decision_coverage",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Presented claims with explicit non-positive/abstaining disposition.",
+      "denominator_definition": "All claims presented.",
+      "population": "All positive and negative benchmark cases.",
+      "inclusions": "Report risk, evidence completeness, fault and model-domain breakdown.",
+      "exclusions": "Do not erase abstentions from denominator.",
+      "stratify_by": [
+        "risk_class",
+        "evidence_completeness",
+        "claim_family",
+        "model_domain"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "No universal target; publish risk-coverage and reason distributions.",
+      "sampling_unit": "One presented engineering claim.",
+      "independence_unit": "Distinct engineering claim; linked claims reported in clusters.",
+      "confidence_interval_method": "Descriptive rate with two-sided 95% cluster bootstrap interval; always report risk-coverage curve and reason distribution.",
+      "benchmark_arms": [
+        "aero_assurance_gate",
+        "expert_human_review",
+        "structured_checklist"
+      ],
+      "gating_class": "diagnostic"
+    },
+    {
+      "metric_id": "false_rejection_rate",
+      "dimension": "decision_coverage",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Independently reviewable claims rejected despite all required obligations being qualified.",
+      "denominator_definition": "All independently adjudicated positive controls.",
+      "population": "Positive controls and mixed-evidence cases.",
+      "inclusions": "Report claim family and owner profile.",
+      "exclusions": "Exclude unresolved adjudication.",
+      "stratify_by": [
+        "risk_class",
+        "claim_family",
+        "owner_profile"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "Report separately so rejecting everything cannot appear safe.",
+      "sampling_unit": "One independently adjudicated valid positive claim.",
+      "independence_unit": "Distinct claim root-cause family; multiple variants within one claim family are clustered.",
+      "confidence_interval_method": "Two-sided 95% exact Clopper-Pearson interval and risk-coverage curve; report separately from false-review rate.",
+      "benchmark_arms": [
+        "aero_assurance_gate",
+        "expert_human_review",
+        "structured_checklist",
+        "plm_qms_workflow"
+      ],
+      "gating_class": "diagnostic"
+    },
+    {
+      "metric_id": "reviewer_minutes_per_independent_decision",
+      "dimension": "engineering_economics",
+      "unit": "minutes",
+      "aggregation": "median",
+      "numerator_definition": "Active reviewer minutes to reproduce, challenge and record an independent disposition.",
+      "denominator_definition": "Completed independent reviewer decisions.",
+      "population": "Matched AERO-assisted and comparator review sessions.",
+      "inclusions": "Include evidence navigation, discrepancy resolution and replay; waiting separately.",
+      "exclusions": "Exclude training/admin under preregistered rules.",
+      "stratify_by": [
+        "reviewer_role",
+        "complexity",
+        "baseline",
+        "risk_class"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "Use randomized/counterbalanced matched tasks; publish distributions.",
+      "sampling_unit": "One reviewer x claim review session.",
+      "independence_unit": "Claim family and reviewer; repeated sessions are paired/clustered.",
+      "confidence_interval_method": "Median with 95% paired cluster-bootstrap interval, resampling claim-family clusters and preserving reviewer/task pairing.",
+      "benchmark_arms": [
+        "aero_assisted_review",
+        "expert_human_review",
+        "structured_checklist",
+        "plm_qms_workflow",
+        "llm_single_model",
+        "llm_rag",
+        "llm_multi_agent"
+      ],
+      "gating_class": "economics"
+    },
+    {
+      "metric_id": "cost_per_independent_decision_ratio",
+      "dimension": "engineering_economics",
+      "unit": "ratio",
+      "aggregation": "ratio",
+      "numerator_definition": "Fully loaded AERO-assisted cost per independent decision divided by matched comparator cost at equal risk and quality.",
+      "denominator_definition": "Matched independent decisions with complete cost/time data in both arms.",
+      "population": "Human, checklist, LLM, RAG, multi-agent and PLM/QMS comparators.",
+      "inclusions": "Include evidence gathering, verifier, reviewer and requalification cost.",
+      "exclusions": "Exclude unmatched risk and incomplete records, with counts.",
+      "stratify_by": [
+        "baseline",
+        "risk_class",
+        "complexity",
+        "outcome"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0.8,
+        "relation": "less_than_or_equal",
+        "status": "prospective"
+      },
+      "interpretation": "Prospective <=0.80 target, only at matched risk and independent decision quality.",
+      "sampling_unit": "One matched claim-review task pair with complete cost records.",
+      "independence_unit": "Claim-family cluster; paired AERO/comparator observations remain together.",
+      "confidence_interval_method": "Median and mean paired cost ratios with 95% cluster-bootstrap intervals; publish component cost ledger.",
+      "benchmark_arms": [
+        "aero_assisted_review",
+        "expert_human_review",
+        "structured_checklist",
+        "plm_qms_workflow",
+        "llm_single_model",
+        "llm_rag",
+        "llm_multi_agent"
+      ],
+      "gating_class": "economics"
+    },
+    {
+      "metric_id": "replay_p95_latency_ms",
+      "dimension": "performance",
+      "unit": "milliseconds",
+      "aggregation": "p95",
+      "numerator_definition": "p95 wall-clock time to replay frozen evidence cut and emit disposition plus reason report.",
+      "denominator_definition": "All replay executions in one declared workload cell.",
+      "population": "10k, 100k, 1M and 10M events; 1-10k evidence refs.",
+      "inclusions": "Report cache, hardware, CPU, RSS, bytes read and verifier build; receipt production separate.",
+      "exclusions": "Exclude failures from quantiles but report failures/reasons.",
+      "stratify_by": [
+        "event_count",
+        "reference_count",
+        "cache",
+        "hardware",
+        "build"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "No SOTA claim before matched workload and hardware baselines.",
+      "sampling_unit": "One replay execution within a frozen workload cell.",
+      "independence_unit": "Workload cell (event/reference count x hardware x build x cache state); repeated runs are not independent claim trials.",
+      "confidence_interval_method": "p50/p95/p99 latency with bootstrap intervals over repeated runs per workload cell; report cold/warm cache separately.",
+      "benchmark_arms": [
+        "aero_replay_build"
+      ],
+      "gating_class": "performance"
+    },
+    {
+      "metric_id": "claim_specification_false_accept_rate",
+      "dimension": "claim_specification",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Independently adjudicated ambiguous, contradictory, unverifiable or otherwise defective claim specifications that AERO classifies FORMALLY_WELL_SPECIFIED.",
+      "denominator_definition": "All executed independently adjudicated defective claim-specification cases; unresolved oracle cases are excluded from this denominator and reported separately.",
+      "population": "Public development, exposed adversarial and blinded holdout claim specifications across structural, material and systems-engineering claim families.",
+      "inclusions": "Include ambiguity, missing semantics, unit mismatch, noncanonical threshold, unsupported profile, missing population/strata, invalid effectivity and context-substitution defects.",
+      "exclusions": "Exclude cases without completed independent adjudication or invalid harness execution; publish their counts and reasons.",
+      "stratify_by": [
+        "defect_family",
+        "engineering_discipline",
+        "claim_family",
+        "risk_class",
+        "partition"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Critical specification defects must not be laundered into formally well-specified claims. Report exact numerator, denominator and one-sided upper confidence bound.",
+      "sampling_unit": "One independently adjudicated claim specification.",
+      "independence_unit": "Distinct specification defect root-cause family and engineering campaign.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; repeated textual mutations of one defect are clustered as one root-cause family.",
+      "benchmark_arms": [
+        "aero_claim_spec_validator",
+        "expert_requirements_review",
+        "structured_checklist",
+        "llm_assisted_requirements_review"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "valid_claim_specification_retention_rate",
+      "dimension": "claim_specification_coverage",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Independently adjudicated valid claim specifications that AERO classifies FORMALLY_WELL_SPECIFIED without losing required semantic content.",
+      "denominator_definition": "All executed independently adjudicated valid claim specifications presented to the system.",
+      "population": "Positive controls and valid-but-uncommon specifications across claim families, unit systems, populations, aggregation and uncertainty approaches supported by the declared profile.",
+      "inclusions": "Include valid positive controls, boundary-valid cases and valid specifications with reordered non-semantic fields.",
+      "exclusions": "Exclude unsupported profiles from v0.1 valid-profile denominator; report unsupported-profile coverage separately.",
+      "stratify_by": [
+        "engineering_discipline",
+        "claim_family",
+        "unit_family",
+        "population_design",
+        "uncertainty_treatment"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Reject-all is not a successful result. Report this alongside false acceptance, abstention and adjudicator disagreement.",
+      "sampling_unit": "One independently adjudicated valid claim specification.",
+      "independence_unit": "Distinct engineering claim family and specification root-cause family.",
+      "confidence_interval_method": "Two-sided 95% exact Clopper-Pearson interval, clustered by engineering campaign.",
+      "benchmark_arms": [
+        "aero_claim_spec_validator",
+        "expert_requirements_review",
+        "structured_checklist",
+        "llm_assisted_requirements_review"
+      ],
+      "gating_class": "coverage"
+    },
+    {
+      "metric_id": "claim_context_binding_miss_rate",
+      "dimension": "claim_context_integrity",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Injected claim, physical subject, configuration, operating envelope, intended-use or specification-effectivity substitutions that still produce SEMANTICS_BOUND or a positive composite-gate disposition.",
+      "denominator_definition": "All executed independently adjudicated claim-context substitution attempts.",
+      "population": "Single-fault and coupled-fault context-binding challenges with exact specification, decision-context, model-cut and owner-cut artifacts.",
+      "inclusions": "Include subject, configuration, operating-envelope, intended-use, validity interval and claim ID substitutions.",
+      "exclusions": "Exclude invalid harness executions; do not exclude a failed or rejected system response.",
+      "stratify_by": [
+        "substitution_dimension",
+        "risk_class",
+        "claim_family",
+        "fault_coupling"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "A correct artifact hash cannot compensate for wrong physical context.",
+      "sampling_unit": "One claim-context substitution challenge.",
+      "independence_unit": "Distinct context-substitution root-cause family and claim family.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster coupled variants by the initiating context defect.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "aero_composite_gate",
+        "plm_qms_workflow",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "semantic_digest_mismatch_detection_rate",
+      "dimension": "semantic_commitment_integrity",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Raw-payload/typed-semantic digest substitutions, stale commitments or altered semantic fields correctly detected and prevented from producing SEMANTICS_BOUND.",
+      "denominator_definition": "All executed independently adjudicated raw-versus-semantic digest mismatch attempts.",
+      "population": "Frozen raw specification byte fixtures, typed semantic commitments and decision-context commitment vectors.",
+      "inclusions": "Include raw digest replaced by semantic digest, semantic digest stale after threshold/context change, wrong schema profile and payload/typed-object mismatch.",
+      "exclusions": "Exclude cases with unresolved expected raw bytes or invalid digest harness.",
+      "stratify_by": [
+        "digest_role",
+        "field_mutation",
+        "schema_version",
+        "claim_family"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Raw bytes, typed semantic commitment and decision-context digest must remain non-interchangeable.",
+      "sampling_unit": "One independently adjudicated digest-substitution challenge.",
+      "independence_unit": "Distinct commitment-substitution root-cause family.",
+      "confidence_interval_method": "Two-sided 95% exact Clopper-Pearson interval; publish any surviving mutation as a critical failure.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "independent_reproducer"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "model_metric_mapping_mismatch_acceptance_rate",
+      "dimension": "model_metric_semantics",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims for which an owner model metric with the wrong measurand, unit, aggregation, population, quantifier, predicate, threshold, uncertainty semantics or applicability is still classified SEMANTICS_BOUND.",
+      "denominator_definition": "All executed independently adjudicated claim-to-model metric semantic substitution challenges.",
+      "population": "AeroWeft/model-owner metric definitions, exact model reports, claim specifications, per-stratum reports and owner receipts.",
+      "inclusions": "Include wrong metric IDs, semantically wrong mapping basis, unit/aggregation mismatch, population mismatch, threshold/predicate mismatch and uncertainty-method substitution.",
+      "exclusions": "Exclude claims whose approved profile does not require a model metric; classify direct evidence claims separately.",
+      "stratify_by": [
+        "mapping_dimension",
+        "model_family",
+        "engineering_discipline",
+        "claim_family",
+        "fault_coupling"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "A valid model hash and matching configuration do not establish that the report addresses the claim's measurand.",
+      "sampling_unit": "One adjudicated claim x owner-model-metric semantic mapping.",
+      "independence_unit": "Distinct measurand-to-metric mapping root-cause family and model-validation campaign.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster multiple strata and metric variants from one validation campaign.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "model_owner_report_workflow",
+        "plm_qms_workflow",
+        "independent_domain_review"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "claim_to_metric_semantic_oracle_agreement_rate",
+      "dimension": "semantic_oracle_conformance",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claim-to-model metric binding evaluations whose disposition and complete reason-code set exactly match an independently authored and adjudicated oracle.",
+      "denominator_definition": "All executed independently adjudicated claim-to-model metric binding challenges.",
+      "population": "Positive, negative, incomplete, unverified, out-of-scope, historical-cutoff and coupled-fault binding cases, including blinded holdouts.",
+      "inclusions": "Require exact disposition and complete reason-set equality; disposition-only agreement is reported separately.",
+      "exclusions": "Exclude not-yet-adjudicated seed cases; do not treat schema checks as oracle agreement.",
+      "stratify_by": [
+        "binding_disposition",
+        "mapping_dimension",
+        "oracle_version",
+        "partition",
+        "engineering_discipline"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "The independent oracle must not call or copy implementation helpers, generated reason tables or fixture expectations.",
+      "sampling_unit": "One independently adjudicated claim-to-model metric binding case.",
+      "independence_unit": "Distinct binding root-cause family and engineering campaign.",
+      "confidence_interval_method": "Two-sided 95% exact Clopper-Pearson interval, with root-cause-family cluster accounting.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "independent_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "claim_metric_required_stratum_coverage_miss_rate",
+      "dimension": "model_stratum_binding",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Bindings classified SEMANTICS_BOUND despite a required claim stratum being omitted, duplicated, mapped many-to-one, substituted or absent from the exact model metric report set.",
+      "denominator_definition": "All executed independently adjudicated required-stratum coverage challenges.",
+      "population": "Claim population manifests and owner model metric/stratum reports across load, temperature, material and operating-envelope partitions.",
+      "inclusions": "Include missing, duplicate, cross-stratum and extra/unmapped reports; assess every required stratum independently.",
+      "exclusions": "Exclude strata not declared mandatory by the claim specification and owner-approved model metric profile.",
+      "stratify_by": [
+        "metric_id",
+        "claim_stratum",
+        "model_stratum",
+        "engineering_discipline",
+        "fault_coupling"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No positive stratum may compensate for a missing, mismatched or non-positive mandatory stratum.",
+      "sampling_unit": "One claim-required stratum mapping challenge.",
+      "independence_unit": "Distinct metric/stratum definition and validation-campaign root cause.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster strata from the same metric/population validation campaign.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "model_owner_validation_workflow",
+        "independent_domain_review"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "claim_metric_receipt_manifest_bypass_rate",
+      "dimension": "owner_receipt_manifest_integrity",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claim-to-model metric bindings classified SEMANTICS_BOUND when any required model report, metric semantics, owner attestation, producer-authority, semantic-validation or receiver-first-seen receipt is absent from the decision's committed required-evidence manifest.",
+      "denominator_definition": "All executed independently adjudicated owner-receipt manifest omission and substitution challenges.",
+      "population": "Owner evidence cuts and decision contexts containing the complete set of mandatory metric-binding receipt roles.",
+      "inclusions": "Include missing receipt, role reuse, reference substitution, digest mismatch and manifest/cut divergence.",
+      "exclusions": "Exclude optional owner artifacts not required by the claim profile.",
+      "stratify_by": [
+        "receipt_role",
+        "owner_namespace",
+        "manifest_fault",
+        "claim_family"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Evidence present in a packet but absent from the decision's committed evidence manifest is not an admitted mandatory proof.",
+      "sampling_unit": "One mandatory owner-receipt role x manifest integrity challenge.",
+      "independence_unit": "Distinct receipt-role or manifest-binding root-cause family.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster related role omissions from the same owner packet.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "owner_evidence_workflow",
+        "independent_owner_verifier"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "claim_metric_stale_owner_record_acceptance_rate",
+      "dimension": "owner_record_freshness",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "A selected metric-semantic, model-report, attestation, authority, validation or receiver-time owner record with stale, superseded, revoked, disputed or incomplete dependency state still contributes to SEMANTICS_BOUND.",
+      "denominator_definition": "All executed independently adjudicated stale and adverse owner-record lifecycle/freshness challenges.",
+      "population": "Owner-native evidence records under Mycelix/AeroCommons/BASALT lifecycle and freshness dispositions.",
+      "inclusions": "Include stale direct/transitive dependencies, superseded, revoked, withdrawn, disputed, unresolved inputs and reverification-required records.",
+      "exclusions": "Exclude deliberately historical-only records when the evaluation cutoff and replay mode explicitly require them; report separately.",
+      "stratify_by": [
+        "owner_record_role",
+        "lifecycle_state",
+        "freshness_state",
+        "dependency_coverage",
+        "replay_mode"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "A stale or adverse owner record cannot be refreshed by recomputing an AERO hash.",
+      "sampling_unit": "One selected owner record lifecycle/freshness challenge.",
+      "independence_unit": "Distinct owner change, lifecycle transition or dependency-change root-cause family.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster records affected by the same owner change event.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "owner_freshness_workflow",
+        "basalt_observer_verifier"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "receiver_first_seen_receipt_bypass_rate",
+      "dimension": "historical_knowledge_integrity",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "A binding treated as known at the historical cutoff without a matching owner-native receiver-first-seen receipt, or when the receipt's receiver-observed interval is later than the decision cutoff.",
+      "denominator_definition": "All executed receiver-first-seen receipt absence, substitution, digest mismatch, reversed interval and late-receipt challenges.",
+      "population": "Historically replayed owner model-metric binding cases across as-known and retrospective evaluation modes.",
+      "inclusions": "Include backdated issuer claims, late receiver observations, missing receiver receipts and mismatched receipt digests.",
+      "exclusions": "Exclude cases without a declared historical cutoff; report them as invalid harness inputs.",
+      "stratify_by": [
+        "receipt_status",
+        "time_interval_state",
+        "replay_mode",
+        "owner_namespace"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Issuer-asserted event time cannot substitute for receiver-observed knowledge time.",
+      "sampling_unit": "One owner receipt x historical cutoff challenge.",
+      "independence_unit": "Distinct temporal provenance root-cause family and owner receipt stream.",
+      "confidence_interval_method": "One-sided 95% exact Clopper-Pearson upper bound; cluster events in the same receipt stream and correction chain.",
+      "benchmark_arms": [
+        "aero_claim_metric_binding",
+        "historical_owner_receipt_verifier",
+        "independent_temporal_oracle"
+      ],
+      "gating_class": "hard_safety_gate"
+    },
+    {
+      "metric_id": "independent_metric_mapping_reviewer_disagreement_rate",
+      "dimension": "human_semantic_adjudication",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claim-to-model metric mappings for which two independently qualified reviewers initially disagree on measurand equivalence, unit/aggregation meaning, population/strata, predicate or uncertainty mapping.",
+      "denominator_definition": "All double-reviewed metric mapping cases before adjudication.",
+      "population": "Blinded domain-expert review of structural/material metric mapping cases.",
+      "inclusions": "Retain initial reviewer decisions, rationale, confidence and all dissent after adjudication.",
+      "exclusions": "Exclude cases where a reviewer has a declared conflict or insufficient domain competence; replace reviewer and disclose.",
+      "stratify_by": [
+        "engineering_discipline",
+        "claim_family",
+        "metric_family",
+        "reviewer_experience",
+        "ambiguity_class"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "Human disagreement is an epistemic signal, not a software defect to be erased by majority vote; publish raw disagreement and adjudication outcomes.",
+      "sampling_unit": "One double-reviewed claim-to-model metric mapping.",
+      "independence_unit": "Distinct engineering claim family and blinded mapping case.",
+      "confidence_interval_method": "Report raw agreement and Cohen's kappa with 95% bootstrap interval clustered by claim family; retain reviewer-level confusion matrices.",
+      "benchmark_arms": [
+        "independent_engineer_reviewer_a",
+        "independent_engineer_reviewer_b",
+        "adjudication_panel"
+      ],
+      "gating_class": "diagnostic"
+    }
+  ]
+}

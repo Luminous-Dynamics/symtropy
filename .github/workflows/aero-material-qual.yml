@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1", "research/aero-assurance-benchmark-registry-v0.2"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -52,9 +52,12 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/AERO_ASSURANCE_BENCHMARK_PROTOCOL_V0_2.md"
+      - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_2.json"
+      - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_2.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -107,6 +110,9 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
       - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/AERO_ASSURANCE_BENCHMARK_PROTOCOL_V0_2.md"
+      - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_2.json"
+      - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_2.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -1042,6 +1048,78 @@ jobs:
           if not any(case["expected_disposition"] == "FORMALLY_WELL_SPECIFIED" for case in cases):
               raise SystemExit("challenge seed must retain a positive control")
           print("AERO claim-spec schemas/examples passed; 12-case challenge seed remains unreviewed and unexecuted.")
+          PY
+
+      - name: Validate AERO benchmark metric registry v0.2 and preregistration protocol
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema_path = root / "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_2.schema.json"
+          registry_path = root / "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_2.json"
+          schema = json.loads(schema_path.read_text())
+          registry = json.loads(registry_path.read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("AERO benchmark v0.2 schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(registry),
+              key=lambda error: list(error.absolute_path),
+          )
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"AERO benchmark v0.2 registry failed schema validation ({len(errors)} errors)")
+          metrics = registry["metrics"]
+          metric_ids = [metric["metric_id"] for metric in metrics]
+          if len(metrics) != 28 or len(metric_ids) != len(set(metric_ids)):
+              raise SystemExit("AERO benchmark v0.2 must contain exactly 28 unique metrics")
+          if registry["registry_status"] != "PROSPECTIVE_NOT_EXECUTED":
+              raise SystemExit("AERO benchmark v0.2 must remain prospective and not executed")
+          if registry["case_adjudication_status"] != "NOT_INDEPENDENTLY_ADJUDICATED":
+              raise SystemExit("AERO benchmark v0.2 must not claim independent case adjudication")
+          by_id = {metric["metric_id"]: metric for metric in metrics}
+          required_new = {
+              "claim_specification_false_accept_rate",
+              "valid_claim_specification_retention_rate",
+              "claim_context_binding_miss_rate",
+              "semantic_digest_mismatch_detection_rate",
+              "model_metric_mapping_mismatch_acceptance_rate",
+              "claim_to_metric_semantic_oracle_agreement_rate",
+              "claim_metric_required_stratum_coverage_miss_rate",
+              "claim_metric_receipt_manifest_bypass_rate",
+              "claim_metric_stale_owner_record_acceptance_rate",
+              "receiver_first_seen_receipt_bypass_rate",
+              "independent_metric_mapping_reviewer_disagreement_rate",
+          }
+          if not required_new.issubset(by_id):
+              raise SystemExit(f"missing v0.2 claim-spec/metric-binding metrics: {sorted(required_new - set(by_id))}")
+          if by_id["hard_gate_false_review_rate"]["target"]["value"] != 0:
+              raise SystemExit("hard-gate false-review target must remain zero observed")
+          if by_id["model_metric_mapping_mismatch_acceptance_rate"]["target"]["value"] != 0:
+              raise SystemExit("model metric mapping mismatch acceptance target must remain zero observed")
+          if by_id["valid_claim_specification_retention_rate"]["target"]["value"] != 1:
+              raise SystemExit("valid claim-specification retention must guard against reject-all")
+          if by_id["independent_metric_mapping_reviewer_disagreement_rate"]["target"] is not None:
+              raise SystemExit("reviewer disagreement must remain report-only")
+          if registry["protocol"]["adjudication"]["minimum_independent_reviewers_per_case"] != 2:
+              raise SystemExit("benchmark requires two independent reviewers per case")
+          if registry["protocol"]["statistical_policy"]["initial_screen_independent_units"] != 300:
+              raise SystemExit("initial independent-unit screen must remain 300")
+          if registry["protocol"]["statistical_policy"]["qualification_independent_units"] != 2995:
+              raise SystemExit("qualification independent-unit target must remain 2995")
+          for metric in metrics:
+              for field in ("sampling_unit", "independence_unit", "confidence_interval_method"):
+                  if not metric[field].strip():
+                      raise SystemExit(f"{metric['metric_id']}: missing {field}")
+              if metric["direction"] == "report_only" and metric["target"] is not None:
+                  raise SystemExit(f"{metric['metric_id']}: report-only metrics must not have an optimization target")
+          print("AERO benchmark v0.2 schema and 28-metric preregistration passed; no benchmark execution or independent adjudication is claimed.")
           PY
 
       - name: Run evaluator tests
