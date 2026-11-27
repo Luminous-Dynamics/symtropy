@@ -320,3 +320,19 @@ Keep the claims orthogonal:
 - If any path is unbounded, unqueryable, unaccounted, wrong-profile, clock-invalid or otherwise unresolved, closure remains Hold/Unknown regardless of elapsed time and the candidate must retain `open_world_residual`.
 
 The existing temporal-closure PR #7435 had a failure at the workflow's source-pin stage: its JSON/schema check passed, then a stale Git blob pin rejected the intentional HiddenEdge mutant and prevented TLC, rustfmt, tests and Clippy from running. The expected hashes for HiddenEdge and InvalidClock have been corrected in its new head; the rerun is queued and must independently demonstrate the formal model and Rust checks before any qualification claim.
+
+
+## 19. Physical safety-to-observe is stricter than a logical deadline
+
+The v0.2 policy validator currently checks that the cumulative probe cost and declared result delay fit the candidate-visible budget/deadline. This is a logical admission check, not a physical claim that it is safe to wait for the result.
+
+During stop/settle, sensing, transport, evidence admission and replanning, the robot's physical state and command path may continue to evolve. The probe itself may require a camera/head/arm/base motion. A nominally timely observation can arrive after the lower bound to a collision/contact hazard, actuator/thermal derating, certificate expiry or loss of the only robust recovery continuation.
+
+New issue [#7738 — physical safety-to-observe](https://github.com/Luminous-Dynamics/symtropy/issues/7738) specifies the next composition:
+- consume #4696's joint adaptive-horizon envelope, #4588's observation-constrained common continuation, #4117's certificate freshness, #4083's set-valued dynamics, #4610's thermal horizon, #4206's actuator response, #4382's independent policy-to-dynamics/viability gate, #4310/#4313's viability-conditioned probe values and #7433/#7435 temporal closure;
+- evaluate a complete physical hold/probe trajectory, not just an acquisition cost and result timestamp;
+- distinguish a probe that is logically permitted from one physically safe to wait for;
+- reject Unknown/incompatible horizons rather than treating them as infinite or dropping them from the minimum;
+- score hard constraint events, safe continuation loss, time-to-hazard and time-to-qualified-evidence separately.
+
+AERB must not create another viability solver, action projector, thermal/actuator model, clock service or late-arrival checker. The actual safe-to-wait qualification must be issued by the existing independent physical/authority owners. AERB receives their exact, source-qualified result and benchmarks the candidate's use of it.
