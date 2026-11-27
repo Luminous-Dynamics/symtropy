@@ -68,6 +68,7 @@ fn public_joint_action_gate_accepts_five_two_percent_intervals_under_ten_percent
     .expect("robust action");
     assert_eq!(result.gate, DecisionGate::Feasible);
     assert_eq!(result.allocated_joint_alpha_ppm, 100_000);
+    assert_eq!(result.joint_coverage_lower_bound_ppm, Some(900_000));
     assert_eq!(result.worst_case_finish, Some(117));
 }
 
