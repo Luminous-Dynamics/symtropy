@@ -461,6 +461,14 @@ mod tests {
     }
 
     #[test]
+    fn rejects_duplicate_chemistry_fault_count_rows() {
+        let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
+        value["fault_counts_by_chemistry"][1]["chemistry"] = Value::String("LFP".to_owned());
+        let bytes = serde_json::to_vec(&value).expect("duplicate chemistry manifest");
+        assert!(audit_generated_reference(SCHEMA, &bytes).is_err());
+    }
+
+    #[test]
     fn rejects_snapshot_admission_without_local_hashes() {
         let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
         value["admission_state"] = Value::String("snapshot_admitted".to_owned());
