@@ -18,8 +18,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use sha2::{Digest, Sha256};
 
 use crate::counterfactual_trajectory_receipt::{
-    CounterfactualTrajectoryReceiptReport, ScenarioAtomIdentity, digest_receipt_report,
+    CounterfactualTrajectoryReceiptReport, MissionUnionContactDisposition, ScenarioAtomIdentity,
+    digest_receipt_report,
 };
+use crate::mission_risk_aggregation::ExactMass;
 use crate::paired_objective_pareto::validate_and_digest_gate;
 use crate::scenario_mission_risk_gate::ScenarioMissionRiskGateReport;
 
@@ -100,10 +102,27 @@ pub struct WorldPolicyDecision {
     pub selected_portfolio_id: [u8; 32],
     /// Exact trajectory digest for this portfolio in this scenario/world.
     pub selected_trajectory_digest: [u8; 32],
+    /// Whether the selected trajectory has any mission-union contact on this atom.
+    pub selected_trajectory_mission_union_contact: bool,
     /// Number of observations visible to the policy.
     pub visible_measurement_count: usize,
     /// Number of supplied observations that arrived after the decision.
     pub future_measurement_count: usize,
+}
+
+/// Exact policy-conditioned mission-risk assessment for one epistemic scenario.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PolicyScenarioRiskAssessment {
+    /// Epistemic scenario identity.
+    pub scenario_id: [u8; 32],
+    /// Exact total target-support mass ticks for this scenario.
+    pub total_mass_ticks: u64,
+    /// Exact union-contact mass induced by applying the policy to every latent world.
+    pub policy_union_mass: ExactMass,
+    /// Original scenario-specific mission-risk budget; never re-spent or relaxed.
+    pub mission_risk_budget: ExactMass,
+    /// True only when the policy-conditioned union mass is within the original budget.
+    pub within_declared_finite_support_budget: bool,
 }
 
 /// Complete finite policy verification report.
@@ -133,6 +152,11 @@ pub struct NonAnticipativePolicyReport {
     pub unique_observable_history_count: usize,
     /// Number of hidden scenario/world rows covered exactly once.
     pub covered_world_count: usize,
+    /// Policy-conditioned mission-union risk, recomputed after action selection.
+    pub scenario_policy_risk_assessments: Vec<PolicyScenarioRiskAssessment>,
+    /// False if the selected adaptive policy exceeds the hard mission-risk budget
+    /// in any required epistemic scenario.
+    pub policy_mission_risk_feasible: bool,
     /// Digest of the frozen scenario/world/policy universe.
     pub frozen_input_digest: [u8; 32],
     /// Digest of all canonical observation inventories and policy decisions.
@@ -174,6 +198,12 @@ pub enum NonAnticipativePolicyError {
     IneligiblePolicyAction,
     /// Trajectory receipt for the selected action is missing or mismatched.
     PolicyActionTrajectoryMismatch,
+    /// A hard-risk scenario contract is missing or inconsistent across portfolios.
+    InvalidPolicyRiskContract,
+    /// An exact policy-conditioned mass computation overflowed or became inconsistent.
+    PolicyRiskArithmeticFailure,
+    /// A receipt contains an ambiguous pathwise mission-risk outcome.
+    AmbiguousPolicyRiskOutcome,
 }
 
 impl core::fmt::Display for NonAnticipativePolicyError {
@@ -212,6 +242,15 @@ impl core::fmt::Display for NonAnticipativePolicyError {
             Self::PolicyActionTrajectoryMismatch => {
                 "selected portfolio has no matching trajectory receipt for this world"
             }
+            Self::InvalidPolicyRiskContract => {
+                "scenario mission-risk budget or total mass is inconsistent"
+            }
+            Self::PolicyRiskArithmeticFailure => {
+                "exact policy-conditioned mission-risk arithmetic failed"
+            }
+            Self::AmbiguousPolicyRiskOutcome => {
+                "policy trajectory contains an ambiguous mission-union outcome"
+            }
         };
         formatter.write_str(message)
     }
@@ -232,6 +271,9 @@ pub struct NonAnticipativePolicyCampaign {
     eligible_portfolio_ids: Vec<[u8; 32]>,
     ineligible_portfolio_ids: Vec<[u8; 32]>,
     trajectory_digest_by_world_portfolio: BTreeMap<([u8; 32], [u8; 32], [u8; 32]), [u8; 32]>,
+    mission_union_contact_by_world_portfolio: BTreeMap<([u8; 32], [u8; 32], [u8; 32]), bool>,
+    atom_mass_ticks_by_world: BTreeMap<ScenarioAtomIdentity, u64>,
+    risk_contract_by_scenario: BTreeMap<[u8; 32], (u64, ExactMass)>,
     frozen_input_digest: [u8; 32],
 }
 
