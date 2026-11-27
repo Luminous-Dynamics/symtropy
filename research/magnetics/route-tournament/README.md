@@ -17,6 +17,10 @@ A single remanence leaderboard is insufficient. Route families have different fe
 - [Machine-readable route benchmark plan](route-tournament-plan.toml)
 - [Literature source-register fixtures](fixtures/route-source-register-v0.1.json)
 
+## Evidence maturity
+
+Every result should be labelled by its highest demonstrated MOEM maturity: M1 concept/model, M2 coupon material evidence, M3 controlled process–structure–property validation, M4 application-relevant functional component, M5 reproducible qualification-grade evidence. This is a research reporting framework, not a formal standard. Route results at different maturity levels must be stratified, not treated as equivalent.
+
 ## Route strata
 
 MEX, LPBF/SLM, SLS, binder jetting, LCM/photopolymer composites, and near-net-shape / conventional controls. Do not pool incomparable material forms or test methods.
