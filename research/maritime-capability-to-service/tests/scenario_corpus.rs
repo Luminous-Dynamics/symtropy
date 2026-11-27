@@ -43,10 +43,18 @@ fn scenario_input(
             }
             "SHOCK" => {}
             "INSPECTION" => {
-                records.push(apply_disposition_override(line, &fields, inspection_override));
+                records.push(apply_disposition_override(
+                    line,
+                    &fields,
+                    inspection_override,
+                ));
             }
             "RECEIVER_ACCEPTANCE" => {
-                records.push(apply_disposition_override(line, &fields, receiver_override));
+                records.push(apply_disposition_override(
+                    line,
+                    &fields,
+                    receiver_override,
+                ));
             }
             _ => records.push(line.to_owned()),
         }
