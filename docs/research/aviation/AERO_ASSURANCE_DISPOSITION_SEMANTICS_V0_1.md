@@ -81,6 +81,17 @@ otRightarrow) correct engineering conclusion.
 
 The system is open-world. Missing records, unavailable observers and empty impact sets are not evidence of absence unless the source inventory, observation interval, change classes and event-delivery coverage are themselves qualified.
 
+### 3.1 Do not collapse subject-time effectivity into receiver knowledge
+
+AERO has two independent temporal questions:
+
+- **Subject-time effectivity:** was the event / requirement / configuration effective for every possible physical acquisition instant? The existing `effectivity_interval_v0_1` comparator consumes hard event-effective and acquisition-time intervals and returns `DEFINITELY_EFFECTIVE`, `DEFINITELY_NOT_YET_EFFECTIVE`, `TIME_BOUNDARY_AMBIGUOUS` or `INVALID_TIME_INTERVAL`.
+- **Receiver knowledge:** had the evidence actually been received by the selected `as_known_at` cutoff? A backdated issuer assertion does not move receiver-first-seen earlier.
+
+The disposition evaluator consumes these as separate outputs. `NOT_EFFECTIVE_AT_SUBJECT_TIME` is distinct from `NOT_KNOWN_AT_SNAPSHOT`; boundary ambiguity abstains and invalid intervals reject the temporal assertion. It does not recompute source chronology or substitute issuer-asserted time for receipt time.
+
+Physical/acquisition bounds and event-effective bounds are owned by the interval comparator; receiver receipt watermarks and trust-policy commitments remain owner/decision-context inputs. The issuer-asserted event timestamp is retained with the source artifact and must not be inferred from either of those watermarks. The evaluator is a projection layer, not a replacement for the owner-native temporal ledger.
+
 ## 4. Deterministic disposition projection
 
 The full state vector is normative. A primary label is derived using the following fixed presentation precedence; all component states and all applicable reason codes remain visible:
