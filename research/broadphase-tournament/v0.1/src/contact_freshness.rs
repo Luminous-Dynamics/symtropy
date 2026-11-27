@@ -1273,4 +1273,36 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn response_state_change_commits_warm_start_without_geometry_rebuild() {
+        let old_stamp = stamp();
+        let mut current_left = endpoint(1);
+        current_left.response_state += 1;
+        let mut next = next_global();
+        let committed = old_stamp
+            .commit_transition(
+                next,
+                current_left,
+                endpoint(2),
+                false,
+                true,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [26; 32],
+                    ..payload()
+                },
+            )
+            .expect("callback response state warm-start reset");
+        next.world += 1;
+        let decision = committed
+            .assess(next, current_left, endpoint(2))
+            .expect("response state committed");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+    }
+
+
 }
