@@ -364,7 +364,7 @@ mod tests {
             keepout_profile_id: "keepout-1".to_owned(),
             keepout_geometry_revision: "geometry-r1".to_owned(),
             matrix_sha256: "a".repeat(64),
-            matrix_convention: "body-fixed-K-inverse-m2".to_owned(),
+            matrix_convention: "body-fixed-K-inverse-m2-v1".to_owned(),
             frame_id: "LVLH".to_owned(),
             frame_revision: "frame-r1".to_owned(),
             transform_digest: "transform-r1".to_owned(),
