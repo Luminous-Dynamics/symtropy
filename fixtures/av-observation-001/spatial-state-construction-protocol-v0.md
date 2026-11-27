@@ -626,3 +626,8 @@ For the synthetic RGB-D SLAM cohort, the paper describes matched RGB-D frames, c
 - Report 5/10/15 pedestrian strata independently; do not average away the failure mode that appears only in crowded scenes.
 
 These are prospective Symtropy/Symthaea research targets, not reported THUD++ results. Real-world data, Unity simulation, and simulator-generated truth remain separate evidence classes.
+
+
+### 23.8 Dynamic map-persistence implementation owner
+
+The THUD++ dynamic-scene benchmark adapter is now tracked under [DYN-MAP-PERSISTENCE-001 #7787](https://github.com/Luminous-Dynamics/symtropy/issues/7787). It owns static-structure versus transient-occupancy scenarios, density splits, map-change metrics and matched RGB-D reproduction planning. It composes the existing #1595 world, #6183 AV observation, #6201 replay, #7693 map evaluator and #6754 custody boundaries; it does not add a second map store or object tracker.
