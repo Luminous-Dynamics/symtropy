@@ -168,6 +168,7 @@ pub fn assess_joint_robust_action(
             reason: "one or more resource prediction intervals are unbounded or missing",
             allocated_joint_alpha_ppm: allocated_alpha,
             target_joint_alpha_ppm: risk_budget.target_joint_alpha_ppm,
+            joint_coverage_lower_bound_ppm: None,
             decision_cutoff: None,
             worst_case_berth_start: None,
             worst_case_finish: None,
