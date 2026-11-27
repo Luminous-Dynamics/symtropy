@@ -326,3 +326,22 @@ The existing RRVR Evidence Capsules v0.1 package (#7515) already has typed sourc
 AERB v0.1's candidate-visible Observation currently exposes identity, role, quality, event/acquisition times, ingest sequence, artifact digest and an `observation_kind` string, but no typed observation result. A digest is a commitment to bytes, not the measurement or receipt itself. An observer cannot genuinely revise its possible-history support if it cannot inspect the admitted result.
 
 The v0.2 follow-on [#7728](https://github.com/Luminous-Dynamics/symtropy/issues/7728) therefore requires a source-qualified, decision-cut-bounded materialized payload projection that reuses #7515, with safe read-only host mediation for larger raw artifacts. The candidate must see what the qualified source actually returned, while evaluator truth, actual support partitions, priors and loss tables remain hidden.
+
+
+## 2.14 Blind benchmark generation — public deterministic fixtures are not blind tests
+
+The v0.1 `aerb_generate` tool is useful for public deterministic conformance, but its current algorithm is not a blind challenge generator:
+- episode IDs are sequential;
+- `scenario_id` exposes `index % 8`;
+- hidden truth is assigned from a deterministic, seed-shuffled cycle with each of eight worlds appearing exactly once per block;
+- the public CI workflow invokes the generator with seed `42`.
+
+The seed and truth map are not written into candidate files, but the code, workflow seed and candidate-visible IDs/position expose enough information to reconstruct or infer the hidden assignment. A stateful candidate can also exploit the exact block-balance property.
+
+This does not invalidate the declared v0.1 public synthetic smoke test or its broad-support baseline. It does invalidate using the same generator/IDs as a blind learned-agent benchmark.
+
+New issue [#7732](https://github.com/Luminous-Dynamics/symtropy/issues/7732) separates:
+- a **public deterministic conformance corpus**, where fixed seeds and visible IDs are acceptable; and
+- a **blind challenge corpus**, where hidden assignments are made with evaluator-only cryptographic entropy, candidate IDs/order are opaque and uncorrelated, and the assignment is revealed only after the campaign under an auditable commitment.
+
+The blind-corpus acceptance test includes metadata-only classifiers and stateful sequential inference attacks. Exact quota balancing must not create candidate-visible sequence leakage. The evaluator must keep the true cluster/stratum labels separately while candidate metadata remains non-informative about hidden world identity.
