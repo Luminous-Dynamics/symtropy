@@ -8,6 +8,7 @@ publish = false
 
 [dependencies]
 incremental-aabb-tree-reference = { path = "../../incremental-aabb-tree-reference/v0.1" }
+symtropy-math = { path = "../../../crates/core/symtropy-math" }
 
 [lib]
 path = "src/lib.rs"
@@ -15,5 +16,17 @@ path = "src/lib.rs"
 [[bin]]
 name = "broadphase-tournament"
 path = "src/main.rs"
+
+[[bin]]
+name = "contact-lease-benchmark"
+path = "src/bin/contact-lease-benchmark.rs"
+
+[[bin]]
+name = "shape-coverage-benchmark"
+path = "src/bin/shape-coverage-benchmark.rs"
+
+[[bin]]
+name = "shape-backend-coverage-benchmark"
+path = "src/bin/shape-backend-coverage-benchmark.rs"
 
 [workspace]

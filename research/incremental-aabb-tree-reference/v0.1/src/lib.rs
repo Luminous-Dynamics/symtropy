@@ -302,6 +302,12 @@ impl<const D: usize> IncrementalAabbTree<D> {
         self.leaves.is_empty()
     }
 
+    /// Return whether the tree currently owns a leaf for this stable proxy ID.
+    #[must_use]
+    pub fn contains_proxy(&self, proxy: ProxyId) -> bool {
+        self.leaves.contains_key(&proxy)
+    }
+
     #[must_use]
     pub fn fat_margin(&self) -> f64 {
         self.fat_margin

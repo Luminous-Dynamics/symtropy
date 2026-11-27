@@ -1,5 +1,6 @@
 use broadphase_tournament::{
-    SceneFamily, TournamentConfig, TournamentRow, generate_scene, run_tournament,
+    SceneFamily, TournamentConfig, TournamentRow, generate_scene, run_scale_tournament,
+    run_tournament,
 };
 
 fn run_dimension<const D: usize>(proxy_count: usize, frame_count: usize, repetitions: u32) {
@@ -22,6 +23,29 @@ fn parse_arg<T: std::str::FromStr>(args: &[String], index: usize, default: T) ->
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+    if args.get(1).is_some_and(|mode| mode == "--scale") {
+        let proxy_count = parse_arg(&args, 2, 10_000_usize);
+        let frame_count = parse_arg(&args, 3, 32_usize);
+        let repetitions = parse_arg(&args, 4, 1_u32);
+        let config = TournamentConfig::new(repetitions);
+        println!("{}", TournamentRow::csv_header());
+        for family in [
+            SceneFamily::SparseCoherent,
+            SceneFamily::SleepingWakeups,
+            SceneFamily::HighChurn,
+        ] {
+            let scene =
+                generate_scene::<3>(family, proxy_count, frame_count, 0x2026_1126_0000_0001)
+                    .expect("generate deterministic scale scene");
+            let rows = run_scale_tournament(&scene, config)
+                .expect("run exact-sweep-oracled scale tournament");
+            for row in rows {
+                println!("{}", row.to_csv());
+            }
+        }
+        return;
+    }
+
     let proxy_count = parse_arg(&args, 1, 128_usize);
     let frame_count = parse_arg(&args, 2, 40_usize);
     let repetitions = parse_arg(&args, 3, 2_u32);

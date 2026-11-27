@@ -13,6 +13,15 @@ use incremental_aabb_tree_reference::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
+pub mod contact_freshness;
+pub mod contact_freshness_verifier;
+pub mod contact_reuse_lease;
+pub mod callback_event_receipt;
+pub mod shape_coverage;
+
+mod indexed_pair_cache;
+use indexed_pair_cache::IndexedPairDeltaCache;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SceneFamily {
     SparseCoherent,
@@ -72,11 +81,12 @@ pub enum BackendKind {
     TreePerLeafBalanced,
     TreeSelfPairBalanced,
     PairDeltaCache,
+    IndexedPairDeltaCache,
     MortonLbvhAabbAdapter,
 }
 
 impl BackendKind {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::BruteForce,
         Self::SweepAndPrune,
         Self::TreePerLeafUnbalanced,
@@ -84,6 +94,7 @@ impl BackendKind {
         Self::TreePerLeafBalanced,
         Self::TreeSelfPairBalanced,
         Self::PairDeltaCache,
+        Self::IndexedPairDeltaCache,
         Self::MortonLbvhAabbAdapter,
     ];
 
@@ -97,6 +108,7 @@ impl BackendKind {
             Self::TreePerLeafBalanced => "tree_per_leaf_balanced",
             Self::TreeSelfPairBalanced => "tree_self_pair_balanced",
             Self::PairDeltaCache => "pair_delta_cache",
+            Self::IndexedPairDeltaCache => "indexed_pair_delta_cache",
             Self::MortonLbvhAabbAdapter => "symtropy_morton_lbvh_aabb_adapter",
         }
     }
@@ -135,6 +147,17 @@ pub struct WorkCounters {
     pub pair_events_removed: u64,
     pub pair_revalidations: u64,
     pub pair_cache_peak_pairs: usize,
+    pub dirty_snapshot_entries_visited: u64,
+    pub frame_validation_entries_visited: u64,
+    pub frontier_proxy_visits: u64,
+    pub frontier_pair_candidates: u64,
+    pub frontier_unique_pairs: u64,
+    pub frontier_node_visits: u64,
+    pub frontier_leaf_tests: u64,
+    pub frontier_aabb_tests: u64,
+    pub frontier_index_mutations: u64,
+    pub frontier_index_reinsertions: u64,
+    pub full_relation_reconciliations: u64,
     pub lbvh_builds: u64,
     pub lbvh_internal_nodes: u64,
     pub lbvh_bruteforce_fallback_frames: u64,
@@ -151,6 +174,7 @@ pub struct TournamentRow {
     pub declared_proxy_count: usize,
     pub scene_frames: usize,
     pub backend: &'static str,
+    pub oracle_method: &'static str,
     /// Full-set backends time complete candidate production; the pair cache
     /// times only pair-delta production and reports full-set materialization separately.
     pub output_contract: &'static str,
@@ -205,12 +229,34 @@ fn next_between(state: &mut u64, min: f64, max: f64) -> f64 {
     min + (max - min) * next_unit(state)
 }
 
-fn integer_grid_coordinate(slot: usize, axis: usize) -> f64 {
+fn integer_grid_side(population: usize, dimensions: usize) -> usize {
+    let target = population.max(1);
+    let mut low = 1_usize;
+    let mut high = target;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        let mut capacity = 1_usize;
+        for _ in 0..dimensions {
+            capacity = capacity.saturating_mul(middle);
+            if capacity >= target {
+                break;
+            }
+        }
+        if capacity >= target {
+            high = middle;
+        } else {
+            low = middle + 1;
+        }
+    }
+    low
+}
+
+fn integer_grid_coordinate(slot: usize, axis: usize, side: usize) -> f64 {
     let mut divisor = 1_usize;
     for _ in 0..axis {
-        divisor = divisor.saturating_mul(16);
+        divisor = divisor.saturating_mul(side);
     }
-    ((slot / divisor) % 16) as f64 * 5.0
+    ((slot / divisor) % side) as f64 * 5.0
 }
 
 /// Generate a deterministic sequence. The same family, count, frame count and
@@ -225,6 +271,8 @@ pub fn generate_scene<const D: usize>(
         return Err(TournamentError::EmptyScene);
     }
 
+    let sparse_grid_side = integer_grid_side(proxy_count, D);
+    let sleeping_pair_grid_side = integer_grid_side(proxy_count.div_ceil(2), D);
     let mut state = seed;
     let mut initial = Vec::with_capacity(proxy_count);
     let mut velocities = Vec::with_capacity(proxy_count);
@@ -238,18 +286,23 @@ pub fn generate_scene<const D: usize>(
         for axis in 0..D {
             center[axis] = match family {
                 SceneFamily::SparseCoherent | SceneFamily::StaticHeavy => {
-                    integer_grid_coordinate(slot, axis) + next_between(&mut state, -0.1, 0.1)
+                    integer_grid_coordinate(slot, axis, sparse_grid_side)
+                        + next_between(&mut state, -0.1, 0.1)
                 }
                 SceneFamily::DenseClustered => next_between(&mut state, -4.0, 4.0),
                 SceneFamily::HighChurn => next_between(&mut state, -30.0, 30.0),
                 SceneFamily::Anisotropic => next_between(&mut state, -24.0, 24.0),
                 SceneFamily::TeleportChurn => next_between(&mut state, -30.0, 30.0),
                 SceneFamily::SleepingWakeups => {
-                    let mut divisor = 1_usize;
-                    for _ in 0..axis {
-                        divisor = divisor.saturating_mul(4);
-                    }
-                    ((slot / divisor) % 4) as f64 * 0.85 + next_between(&mut state, -0.01, 0.01)
+                    let pair_slot = slot / 2;
+                    let pair_offset = if axis == 0 {
+                        if slot % 2 == 0 { -0.25 } else { 0.25 }
+                    } else {
+                        0.0
+                    };
+                    integer_grid_coordinate(pair_slot, axis, sleeping_pair_grid_side)
+                        + pair_offset
+                        + next_between(&mut state, -0.01, 0.01)
                 }
             };
 
@@ -290,13 +343,7 @@ pub fn generate_scene<const D: usize>(
                     }
                 }
                 SceneFamily::TeleportChurn => next_between(&mut state, -0.02, 0.02),
-                SceneFamily::SleepingWakeups => {
-                    if slot % 64 == 0 {
-                        0.025 * (axis as f64 + 1.0)
-                    } else {
-                        0.0
-                    }
-                }
+                SceneFamily::SleepingWakeups => 0.0,
             };
         }
 
@@ -306,6 +353,10 @@ pub fn generate_scene<const D: usize>(
     }
 
     let mut frames = Vec::with_capacity(frame_count);
+    // ProxyId is a generation-stable residency identity. Continuous proxies
+    // retain their ID; removal followed by reinsertion receives a fresh ID.
+    let mut proxy_ids_by_slot = vec![None::<ProxyId>; proxy_count];
+    let mut next_proxy_id = 1_u64;
     for frame_index in 0..frame_count {
         let mut frame = Vec::with_capacity(proxy_count);
         for slot in 0..proxy_count {
@@ -313,12 +364,31 @@ pub fn generate_scene<const D: usize>(
                 && slot != 0
                 && ((slot + frame_index.saturating_mul(7)) % 13 < 2)
             {
+                proxy_ids_by_slot[slot] = None;
                 continue;
             }
+
+            let proxy_id = match proxy_ids_by_slot[slot] {
+                Some(existing) => existing,
+                None => {
+                    let fresh = ProxyId(next_proxy_id);
+                    next_proxy_id = next_proxy_id
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    proxy_ids_by_slot[slot] = Some(fresh);
+                    fresh
+                }
+            };
 
             let mut center = initial[slot];
             for axis in 0..D {
                 center[axis] += velocities[slot][axis] * frame_index as f64;
+                if family == SceneFamily::SleepingWakeups && slot % 64 == 0 {
+                    // Two endpoints of distinct contact pairs wake and move at
+                    // discrete eight-frame intervals, remaining still between.
+                    let wake_steps = frame_index / 8;
+                    center[axis] += wake_steps as f64 * 0.025 * (axis as f64 + 1.0);
+                }
                 if family == SceneFamily::TeleportChurn
                     && slot % 17 == 0
                     && frame_index > 0
@@ -332,7 +402,7 @@ pub fn generate_scene<const D: usize>(
             let max = std::array::from_fn(|axis| center[axis] + extents[slot][axis]);
             let bounds = Aabb::new(min, max).map_err(|_| TournamentError::InvalidBounds)?;
             frame.push(ProxyFrame {
-                id: ProxyId(slot as u64 + 1),
+                id: proxy_id,
                 bounds,
             });
         }
@@ -418,6 +488,43 @@ fn oracle_pairs<const D: usize>(
     Ok(pairs)
 }
 
+/// Exact fixed-axis sweep oracle for scale lanes where O(N^2) all-pairs
+/// enumeration is not practical. Sorting by min-X and stopping once the next
+/// min-X exceeds the current max-X cannot omit a true AABB overlap. Full
+/// D-dimensional overlap is still checked for every X-interval candidate.
+/// This oracle is intentionally independent of the timed SAP backend's
+/// data structures and adaptive axis heuristic; small fixtures cross-check it
+/// against the brute-force oracle.
+fn oracle_pairs_sweep<const D: usize>(
+    frame: &[ProxyFrame<D>],
+) -> Result<BTreeSet<ProxyPair>, TournamentError> {
+    if D == 0 {
+        return Err(TournamentError::EmptyScene);
+    }
+    validate_frame(frame)?;
+    let mut ordered: Vec<_> = frame.iter().collect();
+    ordered.sort_by(|left, right| {
+        left.bounds.min()[0]
+            .total_cmp(&right.bounds.min()[0])
+            .then_with(|| left.id.cmp(&right.id))
+    });
+
+    let mut pairs = BTreeSet::new();
+    for left_index in 0..ordered.len() {
+        for right_index in (left_index + 1)..ordered.len() {
+            if ordered[right_index].bounds.min()[0] > ordered[left_index].bounds.max()[0] {
+                break;
+            }
+            if overlaps(&ordered[left_index].bounds, &ordered[right_index].bounds) {
+                let pair = ProxyPair::new(ordered[left_index].id, ordered[right_index].id)
+                    .ok_or(TournamentError::DuplicateProxyId)?;
+                pairs.insert(pair);
+            }
+        }
+    }
+    Ok(pairs)
+}
+
 fn brute_force_candidates<const D: usize>(frame: &[ProxyFrame<D>]) -> Vec<ProxyPair> {
     let mut pairs = Vec::new();
     for left_index in 0..frame.len() {
@@ -447,6 +554,17 @@ pub struct PairDeltaFrame {
     pub dirty_proxies: usize,
     pub overlap_tests: u64,
     pub active_pairs: usize,
+    pub dirty_snapshot_entries_visited: u64,
+    pub frame_validation_entries_visited: u64,
+    pub frontier_proxy_visits: u64,
+    pub frontier_pair_candidates: u64,
+    pub frontier_unique_pairs: u64,
+    pub frontier_node_visits: u64,
+    pub frontier_leaf_tests: u64,
+    pub frontier_aabb_tests: u64,
+    pub frontier_index_mutations: u64,
+    pub frontier_index_reinsertions: u64,
+    pub full_relation_reconciliation: bool,
 }
 
 /// Persistent symmetric adjacency cache over the exact current-frame AABB
@@ -563,34 +681,97 @@ impl<const D: usize> PairDeltaCache<D> {
     ///
     /// This performs the full snapshot diff and belongs in the audit path,
     /// not the timed fast path.
+    /// Verify that the supplied journal covers every geometrically changed,
+    /// inserted or removed identity. Additional known identities are accepted
+    /// for wake-only or other explicit lifecycle invalidations whose AABB has
+    /// not changed yet. This snapshot audit cannot prove the provenance of
+    /// those extra reasons; that must be bound by the physics-world journal.
     pub fn verify_dirty_proxy_ids(
         &self,
         frame: &[ProxyFrame<D>],
         supplied: &[ProxyId],
     ) -> Result<bool, TournamentError> {
         let expected = self.derive_dirty_proxy_ids(frame)?;
-        Ok(expected == supplied)
+        let mut previous = None;
+        for id in supplied {
+            if previous.is_some_and(|prior| prior >= *id) {
+                return Ok(false);
+            }
+            let existed_before = self.previous_bounds.contains_key(id);
+            let exists_now = frame.binary_search_by_key(id, |proxy| proxy.id).is_ok();
+            if !existed_before && !exists_now {
+                return Ok(false);
+            }
+            previous = Some(*id);
+        }
+        Ok(expected.iter().all(|id| supplied.binary_search(id).is_ok()))
     }
 
     /// Safe default: detect changed identities from the complete snapshots.
     pub fn step(&mut self, frame: &[ProxyFrame<D>]) -> Result<PairDeltaFrame, TournamentError> {
         let dirty_ids = self.derive_dirty_proxy_ids(frame)?;
-        self.apply_dirty_ids(frame, &dirty_ids, true)
+        let mut snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
+            .ok()
+            .and_then(|previous| {
+                u64::try_from(frame.len()).ok().and_then(|current| {
+                    current
+                        .checked_mul(2)
+                        .and_then(|current| previous.checked_add(current))
+                })
+            })
+            .ok_or(TournamentError::CounterOverflow)?;
+        if self.force_dirty {
+            let invalidation_entries = u64::try_from(self.previous_bounds.len())
+                .ok()
+                .and_then(|previous| {
+                    u64::try_from(frame.len())
+                        .ok()
+                        .and_then(|current| previous.checked_add(current))
+                })
+                .ok_or(TournamentError::CounterOverflow)?;
+            snapshot_entries_visited = snapshot_entries_visited
+                .checked_add(invalidation_entries)
+                .ok_or(TournamentError::CounterOverflow)?;
+        }
+        self.apply_dirty_ids(frame, &dirty_ids, true, true, snapshot_entries_visited, 0)
     }
 
-    /// Apply a frame using a caller-provided, strictly increasing dirty-ID
-    /// journal. This is the fast path for a physics world that already tracks
-    /// inserted/removed/moved/woken colliders. Completeness is a caller
-    /// precondition; use verify_dirty_proxy_ids in the independent audit.
-    ///
-    /// A full invalidation (e.g. collision filter/layer policy change) must use
-    /// step, which derives all relevant identities from the snapshot.
+    /// Trusted fast path for a physics world that owns a canonical, sorted
+    /// proxy frame and an authoritative complete journal of every inserted,
+    /// removed, moved, woken or policy-invalidated identity. This path does
+    /// not scan unchanged proxies: it validates only journal entries and the
+    /// bounds of dirty current proxies. The caller must guarantee that the
+    /// frame is sorted by unique ProxyId and that every non-dirty entry is
+    /// unchanged and previously validated. Use verify_dirty_proxy_ids in the
+    /// independent snapshot audit. A full invalidation must use step.
     pub fn step_with_dirty_ids(
         &mut self,
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
     ) -> Result<PairDeltaFrame, TournamentError> {
-        self.apply_dirty_ids(frame, dirty_ids, false)
+        self.apply_dirty_ids(frame, dirty_ids, false, true, 0, 0)
+    }
+
+    /// Defensive variant for untrusted snapshots. It validates the entire
+    /// current frame before applying the supplied journal and reports that
+    /// O(N) work separately. It is useful for adapters that have not yet earned
+    /// the trusted canonical-frame contract.
+    pub fn step_with_dirty_ids_checked(
+        &mut self,
+        frame: &[ProxyFrame<D>],
+        dirty_ids: &[ProxyId],
+    ) -> Result<PairDeltaFrame, TournamentError> {
+        validate_proxy_sequence(frame)?;
+        let frame_validation_entries_visited =
+            u64::try_from(frame.len()).map_err(|_| TournamentError::CounterOverflow)?;
+        self.apply_dirty_ids(
+            frame,
+            dirty_ids,
+            false,
+            true,
+            0,
+            frame_validation_entries_visited,
+        )
     }
 
     fn apply_dirty_ids(
@@ -598,8 +779,13 @@ impl<const D: usize> PairDeltaCache<D> {
         frame: &[ProxyFrame<D>],
         dirty_ids: &[ProxyId],
         allow_full_invalidation: bool,
+        frame_prevalidated: bool,
+        dirty_snapshot_entries_visited: u64,
+        frame_validation_entries_visited: u64,
     ) -> Result<PairDeltaFrame, TournamentError> {
-        validate_proxy_sequence(frame)?;
+        if !frame_prevalidated {
+            validate_proxy_sequence(frame)?;
+        }
         if self.force_dirty && !allow_full_invalidation {
             return Err(TournamentError::DirtyJournalCannotApplyFullInvalidation);
         }
@@ -609,20 +795,27 @@ impl<const D: usize> PairDeltaCache<D> {
                 return Err(TournamentError::InvalidDirtyJournal);
             }
             let exists_before = self.previous_bounds.contains_key(dirty_id);
-            let exists_now = frame
-                .binary_search_by_key(dirty_id, |proxy| proxy.id)
-                .is_ok();
+            let current_index = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
+            let exists_now = current_index.is_some();
             if !exists_before && !exists_now {
                 return Err(TournamentError::InvalidDirtyJournal);
+            }
+            if current_index.is_some_and(|index| !frame[index].bounds.is_valid()) {
+                return Err(TournamentError::InvalidBounds);
             }
             previous_dirty = Some(*dirty_id);
         }
         let dirty = dirty_ids.iter().copied().collect::<BTreeSet<_>>();
 
         let mut affected_pairs = BTreeSet::<ProxyPair>::new();
+        let mut frontier_proxy_visits = 0_u64;
+        let mut frontier_pair_candidates = 0_u64;
         for dirty_id in &dirty {
             if let Some(old_neighbors) = self.neighbors.get(dirty_id) {
                 for neighbor in old_neighbors {
+                    frontier_pair_candidates = frontier_pair_candidates
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
                     if let Some(pair) = ProxyPair::new(*dirty_id, *neighbor) {
                         affected_pairs.insert(pair);
                     }
@@ -633,6 +826,14 @@ impl<const D: usize> PairDeltaCache<D> {
                 .is_ok()
             {
                 for other in frame {
+                    frontier_proxy_visits = frontier_proxy_visits
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                    if other.id != *dirty_id {
+                        frontier_pair_candidates = frontier_pair_candidates
+                            .checked_add(1)
+                            .ok_or(TournamentError::CounterOverflow)?;
+                    }
                     if let Some(pair) = ProxyPair::new(*dirty_id, other.id) {
                         affected_pairs.insert(pair);
                     }
@@ -735,6 +936,18 @@ impl<const D: usize> PairDeltaCache<D> {
             dirty_proxies: dirty.len(),
             overlap_tests,
             active_pairs: self.active_pair_count,
+            dirty_snapshot_entries_visited,
+            frame_validation_entries_visited,
+            frontier_proxy_visits,
+            frontier_pair_candidates,
+            frontier_unique_pairs: u64::try_from(affected_pairs.len())
+                .map_err(|_| TournamentError::CounterOverflow)?,
+            frontier_node_visits: 0,
+            frontier_leaf_tests: 0,
+            frontier_aabb_tests: 0,
+            frontier_index_mutations: 0,
+            frontier_index_reinsertions: 0,
+            full_relation_reconciliation: false,
         })
     }
 }
@@ -1091,6 +1304,7 @@ fn run_backend<const D: usize>(
     scene: &TemporalScene<D>,
     oracle: &[BTreeSet<ProxyPair>],
     backend: BackendKind,
+    oracle_method: &'static str,
     repetitions: u32,
 ) -> Result<TournamentRow, TournamentError> {
     let campaign_start = Instant::now();
@@ -1119,10 +1333,19 @@ fn run_backend<const D: usize>(
             BackendKind::BruteForce
             | BackendKind::SweepAndPrune
             | BackendKind::PairDeltaCache
+            | BackendKind::IndexedPairDeltaCache
             | BackendKind::MortonLbvhAabbAdapter => None,
         };
         let mut pair_cache =
             (backend == BackendKind::PairDeltaCache).then(PairDeltaCache::<D>::new);
+        let mut indexed_pair_cache = if backend == BackendKind::IndexedPairDeltaCache {
+            Some(IndexedPairDeltaCache::<D>::new(
+                0.5,
+                BalancePolicy::HeightRotations,
+            )?)
+        } else {
+            None
+        };
         let mut previous_bounds = BTreeMap::<ProxyId, Aabb<D>>::new();
         let mut previous_maintenance = MaintenanceStats::default();
 
@@ -1186,6 +1409,7 @@ fn run_backend<const D: usize>(
                         BackendKind::BruteForce
                         | BackendKind::SweepAndPrune
                         | BackendKind::PairDeltaCache
+                        | BackendKind::IndexedPairDeltaCache
                         | BackendKind::MortonLbvhAabbAdapter => {
                             unreachable!("non-tree backend entered tree query arm")
                         }
@@ -1227,6 +1451,12 @@ fn run_backend<const D: usize>(
                     let cache = pair_cache
                         .as_mut()
                         .expect("pair-delta backend initializes a pair cache");
+                    pair_delta = Some(cache.step(frame)?);
+                }
+                BackendKind::IndexedPairDeltaCache => {
+                    let cache = indexed_pair_cache
+                        .as_mut()
+                        .expect("indexed pair-delta backend initializes a cache");
                     pair_delta = Some(cache.step(frame)?);
                 }
                 BackendKind::MortonLbvhAabbAdapter => {
@@ -1284,6 +1514,52 @@ fn run_backend<const D: usize>(
                 checked_add(&mut counters.pair_events_added, delta.added.len())?;
                 checked_add(&mut counters.pair_events_removed, delta.removed.len())?;
                 checked_add(&mut counters.pair_revalidations, delta.revalidated.len())?;
+                counters.dirty_snapshot_entries_visited = counters
+                    .dirty_snapshot_entries_visited
+                    .checked_add(delta.dirty_snapshot_entries_visited)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frame_validation_entries_visited = counters
+                    .frame_validation_entries_visited
+                    .checked_add(delta.frame_validation_entries_visited)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_proxy_visits = counters
+                    .frontier_proxy_visits
+                    .checked_add(delta.frontier_proxy_visits)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_pair_candidates = counters
+                    .frontier_pair_candidates
+                    .checked_add(delta.frontier_pair_candidates)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_unique_pairs = counters
+                    .frontier_unique_pairs
+                    .checked_add(delta.frontier_unique_pairs)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_node_visits = counters
+                    .frontier_node_visits
+                    .checked_add(delta.frontier_node_visits)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_leaf_tests = counters
+                    .frontier_leaf_tests
+                    .checked_add(delta.frontier_leaf_tests)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_aabb_tests = counters
+                    .frontier_aabb_tests
+                    .checked_add(delta.frontier_aabb_tests)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_index_mutations = counters
+                    .frontier_index_mutations
+                    .checked_add(delta.frontier_index_mutations)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                counters.frontier_index_reinsertions = counters
+                    .frontier_index_reinsertions
+                    .checked_add(delta.frontier_index_reinsertions)
+                    .ok_or(TournamentError::CounterOverflow)?;
+                if delta.full_relation_reconciliation {
+                    counters.full_relation_reconciliations = counters
+                        .full_relation_reconciliations
+                        .checked_add(1)
+                        .ok_or(TournamentError::CounterOverflow)?;
+                }
                 counters.pair_cache_peak_pairs =
                     counters.pair_cache_peak_pairs.max(delta.active_pairs);
 
@@ -1327,10 +1603,14 @@ fn run_backend<const D: usize>(
                 }
 
                 let materialize_start = Instant::now();
-                actual = pair_cache
-                    .as_ref()
-                    .expect("pair cache remains initialized")
-                    .active_pairs();
+                actual = if let Some(cache) = pair_cache.as_ref() {
+                    cache.active_pairs()
+                } else {
+                    indexed_pair_cache
+                        .as_ref()
+                        .expect("indexed pair cache remains initialized")
+                        .active_pairs()
+                };
                 pair_materialize_samples.push(materialize_start.elapsed().as_nanos());
             }
 
@@ -1359,7 +1639,11 @@ fn run_backend<const D: usize>(
         declared_proxy_count: scene.declared_proxy_count,
         scene_frames: scene.frames.len(),
         backend: backend.name(),
-        output_contract: if backend == BackendKind::PairDeltaCache {
+        oracle_method,
+        output_contract: if matches!(
+            backend,
+            BackendKind::PairDeltaCache | BackendKind::IndexedPairDeltaCache
+        ) {
             "pair_delta_events"
         } else {
             "full_candidate_set"
@@ -1406,26 +1690,80 @@ pub fn run_tournament<const D: usize>(
 
     BackendKind::ALL
         .into_iter()
-        .map(|backend| run_backend(scene, &oracle, backend, config.repetitions))
+        .map(|backend| {
+            run_backend(
+                scene,
+                &oracle,
+                backend,
+                "brute_force_all_pairs",
+                config.repetitions,
+            )
+        })
+        .collect()
+}
+
+/// Scale-oriented temporal tournament. It uses an exact independent fixed-X
+/// sweep oracle so large sparse and sleeping-heavy populations can be checked
+/// without materializing every possible pair. The small-scene campaign remains
+/// brute-force-oracled; no backend is scored by an incomplete candidate list.
+pub fn run_scale_tournament<const D: usize>(
+    scene: &TemporalScene<D>,
+    config: TournamentConfig,
+) -> Result<Vec<TournamentRow>, TournamentError> {
+    if D == 0 {
+        return Err(TournamentError::EmptyScene);
+    }
+    if config.repetitions == 0 {
+        return Err(TournamentError::InvalidRepetitions);
+    }
+    if scene.frames.is_empty() {
+        return Err(TournamentError::EmptyScene);
+    }
+
+    let oracle = scene
+        .frames
+        .iter()
+        .map(|frame| oracle_pairs_sweep(frame))
+        .collect::<Result<Vec<_>, _>>()?;
+    let backends = BackendKind::ALL
+        .into_iter()
+        .filter(|backend| {
+            *backend != BackendKind::BruteForce
+                && (*backend != BackendKind::PairDeltaCache || scene.declared_proxy_count <= 4_096)
+        })
+        .collect::<Vec<_>>();
+
+    backends
+        .into_iter()
+        .map(|backend| {
+            run_backend(
+                scene,
+                &oracle,
+                backend,
+                "fixed_x_exact_sweep",
+                config.repetitions,
+            )
+        })
         .collect()
 }
 
 impl TournamentRow {
     #[must_use]
     pub fn csv_header() -> &'static str {
-        "family,dimension,seed,declared_proxy_count,scene_frames,backend,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations"
+        "family,dimension,seed,declared_proxy_count,scene_frames,backend,oracle_method,output_contract,repetitions,frame_samples,proxy_observations,oracle_pairs,candidate_pairs,false_positives,false_negatives,mismatch_frames,event_mismatch_frames,p50_frame_ns,p95_frame_ns,p99_frame_ns,p50_pair_materialize_ns,p95_pair_materialize_ns,p99_pair_materialize_ns,sum_frame_ns,campaign_wall_ns,pair_tests,raw_tree_pairs,stale_leaf_hits_filtered,node_visits,leaf_tests,aabb_tests,inserts,removes,updates,fat_contained_updates,proxy_reinsertions,full_rebuilds,tree_rotations,pair_cache_dirty_proxies,pair_cache_overlap_tests,pair_events_added,pair_events_removed,pair_cache_peak_pairs,lbvh_builds,lbvh_internal_nodes,lbvh_bruteforce_fallback_frames,max_tree_height,max_tree_nodes,max_active_proxies,pair_revalidations,dirty_snapshot_entries_visited,frame_validation_entries_visited,frontier_proxy_visits,frontier_pair_candidates,frontier_unique_pairs,frontier_node_visits,frontier_leaf_tests,frontier_aabb_tests,frontier_index_mutations,frontier_index_reinsertions,full_relation_reconciliations"
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             self.family,
             self.dimension,
             self.seed,
             self.declared_proxy_count,
             self.scene_frames,
             self.backend,
+            self.oracle_method,
             self.output_contract,
             self.repetitions,
             self.frame_samples,
@@ -1468,7 +1806,18 @@ impl TournamentRow {
             self.counters.max_tree_height,
             self.counters.max_tree_nodes,
             self.counters.max_active_proxies,
-            self.counters.pair_revalidations
+            self.counters.pair_revalidations,
+            self.counters.dirty_snapshot_entries_visited,
+            self.counters.frame_validation_entries_visited,
+            self.counters.frontier_proxy_visits,
+            self.counters.frontier_pair_candidates,
+            self.counters.frontier_unique_pairs,
+            self.counters.frontier_node_visits,
+            self.counters.frontier_leaf_tests,
+            self.counters.frontier_aabb_tests,
+            self.counters.frontier_index_mutations,
+            self.counters.frontier_index_reinsertions,
+            self.counters.full_relation_reconciliations
         )
     }
 }
@@ -1499,6 +1848,266 @@ mod tests {
         ProxyFrame {
             id: ProxyId(id),
             bounds: Aabb::new(min, max).unwrap(),
+        }
+    }
+
+    #[test]
+    fn indexed_pair_delta_cache_matches_membership_and_revalidation_oracles() {
+        assert_indexed_pair_delta_matches_oracle::<2>();
+        assert_indexed_pair_delta_matches_oracle::<3>();
+        assert_indexed_pair_delta_matches_oracle::<4>();
+    }
+
+    fn assert_indexed_pair_delta_matches_oracle<const D: usize>() {
+        let scene =
+            generate_scene::<D>(SceneFamily::SleepingWakeups, 128, 32, 0x1ade_2026).unwrap();
+        let oracle = scene
+            .frames
+            .iter()
+            .map(|frame| oracle_pairs(frame).unwrap())
+            .collect::<Vec<_>>();
+        let mut cache =
+            IndexedPairDeltaCache::<D>::new(0.5, BalancePolicy::HeightRotations).unwrap();
+
+        for (frame_index, frame) in scene.frames.iter().enumerate() {
+            let delta = cache.step(frame).unwrap();
+            if frame_index == 0 {
+                assert!(delta.full_relation_reconciliation);
+            } else {
+                assert!(!delta.full_relation_reconciliation);
+            }
+            let previous = if frame_index == 0 {
+                BTreeSet::new()
+            } else {
+                oracle[frame_index - 1].clone()
+            };
+            let expected_current = &oracle[frame_index];
+            let expected_added: BTreeSet<_> =
+                expected_current.difference(&previous).copied().collect();
+            let expected_removed: BTreeSet<_> =
+                previous.difference(expected_current).copied().collect();
+            let previous_frame = if frame_index == 0 {
+                &[][..]
+            } else {
+                scene.frames[frame_index - 1].as_slice()
+            };
+            let dirty_ids = changed_proxy_ids(previous_frame, frame);
+            let expected_revalidated: BTreeSet<_> = expected_current
+                .intersection(&previous)
+                .filter(|pair| dirty_ids.contains(&pair.0) || dirty_ids.contains(&pair.1))
+                .copied()
+                .collect();
+
+            assert_eq!(
+                delta.added.iter().copied().collect::<BTreeSet<_>>(),
+                expected_added
+            );
+            assert_eq!(
+                delta.removed.iter().copied().collect::<BTreeSet<_>>(),
+                expected_removed
+            );
+            assert_eq!(
+                delta.revalidated.iter().copied().collect::<BTreeSet<_>>(),
+                expected_revalidated
+            );
+            assert_eq!(
+                cache.active_pairs().into_iter().collect::<BTreeSet<_>>(),
+                *expected_current
+            );
+            assert_eq!(delta.frontier_proxy_visits, 0);
+            if delta.dirty_proxies == 0 {
+                assert_eq!(delta.frontier_node_visits, 0);
+                assert_eq!(delta.frontier_leaf_tests, 0);
+            } else {
+                assert!(delta.frontier_node_visits > 0 || delta.frontier_leaf_tests > 0);
+            }
+        }
+    }
+
+    #[test]
+    fn indexed_tournament_separates_snapshot_diff_from_spatial_frontier_work() {
+        let scene =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 128, 24, 0x1ade_2026).unwrap();
+        let rows = run_tournament(&scene, TournamentConfig::new(1)).unwrap();
+        let scan = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::PairDeltaCache.name())
+            .unwrap();
+        let indexed = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::IndexedPairDeltaCache.name())
+            .unwrap();
+        assert_eq!(scan.mismatch_frames, 0);
+        assert_eq!(indexed.mismatch_frames, 0);
+        assert_eq!(scan.event_mismatch_frames, 0);
+        assert_eq!(indexed.event_mismatch_frames, 0);
+        assert!(scan.counters.frontier_proxy_visits > 0);
+        assert_eq!(indexed.counters.frontier_proxy_visits, 0);
+        assert!(indexed.counters.frontier_node_visits > 0);
+        assert!(indexed.counters.frontier_leaf_tests > 0);
+        assert!(indexed.counters.dirty_snapshot_entries_visited > 0);
+        assert!(scan.counters.dirty_snapshot_entries_visited > 0);
+    }
+
+    #[test]
+    fn indexed_pair_delta_cache_audits_dirty_journal_and_rejects_full_invalidation_fast_path() {
+        let mut cache =
+            IndexedPairDeltaCache::<2>::new(0.25, BalancePolicy::HeightRotations).unwrap();
+        let first = [
+            test_proxy(1, [0.0, 0.0], [1.0, 1.0]),
+            test_proxy(2, [0.5, 0.5], [1.5, 1.5]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        let initial = cache.step(&first).unwrap();
+        assert_eq!(initial.dirty_snapshot_entries_visited, 2 * first.len());
+
+        let next = [
+            test_proxy(1, [2.0, 0.0], [3.0, 1.0]),
+            test_proxy(2, [2.5, 0.5], [3.5, 1.5]),
+            test_proxy(3, [5.0, 5.0], [6.0, 6.0]),
+        ];
+        let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
+        assert_eq!(dirty, vec![ProxyId(1), ProxyId(2)]);
+        assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
+        assert!(
+            cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
+                .unwrap()
+        );
+        assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
+                .unwrap()
+        );
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
+                .unwrap()
+        );
+        let moved = cache.step_with_dirty_ids(&next, &dirty).unwrap();
+        assert_eq!(moved.revalidated.len(), 1);
+        assert_eq!(moved.frontier_proxy_visits, 0);
+        assert_eq!(moved.dirty_snapshot_entries_visited, 0);
+        assert_eq!(moved.frame_validation_entries_visited, 0);
+
+        // An unchanged sleeping frame can be accepted as an O(1) empty
+        // journal. No snapshot or full-frame validation is performed.
+        let idle = cache.step_with_dirty_ids(&next, &[]).unwrap();
+        assert_eq!(idle.dirty_proxies, 0);
+        assert_eq!(idle.frame_validation_entries_visited, 0);
+        assert!(idle.added.is_empty());
+        assert!(idle.removed.is_empty());
+        assert!(idle.revalidated.is_empty());
+
+        // The checked variant performs the O(N) validation pass explicitly.
+        let checked = cache.step_with_dirty_ids_checked(&next, &[]).unwrap();
+        assert_eq!(checked.frame_validation_entries_visited, next.len());
+        assert_eq!(checked.dirty_proxies, 0);
+
+        // A wake-only lifecycle event may mark a known collider dirty even
+        // when its AABB is unchanged; retained pairs still require refresh.
+        assert!(cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        let wake_only = cache.step_with_dirty_ids(&next, &[ProxyId(1)]).unwrap();
+        assert_eq!(wake_only.revalidated.len(), 1);
+        assert_eq!(wake_only.added.len(), 0);
+        assert_eq!(wake_only.removed.len(), 0);
+        assert_eq!(wake_only.dirty_snapshot_entries_visited, 0);
+        assert_eq!(wake_only.frame_validation_entries_visited, 0);
+
+        cache.invalidate_all();
+        let full_dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
+        assert_eq!(
+            cache.step_with_dirty_ids(&next, &full_dirty),
+            Err(TournamentError::DirtyJournalCannotApplyFullInvalidation)
+        );
+        let rebuilt = cache.step(&next).unwrap();
+        assert_eq!(rebuilt.dirty_proxies, 3);
+        assert_eq!(rebuilt.active_pairs, 1);
+        assert_eq!(rebuilt.dirty_snapshot_entries_visited, 5 * next.len());
+        assert_eq!(rebuilt.frame_validation_entries_visited, 0);
+    }
+
+    #[test]
+    fn fixed_x_sweep_oracle_matches_independent_brute_force_on_small_temporal_fixtures() {
+        let fixtures = [
+            (SceneFamily::SparseCoherent, 2_usize),
+            (SceneFamily::DenseClustered, 3),
+            (SceneFamily::StaticHeavy, 4),
+            (SceneFamily::HighChurn, 2),
+            (SceneFamily::Anisotropic, 3),
+            (SceneFamily::TeleportChurn, 4),
+            (SceneFamily::SleepingWakeups, 3),
+        ];
+        for (family, dimension) in fixtures {
+            match dimension {
+                2 => {
+                    let scene = generate_scene::<2>(family, 96, 12, 0x51ee_2026).unwrap();
+                    for frame in &scene.frames {
+                        assert_eq!(
+                            oracle_pairs_sweep(frame).unwrap(),
+                            oracle_pairs(frame).unwrap()
+                        );
+                    }
+                }
+                3 => {
+                    let scene = generate_scene::<3>(family, 96, 12, 0x51ee_2026).unwrap();
+                    for frame in &scene.frames {
+                        assert_eq!(
+                            oracle_pairs_sweep(frame).unwrap(),
+                            oracle_pairs(frame).unwrap()
+                        );
+                    }
+                }
+                4 => {
+                    let scene = generate_scene::<4>(family, 96, 12, 0x51ee_2026).unwrap();
+                    for frame in &scene.frames {
+                        assert_eq!(
+                            oracle_pairs_sweep(frame).unwrap(),
+                            oracle_pairs(frame).unwrap()
+                        );
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    #[test]
+    fn scale_grid_does_not_alias_sparse_proxies_and_sleeping_pairs_stay_linear() {
+        let sparse =
+            generate_scene::<3>(SceneFamily::SparseCoherent, 10_000, 1, 0x5ca1_e000).unwrap();
+        let sparse_pairs = oracle_pairs_sweep(&sparse.frames[0]).unwrap();
+        assert!(sparse_pairs.is_empty());
+
+        let sleeping =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 10_000, 1, 0x5ca1_e001).unwrap();
+        let sleeping_pairs = oracle_pairs_sweep(&sleeping.frames[0]).unwrap();
+        assert_eq!(sleeping_pairs.len(), 5_000);
+        assert!(
+            sleeping_pairs
+                .iter()
+                .all(|pair| pair.1.0 == pair.0.0 + 1 && pair.0.0 % 2 == 1)
+        );
+    }
+
+    #[test]
+    fn scale_tournament_uses_exact_sweep_oracle_and_all_declared_scale_backends() {
+        let scene =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 1_024, 16, 0x5ca1_e002).unwrap();
+        let rows = run_scale_tournament(&scene, TournamentConfig::new(1)).unwrap();
+        assert_eq!(rows.len(), 8);
+        let indexed = rows
+            .iter()
+            .find(|row| row.backend == BackendKind::IndexedPairDeltaCache.name())
+            .unwrap();
+        assert!(indexed.counters.full_relation_reconciliations > 0);
+        for row in rows {
+            assert_eq!(row.oracle_method, "fixed_x_exact_sweep");
+            assert_eq!(row.false_positives, 0, "backend {}", row.backend);
+            assert_eq!(row.false_negatives, 0, "backend {}", row.backend);
+            assert_eq!(row.mismatch_frames, 0, "backend {}", row.backend);
+            assert_eq!(row.event_mismatch_frames, 0, "backend {}", row.backend);
         }
     }
 
@@ -1648,7 +2257,22 @@ mod tests {
         let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
         assert_eq!(dirty, vec![ProxyId(1), ProxyId(3)]);
         assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
+        assert!(
+            cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
+                .unwrap()
+        );
         assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
+                .unwrap()
+        );
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
+                .unwrap()
+        );
 
         assert_eq!(
             cache.step_with_dirty_ids(&next, &[ProxyId(3), ProxyId(1)]),
@@ -1663,6 +2287,18 @@ mod tests {
         let delta = cache.step_with_dirty_ids(&next, &dirty).unwrap();
         assert_eq!(delta.removed.len(), 1);
         assert_eq!(delta.added.len(), 1);
+        assert_eq!(delta.dirty_snapshot_entries_visited, 0);
+        assert_eq!(delta.frame_validation_entries_visited, 0);
+        assert!(cache.verify_dirty_proxy_ids(&next, &[ProxyId(2)]).unwrap());
+        let wake_only = cache.step_with_dirty_ids(&next, &[ProxyId(2)]).unwrap();
+        assert_eq!(wake_only.revalidated.len(), 1);
+        assert_eq!(wake_only.added.len(), 0);
+        assert_eq!(wake_only.removed.len(), 0);
+        assert_eq!(wake_only.dirty_snapshot_entries_visited, 0);
+        assert_eq!(wake_only.frame_validation_entries_visited, 0);
+        let checked = cache.step_with_dirty_ids_checked(&next, &[]).unwrap();
+        assert_eq!(checked.frame_validation_entries_visited, next.len());
+        assert_eq!(checked.dirty_proxies, 0);
         assert_eq!(
             cache.active_pairs(),
             vec![ProxyPair::new(ProxyId(2), ProxyId(3)).unwrap()]
@@ -1674,7 +2310,10 @@ mod tests {
             cache.step_with_dirty_ids(&next, &full_dirty),
             Err(TournamentError::DirtyJournalCannotApplyFullInvalidation)
         );
-        assert_eq!(cache.step(&next).unwrap().overlap_tests, 1);
+        let invalidated = cache.step(&next).unwrap();
+        assert_eq!(invalidated.overlap_tests, 1);
+        assert_eq!(invalidated.dirty_snapshot_entries_visited, 10);
+        assert_eq!(invalidated.frame_validation_entries_visited, 0);
     }
 
     #[test]
@@ -1811,6 +2450,54 @@ mod tests {
         assert_eq!(row.seed, scene.seed);
         assert_eq!(row.declared_proxy_count, scene.declared_proxy_count);
         assert_eq!(row.scene_frames, scene.frames.len());
+    }
+
+    #[test]
+    fn sleeping_wakeup_fixture_has_zero_work_intervals_and_two_proxy_wake_frontiers() {
+        let scene =
+            generate_scene::<3>(SceneFamily::SleepingWakeups, 128, 40, 0x5eed_1126).unwrap();
+        for (frame_index, frame) in scene.frames.iter().enumerate() {
+            let dirty = if frame_index == 0 {
+                frame.iter().map(|proxy| proxy.id).collect::<Vec<_>>()
+            } else {
+                changed_proxy_ids(&scene.frames[frame_index - 1], frame)
+                    .into_iter()
+                    .collect()
+            };
+            let expected = if frame_index == 0 {
+                128
+            } else if frame_index % 8 == 0 {
+                2
+            } else {
+                0
+            };
+            assert_eq!(dirty.len(), expected, "frame {frame_index}");
+        }
+    }
+
+    #[test]
+    fn high_churn_reinsertions_receive_fresh_proxy_generation_ids() {
+        let scene = generate_scene::<3>(SceneFamily::HighChurn, 64, 40, 0x6e65_7767).unwrap();
+        let mut previously_active = BTreeSet::<ProxyId>::new();
+        let mut seen_ever = BTreeSet::<ProxyId>::new();
+
+        for frame in &scene.frames {
+            let current = frame.iter().map(|proxy| proxy.id).collect::<BTreeSet<_>>();
+            for id in &current {
+                if !previously_active.contains(id) {
+                    assert!(
+                        seen_ever.insert(*id),
+                        "a proxy residency reused an earlier generation identity: {id:?}"
+                    );
+                }
+            }
+            previously_active = current;
+        }
+
+        assert!(
+            seen_ever.len() > scene.declared_proxy_count,
+            "fixture must contain at least one remove/reinsert generation transition"
+        );
     }
 
     #[test]
