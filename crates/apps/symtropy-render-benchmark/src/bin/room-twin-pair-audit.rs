@@ -149,6 +149,53 @@ fn read_and_validate_camera_profile(
     Ok((profile, digest))
 }
 
+fn read_and_validate_run_settings(
+    run_root: &Path,
+    metadata: &Value,
+    camera_profile_sha256: &str,
+) -> Result<(Value, String, String), Box<dyn Error>> {
+    let settings_path = run_root.join("render-settings.json");
+    let metadata_size = fs::metadata(&settings_path)?.len();
+    if metadata_size > MAX_PROFILE_BYTES {
+        return Err("render settings exceed 1 MiB limit".into());
+    }
+    let settings_bytes = fs::read(&settings_path)?;
+    if u64::try_from(settings_bytes.len())? != metadata_size {
+        return Err("render settings changed while reading".into());
+    }
+    let settings_sha256 = sha256_hex(&settings_bytes);
+    let settings: Value = serde_json::from_slice(&settings_bytes)?;
+    if settings["camera_id"] != "room-twin-camera-v1"
+        || settings["camera_profile_sha256"].as_str() != Some(camera_profile_sha256)
+        || settings["renderer"] != "bevy-0.19.0"
+        || settings["width_px"] != metadata["width_px"]
+        || settings["height_px"] != metadata["height_px"]
+        || settings["capture_times_secs"] != json!([1.5, 4.0, 7.0])
+        || settings["shadows_enabled"] != false
+    {
+        return Err("render settings do not bind the expected ROOM-TWIN camera profile and capture contract".into());
+    }
+    if metadata["render_settings_sha256"].as_str() != Some(settings_sha256.as_str()) {
+        return Err("capture receipt render-settings digest does not match exact settings bytes".into());
+    }
+
+    let fixture_path = env::current_dir()?.join("benchmarks/render/ROOM-TWIN-01.json");
+    let fixture_size = fs::metadata(&fixture_path)?.len();
+    if fixture_size > MAX_PROFILE_BYTES {
+        return Err("ROOM-TWIN fixture exceeds 1 MiB limit".into());
+    }
+    let fixture_bytes = fs::read(fixture_path)?;
+    if u64::try_from(fixture_bytes.len())? != fixture_size {
+        return Err("ROOM-TWIN fixture changed while reading".into());
+    }
+    let fixture_sha256 = sha256_hex(&fixture_bytes);
+    if metadata["fixture_sha256"].as_str() != Some(fixture_sha256.as_str()) {
+        return Err("capture receipt fixture digest does not match exact fixture bytes".into());
+    }
+
+    Ok((settings, settings_sha256, fixture_sha256))
+}
+
 fn validate_receipt(
     receipt: &Value,
     directory: &Path,
@@ -298,9 +345,22 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err("world variants have different expected image counts".into());
     }
 
-    let root = env::current_dir()?;
+    let root_a = world_a
+        .parent()
+        .ok_or("world A output directory lacks a run root")?
+        .canonicalize()?;
+    let root_b = world_b
+        .parent()
+        .ok_or("world B output directory lacks a run root")?
+        .canonicalize()?;
+    if root_a != root_b {
+        return Err("world A and B captures do not share one settings/output root".into());
+    }
+    let repository_root = env::current_dir()?;
     let (camera_profile, camera_profile_sha256) =
-        read_and_validate_camera_profile(&root, &receipt_a["metadata"])?;
+        read_and_validate_camera_profile(&repository_root, &receipt_a["metadata"])?;
+    let (_settings, settings_sha256, fixture_sha256) =
+        read_and_validate_run_settings(&root_a, &receipt_a["metadata"], &camera_profile_sha256)?;
 
     let captures_a = validate_receipt(&receipt_a, &world_a)?;
     let captures_b = validate_receipt(&receipt_b, &world_b)?;
@@ -328,6 +388,8 @@ fn run() -> Result<(), Box<dyn Error>> {
         "camera_id": "room-twin-camera-v1",
         "camera_profile_path": CAMERA_PROFILE_PATH,
         "camera_profile_sha256": camera_profile_sha256,
+        "render_settings_sha256": settings_sha256,
+        "fixture_sha256": fixture_sha256,
         "camera_profile_claim_ceiling": camera_profile["calibration"]["status"],
         "capture_times_secs": CAPTURE_TIMES,
         "candidate_visible_metadata_sha256": sha256_hex(&metadata_bytes),
