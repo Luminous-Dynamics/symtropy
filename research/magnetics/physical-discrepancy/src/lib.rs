@@ -200,7 +200,7 @@ fn validate_finite_intervals(
 /// The records must describe the exact residual components Bx, By and Bz,
 /// in that order, over the same physical cell. The adapter verifies parameter
 /// identity/order, metre units, field units, cell bounds and model/solver/
-scope metadata, then copies their derivative absolute suprema into the 3x3
+/// scope metadata, then copies their derivative absolute suprema into the 3x3
 /// residual-Jacobian matrix. It does not infer or authenticate the semantics
 /// of the supplied expressions; the expected expression IDs are explicit
 /// caller inputs and become part of the resulting certificate.
