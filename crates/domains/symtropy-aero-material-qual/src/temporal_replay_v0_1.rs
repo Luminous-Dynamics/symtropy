@@ -136,6 +136,38 @@ fn source_key(event: &Value) -> String {
     )
 }
 
+fn same_event_semantics(left: &Value, right: &Value) -> bool {
+    // First-seen time and receiver receipt reference may differ by delivery.
+    // All fields that can alter adjudication must agree for one source event.
+    const SEMANTIC_FIELDS: &[&str] = &[
+        "event_id",
+        "source_namespace",
+        "certificate_id",
+        "event_type",
+        "payload_sha256",
+        "effective_at_unix_ms",
+        "issuer_recorded_at_unix_ms",
+        "signature_status",
+        "trusted_timestamp_status",
+        "trusted_timestamp_at_unix_ms",
+        "trusted_timestamp_imprint_sha256",
+        "issuer_authority_status",
+        "sequence_status",
+        "source_clock_status",
+        "issuer_key_status_at_snapshot",
+        "issuer_key_status_current",
+        "compromise_effective_at_unix_ms",
+        "corrects_event_id",
+        "receiver_receipt_status",
+        "receiver_receipt_digest_sha256",
+        "issuer_identity_id",
+        "source_namespace_binding_status",
+    ];
+    SEMANTIC_FIELDS
+        .iter()
+        .all(|field| left.get(field) == right.get(field))
+}
+
 fn identity_label(event: &Value, colliding_local_ids: &BTreeSet<String>) -> String {
     let id = string(event, "event_id").unwrap_or("event");
     if colliding_local_ids.contains(id) {
@@ -181,15 +213,25 @@ fn check_checkpoint(snapshot: &Value, findings: &mut Findings) -> Option<u64> {
     }
 
     let watermark = unsigned(snapshot, "receiver_receipt_watermark_unix_ms");
+    let evaluated_at = unsigned(snapshot, "evaluated_at_unix_ms");
     let checkpoint_watermark = unsigned(snapshot, "evidence_checkpoint_watermark_unix_ms");
     let checkpoint_digest = string(snapshot, "evidence_checkpoint_digest_sha256");
     let view_digest = string(snapshot, "evidence_view_digest_sha256");
+    let (Some(watermark), Some(evaluated_at)) = (watermark, evaluated_at) else {
+        findings.reject = true;
+        findings.reason("EVIDENCE_SNAPSHOT_TIME_UNRESOLVED");
+        return None;
+    };
+    if watermark > evaluated_at {
+        findings.reject = true;
+        findings.reason("EVIDENCE_WATERMARK_AFTER_EVALUATION_TIME");
+        return None;
+    }
     if !nonempty(string(snapshot, "evidence_checkpoint_reference"))
         || !valid_sha256(checkpoint_digest)
         || !valid_sha256(view_digest)
         || checkpoint_digest != view_digest
-        || watermark.is_none()
-        || checkpoint_watermark != watermark
+        || checkpoint_watermark != Some(watermark)
     {
         findings.reject = true;
         findings.reason("EVIDENCE_CHECKPOINT_DIGEST_MISMATCH");
@@ -198,7 +240,11 @@ fn check_checkpoint(snapshot: &Value, findings: &mut Findings) -> Option<u64> {
     watermark
 }
 
-fn check_observer_coverage(snapshot: &Value, findings: &mut Findings) {
+fn check_observer_coverage(
+    snapshot: &Value,
+    evidence_watermark: u64,
+    findings: &mut Findings,
+) {
     match string(snapshot, "observer_coverage_status") {
         Some("SYNTHETIC_QUALIFIED_COMPLETE") => {
             if !nonempty(string(snapshot, "observer_coverage_profile_id"))
@@ -208,6 +254,11 @@ fn check_observer_coverage(snapshot: &Value, findings: &mut Findings) {
             {
                 findings.trust_unresolved = true;
                 findings.reason("OBSERVER_COVERAGE_RECEIPT_UNVERIFIED");
+            } else if unsigned(snapshot, "observer_coverage_watermark_unix_ms")
+                .is_some_and(|coverage_watermark| coverage_watermark < evidence_watermark)
+            {
+                findings.abstain = true;
+                findings.reason("OBSERVER_COVERAGE_DOES_NOT_COVER_EVIDENCE_CUT");
             }
         }
         Some("INCOMPLETE") => {
@@ -263,6 +314,21 @@ fn check_acquisition_interval(case: &Value, findings: &mut Findings) -> Option<T
 }
 
 fn validate_event_evidence(event: &Value, findings: &mut Findings, identity: &str) -> bool {
+    if ![
+        "event_id",
+        "source_namespace",
+        "certificate_id",
+        "issuer_identity_id",
+    ]
+    .iter()
+    .all(|field| nonempty(string(event, field)))
+    {
+        findings.trust_unresolved = true;
+        findings.reason("EVENT_SOURCE_IDENTITY_UNRESOLVED");
+        findings.exclude(identity);
+        return false;
+    }
+
     let payload = string(event, "payload_sha256");
     if !valid_sha256(payload) {
         findings.reject = true;
@@ -493,18 +559,33 @@ pub fn evaluate_temporal_replay_case(case: &Value, mode: TemporalQueryMode) -> R
     let Some(watermark) = check_checkpoint(evidence_snapshot, &mut findings) else {
         return findings.finish(mode);
     };
-    check_observer_coverage(evidence_snapshot, &mut findings);
+    check_observer_coverage(evidence_snapshot, watermark, &mut findings);
     let Some(acquisition) = check_acquisition_interval(case, &mut findings) else {
         return findings.finish(mode);
     };
 
-    let trust_as_of = unsigned(trust_snapshot, "trust_status_as_of_unix_ms").unwrap_or(0);
+    let trust_as_of = unsigned(trust_snapshot, "trust_status_as_of_unix_ms");
+    let trust_evaluated_at = unsigned(trust_snapshot, "evaluated_at_unix_ms");
     if !valid_sha256(string(trust_snapshot, "trust_policy_digest_sha256"))
         || !nonempty(string(trust_snapshot, "trust_policy_id"))
     {
         findings.trust_unresolved = true;
         findings.reason("TRUST_POLICY_SNAPSHOT_UNRESOLVED");
     }
+    if trust_as_of.is_none() || trust_evaluated_at.is_none() {
+        findings.trust_unresolved = true;
+        findings.reason("TRUST_POLICY_SNAPSHOT_TIME_UNRESOLVED");
+    }
+    if let (Some(as_of), Some(evaluated_at)) = (trust_as_of, trust_evaluated_at) {
+        if as_of > evaluated_at {
+            findings.reject = true;
+            findings.reason("TRUST_POLICY_TIME_AFTER_EVALUATION");
+            return findings.finish(mode);
+        }
+    }
+    // Missing trust time remains non-positive through the unresolved flag;
+    // zero is only a conservative sentinel for compromise-time comparison.
+    let trust_as_of = trust_as_of.unwrap_or(0);
 
     let Some(raw_events) = case.get("events").and_then(Value::as_array) else {
         findings.reject = true;
@@ -586,9 +667,15 @@ pub fn evaluate_temporal_replay_case(case: &Value, mode: TemporalQueryMode) -> R
     for (key, deliveries) in grouped {
         let payloads = deliveries
             .iter()
-            .filter_map(|event| string(event, "payload_sha256"))
+            .map(|event| string(event, "payload_sha256"))
             .collect::<BTreeSet<_>>();
-        if payloads.len() > 1 {
+        let duplicate_conflict = deliveries.len() > 1
+            && (payloads.len() > 1
+                || payloads.iter().any(|payload| !valid_sha256(*payload))
+                || deliveries
+                    .windows(2)
+                    .any(|pair| !same_event_semantics(&pair[0], &pair[1])));
+        if duplicate_conflict {
             findings.abstain = true;
             findings.reason("DUPLICATE_EVENT_ID_CONFLICT");
             conflicted_keys.insert(key.clone());
@@ -960,6 +1047,129 @@ mod tests {
         let baseline = evaluate_temporal_replay_case_all_modes(&case);
         case["events"][0]["issuer_recorded_at_unix_ms"] = Value::from(9_999_999);
         assert_eq!(baseline, evaluate_temporal_replay_case_all_modes(&case));
+    }
+
+    #[test]
+    fn missing_source_identity_fields_cannot_be_accepted() {
+        let base = corpus()["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["case_id"] == "known-effective-revocation")
+            .unwrap()
+            .clone();
+        for field in ["event_id", "source_namespace", "certificate_id", "issuer_identity_id"] {
+            let mut mutated = base.clone();
+            mutated["events"][0][field] = Value::from("");
+            for report in evaluate_temporal_replay_case_all_modes(&mutated) {
+                assert_eq!(report.disposition, "TRUST_UNRESOLVED", "{field}");
+                assert!(
+                    report
+                        .reason_codes
+                        .iter()
+                        .any(|reason| reason == "EVENT_SOURCE_IDENTITY_UNRESOLVED"),
+                    "{field}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn repeated_deliveries_with_different_semantics_abstain_independent_of_order() {
+        let mut case = corpus()["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["case_id"] == "known-effective-revocation")
+            .unwrap()
+            .clone();
+        let mut conflicting = case["events"][0].clone();
+        conflicting["signature_status"] = Value::from("unknown");
+        case["events"].as_array_mut().unwrap().push(conflicting);
+        let forward = evaluate_temporal_replay_case_all_modes(&case);
+        case["events"].as_array_mut().unwrap().reverse();
+        let reverse = evaluate_temporal_replay_case_all_modes(&case);
+        assert_eq!(forward, reverse);
+        for report in forward {
+            assert_eq!(report.disposition, "ABSTAIN");
+            assert!(
+                report
+                    .reason_codes
+                    .iter()
+                    .any(|reason| reason == "DUPLICATE_EVENT_ID_CONFLICT")
+            );
+        }
+    }
+
+    #[test]
+    fn duplicate_with_missing_payload_digest_cannot_be_dropped() {
+        let mut case = corpus()["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["case_id"] == "known-effective-revocation")
+            .unwrap()
+            .clone();
+        let mut malformed = case["events"][0].clone();
+        malformed.as_object_mut().unwrap().remove("payload_sha256");
+        case["events"].as_array_mut().unwrap().push(malformed);
+        let forward = evaluate_temporal_replay_case_all_modes(&case);
+        case["events"].as_array_mut().unwrap().reverse();
+        let reverse = evaluate_temporal_replay_case_all_modes(&case);
+        assert_eq!(forward, reverse);
+        assert!(forward.iter().all(|report| report.disposition == "ABSTAIN"));
+    }
+
+    #[test]
+    fn evidence_and_observer_watermarks_must_close_over_the_same_cut() {
+        let mut uncovered = corpus()["cases"][0].clone();
+        uncovered["snapshot"]["observer_coverage_watermark_unix_ms"] = Value::from(149_u64);
+        let report = evaluate_temporal_replay_case(&uncovered, TemporalQueryMode::AsKnownAt);
+        assert_eq!(report.disposition, "ABSTAIN");
+        assert!(
+            report.reason_codes.iter().any(|reason| {
+                reason == "OBSERVER_COVERAGE_DOES_NOT_COVER_EVIDENCE_CUT"
+            })
+        );
+
+        let mut future = corpus()["cases"][0].clone();
+        future["snapshot"]["evaluated_at_unix_ms"] = Value::from(149_u64);
+        let report = evaluate_temporal_replay_case(&future, TemporalQueryMode::AsKnownAt);
+        assert_eq!(report.disposition, "REJECT");
+        assert!(
+            report.reason_codes.iter().any(|reason| {
+                reason == "EVIDENCE_WATERMARK_AFTER_EVALUATION_TIME"
+            })
+        );
+    }
+
+    #[test]
+    fn trust_snapshot_requires_an_explicit_non_future_as_of_time() {
+        let mut missing = corpus()["cases"][0].clone();
+        missing["current_reassessment"]["trust_status_as_of_unix_ms"] = Value::Null;
+        let report = evaluate_temporal_replay_case(
+            &missing,
+            TemporalQueryMode::RecomputedWithCurrentTrust,
+        );
+        assert_eq!(report.disposition, "TRUST_UNRESOLVED");
+        assert!(
+            report.reason_codes.iter().any(|reason| {
+                reason == "TRUST_POLICY_SNAPSHOT_TIME_UNRESOLVED"
+            })
+        );
+
+        let mut future = corpus()["cases"][0].clone();
+        future["current_reassessment"]["trust_status_as_of_unix_ms"] = Value::from(221_u64);
+        let report = evaluate_temporal_replay_case(
+            &future,
+            TemporalQueryMode::RecomputedWithCurrentTrust,
+        );
+        assert_eq!(report.disposition, "REJECT");
+        assert!(
+            report.reason_codes.iter().any(|reason| {
+                reason == "TRUST_POLICY_TIME_AFTER_EVALUATION"
+            })
+        );
     }
 
     #[test]
