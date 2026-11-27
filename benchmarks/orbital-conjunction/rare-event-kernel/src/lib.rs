@@ -50,6 +50,8 @@ pub mod ncdot_temporal;
 pub mod normal_positive_part;
 /// Exact paired finite-support counterfactual consequence comparisons.
 pub mod paired_counterfactual;
+/// Exact paired objective contrasts and a scenario-robust finite Pareto oracle.
+pub mod paired_objective_pareto;
 pub mod pathwise_event;
 pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
@@ -67,8 +69,6 @@ pub mod residual;
 pub mod scenario_mission_risk_gate;
 /// Conservative interval Pareto frontier after hard mission-risk feasibility.
 pub mod scenario_robust_pareto;
-/// Exact paired objective contrasts and a scenario-robust finite Pareto oracle.
-pub mod paired_objective_pareto;
 pub mod sequential;
 /// Atomic simultaneous selection across portfolios under a defensive proposal.
 pub mod simultaneous_defensive_selection;
@@ -140,19 +140,19 @@ pub use ncdot_temporal::{
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
 };
-pub use paired_objective_pareto::{
-    PairedObjectiveAtom, PairedObjectiveContrast, PairedObjectiveDirection,
-    PairedObjectiveDominanceWitness, PairedObjectiveOutcome, PairedObjectiveParetoCampaign,
-    PairedObjectiveParetoError, PairedObjectiveParetoReport, PairedObjectivePortfolioBound,
-    PairedObjectiveSpec, PairedPortfolioDominanceWitness, ScenarioAtomUniverse,
-    ScenarioModelBinding, ScenarioObjectiveContrastWitness,
-};
 pub use paired_counterfactual::{
     MAX_PAIRED_COUNTERFACTUAL_ATOMS, MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS,
     MultiPortfolioPairedAtom, MultiPortfolioPairedReport, PairedCounterfactualAtom,
     PairedCounterfactualError, PairedCounterfactualReport, PairingEffect, PortfolioConsequence,
     PortfolioCounterfactualSummary, PortfolioPairComparison, SignedRational,
     compare_multi_portfolio_paired_support, compare_paired_counterfactual_support,
+};
+pub use paired_objective_pareto::{
+    PairedObjectiveAtom, PairedObjectiveContrast, PairedObjectiveDirection,
+    PairedObjectiveDominanceWitness, PairedObjectiveOutcome, PairedObjectiveParetoCampaign,
+    PairedObjectiveParetoError, PairedObjectiveParetoReport, PairedObjectivePortfolioBound,
+    PairedObjectiveSpec, PairedPortfolioDominanceWitness, ScenarioAtomUniverse,
+    ScenarioModelBinding, ScenarioObjectiveContrastWitness,
 };
 pub use pathwise_event::{
     EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
