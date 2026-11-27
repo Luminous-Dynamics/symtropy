@@ -266,7 +266,7 @@ pub fn solve_r1_finite(
                 .and_then(|units| units.checked_add(outcome.unresolved_units))
                 .ok_or_else(|| "service denominator arithmetic overflow".to_owned())?;
             if outcome.receiver_accepted_units > expected_context.expected_units
-                || classified_acceptances > outcome.receiver_accepted_units
+                || classified_acceptances != outcome.receiver_accepted_units
                 || outcome.unmet_units > expected_context.expected_units
                 || outcome.unresolved_units > expected_context.expected_units
                 || classified_service != expected_context.expected_units
