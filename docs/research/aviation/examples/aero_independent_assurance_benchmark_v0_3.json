@@ -1,0 +1,194 @@
+{
+  "schema": "AeroIndependentAssuranceBenchmarkV0_3",
+  "benchmark_id": "AERO-IAB-STRUCTURAL-COMPONENT-001",
+  "status": "PROSPECTIVE_NOT_EXECUTED",
+  "oracle_status": "NOT_INDEPENDENTLY_ADJUDICATED",
+  "domain": "structural_material_component_evidence",
+  "authority_ceiling": "research_only_no_physical_qualification_or_certification",
+  "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+  "partitions": {
+    "train": "root-cause-family-disjoint",
+    "development": "root-cause-family-disjoint",
+    "visible_challenge": "root-cause-family-disjoint",
+    "blind_test": "custodian-held-root-cause-family-disjoint"
+  },
+  "families": [
+    {
+      "id": "claim_context",
+      "primary_metrics": [
+        "hard_gate_false_review_count",
+        "cross_context_substitution_acceptance",
+        "mandatory_obligation_omission",
+        "reason_code_agreement"
+      ]
+    },
+    {
+      "id": "provenance_authority",
+      "primary_metrics": [
+        "unauthorized_producer_acceptance",
+        "payload_record_binding_error",
+        "receipt_replay_acceptance"
+      ]
+    },
+    {
+      "id": "temporal_policy",
+      "primary_metrics": [
+        "historical_disposition_agreement",
+        "false_historical_knowledge_rate",
+        "correction_chain_preservation"
+      ]
+    },
+    {
+      "id": "model_applicability",
+      "primary_metrics": [
+        "unsupported_domain_false_review",
+        "missing_stratum_acceptance",
+        "leakage_detection",
+        "applicability_boundary_agreement"
+      ]
+    },
+    {
+      "id": "change_impact_observation",
+      "primary_metrics": [
+        "affected_claim_recall",
+        "false_preservation_rate",
+        "unnecessary_requalification_rate",
+        "observer_unknown_propagation"
+      ]
+    },
+    {
+      "id": "reproducibility",
+      "primary_metrics": [
+        "independent_replay_success",
+        "undeclared_dependency_rate",
+        "reproducibility_classification_correctness"
+      ]
+    },
+    {
+      "id": "evidence_acquisition",
+      "primary_metrics": [
+        "expert_top_k_action_agreement",
+        "cost_adjusted_information_gain",
+        "unauthorized_action_recommendation_rate"
+      ]
+    }
+  ],
+  "thresholds": [
+    {
+      "metric": "hard_gate_false_review_count",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "cross_context_substitution_acceptance",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "unauthorized_producer_acceptance",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "mandatory_obligation_bypass",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "unsupported_model_domain_promoted",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "late_evidence_historically_known",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "critical_invalidation_missed",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "exact_independent_oracle_agreement",
+      "target": 0.995,
+      "unit": "proportion",
+      "critical": false
+    },
+    {
+      "metric": "critical_disposition_gate_agreement",
+      "target": 1,
+      "unit": "proportion",
+      "critical": true
+    },
+    {
+      "metric": "reason_code_agreement",
+      "target": 0.99,
+      "unit": "proportion",
+      "critical": false
+    },
+    {
+      "metric": "affected_claim_recall",
+      "target": 1,
+      "unit": "proportion",
+      "critical": true
+    },
+    {
+      "metric": "false_preservation_under_unknown_coverage",
+      "target": 0,
+      "unit": "count",
+      "critical": true
+    },
+    {
+      "metric": "unnecessary_requalification",
+      "target": 0.05,
+      "unit": "maximum_proportion_after_zero_missed_invalidations",
+      "critical": false
+    },
+    {
+      "metric": "fully_disclosed_independent_replay_success",
+      "target": 0.99,
+      "unit": "proportion",
+      "critical": false
+    },
+    {
+      "metric": "matched_cost_per_reviewed_decision",
+      "target": 0.8,
+      "unit": "ratio_to_baseline",
+      "critical": false
+    }
+  ],
+  "statistical_notes": {
+    "zero_failure_upper_95_approx": "3/n independent trials",
+    "n_for_1_percent": 300,
+    "n_for_0_1_percent": 2995,
+    "n_for_0_01_percent": 29956,
+    "caveat": "Clustered mutations are not independent trials; report independent episodes, root-cause families, and generated variants separately."
+  },
+  "baselines": [
+    "expert_review",
+    "checklist_plm_qms",
+    "graph_only_impact",
+    "rules_only_validator",
+    "single_llm_retrieval",
+    "multi_agent_llm",
+    "aero_without_temporal_replay",
+    "aero_without_observer_coverage",
+    "full_aero"
+  ],
+  "release_gates": [
+    "R0_structural",
+    "R1_semantic",
+    "R2_adversarial",
+    "R3_independent_replay",
+    "R4_matched_workflow",
+    "R5_authorized_pilot"
+  ]
+}
