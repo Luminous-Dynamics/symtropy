@@ -1407,4 +1407,116 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn receipt_replay_rejects_manifold_payload_change_without_geometry_refresh() {
+        let (mut receipt, _, _) = receipt_fixture(true);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut post = receipt.post_contact_stamps[&pair];
+        post.payload.manifold_revision += 1;
+        post.payload.manifold_digest_sha256 = [40; 32];
+        receipt.post_contact_stamps.insert(pair, post);
+
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::ManifoldPayloadChangedWithoutRefresh(pair)
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_warm_start_payload_change_without_reset() {
+        let (mut receipt, _, _) = receipt_fixture(true);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut post = receipt.post_contact_stamps[&pair];
+        post.payload.warm_start_revision += 1;
+        post.payload.warm_start_digest_sha256 = [41; 32];
+        receipt.post_contact_stamps.insert(pair, post);
+
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::WarmStartPayloadChangedWithoutReset(pair)
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_post_stamp_without_payload_digest() {
+        let (mut receipt, _, _) = receipt_fixture(true);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut post = receipt.post_contact_stamps[&pair];
+        post.payload.warm_start_digest_sha256 = [0; 32];
+        receipt.post_contact_stamps.insert(pair, post);
+
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::PostContactPayloadDigestMissing(pair)
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_shape_refresh_without_manifold_revision_advance() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut changed_left = endpoint(1);
+        changed_left.transform += 1;
+        receipt.current_endpoints.insert(ProxyId(1), changed_left);
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("shape change requires a contact refresh");
+        let mut post = receipt.previous_contact_stamps[&pair];
+        post.global = receipt.current_global;
+        post.left = changed_left;
+        post.payload.manifold_digest_sha256 = [42; 32];
+        post.payload.warm_start_revision += 1;
+        post.payload.warm_start_digest_sha256 = [43; 32];
+        receipt.post_contact_stamps = BTreeMap::from([(pair, post)]);
+
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::ManifoldPayloadRevisionDidNotAdvance(pair)
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_rejects_material_refresh_without_warm_start_revision_advance() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut changed_left = endpoint(1);
+        changed_left.material += 1;
+        receipt.current_endpoints.insert(ProxyId(1), changed_left);
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("material change requires warm-start revalidation");
+        let mut post = receipt.previous_contact_stamps[&pair];
+        post.global = receipt.current_global;
+        post.left = changed_left;
+        post.payload.warm_start_digest_sha256 = [44; 32];
+        receipt.post_contact_stamps = BTreeMap::from([(pair, post)]);
+
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::WarmStartPayloadRevisionDidNotAdvance(pair)
+            ))
+        );
+    }
+
 }
