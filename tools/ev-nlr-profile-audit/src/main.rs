@@ -14,7 +14,6 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::ExitCode,
-    sync::atomic::AtomicU64,
 };
 
 const SOURCE_REVISION: &str = "61530df51f6cd7d64f014ebbf8714cef24c8ca70";
@@ -33,8 +32,6 @@ const FLEETS: [&str; 3] = [
 const FLEET_SIZES: [usize; 3] = [10, 50, 100];
 const STRATEGIES: [&str; 3] = ["immediate", "delayed", "min_power"];
 const PROFILE_KINDS: [&str; 3] = ["avg-prof", "min-prof", "peak-prof"];
-
-static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone)]
 struct Options {
@@ -63,9 +60,6 @@ impl ProfileKey {
         )
     }
 
-    fn label(&self) -> String {
-        format!("{}/{}/{}", self.fleet_id, self.fleet_size, self.strategy)
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -735,7 +729,9 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::Ordering;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEMP_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
     fn temporary_directory(label: &str) -> PathBuf {
         let sequence = TEMP_SEQUENCE.fetch_add(1, Ordering::Relaxed);
