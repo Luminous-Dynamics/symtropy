@@ -93,6 +93,7 @@ impl SupportScope {
         ]
         .iter()
         .all(|value| !value.trim().is_empty())
+            && self.matrix_convention == "body-fixed-K-inverse-m2-v1"
             && self.length_unit == "metre"
             && self.direction_convention == "unit-along-track-positive-y"
             && valid_sha256(&self.matrix_sha256)
@@ -167,7 +168,7 @@ fn ceil_div(numerator: u128, denominator: u128) -> Option<u128> {
         return None;
     }
     let quotient = numerator / denominator;
-    if numerator % denominator == 0 {
+    if quotient.checked_mul(denominator) == Some(numerator) {
         Some(quotient)
     } else {
         quotient.checked_add(1)
@@ -460,6 +461,16 @@ mod tests {
         let mut direction = input(1, 1);
         direction.scope.direction_sha256 = "bad".to_owned();
         assert_eq!(derive(&direction).disposition, SupportDisposition::InvalidInput);
+    }
+
+    #[test]
+    fn unsupported_matrix_convention_is_invalid() {
+        let mut value = input(1, 1);
+        value.scope.matrix_convention = "principal-axis-semiaxes-v0".to_owned();
+        assert_eq!(
+            derive(&value).disposition,
+            SupportDisposition::InvalidInput
+        );
     }
 
     #[test]
