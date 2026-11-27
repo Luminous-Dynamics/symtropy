@@ -183,6 +183,32 @@ Thresholds below are **prospective qualification targets**, not achieved results
 
 No aggregate score can compensate for a failed critical gate. Report the complete confusion matrix and all per-stratum outcomes.
 
+### 7.1 Metric definitions, denominators and gate semantics
+
+The machine-readable registry's `metric_definitions` array is normative. It currently defines 30 metrics across the seven benchmark families. Each definition fixes the numerator, denominator, unit, optimization direction, population, independence unit, gating class and interpretation notes; the 19 threshold records refer to these stable metric IDs.
+
+Scoring rules:
+
+- Publish numerator and denominator as integer counts alongside every proportion. A missing denominator is **NOT_REPORTED**, never zero.
+- Report macro-averages by independent root-cause family and the worst critical stratum; do not let a large easy family hide a small dangerous one.
+- Use the exact same frozen episode set, time cutoff, source evidence and completion criteria for each comparison arm.
+- Economic targets are conditional: unnecessary requalification and cost improvements are considered only after the critical invalidation-miss and unknown-observer gates pass.
+- Positive-control retention and false-rejection rates prevent an always-reject evaluator from passing.
+- Unauthorized evidence-acquisition recommendations are hard-gated even if their predicted information gain is high.
+- Report cost with reviewer labor, escalations, abstentions, corrections, compute and tool costs included.
+
+The registry distinguishes **hard gates**, **qualification metrics**, **diagnostic metrics** and **economic metrics**. A diagnostic or economic improvement cannot compensate for a hard-gate failure. Metric thresholds are prospective targets and not measurements.
+
+### 7.2 Challenge-seed interpretation corrections
+
+The 32-case challenge seed remains unadjudicated. Three semantic distinctions are made explicit in the current fixture:
+
+- The unrelated-document change in IAB27 leaves the unaffected claim reviewable; unnecessary requalification is scored by the separate impact outcome, not by marking the claim incomplete.
+- Missing authority to perform a proposed test (IAB29), or declaring a claim resolved before the resulting evidence is received and verified (IAB30), leaves the claim incomplete. The evaluator must not interpret an unauthorized action recommendation as a valid resolution.
+- IAB31 explicitly uses a current-policy counterfactual replay. Historical-as-known replay remains a separate mode and must retain the trust policy actually in force at the cutoff.
+
+These corrections improve the semantics of the proposed oracle; they do not constitute independent adjudication.
+
 ## 8. Statistical qualification
 
 For zero observed failures in n independent Bernoulli trials, the approximate one-sided 95% upper bound is 3/n (rule of three). Thus:
