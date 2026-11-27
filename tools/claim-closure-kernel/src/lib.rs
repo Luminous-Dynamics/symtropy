@@ -448,10 +448,7 @@ struct GraphTraversal<'a> {
 }
 
 impl<'a> GraphTraversal<'a> {
-    fn new(
-        claim: &'a Claim,
-        by_ref: &'a BTreeMap<String, Vec<&'a EvidenceRecord>>,
-    ) -> Self {
+    fn new(claim: &'a Claim, by_ref: &'a BTreeMap<String, Vec<&'a EvidenceRecord>>) -> Self {
         Self {
             claim,
             by_ref,
@@ -472,7 +469,10 @@ impl<'a> GraphTraversal<'a> {
                 TraversalAction::Exit { evidence_ref } => {
                     self.states.insert(evidence_ref, 2);
                 }
-                TraversalAction::Enter { evidence_ref, depth } => {
+                TraversalAction::Enter {
+                    evidence_ref,
+                    depth,
+                } => {
                     if depth > MAX_GRAPH_DEPTH {
                         add_finding(
                             &mut self.findings,
