@@ -26,12 +26,12 @@
       "const": "not_run"
     },
     "case_count": {
-      "const": 18
+      "const": 19
     },
     "cases": {
       "type": "array",
-      "minItems": 18,
-      "maxItems": 18,
+      "minItems": 19,
+      "maxItems": 19,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -61,7 +61,8 @@
               "max_energy_millijoules",
               "max_duration_ms",
               "max_downtime_ms",
-              "max_actions"
+              "max_actions",
+              "available_approval_ids"
             ],
             "properties": {
               "target_id": {
@@ -107,6 +108,14 @@
               "max_actions": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "available_approval_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
               }
             }
           },
@@ -289,7 +298,8 @@
                       "BoundsInvalid",
                       "MissingPrerequisiteEvidence",
                       "DestructiveAction",
-                      "SourceNotPreserved"
+                      "SourceNotPreserved",
+                      "MissingApprovalAuthority"
                     ]
                   }
                 }
