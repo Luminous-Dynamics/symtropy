@@ -46,6 +46,8 @@ pub mod hedged_capital_sequence;
 pub mod lebedev;
 /// Exact dependence-aware aggregation across a finite mission encounter set.
 pub mod mission_risk_aggregation;
+/// Finite observation-conditioned non-anticipative manoeuvre policy verifier.
+pub mod non_anticipative_policy;
 pub mod ncdot_refinement;
 pub mod ncdot_sphere;
 pub mod ncdot_temporal;
@@ -209,6 +211,11 @@ pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
+};
+pub use non_anticipative_policy::{
+    NonAnticipativePolicyCampaign, NonAnticipativePolicyError, NonAnticipativePolicyNode,
+    NonAnticipativePolicyPlan, NonAnticipativePolicyReport, ObservableMeasurement,
+    PolicyWorldObservationTrace, WorldPolicyDecision,
 };
 pub use scenario_mission_risk_gate::{
     EligiblePortfolioRegretInterval, PortfolioScenarioRiskCheck, PortfolioScenarioRiskContract,
