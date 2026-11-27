@@ -172,9 +172,9 @@ fn midpoint(lower: f64, upper: f64) -> Option<f64> {
 }
 
 fn same_box(left: [Interval; 3], right: [Interval; 3]) -> bool {
-    left.iter().zip(right.iter()).all(|(a, b)| {
-        same_float(a.lower(), b.lower()) && same_float(a.upper(), b.upper())
-    })
+    left.iter()
+        .zip(right.iter())
+        .all(|(a, b)| same_float(a.lower(), b.lower()) && same_float(a.upper(), b.upper()))
 }
 
 fn classify(margin: Interval) -> RequirementStatus {
@@ -187,10 +187,7 @@ fn classify(margin: Interval) -> RequirementStatus {
     }
 }
 
-fn combine(
-    phase: RequirementStatus,
-    amplitude: RequirementStatus,
-) -> CombinedStatus {
+fn combine(phase: RequirementStatus, amplitude: RequirementStatus) -> CombinedStatus {
     if phase == RequirementStatus::Failing || amplitude == RequirementStatus::Failing {
         CombinedStatus::Failing
     } else if phase == RequirementStatus::Safe && amplitude == RequirementStatus::Safe {
@@ -259,22 +256,37 @@ fn validate_inputs(
     }
 
     for (digest, field) in [
-        (&physical.centre_measurement_sha256, "centre_measurement_sha256"),
-        (&physical.residual_jacobian_artifact_sha256, "residual_jacobian_artifact_sha256"),
+        (
+            &physical.centre_measurement_sha256,
+            "centre_measurement_sha256",
+        ),
+        (
+            &physical.residual_jacobian_artifact_sha256,
+            "residual_jacobian_artifact_sha256",
+        ),
         (
             &physical.residual_jacobian_environment_sha256,
             "residual_jacobian_environment_sha256",
         ),
         (&physical.model_artifact_sha256, "model_artifact_sha256"),
-        (&physical.model_environment_sha256, "model_environment_sha256"),
+        (
+            &physical.model_environment_sha256,
+            "model_environment_sha256",
+        ),
         (&physical.model_input_sha256, "model_input_sha256"),
         (&physical.geometry_sha256, "physical_geometry_sha256"),
         (&physical.material_sha256, "physical_material_sha256"),
         (&transfer.geometry_sha256, "transfer_geometry_sha256"),
         (&transfer.material_sha256, "transfer_material_sha256"),
         (&transfer.calibration_sha256, "calibration_sha256"),
-        (&transfer.transfer_artifact_sha256, "transfer_artifact_sha256"),
-        (&transfer.transfer_environment_sha256, "transfer_environment_sha256"),
+        (
+            &transfer.transfer_artifact_sha256,
+            "transfer_artifact_sha256",
+        ),
+        (
+            &transfer.transfer_environment_sha256,
+            "transfer_environment_sha256",
+        ),
         (&requirements.reference_sha256, "reference_sha256"),
         (
             &requirements.reference_calibration_sha256,
@@ -314,8 +326,14 @@ fn validate_inputs(
             physical.material_sha256 == transfer.material_sha256,
             "material_sha256",
         ),
-        (physical.model_set_id == transfer.model_set_id, "model_set_id"),
-        (physical.solver_run_id == transfer.solver_run_id, "solver_run_id"),
+        (
+            physical.model_set_id == transfer.model_set_id,
+            "model_set_id",
+        ),
+        (
+            physical.solver_run_id == transfer.solver_run_id,
+            "solver_run_id",
+        ),
         (
             physical.requirement_id == transfer.upstream_discrepancy_requirement_id,
             "upstream_discrepancy_requirement_id",
@@ -325,8 +343,7 @@ fn validate_inputs(
             "input_field_unit",
         ),
         (
-            requirements.reference_operating_condition_id
-                == physical.operating_condition_id,
+            requirements.reference_operating_condition_id == physical.operating_condition_id,
             "reference_operating_condition_id",
         ),
     ] {
@@ -401,8 +418,8 @@ fn validate_inputs(
             let derivative_bound =
                 Interval::point(physical.residual_jacobian_abs_supremum_t_per_m[component][axis])
                     .map_err(|_| FunctionalTransferError::InvalidInterval {
-                        field: "physical_residual_jacobian",
-                    })?;
+                    field: "physical_residual_jacobian",
+                })?;
             let cell_radius = Interval::point(*half_width).map_err(|_| {
                 FunctionalTransferError::InvalidInterval {
                     field: "physical_cell_half_width",
@@ -426,9 +443,8 @@ fn validate_inputs(
             });
         }
 
-        let measured_minus_model =
-            physical.measured_field_at_centre_t[component]
-                - physical.model_field_at_centre_t[component];
+        let measured_minus_model = physical.measured_field_at_centre_t[component]
+            - physical.model_field_at_centre_t[component];
         let radius = physical.residual_variation_radius_t[component];
         let radius_interval = Interval::new(-radius, radius).map_err(|_| {
             FunctionalTransferError::InvalidInterval {
@@ -499,13 +515,15 @@ fn validate_inputs(
     for row in transfer.gain {
         for interval in row {
             if !valid_interval(interval) {
-                return Err(FunctionalTransferError::InvalidInterval {
-                    field: "gain",
-                });
+                return Err(FunctionalTransferError::InvalidInterval { field: "gain" });
             }
         }
     }
-    for interval in transfer.offset.into_iter().chain(transfer.response_residual) {
+    for interval in transfer
+        .offset
+        .into_iter()
+        .chain(transfer.response_residual)
+    {
         if !valid_interval(interval) {
             return Err(FunctionalTransferError::InvalidInterval {
                 field: "offset_or_response_residual",
@@ -532,8 +550,8 @@ fn validate_inputs(
         return Err(FunctionalTransferError::InvalidAmplitudeThreshold);
     }
 
-    let reference_norm_squared = requirements.reference_phasor[0].square()
-        + requirements.reference_phasor[1].square();
+    let reference_norm_squared =
+        requirements.reference_phasor[0].square() + requirements.reference_phasor[1].square();
     if !reference_norm_squared.is_finite() || reference_norm_squared.lower() <= 0.0 {
         return Err(FunctionalTransferError::ReferencePhasorMayBeZero);
     }
@@ -565,17 +583,15 @@ pub fn certify_physical_sensor_function(
         *measured_component = value;
     }
 
-    let measured_norm_squared =
-        measured_phasor[0].square() + measured_phasor[1].square();
-    let amplitude_margin =
-        measured_norm_squared - requirements.minimum_amplitude_squared;
+    let measured_norm_squared = measured_phasor[0].square() + measured_phasor[1].square();
+    let amplitude_margin = measured_norm_squared - requirements.minimum_amplitude_squared;
     if !measured_norm_squared.is_finite() || !amplitude_margin.is_finite() {
         return Err(FunctionalTransferError::NonFiniteDerivedInterval);
     }
     let amplitude_status = classify(amplitude_margin);
 
-    let reference_norm_squared = requirements.reference_phasor[0].square()
-        + requirements.reference_phasor[1].square();
+    let reference_norm_squared =
+        requirements.reference_phasor[0].square() + requirements.reference_phasor[1].square();
     let phase_margin = if measured_norm_squared.lower() <= 0.0 {
         None
     } else {
@@ -595,7 +611,9 @@ pub fn certify_physical_sensor_function(
         Some(margin)
     };
 
-    let phase_status = phase_margin.map(classify).unwrap_or(RequirementStatus::Unresolved);
+    let phase_status = phase_margin
+        .map(classify)
+        .unwrap_or(RequirementStatus::Unresolved);
     let combined_status = combine(phase_status, amplitude_status);
 
     Ok(PhysicalFunctionalCertificate {
@@ -633,7 +651,8 @@ pub fn certify_physical_sensor_function(
         physical_evidence_role: physical.evidence_role,
         calibration_evidence_role: transfer.calibration_evidence_role,
         reference_evidence_role: requirements.reference_evidence_role,
-        arithmetic_contract: "magnetic-interval-ad outward-expanded binary64 interval operations".to_owned(),
+        arithmetic_contract: "magnetic-interval-ad outward-expanded binary64 interval operations"
+            .to_owned(),
     })
 }
 
@@ -838,16 +857,12 @@ mod tests {
 
     #[test]
     fn output_certificate_retains_complete_input_contracts() {
-        let physical_input =
-            physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
+        let physical_input = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
         let transfer_input = transfer();
         let requirements_input = requirements();
-        let result = certify_physical_sensor_function(
-            &physical_input,
-            &transfer_input,
-            &requirements_input,
-        )
-        .expect("valid scoped inputs");
+        let result =
+            certify_physical_sensor_function(&physical_input, &transfer_input, &requirements_input)
+                .expect("valid scoped inputs");
         assert_eq!(result.upstream_physical_certificate, physical_input);
         assert_eq!(result.sensor_transfer_contract, transfer_input);
         assert_eq!(result.functional_requirements, requirements_input);
@@ -940,13 +955,17 @@ mod tests {
         wrong_cell.cell_bounds_m[0] = iv(-0.02, 0.02);
         assert_eq!(
             certify_physical_sensor_function(&physical, &wrong_cell, &requirements()),
-            Err(FunctionalTransferError::ScopeMismatch { field: "cell_bounds_m" })
+            Err(FunctionalTransferError::ScopeMismatch {
+                field: "cell_bounds_m"
+            })
         );
         let mut wrong_calibration = transfer();
         wrong_calibration.calibration_sha256 = "not-a-digest".to_owned();
         assert_eq!(
             certify_physical_sensor_function(&physical, &wrong_calibration, &requirements()),
-            Err(FunctionalTransferError::InvalidSha256 { field: "calibration_sha256" })
+            Err(FunctionalTransferError::InvalidSha256 {
+                field: "calibration_sha256"
+            })
         );
     }
 
