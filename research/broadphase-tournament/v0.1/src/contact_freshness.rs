@@ -42,6 +42,10 @@ pub struct GlobalContactRevisions {
     pub narrowphase_config_sha256: [u8; 32],
     /// SHA-256 digest of the solver algorithm/configuration contract.
     pub solver_config_sha256: [u8; 32],
+    /// SHA-256 digest of material/contact-response and callback policy.
+    /// A change preserves geometric manifold validity but invalidates
+    /// warm-start data derived under the old response law.
+    pub contact_response_policy_sha256: [u8; 32],
 }
 
 /// Revision and digest of the actual cached manifold and warm-start payload.
@@ -116,6 +120,7 @@ pub enum FreshnessReason {
     NarrowphaseConfigurationChanged,
     ContactMaterialChanged,
     SolverConfigurationChanged,
+    ContactResponsePolicyChanged,
     WakeEpochAdvanced,
     NewPair,
     MissingContactStamp,
@@ -293,6 +298,12 @@ impl ContactFreshnessStamp {
         }
         if global.solver_config_sha256 != self.global.solver_config_sha256 {
             reasons.insert(FreshnessReason::SolverConfigurationChanged);
+            warm_start_reusable = false;
+        }
+        if global.contact_response_policy_sha256
+            != self.global.contact_response_policy_sha256
+        {
+            reasons.insert(FreshnessReason::ContactResponsePolicyChanged);
             warm_start_reusable = false;
         }
 
@@ -578,6 +589,7 @@ mod tests {
             collision_policy: 5,
             narrowphase_config_sha256: [11; 32],
             solver_config_sha256: [12; 32],
+            contact_response_policy_sha256: [13; 32],
         }
     }
 
@@ -1175,5 +1187,55 @@ mod tests {
             Err(ContactFreshnessError::ContactPayloadDigestMissing)
         );
     }
+
+
+    #[test]
+    fn contact_response_policy_change_preserves_geometry_but_resets_warm_start() {
+        let stamp = stamp();
+        let mut changed = next_global();
+        changed.contact_response_policy_sha256 = [44; 32];
+        let decision = stamp
+            .assess(changed, endpoint(1), endpoint(2))
+            .expect("response policy revision");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::ContactResponsePolicyChanged]
+        );
+    }
+
+    #[test]
+    fn response_policy_change_requires_warm_start_commit_without_geometry_rebuild() {
+        let stamp = stamp();
+        let mut changed = next_global();
+        changed.contact_response_policy_sha256 = [45; 32];
+        let committed = stamp
+            .commit_transition(
+                changed,
+                endpoint(1),
+                endpoint(2),
+                false,
+                true,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32],
+                    ..payload()
+                },
+            )
+            .expect("response warm-start reset");
+        let later = GlobalContactRevisions {
+            world: changed.world + 1,
+            ..changed
+        };
+        let decision = committed
+            .assess(later, endpoint(1), endpoint(2))
+            .expect("response policy stamp committed");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+    }
+
 
 }
