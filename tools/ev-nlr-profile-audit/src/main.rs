@@ -839,7 +839,7 @@ mod tests {
     fn rejects_timestamp_grid_drift_and_missing_profiles() {
         let directory = temporary_directory("invalid-grid");
         write_fixture_archive(&directory, 0.0);
-        let key = expected_keys().remove(0);
+        let key = expected_keys().into_iter().next().expect("expected profile key");
         let path = directory.join(key.file_name());
         let source = fs::read_to_string(&path).expect("read test CSV");
         let changed = source.replacen("00:00:00,", "00:01:00,", 1);
