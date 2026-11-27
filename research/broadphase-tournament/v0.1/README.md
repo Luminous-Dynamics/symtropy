@@ -99,3 +99,6 @@ Per-step callback delivery and deterministic event receipts are tracked separate
 ### Contact lease admission microbenchmark
 
 Run `cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin contact-lease-benchmark -- 100000` to emit 27 rows across 2D/3D/4D and nine lease outcomes. The CI run validates all row accounting. This is admission-stage overhead only; it does not include real witness derivation or narrowphase savings.
+## Callback event receipt prototype
+
+The exported `callback_event_receipt` module defines stable per-step callback event IDs bound to world revision, pair generations, manifold revision, event kind and ordinal, with response-policy and response-state bindings. Its independent verifier detects omitted, duplicate, unexpected and tampered event receipts, and reports delivered/pending/failed separately. This is research-only; it does not yet invoke the live callback interface, derive expected events from solver results, or provide a durable idempotent outbox. See [issue #7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718).
