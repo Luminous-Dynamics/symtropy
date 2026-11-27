@@ -604,7 +604,6 @@ pub fn bind_centre_observation_to_validated_derivative<const N: usize>(
     )
     .map_err(EvidenceBindingError::IntervalMapping)?;
     bind_centre_observation_to_spatial_derivative(scope, observation, &derivative, evidence_role)
-        .map_err(EvidenceBindingError::SpatialCertification)
 }
 
 fn dominant_axis(contributions: [f64; 3]) -> Option<Axis> {
