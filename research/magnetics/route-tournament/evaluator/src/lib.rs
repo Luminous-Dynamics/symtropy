@@ -241,7 +241,11 @@ pub fn evaluate_candidate(
     if !valid_sha256(&candidate.geometry_inspection_calibration_digest) {
         blockers.push(Blocker::MissingGeometryInspectionCalibration);
     }
-    if candidate.geometry_inspection_reference_chain_id.trim().is_empty() {
+    if candidate
+        .geometry_inspection_reference_chain_id
+        .trim()
+        .is_empty()
+    {
         blockers.push(Blocker::MissingGeometryInspectionReference);
     }
     if candidate.inspected_geometry_digest != candidate.as_built_geometry_digest {
@@ -461,13 +465,20 @@ pub fn run_tournament(
     let mut id_counts = std::collections::BTreeMap::new();
     let mut specimen_counts = std::collections::BTreeMap::new();
     for candidate in candidates {
-        *id_counts.entry(candidate.candidate_id.as_str()).or_insert(0usize) += 1;
+        *id_counts
+            .entry(candidate.candidate_id.as_str())
+            .or_insert(0usize) += 1;
         *specimen_counts
             .entry(candidate.specimen_id.as_str())
             .or_insert(0usize) += 1;
     }
     for (candidate, evaluation) in candidates.iter().zip(evaluations.iter_mut()) {
-        if id_counts.get(candidate.candidate_id.as_str()).copied().unwrap_or(0) > 1 {
+        if id_counts
+            .get(candidate.candidate_id.as_str())
+            .copied()
+            .unwrap_or(0)
+            > 1
+        {
             evaluation.disposition = Disposition::Indeterminate;
             evaluation.blockers.push(Blocker::DuplicateCandidateId);
         }
@@ -859,13 +870,19 @@ mod tests {
         candidate.as_built_geometry_digest = candidate.nominal_geometry_digest.clone();
         let result = evaluate_candidate(&cohort(), &candidate);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result.blockers.contains(&Blocker::InspectionGeometryMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::InspectionGeometryMismatch)
+        );
     }
 
     #[test]
     fn missing_required_metric_is_indeterminate() {
         let mut candidate = candidate("MEX-001", RouteFamily::Mex, 20.0, 0.34, 5.0);
-        candidate.observations.retain(|item| item.metric_id != "remanence");
+        candidate
+            .observations
+            .retain(|item| item.metric_id != "remanence");
         let result = evaluate_candidate(&cohort(), &candidate);
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::MissingObservation));
@@ -878,7 +895,11 @@ mod tests {
             &candidate("MEX-001", RouteFamily::Mex, 40.0, 0.34, 5.0),
         );
         assert_eq!(result.disposition, Disposition::Fail);
-        assert!(result.blockers.contains(&Blocker::DefiniteHardLimitViolation));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::DefiniteHardLimitViolation)
+        );
     }
 
     #[test]
@@ -916,8 +937,16 @@ mod tests {
         let narrow = run_tournament(&cohort(), &[first.clone(), second.clone()]);
         second.observations[0].uncertainty_radius = 20.0;
         let wide = run_tournament(&cohort(), &[first, second]);
-        assert!(narrow.dominated_candidate_ids.contains(&"MEX-001".to_string()));
-        assert!(!wide.dominated_candidate_ids.contains(&"MEX-001".to_string()));
+        assert!(
+            narrow
+                .dominated_candidate_ids
+                .contains(&"MEX-001".to_string())
+        );
+        assert!(
+            !wide
+                .dominated_candidate_ids
+                .contains(&"MEX-001".to_string())
+        );
     }
 
     #[test]
@@ -927,12 +956,16 @@ mod tests {
         candidate.geometry_inspection_reference_chain_id.clear();
         let result = evaluate_candidate(&cohort(), &candidate);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::MissingGeometryInspectionCalibration));
-        assert!(result
-            .blockers
-            .contains(&Blocker::MissingGeometryInspectionReference));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::MissingGeometryInspectionCalibration)
+        );
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::MissingGeometryInspectionReference)
+        );
     }
 
     #[test]
@@ -962,12 +995,16 @@ mod tests {
         candidate.observations[1].post_magnetization_digest = digest('f');
         let result = evaluate_candidate(&cohort(), &candidate);
         assert_eq!(result.disposition, Disposition::Indeterminate);
-        assert!(result
-            .blockers
-            .contains(&Blocker::ProcessGenealogyBindingMismatch));
-        assert!(result
-            .blockers
-            .contains(&Blocker::PostMagnetizationBindingMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::ProcessGenealogyBindingMismatch)
+        );
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::PostMagnetizationBindingMismatch)
+        );
     }
 
     #[test]
@@ -976,14 +1013,18 @@ mod tests {
         let mut second = candidate("LPBF-001", RouteFamily::LpbfSlm, 18.0, 0.32, 7.0);
         second.specimen_id = first.specimen_id.clone();
         let result = run_tournament(&cohort(), &[first, second]);
-        assert!(result
-            .evaluations
-            .iter()
-            .all(|evaluation| evaluation.disposition == Disposition::Indeterminate));
-        assert!(result
-            .evaluations
-            .iter()
-            .any(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateSpecimen)));
+        assert!(
+            result
+                .evaluations
+                .iter()
+                .all(|evaluation| evaluation.disposition == Disposition::Indeterminate)
+        );
+        assert!(
+            result
+                .evaluations
+                .iter()
+                .any(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateSpecimen))
+        );
     }
 
     #[test]
@@ -991,10 +1032,12 @@ mod tests {
         let first = candidate("SAME-ID", RouteFamily::Mex, 20.0, 0.34, 5.0);
         let second = candidate("SAME-ID", RouteFamily::LpbfSlm, 18.0, 0.32, 7.0);
         let result = run_tournament(&cohort(), &[first, second]);
-        assert!(result
-            .evaluations
-            .iter()
-            .all(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateCandidateId)));
+        assert!(
+            result
+                .evaluations
+                .iter()
+                .all(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateCandidateId))
+        );
     }
 
     #[test]
