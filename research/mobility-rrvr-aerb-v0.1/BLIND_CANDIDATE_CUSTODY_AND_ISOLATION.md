@@ -38,7 +38,7 @@ The builder emits a direct prlimit → bubblewrap → candidate argv chain, with
 - read-only mounts for /candidate/input and /runtime;
 - the sole writable host mount at /candidate/output;
 - private /proc, minimal /dev, and a size-bounded tmpfs at /tmp;
-- host launcher uses env_clear before starting prlimit/Bubblewrap, preventing CI/evaluator variables from reaching the setup parent; the candidate environment is then cleared and explicitly sets HOME, PWD, TMPDIR, PATH, LANG and TZ;
+- host launcher uses env_clear before starting prlimit/Bubblewrap, preventing CI/evaluator variables from reaching the setup parent; stdin/stdout/stderr are redirected to /dev/null so candidate-controlled streams cannot leak into evaluator logs; the candidate environment is then cleared and explicitly sets HOME, PWD, TMPDIR, PATH, LANG and TZ;
 - rlimits for address space, CPU time, process count, open files, per-file output size and core dumps disabled.
 
 The unit tests inspect command construction and reject path-overlap, evaluator-root overlap, host paths in arguments, path traversal, an executable outside the runtime, and zero limits. A separate static musl canary probes the actual Bubblewrap runtime and is executed by the dedicated workflow.
