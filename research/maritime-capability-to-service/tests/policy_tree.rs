@@ -1,7 +1,7 @@
 use maritime_capability_to_service::kite::Gate;
 use maritime_capability_to_service::kite_oracle::DecisionContext;
 use maritime_capability_to_service::policy_tree::{
-    validate_non_anticipative_policy_tree, PlannedStage, PolicyTreeAction, ScenarioPolicyPath,
+    PlannedStage, PolicyTreeAction, ScenarioPolicyPath, validate_non_anticipative_policy_tree,
 };
 
 fn context() -> DecisionContext {
@@ -66,10 +66,7 @@ fn public_validator_allows_adaptation_only_after_observable_histories_diverge() 
     assert_eq!(report.information_set_count, 3);
     assert_eq!(report.shared_information_set_count, 1);
     assert_eq!(report.maximum_scenarios_per_information_set, 2);
-    assert_eq!(
-        report.information_sets[0].selected_action_id,
-        "LOCAL"
-    );
+    assert_eq!(report.information_sets[0].selected_action_id, "LOCAL");
 }
 
 #[test]
