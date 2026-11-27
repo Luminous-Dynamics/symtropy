@@ -45,6 +45,26 @@ References:
 - [NASA-STD-7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf).
 - [NASA-HDBK-7009B, dated 2026-02-03](https://standards.nasa.gov/node/198).
 
+### Computational Materials for Qualification and Certification (CM4QC)
+
+The March 2026 NASA/FAA-linked CM4QC strategy is a particularly relevant domain comparator. It describes a multi-year government, industry and academic effort to mature computational-materials methods for aviation-focused qualification and certification of metal additive manufacturing. It explicitly separates high-, mid- and low-technology-readiness work, and identifies the transition from research methods to trusted engineering capability as a central challenge. The report also states that computational-materials models are not yet generally mature enough to be trusted by regulatory authorities and major OEM product-assurance / chief-engineer functions for Q&C use.
+
+The strategy emphasises transferability of validated model workflows, measurement and model uncertainty, sensitivity analysis, hierarchical benchmarks spanning feedstock through build/post-processing/mechanical behaviour, and FAIR data. It notes that high-quality controlled benchmark measurement data are expensive and scarce. Its AM Bench discussion describes challenge problems and coupled measurement datasets rather than a general-purpose assurance decision engine.
+
+Implication: CM4QC is not a direct software competitor. It is a domain-level reference for the engineering evidence and validation content AERO must consume. AERO should integrate owner-native VVUQ, AM Bench / hierarchical benchmark results and model-use bounds; it must not claim to supply those measurements, model validations or transferability evidence itself. Its hypothesis is that the chain from those owner-controlled artefacts to a claim-level, time-correct and independently replayable disposition can be made more trustworthy and cheaper to review.
+
+References:
+- [NASA/TM-20260001729 / DOT-FAA/TC-26/10, CM4QC Strategy Document (March 2026)](https://ntrs.nasa.gov/api/citations/20260001729/downloads/NASA-TM-20260001729.pdf).
+- [NIST Additive Manufacturing Benchmark Test Series (AM Bench)](https://www.nist.gov/ambench).
+
+### NASA software assurance guidance for AI-enabled workflows
+
+NASA Software Engineering Handbook Version D, Topic 8.25, extends software-assurance expectations to foundation models, compound AI systems and agentic systems across their lifecycle. It calls for first-class evaluation, traceability, human oversight, uncertainty communication, security, modularity/resilience and continuous change management. Its applicability text recommends non-safety-critical use until a documented AI safety case and risk controls are approved by the appropriate authority.
+
+Implication: AERO can use AI to search evidence gaps, propose candidate defeaters and rank safe acquisition actions, but must retain human/authority control over review, acceptance and physical work. Those AI functions require their own frozen evaluation datasets, traceable versions, confidence/abstention policy and hazard-oriented negative tests.
+
+Reference: [NASA SWEHB Version D, §8.25 – Super Intelligence and Software Assurance](https://swehb.nasa.gov/spaces/SWEHBVD/pages/184320002/8.25%2B-%2BSuper+Intelligence+And+Software+Assurance).
+
 ### LLMs and assurance arguments
 
 NASA/TM-20250001849 (March 2025) surveys proposals for LLM generation and assessment of assurance arguments. Its abstract concludes that much remains to be demonstrated before LLMs can be considered fit for generating or assessing assurance arguments in engineering and certification practice.
@@ -112,7 +132,7 @@ Do not describe any of these as industry-first or SOTA without a structured prio
 
 AERO should aim to outperform on **measured assurance quality and cost**, not on model fluency or dashboard breadth.
 
-- Safety: zero observed critical false-review decisions in a frozen, independently adjudicated challenge set.
+- Safety: zero observed critical false-review decisions in a frozen, independently adjudicated challenge set, accompanied by exact one-sided confidence bounds and per-critical-stratum sample counts. For example, zero adverse events in 299 independent episodes supports only an upper 95% bound below 1%, not zero risk.
 - Recall: 100% detection of affected claims in critical dependency families before reducing unnecessary requalification.
 - Temporal fidelity: exact disposition/reason-code agreement on independently authored historical replay oracles.
 - Reproducibility: clean-room replay with explicit evidence disclosure classes and no undeclared dependencies.
@@ -143,5 +163,7 @@ AERO should publish negative results and per-stratum failures. Any benchmark tha
 5. **Clean-room replay:** export capsules under included, digest-only, withheld and authorized-access-required disclosure classes.
 6. **Defeater utility study:** measure whether generated defeaters find independently seeded omissions without increasing unsupported rejection.
 7. **Human factors study:** blinded reviewers with and without AERO; measure error, time, reliance, disagreement and confidence calibration.
+
+8. **CM4QC evidence-chain integration:** for one tightly bounded material/process use case, connect an owner-controlled model report, its context-of-use envelope, validation-data provenance, uncertainty budget and hierarchy of benchmark measurements to a claim capsule. Evaluate whether reviewers can reconstruct the evidence chain without AERO interpreting a model beyond its owner-stated domain.
 
 These experiments should be frozen and independently reviewed before performance claims are made.
