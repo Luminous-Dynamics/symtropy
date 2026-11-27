@@ -1568,6 +1568,44 @@ mod tests {
     }
 
     #[test]
+    fn missing_raw_specification_payload_digest_is_incomplete() {
+        let mut fixture = fixture();
+        fixture.payload_sha256.clear();
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISSING".to_owned()
+        ));
+    }
+
+    #[test]
+    fn malformed_raw_specification_payload_digest_is_rejected() {
+        let mut fixture = fixture();
+        fixture.payload_sha256 = "not-a-digest".to_owned();
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_INVALID".to_owned()
+        ));
+    }
+
+    #[test]
+    fn missing_binding_payload_commitment_is_incomplete_not_a_mismatch() {
+        let mut fixture = fixture();
+        fixture.binding.claim_specification_payload_sha256.clear();
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_METRIC_BINDING_SPECIFICATION_PAYLOAD_DIGEST_MISSING".to_owned()
+        ));
+        assert!(
+            !result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
     fn owner_receipt_role_reuse_is_rejected() {
         let mut fixture = fixture();
         fixture.binding.producer_authority_receipt_ref =
