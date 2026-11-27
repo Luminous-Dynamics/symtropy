@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/preservation-service-tournament-001/research/physical-storage/preservation_service_receipts_v0_1.schema.json",
+  "title": "Preservation Service Receipt KAT v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "qualification_status",
+    "contract",
+    "case_count",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "preservation-service-receipts-v0.1"
+    },
+    "corpus_id": {
+      "const": "PRESERVATION-SERVICE-RECEIPTS-V0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_semantic_fixture"
+    },
+    "qualification_status": {
+      "const": "not_run"
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workload_id",
+        "requested_bytes",
+        "requested_objects",
+        "deadline_ms",
+        "deadline_required",
+        "manifest_required",
+        "provenance_required",
+        "energy_metering_required",
+        "required_stages",
+        "independent_reader_paths_required",
+        "required_energy_boundary",
+        "migration_required"
+      ],
+      "properties": {
+        "workload_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested_objects": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deadline_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_required": {
+          "type": "boolean"
+        },
+        "manifest_required": {
+          "type": "boolean"
+        },
+        "provenance_required": {
+          "type": "boolean"
+        },
+        "energy_metering_required": {
+          "type": "boolean"
+        },
+        "required_stages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "request_admission",
+              "operator_approval",
+              "media_mount",
+              "reader_bootstrap",
+              "queue_and_staging",
+              "key_and_trust_bootstrap",
+              "reader_calibration",
+              "physical_read",
+              "retry_and_ecc",
+              "decode_and_reconstruct",
+              "packaging_and_decrypt",
+              "fixity_and_manifest",
+              "network_transfer",
+              "destination_verify",
+              "migration_write",
+              "migration_readback",
+              "provenance_acceptance"
+            ]
+          }
+        },
+        "independent_reader_paths_required": {
+          "type": "boolean"
+        },
+        "required_energy_boundary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "WholeService",
+            "StorageSubsystem",
+            "ReaderAndCompute",
+            null
+          ]
+        },
+        "migration_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "case_count": {
+      "const": 10
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "rationale",
+          "receipt",
+          "expected_disposition"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "workload_id",
+              "elapsed_ms",
+              "time_to_first_accepted_byte_ms",
+              "reconstructed_bytes",
+              "delivered_bytes",
+              "independently_accepted_bytes",
+              "independently_accepted_objects",
+              "missing_objects",
+              "extra_objects",
+              "duplicate_objects",
+              "unrecoverable_objects",
+              "false_acceptances",
+              "expected_digest_status",
+              "manifest_status",
+              "provenance_status",
+              "energy_meter_status",
+              "energy_millijoules",
+              "candidate_claimed_full_success",
+              "stage_observations",
+              "reader_path_ids",
+              "reader_independence_status",
+              "reader_agreement_status",
+              "energy_meter_id",
+              "energy_calibration_ref",
+              "energy_boundary",
+              "energy_sample_interval_ms",
+              "energy_evidence_sha256",
+              "source_digest_status",
+              "destination_digest_status",
+              "migration_lineage_status"
+            ],
+            "properties": {
+              "workload_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "elapsed_ms": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "time_to_first_accepted_byte_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "reconstructed_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "delivered_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independently_accepted_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independently_accepted_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "missing_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "extra_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "duplicate_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unrecoverable_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "false_acceptances": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "manifest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "provenance_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "energy_meter_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "energy_millijoules": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "candidate_claimed_full_success": {
+                "type": "boolean"
+              },
+              "stage_observations": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "stage",
+                    "elapsed_ms",
+                    "evidence_present"
+                  ],
+                  "properties": {
+                    "stage": {
+                      "enum": [
+                        "request_admission",
+                        "operator_approval",
+                        "media_mount",
+                        "reader_bootstrap",
+                        "queue_and_staging",
+                        "key_and_trust_bootstrap",
+                        "reader_calibration",
+                        "physical_read",
+                        "retry_and_ecc",
+                        "decode_and_reconstruct",
+                        "packaging_and_decrypt",
+                        "fixity_and_manifest",
+                        "network_transfer",
+                        "destination_verify",
+                        "migration_write",
+                        "migration_readback",
+                        "provenance_acceptance"
+                      ]
+                    },
+                    "elapsed_ms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "evidence_present": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              },
+              "reader_path_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "reader_independence_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "reader_agreement_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "energy_meter_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "energy_calibration_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "energy_boundary": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "WholeService",
+                  "StorageSubsystem",
+                  "ReaderAndCompute",
+                  null
+                ]
+              },
+              "energy_sample_interval_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "energy_evidence_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-fA-F]{64}$"
+              },
+              "source_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "destination_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "migration_lineage_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "Pass",
+              "Fail",
+              "Incomplete",
+              "NotEvaluated"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

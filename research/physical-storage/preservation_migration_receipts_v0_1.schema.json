@@ -1,0 +1,448 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/preservation-service-tournament-001/research/physical-storage/preservation_migration_receipts_v0_1.schema.json",
+  "title": "Preservation Migration Receipt KAT v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "qualification_status",
+    "contract",
+    "case_count",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "preservation-migration-receipts-v0.1"
+    },
+    "corpus_id": {
+      "const": "PRESERVATION-MIGRATION-RECEIPTS-V0.1"
+    },
+    "evidence_class": {
+      "const": "synthetic_semantic_fixture"
+    },
+    "qualification_status": {
+      "const": "not_run"
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workload_id",
+        "requested_bytes",
+        "requested_objects",
+        "deadline_ms",
+        "deadline_required",
+        "manifest_required",
+        "provenance_required",
+        "migration_required",
+        "energy_metering_required",
+        "required_energy_boundary",
+        "independent_reader_paths_required",
+        "required_stages"
+      ],
+      "properties": {
+        "workload_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested_objects": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deadline_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deadline_required": {
+          "type": "boolean"
+        },
+        "manifest_required": {
+          "type": "boolean"
+        },
+        "provenance_required": {
+          "type": "boolean"
+        },
+        "migration_required": {
+          "const": true
+        },
+        "energy_metering_required": {
+          "type": "boolean"
+        },
+        "required_energy_boundary": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "WholeService",
+            "StorageSubsystem",
+            "ReaderAndCompute",
+            null
+          ]
+        },
+        "independent_reader_paths_required": {
+          "type": "boolean"
+        },
+        "required_stages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "request_admission",
+              "media_mount",
+              "reader_bootstrap",
+              "physical_read",
+              "fixity_and_manifest",
+              "migration_write",
+              "migration_readback",
+              "destination_verify",
+              "provenance_acceptance"
+            ]
+          }
+        }
+      }
+    },
+    "case_count": {
+      "const": 6
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "rationale",
+          "receipt",
+          "expected_disposition",
+          "expected_contract_error"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "receipt": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "workload_id",
+              "elapsed_ms",
+              "time_to_first_accepted_byte_ms",
+              "reconstructed_bytes",
+              "delivered_bytes",
+              "independently_accepted_bytes",
+              "independently_accepted_objects",
+              "missing_objects",
+              "extra_objects",
+              "duplicate_objects",
+              "unrecoverable_objects",
+              "false_acceptances",
+              "expected_digest_status",
+              "manifest_status",
+              "provenance_status",
+              "source_digest_status",
+              "destination_digest_status",
+              "migration_lineage_status",
+              "reader_path_ids",
+              "reader_independence_status",
+              "reader_agreement_status",
+              "energy_meter_status",
+              "energy_millijoules",
+              "energy_meter_id",
+              "energy_calibration_ref",
+              "energy_evidence_sha256",
+              "energy_boundary",
+              "energy_sample_interval_ms",
+              "candidate_claimed_full_success",
+              "stage_observations"
+            ],
+            "properties": {
+              "workload_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "elapsed_ms": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "time_to_first_accepted_byte_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "reconstructed_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "delivered_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independently_accepted_bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independently_accepted_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "missing_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "extra_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "duplicate_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unrecoverable_objects": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "false_acceptances": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "manifest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "provenance_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "source_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "destination_digest_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "migration_lineage_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "reader_path_ids": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "reader_independence_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "reader_agreement_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "energy_meter_status": {
+                "enum": [
+                  "Pass",
+                  "Fail",
+                  "Incomplete",
+                  "NotEvaluated",
+                  "NotRequired"
+                ]
+              },
+              "energy_millijoules": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "energy_meter_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "energy_calibration_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "minLength": 1
+              },
+              "energy_evidence_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[0-9a-fA-F]{64}$"
+              },
+              "energy_boundary": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "WholeService",
+                  "StorageSubsystem",
+                  "ReaderAndCompute",
+                  null
+                ]
+              },
+              "energy_sample_interval_ms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1
+              },
+              "candidate_claimed_full_success": {
+                "type": "boolean"
+              },
+              "stage_observations": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "stage",
+                    "elapsed_ms",
+                    "evidence_present"
+                  ],
+                  "properties": {
+                    "stage": {
+                      "enum": [
+                        "request_admission",
+                        "media_mount",
+                        "reader_bootstrap",
+                        "physical_read",
+                        "fixity_and_manifest",
+                        "migration_write",
+                        "migration_readback",
+                        "destination_verify",
+                        "provenance_acceptance"
+                      ]
+                    },
+                    "elapsed_ms": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "evidence_present": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "expected_disposition": {
+            "enum": [
+              "Pass",
+              "Fail",
+              "Incomplete",
+              null
+            ]
+          },
+          "expected_contract_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contract_override": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "provenance_required": {
+                "type": "boolean"
+              },
+              "required_stages": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "request_admission",
+                    "media_mount",
+                    "reader_bootstrap",
+                    "physical_read",
+                    "fixity_and_manifest",
+                    "migration_write",
+                    "migration_readback",
+                    "destination_verify",
+                    "provenance_acceptance"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

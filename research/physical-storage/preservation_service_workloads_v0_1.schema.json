@@ -1,0 +1,411 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/preservation-service-tournament-001/research/physical-storage/preservation_service_workloads_v0_1.schema.json",
+  "title": "Preservation Service Workloads v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "evidence_class",
+    "source_contract_ref",
+    "workloads"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "preservation-service-workloads-v0.1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"
+    },
+    "evidence_class": {
+      "const": "synthetic_fixture"
+    },
+    "source_contract_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workloads": {
+      "type": "array",
+      "minItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workload_id",
+          "workload_family",
+          "title",
+          "payload",
+          "request",
+          "medium_path",
+          "resource_budget",
+          "fault_schedule",
+          "acceptance",
+          "evaluation_split",
+          "notes",
+          "migration_required"
+        ],
+        "properties": {
+          "workload_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"
+          },
+          "workload_family": {
+            "enum": [
+              "cold_full_restore",
+              "selective_restore",
+              "integrity_scan_repair",
+              "offline_reader_replacement",
+              "cross_medium_migration",
+              "compound_outage"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "logical_bytes",
+              "object_count",
+              "object_size_profile",
+              "entropy_profile",
+              "compression_policy",
+              "encryption_policy",
+              "manifest_required"
+            ],
+            "properties": {
+              "logical_bytes": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "object_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "object_size_profile": {
+                "enum": [
+                  "known_answer_tiny",
+                  "small_object_heavy",
+                  "large_object_stream",
+                  "mixed_enterprise"
+                ]
+              },
+              "entropy_profile": {
+                "enum": [
+                  "high_entropy",
+                  "mixed_entropy",
+                  "compressible",
+                  "not_applicable"
+                ]
+              },
+              "compression_policy": {
+                "enum": [
+                  "disabled",
+                  "fixed_lossless_profile",
+                  "identical_across_candidates"
+                ]
+              },
+              "encryption_policy": {
+                "enum": [
+                  "disabled_fixture_only",
+                  "fixed_authenticated_profile",
+                  "identical_across_candidates"
+                ]
+              },
+              "manifest_required": {
+                "const": true
+              }
+            }
+          },
+          "request": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "request_mode",
+              "access_pattern",
+              "requested_fraction_percent",
+              "deadline_seconds",
+              "concurrency",
+              "offline_required",
+              "vendor_runtime_withheld",
+              "network_policy"
+            ],
+            "properties": {
+              "request_mode": {
+                "enum": [
+                  "full_restore",
+                  "selective_restore",
+                  "integrity_scan_repair",
+                  "reader_replacement",
+                  "cross_medium_migration",
+                  "compound_outage"
+                ]
+              },
+              "access_pattern": {
+                "enum": [
+                  "sequential",
+                  "random_small_object",
+                  "mixed",
+                  "full_scan",
+                  "migration"
+                ]
+              },
+              "requested_fraction_percent": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "maximum": 100
+              },
+              "deadline_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "concurrency": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "offline_required": {
+                "type": "boolean"
+              },
+              "vendor_runtime_withheld": {
+                "type": "boolean"
+              },
+              "network_policy": {
+                "enum": [
+                  "permitted",
+                  "bounded",
+                  "offline"
+                ]
+              }
+            }
+          },
+          "medium_path": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "comparison_scope",
+              "source_medium",
+              "destination_medium"
+            ],
+            "properties": {
+              "comparison_scope": {
+                "enum": [
+                  "single_medium",
+                  "migration",
+                  "hybrid_restore"
+                ]
+              },
+              "source_medium": {
+                "enum": [
+                  "candidate_under_test",
+                  "glass_optical",
+                  "magnetic_tape",
+                  "hdd",
+                  "ssd_nand",
+                  "mram",
+                  "dna_molecular",
+                  "hybrid"
+                ]
+              },
+              "destination_medium": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "glass_optical",
+                  "magnetic_tape",
+                  "hdd",
+                  "ssd_nand",
+                  "mram",
+                  "dna_molecular",
+                  "hybrid",
+                  null
+                ]
+              }
+            }
+          },
+          "resource_budget": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reader_count",
+              "network_limit_mbps",
+              "compute_limit_seconds",
+              "metering_required",
+              "energy_meter_boundary"
+            ],
+            "properties": {
+              "reader_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "network_limit_mbps": {
+                "type": "number",
+                "minimum": 0
+              },
+              "compute_limit_seconds": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "metering_required": {
+                "type": "boolean"
+              },
+              "energy_meter_boundary": {
+                "enum": [
+                  "whole_service",
+                  "reader_and_compute",
+                  "not_applicable_synthetic"
+                ]
+              }
+            }
+          },
+          "fault_schedule": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fault_id",
+                "fault_type",
+                "at_elapsed_seconds",
+                "target_scope",
+                "visible_to_candidate",
+                "failure_domain_ref"
+              ],
+              "properties": {
+                "fault_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fault_type": {
+                  "enum": [
+                    "no_fault",
+                    "payload_corruption",
+                    "payload_erasure",
+                    "stale_calibration",
+                    "reader_unavailable",
+                    "site_power_loss",
+                    "network_unavailable",
+                    "key_unavailable",
+                    "manifest_tamper",
+                    "provenance_omission",
+                    "medium_unavailable"
+                  ]
+                },
+                "at_elapsed_seconds": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "target_scope": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "visible_to_candidate": {
+                  "type": "boolean"
+                },
+                "failure_domain_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "acceptance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "exact_bytes_required",
+              "independent_digest_required",
+              "manifest_validation_required",
+              "provenance_required",
+              "deadline_required",
+              "no_false_acceptance",
+              "expected_disposition"
+            ],
+            "properties": {
+              "exact_bytes_required": {
+                "const": true
+              },
+              "independent_digest_required": {
+                "const": true
+              },
+              "manifest_validation_required": {
+                "const": true
+              },
+              "provenance_required": {
+                "type": "boolean"
+              },
+              "deadline_required": {
+                "const": true
+              },
+              "no_false_acceptance": {
+                "const": true
+              },
+              "expected_disposition": {
+                "enum": [
+                  "accept_if_exact",
+                  "recover_or_abstain",
+                  "migrate_then_accept",
+                  "fail_closed_on_dependency"
+                ]
+              }
+            }
+          },
+          "evaluation_split": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "split",
+              "grouping_axes",
+              "synthetic_only"
+            ],
+            "properties": {
+              "split": {
+                "enum": [
+                  "development",
+                  "calibration",
+                  "held_out"
+                ]
+              },
+              "grouping_axes": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "specimen",
+                    "manufacturing_batch",
+                    "reader",
+                    "site",
+                    "media_lot",
+                    "workload_trace",
+                    "medium_family",
+                    "firmware_revision",
+                    "time_period"
+                  ]
+                }
+              },
+              "synthetic_only": {
+                "const": true
+              }
+            }
+          },
+          "notes": {
+            "type": "string"
+          },
+          "migration_required": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,747 @@
+{
+  "schema_version": "preservation-service-receipts-v0.1",
+  "corpus_id": "PRESERVATION-SERVICE-RECEIPTS-V0.1",
+  "evidence_class": "synthetic_semantic_fixture",
+  "qualification_status": "not_run",
+  "contract": {
+    "workload_id": "PSW-TEST-001",
+    "requested_bytes": 1000000,
+    "requested_objects": 10,
+    "deadline_ms": 10000,
+    "deadline_required": true,
+    "manifest_required": true,
+    "provenance_required": true,
+    "energy_metering_required": true,
+    "required_stages": [
+      "request_admission",
+      "media_mount",
+      "reader_bootstrap",
+      "physical_read",
+      "decode_and_reconstruct",
+      "fixity_and_manifest",
+      "provenance_acceptance"
+    ],
+    "independent_reader_paths_required": true,
+    "required_energy_boundary": "WholeService",
+    "migration_required": false
+  },
+  "case_count": 10,
+  "cases": [
+    {
+      "case_id": "PSR-001-EXACT-PASS",
+      "rationale": "All requested objects/bytes independently accepted; every required evidence class and service stage is present.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Pass"
+    },
+    {
+      "case_id": "PSR-002-HONEST-ABSTENTION",
+      "rationale": "One requested object is unavailable; candidate abstains and evidence remains incomplete rather than claiming full success.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 900000,
+        "delivered_bytes": 900000,
+        "independently_accepted_bytes": 900000,
+        "independently_accepted_objects": 9,
+        "missing_objects": 1,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Incomplete",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Incomplete"
+    },
+    {
+      "case_id": "PSR-003-FALSE-FULL-SUCCESS-CLAIM",
+      "rationale": "Candidate claims complete restore while the independent scorer accepts fewer bytes/objects.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 900000,
+        "delivered_bytes": 900000,
+        "independently_accepted_bytes": 900000,
+        "independently_accepted_objects": 9,
+        "missing_objects": 1,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Incomplete",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Fail"
+    },
+    {
+      "case_id": "PSR-004-DIGEST-MISMATCH",
+      "rationale": "Independent digest verification detects wrong payload bytes.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Fail",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Fail"
+    },
+    {
+      "case_id": "PSR-005-MISSING-STAGE-EVIDENCE",
+      "rationale": "A required mount stage has no evidence; candidate honestly abstains, so the run is incomplete.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Incomplete"
+    },
+    {
+      "case_id": "PSR-006-DEADLINE-MISSED",
+      "rationale": "All bytes are exact but the declared end-to-end service deadline is missed.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 10001,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Fail"
+    },
+    {
+      "case_id": "PSR-007-DUPLICATE-OBJECTS",
+      "rationale": "Independent object accounting finds duplicate outputs; extra delivery cannot be scored as extra accepted payload.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 1,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Fail"
+    },
+    {
+      "case_id": "PSR-008-PROVENANCE-UNRESOLVED",
+      "rationale": "Bytes and manifest are correct but required provenance evidence is not available.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Incomplete",
+        "energy_meter_status": "Pass",
+        "energy_millijoules": 12345,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": "meter-whole-service-A",
+        "energy_calibration_ref": "calibration-record-2026-01",
+        "energy_boundary": "WholeService",
+        "energy_sample_interval_ms": 1000,
+        "energy_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Incomplete"
+    },
+    {
+      "case_id": "PSR-009-ENERGY-METER-UNAVAILABLE",
+      "rationale": "Exact service recovery succeeds but required whole-service energy metering is unavailable.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 5000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "energy_meter_status": "Incomplete",
+        "energy_millijoules": null,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "decode_and_reconstruct",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 100,
+            "evidence_present": true
+          }
+        ],
+        "reader_path_ids": [
+          "reader-path-a",
+          "reader-path-b"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "energy_evidence_sha256": null,
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "Incomplete"
+    },
+    {
+      "case_id": "PSR-010-NOT-EVALUATED",
+      "rationale": "No service trial was run; no absence of errors can be promoted to a pass.",
+      "receipt": {
+        "workload_id": "PSW-TEST-001",
+        "elapsed_ms": 1,
+        "time_to_first_accepted_byte_ms": null,
+        "reconstructed_bytes": 0,
+        "delivered_bytes": 0,
+        "independently_accepted_bytes": 0,
+        "independently_accepted_objects": 0,
+        "missing_objects": 10,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "NotEvaluated",
+        "manifest_status": "NotEvaluated",
+        "provenance_status": "NotEvaluated",
+        "energy_meter_status": "NotEvaluated",
+        "energy_millijoules": null,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [],
+        "reader_path_ids": [],
+        "reader_independence_status": "NotEvaluated",
+        "reader_agreement_status": "NotEvaluated",
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "energy_evidence_sha256": null,
+        "source_digest_status": "NotRequired",
+        "destination_digest_status": "NotRequired",
+        "migration_lineage_status": "NotRequired"
+      },
+      "expected_disposition": "NotEvaluated"
+    }
+  ]
+}

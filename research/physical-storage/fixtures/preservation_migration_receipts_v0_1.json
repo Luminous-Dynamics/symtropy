@@ -1,0 +1,570 @@
+{
+  "schema_version": "preservation-migration-receipts-v0.1",
+  "corpus_id": "PRESERVATION-MIGRATION-RECEIPTS-V0.1",
+  "evidence_class": "synthetic_semantic_fixture",
+  "qualification_status": "not_run",
+  "contract": {
+    "workload_id": "PSW-MIGRATION-TEST-001",
+    "requested_bytes": 1000000,
+    "requested_objects": 10,
+    "deadline_ms": 20000,
+    "deadline_required": true,
+    "manifest_required": true,
+    "provenance_required": true,
+    "migration_required": true,
+    "energy_metering_required": false,
+    "required_energy_boundary": null,
+    "independent_reader_paths_required": true,
+    "required_stages": [
+      "request_admission",
+      "media_mount",
+      "reader_bootstrap",
+      "physical_read",
+      "fixity_and_manifest",
+      "migration_write",
+      "migration_readback",
+      "destination_verify",
+      "provenance_acceptance"
+    ]
+  },
+  "case_count": 6,
+  "cases": [
+    {
+      "case_id": "PSM-001-EXACT-MIGRATION-PASS",
+      "rationale": "Source read, destination write/readback, destination verification, source/destination digest checks and lineage all pass.",
+      "receipt": {
+        "workload_id": "PSW-MIGRATION-TEST-001",
+        "elapsed_ms": 8000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "source_digest_status": "Pass",
+        "destination_digest_status": "Pass",
+        "migration_lineage_status": "Pass",
+        "reader_path_ids": [
+          "source-reader-path",
+          "destination-reader-path"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_status": "NotRequired",
+        "energy_millijoules": null,
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_evidence_sha256": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_write",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_readback",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "destination_verify",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          }
+        ]
+      },
+      "expected_disposition": "Pass",
+      "expected_contract_error": null
+    },
+    {
+      "case_id": "PSM-002-SOURCE-DIGEST-FAIL",
+      "rationale": "Source bytes do not match the scorer-held source digest; migration is rejected.",
+      "receipt": {
+        "workload_id": "PSW-MIGRATION-TEST-001",
+        "elapsed_ms": 8000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "source_digest_status": "Fail",
+        "destination_digest_status": "Pass",
+        "migration_lineage_status": "Pass",
+        "reader_path_ids": [
+          "source-reader-path",
+          "destination-reader-path"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_status": "NotRequired",
+        "energy_millijoules": null,
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_evidence_sha256": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_write",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_readback",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "destination_verify",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          }
+        ]
+      },
+      "expected_disposition": "Fail",
+      "expected_contract_error": null
+    },
+    {
+      "case_id": "PSM-003-DESTINATION-DIGEST-FAIL",
+      "rationale": "Destination readback does not match the scorer-held payload digest.",
+      "receipt": {
+        "workload_id": "PSW-MIGRATION-TEST-001",
+        "elapsed_ms": 8000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "source_digest_status": "Pass",
+        "destination_digest_status": "Fail",
+        "migration_lineage_status": "Pass",
+        "reader_path_ids": [
+          "source-reader-path",
+          "destination-reader-path"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_status": "NotRequired",
+        "energy_millijoules": null,
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_evidence_sha256": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_write",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_readback",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "destination_verify",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          }
+        ]
+      },
+      "expected_disposition": "Fail",
+      "expected_contract_error": null
+    },
+    {
+      "case_id": "PSM-004-MIGRATION-LINEAGE-INCOMPLETE",
+      "rationale": "Bytes match, but the transformation/migration preservation event is incomplete; exact bytes alone do not establish successful preservation migration.",
+      "receipt": {
+        "workload_id": "PSW-MIGRATION-TEST-001",
+        "elapsed_ms": 8000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "source_digest_status": "Pass",
+        "destination_digest_status": "Pass",
+        "migration_lineage_status": "Incomplete",
+        "reader_path_ids": [
+          "source-reader-path",
+          "destination-reader-path"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_status": "NotRequired",
+        "energy_millijoules": null,
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_evidence_sha256": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "candidate_claimed_full_success": false,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_write",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_readback",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "destination_verify",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          }
+        ]
+      },
+      "expected_disposition": "Incomplete",
+      "expected_contract_error": null
+    },
+    {
+      "case_id": "PSM-005-DESTINATION-READBACK-STAGE-MISSING",
+      "rationale": "The migration contract omits destination readback, so the workload contract itself is invalid.",
+      "receipt": {
+        "workload_id": "PSW-MIGRATION-TEST-001",
+        "elapsed_ms": 8000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "source_digest_status": "Pass",
+        "destination_digest_status": "Pass",
+        "migration_lineage_status": "Pass",
+        "reader_path_ids": [
+          "source-reader-path",
+          "destination-reader-path"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_status": "NotRequired",
+        "energy_millijoules": null,
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_evidence_sha256": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_write",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_readback",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "destination_verify",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          }
+        ]
+      },
+      "expected_disposition": null,
+      "expected_contract_error": "MissingMigrationStage",
+      "contract_override": {
+        "required_stages": [
+          "request_admission",
+          "media_mount",
+          "reader_bootstrap",
+          "physical_read",
+          "fixity_and_manifest",
+          "migration_write",
+          "destination_verify",
+          "provenance_acceptance"
+        ]
+      }
+    },
+    {
+      "case_id": "PSM-006-PROVENANCE-GATE-DISABLED",
+      "rationale": "A migration contract cannot disable preservation provenance while claiming a migration-qualified result.",
+      "receipt": {
+        "workload_id": "PSW-MIGRATION-TEST-001",
+        "elapsed_ms": 8000,
+        "time_to_first_accepted_byte_ms": 100,
+        "reconstructed_bytes": 1000000,
+        "delivered_bytes": 1000000,
+        "independently_accepted_bytes": 1000000,
+        "independently_accepted_objects": 10,
+        "missing_objects": 0,
+        "extra_objects": 0,
+        "duplicate_objects": 0,
+        "unrecoverable_objects": 0,
+        "false_acceptances": 0,
+        "expected_digest_status": "Pass",
+        "manifest_status": "Pass",
+        "provenance_status": "Pass",
+        "source_digest_status": "Pass",
+        "destination_digest_status": "Pass",
+        "migration_lineage_status": "Pass",
+        "reader_path_ids": [
+          "source-reader-path",
+          "destination-reader-path"
+        ],
+        "reader_independence_status": "Pass",
+        "reader_agreement_status": "Pass",
+        "energy_meter_status": "NotRequired",
+        "energy_millijoules": null,
+        "energy_meter_id": null,
+        "energy_calibration_ref": null,
+        "energy_evidence_sha256": null,
+        "energy_boundary": null,
+        "energy_sample_interval_ms": null,
+        "candidate_claimed_full_success": true,
+        "stage_observations": [
+          {
+            "stage": "request_admission",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "media_mount",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "reader_bootstrap",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "physical_read",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "fixity_and_manifest",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_write",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "migration_readback",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "destination_verify",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          },
+          {
+            "stage": "provenance_acceptance",
+            "elapsed_ms": 250,
+            "evidence_present": true
+          }
+        ]
+      },
+      "expected_disposition": null,
+      "expected_contract_error": "MigrationRequiresProvenance",
+      "contract_override": {
+        "provenance_required": false
+      }
+    }
+  ]
+}

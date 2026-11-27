@@ -1,0 +1,51 @@
+# Preservation Service Reference Scorer
+
+This zero-dependency Rust crate scores end-to-end service receipts against a frozen WorkloadContract. It intentionally does not read media, run a decoder, calculate digests, authenticate provenance, meter energy or independently attest a physical reader; a separate harness and verifier must produce those observations.
+
+## Core distinction
+
+- reconstructed bytes: candidate output;
+- delivered bytes: payload that reached the declared service boundary;
+- independently accepted bytes and objects: outputs accepted by the scorer after external verification.
+
+The primary rate is independently accepted bytes divided by end-to-end elapsed time. Candidate-reported bytes or throughput are not acceptance evidence.
+
+## Fail-closed rules
+
+- Workload IDs and object accounting must be coherent.
+- Exact requested byte/object counts are required for a pass.
+- Digest failure, required manifest/provenance failure, false acceptance, extra/duplicate objects, deadline miss or malformed accounting blocks a pass.
+- Missing required stage evidence, incomplete fixity/provenance/energy data, missing objects or abstention remains incomplete.
+- A candidate full-success claim that the independent scorer cannot support is a hard failure.
+- No run remains not evaluated.
+- Energy is only compared when a declared meter boundary and a valid meter result exist.
+
+The workload contract, including the mandatory stage list and whether independent reader/decoder paths are required, is supplied by the frozen benchmark and not chosen by the candidate. When required, two distinct path IDs, independent dependency assessment and byte/semantic agreement are explicit pass gates. Stage timings are observations; because stages may overlap, their durations are not blindly summed to recreate elapsed wall time.
+
+## Commands
+
+~~~bash
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+~~~
+
+The authoring environment has no Cargo, rustc or rustfmt; tests are authored but not executed here. The synthetic receipts and schema are contract fixtures, not measured service results.
+
+## Files
+
+- ../PRESERVATION_SERVICE_TOURNAMENT_001.md — benchmark and system boundary.
+- ../preservation_service_workloads_v0_1.schema.json — frozen workload definitions.
+- ../fixtures/preservation_service_workloads_v0_1.json — six synthetic workloads.
+- ../preservation_service_receipts_v0_1.schema.json — receipt KAT schema.
+- ../fixtures/preservation_service_receipts_v0_1.json — scorer positive, negative and incomplete cases.
+
+- A positive accepted-byte result must include time-to-first-accepted-byte; omission leaves a non-claim incomplete and makes an unsupported full-success claim fail.
+- Each stage duration must be no greater than total end-to-end elapsed time. Stages may overlap, so individual durations are not summed.
+
+Energy passes now require a pinned workload meter boundary plus a non-empty meter ID, calibration reference, raw meter-evidence SHA-256 digest and positive sampling interval. The measured boundary must match the frozen workload contract. A number without a reproducible meter/evidence record cannot pass.
+
+Migration workload contracts now require an explicit migration_required flag. When true, the scorer requires source physical read/fixity, migration write, destination readback/verification and provenance stages, plus separate source-digest, destination-digest and migration-lineage statuses. The dedicated six-case migration KAT is in ../fixtures/preservation_migration_receipts_v0_1.json with schema ../preservation_migration_receipts_v0_1.schema.json.
+
+
+**CI qualification:** `.github/workflows/preservation-service-reference.yml` runs this standalone crate with Rust 1.96.0, rustfmt, strict Clippy and its unit tests. The workflow formats/commits only this crate's source on the research PR branch before checking it; push-to-main qualification is check-only.
