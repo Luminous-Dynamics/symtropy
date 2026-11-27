@@ -1,0 +1,40 @@
+name: AERB checkpoint rustfmt repair
+
+on:
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/probe_checkpoint_v0_1.rs"
+      - ".github/workflows/aerb-checkpoint-rustfmt-export.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format-owned-branch:
+    if: github.actor == 'Tristan-Stoltz-ERC' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/aerb-probe-checkpoint-lifecycle-v0-1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Format evaluator crate
+        run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml
+      - name: Commit only the normalized checkpoint module
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          TARGET=research/mobility-rrvr-aerb-v0.1/evaluator/src/probe_checkpoint_v0_1.rs
+          if git diff --quiet -- "$TARGET"; then
+            echo "Checkpoint module already rustfmt-normalized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$TARGET"
+          git commit -m "style(rrvr): apply Rust 1.96 formatting"
+          git push origin "HEAD:refs/heads/$HEAD_REF"

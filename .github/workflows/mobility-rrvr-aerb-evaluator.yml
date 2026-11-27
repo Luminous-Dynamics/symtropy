@@ -50,6 +50,7 @@ jobs:
           V02="research/mobility-rrvr-aerb-probe-value-v0.1"
           jq empty "$V02/schemas/aerb_candidate_submission_v0_2.schema.json"
           jq empty "$V02/fixtures/candidate_submission_adaptive_synthetic_v0_2.json"
+          jq empty "$ROOT/schemas/aerb_probe_checkpoint_v0_1.schema.json"
 
           jq -e '
             . as $candidate
@@ -81,6 +82,19 @@ jobs:
             and (has("evaluator_profile_sha256") | not)
             and (has("seed") | not)
           ' "$V02/fixtures/candidate_submission_adaptive_synthetic_v0_2.json"
+
+      - name: Normalize and export checkpoint source for repair
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml
+          mkdir -p "$RUNNER_TEMP/aerb-checkpoint-format"
+          cp research/mobility-rrvr-aerb-v0.1/evaluator/src/probe_checkpoint_v0_1.rs "$RUNNER_TEMP/aerb-checkpoint-format/probe_checkpoint_v0_1.rs"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aerb-checkpoint-rustfmt-source
+          path: ${{ runner.temp }}/aerb-checkpoint-format/probe_checkpoint_v0_1.rs
+          if-no-files-found: error
 
       - name: Check formatting
         run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml -- --check

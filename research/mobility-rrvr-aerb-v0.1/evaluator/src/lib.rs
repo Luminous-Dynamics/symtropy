@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 #![forbid(unsafe_code)]
 
+pub mod probe_checkpoint_v0_1;
+
 pub mod blind_assignment_v0_1;
 pub mod v0_2;
 
