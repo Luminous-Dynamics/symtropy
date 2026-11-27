@@ -622,6 +622,33 @@ mod tests {
     }
 
     #[test]
+    fn inspection_cannot_accept_more_than_the_expected_service_quantity() {
+        let changed = FIXTURE.replace(
+            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
+            "INSPECTION\\tLOCAL-C\\tPASS\\t11\\tREV-001",
+        );
+        assert!(
+            parse_instance(&changed)
+                .unwrap_err()
+                .contains("accepted units exceed expected")
+        );
+    }
+
+    #[test]
+    fn receiver_day_overflow_is_reported_instead_of_wrapping() {
+        let changed = FIXTURE.replace(
+            "OPTION\\tEXISTING\\tEXISTING\\t90\\t20",
+            "OPTION\\tEXISTING\\tEXISTING\\t90\\t18446744073709551615",
+        );
+        let instance = parse_instance(&changed).unwrap();
+        assert!(
+            evaluate(&instance)
+                .unwrap_err()
+                .contains("receiver-day overflow")
+        );
+    }
+
+    #[test]
     fn nonzero_start_shock_is_not_approximated() {
         let changed = FIXTURE.replace("SHOCK\tGRID-A\t0\t6", "SHOCK\tGRID-A\t2\t6");
         assert!(
