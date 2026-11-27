@@ -485,8 +485,8 @@ mod tests {
         EvidenceAdmissionState, RequiredEvidenceAdmission, compute_component_report_sha256,
         evaluate_claim_gate,
     };
-    use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::decision_context_v0_1::DecisionContextV0_1;
+    use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::vector_watermark_v0_1::{CutAssessment, CutStatus};
