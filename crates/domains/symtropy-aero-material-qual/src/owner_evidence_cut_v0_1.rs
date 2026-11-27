@@ -382,11 +382,11 @@ mod tests {
         OwnerEvidenceLifecycle, OwnerEvidenceRecordV0_1, OwnerObserverCoverageStatus,
     };
 
-    fn record(evidence_ref: &str) -> OwnerEvidenceRecordV0_1 {
+    fn record(evidence_ref: &str, subject_ref: &str) -> OwnerEvidenceRecordV0_1 {
         OwnerEvidenceRecordV0_1 {
             evidence_ref: evidence_ref.to_owned(),
             record_sha256: "1".repeat(64),
-            subject_ref: "part:wing-panel-001".to_owned(),
+            subject_ref: subject_ref.to_owned(),
             configuration_ref: "configuration:wing-r17".to_owned(),
             lifecycle: OwnerEvidenceLifecycle::Active,
             predecessor_ref: None,
@@ -409,8 +409,8 @@ mod tests {
             component_packet_byte_length: 4096,
             artifact_payloads_verified: true,
             evidence_records: vec![
-                record("receipt:inspection-01"),
-                record("receipt:calibration-02"),
+                record("receipt:inspection-01", "part:wing-panel-001"),
+                record("receipt:calibration-02", "instrument:caliper-01"),
             ],
             basalt_run_id: "basalt:run-001".to_owned(),
             basalt_report_version: 1,
@@ -426,6 +426,14 @@ mod tests {
             observer_coverage_status: OwnerObserverCoverageStatus::QualifiedCompleteForScope,
             observer_coverage_watermark_unix_ms: 1_795_516_600_000,
         }
+    }
+
+    #[test]
+    fn owner_cut_matches_the_frozen_cross_language_digest_vector() {
+        assert_eq!(
+            fixture().compute_sha256().expect("owner cut is valid"),
+            "da95f7ba160dc5883cea7ab6828cbf3abd84246a0aaf596121a846377e735ec8"
+        );
     }
 
     #[test]
@@ -480,7 +488,9 @@ mod tests {
         assert!(malformed.compute_sha256().is_err());
 
         let mut duplicate = fixture();
-        duplicate.evidence_records.push(record("receipt:inspection-01"));
+        duplicate
+            .evidence_records
+            .push(record("receipt:inspection-01", "part:wing-panel-001"));
         assert!(duplicate.compute_sha256().is_err());
     }
 }
