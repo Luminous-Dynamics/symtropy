@@ -256,10 +256,7 @@ fn parse_manifest(contents: &str) -> Result<Vec<FrameAnnotations>, Box<dyn Error
 
         match fields[25] {
             "LANDMARK" => {
-                if fields[35] != "NONE"
-                    || fields[36] != "NONE"
-                    || fields[37] != "NONE"
-                {
+                if fields[35] != "NONE" || fields[36] != "NONE" || fields[37] != "NONE" {
                     return Err(
                         format!("line {}: LANDMARK row carries mask fields", index + 2).into(),
                     );
