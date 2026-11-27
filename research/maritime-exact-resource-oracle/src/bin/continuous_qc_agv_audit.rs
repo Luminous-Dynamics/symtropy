@@ -83,10 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 route_steps
                     .entry((fields[1].to_owned(), fields[2].to_owned()))
                     .or_default()
-                    .push((
-                        fields[3].to_owned(),
-                        parse_f64(fields[4], "travel_before")?,
-                    ));
+                    .push((fields[3].to_owned(), parse_f64(fields[4], "travel_before")?));
             }
             Some(record_type) => {
                 return Err(format!(
@@ -187,9 +184,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         );
         println!(
             "PLAN_ENUMERATION\t{}\t{}\t{}",
-            plan.plan_id,
-            plan.active_set_combinations_examined,
-            plan.feasible_active_set_bases
+            plan.plan_id, plan.active_set_combinations_examined, plan.feasible_active_set_bases
         );
         for event in &plan.worst_case_events {
             println!(
@@ -208,9 +203,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     println!(
         "WINNERS\t{}\t{}",
-        result.nominal_best_plan,
-        result.robust_best_plan
+        result.nominal_best_plan, result.robust_best_plan
     );
-    println!("SUMMARY\tPASS\t{}/{}", result.plans.len(), result.plans.len());
+    println!(
+        "SUMMARY\tPASS\t{}/{}",
+        result.plans.len(),
+        result.plans.len()
+    );
     Ok(())
 }
