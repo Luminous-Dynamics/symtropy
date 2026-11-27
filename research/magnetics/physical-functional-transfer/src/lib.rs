@@ -378,7 +378,7 @@ fn validate_inputs(
             });
         }
     }
-    for component in 0..3 {
+    for (component, centre_residual) in physical.centre_residual_t.iter().enumerate() {
         let measured_minus_model =
             physical.measured_field_at_centre_t[component]
                 - physical.model_field_at_centre_t[component];
@@ -388,14 +388,12 @@ fn validate_inputs(
                 field: "physical_residual_radius",
             }
         })?;
-        let expected_residual_over_cell =
-            physical.centre_residual_t[component] + radius_interval;
-        let expected_physical_field =
-            physical.model_field_over_cell_t[component]
-                + physical.residual_field_over_cell_t[component];
+        let expected_residual_over_cell = *centre_residual + radius_interval;
+        let expected_physical_field = physical.model_field_over_cell_t[component]
+            + physical.residual_field_over_cell_t[component];
         let model_centre = physical.model_field_at_centre_t[component];
         let model_cell = physical.model_field_over_cell_t[component];
-        if measured_minus_model != physical.centre_residual_t[component]
+        if measured_minus_model != *centre_residual
             || expected_residual_over_cell != physical.residual_field_over_cell_t[component]
             || expected_physical_field != physical.physical_field_over_cell_t[component]
             || model_centre.lower() < model_cell.lower()
