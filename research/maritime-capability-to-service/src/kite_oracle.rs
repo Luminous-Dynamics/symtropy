@@ -752,10 +752,7 @@ mod tests {
             .values()
             .map(String::as_str)
             .collect();
-        assert_eq!(
-            chosen,
-            BTreeSet::from(["LOCAL", "IMPORT"])
-        );
+        assert_eq!(chosen, BTreeSet::from(["LOCAL", "IMPORT"]));
     }
 
     #[test]
