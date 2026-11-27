@@ -3,9 +3,9 @@
 //!
 //! The suite is intentionally narrower than the engine's public API:
 //! - uniform-gravity semi-implicit Euler convergence against a closed form;
-//! - transformed 2D OBB overlap against an independent SAT implementation.
+//! - transformed 2D/3D OBB overlap against independent SAT implementations.
 //!
-//! This does not qualify 3D/4D collisions, general CCD, full rigid-body
+//! This does not qualify 4D collisions, general CCD, full rigid-body
 //! validation, experimental physics fidelity, or cross-platform determinism.
 
 use std::f64::consts::PI;
@@ -487,6 +487,130 @@ fn transformed_obb_3d_classification_is_invariant_under_common_rigid_motion() {
     }
 
     println!("3D OBB metamorphic seed: common rigid-motion cases={CASES}, mismatches=0");
+}
+
+#[test]
+fn transformed_obb_2d_boundary_envelope_matches_sat_and_is_symmetric() {
+    const ANGLES: [f64; 8] = [
+        0.0,
+        PI / 8.0,
+        -PI / 6.0,
+        PI / 4.0,
+        -PI / 2.0,
+        3.0 * PI / 4.0,
+        PI,
+        -0.91,
+    ];
+    const MARGINS: [f64; 3] = [-1.0e-6, 0.0, 1.0e-6];
+
+    let half_a = [1.0, 0.5];
+    let half_b = [0.75, 0.35];
+    let shape_a = HyperBox::<2>::new(half_a);
+    let shape_b = HyperBox::<2>::new(half_b);
+    let mut cases = 0usize;
+
+    for angle in ANGLES {
+        let rotation = rotor_2d(angle);
+        let (sin, cos) = angle.sin_cos();
+        for margin in MARGINS {
+            let separation = half_a[0] + half_b[0] + margin;
+            let center_a = [0.0, 0.0];
+            let center_b = [separation * cos, separation * sin];
+            let transform_a = Transform {
+                translation: Point::new(center_a),
+                rotation: rotation.clone(),
+            };
+            let transform_b = Transform {
+                translation: Point::new(center_b),
+                rotation: rotation.clone(),
+            };
+
+            let expected = obb_sat_reference(center_a, half_a, angle, center_b, half_b, angle);
+            let observed_ab =
+                gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
+                    .intersecting;
+            let observed_ba =
+                gjk::intersects_transformed(&shape_b, &transform_b, &shape_a, &transform_a)
+                    .intersecting;
+
+            assert_eq!(expected, margin <= 0.0, "SAT boundary convention changed");
+            assert_eq!(
+                observed_ab, expected,
+                "2D transformed GJK disagreed at angle={angle}, margin={margin}"
+            );
+            assert_eq!(
+                observed_ba, expected,
+                "2D GJK argument order changed at angle={angle}, margin={margin}"
+            );
+            cases += 1;
+        }
+    }
+
+    println!("2D OBB boundary envelope: cases={cases}, mismatches=0");
+}
+
+#[test]
+fn transformed_obb_3d_boundary_envelope_matches_fifteen_axis_sat_and_is_symmetric() {
+    const ROTATIONS: [[f64; 3]; 6] = [
+        [0.0, 0.0, 0.0],
+        [PI / 8.0, 0.0, 0.0],
+        [0.0, -PI / 6.0, 0.0],
+        [0.0, 0.0, PI / 4.0],
+        [PI / 5.0, -PI / 7.0, PI / 9.0],
+        [-PI / 3.0, PI / 8.0, -PI / 5.0],
+    ];
+    const MARGINS: [f64; 3] = [-1.0e-6, 0.0, 1.0e-6];
+
+    let half_a = [1.0, 0.55, 0.3];
+    let half_b = [0.8, 0.45, 0.25];
+    let shape_a = HyperBox::<3>::new(half_a);
+    let shape_b = HyperBox::<3>::new(half_b);
+    let mut cases = 0usize;
+
+    for [xy, yz, xz] in ROTATIONS {
+        let rotation = rotor_3d(xy, yz, xz);
+        for margin in MARGINS {
+            let separation = half_a[0] + half_b[0] + margin;
+            let local_offset = SVector::from([separation, 0.0, 0.0]);
+            let world_offset = rotation.rotate_vector(&local_offset);
+            let center_a = [0.0, 0.0, 0.0];
+            let center_b = [world_offset[0], world_offset[1], world_offset[2]];
+            let transform_a = Transform {
+                translation: Point::new(center_a),
+                rotation: rotation.clone(),
+            };
+            let transform_b = Transform {
+                translation: Point::new(center_b),
+                rotation: rotation.clone(),
+            };
+
+            let expected =
+                obb_sat_3d_reference(center_a, half_a, &rotation, center_b, half_b, &rotation);
+            let observed_ab =
+                gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
+                    .intersecting;
+            let observed_ba =
+                gjk::intersects_transformed(&shape_b, &transform_b, &shape_a, &transform_a)
+                    .intersecting;
+
+            assert_eq!(
+                expected,
+                margin <= 0.0,
+                "3D SAT boundary convention changed"
+            );
+            assert_eq!(
+                observed_ab, expected,
+                "3D transformed GJK disagreed at rotation=({xy},{yz},{xz}), margin={margin}"
+            );
+            assert_eq!(
+                observed_ba, expected,
+                "3D GJK argument order changed at rotation=({xy},{yz},{xz}), margin={margin}"
+            );
+            cases += 1;
+        }
+    }
+
+    println!("3D OBB boundary envelope: cases={cases}, mismatches=0");
 }
 
 fn rotate_point(point: [f64; 2], angle: f64) -> [f64; 2] {

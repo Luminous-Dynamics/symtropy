@@ -21,6 +21,13 @@ use crate::support_map::{TransformedShape, WorldSupportMap};
 /// Maximum GJK iterations before giving up.
 const MAX_ITERATIONS: usize = 64;
 
+/// Absolute spatial tolerance for GJK origin/direction classification.
+///
+/// Support projections have units of length squared because the search
+/// direction is not normalized. The separation test therefore multiplies
+/// this spatial tolerance by the direction norm before comparing projections.
+const GJK_DISTANCE_TOLERANCE: f64 = 1.0e-10;
+
 /// Maximum simplex size: D+1 vertices. Cap at 5 (D=4).
 const MAX_SIMPLEX: usize = 5;
 
@@ -72,7 +79,7 @@ pub fn intersects_support_maps<const D: usize>(
 ) -> GjkResult<D> {
     // Initial direction: from A to B.
     let mut direction = shape_b.center_world() - shape_a.center_world();
-    if direction.norm_squared() < 1e-20 {
+    if direction.norm_squared() < GJK_DISTANCE_TOLERANCE * GJK_DISTANCE_TOLERANCE {
         direction = SVector::zeros();
         direction[0] = 1.0;
     }
@@ -83,7 +90,7 @@ pub fn intersects_support_maps<const D: usize>(
     direction = -first;
 
     for iteration in 0..MAX_ITERATIONS {
-        if direction.norm_squared() < 1e-20 {
+        if direction.norm_squared() < GJK_DISTANCE_TOLERANCE * GJK_DISTANCE_TOLERANCE {
             return GjkResult {
                 intersecting: true,
                 simplex,
@@ -92,7 +99,9 @@ pub fn intersects_support_maps<const D: usize>(
         }
 
         let new_point = minkowski_support(shape_a, shape_b, &direction);
-        if new_point.dot(&direction) < -1e-10 {
+        let support_projection = new_point.dot(&direction);
+        let separation_threshold = -GJK_DISTANCE_TOLERANCE * direction.norm();
+        if support_projection < separation_threshold {
             return GjkResult {
                 intersecting: false,
                 simplex,
@@ -164,7 +173,7 @@ fn do_simplex_line<const D: usize>(
         // Origin is between A and B (in the Voronoi region of edge AB)
         // Direction perpendicular to AB toward origin
         *direction = triple_cross_product(&ab, &ao, &ab);
-        if direction.norm_squared() < 1e-20 {
+        if direction.norm_squared() < GJK_DISTANCE_TOLERANCE * GJK_DISTANCE_TOLERANCE {
             // Origin is on the line segment
             return true;
         }
