@@ -25,7 +25,7 @@ The most important hypothesis is that a **wake-only event must not automatically
 The first Rust slice is exported from `src/contact_freshness.rs`:
 
 - `EndpointRevisions`: proxy ID and generation; transform, shape, eligibility, motion-class, material and wake-epoch revisions.
-- `GlobalContactRevisions`: world and collision-policy revisions; SHA-256 digests for narrowphase and solver configuration.
+- `GlobalContactRevisions`: world and collision-policy revisions; SHA-256 digests for narrowphase, solver, and contact-response/callback policy.
 - `ContactFreshnessStamp`: canonical pair plus the exact endpoint/global tuple under which a manifold was last produced.
 - `ContactReuseDecision`: independent `geometry`, `warm_start`, `pair_eligibility_recheck_required` and `solver_activation_required` outputs.
 - `plan_contact_lifecycle`: translates canonical, disjoint pair-event streams into deterministic `Added`, `Removed` and `Revalidated` contact actions. New and revalidated pairs require current endpoint revision records; a revalidated pair without a stamp requires a full contact build; an added pair with an orphaned prior stamp is rejected; a stamped revalidation with no typed revision reason is rejected as unexplained. New pairs also request a collision-eligibility recheck because this AABB-only layer does not prove the engine's filter policy.
@@ -229,6 +229,15 @@ The verifier includes tests for:
 - rejecting material refresh without warm-start revision advancement.
 
 The benchmark follow-on should measure receipt construction, independent replay CPU, serialization size, verifier memory and the ratio of safe-fallback transitions. These costs must be included in the end-to-end tick and in any speed claims.
+
+### Contact-response and callback semantics are not geometry
+
+`GlobalContactRevisions` now has `contact_response_policy_sha256`, a separate revision for material/contact-response and callback policy. A change to this digest keeps manifold geometry reusable but invalidates warm-start state, with a typed `ContactResponsePolicyChanged` reason. The independent action/receipt verifier reconstructs the same result; receipt tests cover both accepted warm-start reset and omitted revalidation.
+
+This revision is a version/digest of the response policy, not a license to skip current-step callback semantics. Geometry reuse must not suppress any per-step contact-response work required by the engine, including current material/friction modulation, impulse modulation, collision notifications, trauma/application hooks, or work recording. Event callbacks need their own event identity and delivery/commit receipts where exactly-once or replay semantics matter; a geometry lease is not a callback lease.
+
+The contact-response digest is currently caller-supplied metadata just like the other config digests. Production must bind it to an authoritative response-policy snapshot or configuration, and the #7699 observer must independently qualify the resulting contact payload bytes.
+
 ### 8.2 Candidate topology is not exact contact topology
 
 The present AABB receipt prototype uses the broadphase candidate relation as its pair relation. That is suitable for candidate-to-contact work obligations, but it does not distinguish an exact narrowphase contact from a conservative false-positive candidate. Therefore the absence of a post-contact stamp after a geometry refresh is not by itself proof that narrowphase ran and found no contact.
