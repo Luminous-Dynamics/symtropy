@@ -717,14 +717,13 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
             let selected: Vec<&PoseResult> = valid
                 .iter()
                 .copied()
-                .filter(|result| result.confidence_score_ppm >= *threshold)
+                .filter(|result| {
+                    result.accepted_by_model && result.confidence_score_ppm >= *threshold
+                })
                 .collect();
             let false_confident = selected
                 .iter()
-                .filter(|result| {
-                    result.mahalanobis_squared.is_some()
-                        && (result.coverage_95 != Some(true) || result.observability_policy_violation)
-                })
+                .filter(|result| result.false_confident_95)
                 .count();
             RiskCoveragePoint {
                 confidence_threshold_ppm: *threshold,
@@ -919,6 +918,30 @@ mod tests {
     }
 
     #[test]
+    fn risk_coverage_does_not_penalize_explicit_abstentions_as_accepts() {
+        let mut accepted = input();
+        let mut abstained = input();
+        accepted.target_id = "target-accepted".to_owned();
+        accepted.confidence_score_ppm = 900_000;
+        abstained.case_id = "POSE-ABSTAIN".to_owned();
+        abstained.sample_id = "sample-abstain".to_owned();
+        abstained.target_id = "target-abstain".to_owned();
+        abstained.decision = PoseDecision::Abstain;
+        abstained.abstain_reason = "LOW_VISIBLE_SUPPORT".to_owned();
+        abstained.visible_fraction = 0.01;
+        abstained.confidence_score_ppm = 1_000_000;
+
+        let results = vec![evaluate(&accepted), evaluate(&abstained)];
+        let summary = summarize(&results);
+        assert_eq!(summary.valid_count, 2);
+        assert_eq!(summary.accepted_count, 1);
+        assert_eq!(summary.abstained_count, 1);
+        assert_eq!(summary.risk_coverage[0].selected_count, 1);
+        assert_eq!(summary.risk_coverage[0].false_confident_count, 0);
+    }
+
+    #[test]
+    fn summary_reports_selective_risk_and_coverage() {    #[test]
     fn summary_reports_selective_risk_and_coverage() {
         let first = input();
         let mut second = input();
