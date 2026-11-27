@@ -519,6 +519,115 @@ mod tests {
             .flow
     }
 
+    fn next_small(state: &mut u64, bound: u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (*state >> 32) % bound
+    }
+
+    fn exhaustive_parallel_service_max(limits: &[u64], shared_ceiling: u64) -> u64 {
+        fn enumerate(
+            limits: &[u64],
+            index: usize,
+            total: u64,
+            shared_ceiling: u64,
+            best: &mut u64,
+        ) {
+            if index == limits.len() {
+                if total <= shared_ceiling {
+                    *best = (*best).max(total);
+                }
+                return;
+            }
+            for amount in 0..=limits[index] {
+                let Some(next_total) = total.checked_add(amount) else {
+                    continue;
+                };
+                if next_total <= shared_ceiling {
+                    enumerate(
+                        limits,
+                        index + 1,
+                        next_total,
+                        shared_ceiling,
+                        best,
+                    );
+                }
+            }
+        }
+
+        let mut best = 0;
+        enumerate(limits, 0, 0, shared_ceiling, &mut best);
+        best
+    }
+
+    #[test]
+    fn seeded_temporal_profiles_match_exhaustive_physical_service_oracle() {
+        // This oracle is expressed in physical quantities rather than by
+        // rebuilding or calling the temporal graph compiler. Every transfer
+        // has a distinct destination, so the exhaustive variables are each
+        // beneficiary's delivered quantity. Their sum is constrained by the
+        // source stock and one shared origin handling limit.
+        for seed in 0..250_u64 {
+            let mut state = 0x5AFB_2026_D15C_A11_u64 ^ seed;
+            let beneficiary_count = 2 + next_small(&mut state, 3) as usize;
+            let supply = next_small(&mut state, 7);
+            let handling = next_small(&mut state, 7);
+            let shared_ceiling = supply.min(handling);
+
+            let mut nodes = vec![node("origin-yard", 0, handling, 0)];
+            let mut receipts = vec![TemporalReceipt {
+                receipt_id: format!("receipt-{seed}"),
+                node_id: "origin-yard".to_string(),
+                available_period: 0,
+                quantity: supply,
+            }];
+            let mut transfers = Vec::new();
+            let mut services = Vec::new();
+            let mut exhaustive_limits = Vec::new();
+
+            for index in 0..beneficiary_count {
+                let destination_id = format!("beneficiary-{index}");
+                let route_capacity = next_small(&mut state, 4);
+                let issue_capacity = next_small(&mut state, 4);
+                let requested_quantity = next_small(&mut state, 4);
+                nodes.push(node(&destination_id, 0, 0, issue_capacity));
+                transfers.push(TemporalTransfer {
+                    transfer_id: format!("route-{seed}-{index}"),
+                    from_node_id: "origin-yard".to_string(),
+                    to_node_id: destination_id.clone(),
+                    departure_period: 0,
+                    transit_periods: 1,
+                    route_capacity,
+                });
+                services.push(TemporalService {
+                    service_id: format!("service-{seed}-{index}"),
+                    node_id: destination_id,
+                    period: 1,
+                    requested_quantity,
+                });
+                exhaustive_limits.push(
+                    route_capacity.min(issue_capacity).min(requested_quantity),
+                );
+            }
+
+            let mut model = profile(1, nodes, receipts, transfers, services);
+            model.case_id = format!("seeded-temporal-physical-oracle-{seed}");
+
+            let expected = exhaustive_parallel_service_max(
+                &exhaustive_limits,
+                shared_ceiling,
+            );
+            let bundle = verified_bundle(&model);
+            assert_eq!(
+                bundle.result.max_flow,
+                expected,
+                "seed {seed}: expected physical-oracle delivery {expected}, got {}",
+                bundle.result.max_flow
+            );
+        }
+    }
+
     #[test]
     fn cross_dock_can_exceed_end_of_period_storage_without_exceeding_handling() {
         let mut cross_dock = node("cross-dock", 500, 1_000, 0);
