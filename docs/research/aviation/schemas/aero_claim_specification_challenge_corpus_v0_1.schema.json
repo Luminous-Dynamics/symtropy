@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-claim-specification-challenge-corpus-v0.1.schema.json",
+  "title": "AERO Claim Specification Challenge Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "corpus_id",
+    "oracle_status",
+    "execution_status",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroClaimSpecificationChallengeCorpusV0_1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oracle_status": {
+      "const": "NOT_INDEPENDENTLY_REVIEWED"
+    },
+    "execution_status": {
+      "const": "NOT_EXECUTED"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "mutation",
+          "expected_disposition",
+          "expected_reason_codes",
+          "case_class"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_-]+$"
+          },
+          "mutation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_disposition": {
+            "type": "string",
+            "enum": [
+              "FORMALLY_WELL_SPECIFIED",
+              "INCOMPLETE",
+              "REJECTED",
+              "UNSUPPORTED_PROFILE"
+            ]
+          },
+          "expected_reason_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "case_class": {
+            "type": "string",
+            "enum": [
+              "positive_control",
+              "single_fault",
+              "metamorphic"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
