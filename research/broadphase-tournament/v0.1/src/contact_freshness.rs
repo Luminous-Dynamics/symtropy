@@ -549,7 +549,10 @@ mod tests {
             .expect("material advances monotonically");
         assert_eq!(decision.geometry, ReuseDisposition::Reusable);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
-        assert_eq!(decision.reasons, vec![FreshnessReason::ContactMaterialChanged]);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::ContactMaterialChanged]
+        );
     }
 
     #[test]
@@ -663,10 +666,7 @@ mod tests {
             .assess(next_global(), changed_endpoint, endpoint(2))
             .expect("motion class advances");
         assert!(decision.pair_eligibility_recheck_required);
-        assert_eq!(
-            decision.reasons,
-            vec![FreshnessReason::MotionClassChanged]
-        );
+        assert_eq!(decision.reasons, vec![FreshnessReason::MotionClassChanged]);
 
         let mut changed_global = global();
         changed_global.world += 1;
@@ -716,7 +716,10 @@ mod tests {
         let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
         let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints)
             .expect("new pair has current endpoint revisions");
-        let decision = plan.actions[0].decision.as_ref().expect("new pair decision");
+        let decision = plan.actions[0]
+            .decision
+            .as_ref()
+            .expect("new pair decision");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
         assert!(decision.solver_activation_required);
@@ -748,7 +751,10 @@ mod tests {
         let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
         let plan = plan_contact_lifecycle(&delta, &BTreeMap::new(), global(), &endpoints)
             .expect("endpoint revisions are complete");
-        let decision = plan.actions[0].decision.as_ref().expect("missing stamp decision");
+        let decision = plan.actions[0]
+            .decision
+            .as_ref()
+            .expect("missing stamp decision");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.reasons, vec![FreshnessReason::MissingContactStamp]);
@@ -801,8 +807,6 @@ mod tests {
         );
     }
 
-
-
     #[test]
     fn endpoint_mutation_without_world_revision_advance_fails_closed() {
         let stamp = stamp();
@@ -813,8 +817,6 @@ mod tests {
             Err(ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation)
         );
     }
-
-
 
     #[test]
     fn added_pair_requires_current_endpoint_revision_records() {
@@ -827,8 +829,6 @@ mod tests {
             Err(ContactLifecycleError::MissingEndpointRevision(ProxyId(2)))
         );
     }
-
-
 
     #[test]
     fn revalidation_without_revision_reason_fails_closed() {
@@ -843,6 +843,5 @@ mod tests {
             Err(ContactLifecycleError::UnexplainedRevalidation(pair))
         );
     }
-
 
 }
