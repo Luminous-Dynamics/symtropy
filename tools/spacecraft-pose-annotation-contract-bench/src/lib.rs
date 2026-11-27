@@ -365,15 +365,12 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
 pub fn evaluate_manifest(inputs: &[PoseInput]) -> Vec<PoseResult> {
     let mut sample_splits: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     let mut sample_keypoints: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
-    let mut duplicate_samples = BTreeSet::new();
     let mut duplicate_splits = BTreeSet::new();
     let mut duplicate_keypoints = BTreeSet::new();
 
     for input in inputs {
         let splits = sample_splits.entry(&input.sample_id).or_default();
-        if !splits.insert(&input.split) {
-            duplicate_samples.insert(input.sample_id.as_str());
-        }
+        splits.insert(&input.split);
         let keypoints = sample_keypoints.entry(&input.sample_id).or_default();
         if !keypoints.insert(&input.keypoint_id) {
             duplicate_keypoints.insert(input.sample_id.as_str());
@@ -394,15 +391,6 @@ pub fn evaluate_manifest(inputs: &[PoseInput]) -> Vec<PoseResult> {
                     input,
                     AnnotationDisposition::DuplicateSplitSample,
                     "SAMPLE_ID_PRESENT_IN_MULTIPLE_SPLITS",
-                    None,
-                    None,
-                    None,
-                )
-            } else if duplicate_samples.contains(input.sample_id.as_str()) {
-                result(
-                    input,
-                    AnnotationDisposition::DuplicateSample,
-                    "SAMPLE_ID_DUPLICATED_WITHIN_SPLIT",
                     None,
                     None,
                     None,
