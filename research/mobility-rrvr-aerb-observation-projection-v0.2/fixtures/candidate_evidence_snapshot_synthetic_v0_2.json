@@ -1,0 +1,166 @@
+{
+  "schema_version": "0.2",
+  "benchmark": "AERB",
+  "episode_id": "aerb-synthetic-0001",
+  "attempt_id": "attempt-0001",
+  "command_id": "command-0001",
+  "execution_scope_id": "robot-cell-01",
+  "decision_cut_sequence": 9,
+  "ledger_frontier_sequence": 9,
+  "evidence_profile_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "adapter_revision_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "observations": [
+    {
+      "evidence_id": "ev-001",
+      "attempt_id": "attempt-0001",
+      "command_id": "command-0001",
+      "execution_scope_id": "robot-cell-01",
+      "source": {
+        "source_id": "coord-0",
+        "principal_id": "coordinator",
+        "source_role": "model_oracle",
+        "independence_group": "sim-coordinator",
+        "profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "parent_evidence_ids": [],
+      "evidence_domain": "process_model",
+      "event_time": {
+        "clock_domain_id": "sim-clock",
+        "earliest_ticks_ns": 100000,
+        "latest_ticks_ns": 100000,
+        "uncertainty_ns": 0
+      },
+      "observation_time": {
+        "clock_domain_id": "sim-clock",
+        "earliest_ticks_ns": 100100,
+        "latest_ticks_ns": 100100,
+        "uncertainty_ns": 0
+      },
+      "ingest_sequence": 7,
+      "quality": "admitted",
+      "reason_codes": [
+        "SYNTHETIC_PROCESS_MODEL_RECORD"
+      ],
+      "payload": {
+        "kind": "command_acknowledgement",
+        "acknowledgement_state": "lost",
+        "command_id": "command-0001",
+        "endpoint_id": "endpoint-01"
+      },
+      "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "raw_artifact_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "evidence_id": "ev-002",
+      "attempt_id": "attempt-0001",
+      "command_id": "command-0001",
+      "execution_scope_id": "robot-cell-01",
+      "source": {
+        "source_id": "pose-sim-0",
+        "principal_id": "sim-sensor",
+        "source_role": "model_oracle",
+        "independence_group": "sim-pose-model",
+        "profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+      },
+      "parent_evidence_ids": [
+        "ev-001"
+      ],
+      "evidence_domain": "process_model",
+      "event_time": {
+        "clock_domain_id": "sim-clock",
+        "earliest_ticks_ns": 102000,
+        "latest_ticks_ns": 102000,
+        "uncertainty_ns": 0
+      },
+      "observation_time": {
+        "clock_domain_id": "sim-clock",
+        "earliest_ticks_ns": 102100,
+        "latest_ticks_ns": 102100,
+        "uncertainty_ns": 0
+      },
+      "ingest_sequence": 8,
+      "quality": "admitted",
+      "reason_codes": [
+        "SYNTHETIC_PROCESS_MODEL_MEASUREMENT"
+      ],
+      "payload": {
+        "kind": "physical_measurement",
+        "measurement_id": "measurement-001",
+        "modality": "pose",
+        "values": [
+          0.38,
+          0.14,
+          0.22
+        ],
+        "unit": "m",
+        "frame_id": "robot-base",
+        "uncertainty_model": "standard_deviation",
+        "uncertainty_values": [
+          0.005,
+          0.005,
+          0.01
+        ],
+        "calibration_sha256": null,
+        "raw_data_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      "content_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "raw_artifact_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "artifact_ref": {
+        "artifact_id": "artifact-ev-002",
+        "media_type": "application/octet-stream",
+        "byte_length": 256,
+        "access_mode": "host_mediated_read_only"
+      }
+    },
+    {
+      "evidence_id": "ev-003",
+      "attempt_id": "attempt-0001",
+      "command_id": "command-0001",
+      "execution_scope_id": "robot-cell-01",
+      "source": {
+        "source_id": "closure-oracle-0",
+        "principal_id": "model-adjudicator",
+        "source_role": "model_oracle",
+        "independence_group": "sim-closure-model",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "parent_evidence_ids": [
+        "ev-001"
+      ],
+      "evidence_domain": "process_model",
+      "event_time": {
+        "clock_domain_id": "sim-clock",
+        "earliest_ticks_ns": 103000,
+        "latest_ticks_ns": 103000,
+        "uncertainty_ns": 0
+      },
+      "observation_time": {
+        "clock_domain_id": "sim-clock",
+        "earliest_ticks_ns": 103100,
+        "latest_ticks_ns": 103100,
+        "uncertainty_ns": 0
+      },
+      "ingest_sequence": 9,
+      "quality": "unknown",
+      "reason_codes": [
+        "INCOMPLETE_COMMAND_HOLDER_INVENTORY"
+      ],
+      "payload": {
+        "kind": "temporal_closure_receipt",
+        "closure_disposition": "hold",
+        "proof_path": "none",
+        "system_boundary_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "graph_revision_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "authority_epoch": 7,
+        "queue_generation": 2,
+        "qualified_node_n": 2,
+        "qualified_edge_n": 1,
+        "horizon_ms": null,
+        "hold_reason": "IncompleteInventory"
+      },
+      "content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "raw_artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "claim_ceiling": "Synthetic process-model candidate-visible evidence only. These records do not establish sensor calibration, independent source truth, physical effect outcome, end-to-end command-path closure, simulator/HIL/physical qualification or robot safety."
+}
