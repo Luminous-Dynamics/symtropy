@@ -1,0 +1,155 @@
+name: AV spatial scenario matrix integrity
+
+on:
+  push:
+    branches:
+      - research/av-observation-001-fixtures-v0
+    paths:
+      - "fixtures/av-observation-001/scenario-matrix-*.tsv"
+      - ".github/workflows/av-spatial-matrix-integrity.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "fixtures/av-observation-001/scenario-matrix-*.tsv"
+      - ".github/workflows/av-spatial-matrix-integrity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-spatial-matrix-integrity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  exact-head-matrix-audit:
+    name: Exact-head scenario counts, uniqueness and paired controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Audit all spatial and AV scenario matrices
+        run: |
+          python - <<'PY'
+          from collections import defaultdict
+          from pathlib import Path
+          import re
+
+          root = Path("fixtures/av-observation-001")
+          expected = {
+              "scenario-matrix-v0.tsv": (40, 20),
+              "scenario-matrix-spatial-decision-v0.tsv": (22, 11),
+              "scenario-matrix-geometric-validation-v0.tsv": (20, 10),
+              "scenario-matrix-identifiability-v0.tsv": (18, 9),
+              "scenario-matrix-active-exploration-v0.tsv": (8, 4),
+          }
+
+          global_case_ids = set()
+          global_pair_ids = set()
+          total_rows = 0
+          total_pairs = 0
+
+          for filename, (expected_rows, expected_pairs) in expected.items():
+              path = root / filename
+              if not path.is_file():
+                  raise SystemExit(f"missing required matrix: {path}")
+
+              rows = [
+                  line.split("|")
+                  for line in path.read_text(encoding="utf-8").splitlines()
+                  if line.strip() and not line.startswith("#")
+              ]
+              if len(rows) != expected_rows:
+                  raise SystemExit(
+                      f"{filename}: expected {expected_rows} cases, found {len(rows)}"
+                  )
+
+              by_pair = defaultdict(list)
+              local_case_ids = set()
+              local_pair_ids = set()
+
+              for line_number, columns in enumerate(rows, start=1):
+                  if len(columns) != 10:
+                      raise SystemExit(
+                          f"{filename}:{line_number}: expected 10 fields, found {len(columns)}"
+                      )
+
+                  case_id, family, pair_id, variant = columns[:4]
+                  if not case_id or not re.fullmatch(r"[a-z0-9-]+", case_id):
+                      raise SystemExit(f"{filename}:{line_number}: invalid case ID")
+                  if not family or not pair_id:
+                      raise SystemExit(f"{filename}:{line_number}: missing family or pair ID")
+                  if variant not in ("control", "mutated"):
+                      raise SystemExit(
+                          f"{filename}:{line_number}: variant must be control or mutated"
+                      )
+                  if case_id in local_case_ids or case_id in global_case_ids:
+                      raise SystemExit(f"duplicate case ID across matrices: {case_id}")
+
+                  local_case_ids.add(case_id)
+                  local_pair_ids.add(pair_id)
+                  by_pair[pair_id].append((family, variant, case_id))
+
+              if len(by_pair) != expected_pairs:
+                  raise SystemExit(
+                      f"{filename}: expected {expected_pairs} pairs, found {len(by_pair)}"
+                  )
+
+              for pair_id, members in by_pair.items():
+                  variants = [variant for _, variant, _ in members]
+                  families = {family for family, _, _ in members}
+                  if len(members) != 2:
+                      raise SystemExit(
+                          f"{filename}: {pair_id} must contain exactly two cases"
+                      )
+                  if variants.count("control") != 1 or variants.count("mutated") != 1:
+                      raise SystemExit(
+                          f"{filename}: {pair_id} must contain one control and one mutation"
+                      )
+                  if len(families) != 1:
+                      raise SystemExit(
+                          f"{filename}: {pair_id} mixes scenario families"
+                      )
+
+              overlap = global_pair_ids.intersection(local_pair_ids)
+              if overlap:
+                  raise SystemExit(
+                      f"pair IDs reused across matrices: {', '.join(sorted(overlap))}"
+                  )
+
+              global_case_ids.update(local_case_ids)
+              global_pair_ids.update(local_pair_ids)
+              total_rows += len(rows)
+              total_pairs += len(by_pair)
+
+              print(
+                  f"PASS {filename}: {len(rows)} unique cases, "
+                  f"{len(by_pair)} complete control/mutation pairs"
+              )
+
+          if total_rows != 108 or len(global_case_ids) != 108:
+              raise SystemExit(f"expected 108 unique cases, got {total_rows}")
+          if total_pairs != 54 or len(global_pair_ids) != 54:
+              raise SystemExit(f"expected 54 unique pairs, got {total_pairs}")
+
+          print("PASS all five matrices: 108 unique cases / 54 paired controls and mutations")
+          print("PASS every row has 10 fields and every pair has one control + one mutation")
+          print("PASS no case ID or pair ID is reused across matrix files")
+          print("CLAIM CEILING: metadata structure only; no world binding, rendering, replay, model or physical validation")
+          PY
