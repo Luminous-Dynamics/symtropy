@@ -26,6 +26,21 @@ For a convention where positive margin means compliant:
 
 A cell touching zero is unresolved. The computed lower and upper enclosures use outward-rounded f64 operations: derivative products/sums round upward, the lower margin rounds downward and the upper margin rounds upward. Overflow or non-finite results fail closed. Missing or invalid identities, a centre sample away from the exact box centre, or derivative evidence bound to another cell also fails closed.
 
+## Typed interval-AD / centre-observation binding
+
+The integration branch adds two typed records:
+
+- `SpatialDomainScope`: exact cell bounds and frame/condition/model/solver/geometry/material/requirement identities;
+- `CentreMarginObservation`: independent centre sample ID/digest/position, calibrated margin interval/unit and probe-calibration ID.
+
+`bind_centre_observation_to_validated_derivative` accepts a `ValidatedDerivativeEnclosure<N>` directly. It maps the record to XYZ through the interval-AD adapter, then checks exact cell ID and bounds, exact midpoint position, axis order and metre units, margin and derivative units, and the common frame/condition/model/solver/geometry/material/requirement provenance. It also validates the centre, geometry, material, derivative-artifact and derivative-environment digests.
+
+The whole-cell derivative evidence and the centre observation remain separate inputs. The binder does not convert an interval value enclosure into a centre measurement and does not infer probe calibration or uncertainty.
+
+The legacy `derivative_bound_record_ids: [String; 3]` field is populated with the same interval-AD source record ID in all three positions when one validated scalar expression supplies all XYZ partials. This is an explicit shared-source convention, not three invented records. The centre sample ID is retained independently.
+
+Evidence roles pass through unchanged. A BlindHoldout record can be bound and classified, but the existing planner continues to reject it for adaptive refinement.
+
 ## Deterministic refinement
 
 For an unresolved adaptive-exploration cell:
