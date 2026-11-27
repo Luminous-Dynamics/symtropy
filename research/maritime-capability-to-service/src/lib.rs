@@ -1,3 +1,5 @@
+pub mod kite;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(test)]
