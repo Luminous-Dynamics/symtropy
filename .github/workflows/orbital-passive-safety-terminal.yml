@@ -1,0 +1,86 @@
+name: Orbital Passive-Safety Terminal Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-passive-safety-terminal-bench/**"
+      - "tools/orbital-inspection-horizon-composition-bench/**"
+      - "tools/orbital-inspection-chord-tube-bench/**"
+      - ".github/workflows/orbital-passive-safety-terminal.yml"
+  push:
+    branches:
+      - "research/orbital-passive-safety-terminal-v0-1"
+    paths:
+      - "tools/orbital-passive-safety-terminal-bench/**"
+      - "tools/orbital-inspection-horizon-composition-bench/**"
+      - "tools/orbital-inspection-chord-tube-bench/**"
+      - ".github/workflows/orbital-passive-safety-terminal.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Passive terminal branch contract and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/orbital-passive-safety-terminal-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-passive-safety-terminal-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-passive-safety-terminal-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Bind frozen corpus digest
+        run: |
+          echo "CORPUS_SHA256=$(sha256sum tools/orbital-passive-safety-terminal-bench/fixtures/passive-terminal-corpus-v0_1.csv | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Rust deterministic receipt
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-passive-safety-terminal-bench/Cargo.toml --bin orbital-passive-safety-terminal-bench -- tools/orbital-passive-safety-terminal-bench/fixtures/passive-terminal-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/passive-terminal-rust.json
+          cargo run --quiet --locked --manifest-path tools/orbital-passive-safety-terminal-bench/Cargo.toml --bin orbital-passive-safety-terminal-bench -- tools/orbital-passive-safety-terminal-bench/fixtures/passive-terminal-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/passive-terminal-rust-replay.json
+          cmp /tmp/passive-terminal-rust.json /tmp/passive-terminal-rust-replay.json
+      - name: Independent Python passive-terminal oracle
+        run: |
+          python3 tools/orbital-passive-safety-terminal-bench/tests/reference_oracle.py tools/orbital-passive-safety-terminal-bench/fixtures/passive-terminal-corpus-v0_1.csv "$GITHUB_SHA" "$CORPUS_SHA256" > /tmp/passive-terminal-python.json
+      - name: Compare complete receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/passive-terminal-rust.json").read_text())
+          oracle = json.loads(Path("/tmp/passive-terminal-python.json").read_text())
+          assert rust == oracle
+          assert rust["case_count"] == 38
+          assert rust["expected_disposition_matches"] == 38
+          assert rust["expected_disposition_mismatches"] == 0
+          assert rust["claim_ready"] is False
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["authority_granted"] is False
+          assert rust["physical_validation"] == "NOT_ASSESSED"
+          cases = {item["case_id"]: item for item in rust["results"]}
+          assert cases["PS001"]["disposition"] == "SECULAR_OUTBOUND_PASSIVE_SAFE"
+          assert cases["PS002"]["disposition"] == "SECULAR_OUTBOUND_PASSIVE_SAFE"
+          assert cases["PS007"]["disposition"] == "PERIODIC_RELATIVE_MOTION_ONLY"
+          assert cases["PS008"]["disposition"] == "PERIODIC_PASSIVE_SAFE"
+          assert cases["PS016"]["disposition"] == "INDETERMINATE"
+          assert cases["PS029"]["disposition"] == "INVALID_INPUT"
+          assert cases["PS033"]["disposition"] == "INDETERMINATE"
+          print("38 passive-terminal cases: exact Rust/Python receipt equality")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-passive-safety-terminal-evidence
+          path: |
+            /tmp/passive-terminal-rust.json
+            /tmp/passive-terminal-python.json
+            tools/orbital-passive-safety-terminal-bench/fixtures/passive-terminal-corpus-v0_1.csv
+          if-no-files-found: error
+          retention-days: 30
