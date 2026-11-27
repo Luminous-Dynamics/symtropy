@@ -68,6 +68,10 @@ jobs:
           test "$(wc -l < "$results_dir/contact-lease.csv")" -eq 28
           awk -F, 'NR == 1 && NF != 10 { print "invalid contact lease header"; failed = 1 } NR > 1 && (NF != 10 || $3 <= 0 || $8 != 0 || ($4 + $5 + $6 + $7) != $3) { print "invalid contact lease row", NR; failed = 1 } END { exit failed }' "$results_dir/contact-lease.csv"
           printf 'validated_contact_lease_rows=%s\n' "$(($(wc -l < "$results_dir/contact-lease.csv") - 1))" >> "$results_dir/manifest.txt"
+          cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin shape-coverage-benchmark -- 4096 > "$results_dir/shape-coverage.csv"
+          test "$(wc -l < "$results_dir/shape-coverage.csv")" -eq 3
+          awk -F, 'NR == 1 && NF != 9 { print "invalid shape coverage header"; failed = 1 } NR > 1 && (NF != 9 || $2 != 4096 || $3 <= 0 || $6 != 0 || $7 != "1.000000000") { print "invalid shape coverage row", NR; failed = 1 } END { exit failed }' "$results_dir/shape-coverage.csv"
+          printf 'validated_shape_coverage_rows=%s\n' "$(($(wc -l < "$results_dir/shape-coverage.csv") - 1))" >> "$results_dir/manifest.txt"
       - name: Retain benchmark evidence
         uses: actions/upload-artifact@v4
         with:
