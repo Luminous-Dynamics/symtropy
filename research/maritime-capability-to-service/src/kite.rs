@@ -7,19 +7,42 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Gate { Yes, No, Indeterminate, NotApplicable }
+pub enum Gate {
+    Yes,
+    No,
+    Indeterminate,
+    NotApplicable,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RightsState { Granted, Denied, Unknown }
+pub enum RightsState {
+    Granted,
+    Denied,
+    Unknown,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum AuthorityState { Valid, Revoked, Conflict, Unknown }
+pub enum AuthorityState {
+    Valid,
+    Revoked,
+    Conflict,
+    Unknown,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EvidenceState { Observed, Censored, Conflict, Duplicate, Missing }
+pub enum EvidenceState {
+    Observed,
+    Censored,
+    Conflict,
+    Duplicate,
+    Missing,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ClockQuality { Trusted, Uncertain }
+pub enum ClockQuality {
+    Trusted,
+    Uncertain,
+}
 
 /// An immutable source vintage. Corrections append a new revision and point to
 /// the exact predecessor; they never overwrite an earlier version.
@@ -105,14 +128,26 @@ pub fn validate_vintages(vintages: &[EvidenceVintage]) -> Result<(), String> {
             || vintage.first_available_at > vintage.ingested_at
             || vintage.ingested_at > vintage.validated_at
         {
-            return Err(format!("{}: evidence clock order is inconsistent", vintage.vintage_id));
+            return Err(format!(
+                "{}: evidence clock order is inconsistent",
+                vintage.vintage_id
+            ));
         }
-        if vintage.valid_until.is_some_and(|expiry| expiry < vintage.first_available_at) {
-            return Err(format!("{}: validity ends before first availability", vintage.vintage_id));
+        if vintage
+            .valid_until
+            .is_some_and(|expiry| expiry < vintage.first_available_at)
+        {
+            return Err(format!(
+                "{}: validity ends before first availability",
+                vintage.vintage_id
+            ));
         }
         let revisions = by_logical.entry(&vintage.logical_id).or_default();
         if revisions.insert(vintage.revision, vintage).is_some() {
-            return Err(format!("{}: duplicate logical revision", vintage.vintage_id));
+            return Err(format!(
+                "{}: duplicate logical revision",
+                vintage.vintage_id
+            ));
         }
     }
 
@@ -124,7 +159,10 @@ pub fn validate_vintages(vintages: &[EvidenceVintage]) -> Result<(), String> {
             })?;
             match previous {
                 None if current.supersedes_vintage_id.is_some() => {
-                    return Err(format!("{}: revision 1 has a predecessor", current.vintage_id));
+                    return Err(format!(
+                        "{}: revision 1 has a predecessor",
+                        current.vintage_id
+                    ));
                 }
                 None => {}
                 Some(prior) => {
@@ -151,7 +189,11 @@ pub fn validate_vintages(vintages: &[EvidenceVintage]) -> Result<(), String> {
 /// Assess visibility and admissibility without consulting event time for visibility.
 pub fn assess_vintage(vintage: &EvidenceVintage, cutoff: u64) -> EvidenceAssessment {
     let (visible, admissible, reason) = if vintage.clock_quality == ClockQuality::Uncertain {
-        (Gate::Indeterminate, Gate::Indeterminate, "clock ordering is uncertain")
+        (
+            Gate::Indeterminate,
+            Gate::Indeterminate,
+            "clock ordering is uncertain",
+        )
     } else if vintage.first_available_at > cutoff {
         (Gate::No, Gate::No, "vintage was not yet available")
     } else if vintage.ingested_at > cutoff {
@@ -159,17 +201,32 @@ pub fn assess_vintage(vintage: &EvidenceVintage, cutoff: u64) -> EvidenceAssessm
     } else if vintage.validated_at > cutoff {
         (Gate::Yes, Gate::No, "vintage was not yet validated")
     } else if vintage.valid_until.is_some_and(|expiry| expiry <= cutoff) {
-        (Gate::Yes, Gate::No, "vintage expired at the decision cutoff")
+        (
+            Gate::Yes,
+            Gate::No,
+            "vintage expired at the decision cutoff",
+        )
     } else if vintage.rights == RightsState::Denied {
         (Gate::Yes, Gate::No, "rights were not granted")
     } else if vintage.rights == RightsState::Unknown {
         (Gate::Yes, Gate::Indeterminate, "rights state is unknown")
     } else if vintage.authority == AuthorityState::Revoked {
         (Gate::Yes, Gate::No, "authority was revoked")
-    } else if matches!(vintage.authority, AuthorityState::Conflict | AuthorityState::Unknown) {
-        (Gate::Yes, Gate::Indeterminate, "authority state is unresolved")
+    } else if matches!(
+        vintage.authority,
+        AuthorityState::Conflict | AuthorityState::Unknown
+    ) {
+        (
+            Gate::Yes,
+            Gate::Indeterminate,
+            "authority state is unresolved",
+        )
     } else if vintage.feature_uses_future_data {
-        (Gate::Yes, Gate::No, "feature provenance uses post-cutoff information")
+        (
+            Gate::Yes,
+            Gate::No,
+            "feature provenance uses post-cutoff information",
+        )
     } else {
         match vintage.evidence_state {
             EvidenceState::Observed => (Gate::Yes, Gate::Yes, "observed evidence is admissible"),
@@ -201,7 +258,10 @@ pub fn select_as_of(vintages: &[EvidenceVintage], cutoff: u64) -> Result<AsOfSna
     validate_vintages(vintages)?;
     let mut grouped: BTreeMap<&str, Vec<&EvidenceVintage>> = BTreeMap::new();
     for vintage in vintages {
-        grouped.entry(&vintage.logical_id).or_default().push(vintage);
+        grouped
+            .entry(&vintage.logical_id)
+            .or_default()
+            .push(vintage);
     }
 
     let mut selected = BTreeMap::new();
@@ -237,7 +297,11 @@ pub fn select_as_of(vintages: &[EvidenceVintage], cutoff: u64) -> Result<AsOfSna
     withheld.sort_by(|left, right| {
         (&left.logical_id, left.revision).cmp(&(&right.logical_id, right.revision))
     });
-    Ok(AsOfSnapshot { decision_cutoff: cutoff, selected, withheld })
+    Ok(AsOfSnapshot {
+        decision_cutoff: cutoff,
+        selected,
+        withheld,
+    })
 }
 
 /// Check as-of evidence, plan publication and authority timing for one candidate action.
@@ -249,8 +313,15 @@ pub fn assess_action(
     if action.action_id.trim().is_empty() {
         return Err("action_id must be non-empty".to_owned());
     }
-    if action.required_evidence.iter().any(|key| key.trim().is_empty()) {
-        return Err(format!("{}: required evidence IDs must be non-empty", action.action_id));
+    if action
+        .required_evidence
+        .iter()
+        .any(|key| key.trim().is_empty())
+    {
+        return Err(format!(
+            "{}: required evidence IDs must be non-empty",
+            action.action_id
+        ));
     }
     if action.required_evidence.is_empty() {
         return Ok(ActionAssessment {
@@ -263,22 +334,28 @@ pub fn assess_action(
     let mut indeterminate = false;
     for key in &action.required_evidence {
         match snapshot.selected.get(key) {
-            None => return Ok(ActionAssessment {
-                action_id: action.action_id.clone(),
-                executable_at_cutoff: Gate::No,
-                reason: "required evidence is absent from the as-of snapshot",
-            }),
-            Some(item) if item.admissible == Gate::No => return Ok(ActionAssessment {
-                action_id: action.action_id.clone(),
-                executable_at_cutoff: Gate::No,
-                reason: "required evidence is inadmissible",
-            }),
+            None => {
+                return Ok(ActionAssessment {
+                    action_id: action.action_id.clone(),
+                    executable_at_cutoff: Gate::No,
+                    reason: "required evidence is absent from the as-of snapshot",
+                });
+            }
+            Some(item) if item.admissible == Gate::No => {
+                return Ok(ActionAssessment {
+                    action_id: action.action_id.clone(),
+                    executable_at_cutoff: Gate::No,
+                    reason: "required evidence is inadmissible",
+                });
+            }
             Some(item) if item.admissible == Gate::Indeterminate => indeterminate = true,
-            Some(item) if item.admissible == Gate::NotApplicable => return Ok(ActionAssessment {
-                action_id: action.action_id.clone(),
-                executable_at_cutoff: Gate::No,
-                reason: "required evidence is duplicate or not applicable",
-            }),
+            Some(item) if item.admissible == Gate::NotApplicable => {
+                return Ok(ActionAssessment {
+                    action_id: action.action_id.clone(),
+                    executable_at_cutoff: Gate::No,
+                    reason: "required evidence is duplicate or not applicable",
+                });
+            }
             Some(_) => {}
         }
     }
@@ -309,7 +386,10 @@ pub fn assess_action(
         });
     }
     if authorized < published {
-        return Err(format!("{}: authorization precedes plan publication", action.action_id));
+        return Err(format!(
+            "{}: authorization precedes plan publication",
+            action.action_id
+        ));
     }
     if published > deadline {
         return Ok(ActionAssessment {
@@ -318,8 +398,14 @@ pub fn assess_action(
             reason: "plan was published after the service deadline",
         });
     }
-    if action.action_started_at.is_some_and(|started| started < authorized) {
-        return Err(format!("{}: action start precedes authorization", action.action_id));
+    if action
+        .action_started_at
+        .is_some_and(|started| started < authorized)
+    {
+        return Err(format!(
+            "{}: action start precedes authorization",
+            action.action_id
+        ));
     }
     Ok(ActionAssessment {
         action_id: action.action_id.clone(),
@@ -363,13 +449,21 @@ mod tests {
     fn late_correction_does_not_rewrite_an_earlier_snapshot() {
         let original = vintage("OUTAGE", "OUTAGE-V1", 1, None, 60, AuthorityState::Valid);
         let correction = vintage(
-            "OUTAGE", "OUTAGE-V2", 2, Some("OUTAGE-V1"), 106, AuthorityState::Revoked,
+            "OUTAGE",
+            "OUTAGE-V2",
+            2,
+            Some("OUTAGE-V1"),
+            106,
+            AuthorityState::Revoked,
         );
         let records = vec![original, correction];
         let historical = select_as_of(&records, 100).expect("historical snapshot");
         assert_eq!(historical.selected["OUTAGE"].vintage_id, "OUTAGE-V1");
         assert_eq!(historical.selected["OUTAGE"].admissible, Gate::Yes);
-        assert_eq!(historical.withheld[0].disposition, VintageDisposition::NotYetAvailable);
+        assert_eq!(
+            historical.withheld[0].disposition,
+            VintageDisposition::NotYetAvailable
+        );
 
         let current = select_as_of(&records, 120).expect("current snapshot");
         assert_eq!(current.selected["OUTAGE"].vintage_id, "OUTAGE-V2");
@@ -378,11 +472,21 @@ mod tests {
 
     #[test]
     fn event_time_does_not_make_a_backfilled_vintage_visible() {
-        let mut item = vintage("BACKFILL", "BACKFILL-V1", 1, None, 116, AuthorityState::Valid);
+        let mut item = vintage(
+            "BACKFILL",
+            "BACKFILL-V1",
+            1,
+            None,
+            116,
+            AuthorityState::Valid,
+        );
         item.event_time = 40;
         let snapshot = select_as_of(&[item], 100).expect("snapshot");
         assert!(!snapshot.selected.contains_key("BACKFILL"));
-        assert_eq!(snapshot.withheld[0].disposition, VintageDisposition::NotYetAvailable);
+        assert_eq!(
+            snapshot.withheld[0].disposition,
+            VintageDisposition::NotYetAvailable
+        );
     }
 
     #[test]
@@ -391,22 +495,49 @@ mod tests {
         late_ingestion.ingested_at = 105;
         late_ingestion.validated_at = 106;
         let snapshot = select_as_of(&[late_ingestion], 100).expect("snapshot");
-        assert_eq!(snapshot.withheld[0].disposition, VintageDisposition::NotYetIngested);
+        assert_eq!(
+            snapshot.withheld[0].disposition,
+            VintageDisposition::NotYetIngested
+        );
 
-        let mut late_validation = vintage("VALIDATE", "VALIDATE-V1", 1, None, 92, AuthorityState::Valid);
+        let mut late_validation = vintage(
+            "VALIDATE",
+            "VALIDATE-V1",
+            1,
+            None,
+            92,
+            AuthorityState::Valid,
+        );
         late_validation.ingested_at = 94;
         late_validation.validated_at = 105;
         let snapshot = select_as_of(&[late_validation], 100).expect("snapshot");
-        assert_eq!(snapshot.withheld[0].disposition, VintageDisposition::NotYetValidated);
+        assert_eq!(
+            snapshot.withheld[0].disposition,
+            VintageDisposition::NotYetValidated
+        );
     }
 
     #[test]
     fn uncertain_clocks_censored_and_conflicting_evidence_never_pass() {
         let mut uncertain = vintage("CLOCK", "CLOCK-V1", 1, None, 92, AuthorityState::Valid);
         uncertain.clock_quality = ClockQuality::Uncertain;
-        let mut censored = vintage("CENSORED", "CENSORED-V1", 1, None, 92, AuthorityState::Valid);
+        let mut censored = vintage(
+            "CENSORED",
+            "CENSORED-V1",
+            1,
+            None,
+            92,
+            AuthorityState::Valid,
+        );
         censored.evidence_state = EvidenceState::Censored;
-        let mut conflicted = vintage("CONFLICT", "CONFLICT-V1", 1, None, 92, AuthorityState::Conflict);
+        let mut conflicted = vintage(
+            "CONFLICT",
+            "CONFLICT-V1",
+            1,
+            None,
+            92,
+            AuthorityState::Conflict,
+        );
         conflicted.evidence_state = EvidenceState::Conflict;
         let snapshot = select_as_of(&[uncertain, censored, conflicted], 100).expect("snapshot");
         for key in ["CLOCK", "CENSORED", "CONFLICT"] {
@@ -416,10 +547,20 @@ mod tests {
 
     #[test]
     fn duplicate_evidence_does_not_contribute_a_second_fact() {
-        let mut duplicate = vintage("DUPLICATE", "DUPLICATE-V1", 1, None, 92, AuthorityState::Valid);
+        let mut duplicate = vintage(
+            "DUPLICATE",
+            "DUPLICATE-V1",
+            1,
+            None,
+            92,
+            AuthorityState::Valid,
+        );
         duplicate.evidence_state = EvidenceState::Duplicate;
         let snapshot = select_as_of(&[duplicate], 100).expect("snapshot");
-        assert_eq!(snapshot.selected["DUPLICATE"].admissible, Gate::NotApplicable);
+        assert_eq!(
+            snapshot.selected["DUPLICATE"].admissible,
+            Gate::NotApplicable
+        );
     }
 
     #[test]
@@ -434,7 +575,14 @@ mod tests {
 
     #[test]
     fn action_needs_evidence_publication_and_authorization_by_cutoff() {
-        let record = vintage("CAPABILITY", "CAPABILITY-V1", 1, None, 90, AuthorityState::Valid);
+        let record = vintage(
+            "CAPABILITY",
+            "CAPABILITY-V1",
+            1,
+            None,
+            90,
+            AuthorityState::Valid,
+        );
         let snapshot = select_as_of(&[record], 100).expect("snapshot");
         let action = ActionCandidate {
             action_id: "RECOVER".to_owned(),
@@ -444,24 +592,53 @@ mod tests {
             action_started_at: Some(101),
             service_deadline: Some(120),
         };
-        assert_eq!(assess_action(&snapshot, &action).expect("assessment").executable_at_cutoff, Gate::Yes);
+        assert_eq!(
+            assess_action(&snapshot, &action)
+                .expect("assessment")
+                .executable_at_cutoff,
+            Gate::Yes
+        );
 
         let mut late = action.clone();
         late.authorized_at = Some(101);
-        assert_eq!(assess_action(&snapshot, &late).expect("late assessment").executable_at_cutoff, Gate::No);
+        assert_eq!(
+            assess_action(&snapshot, &late)
+                .expect("late assessment")
+                .executable_at_cutoff,
+            Gate::No
+        );
 
         let mut missing = action.clone();
         missing.required_evidence.push("MISSING".to_owned());
-        assert_eq!(assess_action(&snapshot, &missing).expect("missing assessment").executable_at_cutoff, Gate::No);
+        assert_eq!(
+            assess_action(&snapshot, &missing)
+                .expect("missing assessment")
+                .executable_at_cutoff,
+            Gate::No
+        );
     }
 
     #[test]
     fn incomplete_or_wrong_revision_lineage_is_rejected() {
         let first = vintage("EVENT", "EVENT-V1", 1, None, 10, AuthorityState::Valid);
-        let skipped = vintage("EVENT", "EVENT-V3", 3, Some("EVENT-V2"), 30, AuthorityState::Valid);
+        let skipped = vintage(
+            "EVENT",
+            "EVENT-V3",
+            3,
+            Some("EVENT-V2"),
+            30,
+            AuthorityState::Valid,
+        );
         assert!(validate_vintages(&[first.clone(), skipped]).is_err());
 
-        let wrong = vintage("EVENT", "EVENT-V2", 2, Some("WRONG"), 30, AuthorityState::Valid);
+        let wrong = vintage(
+            "EVENT",
+            "EVENT-V2",
+            2,
+            Some("WRONG"),
+            30,
+            AuthorityState::Valid,
+        );
         assert!(validate_vintages(&[first, wrong]).is_err());
     }
 
@@ -469,7 +646,14 @@ mod tests {
     fn appending_a_future_vintage_preserves_the_historical_snapshot() {
         let first = vintage("EVENT", "EVENT-V1", 1, None, 20, AuthorityState::Valid);
         let before = select_as_of(std::slice::from_ref(&first), 50).expect("snapshot");
-        let second = vintage("EVENT", "EVENT-V2", 2, Some("EVENT-V1"), 80, AuthorityState::Revoked);
+        let second = vintage(
+            "EVENT",
+            "EVENT-V2",
+            2,
+            Some("EVENT-V1"),
+            80,
+            AuthorityState::Revoked,
+        );
         let after = select_as_of(&[first, second], 50).expect("snapshot after append");
         assert_eq!(before, after);
     }
