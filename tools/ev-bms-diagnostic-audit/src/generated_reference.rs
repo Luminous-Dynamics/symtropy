@@ -175,7 +175,9 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         || manifest.release_tag != "v1.0.0"
         || manifest.release_published_on != "2025-09-15"
     {
-        return Err("CH-BatteryGen source identity does not match the pinned ICLR/GitHub release".to_owned());
+        return Err(
+            "CH-BatteryGen source identity does not match the pinned ICLR/GitHub release".to_owned(),
+        );
     }
     if manifest.license_spdx != "CC-BY-NC-SA-4.0"
         || manifest.permitted_use != "academic_research_non_commercial_only"
@@ -183,8 +185,7 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         || manifest.redistribution_allowed
     {
         return Err(
-            "CH-BatteryGen v1.0.0 terms must remain CC-BY-NC-SA-4.0, academic/non-commercial and non-redistributable"
-                .to_owned(),
+            "CH-BatteryGen v1.0.0 terms must remain CC-BY-NC-SA-4.0, academic/non-commercial and non-redistributable".to_owned(),
         );
     }
     if manifest.evidence_class != "mechanism_constrained_generated"
@@ -214,7 +215,10 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
             || !chemistries.insert(chemistry.chemistry.as_str())
             || chemistry.generated_pack_instance_count != 500
         {
-            return Err("CH-BatteryGen must contain 500 generated LFP and 500 generated NCM packs".to_owned());
+            return Err(
+                "CH-BatteryGen must contain 500 generated LFP and 500 generated NCM packs"
+                    .to_owned(),
+            );
         }
         chemistry_total += chemistry.generated_pack_instance_count;
     }
@@ -305,11 +309,15 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
     let total_bytes = manifest.assets.iter().map(|asset| asset.size_bytes).sum::<u64>();
     if manifest.admission_state == "metadata_only" {
         if manifest.assets.iter().any(|asset| asset.local_sha256.is_some()) {
-            return Err("metadata_only manifest cannot claim locally verified release files".to_owned());
+            return Err(
+                "metadata_only manifest cannot claim locally verified release files".to_owned(),
+            );
         }
     } else if manifest.admission_state == "snapshot_admitted" {
         if manifest.assets.iter().any(|asset| asset.local_sha256.is_none()) {
-            return Err("snapshot_admitted requires local SHA-256 for every release asset".to_owned());
+            return Err(
+                "snapshot_admitted requires local SHA-256 for every release asset".to_owned(),
+            );
         }
     } else {
         return Err("admission_state must be metadata_only or snapshot_admitted".to_owned());
@@ -335,7 +343,9 @@ pub fn audit_generated_reference(
         return Err("generated-reference schema identity does not match v0.1".to_owned());
     }
     if !draft202012::meta::is_valid(&schema) {
-        return Err("generated-reference schema fails Draft 2020-12 meta-schema validation".to_owned());
+        return Err(
+            "generated-reference schema fails Draft 2020-12 meta-schema validation".to_owned(),
+        );
     }
     let validator = draft202012::options()
         .should_validate_formats(true)
@@ -365,7 +375,8 @@ pub fn audit_generated_reference(
         redistribution_allowed: manifest.redistribution_allowed,
         evidence_class: manifest.evidence_class,
         generation_method: manifest.generation_method,
-        raw_fault_labelled_field_telemetry_released: manifest.raw_fault_labelled_field_telemetry_released,
+        raw_fault_labelled_field_telemetry_released: manifest
+            .raw_fault_labelled_field_telemetry_released,
         generated_pack_instance_count: manifest.generated_pack_instance_count,
         generated_segment_count: manifest.generated_pack_instance_count
             * u64::from(manifest.charge_segments_per_pack + manifest.discharge_segments_per_pack),
