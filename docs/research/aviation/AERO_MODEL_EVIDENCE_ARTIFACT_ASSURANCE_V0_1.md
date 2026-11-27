@@ -225,3 +225,18 @@ Before reuse, verify that the Track U output schema can bind the current #7742 d
 
 The #5571 workflow pass is exact-head evidence for that separate Track U branch only. It does not qualify #7742, #7765 or a cross-branch integration. The current owner contracts and adapters still require exact-head integration tests and independent semantic review.
 
+## 11. Benchmark-method reuse without cross-domain overclaim
+
+The benchmark design should reuse the method—not the labels, cases or claimed outcomes—of Mycelix [#6776](https://github.com/Luminous-Dynamics/mycelix/pull/6776). That separate synthetic water-service assurance benchmark has a recorded exact head `6ee626d5f7f88b3226226ea13e15d1a72a297650` and two successful exact-head workflow runs (#14 and #16242). Its useful method includes 18 metamorphic relations, 34 adversarial mutation operators, 20 negative controls, 17 machine-readable metrics with numerators/denominators/targets/field-data requirements, and comparator profiles for manual experts, checklists, single/RAG/multi-agent LLMs and established PLM/QMS platforms.
+
+AERO must author a domain-specific aerospace challenge suite and independently adjudicate every expected disposition. The water-service corpus is not evidence of aerospace model credibility, temporal correctness, airworthiness or physical qualification. The benchmark transfer is limited to these practices:
+
+- Register positive controls, hard negative controls, boundary cases, coupled faults and metamorphic relations before implementation tuning.
+- Preserve negative controls where a valid but irrelevant change should not invalidate an unrelated claim, so a reject-everything gate cannot score well.
+- Publish executable metric definitions with numerators, denominators, inclusion/exclusion rules and field-data requirements.
+- Include human domain experts, structured checklists, LLM baselines and PLM/QMS comparators under the same claim set, evidence rights, risk class, time cutoffs and review task.
+- Count abstentions, incomplete claims, failed runs and incomparable contexts explicitly; never drop them from denominators or call them successful.
+- Keep public development seeds separate from independently adjudicated blinded holdouts.
+
+The AERO comparison should report the risk-coverage curve and false-review rate alongside reviewer time, evidence-acquisition cost, unnecessary requalification, replay reproducibility and resource consumption. Any prospective economic benefit (including the ≥20% cost reduction target) must be measured at matched risk and independently reviewed decision quality.
+
