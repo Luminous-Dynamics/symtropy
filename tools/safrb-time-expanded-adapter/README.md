@@ -71,6 +71,25 @@ The temporal tests cover cross-dock throughput above end-of-period storage, carr
 
 The Rust exact-head workflow is `.github/workflows/safrb-flow-rust.yml`. It pins the repository Rust toolchain and checks exact checkout, formatting, Clippy, Rust tests, and independent portable certificate conformance. A green run qualifies only the exact commit recorded by that run; later commits require fresh receipts. Repository tests do not establish evidence authenticity, legal access, physical asset qualification, dispatch authority, or actual beneficiary service.
 
+## Semantic floor infeasibility explanations v0.1
+
+The `floor_cut_explanations` module reuses the exact lower-bound circulation certificate from `beneficiary_floors`. When all mandatory floors are not jointly feasible, it maps each edge crossing the certified auxiliary min-cut back to a typed temporal constraint:
+
+- beneficiary request-ceiling residual;
+- node-period outbound handling gate;
+- beneficiary service-issue gate;
+- end-of-period storage carry;
+- route capacity/transit;
+- receipt and opening-inventory quantity;
+- lower-bound positive/negative balance arcs;
+- circulation return closure.
+
+Each explanation includes the base and auxiliary graph digests, required/achieved auxiliary flow, shortfall, exact cut capacity, source-side nodes, exact cut-edge identities/metadata and directly referenced service IDs. The independent verifier reconstructs the mapping from the same profile and floor report, verifies the original lower-bound proof, and rejects any modified edge, capacity, mapping or summary.
+
+**Claim boundary:** the min-cut proves a bottleneck in the exact compiled lower-bound circulation graph. Its mapping describes encoded constraints, not physical root cause, a unique minimal intervention, causal responsibility, or an investment ranking. Source evidence and authority remain externally qualified.
+
+Portable schema: `schemas/floor-cut-explanation-v0.1.schema.json`.
+
 ## Beneficiary minimum-floor feasibility v0.1
 
 The separate `beneficiary_floors` module proves whether a set of mandatory per-beneficiary minimum quantities can be met **jointly** in the supplied temporal single-commodity graph. It does not treat the graph's aggregate maximum requested delivery as a substitute for a floor-satisfying allocation, and it does not optimize priority tiers or operational cost.
