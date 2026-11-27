@@ -11,8 +11,9 @@
 
 use super::contact_freshness::{
     ContactFreshnessError, ContactFreshnessStamp, ContactLifecycleAction,
-    ContactLifecycleActionKind, ContactLifecycleError, ContactLifecyclePlan, ContactReuseDecision,
-    EndpointRevisions, FreshnessReason, GlobalContactRevisions, ReuseDisposition, RevisionDomain,
+    ContactLifecycleActionKind, ContactLifecycleError, ContactLifecyclePlan, ContactPayloadRevisions,
+    ContactReuseDecision, EndpointRevisions, FreshnessReason, GlobalContactRevisions,
+    ReuseDisposition, RevisionDomain,
 };
 use super::PairDeltaFrame;
 use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
@@ -430,6 +431,12 @@ pub enum ContactLifecycleReceiptError {
     UnexpectedPostContactStamp(ProxyPair),
     PostContactStampMismatch(ProxyPair),
     MissingCommittedContactStamp(ProxyPair),
+    PriorContactPayloadDigestMissing(ProxyPair),
+    PostContactPayloadDigestMissing(ProxyPair),
+    ManifoldPayloadRevisionDidNotAdvance(ProxyPair),
+    ManifoldPayloadChangedWithoutRefresh(ProxyPair),
+    WarmStartPayloadRevisionDidNotAdvance(ProxyPair),
+    WarmStartPayloadChangedWithoutReset(ProxyPair),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -503,6 +510,9 @@ pub fn verify_contact_lifecycle_receipt(
         if stamp.pair != *key {
             return Err(ContactLifecycleReceiptError::PriorContactStampMismatch(*key).into());
         }
+        if !stamp.payload.has_digests() {
+            return Err(ContactLifecycleReceiptError::PriorContactPayloadDigestMissing(*key).into());
+        }
         let left = receipt.previous_endpoints.get(&key.0).copied();
         let right = receipt.previous_endpoints.get(&key.1).copied();
         if left != Some(stamp.left) || right != Some(stamp.right) {
@@ -563,6 +573,9 @@ pub fn verify_contact_lifecycle_receipt(
         if !current.contains(pair) {
             return Err(ContactLifecycleReceiptError::UnexpectedPostContactStamp(*pair).into());
         }
+        if !stamp.payload.has_digests() {
+            return Err(ContactLifecycleReceiptError::PostContactPayloadDigestMissing(*pair).into());
+        }
         let left = receipt.current_endpoints.get(&pair.0).copied();
         let right = receipt.current_endpoints.get(&pair.1).copied();
         if stamp.pair != *pair
@@ -605,6 +618,48 @@ pub fn verify_contact_lifecycle_receipt(
             && !receipt.post_contact_stamps.contains_key(pair)
         {
             return Err(ContactLifecycleReceiptError::MissingCommittedContactStamp(*pair).into());
+        }
+        if let Some(post) = receipt.post_contact_stamps.get(pair) {
+            let generation_changed = left.generation != stamp.left.generation
+                || right.generation != stamp.right.generation;
+            if !generation_changed {
+                if decision.geometry == ReuseDisposition::RefreshRequired {
+                    if post.payload.manifold_revision <= stamp.payload.manifold_revision {
+                        return Err(
+                            ContactLifecycleReceiptError::ManifoldPayloadRevisionDidNotAdvance(
+                                *pair,
+                            )
+                            .into(),
+                        );
+                    }
+                } else if post.payload.manifold_revision != stamp.payload.manifold_revision
+                    || post.payload.manifold_digest_sha256
+                        != stamp.payload.manifold_digest_sha256
+                {
+                    return Err(
+                        ContactLifecycleReceiptError::ManifoldPayloadChangedWithoutRefresh(*pair)
+                            .into(),
+                    );
+                }
+                if decision.warm_start == ReuseDisposition::RefreshRequired {
+                    if post.payload.warm_start_revision <= stamp.payload.warm_start_revision {
+                        return Err(
+                            ContactLifecycleReceiptError::WarmStartPayloadRevisionDidNotAdvance(
+                                *pair,
+                            )
+                            .into(),
+                        );
+                    }
+                } else if post.payload.warm_start_revision != stamp.payload.warm_start_revision
+                    || post.payload.warm_start_digest_sha256
+                        != stamp.payload.warm_start_digest_sha256
+                {
+                    return Err(
+                        ContactLifecycleReceiptError::WarmStartPayloadChangedWithoutReset(*pair)
+                            .into(),
+                    );
+                }
+            }
         }
     }
 
@@ -743,12 +798,22 @@ mod tests {
         current
     }
 
+    fn payload() -> ContactPayloadRevisions {
+        ContactPayloadRevisions {
+            manifold_revision: 1,
+            manifold_digest_sha256: [21; 32],
+            warm_start_revision: 1,
+            warm_start_digest_sha256: [22; 32],
+        }
+    }
+
     fn stamp() -> ContactFreshnessStamp {
         ContactFreshnessStamp::new(
             ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs"),
             global(),
             endpoint(1),
             endpoint(2),
+            payload(),
         )
         .expect("valid contact freshness stamp")
     }
@@ -956,14 +1021,15 @@ mod tests {
                     let awake = current_endpoints.get(&ProxyId(1)).copied().expect("awake");
                     let committed = stamps[&pair]
                         .commit_transition(
-                    current_global,
-                    awake,
-                    endpoint(2),
-                    false,
-                    false,
-                    false,
-                    true,
-                )
+                            current_global,
+                            awake,
+                            endpoint(2),
+                            false,
+                            false,
+                            false,
+                            true,
+                            stamps[&pair].payload,
+                        )
                         .expect("wake transition committed");
                     BTreeMap::from([(pair, committed)])
                 } else {
@@ -1057,8 +1123,14 @@ mod tests {
             BTreeMap::from([(ProxyId(2), endpoint(2)), (ProxyId(3), endpoint(3))]);
         let stamps = BTreeMap::from([(
             old_pair,
-            ContactFreshnessStamp::new(old_pair, previous_global, endpoint(1), endpoint(2))
-                .expect("old stamp"),
+            ContactFreshnessStamp::new(
+                old_pair,
+                previous_global,
+                endpoint(1),
+                endpoint(2),
+                payload(),
+            )
+            .expect("old stamp"),
         )]);
         let mut delta = PairDeltaFrame::default();
         delta.added.push(new_pair);
@@ -1175,6 +1247,12 @@ mod tests {
                 true,
                 false,
                 false,
+                ContactPayloadRevisions {
+                    manifold_revision: 2,
+                    manifold_digest_sha256: [24; 32],
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32],
+                },
             )
             .expect("geometry and warm-start work completed");
         receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
@@ -1244,6 +1322,12 @@ mod tests {
                 true,
                 true,
                 false,
+                ContactPayloadRevisions {
+                    manifold_revision: 2,
+                    manifold_digest_sha256: [24; 32],
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32],
+                },
             )
             .expect("geometry, warm-start and eligibility work completed");
         receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
@@ -1287,6 +1371,12 @@ mod tests {
                 true,
                 true,
                 false,
+                ContactPayloadRevisions {
+                    manifold_revision: 1,
+                    manifold_digest_sha256: [30; 32],
+                    warm_start_revision: 1,
+                    warm_start_digest_sha256: [31; 32],
+                },
             )
             .expect("new generation gets a new contact stamp");
         receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
@@ -1313,6 +1403,5 @@ mod tests {
             ))
         ));
     }
-
 
 }
