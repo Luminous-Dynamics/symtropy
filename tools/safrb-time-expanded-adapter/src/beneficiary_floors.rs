@@ -715,6 +715,308 @@ pub fn evaluate_beneficiary_floor_input(
     evaluate_beneficiary_floors(&input.profile, &input.floors)
 }
 
+fn verifier_reconstruct_floor_bounds(
+    profile: &TemporalProfile,
+    base_graph: &FlowGraph,
+    floors: &[BeneficiaryFloor],
+) -> Result<(Vec<BeneficiaryFloor>, BTreeMap<String, u64>), String> {
+    if profile.schema_version != TEMPORAL_PROFILE_SCHEMA {
+        return Err("verifier received unsupported temporal profile schema".to_string());
+    }
+    if floors.is_empty() {
+        return Err("verifier requires at least one beneficiary floor".to_string());
+    }
+
+    let mut services = BTreeMap::new();
+    for service in &profile.services {
+        if services.insert(service.service_id.as_str(), service).is_some() {
+            return Err(format!(
+                "verifier detected duplicate temporal service {}",
+                service.service_id
+            ));
+        }
+    }
+
+    let mut graph_edges = BTreeMap::new();
+    for edge in &base_graph.edges {
+        if graph_edges.insert(edge.id.as_str(), edge).is_some() {
+            return Err(format!(
+                "verifier detected duplicate base graph edge {}",
+                edge.id
+            ));
+        }
+    }
+
+    let mut obligations = floors.to_vec();
+    obligations.sort_by(|left, right| left.service_id.cmp(&right.service_id));
+    let mut seen = BTreeSet::new();
+    let mut lower_by_edge = BTreeMap::new();
+
+    for obligation in &obligations {
+        if obligation.service_id.trim().is_empty() {
+            return Err("verifier found empty service identity in floor".to_string());
+        }
+        if !seen.insert(obligation.service_id.as_str()) {
+            return Err(format!(
+                "verifier found duplicate floor for service {}",
+                obligation.service_id
+            ));
+        }
+        let service = services
+            .get(obligation.service_id.as_str())
+            .ok_or_else(|| {
+                format!(
+                    "verifier floor references unknown service {}",
+                    obligation.service_id
+                )
+            })?;
+        if obligation.minimum_required_quantity > service.requested_quantity {
+            return Err(format!(
+                "verifier floor exceeds request for service {}",
+                obligation.service_id
+            ));
+        }
+
+        let edge_id = service_edge_id(&obligation.service_id);
+        let edge = graph_edges.get(edge_id.as_str()).ok_or_else(|| {
+            format!("verifier base graph omitted service edge {edge_id}")
+        })?;
+        let expected_tail = format!(
+            "safrb-temporal/issue/{}/{}/{}",
+            service.node_id.len(),
+            service.node_id,
+            service.period
+        );
+        if edge.from != expected_tail
+            || edge.to != "safrb-temporal/sink"
+            || edge.capacity != service.requested_quantity
+        {
+            return Err(format!(
+                "verifier base service edge does not match profile for {}",
+                obligation.service_id
+            ));
+        }
+        lower_by_edge.insert(edge_id, obligation.minimum_required_quantity);
+    }
+
+    Ok((obligations, lower_by_edge))
+}
+
+fn verifier_reconstruct_original_flows(
+    base_graph: &FlowGraph,
+    lower_by_edge: &BTreeMap<String, u64>,
+    auxiliary_bundle: &FlowCertificateBundle,
+) -> Result<Vec<EdgeFlow>, String> {
+    let mut auxiliary_edges = BTreeMap::new();
+    for edge in &auxiliary_bundle.graph.edges {
+        if auxiliary_edges.insert(edge.id.as_str(), edge).is_some() {
+            return Err(format!(
+                "verifier found duplicate auxiliary graph edge {}",
+                edge.id
+            ));
+        }
+    }
+    let mut auxiliary_flows = BTreeMap::new();
+    for flow in &auxiliary_bundle.result.edge_flows {
+        if auxiliary_flows.insert(flow.id.as_str(), flow).is_some() {
+            return Err(format!(
+                "verifier found duplicate auxiliary flow witness {}",
+                flow.id
+            ));
+        }
+    }
+
+    let mut recovered = Vec::with_capacity(base_graph.edges.len());
+    for base_edge in &base_graph.edges {
+        let lower = lower_by_edge.get(&base_edge.id).copied().unwrap_or(0);
+        let auxiliary_edge = auxiliary_edges.get(base_edge.id.as_str()).ok_or_else(|| {
+            format!(
+                "verifier auxiliary graph omitted original edge {}",
+                base_edge.id
+            )
+        })?;
+        let auxiliary_flow = auxiliary_flows.get(base_edge.id.as_str()).ok_or_else(|| {
+            format!(
+                "verifier auxiliary witness omitted original edge {}",
+                base_edge.id
+            )
+        })?;
+        let expected_residual_capacity = base_edge
+            .capacity
+            .checked_sub(lower)
+            .ok_or_else(|| format!("verifier lower bound exceeds {}", base_edge.id))?;
+        if auxiliary_edge.from != base_edge.from
+            || auxiliary_edge.to != base_edge.to
+            || auxiliary_edge.capacity != expected_residual_capacity
+            || auxiliary_edge.metadata_ref != base_edge.metadata_ref
+            || auxiliary_flow.from != auxiliary_edge.from
+            || auxiliary_flow.to != auxiliary_edge.to
+            || auxiliary_flow.capacity != auxiliary_edge.capacity
+            || auxiliary_flow.metadata_ref != auxiliary_edge.metadata_ref
+            || auxiliary_flow.flow > auxiliary_flow.capacity
+        {
+            return Err(format!(
+                "verifier auxiliary residual witness mismatch for {}",
+                base_edge.id
+            ));
+        }
+
+        let reconstructed_flow = lower
+            .checked_add(auxiliary_flow.flow)
+            .ok_or_else(|| format!("verifier original flow overflowed for {}", base_edge.id))?;
+        if reconstructed_flow > base_edge.capacity {
+            return Err(format!(
+                "verifier reconstructed flow exceeds capacity for {}",
+                base_edge.id
+            ));
+        }
+        recovered.push(EdgeFlow {
+            id: base_edge.id.clone(),
+            from: base_edge.from.clone(),
+            to: base_edge.to.clone(),
+            capacity: base_edge.capacity,
+            flow: reconstructed_flow,
+            metadata_ref: base_edge.metadata_ref.clone(),
+        });
+    }
+    if recovered.len() != base_graph.edges.len()
+        || auxiliary_flows.len() != auxiliary_bundle.graph.edges.len()
+    {
+        return Err("verifier found incomplete auxiliary flow witness".to_string());
+    }
+    recovered.sort_by(|left, right| left.id.cmp(&right.id));
+    Ok(recovered)
+}
+
+fn verifier_check_original_allocation(
+    profile: &TemporalProfile,
+    base_graph: &FlowGraph,
+    obligations: &[BeneficiaryFloor],
+    flows: &[EdgeFlow],
+    auxiliary_bundle: &FlowCertificateBundle,
+) -> Result<Vec<BeneficiaryFloorAllocation>, String> {
+    let mut flow_by_id = BTreeMap::new();
+    for flow in flows {
+        if flow_by_id.insert(flow.id.as_str(), flow).is_some() {
+            return Err(format!(
+                "verifier found duplicate recovered flow {}",
+                flow.id
+            ));
+        }
+    }
+    if flow_by_id.len() != base_graph.edges.len() {
+        return Err("verifier recovered flow does not cover base graph".to_string());
+    }
+
+    let mut balance = base_graph
+        .nodes
+        .iter()
+        .map(|node| (node.id.as_str(), 0_i128))
+        .collect::<BTreeMap<_, _>>();
+    for edge in &base_graph.edges {
+        let flow = flow_by_id.get(edge.id.as_str()).ok_or_else(|| {
+            format!("verifier recovered flow omitted base edge {}", edge.id)
+        })?;
+        if flow.from != edge.from
+            || flow.to != edge.to
+            || flow.capacity != edge.capacity
+            || flow.metadata_ref != edge.metadata_ref
+            || flow.flow > flow.capacity
+        {
+            return Err(format!(
+                "verifier recovered edge differs from base edge {}",
+                edge.id
+            ));
+        }
+        let from = balance
+            .get(edge.from.as_str())
+            .copied()
+            .ok_or_else(|| format!("verifier unknown edge tail {}", edge.from))?;
+        let to = balance
+            .get(edge.to.as_str())
+            .copied()
+            .ok_or_else(|| format!("verifier unknown edge head {}", edge.to))?;
+        balance.insert(
+            edge.from.as_str(),
+            from.checked_add(i128::from(flow.flow))
+                .ok_or_else(|| "verifier outgoing balance overflowed i128".to_string())?,
+        );
+        balance.insert(
+            edge.to.as_str(),
+            to.checked_sub(i128::from(flow.flow))
+                .ok_or_else(|| "verifier incoming balance overflowed i128".to_string())?,
+        );
+    }
+
+    let source_net = *balance
+        .get(base_graph.source.as_str())
+        .ok_or_else(|| "verifier source node missing from allocation".to_string())?;
+    let sink_net = *balance
+        .get(base_graph.sink.as_str())
+        .ok_or_else(|| "verifier sink node missing from allocation".to_string())?;
+    if source_net < 0 || sink_net != -source_net {
+        return Err("verifier source/sink balance does not reconcile".to_string());
+    }
+    for (node_id, net) in &balance {
+        if *node_id != base_graph.source && *node_id != base_graph.sink && *net != 0 {
+            return Err(format!(
+                "verifier original allocation violates conservation at {node_id}"
+            ));
+        }
+    }
+
+    let return_flow = auxiliary_bundle
+        .result
+        .edge_flows
+        .iter()
+        .find(|flow| flow.id == RETURN_EDGE)
+        .ok_or_else(|| "verifier auxiliary witness omitted return edge".to_string())?
+        .flow;
+    let source_total = u64::try_from(source_net)
+        .map_err(|_| "verifier source flow does not fit u64".to_string())?;
+    if return_flow != source_total {
+        return Err("verifier return-arc flow does not match original delivery".to_string());
+    }
+
+    let mut services = BTreeMap::new();
+    for service in &profile.services {
+        if services.insert(service.service_id.as_str(), service).is_some() {
+            return Err("verifier found duplicate profile service identity".to_string());
+        }
+    }
+
+    let mut allocations = Vec::with_capacity(obligations.len());
+    for obligation in obligations {
+        let service = services.get(obligation.service_id.as_str()).ok_or_else(|| {
+            format!(
+                "verifier allocation references unknown service {}",
+                obligation.service_id
+            )
+        })?;
+        let edge_id = service_edge_id(&obligation.service_id);
+        let allocated = flow_by_id
+            .get(edge_id.as_str())
+            .ok_or_else(|| format!("verifier allocation omitted {edge_id}"))?
+            .flow;
+        if allocated < obligation.minimum_required_quantity
+            || allocated > service.requested_quantity
+        {
+            return Err(format!(
+                "verifier allocation violates floor/request for {}",
+                obligation.service_id
+            ));
+        }
+        allocations.push(BeneficiaryFloorAllocation {
+            service_id: obligation.service_id.clone(),
+            requested_quantity: service.requested_quantity,
+            minimum_required_quantity: obligation.minimum_required_quantity,
+            allocated_quantity: allocated,
+        });
+    }
+    allocations.sort_by(|left, right| left.service_id.cmp(&right.service_id));
+    Ok(allocations)
+}
+
 /// Independently verify a floor-feasibility report. This function does not call
 /// the producer's temporal compiler or lower-bound reduction builder.
 pub fn verify_beneficiary_floor_report(
@@ -732,7 +1034,10 @@ pub fn verify_beneficiary_floor_report(
         return Err("beneficiary-floor report case identity mismatch".to_string());
     }
 
-    let (obligations, lower_by_edge) = validate_floor_inputs(profile, &report.base_graph, floors)?;
+    // Reconstruct service floors independently; do not reuse producer
+    // normalization or allocation-selection helpers in the verifier.
+    let (obligations, lower_by_edge) =
+        verifier_reconstruct_floor_bounds(profile, &report.base_graph, floors)?;
     if report.obligations != obligations {
         return Err("beneficiary-floor obligations do not match verifier inputs".to_string());
     }
@@ -783,13 +1088,18 @@ pub fn verify_beneficiary_floor_report(
     }
 
     if expected_feasible {
-        let expected_flows = reconstruct_original_flows(
+        let expected_flows = verifier_reconstruct_original_flows(
             &report.base_graph,
             &lower_by_edge,
             &report.feasibility_certificate,
         )?;
-        let expected_allocations =
-            verify_original_allocation(profile, &report.base_graph, &obligations, &expected_flows)?;
+        let expected_allocations = verifier_check_original_allocation(
+            profile,
+            &report.base_graph,
+            &obligations,
+            &expected_flows,
+            &report.feasibility_certificate,
+        )?;
         if report.original_edge_flows.as_ref() != Some(&expected_flows)
             || report.beneficiary_allocations.as_ref() != Some(&expected_allocations)
         {
