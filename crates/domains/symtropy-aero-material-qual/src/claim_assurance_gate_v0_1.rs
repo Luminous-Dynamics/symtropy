@@ -1428,26 +1428,52 @@ mod tests {
 
     #[test]
     fn malformed_or_duplicate_evidence_identity_rejects() {
-        let blank = [evidence(EvidenceAdmissionState::Admitted, " ")];
-        let result = evaluate(
-            CoverageStatus::QualifiedCompleteForScope,
-            CutStatus::Closed,
+        // Keep the owner cut and decision context valid, then attack the
+        // required-evidence identities at the composition boundary. Building a
+        // context from malformed refs would correctly fail before the gate runs.
+        let valid = all_admitted();
+        let context = context_for_evidence(&valid);
+        let owner_cut = owner_cut_for_evidence(&valid);
+        let coverage = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let causal_cut = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage,
+            &causal_cut,
             EffectivityRelation::DefinitelyEffective,
-            &blank,
+            &context,
         );
-        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        let evaluate_attacked = |required_evidence: &[RequiredEvidenceAdmission]| {
+            evaluate_claim_gate(ClaimGateInput {
+                claim_id: "claim-wing-panel-001",
+                decision_context: &context,
+                owner_evidence_cut: &owner_cut,
+                bindings: &bindings,
+                coverage: &coverage,
+                causal_cut: &causal_cut,
+                effectivity: EffectivityRelation::DefinitelyEffective,
+                required_evidence,
+            })
+        };
 
-        let duplicate = [
-            evidence(EvidenceAdmissionState::Admitted, "receipt:same"),
-            evidence(EvidenceAdmissionState::Admitted, "receipt:same"),
-        ];
-        let result = evaluate(
-            CoverageStatus::QualifiedCompleteForScope,
-            CutStatus::Closed,
-            EffectivityRelation::DefinitelyEffective,
-            &duplicate,
-        );
+        let mut blank = valid.clone();
+        blank[0].evidence_ref = " ".to_owned();
+        let result = evaluate_attacked(&blank);
         assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REQUIRED_EVIDENCE_REF_INVALID".to_owned())
+        );
+
+        let mut duplicate = valid;
+        duplicate[1].evidence_ref = duplicate[0].evidence_ref.clone();
+        let result = evaluate_attacked(&duplicate);
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"DUPLICATE_REQUIRED_EVIDENCE_REF".to_owned())
+        );
     }
 
     #[test]
