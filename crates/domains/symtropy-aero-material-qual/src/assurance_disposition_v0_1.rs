@@ -322,6 +322,27 @@ pub fn evaluate_assurance_state_case_v0_1(
         reasons.insert("ASSURANCE_STATE_VECTOR_INPUT_INCOMPLETE".to_owned());
     }
 
+    let intrinsic_hard_gates = [
+        ObligationKindV0_1::ClaimIdentity,
+        ObligationKindV0_1::EvidenceIntegrity,
+        ObligationKindV0_1::ProducerAuthority,
+    ];
+    for required_kind in intrinsic_hard_gates {
+        let matching = case
+            .obligations
+            .iter()
+            .filter(|obligation| obligation.kind == required_kind)
+            .collect::<Vec<_>>();
+        if matching.is_empty()
+            || matching
+                .iter()
+                .any(|obligation| !obligation.mandatory || !obligation.hard_gate)
+        {
+            unverified = true;
+            reasons.insert("INTRINSIC_HARD_GATE_POLICY_MISSING_OR_DOWNGRADED".to_owned());
+        }
+    }
+
     let mut obligation_ids = BTreeSet::new();
     for obligation in &case.obligations {
         let mut local_reasons = BTreeSet::new();
@@ -778,6 +799,31 @@ mod tests {
         let mut case = positive_case();
         case.subject_time_effectivity = SubjectEffectivity::InvalidInterval;
         assert_eq!(disposition(&case), Disposition::Rejected);
+    }
+
+    #[test]
+    fn intrinsic_identity_gate_cannot_be_downgraded_to_optional() {
+        let mut case = positive_case();
+        let identity = case
+            .obligations
+            .iter_mut()
+            .find(|item| item.kind == Kind::ClaimIdentity)
+            .expect("identity obligation");
+        identity.mandatory = false;
+        identity.hard_gate = false;
+        let result = evaluate_assurance_state_case_v0_1(&case);
+        assert_eq!(result.disposition, Disposition::Unverified);
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "INTRINSIC_HARD_GATE_POLICY_MISSING_OR_DOWNGRADED"
+        }));
+    }
+
+    #[test]
+    fn omission_of_intrinsic_producer_authority_gate_fails_closed() {
+        let mut case = positive_case();
+        case.obligations
+            .retain(|item| item.kind != Kind::ProducerAuthority);
+        assert_eq!(disposition(&case), Disposition::Unverified);
     }
 
     #[test]
