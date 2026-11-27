@@ -5,8 +5,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MANIFEST_VERSION: &str = "ev-bms-split-manifest/v0.1";
-const SCHEMA_ID: &str =
-    "https://luminousdynamics.io/schemas/transport/ev-bms-split-manifest/0.1";
+const SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/transport/ev-bms-split-manifest/0.1";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -120,9 +119,7 @@ fn canonicalize(value: &mut Value) {
 fn validate_group_key(domain: &str, key: &str) -> Result<(), String> {
     let allowed = match domain {
         "onboard_bms" => key == "vehicle_id" || key == "manufacturer_group",
-        "charger_side" => {
-            key == "vehicle_id" || key == "station_id" || key == "data_owner_group"
-        }
+        "charger_side" => key == "vehicle_id" || key == "station_id" || key == "data_owner_group",
         _ => return Err("unsupported source domain".to_owned()),
     };
     if !allowed {
@@ -162,8 +159,7 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
                 .is_none_or(|digest| !is_sha256(digest))
         {
             return Err(
-                "snapshot-admitted splits require field evidence and a snapshot SHA-256"
-                    .to_owned(),
+                "snapshot-admitted splits require field evidence and a snapshot SHA-256".to_owned(),
             );
         }
     } else if manifest.dataset_admission_state == "metadata_only" {
@@ -171,8 +167,7 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
             || manifest.dataset_snapshot_sha256.is_some()
         {
             return Err(
-                "metadata-only source manifests may only use synthetic split fixtures"
-                    .to_owned(),
+                "metadata-only source manifests may only use synthetic split fixtures".to_owned(),
             );
         }
     } else {
@@ -192,13 +187,19 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
         _ => {}
     }
     if manifest.dataset_domain == "charger_side"
-        && !manifest.leakage_keys.iter().any(|key| key == "transaction_id")
+        && !manifest
+            .leakage_keys
+            .iter()
+            .any(|key| key == "transaction_id")
     {
         return Err("charger-side split must keep transaction_id within one partition".to_owned());
     }
     if manifest.dataset_domain == "charger_side"
         && manifest.group_key != "vehicle_id"
-        && !manifest.temporal_exclusion_keys.iter().any(|key| key == "vehicle_id")
+        && !manifest
+            .temporal_exclusion_keys
+            .iter()
+            .any(|key| key == "vehicle_id")
     {
         return Err(
             "station/owner holdouts must prevent overlapping windows for repeated vehicles"
@@ -254,10 +255,7 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     let mut record_digests = BTreeSet::new();
     let mut primary_group_owners: BTreeMap<String, String> = BTreeMap::new();
     let mut leakage_owners: BTreeMap<(String, String), String> = BTreeMap::new();
-    let mut temporal_windows: BTreeMap<
-        (String, String),
-        Vec<(u64, u64, String)>,
-    > = BTreeMap::new();
+    let mut temporal_windows: BTreeMap<(String, String), Vec<(u64, u64, String)>> = BTreeMap::new();
     let mut partition_summaries = Vec::new();
     let mut total_records = 0usize;
     let mut all_primary_groups = BTreeSet::new();
@@ -274,9 +272,7 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
 
         let mut local_primary_groups = BTreeSet::new();
         for record in &partition.records {
-            if !nonempty(&record.record_id)
-                || !record_ids.insert(record.record_id.clone())
-            {
+            if !nonempty(&record.record_id) || !record_ids.insert(record.record_id.clone()) {
                 return Err("record identifiers must be non-empty and globally unique".to_owned());
             }
             if !is_sha256(&record.record_sha256)
@@ -374,8 +370,8 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
                 let index = (key.clone(), value.clone());
                 let windows = temporal_windows.entry(index).or_default();
                 for (start, end, owner) in windows.iter() {
-                    let overlaps = record.window_start_unix_ms < *end
-                        && *start < record.window_end_unix_ms;
+                    let overlaps =
+                        record.window_start_unix_ms < *end && *start < record.window_end_unix_ms;
                     if overlaps && owner != &partition.name {
                         return Err(format!(
                             "overlapping time windows for {}={} cross {} and {}",
@@ -454,8 +450,8 @@ pub fn audit_split_manifest(
         .build(&schema)
         .map_err(|error| format!("split schema compilation: {error}"))?;
 
-    let mut value: Value =
-        serde_json::from_slice(manifest_bytes).map_err(|error| format!("manifest JSON: {error}"))?;
+    let mut value: Value = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("manifest JSON: {error}"))?;
     canonicalize(&mut value);
     if let Err(error) = validator.validate(&value) {
         return Err(format!("split manifest schema validation: {error}"));
@@ -520,11 +516,11 @@ mod tests {
     #[test]
     fn rejects_transaction_leakage_across_stations() {
         let mut value: Value = serde_json::from_slice(SHENZHEN).expect("Shenzhen split JSON");
-        let train_transaction = value["partitions"][0]["records"][0]["group_values"]
-            ["transaction_id"]
-            .as_str()
-            .unwrap()
-            .to_owned();
+        let train_transaction =
+            value["partitions"][0]["records"][0]["group_values"]["transaction_id"]
+                .as_str()
+                .unwrap()
+                .to_owned();
         value["partitions"][2]["records"][0]["group_values"]["transaction_id"] =
             Value::String(train_transaction);
         let bytes = serde_json::to_vec(&value).expect("mutated split JSON");
@@ -539,8 +535,8 @@ mod tests {
             .unwrap()
             .remove("event_id");
         let bytes = serde_json::to_vec(&value).expect("manifest with missing optional event");
-        let report = audit_split_manifest(SCHEMA, &bytes)
-            .expect("missing optional event is allowed");
+        let report =
+            audit_split_manifest(SCHEMA, &bytes).expect("missing optional event is allowed");
         assert_eq!(report.record_count, 5);
         assert_eq!(report.optional_leakage_keys, vec!["event_id"]);
     }
