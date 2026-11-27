@@ -1027,6 +1027,30 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn interval_cholesky_rejects_near_singular_indefinite_covariance() {
+        let mut value = input();
+        value.covariance_row_major[0] = 1.0;
+        value.covariance_row_major[7] = f64::from_bits(1.0_f64.to_bits() - 1);
+        value.covariance_row_major[1] = 1.0;
+        value.covariance_row_major[6] = 1.0;
+        assert_eq!(evaluate(&value).disposition, Disposition::InvalidCovariance);
+    }
+
+    #[test]
+    fn interval_cholesky_accepts_well_conditioned_correlated_covariance() {
+        let mut value = input();
+        value.covariance_row_major[0] = 1.0;
+        value.covariance_row_major[7] = 1.0 + 1.0e-10;
+        value.covariance_row_major[1] = 1.0;
+        value.covariance_row_major[6] = 1.0;
+        assert_eq!(
+            evaluate(&value).disposition,
+            Disposition::CandidateStatisticalPoseRegion
+        );
+    }
+
     #[test]
     fn even_small_covariance_asymmetry_is_rejected() {
         let mut value = input();
