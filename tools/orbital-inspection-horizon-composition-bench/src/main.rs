@@ -1,6 +1,6 @@
 use orbital_inspection_chord_tube_bench::CaseInput;
 use orbital_inspection_horizon_composition_bench::{
-    BoundaryKind, Horizon, HorizonScope, Segment, evaluate, RECEIPT_SCHEMA,
+    BoundaryKind, Horizon, HorizonScope, RECEIPT_SCHEMA, Segment, evaluate,
 };
 use std::collections::BTreeMap;
 use std::env;
@@ -16,16 +16,27 @@ struct Group {
 }
 
 fn parse_u64(value: &str, field: &str) -> Result<u64, Box<dyn Error>> {
-    value.parse::<u64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_i64(value: &str, field: &str) -> Result<i64, Box<dyn Error>> {
-    value.parse::<i64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<i64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
-fn parse_row(fields: &[&str], line_number: usize) -> Result<(String, String, u64, u64, Segment), Box<dyn Error>> {
+fn parse_row(
+    fields: &[&str],
+    line_number: usize,
+) -> Result<(String, String, u64, u64, Segment), Box<dyn Error>> {
     if fields.len() != 28 {
-        return Err(format!("line {line_number}: expected 28 comma-separated fields, found {}", fields.len()).into());
+        return Err(format!(
+            "line {line_number}: expected 28 comma-separated fields, found {}",
+            fields.len()
+        )
+        .into());
     }
 
     let horizon_id = fields[0].to_owned();
@@ -62,7 +73,10 @@ fn parse_row(fields: &[&str], line_number: usize) -> Result<(String, String, u64
             parse_i64(fields[23], "q1y")?,
             parse_i64(fields[24], "q1z")?,
         ],
-        acceleration_bound_scaled_per_s2: parse_i64(fields[25], "acceleration_bound_scaled_per_s2")?,
+        acceleration_bound_scaled_per_s2: parse_i64(
+            fields[25],
+            "acceleration_bound_scaled_per_s2",
+        )?,
         duration_ns: parse_u64(fields[26], "duration_ns")?,
         endpoint_error_bound_scaled: parse_i64(fields[27], "endpoint_error_bound_scaled")?,
     };
@@ -78,7 +92,13 @@ fn parse_row(fields: &[&str], line_number: usize) -> Result<(String, String, u64
         motion,
     };
 
-    Ok((horizon_id, expected, horizon_start_ns, horizon_end_ns, segment))
+    Ok((
+        horizon_id,
+        expected,
+        horizon_start_ns,
+        horizon_end_ns,
+        segment,
+    ))
 }
 
 fn json_escape(value: &str) -> String {
@@ -125,7 +145,9 @@ fn render_result(result: &orbital_inspection_horizon_composition_bench::HorizonR
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let corpus_path = args.next().ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
+    let corpus_path = args
+        .next()
+        .ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
     let source_commit = args.next().ok_or("missing source_commit")?;
     let corpus_sha256 = args.next().ok_or("missing corpus_sha256")?;
 
@@ -148,8 +170,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             segments: Vec::new(),
         });
 
-        if group.horizon_start_ns != start || group.horizon_end_ns != end || group.expected != expected {
-            return Err(format!("line {}: inconsistent horizon header within case", index + 1).into());
+        if group.horizon_start_ns != start
+            || group.horizon_end_ns != end
+            || group.expected != expected
+        {
+            return Err(format!(
+                "line {}: inconsistent horizon header within case",
+                index + 1
+            )
+            .into());
         }
         group.segments.push(segment);
     }
@@ -175,12 +204,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 horizon.horizon_id,
                 group.expected,
                 result.disposition.as_str()
-            ).into());
+            )
+            .into());
         }
         results.push(result);
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     println!(
         "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"case_count\":{},\"claim_ready\":false,\"source_bytes_authenticated\":false,\"authority_granted\":false,\"physical_validation\":\"NOT_ASSESSED\",\"results\":[{}]}}",
         RECEIPT_SCHEMA,
