@@ -7,6 +7,7 @@ published benchmark schemas, instances, metric contracts and challenge seed.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,23 @@ def main() -> int:
             + ", ".join(missing_family_metrics)
         )
 
+    statistical = registry["statistical_protocol"]
+    sample_plans = statistical["required_independent_units_for_zero_adverse_events"]
+    expected_plans = [(0.01, 299), (0.001, 2995), (0.0001, 29956)]
+    actual_plans = [
+        (plan["target_upper_adverse_event_probability"], plan["required_independent_units"])
+        for plan in sample_plans
+    ]
+    if actual_plans != expected_plans:
+        raise SystemExit("FAIL: exact zero-event sample-size targets differ from preregistered values")
+    for plan in sample_plans:
+        target = plan["target_upper_adverse_event_probability"]
+        expected_n = math.ceil(math.log(statistical["alpha"]) / math.log(1.0 - target))
+        if plan["required_independent_units"] != expected_n:
+            raise SystemExit(
+                f"FAIL: incorrect zero-event sample size for target {target}: expected {expected_n}"
+            )
+
     thresholds = registry["thresholds"]
     threshold_ids = [threshold["metric"] for threshold in thresholds]
     require_unique(threshold_ids, "threshold metric IDs")
@@ -102,6 +120,21 @@ def main() -> int:
         if threshold["unit"] == "proportion" and not 0.0 <= threshold["target"] <= 1.0:
             raise SystemExit(f"FAIL: proportion threshold out of range for {metric_id}")
 
+    threshold_by_id = {threshold["metric"]: threshold for threshold in thresholds}
+    for definition in definitions:
+        if definition["gating"] == "hard_gate":
+            threshold = threshold_by_id.get(definition["id"])
+            if threshold is None or not threshold["critical"]:
+                raise SystemExit(
+                    f"FAIL: hard-gate metric {definition['id']} requires a critical threshold"
+                )
+    for threshold in thresholds:
+        definition = metric_by_id[threshold["metric"]]
+        if threshold["critical"] and definition["gating"] != "hard_gate":
+            raise SystemExit(
+                f"FAIL: critical threshold {threshold['metric']} is not a hard-gate metric"
+            )
+
     cases = challenge["cases"]
     if len(cases) != 32:
         raise SystemExit(f"FAIL: v0.3 challenge seed must contain 32 cases, found {len(cases)}")
@@ -120,7 +153,8 @@ def main() -> int:
     print(
         "PASS: AERO IAB v0.3 structural validation "
         f"({len(definitions)} metrics, {len(thresholds)} thresholds, "
-        f"{len(registry['families'])} families, {len(cases)} challenge cases)."
+        f"{len(registry['families'])} families, {len(cases)} challenge cases, "
+        f"{len(sample_plans)} exact statistical sample-size targets)."
     )
     print("NOTE: schema/registry validity is not oracle adjudication or benchmark execution.")
     return 0
