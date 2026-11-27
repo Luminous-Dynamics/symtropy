@@ -51,7 +51,7 @@ pub struct SeparationInterval {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ContactGeometryLease<const D: usize> {
+pub struct ContactGeometryLease {
     pub pair: ProxyPair,
     pub generations: [u64; 2],
     pub shape_revisions: [u64; 2],
@@ -161,3 +161,145 @@ impl<const D: usize> RelativeMotionEnvelope<D> {
     /// Bound maximum movement of any point in the cached contact geometry:
     ///
     /// 
+    /// Bound maximum point displacement of the cached contact geometry:
+    /// |relative translation| + radius * maximum rotation angle + allowance.
+    ///
+    /// The rotation term is conservative because sin(x) <= x for x >= 0.
+    /// The adapter must supply the largest point-rotation angle of the
+    /// canonical relative rotation, in [0, pi].
+    pub fn displacement_upper_bound(&self) -> Result<MotionBound, ContactLeaseError> {
+        if !self.max_point_rotation_angle_rad.is_finite()
+            || !(0.0..=std::f64::consts::PI).contains(&self.max_point_rotation_angle_rad)
+            || !self.maximum_lever_arm_radius.is_finite()
+            || self.maximum_lever_arm_radius < 0.0
+            || !self.rounding_allowance.is_finite()
+            || self.rounding_allowance < 0.0
+        {
+            return Err(ContactLeaseError::InvalidRelativeMotion);
+        }
+
+        let translation_upper = norm_upper(&self.relative_translation_delta)?;
+        let rotation_displacement_upper = multiply_upper(
+            self.maximum_lever_arm_radius,
+            self.max_point_rotation_angle_rad,
+        )?;
+        let combined = add_upper(translation_upper, rotation_displacement_upper)?;
+        let total_displacement_upper = add_upper(combined, self.rounding_allowance)?;
+
+        Ok(MotionBound {
+            translation_upper,
+            rotation_displacement_upper,
+            total_displacement_upper,
+        })
+    }
+}
+
+/// Evaluate a prior manifold witness against the current identity/revisions,
+/// an independently computed relative-motion envelope, feature margin,
+/// normal-variation upper bound, and updated gap interval.
+pub fn evaluate_contact_geometry_lease<const D: usize>(
+    lease: &ContactGeometryLease,
+    current_pair: ProxyPair,
+    current_generations: [u64; 2],
+    current_shape_revisions: [u64; 2],
+    motion: &RelativeMotionEnvelope<D>,
+) -> Result<ContactLeaseDecision, ContactLeaseError> {
+    if lease.pair.0 >= lease.pair.1 || current_pair.0 >= current_pair.1 {
+        return Err(ContactLeaseError::NonCanonicalPair);
+    }
+    if lease.pair != current_pair {
+        return Err(ContactLeaseError::PairIdentityMismatch);
+    }
+    if current_generations != lease.generations {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::ProxyGenerationChanged,
+            ),
+            motion_bound: None,
+        });
+    }
+    if current_shape_revisions != lease.shape_revisions {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::ShapeRevisionChanged,
+            ),
+            motion_bound: None,
+        });
+    }
+    if lease.feature_identity.is_none() {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::UnsupportedGeometry,
+            motion_bound: None,
+        });
+    }
+    if !lease.feature_margin_lower_bound.is_finite()
+        || lease.feature_margin_lower_bound < 0.0
+    {
+        return Err(ContactLeaseError::InvalidFeatureMargin);
+    }
+    if !lease.normal_variation_upper_bound_rad.is_finite()
+        || lease.normal_variation_upper_bound_rad < 0.0
+        || !lease.normal_variation_limit_rad.is_finite()
+        || lease.normal_variation_limit_rad < 0.0
+        || lease.normal_variation_limit_rad > std::f64::consts::PI
+    {
+        return Err(ContactLeaseError::InvalidNormalBound);
+    }
+    if !lease.updated_gap.lower.is_finite()
+        || !lease.updated_gap.upper.is_finite()
+        || lease.updated_gap.lower > lease.updated_gap.upper
+    {
+        return Err(ContactLeaseError::InvalidGapInterval);
+    }
+    if !lease.contact_slop.is_finite() || lease.contact_slop < 0.0 {
+        return Err(ContactLeaseError::InvalidContactSlop);
+    }
+    if !lease.maximum_penetration.is_finite() || lease.maximum_penetration < 0.0 {
+        return Err(ContactLeaseError::InvalidPenetrationBound);
+    }
+
+    let motion_bound = motion.displacement_upper_bound()?;
+    if lease.updated_gap.lower > lease.contact_slop {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::ContactEnded,
+            motion_bound: Some(motion_bound),
+        });
+    }
+    if lease.updated_gap.upper > lease.contact_slop {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::GapIntervalStraddlesContactBoundary,
+            ),
+            motion_bound: Some(motion_bound),
+        });
+    }
+    if lease.updated_gap.lower < -lease.maximum_penetration {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::PenetrationBoundExceeded,
+            ),
+            motion_bound: Some(motion_bound),
+        });
+    }
+    if lease.feature_margin_lower_bound <= motion_bound.total_displacement_upper {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::RelativeMotionExceedsFeatureMargin,
+            ),
+            motion_bound: Some(motion_bound),
+        });
+    }
+    if lease.normal_variation_upper_bound_rad > lease.normal_variation_limit_rad {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::NormalVariationExceedsLimit,
+            ),
+            motion_bound: Some(motion_bound),
+        });
+    }
+
+    Ok(ContactLeaseDecision {
+        disposition: ContactLeaseDisposition::ReuseCertified,
+        motion_bound: Some(motion_bound),
+    })
+}
