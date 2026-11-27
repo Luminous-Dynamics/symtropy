@@ -398,11 +398,17 @@ impl<const N: usize> Mul for IntervalDual<N> {
     fn mul(self, rhs: Self) -> Self::Output {
         Self {
             value: self.value * rhs.value,
-            gradient: std::array::from_fn(|index| {
-                self.gradient[index] * rhs.value + self.value * rhs.gradient[index]
-            }),
+            gradient: std::array::from_fn(|index| product_rule_derivative(self, rhs, index)),
         }
     }
+}
+
+fn product_rule_derivative<const N: usize>(
+    left: IntervalDual<N>,
+    right: IntervalDual<N>,
+    index: usize,
+) -> Interval {
+    left.gradient[index] * right.value + left.value * right.gradient[index]
 }
 
 impl<const N: usize> Div for IntervalDual<N> {
@@ -685,11 +691,15 @@ where
     }
 
     let mut mean_value_enclosure = centre_value;
-    for index in 0..N {
-        let centre_interval = Interval::point(centres[index]).map_err(IntervalAdError::from)?;
-        let displacement = domain.parameter_bounds[index] - centre_interval;
-        mean_value_enclosure =
-            mean_value_enclosure + result.derivative_intervals[index] * displacement;
+    for ((bounds, derivative), centre) in domain
+        .parameter_bounds
+        .iter()
+        .zip(result.derivative_intervals.iter())
+        .zip(centres.iter())
+    {
+        let centre_interval = Interval::point(*centre).map_err(IntervalAdError::from)?;
+        let displacement = *bounds - centre_interval;
+        mean_value_enclosure = mean_value_enclosure + *derivative * displacement;
     }
     if !mean_value_enclosure.is_finite() {
         return Err(IntervalAdError::UnboundedValueEnclosure);
@@ -1327,7 +1337,7 @@ mod tests {
     fn one_expression_can_be_replayed_over_multiple_parameter_boxes() {
         let narrow = domain(["x"], [interval(1.0, 2.0)]);
         let wide = domain(["x"], [interval(2.0, 3.0)]);
-        let expression = |[x]| Ok(x.square());
+        let expression = |[x]: [IntervalDual<1>; 1]| Ok(x.square());
         let first = certify_expression(&narrow, expression).expect("first box");
         let second = certify_expression(&wide, expression).expect("second box");
         assert!(first.derivative_intervals[0].lower() <= 2.0);
