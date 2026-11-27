@@ -282,3 +282,18 @@ The official KITTI evaluation contract is 22 stereo sequences (00–10 train wit
 Source: https://www.cvlibs.net/datasets/kitti/eval_odometry.php
 
 For Symthaea, first reproduce the stereo reference on the training/dev split and compare matched modality, hardware and parameters. Do not make an official test leaderboard claim from the training sequences. A prospective stereo target should be below 0.53% / 0.0009 deg/m on the official hidden-test protocol, with paired per-sequence reporting and identical input limits; treat it as a research target, not a current Symthaea result.
+
+
+## 17. Canonical frame, clock and pose semantics
+
+The candidate projection is deliberately aligned to the existing Symthaea spatial owners:
+- #498 ReferenceFrameId and ClockDomainId each use namespace, local_id and generation; local ID alone never joins across resets/recalibration.
+- Symthaea Pose3 is T_reference_from_local in right-handed metric Cartesian coordinates, with translation expressed in the reference frame and quaternion [w,x,y,z]. V1 pose uncertainty is three independent translation sigmas (m) plus three independent left-multiplicative SO(3) tangent sigmas (rad), not a full correlated SE(3) covariance.
+- #611 owns the later correlated-pose representation; do not reinterpret these marginal sigmas as a joint covariance.
+- #621 owns cross-clock offset/drift transform qualification; #632 owns uncertain extrinsic calibration/currentness; #633 owns dependence-aware fusion; #625 owns joint pose-map updates and no double counting.
+
+Symtropy #1589's CoordinateFrameV1 / FrameTransformV1 static transform uses p_parent = R_parent_child * p_child + t_parent_child and [x,y,z,w]. This has the same direction as T_parent_from_child. The adapter must explicitly reorder [w,x,y,z] to [x,y,z,w], leave translation/endpoints unchanged, and test non-identity poses. Candidate coordinate frames are never replaced by hidden WorldManifestV1 frames. Evaluator alignment is a separate hidden-truth operation.
+
+The projection now carries a sensor frame reference per spatial observation, typed capture support and known-at ClockDomainId/tick values, projection creation time, parent projection digests and #621 clock-transform digests. These lineage fields prevent implicit clock comparisons or treating old map state as new independent evidence.
+
+See [spatial-state-projection-validation-v0.md](./spatial-state-projection-validation-v0.md) and [directed pose transform vectors](./spatial-state-projection-v0.transform-vectors.json). The validator checklist remains a specification, not a running Rust validator.
