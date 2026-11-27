@@ -7,8 +7,8 @@
 //! Jacobian supremum bounds. It does not derive or authenticate those bounds.
 
 use magnetic_interval_ad::{
-    certify_expression_centered, map_spatial_derivative_suprema, Interval, IntervalDual,
-    ParameterDomain, SpatialMappingError, ValidatedDerivativeEnclosure,
+    Interval, IntervalDual, ParameterDomain, SpatialMappingError, ValidatedDerivativeEnclosure,
+    certify_expression_centered, map_spatial_derivative_suprema,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -247,23 +247,44 @@ pub fn bind_interval_ad_residual_jacobian(
 
         let scope_matches = [
             (mapped.axis_bounds_m == input.cell_bounds_m, "cell_bounds_m"),
-            (mapped.coordinate_frame_id == input.coordinate_frame_id, "coordinate_frame_id"),
-            (mapped.operating_condition_id == input.operating_condition_id, "operating_condition_id"),
+            (
+                mapped.coordinate_frame_id == input.coordinate_frame_id,
+                "coordinate_frame_id",
+            ),
+            (
+                mapped.operating_condition_id == input.operating_condition_id,
+                "operating_condition_id",
+            ),
             (mapped.model_set_id == input.model_set_id, "model_set_id"),
             (mapped.solver_run_id == input.solver_run_id, "solver_run_id"),
-            (mapped.geometry_sha256 == input.geometry_sha256, "geometry_sha256"),
-            (mapped.material_sha256 == input.material_sha256, "material_sha256"),
-            (mapped.source_revision == input.residual_jacobian_source_revision, "source_revision"),
-            (mapped.implementation_id == input.residual_jacobian_implementation_id, "implementation_id"),
-            (mapped.artifact_sha256 == input.residual_jacobian_artifact_sha256, "artifact_sha256"),
-            (mapped.environment_sha256 == input.residual_jacobian_environment_sha256, "environment_sha256"),
+            (
+                mapped.geometry_sha256 == input.geometry_sha256,
+                "geometry_sha256",
+            ),
+            (
+                mapped.material_sha256 == input.material_sha256,
+                "material_sha256",
+            ),
+            (
+                mapped.source_revision == input.residual_jacobian_source_revision,
+                "source_revision",
+            ),
+            (
+                mapped.implementation_id == input.residual_jacobian_implementation_id,
+                "implementation_id",
+            ),
+            (
+                mapped.artifact_sha256 == input.residual_jacobian_artifact_sha256,
+                "artifact_sha256",
+            ),
+            (
+                mapped.environment_sha256 == input.residual_jacobian_environment_sha256,
+                "environment_sha256",
+            ),
         ];
         for (matches, field) in scope_matches {
             if !matches {
-                return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                    component,
-                    field,
-                });
+                return Err(DiscrepancyError::IntervalAdScopeMismatch { component, field });
             }
         }
 
@@ -271,9 +292,7 @@ pub fn bind_interval_ad_residual_jacobian(
             if previous.record_id == record.record_id
                 || previous.expression_id == record.expression_id
             {
-                return Err(DiscrepancyError::DuplicateIntervalAdComponentIdentity {
-                    component,
-                });
+                return Err(DiscrepancyError::DuplicateIntervalAdComponentIdentity { component });
             }
         }
         mapped_records.push(mapped);
@@ -286,9 +305,8 @@ pub fn bind_interval_ad_residual_jacobian(
     input.residual_jacobian_component_input_sha256 =
         std::array::from_fn(|index| records[index].input_sha256.clone());
     input.residual_jacobian_cell_id = input.cell_id.clone();
-    input.residual_jacobian_abs_supremum_t_per_m = std::array::from_fn(|component| {
-        mapped_records[component].derivative_abs_supremum_by_axis
-    });
+    input.residual_jacobian_abs_supremum_t_per_m =
+        std::array::from_fn(|component| mapped_records[component].derivative_abs_supremum_by_axis);
     input.residual_jacobian_record_id = format!(
         "interval-ad-jacobian-set:{}|{}|{}",
         records[0].record_id, records[1].record_id, records[2].record_id
@@ -476,9 +494,15 @@ pub fn certify_physical_field_discrepancy(
         background_control_record_id: input.background_control_record_id.clone(),
         temperature_record_id: input.temperature_record_id.clone(),
         residual_jacobian_record_id: input.residual_jacobian_record_id.clone(),
-        residual_jacobian_component_record_ids: input.residual_jacobian_component_record_ids.clone(),
-        residual_jacobian_component_expression_ids: input.residual_jacobian_component_expression_ids.clone(),
-        residual_jacobian_component_input_sha256: input.residual_jacobian_component_input_sha256.clone(),
+        residual_jacobian_component_record_ids: input
+            .residual_jacobian_component_record_ids
+            .clone(),
+        residual_jacobian_component_expression_ids: input
+            .residual_jacobian_component_expression_ids
+            .clone(),
+        residual_jacobian_component_input_sha256: input
+            .residual_jacobian_component_input_sha256
+            .clone(),
         residual_jacobian_source_revision: input.residual_jacobian_source_revision.clone(),
         residual_jacobian_implementation_id: input.residual_jacobian_implementation_id.clone(),
         residual_jacobian_artifact_sha256: input.residual_jacobian_artifact_sha256.clone(),
@@ -609,11 +633,7 @@ mod tests {
             artifact_sha256: scope.residual_jacobian_artifact_sha256.clone(),
             environment_sha256: scope.residual_jacobian_environment_sha256.clone(),
             parameter_ids: ["x".to_owned(), "y".to_owned(), "z".to_owned()],
-            parameter_units: [
-                "metre".to_owned(),
-                "metre".to_owned(),
-                "metre".to_owned(),
-            ],
+            parameter_units: ["metre".to_owned(), "metre".to_owned(), "metre".to_owned()],
             parameter_bounds: scope.cell_bounds_m,
             output_unit: scope.field_unit.clone(),
             coordinate_frame_id: scope.coordinate_frame_id.clone(),
