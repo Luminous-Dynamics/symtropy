@@ -1,0 +1,89 @@
+{
+  "manifest_version": "ev-bms-dataset-manifest/v0.1",
+  "dataset_id": "cao-onboard-bms-zenodo-10656500",
+  "title": "Model-Constrained Deep Learning for Online Fault Diagnosis in Li-ion Batteries over Stochastic Conditions",
+  "doi": "10.5281/zenodo.10656500",
+  "source_record_url": "https://zenodo.org/records/10656500",
+  "source_repository": "Zenodo",
+  "source_version": "v1",
+  "source_published_on": "2024-02-14",
+  "metadata_retrieved_on": "2026-11-27",
+  "license_spdx": "CC-BY-4.0",
+  "evidence_class": "operator_collected_field_observation",
+  "source_domain": "onboard_bms",
+  "measurement_boundary": "vehicle_bms",
+  "sample_interval_seconds": 30,
+  "counts": {
+    "sample_count": 18200000,
+    "sample_count_is_approximate": true,
+    "vehicle_count": 515,
+    "session_count": null,
+    "station_count": null,
+    "manufacturer_group_count": 3,
+    "data_owner_group_count": null
+  },
+  "label_contract": {
+    "task": "multi_class_fault_warning",
+    "granularity": "sample_with_vehicle_group",
+    "classes": [
+      "normal",
+      "thermal_runaway",
+      "electrolyte_leakage",
+      "internal_short_circuit",
+      "excessive_aging"
+    ],
+    "label_sources": [
+      "publisher_dataset_labels"
+    ],
+    "limitations": [
+      "Manufacturer identities are anonymized as DTI, QAS and GIS.",
+      "Reported 18.2 million valid entries is rounded, not an exact row count.",
+      "Fault classes are rare and class prevalence must be measured from admitted files.",
+      "A publisher-reported fault sample is not independent forensic confirmation of a physical failure mechanism."
+    ]
+  },
+  "asset_group_keys": [
+    "vehicle_id",
+    "manufacturer_group",
+    "time"
+  ],
+  "assets": [
+    {
+      "name": "DTI.zip",
+      "source_md5": "400135e26d8bac65cc171e63f71fd5dd",
+      "local_sha256": null
+    },
+    {
+      "name": "GIS.zip",
+      "source_md5": "2b4d5f9d0d045bbe5bb0318ea84f7e7e",
+      "local_sha256": null
+    },
+    {
+      "name": "QAS_1.zip",
+      "source_md5": "a3d3a182c7c82df26073a53f698148c8",
+      "local_sha256": null
+    },
+    {
+      "name": "QAS_2.zip",
+      "source_md5": "9183ff01f6cf3e187716ca3a2d7f6b53",
+      "local_sha256": null
+    },
+    {
+      "name": "QAS_3.zip",
+      "source_md5": "7cb6410cac2c44890eaccd9d594887bf",
+      "local_sha256": null
+    },
+    {
+      "name": "QAS_4.zip",
+      "source_md5": "d138ef98e2fb77c12afc88a6043e3be8",
+      "local_sha256": null
+    },
+    {
+      "name": "QAS_5.zip",
+      "source_md5": "f420b38bab7aca514ab834cbfa0010b8",
+      "local_sha256": null
+    }
+  ],
+  "admission_state": "metadata_only",
+  "claim_ceiling": "Metadata-only source registration. No raw bytes, label frequencies, event boundaries, model score, vehicle split or physical fault claim has yet been independently verified by this project."
+}
