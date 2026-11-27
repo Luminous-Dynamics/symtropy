@@ -255,8 +255,10 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
     if manifest.fault_counts_by_chemistry.len() != 2 {
         return Err("fault counts for both chemistries are required".to_owned());
     }
+    let mut fault_count_chemistries = BTreeSet::new();
     for counts in &manifest.fault_counts_by_chemistry {
         if !["LFP", "NCM"].contains(&counts.chemistry.as_str())
+            || !fault_count_chemistries.insert(counts.chemistry.as_str())
             || counts.normal != 400
             || counts.high_resistance != 30
             || counts.low_capacity != 30
@@ -408,7 +410,7 @@ mod tests {
     const SCHEMA: &[u8] =
         include_bytes!("../../../schemas/transport/ev_bms_generated_reference_v0_1.schema.json");
     const FIXTURE: &[u8] =
-        include_bytes!("../../../fixtures/ev_battery/ch_batteryg_en_generated_manifest_v0_1.json");
+        include_bytes!("../../../fixtures/ev_battery/ch_batterygen_generated_manifest_v0_1.json");
 
     #[test]
     fn admits_metadata_only_mechanism_constrained_generated_source() {
