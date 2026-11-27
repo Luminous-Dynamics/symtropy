@@ -35,6 +35,7 @@ For each scenario ω and policy π, preserve a service-and-recovery vector:
 - repair, standby, substitution, renewal and whole-life cost;
 - energy, emissions, material loss and water/heat externalities;
 - common-cause cut-set coverage and false-independence admission;
+- plan replan invocation count, assignment churn and event-to-admissible-plan decision latency;
 - plan change, evidence freshness and authority state.
 
 Compare candidate policy outcomes with a clairvoyant per-scenario oracle (upper bound only), a non-clairvoyant robust policy, a no-build/current-portfolio baseline and a deliberately naive independence-assumption control. Report regret as a vector. Do not collapse it to one number unless an authorized decision-maker supplies a transparent preference model after all hard constraints pass.
