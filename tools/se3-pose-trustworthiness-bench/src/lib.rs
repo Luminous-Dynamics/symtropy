@@ -920,7 +920,7 @@ mod tests {
 
     #[test]
     fn summary_reports_selective_risk_and_coverage() {
-        let mut first = input();
+        let first = input();
         let mut second = input();
         second.case_id = "POSE-002".to_owned();
         second.sample_id = "sample-002".to_owned();
