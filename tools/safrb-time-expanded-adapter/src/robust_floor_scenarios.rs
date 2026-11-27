@@ -715,8 +715,7 @@ mod tests {
 
             let request = RobustFloorScenarioInput {
                 scenario_set_id: format!("seeded-robust-floor-set-{seed}"),
-                recourse_assumption:
-                    ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation,
+                recourse_assumption: ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation,
                 scenarios,
                 floors: vec![
                     BeneficiaryFloor {
