@@ -16,8 +16,7 @@ use sha2::{Digest, Sha256};
 use single_commodity_flow_kernel::{CutEdge, FlowCertificateBundle, FlowEdge};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub const FLOOR_CUT_EXPLANATION_SCHEMA: &str =
-    "safrb-beneficiary-floor-cut-explanation-v0.1";
+pub const FLOOR_CUT_EXPLANATION_SCHEMA: &str = "safrb-beneficiary-floor-cut-explanation-v0.1";
 
 const AUX_SOURCE: &str = "__safrb-floor-feasibility/super-source-v0.1";
 const AUX_SINK: &str = "__safrb-floor-feasibility/super-sink-v0.1";
@@ -25,13 +24,10 @@ const RETURN_EDGE_ID: &str = "__safrb-floor-feasibility/return-v0.1";
 const RETURN_METADATA: &str = "safrb-beneficiary-floor-feasibility-v0.1/return";
 const SUPER_SOURCE_PREFIX: &str = "__safrb-floor-feasibility/ss/";
 const SUPER_SINK_PREFIX: &str = "__safrb-floor-feasibility/tt/";
-const SUPER_SOURCE_META_PREFIX: &str =
-    "safrb-beneficiary-floor-feasibility-v0.1/super-source/";
-const SUPER_SINK_META_PREFIX: &str =
-    "safrb-beneficiary-floor-feasibility-v0.1/super-sink/";
+const SUPER_SOURCE_META_PREFIX: &str = "safrb-beneficiary-floor-feasibility-v0.1/super-source/";
+const SUPER_SINK_META_PREFIX: &str = "safrb-beneficiary-floor-feasibility-v0.1/super-sink/";
 
-pub const FLOOR_CUT_CLAIM_CEILING: &str =
-    "Exact min-cut attribution in the declared synthetic lower-bound circulation graph only; not a physical root-cause diagnosis, unique intervention set, evidence-authenticity result, legal determination, dispatch authorization or actual service claim.";
+pub const FLOOR_CUT_CLAIM_CEILING: &str = "Exact min-cut attribution in the declared synthetic lower-bound circulation graph only; not a physical root-cause diagnosis, unique intervention set, evidence-authenticity result, legal determination, dispatch authorization or actual service claim.";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -111,7 +107,10 @@ fn state_node_id(node_id: &str, period: u64) -> String {
 }
 
 fn handling_node_id(node_id: &str, period: u64) -> String {
-    format!("safrb-temporal/handling/{}/{node_id}/{period}", node_id.len())
+    format!(
+        "safrb-temporal/handling/{}/{node_id}/{period}",
+        node_id.len()
+    )
 }
 
 fn issue_node_id(node_id: &str, period: u64) -> String {
@@ -377,10 +376,7 @@ fn node_for_balance_edge(
     ))
 }
 
-fn balance_node_services(
-    profile: &TemporalProfile,
-    identity: &BalanceNodeIdentity,
-) -> Vec<String> {
+fn balance_node_services(profile: &TemporalProfile, identity: &BalanceNodeIdentity) -> Vec<String> {
     if identity.state != TemporalNodeState::ServiceIssue {
         return Vec::new();
     }
@@ -440,7 +436,9 @@ fn attribute_cut_edge(
             || edge.to != AUX_SOURCE
             || edge.metadata_ref.as_deref() != Some(RETURN_METADATA)
         {
-            return Err("circulation return cut edge has invalid identity or endpoints".to_string());
+            return Err(
+                "circulation return cut edge has invalid identity or endpoints".to_string(),
+            );
         }
         EdgeAttribution {
             family: FloorCutConstraintFamily::CirculationReturnClosure,
@@ -596,9 +594,7 @@ pub fn verify_beneficiary_floor_infeasibility_explanation(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::beneficiary_floors::{
-        BeneficiaryFloor, evaluate_beneficiary_floors,
-    };
+    use crate::beneficiary_floors::{BeneficiaryFloor, evaluate_beneficiary_floors};
     use crate::temporal_profile::{
         TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer,
     };
@@ -802,7 +798,10 @@ mod tests {
             "../schemas/floor-cut-explanation-v0.1.schema.json"
         ))
         .unwrap();
-        assert_eq!(schema["properties"]["schema_version"]["const"], FLOOR_CUT_EXPLANATION_SCHEMA);
+        assert_eq!(
+            schema["properties"]["schema_version"]["const"],
+            FLOOR_CUT_EXPLANATION_SCHEMA
+        );
         assert_eq!(schema["properties"]["cut_edges"]["type"], "array");
         assert_eq!(
             schema["properties"]["cut_edges"]["items"]["properties"]["node_state"]["enum"][1],
@@ -821,13 +820,8 @@ mod tests {
         let encoded = serde_json::to_vec(&explanation).unwrap();
         let decoded: FloorInfeasibilityExplanation = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, explanation);
-        verify_beneficiary_floor_infeasibility_explanation(
-            &model,
-            &floor_set,
-            &report,
-            &decoded,
-        )
-        .unwrap();
+        verify_beneficiary_floor_infeasibility_explanation(&model, &floor_set, &report, &decoded)
+            .unwrap();
 
         let mut unknown = serde_json::to_value(&explanation).unwrap();
         unknown["unexpected"] = serde_json::json!(true);
