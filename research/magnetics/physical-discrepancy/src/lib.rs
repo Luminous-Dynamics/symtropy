@@ -7,8 +7,7 @@
 //! Jacobian supremum bounds. It does not derive or authenticate those bounds.
 
 use magnetic_interval_ad::{
-    Interval, IntervalDual, ParameterDomain, SpatialMappingError, ValidatedDerivativeEnclosure,
-    certify_expression_centered, map_spatial_derivative_suprema,
+    Interval, SpatialMappingError, ValidatedDerivativeEnclosure, map_spatial_derivative_suprema,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -442,12 +441,12 @@ pub fn certify_physical_field_discrepancy(
             input.measured_field_at_centre_t[component] - input.model_field_at_centre_t[component];
 
         let mut variation_radius = 0.0;
-        for axis in 0..3 {
+        for (axis, half_width) in half_widths.iter().enumerate() {
             let derivative_bound =
                 Interval::point(input.residual_jacobian_abs_supremum_t_per_m[component][axis])
                     .expect("validated finite Jacobian bound");
             let cell_radius =
-                Interval::point(half_widths[axis]).expect("validated finite half-width");
+                Interval::point(*half_width).expect("validated finite half-width");
             let contribution = (derivative_bound * cell_radius)
                 .abs_upper_bound()
                 .ok_or(DiscrepancyError::NonFiniteResidualRadius { component })?;
@@ -533,6 +532,7 @@ pub fn certify_physical_field_discrepancy(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use magnetic_interval_ad::{certify_expression_centered, IntervalDual, ParameterDomain};
 
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -825,15 +825,15 @@ mod tests {
             certify_physical_field_discrepancy(&input()).expect("valid affine residual evidence");
 
         let expected_radii = [0.65, 0.25, 0.45];
-        for component in 0..3 {
-            assert!(result.residual_variation_radius_t[component] >= expected_radii[component]);
+        for (component, expected_radius) in expected_radii.iter().enumerate() {
+            assert!(result.residual_variation_radius_t[component] >= *expected_radius);
             assert!(
                 result.residual_field_over_cell_t[component].lower()
-                    <= result.centre_residual_t[component].lower() - expected_radii[component]
+                    <= result.centre_residual_t[component].lower() - expected_radius
             );
             assert!(
                 result.residual_field_over_cell_t[component].upper()
-                    >= result.centre_residual_t[component].upper() + expected_radii[component]
+                    >= result.centre_residual_t[component].upper() + expected_radius
             );
             assert!(
                 result.physical_field_over_cell_t[component].lower()
