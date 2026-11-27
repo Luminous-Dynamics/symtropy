@@ -1,0 +1,39 @@
+name: qdrive-relativistic-exhaust
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/qdrive-relativistic-exhaust.yml"
+      - "tools/qdrive-relativistic-exhaust/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/qdrive-relativistic-exhaust.yml"
+      - "tools/qdrive-relativistic-exhaust/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: relativistic exhaust analytical reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/qdrive-relativistic-exhaust/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/qdrive-relativistic-exhaust/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/qdrive-relativistic-exhaust/Cargo.toml --all-targets -- -D warnings
