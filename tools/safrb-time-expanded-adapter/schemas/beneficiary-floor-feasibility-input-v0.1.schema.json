@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/beneficiary-floor-feasibility-input-v0.1.schema.json",
+  "title": "SAFRB Beneficiary Floor Feasibility Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "floors"
+  ],
+  "properties": {
+    "profile": {
+      "$ref": "temporal-profile-v0.1.schema.json"
+    },
+    "floors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "beneficiary-floor-feasibility-v0.1.schema.json#/$defs/floor"
+      }
+    }
+  },
+  "description": "The profile declares request ceilings. The floors array separately declares mandatory per-beneficiary minima; every floor must be no greater than its service request."
+}
