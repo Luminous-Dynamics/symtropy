@@ -113,9 +113,18 @@ fn run_scenario<const D: usize>(scenario: Scenario, iterations: usize) -> (Count
             Scenario::MissingFeature => current_feature = None,
         }
 
+        let mut relative_rotation_delta = [[0.0; D]; D];
+        if D >= 2 {
+            let cosine_delta = angle.cos() - 1.0;
+            let sine = angle.sin();
+            relative_rotation_delta[0][0] = cosine_delta;
+            relative_rotation_delta[0][1] = -sine;
+            relative_rotation_delta[1][0] = sine;
+            relative_rotation_delta[1][1] = cosine_delta;
+        }
         let motion = RelativeMotionEnvelope {
             relative_translation_delta: translation,
-            max_point_rotation_angle_rad: angle,
+            relative_rotation_delta,
             maximum_lever_arm_radius: 2.0,
             rounding_allowance: 1.0e-12,
         };
