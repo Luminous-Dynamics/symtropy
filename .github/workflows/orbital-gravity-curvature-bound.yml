@@ -67,7 +67,10 @@ jobs:
           assert cases["CB027"]["disposition"] == "OVERFLOW"
           assert cases["CB028"]["disposition"] == "OVERFLOW"
           assert cases["CB031"]["disposition"] == "OUT_OF_SCOPE"
-          print("36 curvature cases: exact Rust/Python receipt equality")
+          assert cases["CB001"]["m_scale"] == 1000000
+          assert cases["CB001"]["m_unit"] == "s^-2"
+          assert cases["CB001"]["bound_ready"] is True
+          print("36 curvature cases: exact Rust/Python receipt equality with units and provenance")
           PY
       - name: Retain exact-head evidence
         if: success()
