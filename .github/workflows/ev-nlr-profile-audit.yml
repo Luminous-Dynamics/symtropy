@@ -25,6 +25,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+      - name: Validate report schema
+        run: jq empty tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json
       - name: Check formatting
         run: cargo fmt --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all -- --check
       - name: Run unit and adversarial contract tests
@@ -96,5 +98,6 @@ jobs:
           path: |
             nlr-profile-audit-report.json
             nlr-profile-audit-report.sha256
+            tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json
           if-no-files-found: error
           retention-days: 14
