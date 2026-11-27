@@ -252,29 +252,40 @@ fn score_accepted(input: &PredictionInput) -> Result<Vec<RegionScore>, &'static 
 
         let mut width = [0_u64; 3];
         let mut axis_covered = [false; 3];
-        for axis in 0..3 {
-            if region.lower_um[axis] > region.upper_um[axis] {
+        for (axis, ((&lower, &upper), (&predicted, &truth))) in region
+            .lower_um
+            .iter()
+            .zip(region.upper_um.iter())
+            .zip(
+                input
+                    .predicted_translation_um
+                    .iter()
+                    .zip(input.truth_translation_um.iter()),
+            )
+            .enumerate()
+        {
+            if lower > upper {
                 return Err("TRANSLATION_REGION_BOUNDS_REVERSED");
             }
-            if input.predicted_translation_um[axis] < region.lower_um[axis]
-                || input.predicted_translation_um[axis] > region.upper_um[axis]
-            {
+            if predicted < lower || predicted > upper {
                 return Err("PREDICTION_CENTER_OUTSIDE_DECLARED_REGION");
             }
-            let span = i128::from(region.upper_um[axis])
-                .checked_sub(i128::from(region.lower_um[axis]))
+            let span = i128::from(upper)
+                .checked_sub(i128::from(lower))
                 .and_then(|value| u64::try_from(value).ok())
                 .ok_or("TRANSLATION_REGION_WIDTH_OVERFLOW")?;
             width[axis] = span;
-            axis_covered[axis] = input.truth_translation_um[axis] >= region.lower_um[axis]
-                && input.truth_translation_um[axis] <= region.upper_um[axis];
+            axis_covered[axis] = truth >= lower && truth <= upper;
         }
 
         if let Some(inner) = previous {
-            for axis in 0..3 {
-                if region.lower_um[axis] > inner.lower_um[axis]
-                    || region.upper_um[axis] < inner.upper_um[axis]
-                {
+            for ((&lower, &upper), (&inner_lower, &inner_upper)) in region
+                .lower_um
+                .iter()
+                .zip(region.upper_um.iter())
+                .zip(inner.lower_um.iter().zip(inner.upper_um.iter()))
+            {
+                if lower > inner_lower || upper < inner_upper {
                     return Err("POSE_REGIONS_NOT_NESTED");
                 }
             }
@@ -353,11 +364,21 @@ fn aggregate(scores: &[&PoseScore]) -> Vec<LevelAggregate> {
         for (index, region) in score.regions.iter().enumerate() {
             let entry = &mut levels[index];
             entry.accepted_count += 1;
-            for axis in 0..3 {
-                if region.translation_axis_covered[axis] {
-                    entry.translation_axis_covered[axis] += 1;
+            for ((covered_count, width_sum), (&covered, &width)) in entry
+                .translation_axis_covered
+                .iter_mut()
+                .zip(entry.sum_width_um.iter_mut())
+                .zip(
+                    region
+                        .translation_axis_covered
+                        .iter()
+                        .zip(region.width_um.iter()),
+                )
+            {
+                if covered {
+                    *covered_count += 1;
                 }
-                entry.sum_width_um[axis] += u128::from(region.width_um[axis]);
+                *width_sum += u128::from(width);
             }
             if region.translation_joint_covered {
                 entry.translation_joint_covered += 1;
