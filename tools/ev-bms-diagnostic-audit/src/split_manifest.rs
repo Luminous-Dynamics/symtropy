@@ -218,7 +218,9 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     let mut leakage_keys = BTreeSet::new();
     for key in &manifest.leakage_keys {
         if !nonempty(key) || key == &manifest.group_key || !leakage_keys.insert(key) {
-            return Err("leakage keys must be non-empty, unique and distinct from group_key".to_owned());
+            return Err(
+                "leakage keys must be non-empty, unique and distinct from group_key".to_owned(),
+            );
         }
     }
     let mut temporal_keys = BTreeSet::new();
@@ -427,8 +429,8 @@ pub fn audit_split_manifest(
     let mut report = validate_manifest(&manifest)?;
     report.canonical_split_manifest_sha256 = sha256(&canonical_bytes);
     report.schema_sha256 = sha256(schema_bytes);
-    let report_bytes =
-        serde_json::to_vec(&report).map_err(|error| format!("split report serialization: {error}"))?;
+    let report_bytes = serde_json::to_vec(&report)
+        .map_err(|error| format!("split report serialization: {error}"))?;
     report.report_sha256 = sha256(&report_bytes);
     Ok(report)
 }
