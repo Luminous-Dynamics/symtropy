@@ -593,6 +593,10 @@ pub struct RecoveryRegretVector {
     pub instance_id: String,
     pub instance_version: String,
     pub scenario_id: String,
+    pub service_id: String,
+    pub deadline_day: u64,
+    pub horizon_day: u64,
+    pub expected_units: u64,
     pub candidate_policy_id: String,
     pub reference_policy_id: String,
     pub unmet_units_at_deadline_delta: i128,
@@ -670,6 +674,10 @@ pub fn compare_recovery_regret(
         instance_id: candidate.instance_id.clone(),
         instance_version: candidate.instance_version.clone(),
         scenario_id: candidate.scenario_id.clone(),
+        service_id: candidate.service_id.clone(),
+        deadline_day: candidate.deadline_day,
+        horizon_day: candidate.horizon_day,
+        expected_units: candidate.expected_units,
         candidate_policy_id: candidate.policy_id.clone(),
         reference_policy_id: reference.policy_id.clone(),
         unmet_units_at_deadline_delta: i128::from(candidate_unmet)
@@ -695,6 +703,190 @@ pub fn compare_recovery_regret(
             - i128::from(reference.recovery_emissions_units),
         requalification_actions_delta: i128::from(candidate.requalification_actions)
             - i128::from(reference.requalification_actions),
+    })
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RecoveryRegretMetric {
+    UnmetUnitsAtDeadline,
+    InspectionQualifiedUnits,
+    ReceiverAcceptedUnits,
+    LateAcceptedUnits,
+    UnresolvedUnits,
+    ServiceDeficitUnitHours,
+    TimeToMinimumViableServiceDay,
+    TimeToFullServiceDay,
+    RecoveryCostUnits,
+    RecoveryEmissionsUnits,
+    RequalificationActions,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorstCaseRecoveryRegret {
+    pub metric: RecoveryRegretMetric,
+    pub delta: i128,
+    pub scenario_id: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RecoveryRegretEnvelope {
+    pub instance_id: String,
+    pub instance_version: String,
+    pub service_id: String,
+    pub deadline_day: u64,
+    pub horizon_day: u64,
+    pub expected_units: u64,
+    pub candidate_policy_id: String,
+    pub reference_policy_id: String,
+    pub scenario_count: usize,
+    pub worst_case: Vec<WorstCaseRecoveryRegret>,
+}
+
+/// Builds a probability-free component-wise worst-case regret envelope over a
+/// frozen finite scenario set. Lower qualification/acceptance is adverse; higher
+/// loss, delay, cost and recovery burden is adverse. The dimensions remain separate.
+pub fn worst_case_recovery_regret(
+    vectors: &[RecoveryRegretVector],
+) -> Result<RecoveryRegretEnvelope, String> {
+    let first = vectors
+        .first()
+        .ok_or_else(|| "recovery regret envelope requires at least one scenario".to_owned())?;
+
+    let mut seen = BTreeSet::new();
+    for vector in vectors {
+        if vector.instance_id != first.instance_id
+            || vector.instance_version != first.instance_version
+            || vector.service_id != first.service_id
+            || vector.deadline_day != first.deadline_day
+            || vector.horizon_day != first.horizon_day
+            || vector.expected_units != first.expected_units
+            || vector.candidate_policy_id != first.candidate_policy_id
+            || vector.reference_policy_id != first.reference_policy_id
+        {
+            return Err(
+                "recovery regret envelope contains mismatched policy or service context".to_owned(),
+            );
+        }
+        if !seen.insert(vector.scenario_id.as_str()) {
+            return Err(format!(
+                "recovery regret envelope contains duplicate scenario '{}'",
+                vector.scenario_id
+            ));
+        }
+    }
+
+    let mut worst_case = vec![
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::UnmetUnitsAtDeadline,
+            delta: first.unmet_units_at_deadline_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::InspectionQualifiedUnits,
+            delta: first.inspection_qualified_units_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::ReceiverAcceptedUnits,
+            delta: first.receiver_accepted_units_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::LateAcceptedUnits,
+            delta: first.late_accepted_units_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::UnresolvedUnits,
+            delta: first.unresolved_units_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::ServiceDeficitUnitHours,
+            delta: first.service_deficit_unit_hours_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::TimeToMinimumViableServiceDay,
+            delta: first.time_to_minimum_viable_service_day_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::TimeToFullServiceDay,
+            delta: first.time_to_full_service_day_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::RecoveryCostUnits,
+            delta: first.recovery_cost_units_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::RecoveryEmissionsUnits,
+            delta: first.recovery_emissions_units_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::RequalificationActions,
+            delta: first.requalification_actions_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+    ];
+
+    for vector in vectors.iter().skip(1) {
+        for bound in &mut worst_case {
+            let next_delta = match bound.metric {
+                RecoveryRegretMetric::UnmetUnitsAtDeadline => {
+                    vector.unmet_units_at_deadline_delta
+                }
+                RecoveryRegretMetric::InspectionQualifiedUnits => {
+                    vector.inspection_qualified_units_delta
+                }
+                RecoveryRegretMetric::ReceiverAcceptedUnits => {
+                    vector.receiver_accepted_units_delta
+                }
+                RecoveryRegretMetric::LateAcceptedUnits => vector.late_accepted_units_delta,
+                RecoveryRegretMetric::UnresolvedUnits => vector.unresolved_units_delta,
+                RecoveryRegretMetric::ServiceDeficitUnitHours => {
+                    vector.service_deficit_unit_hours_delta
+                }
+                RecoveryRegretMetric::TimeToMinimumViableServiceDay => {
+                    vector.time_to_minimum_viable_service_day_delta
+                }
+                RecoveryRegretMetric::TimeToFullServiceDay => {
+                    vector.time_to_full_service_day_delta
+                }
+                RecoveryRegretMetric::RecoveryCostUnits => vector.recovery_cost_units_delta,
+                RecoveryRegretMetric::RecoveryEmissionsUnits => {
+                    vector.recovery_emissions_units_delta
+                }
+                RecoveryRegretMetric::RequalificationActions => {
+                    vector.requalification_actions_delta
+                }
+            };
+            let candidate_is_worse = match bound.metric {
+                RecoveryRegretMetric::InspectionQualifiedUnits
+                | RecoveryRegretMetric::ReceiverAcceptedUnits => next_delta < bound.delta,
+                _ => next_delta > bound.delta,
+            };
+            if candidate_is_worse {
+                bound.delta = next_delta;
+                bound.scenario_id.clone_from(&vector.scenario_id);
+            }
+        }
+    }
+
+    Ok(RecoveryRegretEnvelope {
+        instance_id: first.instance_id.clone(),
+        instance_version: first.instance_version.clone(),
+        service_id: first.service_id.clone(),
+        deadline_day: first.deadline_day,
+        horizon_day: first.horizon_day,
+        expected_units: first.expected_units,
+        candidate_policy_id: first.candidate_policy_id.clone(),
+        reference_policy_id: first.reference_policy_id.clone(),
+        scenario_count: vectors.len(),
+        worst_case,
     })
 }
 
