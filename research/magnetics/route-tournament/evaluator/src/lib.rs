@@ -1043,9 +1043,11 @@ mod tests {
         candidate.observations[1].record_digest = digest('f');
         let result = evaluate_candidate(&cohort(), &candidate);
         assert_eq!(result.disposition, Disposition::Qualified);
-        assert!(!result
-            .blockers
-            .contains(&Blocker::MaterialStateBindingMismatch));
+        assert!(
+            !result
+                .blockers
+                .contains(&Blocker::MaterialStateBindingMismatch)
+        );
     }
 
     #[test]
