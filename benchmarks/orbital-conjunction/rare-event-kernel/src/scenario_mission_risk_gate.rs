@@ -939,7 +939,7 @@ fn exact_mass_ticks(
 ) -> Result<u64, ScenarioMissionRiskGateError> {
     if !valid_probability_mass(mass)
         || total_mass_ticks == 0
-        || total_mass_ticks % mass.denominator != 0
+        || !total_mass_ticks.is_multiple_of(mass.denominator)
     {
         return Err(ScenarioMissionRiskGateError::InvalidExactMass);
     }
