@@ -155,7 +155,10 @@ fn is_sha256_hex(value: &str) -> bool {
 }
 
 fn has_duplicate<T: PartialEq>(values: &[T]) -> bool {
-    values.iter().enumerate().any(|(i, value)| values[..i].contains(value))
+    values
+        .iter()
+        .enumerate()
+        .any(|(i, value)| values[..i].contains(value))
 }
 
 fn detect_dependency_cycle(
@@ -171,7 +174,8 @@ fn detect_dependency_cycle(
     }
     state[index] = 1;
     for dependency in &actions[index].depends_on_action_ids {
-        let dep_index = *by_id.get(dependency)
+        let dep_index = *by_id
+            .get(dependency)
             .ok_or(PortfolioContractError::UnknownActionDependency)?;
         detect_dependency_cycle(dep_index, actions, by_id, state)?;
     }
@@ -194,8 +198,12 @@ fn dominates(left: &PortfolioPlan, right: &PortfolioPlan) -> bool {
 }
 
 fn plan_order(left: &PortfolioPlan, right: &PortfolioPlan) -> std::cmp::Ordering {
-    left.cost_upper_microunits.cmp(&right.cost_upper_microunits)
-        .then_with(|| left.energy_upper_millijoules.cmp(&right.energy_upper_millijoules))
+    left.cost_upper_microunits
+        .cmp(&right.cost_upper_microunits)
+        .then_with(|| {
+            left.energy_upper_millijoules
+                .cmp(&right.energy_upper_millijoules)
+        })
         .then_with(|| left.duration_upper_ms.cmp(&right.duration_upper_ms))
         .then_with(|| left.downtime_upper_ms.cmp(&right.downtime_upper_ms))
         .then_with(|| left.action_ids.len().cmp(&right.action_ids.len()))
@@ -215,19 +223,31 @@ fn validate_contract(
     if has_duplicate(&policy.unresolved_alert_ids) {
         return Err(PortfolioContractError::DuplicateAlertId);
     }
-    if policy.unresolved_alert_ids.iter().any(|id| id.trim().is_empty()) {
+    if policy
+        .unresolved_alert_ids
+        .iter()
+        .any(|id| id.trim().is_empty())
+    {
         return Err(PortfolioContractError::EmptyAlertId);
     }
     if has_duplicate(&policy.available_evidence_ids) {
         return Err(PortfolioContractError::DuplicateEvidenceId);
     }
-    if policy.available_evidence_ids.iter().any(|id| id.trim().is_empty()) {
+    if policy
+        .available_evidence_ids
+        .iter()
+        .any(|id| id.trim().is_empty())
+    {
         return Err(PortfolioContractError::EmptyEvidenceId);
     }
     if has_duplicate(&policy.available_approval_ids) {
         return Err(PortfolioContractError::DuplicateAvailableApproval);
     }
-    if policy.available_approval_ids.iter().any(|id| id.trim().is_empty()) {
+    if policy
+        .available_approval_ids
+        .iter()
+        .any(|id| id.trim().is_empty())
+    {
         return Err(PortfolioContractError::EmptyApprovalId);
     }
     if actions.len() > MAX_CANDIDATE_ACTIONS {
@@ -237,8 +257,11 @@ fn validate_contract(
         return Err(PortfolioContractError::NoActionsWhenAlertsClear);
     }
 
-    let known_alerts: HashSet<&str> =
-        policy.unresolved_alert_ids.iter().map(String::as_str).collect();
+    let known_alerts: HashSet<&str> = policy
+        .unresolved_alert_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     let mut by_id = HashMap::with_capacity(actions.len());
 
     for (index, action) in actions.iter().enumerate() {
@@ -278,16 +301,32 @@ fn validate_contract(
         if has_duplicate(&action.required_postcondition_evidence) {
             return Err(PortfolioContractError::DuplicatePostcondition);
         }
-        if action.addresses_alert_ids.iter().any(|id| id.trim().is_empty()) {
+        if action
+            .addresses_alert_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
+        {
             return Err(PortfolioContractError::EmptyAlertId);
         }
-        if action.prerequisite_evidence_ids.iter().any(|id| id.trim().is_empty()) {
+        if action
+            .prerequisite_evidence_ids
+            .iter()
+            .any(|id| id.trim().is_empty())
+        {
             return Err(PortfolioContractError::EmptyEvidenceId);
         }
-        if action.required_approvals.iter().any(|id| id.trim().is_empty()) {
+        if action
+            .required_approvals
+            .iter()
+            .any(|id| id.trim().is_empty())
+        {
             return Err(PortfolioContractError::EmptyApprovalId);
         }
-        if action.required_postcondition_evidence.iter().any(|id| id.trim().is_empty()) {
+        if action
+            .required_postcondition_evidence
+            .iter()
+            .any(|id| id.trim().is_empty())
+        {
             return Err(PortfolioContractError::EmptyPostconditionId);
         }
         for alert_id in &action.addresses_alert_ids {
@@ -337,10 +376,16 @@ pub fn plan_portfolio(
         });
     }
 
-    let available: HashSet<&str> =
-        policy.available_evidence_ids.iter().map(String::as_str).collect();
-    let available_approvals: HashSet<&str> =
-        policy.available_approval_ids.iter().map(String::as_str).collect();
+    let available: HashSet<&str> = policy
+        .available_evidence_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let available_approvals: HashSet<&str> = policy
+        .available_approval_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     let mut eligible = vec![true; actions.len()];
     let mut excluded_candidates = Vec::new();
 
@@ -351,14 +396,18 @@ pub fn plan_portfolio(
             BoundsEvidenceStatus::Unverified => reasons.push(ExclusionReason::BoundsUnverified),
             BoundsEvidenceStatus::Invalid => reasons.push(ExclusionReason::BoundsInvalid),
         }
-        if action.prerequisite_evidence_ids.iter().any(
-            |id| !available.contains(id.as_str())
-        ) {
+        if action
+            .prerequisite_evidence_ids
+            .iter()
+            .any(|id| !available.contains(id.as_str()))
+        {
             reasons.push(ExclusionReason::MissingPrerequisiteEvidence);
         }
-        if action.required_approvals.iter().any(
-            |id| !available_approvals.contains(id.as_str())
-        ) {
+        if action
+            .required_approvals
+            .iter()
+            .any(|id| !available_approvals.contains(id.as_str()))
+        {
             reasons.push(ExclusionReason::MissingApprovalAuthority);
         }
         if action.destructive {
@@ -379,8 +428,11 @@ pub fn plan_portfolio(
     let mut candidate_plans = Vec::new();
     let subset_count = 1u64 << actions.len();
     let mut enumerated_subsets = 0u64;
-    let required_alerts: BTreeSet<&str> =
-        policy.unresolved_alert_ids.iter().map(String::as_str).collect();
+    let required_alerts: BTreeSet<&str> = policy
+        .unresolved_alert_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
 
     for mask in 1u64..subset_count {
         enumerated_subsets += 1;
@@ -394,11 +446,14 @@ pub fn plan_portfolio(
             continue;
         }
 
-        let selected_ids: HashSet<&str> = selected.iter()
+        let selected_ids: HashSet<&str> = selected
+            .iter()
             .map(|index| actions[*index].action_id.as_str())
             .collect();
         let dependencies_present = selected.iter().all(|index| {
-            actions[*index].depends_on_action_ids.iter()
+            actions[*index]
+                .depends_on_action_ids
+                .iter()
                 .all(|dependency| selected_ids.contains(dependency.as_str()))
         });
         if !dependencies_present {
@@ -468,10 +523,13 @@ pub fn plan_portfolio(
         });
     }
 
-    let pareto_frontier: Vec<PortfolioPlan> = candidate_plans.iter()
-        .filter(|candidate| !candidate_plans.iter().any(
-            |other| other.action_ids != candidate.action_ids && dominates(other, candidate)
-        ))
+    let pareto_frontier: Vec<PortfolioPlan> = candidate_plans
+        .iter()
+        .filter(|candidate| {
+            !candidate_plans.iter().any(|other| {
+                other.action_ids != candidate.action_ids && dominates(other, candidate)
+            })
+        })
         .cloned()
         .collect();
 
@@ -481,18 +539,21 @@ pub fn plan_portfolio(
 
     let disposition = if !pareto_frontier.is_empty() {
         PortfolioDisposition::Feasible
-    } else if excluded_candidates.iter().any(|candidate| {
-        candidate.reasons.contains(&ExclusionReason::BoundsInvalid)
-    }) {
+    } else if excluded_candidates
+        .iter()
+        .any(|candidate| candidate.reasons.contains(&ExclusionReason::BoundsInvalid))
+    {
         PortfolioDisposition::InvalidEvidence
-    } else if excluded_candidates.iter().any(|candidate| candidate.reasons.iter().any(
-        |reason| matches!(
-            reason,
-            ExclusionReason::BoundsUnverified
-                | ExclusionReason::MissingPrerequisiteEvidence
-                | ExclusionReason::MissingApprovalAuthority
-        )
-    )) {
+    } else if excluded_candidates.iter().any(|candidate| {
+        candidate.reasons.iter().any(|reason| {
+            matches!(
+                reason,
+                ExclusionReason::BoundsUnverified
+                    | ExclusionReason::MissingPrerequisiteEvidence
+                    | ExclusionReason::MissingApprovalAuthority
+            )
+        })
+    }) {
         PortfolioDisposition::EvidenceIncomplete
     } else {
         PortfolioDisposition::Infeasible
@@ -526,7 +587,14 @@ mod tests {
         }
     }
 
-    fn action(id: &str, covers: &[&str], cost: u64, energy: u64, duration: u64, downtime: u64) -> ActionCandidate {
+    fn action(
+        id: &str,
+        covers: &[&str],
+        cost: u64,
+        energy: u64,
+        duration: u64,
+        downtime: u64,
+    ) -> ActionCandidate {
         ActionCandidate {
             action_id: id.into(),
             addresses_alert_ids: covers.iter().map(|item| (*item).to_string()).collect(),
@@ -549,9 +617,18 @@ mod tests {
 
     #[test]
     fn one_verified_action_produces_a_non_executing_plan() {
-        let result = plan_portfolio(&policy(&["alert-fixity"]), &[
-            action("verify-fixity", &["alert-fixity"], 4_000_000, 10_000, 1_000, 0),
-        ]).unwrap();
+        let result = plan_portfolio(
+            &policy(&["alert-fixity"]),
+            &[action(
+                "verify-fixity",
+                &["alert-fixity"],
+                4_000_000,
+                10_000,
+                1_000,
+                0,
+            )],
+        )
+        .unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Feasible);
         assert_eq!(result.pareto_frontier.len(), 1);
         let plan = &result.pareto_frontier[0];
@@ -562,44 +639,93 @@ mod tests {
 
     #[test]
     fn exact_pareto_frontier_keeps_incomparable_tradeoffs_and_removes_dominated_plan() {
-        let result = plan_portfolio(&policy(&["alert-fixity"]), &[
-            action("low-cost", &["alert-fixity"], 3_000_000, 40_000, 900, 100),
-            action("low-energy", &["alert-fixity"], 5_000_000, 20_000, 1_500, 500),
-            action("dominated", &["alert-fixity"], 6_000_000, 50_000, 2_000, 700),
-        ]).unwrap();
+        let result = plan_portfolio(
+            &policy(&["alert-fixity"]),
+            &[
+                action("low-cost", &["alert-fixity"], 3_000_000, 40_000, 900, 100),
+                action(
+                    "low-energy",
+                    &["alert-fixity"],
+                    5_000_000,
+                    20_000,
+                    1_500,
+                    500,
+                ),
+                action(
+                    "dominated",
+                    &["alert-fixity"],
+                    6_000_000,
+                    50_000,
+                    2_000,
+                    700,
+                ),
+            ],
+        )
+        .unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Feasible);
         assert_eq!(result.pareto_frontier.len(), 2);
         assert_eq!(
-            result.pareto_frontier.iter().map(|plan| plan.action_ids[0].as_str()).collect::<Vec<_>>(),
+            result
+                .pareto_frontier
+                .iter()
+                .map(|plan| plan.action_ids[0].as_str())
+                .collect::<Vec<_>>(),
             vec!["low-cost", "low-energy"]
         );
     }
 
     #[test]
     fn multiple_alerts_require_complete_coverage() {
-        let result = plan_portfolio(&policy(&["alert-fixity", "alert-trust"]), &[
-            action("verify-fixity", &["alert-fixity"], 2_000_000, 2_000, 100, 0),
-            action("refresh-trust", &["alert-trust"], 3_000_000, 3_000, 200, 0),
-        ]).unwrap();
+        let result = plan_portfolio(
+            &policy(&["alert-fixity", "alert-trust"]),
+            &[
+                action("verify-fixity", &["alert-fixity"], 2_000_000, 2_000, 100, 0),
+                action("refresh-trust", &["alert-trust"], 3_000_000, 3_000, 200, 0),
+            ],
+        )
+        .unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Feasible);
         assert_eq!(result.pareto_frontier.len(), 1);
-        assert_eq!(result.pareto_frontier[0].action_ids, vec!["refresh-trust", "verify-fixity"]);
-        assert_eq!(result.pareto_frontier[0].addressed_alert_ids, vec!["alert-fixity", "alert-trust"]);
+        assert_eq!(
+            result.pareto_frontier[0].action_ids,
+            vec!["refresh-trust", "verify-fixity"]
+        );
+        assert_eq!(
+            result.pareto_frontier[0].addressed_alert_ids,
+            vec!["alert-fixity", "alert-trust"]
+        );
     }
 
     #[test]
     fn dependency_actions_are_selected_as_a_closed_set() {
         let prep = action("prepare-reader", &[], 1_000_000, 1_000, 100, 0);
-        let mut read = action("replace-reader", &["alert-reader"], 2_000_000, 2_000, 300, 20);
+        let mut read = action(
+            "replace-reader",
+            &["alert-reader"],
+            2_000_000,
+            2_000,
+            300,
+            20,
+        );
         read.depends_on_action_ids = vec!["prepare-reader".into()];
         let result = plan_portfolio(&policy(&["alert-reader"]), &[prep, read]).unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Feasible);
-        assert_eq!(result.pareto_frontier[0].action_ids, vec!["prepare-reader", "replace-reader"]);
+        assert_eq!(
+            result.pareto_frontier[0].action_ids,
+            vec!["prepare-reader", "replace-reader"]
+        );
     }
 
     #[test]
     fn missing_dependency_prevents_a_portfolio() {
-        let mut read = action("replace-reader", &["alert-reader"], 2_000_000, 2_000, 300, 20);
+        let mut read = action(
+            "replace-reader",
+            &["alert-reader"],
+            2_000_000,
+            2_000,
+            300,
+            20,
+        );
         read.depends_on_action_ids = vec!["prepare-reader".into()];
         assert_eq!(
             plan_portfolio(&policy(&["alert-reader"]), &[read]),
@@ -635,16 +761,21 @@ mod tests {
         candidate.bounds_status = BoundsEvidenceStatus::Unverified;
         let result = plan_portfolio(&policy(&["alert-redundancy"]), &[candidate]).unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::EvidenceIncomplete);
-        assert_eq!(result.excluded_candidates[0].reasons, vec![ExclusionReason::BoundsUnverified]);
+        assert_eq!(
+            result.excluded_candidates[0].reasons,
+            vec![ExclusionReason::BoundsUnverified]
+        );
     }
 
     #[test]
     fn budget_caps_are_hard_constraints() {
         let mut p = policy(&["alert-fixity"]);
         p.max_cost_microunits = 999;
-        let result = plan_portfolio(&p, &[
-            action("verify-fixity", &["alert-fixity"], 1_000, 1, 1, 0),
-        ]).unwrap();
+        let result = plan_portfolio(
+            &p,
+            &[action("verify-fixity", &["alert-fixity"], 1_000, 1, 1, 0)],
+        )
+        .unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Infeasible);
         assert!(result.pareto_frontier.is_empty());
     }
@@ -655,10 +786,16 @@ mod tests {
         destructive.destructive = true;
         let mut source_drop = action("delete-source", &["alert-fixity"], 1, 1, 1, 0);
         source_drop.preserves_source_until_acceptance = false;
-        let result = plan_portfolio(&policy(&["alert-fixity"]), &[destructive, source_drop]).unwrap();
+        let result =
+            plan_portfolio(&policy(&["alert-fixity"]), &[destructive, source_drop]).unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Infeasible);
         assert!(result.pareto_frontier.is_empty());
-        assert!(result.excluded_candidates.iter().all(|item| !item.reasons.is_empty()));
+        assert!(
+            result
+                .excluded_candidates
+                .iter()
+                .all(|item| !item.reasons.is_empty())
+        );
     }
 
     #[test]
@@ -753,7 +890,10 @@ mod tests {
         candidate.bounds_status = BoundsEvidenceStatus::Invalid;
         let result = plan_portfolio(&policy(&["alert-redundancy"]), &[candidate]).unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::InvalidEvidence);
-        assert_eq!(result.excluded_candidates[0].reasons, vec![ExclusionReason::BoundsInvalid]);
+        assert_eq!(
+            result.excluded_candidates[0].reasons,
+            vec![ExclusionReason::BoundsInvalid]
+        );
     }
 
     #[test]
@@ -768,13 +908,13 @@ mod tests {
         helper.action_id = "helper".into();
         let mut dependent = combined;
         dependent.depends_on_action_ids = vec!["helper".into()];
-        let result = plan_portfolio(
-            &policy(&["alert-a"]),
-            &[direct, helper, dependent],
-        ).unwrap();
-        assert!(result.pareto_frontier.iter().all(|plan| {
-            plan.action_ids != vec!["combined", "helper"]
-        }));
+        let result = plan_portfolio(&policy(&["alert-a"]), &[direct, helper, dependent]).unwrap();
+        assert!(
+            result
+                .pareto_frontier
+                .iter()
+                .all(|plan| { plan.action_ids != vec!["combined", "helper"] })
+        );
     }
 
     #[test]
