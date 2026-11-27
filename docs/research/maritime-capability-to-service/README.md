@@ -132,6 +132,6 @@ Symtropy [#7554 / draft PR #7557](https://github.com/Luminous-Dynamics/symtropy/
 
 The frozen #7554 service receipt is also consumed by `tests/canonical_receiver_service_receipt.rs` as a bounded conformance test for cohort arithmetic, conservative lower/upper bounds and PASS/FAIL/UNKNOWN/INVALID_EVIDENCE dispositions. That receipt is not a substitute for real custody: cargo identity/lineage and custody remain with Symtropy #6631/#6662 and Mycelix's participant-authorized evidence.
 
-**Qualification status:** the base #7554 owner implementation passed its earlier exact-head workflow. The new Mycelix composition integration is in #7557's branch and its exact-head run #28 is still queued; no pass is claimed for that new join until formatting, tests, strict Clippy and receipt generation complete.
+**Qualification status:** the base #7554 owner implementation passed its earlier exact-head workflow. The new Mycelix composition integration is in #7557's branch and its exact-head run #32 is queued; no pass is claimed for that new join until formatting, tests, strict Clippy and receipt generation complete.
 
 A passing fixture is evidence of this model's arithmetic and declared topology only. It is not a physical or industry qualification.
