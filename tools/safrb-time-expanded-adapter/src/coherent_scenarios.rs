@@ -104,7 +104,7 @@ fn scenario_set_digest(
     let mut ordered = scenarios.iter().collect::<Vec<_>>();
     ordered.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
 
-    let mut bytes = b"LUMINOUS-SAFRB-COHERENT-SCENARIO-SET-V1\\0".to_vec();
+    let mut bytes = b"LUMINOUS-SAFRB-COHERENT-SCENARIO-SET-V1\0".to_vec();
     push_length_prefixed(&mut bytes, scenario_set_id.as_bytes())?;
     for scenario in ordered {
         push_length_prefixed(&mut bytes, scenario.scenario_id.as_bytes())?;
