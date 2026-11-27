@@ -677,3 +677,73 @@ Use clustered paired bootstrap or other sequence/session-level uncertainty estim
 ### 24.4 Promotion gate
 
 A candidate cannot claim “better than SOTA” from a lower conditional ATE or higher success percentage alone. It must show a paired improvement on the declared task metric without an unacceptable regression in coverage, failure rate, tail risk, calibration, resource budget or abstention. Every comparison must disclose exact input modalities, data/split revisions, hardware, model/solver revisions and all attempted denominators.
+
+
+## 26. MemAct: present evidence, retrieved evidence and action-acquired evidence
+
+### 26.1 Current benchmark reference
+
+The October 2026 MemAct paper and prepared StreaMemAct release extend the earlier S3-Bench formulation into a three-way loop: understand the current observation, retrieve historical evidence, or acquire a new viewpoint before answering.
+
+The prepared dataset card reports approximately 1M training QA examples: 302,661 Current QA turns; 402,662 Memory QA turns; 294,677 Action SFT items / 534,752 camera transitions; 519,948 memory writes and 556,635 retrieval calls; 14,001 RL tasks / branch observations; 20,000 main evaluation turns / 1,245 Action question graphs; and 2,000 separate Timing questions. It lists 206 archives totalling about 590 GB; upload was described as in progress when checked. The HF viewer cannot unify WebDataset train/test with JSON validation formats, so use exact manifests and file readers rather than assume a generic loader works.
+
+Sources: https://arxiv.org/abs/2610.17640 and https://huggingface.co/datasets/vfishc/memact.
+
+### 26.2 Reported scores and limitations
+
+The paper reports MemAct-9B at 67.27 overall multiple-choice ACC / 60.23 numerical MRA, versus StreamingVLM at 61.39 / 48.65. GPT-6 Astra has higher overall MRA (61.15) while MemAct-9B has higher overall ACC (67.27 vs 66.74). The full explicit-memory setup improves Memory QA from 54.52/52.24 to 68.11/67.72; removing historical RGB frames costs 3.19 ACC and 4.00 MRA points. On Action QA, counterfactual action optimization improves over SFT-only, but GRPO remains close. These are paper-reported results, not independently reproduced Symtropy scores.
+
+The headline 0.420-second answer-generation latency excludes frame acquisition, observation maintenance, memory operations, action execution/rendering and network/queueing; it is not end-to-end latency. The separate Timing set disables memory/action tools and is not evidence of full-loop timing ability.
+
+### 26.3 A principled epistemic state machine
+
+Represent evidence in distinct states:
+1. Never observed: no admissible candidate-visible observation supports it.
+2. Observed and in recent context: exact source span is accessible to the reasoner.
+3. Observed and retained as memory: source-linked record and original frame/time/transform can be retrieved.
+4. Observed but evicted/unavailable: an earlier claim or summary exists but the original source cannot presently be resolved.
+5. Reacquired: a new validated observation arrived after a legal action and is separately linked to its acquisition event.
+6. Invalid/stale/unknown: payload failed identity, freshness, calibration, transport or source checks; it is not positive evidence.
+
+Do not collapse retained, evicted and reacquired evidence: they have different temporal and epistemic semantics. A requested action is not evidence; a successful action is not a delivered observation; a delivered payload is not qualified until identity, source, time and calibration/domain checks pass.
+
+### 26.4 Memory/action composition
+
+MemAct retrieves up to four times per question, at most two historical images per call and four distinct images per question; its default memory-write interval is five seconds. Its five camera commands are forward/left/right translations of 0.5 m and left/right turns of 45 degrees, with at most three action attempts. The harness executes them; it is not a learned navigation planner. Action observations are not automatically appended to persistent memory.
+
+Test four memory policies: exact official behavior (do not persist action views); append-on-delivery; append-on-qualification; append-on-decision. The safest default is append-on-qualification with explicit retention cost. A timeout, invalid payload, stale frame or unknown executor outcome must not mutate map or memory.
+
+### 26.5 New Symtropy matrix
+
+scenario-matrix-memact-v0.tsv adds four pairs / eight metadata-only cases: delivered action observation committed versus requested-but-timed-out frame; exact historical RGB retrieval versus stale/neighboring frame; bitemporal memory fold and later correction versus destructive overwrite; and stop at decision sufficiency versus repeated low-value action/memory writes.
+
+These compose #6201 artifacts/transport, #7080 outcome branches, #6675 sequential acquisition, #7558 decision sufficiency and #13284 memory cost/regret. No second store, scheduler or truth service is introduced.
+
+### 26.6 Reproduction tournament and scoring
+
+Reproduce Current, Memory, Action and Timing lanes separately. For Current/Memory preserve the same causal stream, write interval, retrieval caps, historical RGB budget, prompts and model revision. For Action preserve the five commands, attempt budget and simulator state. Do not merge real Current/Memory scores with simulated Action QA without domain labels.
+
+Compare no memory; text-only memory; text plus historical RGB retrieval; source-linked spatial residuals; action observations not persisted; append-on-delivery; append-on-qualification; append-on-decision; fixed action policy; random same-budget action policy; minimax/EVSI policy; and oracle action as evaluator-only diagnostic.
+
+Measure end-to-end wall latency from query availability through memory retrieval/action/render/transport to final answer; report generation-only latency separately. Include invalid/failed/unknown attempts, images/tokens/memory bytes, read/write costs, action attempts and cost per correct grounded answer.
+
+### 26.7 Prospective targets
+
+Research targets, not achieved results:
+- Reproduce official MemAct-9B and StreamingVLM within ±2 points on a rights-qualified subset before claiming parity.
+- Improve Memory ACC/MRA by at least 5 points over the strongest reproduced same-memory-budget baseline.
+- Improve Action ACC/MRA by at least 5 points within the three-action cap and without increasing invalid/unknown action rate.
+- Reduce evidence-eviction loss by at least 50% while preserving exact source/time/transform anchors.
+- Persist at least 95% of valid, delivered and qualified action observations; persist zero requests, timeouts, late/unknown payloads or invalid artifacts.
+- Achieve zero destructive historical overwrites and zero false promotion of retrieved history as a fresh observation in deterministic controls.
+- Reduce end-to-end p95 latency and cost per grounded correct answer by at least 20% at matched answer quality, memory capacity and action budget.
+
+### 26.8 Rights and release state
+
+The prepared HF LICENSE.md states: MemAct-authored code Apache-2.0; MemAct annotation contributions CC BY 4.0; upstream code/dependencies and upstream recordings, GLBs, textures/HDRIs and derived material retain their own source rights. The release says it supplies reconstruction mappings rather than redistributing original ScanNet / ScanNet++ / ARKitScenes recordings. It is not a blanket CC BY 4.0 release; the prepared archive is about 590 GB. Verify archive-level provenance and every upstream licence before downloading or using media. Do not use restricted assets or derived content for commercial training, fine-tuning, distillation, demos or deployment without explicit permission.
+
+The dataset card indicates code and dataset pages but its linked GitHub repository was returning 404 when checked; do not assume full code availability. No full archive download is required for metadata-first R0 validation.
+
+### 26.9 Claim ceiling
+
+MemAct is a recent arXiv paper and prepared mixed-rights dataset. Paper numbers are not independent reproduction results. Its Action lane is simulator-only and its fixed commands are not physical robot validation. The Timing lane is not a full memory/action-loop timing test.
