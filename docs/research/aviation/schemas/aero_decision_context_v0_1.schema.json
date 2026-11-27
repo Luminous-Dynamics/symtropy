@@ -19,28 +19,33 @@
     "claim_specification_sha256",
     "required_evidence_manifest_sha256",
     "risk_classification_sha256",
-    "model_applicability_profile_sha256"
+    "model_applicability_profile_sha256",
+    "required_evidence_refs"
   ],
   "properties": {
     "claim_id": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^\\S(?:.*\\S)?$"
+      "pattern": "^[!-~]+$",
+      "description": "Stable printable-ASCII identifier; no spaces or control characters."
     },
     "subject_ref": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^\\S(?:.*\\S)?$"
+      "pattern": "^[!-~]+$",
+      "description": "Stable printable-ASCII identifier; no spaces or control characters."
     },
     "configuration_ref": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^\\S(?:.*\\S)?$"
+      "pattern": "^[!-~]+$",
+      "description": "Stable printable-ASCII identifier; no spaces or control characters."
     },
     "operating_envelope_ref": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^\\S(?:.*\\S)?$"
+      "pattern": "^[!-~]+$",
+      "description": "Stable printable-ASCII identifier; no spaces or control characters."
     },
     "acquisition_time_earliest_unix_ms": {
       "type": "integer",
@@ -81,6 +86,15 @@
     "model_applicability_profile_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
+    },
+    "required_evidence_refs": {
+      "type": "array",
+      "description": "Exact owner-native evidence references used to recompute required_evidence_manifest_sha256; these references are part of the fixture envelope, not additional DecisionContextV0_1 scalar fields.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[!-~]+$"
+      }
     }
   }
 }
