@@ -1,3 +1,5 @@
+pub mod dataset_manifest;
+
 use jsonschema::{Validator, draft202012};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
