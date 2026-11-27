@@ -1,0 +1,96 @@
+name: Spacecraft Translation Geometry Preservation Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/spacecraft-translation-geometry-audit-bench/**"
+      - ".github/workflows/spacecraft-translation-geometry-audit.yml"
+  push:
+    branches:
+      - "research/spacecraft-translation-geometry-audit-v0-1"
+    paths:
+      - "tools/spacecraft-translation-geometry-audit-bench/**"
+      - ".github/workflows/spacecraft-translation-geometry-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Geometry labels, topology and sequence motion
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/spacecraft-translation-geometry-audit-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/spacecraft-translation-geometry-audit-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/spacecraft-translation-geometry-audit-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Independent positive and adversarial corpus receipt parity
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/translation-geometry-receipts
+          for name in positive-photometric-only-v0_1 keypoint-shift-v0_1 visibility-change-v0_1 crop-change-v0_1 mask-iou-failure-v0_1 mask-topology-change-v0_1 temporal-jitter-v0_1; do
+            manifest="tools/spacecraft-translation-geometry-audit-bench/fixtures/$name.tsv"
+            digest=$(sha256sum "$manifest" | cut -d' ' -f1)
+            cargo run --quiet --locked --manifest-path tools/spacecraft-translation-geometry-audit-bench/Cargo.toml -- "$manifest" "$GITHUB_SHA" "$digest" > "/tmp/translation-geometry-receipts/$name.rust.json"
+            python3 tools/spacecraft-translation-geometry-audit-bench/tests/reference_oracle.py "$manifest" "$GITHUB_SHA" "$digest" > "/tmp/translation-geometry-receipts/$name.python.json"
+            python3 - "$name" "/tmp/translation-geometry-receipts/$name.rust.json" "/tmp/translation-geometry-receipts/$name.python.json" <<'PY'
+          import json
+          import sys
+          name, rust_path, python_path = sys.argv[1:]
+          rust = json.load(open(rust_path, encoding="utf-8"))
+          oracle = json.load(open(python_path, encoding="utf-8"))
+          assert rust == oracle, f"{name}: Rust/Python receipt mismatch"
+          assert rust["image_pixels_inspected_here"] is False
+          assert rust["annotation_source_bytes_authenticated"] is False
+          assert rust["independent_metrology_verified_here"] is False
+          assert rust["physical_truth_established"] is False
+          assert rust["calibration_exchangeability_proven"] is False
+          assert rust["flight_qualification"] is False
+          if name == "positive-photometric-only-v0_1":
+              assert rust["unit_count"] == 1 and rust["frame_count"] == 3
+              assert rust["passed_unit_count"] == 1 and rust["blocked_unit_count"] == 0
+              assert rust["results"][0]["max_temporal_motion_residual_mpx"] == 0
+          else:
+              assert rust["unit_count"] == 1 and rust["blocked_unit_count"] == 1
+              assert rust["results"][0]["disposition"] == "BLOCKED_GEOMETRY_PRESERVATION"
+          if name == "temporal-jitter-v0_1":
+              assert all(frame["disposition"] == "PASS_GEOMETRY_PRESERVATION" for frame in rust["results"][0]["frames"])
+              assert rust["results"][0]["max_temporal_motion_residual_mpx"] == 1000
+              assert "TEMPORAL_MOTION_RESIDUAL_EXCEEDED" in rust["results"][0]["reason_codes"]
+          if name == "mask-topology-change-v0_1":
+              silhouette = next(mask for mask in rust["results"][0]["frames"][1]["mask_scores"] if mask["region_id"] == "SILHOUETTE")
+              assert silhouette["iou_bps"] >= 9900
+              assert silhouette["source_component_count"] != silhouette["translated_component_count"]
+          PY
+          done
+      - name: Incomplete sequence fails closed
+        run: |
+          set -euo pipefail
+          manifest=tools/spacecraft-translation-geometry-audit-bench/fixtures/incomplete-sequence-v0_1.tsv
+          digest=$(sha256sum "$manifest" | cut -d' ' -f1)
+          if cargo run --quiet --locked --manifest-path tools/spacecraft-translation-geometry-audit-bench/Cargo.toml -- "$manifest" "$GITHUB_SHA" "$digest"; then
+            echo "Rust accepted incomplete sequence" >&2
+            exit 1
+          fi
+          if python3 tools/spacecraft-translation-geometry-audit-bench/tests/reference_oracle.py "$manifest" "$GITHUB_SHA" "$digest"; then
+            echo "Python oracle accepted incomplete sequence" >&2
+            exit 1
+          fi
+      - name: Retain exact receipts and manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacecraft-translation-geometry-audit-evidence
+          path: |
+            /tmp/translation-geometry-receipts/*.json
+            tools/spacecraft-translation-geometry-audit-bench/fixtures/*.tsv
+          if-no-files-found: error
+          retention-days: 30
