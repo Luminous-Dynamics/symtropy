@@ -189,10 +189,10 @@ fn result_json(
         Some(region) => {
             let bounds = region.translation_bounds_um;
             format!(
-                "{{\"translation_bounds_um\":[[{},{ }],[{},{}],[{},{}]],\"orientation_cap_urad\":{}}}",
+                "{{\"translation_bounds_um\":[[{},{}],[{},{}],[{},{}]],\"orientation_cap_urad\":{}}}",
                 bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1],
                 bounds[2][0], bounds[2][1], region.orientation_cap_urad
-            ).replace(",{ }", ",")
+            )
         }
         None => "null".to_owned(),
     };
