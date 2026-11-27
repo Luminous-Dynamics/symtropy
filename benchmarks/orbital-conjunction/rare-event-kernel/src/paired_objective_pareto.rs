@@ -803,7 +803,7 @@ impl PairedObjectiveParetoCampaign {
     }
 }
 
-fn validate_and_digest_gate(
+pub(crate) fn validate_and_digest_gate(
     gate: &ScenarioMissionRiskGateReport,
 ) -> Result<[u8; 32], PairedObjectiveParetoError> {
     if gate.authority_granted
