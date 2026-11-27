@@ -284,6 +284,11 @@ mod tests {
         })
         .is_err());
         assert!(evaluate_projected_mask_area_bound(AreaBoundInput {
+            target_domain_area_m2: f64::NAN,
+            ..valid
+        })
+        .is_err());
+        assert!(evaluate_projected_mask_area_bound(AreaBoundInput {
             shade_to_target_distance_m: f64::INFINITY,
             ..valid
         })
@@ -350,7 +355,7 @@ mod tests {
         target_radius: f64,
         intervals: usize,
     ) -> f64 {
-        assert!(intervals > 0 && intervals % 2 == 0);
+        assert!(intervals > 0 && (intervals & 1) == 0);
         let step = target_radius / intervals as f64;
         let sun_area = std::f64::consts::PI * projected_sun_radius.powi(2);
         let mut weighted_sum = 0.0;
