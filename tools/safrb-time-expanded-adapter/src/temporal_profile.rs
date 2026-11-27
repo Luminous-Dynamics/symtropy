@@ -491,12 +491,17 @@ mod tests {
         }
     }
 
-    fn verified_result(profile: &TemporalProfile) -> FlowResult {
+    fn verified_bundle(profile: &TemporalProfile) -> FlowCertificateBundle {
         let graph = compile_temporal_profile(profile).unwrap();
         let result = graph.solve().unwrap();
-        let bundle = FlowCertificateBundle::new(graph, result.clone()).unwrap();
+        let bundle = FlowCertificateBundle::new(graph, result).unwrap();
         bundle.verify().unwrap();
-        result
+        crate::temporal_verify::verify_temporal_certificate(profile, &bundle).unwrap();
+        bundle
+    }
+
+    fn verified_result(profile: &TemporalProfile) -> FlowResult {
+        verified_bundle(profile).result
     }
 
     fn flow_for(result: &FlowResult, edge_id: &str) -> u64 {
@@ -795,6 +800,103 @@ mod tests {
             compile_temporal_profile(&model)
                 .unwrap_err()
                 .contains("kernel limit")
+        );
+    }
+
+    #[test]
+    fn case_and_timebase_are_bound_to_graph_identity() {
+        let original = profile(
+            0,
+            vec![node("yard", 100, 100, 100)],
+            vec![TemporalReceipt {
+                receipt_id: "receipt".to_string(),
+                node_id: "yard".to_string(),
+                available_period: 0,
+                quantity: 10,
+            }],
+            vec![],
+            vec![TemporalService {
+                service_id: "service".to_string(),
+                node_id: "yard".to_string(),
+                period: 0,
+                required_quantity: 10,
+            }],
+        );
+        let original_bytes = compile_temporal_profile(&original)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+
+        let mut other_case = original.clone();
+        other_case.case_id = "different-case".to_string();
+        let other_case_bytes = compile_temporal_profile(&other_case)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        assert_ne!(original_bytes, other_case_bytes);
+
+        let mut other_timebase = original;
+        other_timebase.period_timebase_ref = "synthetic:alternate-calendar".to_string();
+        let other_timebase_bytes = compile_temporal_profile(&other_timebase)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        assert_ne!(original_bytes, other_timebase_bytes);
+    }
+
+    #[test]
+    fn independent_verifier_rejects_certificate_for_mutated_receipt_capacity() {
+        let mut model = profile(
+            0,
+            vec![node("yard", 100, 100, 100)],
+            vec![TemporalReceipt {
+                receipt_id: "receipt".to_string(),
+                node_id: "yard".to_string(),
+                available_period: 0,
+                quantity: 10,
+            }],
+            vec![],
+            vec![TemporalService {
+                service_id: "service".to_string(),
+                node_id: "yard".to_string(),
+                period: 0,
+                required_quantity: 10,
+            }],
+        );
+        let bundle = verified_bundle(&model);
+        model.receipts[0].quantity = 11;
+        assert!(
+            crate::temporal_verify::verify_temporal_certificate(&model, &bundle)
+                .unwrap_err()
+                .contains("graph mapping mismatch")
+        );
+    }
+
+    #[test]
+    fn independent_verifier_rejects_certificate_from_other_timebase() {
+        let mut model = profile(
+            0,
+            vec![node("yard", 100, 100, 100)],
+            vec![TemporalReceipt {
+                receipt_id: "receipt".to_string(),
+                node_id: "yard".to_string(),
+                available_period: 0,
+                quantity: 10,
+            }],
+            vec![],
+            vec![TemporalService {
+                service_id: "service".to_string(),
+                node_id: "yard".to_string(),
+                period: 0,
+                required_quantity: 10,
+            }],
+        );
+        let bundle = verified_bundle(&model);
+        model.period_timebase_ref = "synthetic:other-period-zero".to_string();
+        assert!(
+            crate::temporal_verify::verify_temporal_certificate(&model, &bundle)
+                .unwrap_err()
+                .contains("model-context binding mismatch")
         );
     }
 
