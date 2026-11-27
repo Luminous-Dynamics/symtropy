@@ -49,6 +49,6 @@ A robust minimization dominance requires the candidate's upper interval endpoint
 
 ## Test inventory and execution boundary
 
-Twenty-two Rust unit tests are authored. They cover positive closure, route trade-offs, cohort mismatch, unit/role rejection, nominal/as-built mismatch, missing metrics, hard failure versus unresolved uncertainty, interval dominance, duplicate candidate/specimen IDs, process and magnetization lineage, geometry-inspection calibration and unsupported scope.
+Twenty-four Rust unit tests are authored. They cover positive closure, route trade-offs, cohort mismatch, unit/role rejection, nominal/as-built mismatch, missing metrics, hard failure versus unresolved uncertainty, interval dominance, duplicate candidate/specimen IDs, process and magnetization lineage, geometry-inspection calibration and unsupported scope.
 
 The focused three-platform workflow is defined in `.github/workflows/magnetic-route-tournament.yml`. Compilation, strict Clippy and test results are not claimed until the exact current branch head has a completed successful run.
