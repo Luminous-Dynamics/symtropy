@@ -128,3 +128,18 @@ For industrial deployment, map hazards and risk reduction into applicable machin
 ## Explicit non-claims
 
 No claim of source authentication, complete evidence/change-stream coverage, physical no-effect, safe actuator cancellation, atomic abort, physical viability proof, sensor truth, blind performance, SOTA superiority, simulator/HIL/physical qualification, regulatory compliance or robot safety certification.
+
+
+## Native action-boundary composition
+
+The checkpoint reducer must not be placed in front of the driver as a new dispatcher. Its output is an observer-side recommendation and evidence attachment only. The final race is owned by [#6669 — authority-linearized mutation](https://github.com/Luminous-Dynamics/symtropy/issues/6669):
+
+- Carry the exact #7814 support-currentness receipt (decision cut, dependency-closure digest and decision-change frontier) as a dependency in the immutable #6503 action-ticket commitment.
+- Queueing remains non-authoritative. At the native controller mutation linearization point, atomically compare the complete ticket binding against live configuration, mission, ODD/mode, authority, clock/boot and endpoint epoch; check lease; then consume the exact attempt once.
+- If revocation or changed support linearizes first, assert zero calls at the actual mutation sink. If application linearizes first, record the exact pre-change snapshot and fence later commands; never rewrite history.
+- An ambiguous sink result is Unknown / ReconciliationRequired, not retry permission; preserve it across restart through #6795.
+- For ROS 2 deployments, qualify retained command-interface values, async controller updates, DDS delivery, driver buffers and firmware queues through #7415. DDS deadline/liveliness or controller INACTIVE is not endpoint NoEffect.
+
+### Dispatch race benchmark overlay
+
+On a frozen controller/hardware profile and identical event schedule, compare: (A) baseline dispatch, (B) AERB/#7814 pre-enqueue currentness only, (C) pre-enqueue currentness plus controller epoch fence, and (D) full immutable action-ticket binding atomically consumed at the native application point. Inject revocation/configuration/ODD/mode/mission/clock changes after decision, before queue, while queued, and racing with application. Keep both legal linearization orders as positive controls. Report invalid sink calls, duplicate attempts, ambiguous outcome retries, false holds, application latency, fence latency, and reconciliation latency separately. Hard target: zero invalid mutations at the actual sink; the false-veto/positive-control rate remains a separate metric. A wrapper mutex or stale controller epoch is not evidence that the native boundary is atomic.
