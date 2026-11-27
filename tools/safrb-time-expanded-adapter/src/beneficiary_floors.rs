@@ -884,15 +884,18 @@ mod tests {
             return false;
         }
         let mut total_floor = 0_u64;
-        for index in 0..floors.len() {
-            let per_service_limit = route_limits[index]
-                .min(issue_limits[index])
-                .min(requests[index]);
-            if floors[index].minimum_required_quantity > per_service_limit {
+        for (((floor, route_limit), issue_limit), request) in floors
+            .iter()
+            .zip(route_limits.iter())
+            .zip(issue_limits.iter())
+            .zip(requests.iter())
+        {
+            let per_service_limit = (*route_limit).min(*issue_limit).min(*request);
+            if floor.minimum_required_quantity > per_service_limit {
                 return false;
             }
             let Some(next_total) =
-                total_floor.checked_add(floors[index].minimum_required_quantity)
+                total_floor.checked_add(floor.minimum_required_quantity)
             else {
                 return false;
             };
