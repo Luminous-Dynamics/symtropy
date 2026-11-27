@@ -17,6 +17,14 @@ max_evidence_records = 20000
 max_dependency_edges = 100000
 max_graph_depth = 256
 
+[mutation_corpus]
+fixture = "fixtures/mutation-cases-v0.1.json"
+schema = "schemas/mutation-corpus-v0.1.schema.json"
+mutation_cases_authored = 25
+unit_tests_authored = 34
+oracle_review_status = "NOT_INDEPENDENTLY_REVIEWED"
+execution_status = "AUTHORED_NOT_YET_EXECUTED"
+
 [functional_targets]
 false_closure_on_adversarial_mutations = 0
 false_block_on_valid_positive_controls = 0
