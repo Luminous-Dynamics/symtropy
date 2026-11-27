@@ -124,13 +124,14 @@ def main() -> int:
     validate_instance(state_vectors, state_schema, "assurance state vectors")
 
     state_cases = state_vectors["cases"]
-    if len(state_cases) != 10:
-        raise SystemExit(f"FAIL: expected 10 state-vector cases, found {len(state_cases)}")
+    if len(state_cases) != 13:
+        raise SystemExit(f"FAIL: expected 13 state-vector cases, found {len(state_cases)}")
     state_case_ids = [case["case_id"] for case in state_cases]
     require_unique(state_case_ids, "state-vector case IDs")
     required_projections = {
         "REJECTED", "OUT_OF_SCOPE", "NOT_KNOWN_AT_SNAPSHOT",
-        "UNVERIFIED", "INCOMPLETE", "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+        "NOT_EFFECTIVE_AT_SUBJECT_TIME", "UNVERIFIED", "INCOMPLETE",
+        "REVIEWABLE_FOR_INDEPENDENT_DECISION",
     }
     projections = {case["expected_disposition"] for case in state_cases}
     if not required_projections.issubset(projections):
@@ -173,7 +174,7 @@ def main() -> int:
                 ))
                 or (item["authority"] == "DENIED" and item["verification"] == "VERIFIED")
                 for item in mandatory
-            ):
+            ) and case["subject_time_effectivity"] != "INVALID_INTERVAL":
                 raise SystemExit(f"FAIL: rejected fixture has no verified hard blocker in {case['case_id']}")
         elif disposition == "OUT_OF_SCOPE":
             if not any(item["applicability"] == "OUT_OF_SCOPE" for item in mandatory):
@@ -187,6 +188,13 @@ def main() -> int:
                 for item in mandatory
             ):
                 raise SystemExit(f"FAIL: unverified fixture has no unverified axis in {case['case_id']}")
+        elif disposition == "NOT_EFFECTIVE_AT_SUBJECT_TIME":
+            if case["subject_time_effectivity"] != "DEFINITELY_NOT_YET_EFFECTIVE":
+                raise SystemExit(f"FAIL: subject-time disposition mismatch in {case['case_id']}")
+        if case["subject_time_effectivity"] == "INVALID_INTERVAL" and disposition != "REJECTED":
+            raise SystemExit(f"FAIL: invalid subject-time interval was not rejected in {case['case_id']}")
+        if case["subject_time_effectivity"] == "BOUNDARY_AMBIGUOUS" and disposition != "INCOMPLETE":
+            raise SystemExit(f"FAIL: ambiguous subject-time interval did not abstain in {case['case_id']}")
         elif disposition == "INCOMPLETE":
             if not any(
                 item["proposition_evidence"] in {"NEITHER", "BOTH"}
@@ -195,7 +203,7 @@ def main() -> int:
             ) and not any(
                 item["status"] == "UNRESOLVED" and item["materiality"] == "BLOCKING"
                 for item in case["defeaters"]
-            ):
+            ) and case["subject_time_effectivity"] != "BOUNDARY_AMBIGUOUS":
                 raise SystemExit(f"FAIL: incomplete fixture has no missing/conflicting obligation in {case['case_id']}")
 
     print(
