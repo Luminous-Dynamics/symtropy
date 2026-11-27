@@ -13,6 +13,7 @@ from pathlib import Path
 
 SCHEMA = "luminous.spacecraft-multimodal-frame-sync.receipt.v0.1"
 SPACESENSE_REVISION = "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e"
+SPACESENSE_POSE_CSV_RELEASE = "pose-ground-truth-regenerated-2026-05-19"
 TIMESTAMP_FORMAT = "YYYYMMDDHHMMSSmmm"
 MODALITIES = (
     ("rgb", "cam0"),
@@ -78,6 +79,7 @@ def result_base(
         "split": row["split"],
         "capture_timestamp": row["capture_timestamp"],
         "pose_csv_revision": row["pose_csv_revision"],
+        "corrected_pose_revision": row["corrected_pose_revision"],
         "camera_calibration_revision": row["camera_calibration_revision"],
         "camera_calibration_sha256": row["camera_calibration_sha256"],
         "lidar_to_camera_revision": row["lidar_to_camera_revision"],
@@ -123,7 +125,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         or row["dataset_revision"] != SPACESENSE_REVISION
         or row["license"] != "CC-BY-NC-4.0"
         or row["intended_use"] != "NONCOMMERCIAL"
-        or row["corrected_pose_revision"] != SPACESENSE_REVISION
+        or row["corrected_pose_revision"] != SPACESENSE_POSE_CSV_RELEASE
         or row["camera_frame"] != "FRD_X_FORWARD_Y_RIGHT_Z_DOWN"
         or row["world_frame"] != "AIRSIM_NED"
         or row["lidar_coordinate_frame"] != "SENSOR_LOCAL_FRAME"
