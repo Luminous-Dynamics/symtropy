@@ -275,11 +275,15 @@ fn covariance_is_spd(matrix: &[f64; 36]) -> bool {
     for row in 0..6 {
         for column in 0..=row {
             let mut residual = Interval::point(matrix[row * 6 + column]);
-            for (index, row_factor) in lower[row].iter().take(column).enumerate() {
+            for (row_factor, column_factor) in lower[row]
+                .iter()
+                .take(column)
+                .zip(lower[column].iter().take(column))
+            {
                 let product = if row == column {
                     interval_square(*row_factor)
                 } else {
-                    interval_mul(*row_factor, lower[column][index])
+                    interval_mul(*row_factor, *column_factor)
                 };
                 let Some(product) = product else {
                     return false;
