@@ -26,12 +26,12 @@
       "const": "not_run"
     },
     "case_count": {
-      "const": 19
+      "const": 18
     },
     "cases": {
       "type": "array",
-      "minItems": 19,
-      "maxItems": 19,
+      "minItems": 18,
+      "maxItems": 18,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -112,7 +112,7 @@
           },
           "candidates": {
             "type": "array",
-            "maxItems": 16,
+            "maxItems": 17,
             "items": {
               "type": "object",
               "additionalProperties": false,
