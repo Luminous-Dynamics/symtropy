@@ -737,10 +737,12 @@ mod tests {
         let candidates = [
             action("address-a", &["alert-a"], u64::MAX, 1, 1, 1),
             action("address-b", &["alert-b"], 1, 1, 1, 1),
+            action("combined-valid", &["alert-a", "alert-b"], 10, 10, 10, 10),
         ];
         let result = plan_portfolio(&p, &candidates).unwrap();
-        assert_eq!(result.disposition, PortfolioDisposition::Infeasible);
-        assert!(result.pareto_frontier.is_empty());
+        assert_eq!(result.disposition, PortfolioDisposition::Feasible);
+        assert_eq!(result.pareto_frontier.len(), 1);
+        assert_eq!(result.pareto_frontier[0].action_ids, vec!["combined-valid"]);
     }
 
     #[test]
