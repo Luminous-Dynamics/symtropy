@@ -545,13 +545,7 @@ mod tests {
                     continue;
                 };
                 if next_total <= shared_ceiling {
-                    enumerate(
-                        limits,
-                        index + 1,
-                        next_total,
-                        shared_ceiling,
-                        best,
-                    );
+                    enumerate(limits, index + 1, next_total, shared_ceiling, best);
                 }
             }
         }
@@ -606,22 +600,16 @@ mod tests {
                     period: 1,
                     requested_quantity,
                 });
-                exhaustive_limits.push(
-                    route_capacity.min(issue_capacity).min(requested_quantity),
-                );
+                exhaustive_limits.push(route_capacity.min(issue_capacity).min(requested_quantity));
             }
 
             let mut model = profile(1, nodes, receipts, transfers, services);
             model.case_id = format!("seeded-temporal-physical-oracle-{seed}");
 
-            let expected = exhaustive_parallel_service_max(
-                &exhaustive_limits,
-                shared_ceiling,
-            );
+            let expected = exhaustive_parallel_service_max(&exhaustive_limits, shared_ceiling);
             let bundle = verified_bundle(&model);
             assert_eq!(
-                bundle.result.max_flow,
-                expected,
+                bundle.result.max_flow, expected,
                 "seed {seed}: expected physical-oracle delivery {expected}, got {}",
                 bundle.result.max_flow
             );
@@ -862,10 +850,7 @@ mod tests {
         let result = verified_result(&model);
         assert_eq!(result.max_flow, 80);
         assert_eq!(
-            flow_for(
-                &result,
-                &source_edge_id("opening-inventory", "yard")
-            ),
+            flow_for(&result, &source_edge_id("opening-inventory", "yard")),
             80
         );
     }
