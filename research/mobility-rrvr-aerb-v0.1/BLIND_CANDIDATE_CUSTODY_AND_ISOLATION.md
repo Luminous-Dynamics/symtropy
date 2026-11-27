@@ -32,8 +32,8 @@ The pure builder validates:
 - every resource limit is positive.
 
 The builder emits a direct prlimit → bubblewrap → candidate argv chain, with no shell:
-- --unshare-all and --unshare-net;
-- --disable-userns plus --assert-userns-disabled, so nested user namespace creation is not best-effort;
+- explicit --unshare-user, --unshare-pid, --unshare-ipc, --unshare-net and --unshare-uts (required namespaces fail closed);
+- --disable-userns plus --assert-userns-disabled after explicit --unshare-user, so nested user namespace creation is not best-effort;
 - --cap-drop ALL, --new-session, and --die-with-parent;
 - read-only mounts for /candidate/input and /runtime;
 - the sole writable host mount at /candidate/output;
@@ -76,7 +76,7 @@ The CI canary executes the binary and reports:
 3. candidate output writes succeed and are confined to the output mount;
 4. loopback and external network access are unavailable;
 5. host process tree, PID namespace and environment isolation match the declared profile;
-6. nested user namespace creation fails;
+6. nested user namespace creation is disabled and the in-sandbox user.max_user_namespaces limit is 1;
 7. CPU/address-space/process/file limits are observed at their exact boundary;
 8. timeout, crash, OOM, output overflow, malformed output and sandbox setup failure all produce explicit failed/invalid campaign states, never a score-as-pass;
 9. no host path, evaluator label, seed, hidden-manifest field or canary name appears in candidate-visible argv, environment, filesystem, stdout/stderr or error paths.
