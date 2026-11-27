@@ -17,13 +17,13 @@ The benchmark registers two field datasets with different observation boundaries
 - Four publisher-described fault families: thermal runaway, electrolyte leakage, internal short circuit and excessive aging.
 - Seven archive parts totaling 38.1 GB; Zenodo states CC BY 4.0 and publishes MD5 per ZIP.
 
-The 18.2 million count is rounded and is recorded as approximate. Manufacturer identity, fault event boundaries, class prevalence, and independent physical confirmation still need to be inspected after acquisition. The source publisher's fault labels are not independent forensic diagnoses.
+The 18.2 million count is rounded and is recorded as approximate; the count basis is all seven ZIP parts. Manufacturer identity, fault event boundaries, class prevalence, and independent physical confirmation still need to be inspected after acquisition. The source publisher's fault labels are not independent forensic diagnoses.
 
 ### Charger-side — Yang et al.
 
 - Paper: *Privacy-preserving collaborative battery fault warning for massive electric vehicles by heterogeneous data from charging stations*, Nature Communications 17, 974 (published 19 December 2025), DOI 10.1038/s41467-025-67703-7.
 - Mendeley Data: https://data.mendeley.com/datasets/c7gg94tmvz/3, DOI 10.17632/c7gg94tmvz.3, version 3, published 8 October 2024.
-- 30 public charging stations, 10,154 EVs, 21,175 charging sessions and 1,547,432 one-minute sample points.
+- 30 public charging stations, 10,154 EVs, 21,175 charging sessions and 1,547,432 one-minute sample points in `processed_data_longer_than_30.xlsx`. The separate `processed_data.xlsx` contains the broader preprocessed collection and must not inherit this row count.
 - Signals include SOC, cumulative energy/time, voltage, current, power and charging-gun temperatures.
 - Eight data-owner partitions. Dataset licence: CC BY 4.0.
 - Binary labels combine engineering-reported faults and high-temperature station disconnections.
