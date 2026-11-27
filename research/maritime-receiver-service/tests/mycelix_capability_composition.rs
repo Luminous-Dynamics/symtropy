@@ -209,7 +209,10 @@ fn censored_receiver_units_produce_bounds_and_unknown_floor_not_assumed_success(
         (6, 10)
     );
     assert_eq!(
-        (result.best_case_upper_numerator, result.best_case_upper_denominator),
+        (
+            result.best_case_upper_numerator,
+            result.best_case_upper_denominator
+        ),
         (10, 10)
     );
     assert_eq!(result.floor_disposition, FloorDisposition::Unknown);
