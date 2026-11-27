@@ -1,0 +1,133 @@
+{
+  "schema_version": "spatial-state-projection-transform-vectors-v0",
+  "convention": {
+    "symthaea_pose": "T_reference_from_local",
+    "translation_semantics": "local-origin position in reference axes, measured from reference origin",
+    "point_mapping": "p_reference = R_reference_from_local * p_local + translation_m",
+    "quaternion_order_symthaea": "wxyz",
+    "quaternion_order_symtropy_world_manifest": "xyzw",
+    "adapter_permutation": "[w,x,y,z] -> [x,y,z,w]"
+  },
+  "vectors": [
+    {
+      "id": "quarter-turn-z-90",
+      "reference_frame": "candidate-world",
+      "local_frame": "camera",
+      "translation_m": [
+        1,
+        2,
+        3
+      ],
+      "rotation_wxyz": [
+        0.7071067811865476,
+        0,
+        0,
+        0.7071067811865476
+      ],
+      "rotation_xyzw_for_symtropy": [
+        0,
+        0,
+        0.7071067811865476,
+        0.7071067811865476
+      ],
+      "point_local_m": [
+        1,
+        0,
+        0
+      ],
+      "expected_point_reference_m": [
+        1,
+        3,
+        3
+      ],
+      "inverse_translation_m": [
+        -2,
+        1,
+        -3
+      ],
+      "inverse_rotation_wxyz": [
+        0.7071067811865476,
+        0,
+        0,
+        -0.7071067811865476
+      ],
+      "tolerance": {
+        "quaternion_norm": 1e-12,
+        "point_m": 1e-12
+      }
+    },
+    {
+      "id": "identity",
+      "reference_frame": "candidate-world",
+      "local_frame": "camera",
+      "translation_m": [
+        0,
+        0,
+        0
+      ],
+      "rotation_wxyz": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "rotation_xyzw_for_symtropy": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "point_local_m": [
+        2,
+        -3,
+        4
+      ],
+      "expected_point_reference_m": [
+        2,
+        -3,
+        4
+      ],
+      "inverse_translation_m": [
+        0,
+        0,
+        0
+      ],
+      "inverse_rotation_wxyz": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "tolerance": {
+        "quaternion_norm": 1e-12,
+        "point_m": 1e-12
+      }
+    }
+  ],
+  "negative_cases": [
+    {
+      "id": "same-local-id-new-generation",
+      "expected": "reject frame join; generation is part of identity"
+    },
+    {
+      "id": "equal-ticks-unrelated-clocks",
+      "expected": "incomparable unless a qualified #621 transform applies"
+    },
+    {
+      "id": "wrong-endpoint-order",
+      "expected": "reject or produce a demonstrably different mapped point"
+    },
+    {
+      "id": "xyzw-read-as-wxyz",
+      "expected": "non-identity rotation vector must fail"
+    },
+    {
+      "id": "stale-calibration-state",
+      "expected": "geometry claim not current/qualified"
+    },
+    {
+      "id": "shared-pose-map-observation-root",
+      "expected": "preserve joint/shared ancestry; never count as independent corroboration"
+    }
+  ]
+}

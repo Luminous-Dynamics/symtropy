@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/av-observation-001/decision-sufficiency-receipt-v0.schema.json",
+  "title": "Candidate Decision-Sufficiency Receipt v0",
+  "description": "Candidate-visible, DecisionNeed-scoped policy claim. This receipt is not evaluator truth, source authentication, a physical-safety certificate, or permission to execute a probe.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "issued_at",
+    "decision_need",
+    "utility_contract_digest",
+    "evidence_prefix_digest",
+    "candidate_policy_digest",
+    "probe_catalogue_digest",
+    "budget",
+    "disposition",
+    "residuals"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "decision-sufficiency-receipt-v0"
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "decision_need": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "digest"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "utility_contract_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "evidence_prefix_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "candidate_policy_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "probe_catalogue_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "remaining_cost_units",
+        "remaining_latency_ticks"
+      ],
+      "properties": {
+        "remaining_cost_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "remaining_latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "disposition": {
+      "enum": [
+        "decision_sufficient",
+        "probe_selected",
+        "unresolved"
+      ]
+    },
+    "decision_sufficient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_decision_class_id",
+        "candidate_live_hypothesis_count"
+      ],
+      "properties": {
+        "candidate_decision_class_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "candidate_live_hypothesis_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "probe_selected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_probe_id",
+        "baseline_conflicting_pairs",
+        "predicted_worst_case_conflicting_pairs",
+        "cost_units",
+        "latency_ticks"
+      ],
+      "properties": {
+        "candidate_probe_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "baseline_conflicting_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predicted_worst_case_conflicting_pairs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cost_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "unresolved": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "baseline_conflicting_pairs"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "no_decision_distinguishing_probe",
+            "no_probe_within_budget"
+          ]
+        },
+        "baseline_conflicting_pairs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "residuals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unresolved_candidate_hypothesis_count",
+        "retention_contract_digest"
+      ],
+      "properties": {
+        "unresolved_candidate_hypothesis_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "residual_index_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "retention_contract_digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "unresolved_candidate_hypothesis_count": {
+                "minimum": 1
+              }
+            },
+            "required": [
+              "unresolved_candidate_hypothesis_count"
+            ]
+          },
+          "then": {
+            "required": [
+              "residual_index_digest",
+              "source_evidence_refs"
+            ],
+            "properties": {
+              "source_evidence_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "unresolved_candidate_hypothesis_count": {
+                "const": 0
+              }
+            },
+            "required": [
+              "unresolved_candidate_hypothesis_count"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "residual_index_digest"
+                  ]
+                },
+                {
+                  "required": [
+                    "source_evidence_refs"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "supersedes_receipt_digest": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "decision_sufficient"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "required": [
+          "decision_sufficient"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "probe_selected"
+              ]
+            },
+            {
+              "required": [
+                "unresolved"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "probe_selected"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "required": [
+          "probe_selected"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "decision_sufficient"
+              ]
+            },
+            {
+              "required": [
+                "unresolved"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "unresolved"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
+      },
+      "then": {
+        "required": [
+          "unresolved"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "decision_sufficient"
+              ]
+            },
+            {
+              "required": [
+                "probe_selected"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

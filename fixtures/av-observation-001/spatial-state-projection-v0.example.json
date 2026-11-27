@@ -1,0 +1,231 @@
+{
+  "schema_version": "spatial-state-projection-v0",
+  "projection_id": "projection:episode-0007:revision-3",
+  "evidence_prefix_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "producer_revision_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "map_revision": 3,
+  "observation_refs": [
+    {
+      "observation_id": "obs-frame-41",
+      "modality": "video_frame",
+      "artifact_digest": {
+        "algorithm": "sha256",
+        "value": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "capture_support": {
+        "clock_domain_ref": {
+          "namespace": "sensor:camera-serial-redacted",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "support_kind": "interval",
+        "start_tick": 4100000000,
+        "end_tick": 4133000000
+      },
+      "known_at": {
+        "clock_domain_ref": {
+          "namespace": "runtime:agent-process",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "tick": 4160000000
+      },
+      "sensor_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
+      }
+    },
+    {
+      "observation_id": "obs-frame-57",
+      "modality": "video_frame",
+      "artifact_digest": {
+        "algorithm": "sha256",
+        "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "capture_support": {
+        "clock_domain_ref": {
+          "namespace": "sensor:camera-serial-redacted",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "support_kind": "interval",
+        "start_tick": 5700000000,
+        "end_tick": 5733000000
+      },
+      "known_at": {
+        "clock_domain_ref": {
+          "namespace": "runtime:agent-process",
+          "local_id": "monotonic-clock",
+          "generation": 0
+        },
+        "tick": 5760000000
+      },
+      "sensor_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
+      }
+    }
+  ],
+  "coordinate_frames": [
+    {
+      "frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
+      },
+      "frame_kind": "camera",
+      "units": "meters",
+      "candidate_only": true
+    },
+    {
+      "frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "world-frame-0",
+        "generation": 0
+      },
+      "frame_kind": "candidate_world",
+      "units": "meters",
+      "candidate_only": true
+    }
+  ],
+  "transforms": [
+    {
+      "transform_id": "pose-camera-in-candidate-world-r3",
+      "reference_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "world-frame-0",
+        "generation": 0
+      },
+      "local_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
+      },
+      "pose_convention": "T_reference_from_local",
+      "translation_m": [
+        1.2,
+        0,
+        0.4
+      ],
+      "rotation_wxyz": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "pose_uncertainty": {
+        "profile": "pose-uncertainty-independent-marginals-v1",
+        "translation_sigma_m": [
+          0.08,
+          0.08,
+          0.08
+        ],
+        "rotation_tangent_sigma_rad": [
+          0.04,
+          0.04,
+          0.04
+        ]
+      },
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ],
+      "transform_revision": 3,
+      "epistemic_origin": "inferred",
+      "calibration_state_digest": {
+        "algorithm": "sha256",
+        "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    }
+  ],
+  "entity_hypotheses": [
+    {
+      "entity_hypothesis_id": "landmark-hypothesis-a",
+      "candidate_label": "doorway-like landmark",
+      "state": "hypothesis",
+      "epistemic_origin": "inferred",
+      "frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "world-frame-0",
+        "generation": 0
+      },
+      "position_m": [
+        3.4,
+        0,
+        1.1
+      ],
+      "position_sigma_m": [
+        0.18,
+        0.18,
+        0.18
+      ],
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ]
+    },
+    {
+      "entity_hypothesis_id": "room-hypothesis-b",
+      "candidate_label": "room region",
+      "state": "active",
+      "epistemic_origin": "inferred",
+      "source_observation_refs": [
+        "obs-frame-41"
+      ]
+    }
+  ],
+  "relation_claims": [
+    {
+      "relation_claim_id": "relation-traversal-01",
+      "subject_hypothesis_id": "room-hypothesis-b",
+      "object_hypothesis_id": "landmark-hypothesis-a",
+      "predicate": "observed_traversal",
+      "epistemic_origin": "observed",
+      "claim_state": "active",
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ]
+    },
+    {
+      "relation_claim_id": "relation-adjacency-01",
+      "subject_hypothesis_id": "room-hypothesis-b",
+      "object_hypothesis_id": "landmark-hypothesis-a",
+      "predicate": "direct_adjacency",
+      "epistemic_origin": "inferred",
+      "claim_state": "proposed",
+      "derivation_rule_id": "candidate-topology-rule-02",
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ]
+    }
+  ],
+  "unresolved_constraints": [
+    {
+      "constraint_id": "landmark-identity-constraint-01",
+      "constraint_type": "identity",
+      "candidate_alternatives": [
+        "landmark-hypothesis-a",
+        "landmark-hypothesis-a-alt"
+      ],
+      "source_observation_refs": [
+        "obs-frame-41",
+        "obs-frame-57"
+      ],
+      "reopen_hint": "Resolve only if a future DecisionNeed depends on landmark identity"
+    }
+  ],
+  "projection_created_at": {
+    "clock_domain_ref": {
+      "namespace": "runtime:agent-process",
+      "local_id": "monotonic-clock",
+      "generation": 0
+    },
+    "tick": 9000000000
+  },
+  "parent_projection_digests": [],
+  "clock_transform_digests": []
+}

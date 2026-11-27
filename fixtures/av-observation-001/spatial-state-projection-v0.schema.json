@@ -1,0 +1,657 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/av-observation-001/spatial-state-projection-v0.schema.json",
+  "title": "Candidate Spatial State Projection v0",
+  "description": "Candidate-visible source-indexed spatial state. Frame, clock and pose semantics are inherited from Symthaea #498/#611/#621/#632: ReferenceFrameId and ClockDomainId are namespace/local_id/generation identities; poses are directed T_reference_from_local with [w,x,y,z] quaternions and #498 independent marginal sigmas. This contains hypotheses and claims, not evaluator truth or action authority. The transform pose follows the Symthaea #498/#611 convention (quaternion WXYZ); Symtropy WorldManifestV1 FrameTransformV1 uses XYZW, so adapters must explicitly reorder components while preserving the same T_parent_from_child direction.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "projection_id",
+    "evidence_prefix_digest",
+    "producer_revision_digest",
+    "map_revision",
+    "observation_refs",
+    "coordinate_frames",
+    "transforms",
+    "entity_hypotheses",
+    "relation_claims",
+    "unresolved_constraints",
+    "projection_created_at",
+    "parent_projection_digests",
+    "clock_transform_digests"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "spatial-state-projection-v0"
+    },
+    "projection_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "evidence_prefix_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "producer_revision_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "map_revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observation_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation_ref"
+      }
+    },
+    "coordinate_frames": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coordinate_frame"
+      }
+    },
+    "transforms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transform"
+      }
+    },
+    "entity_hypotheses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entity_hypothesis"
+      }
+    },
+    "relation_claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/relation_claim"
+      }
+    },
+    "unresolved_constraints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unresolved_constraint"
+      }
+    },
+    "supersedes_projection_digest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "projection_created_at": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_domain_ref",
+        "tick"
+      ],
+      "properties": {
+        "clock_domain_ref": {
+          "$ref": "#/$defs/clock_domain_ref"
+        },
+        "tick": {
+          "type": "integer"
+        }
+      }
+    },
+    "parent_projection_digests": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/sha256"
+      }
+    },
+    "clock_transform_digests": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/content_digest"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "source_refs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "vec3": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "number"
+      }
+    },
+    "observation_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "modality",
+        "artifact_digest",
+        "capture_support",
+        "known_at"
+      ],
+      "properties": {
+        "observation_id": {
+          "$ref": "#/$defs/id"
+        },
+        "modality": {
+          "enum": [
+            "video_frame",
+            "audio_chunk",
+            "rgbd_frame",
+            "stereo_pair",
+            "imu_interval",
+            "lidar_scan",
+            "other"
+          ]
+        },
+        "artifact_digest": {
+          "$ref": "#/$defs/content_digest"
+        },
+        "capture_support": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "clock_domain_ref",
+            "support_kind",
+            "start_tick",
+            "end_tick"
+          ],
+          "properties": {
+            "clock_domain_ref": {
+              "$ref": "#/$defs/clock_domain_ref"
+            },
+            "support_kind": {
+              "enum": [
+                "instant",
+                "interval"
+              ]
+            },
+            "start_tick": {
+              "type": "integer"
+            },
+            "end_tick": {
+              "type": "integer"
+            }
+          }
+        },
+        "known_at": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "clock_domain_ref",
+            "tick"
+          ],
+          "properties": {
+            "clock_domain_ref": {
+              "$ref": "#/$defs/clock_domain_ref"
+            },
+            "tick": {
+              "type": "integer"
+            }
+          }
+        },
+        "sensor_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "modality": {
+                "enum": [
+                  "video_frame",
+                  "audio_chunk",
+                  "rgbd_frame",
+                  "stereo_pair",
+                  "imu_interval",
+                  "lidar_scan"
+                ]
+              }
+            },
+            "required": [
+              "modality"
+            ]
+          },
+          "then": {
+            "required": [
+              "sensor_frame_ref"
+            ]
+          }
+        }
+      ]
+    },
+    "coordinate_frame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame_ref",
+        "frame_kind",
+        "units",
+        "candidate_only"
+      ],
+      "properties": {
+        "frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        },
+        "frame_kind": {
+          "enum": [
+            "camera",
+            "sensor",
+            "body",
+            "candidate_world",
+            "local_map",
+            "unknown"
+          ]
+        },
+        "units": {
+          "enum": [
+            "meters",
+            "millimeters",
+            "pixels",
+            "unitless",
+            "unknown"
+          ]
+        },
+        "parent_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        },
+        "candidate_only": {
+          "const": true
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transform_id",
+        "reference_frame_ref",
+        "local_frame_ref",
+        "pose_convention",
+        "translation_m",
+        "rotation_wxyz",
+        "pose_uncertainty",
+        "source_observation_refs",
+        "transform_revision",
+        "epistemic_origin"
+      ],
+      "properties": {
+        "transform_id": {
+          "$ref": "#/$defs/id"
+        },
+        "reference_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        },
+        "local_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        },
+        "pose_convention": {
+          "const": "T_reference_from_local"
+        },
+        "translation_m": {
+          "$ref": "#/$defs/vec3"
+        },
+        "rotation_wxyz": {
+          "$ref": "#/$defs/quat_wxyz"
+        },
+        "pose_uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "profile",
+            "translation_sigma_m",
+            "rotation_tangent_sigma_rad"
+          ],
+          "properties": {
+            "profile": {
+              "const": "pose-uncertainty-independent-marginals-v1"
+            },
+            "translation_sigma_m": {
+              "$ref": "#/$defs/vec3"
+            },
+            "rotation_tangent_sigma_rad": {
+              "$ref": "#/$defs/vec3"
+            }
+          }
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs",
+          "minItems": 1
+        },
+        "transform_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "epistemic_origin": {
+          "enum": [
+            "observed",
+            "inferred",
+            "remembered",
+            "predicted",
+            "simulated",
+            "counterfactual"
+          ]
+        },
+        "calibration_state_digest": {
+          "$ref": "#/$defs/content_digest"
+        }
+      }
+    },
+    "entity_hypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_hypothesis_id",
+        "state",
+        "epistemic_origin",
+        "source_observation_refs"
+      ],
+      "properties": {
+        "entity_hypothesis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "candidate_label": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "active",
+            "occluded",
+            "lost",
+            "hypothesis",
+            "unknown",
+            "retracted"
+          ]
+        },
+        "epistemic_origin": {
+          "enum": [
+            "observed",
+            "inferred",
+            "remembered",
+            "predicted",
+            "simulated",
+            "counterfactual",
+            "unknown"
+          ]
+        },
+        "position_m": {
+          "$ref": "#/$defs/vec3"
+        },
+        "geometry_digest": {
+          "$ref": "#/$defs/content_digest"
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs"
+        },
+        "frame_ref": {
+          "$ref": "#/$defs/frame_ref"
+        },
+        "position_sigma_m": {
+          "$ref": "#/$defs/vec3"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "epistemic_origin": {
+                "enum": [
+                  "observed",
+                  "inferred",
+                  "remembered",
+                  "predicted",
+                  "simulated",
+                  "counterfactual"
+                ]
+              }
+            },
+            "required": [
+              "epistemic_origin"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_observation_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ],
+      "description": "position_m, when present, is a MetricPoint3 expressed in frame_ref; position_sigma_m is a per-axis marginal diagnostic, not a correlated 3D covariance.",
+      "dependentRequired": {
+        "position_m": [
+          "frame_ref"
+        ]
+      }
+    },
+    "relation_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation_claim_id",
+        "subject_hypothesis_id",
+        "predicate",
+        "epistemic_origin",
+        "claim_state",
+        "source_observation_refs",
+        "object_hypothesis_id"
+      ],
+      "properties": {
+        "relation_claim_id": {
+          "$ref": "#/$defs/id"
+        },
+        "subject_hypothesis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "object_hypothesis_id": {
+          "$ref": "#/$defs/id"
+        },
+        "predicate": {
+          "enum": [
+            "direct_adjacency",
+            "observed_traversal",
+            "inferred_connectivity",
+            "contains",
+            "inside",
+            "supports",
+            "occludes",
+            "same_place_hypothesis",
+            "visible_from",
+            "unknown_relation"
+          ]
+        },
+        "epistemic_origin": {
+          "enum": [
+            "observed",
+            "inferred",
+            "remembered",
+            "predicted",
+            "simulated",
+            "counterfactual",
+            "unknown"
+          ]
+        },
+        "claim_state": {
+          "enum": [
+            "proposed",
+            "active",
+            "contested",
+            "superseded",
+            "retracted",
+            "unknown"
+          ]
+        },
+        "derivation_rule_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs",
+          "minItems": 1
+        },
+        "supersedes_claim_id": {
+          "$ref": "#/$defs/id"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "epistemic_origin": {
+                "enum": [
+                  "observed",
+                  "inferred",
+                  "remembered",
+                  "predicted",
+                  "simulated",
+                  "counterfactual"
+                ]
+              }
+            },
+            "required": [
+              "epistemic_origin"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_observation_refs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "unresolved_constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "constraint_id",
+        "constraint_type",
+        "candidate_alternatives",
+        "source_observation_refs"
+      ],
+      "properties": {
+        "constraint_id": {
+          "$ref": "#/$defs/id"
+        },
+        "constraint_type": {
+          "enum": [
+            "identity",
+            "transform",
+            "scale",
+            "topology",
+            "trajectory",
+            "temporal_order",
+            "visibility",
+            "other"
+          ]
+        },
+        "candidate_alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        },
+        "source_observation_refs": {
+          "$ref": "#/$defs/source_refs",
+          "minItems": 1
+        },
+        "reopen_hint": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "frame_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "local_id",
+        "generation"
+      ],
+      "properties": {
+        "namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "local_id": {
+          "$ref": "#/$defs/id"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "clock_domain_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "namespace",
+        "local_id",
+        "generation"
+      ],
+      "properties": {
+        "namespace": {
+          "$ref": "#/$defs/id"
+        },
+        "local_id": {
+          "$ref": "#/$defs/id"
+        },
+        "generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "quat_wxyz": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "number"
+      }
+    },
+    "content_digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "sha256",
+            "blake3"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
