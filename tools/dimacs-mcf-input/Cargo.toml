@@ -7,3 +7,4 @@ publish = false
 description = "Bounded, identity-preserving parser for DIMACS minimum-cost-flow instances"
 
 [dependencies]
+sha2 = "0.10.9"
