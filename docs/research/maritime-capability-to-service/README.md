@@ -75,6 +75,17 @@ Cost, embodied emissions, regional value, receiver delay and resilience must rem
 
 The denominator is 10 for all five alternatives. Only LOCAL-C reaches the receiver by day 10 in the outage case.
 
+## Cross-owner productive-capability receipt
+
+The fixture `fixtures/mycelix-mpcb-tiny-v0.receipt.tsv` is a frozen transcript of the deterministic receipt emitted by Mycelix #6774's dedicated Maritime Productive Capability Reference workflow (run #5, source commit `877716f9be9cbdf56f9c4b8be67349b9bca97a43`). Source extraction details and claim ceiling are recorded in `fixtures/mycelix-mpcb-tiny-v0.receipt-source.md`.
+
+The receipt carries the owner-computed four sourcing plans, work-package selections, shared regional plate/welding/NDT capacities, Pareto classifications and exact blocking reasons. A new integration test independently parses that owner receipt, verifies its summary/resource blockers, translates the *owner's feasibility and lead-time outputs* into a synthetic service obligation, and confirms:
+- the faster all-local plan remains unavailable because Mycelix marks it infeasible (4 t plate demand > 3 t capacity; 16 h welding demand > 12 h capacity);
+- the A-local/B-import hybrid can complete inspection, commissioning and handoff by the synthetic day-20 receiver deadline;
+- the other two owner-feasible portfolios miss that deadline after the downstream stages are included.
+
+This test composes the owner receipt; it does not re-run Mycelix's source enumeration or resource feasibility engine. It is not yet a production adapter, and the receipt is a log-extracted snapshot rather than a downloaded signed artifact. The future adapter must bind exact digests, freshness, authority and rights before consuming live owner outputs.
+
 ## Standalone Rust reference
 
 The dependency-free research crate lives at `research/maritime-capability-to-service`, outside the Holochain production workspace.
