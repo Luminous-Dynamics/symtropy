@@ -15,6 +15,7 @@ This crate does not calculate electromagnetic, thermal, structural or acoustic f
 - `NotComparable` — invalid/mismatched scope, missing required baseline family, invalid baseline optimization receipt, or mismatched metric definitions.
 - `Fail` — an admissible physical component observation definitely violates a non-compensatory hard application limit.
 - `Indeterminate` — required evidence is missing, uncertain across a hard limit, non-physical, or insufficient to claim M4.
+- `InferiorToBaseline` — candidate fails a mandatory non-inferiority margin against at least one required optimized conventional PM baseline.
 - `NonInferiorNoArchitectureBenefit` — candidate is physically qualified and robustly non-inferior on mandatory function metrics, but no architecture-benefit interval is robustly improved.
 - `ArchitectureAdvantage` — candidate is M4-qualified, passes all hard requirements, is robustly non-inferior to every required optimized conventional PM comparator, and robustly improves at least one preregistered architecture-benefit metric versus at least one such comparator.
 
@@ -43,6 +44,7 @@ A reluctance-only control is secondary and does not satisfy the conventional-PM 
 - [Evidence schema](evaluator/architecture-benchmark-v0.1.schema.json)
 - [Synthetic known-answer fixture](evaluator/fixtures/synthetic-architecture-benchmark-v0.1.json)
 - [Benchmark plan](benchmark-plan.toml)
+- [Source register](fixtures/architecture-benchmark-source-register-v0.1.json)
 - [Protocol](../MAG_AM_ARCHITECTURE_BENCHMARK_2026-11-27.md)
 
 ## Claim ceiling
@@ -55,3 +57,8 @@ A synthetic architecture advantage validates interval/decision semantics only. I
 Non-inferiority compares the candidate's worst supported interval endpoint against the comparator's best supported endpoint, plus the preregistered margin: maximizing metrics use candidate lower versus baseline upper; minimizing metrics use candidate upper versus baseline lower. A comparator that itself fails a mandatory hard limit is not an admissible reference. A candidate that violates a hard limit is FAIL; a baseline that violates one makes the comparison INDETERMINATE; scope mismatch is NOT_COMPARABLE; a functionally inferior candidate is reported as `InferiorToBaseline`.
 
 Only candidate-role AM/hybrid trials receive candidate decision rows; required baselines and secondary controls are comparator evidence, not architecture candidates.
+
+
+## Conservative comparison logic
+
+Mandatory non-inferiority compares the candidate's lower interval bound to the baseline's upper bound for maximizing metrics, and the candidate's upper bound to the baseline's lower bound for minimizing metrics, with the preregistered margin applied. Baselines must themselves satisfy hard application limits. A baseline that fails its own requirements makes the comparison indeterminate rather than a convenient weak reference. Architecture benefit requires strict interval separation in the preferred direction.
