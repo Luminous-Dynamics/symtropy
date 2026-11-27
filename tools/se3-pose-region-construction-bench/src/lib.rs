@@ -158,41 +158,170 @@ fn quaternion_is_unit_xyzw(quaternion: [f64; 4]) -> bool {
         && (norm_squared.sqrt() - 1.0).abs() <= 1.0e-6
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Interval {
+    lower: f64,
+    upper: f64,
+}
+
+impl Interval {
+    fn point(value: f64) -> Self {
+        Self {
+            lower: value,
+            upper: value,
+        }
+    }
+
+    fn finite(self) -> bool {
+        self.lower.is_finite()
+            && self.upper.is_finite()
+            && self.lower <= self.upper
+    }
+}
+
+fn interval_add(left: Interval, right: Interval) -> Option<Interval> {
+    let result = Interval {
+        lower: next_down(left.lower + right.lower),
+        upper: next_up(left.upper + right.upper),
+    };
+    result.finite().then_some(result)
+}
+
+fn interval_sub(left: Interval, right: Interval) -> Option<Interval> {
+    let result = Interval {
+        lower: next_down(left.lower - right.upper),
+        upper: next_up(left.upper - right.lower),
+    };
+    result.finite().then_some(result)
+}
+
+fn interval_mul(left: Interval, right: Interval) -> Option<Interval> {
+    if (left.lower == 0.0 && left.upper == 0.0)
+        || (right.lower == 0.0 && right.upper == 0.0)
+    {
+        return Some(Interval::point(0.0));
+    }
+    let products = [
+        left.lower * right.lower,
+        left.lower * right.upper,
+        left.upper * right.lower,
+        left.upper * right.upper,
+    ];
+    if !finite(&products) {
+        return None;
+    }
+    let minimum = products.iter().copied().fold(f64::INFINITY, f64::min);
+    let maximum = products
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let result = Interval {
+        lower: next_down(minimum),
+        upper: next_up(maximum),
+    };
+    result.finite().then_some(result)
+}
+
+fn interval_square(value: Interval) -> Option<Interval> {
+    if value.lower <= 0.0 && value.upper >= 0.0 {
+        let maximum = value.lower.abs().max(value.upper.abs());
+        let upper = next_up(maximum * maximum);
+        return upper.is_finite().then_some(Interval {
+            lower: 0.0,
+            upper,
+        });
+    }
+    let minimum = value.lower.abs().min(value.upper.abs());
+    let maximum = value.lower.abs().max(value.upper.abs());
+    let lower = next_down(minimum * minimum).max(0.0);
+    let upper = next_up(maximum * maximum);
+    (lower.is_finite() && upper.is_finite()).then_some(Interval { lower, upper })
+}
+
+fn interval_div_positive(numerator: Interval, denominator: Interval) -> Option<Interval> {
+    if denominator.lower <= 0.0 {
+        return None;
+    }
+    let quotients = [
+        numerator.lower / denominator.lower,
+        numerator.lower / denominator.upper,
+        numerator.upper / denominator.lower,
+        numerator.upper / denominator.upper,
+    ];
+    if !finite(&quotients) {
+        return None;
+    }
+    let minimum = quotients.iter().copied().fold(f64::INFINITY, f64::min);
+    let maximum = quotients
+        .iter()
+        .copied()
+        .fold(f64::NEG_INFINITY, f64::max);
+    let result = Interval {
+        lower: next_down(minimum),
+        upper: next_up(maximum),
+    };
+    result.finite().then_some(result)
+}
+
+fn interval_sqrt_positive(value: Interval) -> Option<Interval> {
+    if value.lower <= 0.0 || value.upper <= 0.0 {
+        return None;
+    }
+    let result = Interval {
+        lower: next_down(value.lower.sqrt()),
+        upper: next_up(value.upper.sqrt()),
+    };
+    (result.lower > 0.0 && result.finite()).then_some(result)
+}
+
+/// Proves positive definiteness using outward-rounded interval Cholesky.
+///
+/// Every computed factor is enclosed by an interval. A pivot is accepted only when
+/// its lower endpoint is strictly positive; inconclusive/overflowing factorizations
+/// fail closed. This may reject some valid but excessively ill-conditioned matrices.
 fn covariance_is_spd(matrix: &[f64; 36]) -> bool {
     if !finite(matrix) {
         return false;
     }
     for row in 0..6 {
         for column in 0..6 {
-            let left = matrix[row * 6 + column];
-            let right = matrix[column * 6 + row];
-            if left != right {
+            if matrix[row * 6 + column] != matrix[column * 6 + row] {
                 return false;
             }
         }
     }
 
-    let mut lower = [[0.0_f64; 6]; 6];
+    let zero = Interval::point(0.0);
+    let mut lower = [[zero; 6]; 6];
     for row in 0..6 {
         for column in 0..=row {
-            let mut sum = matrix[row * 6 + column];
-            for (left, right) in lower[row][..column]
-                .iter()
-                .zip(lower[column][..column].iter())
-            {
-                sum -= left * right;
-            }
-            if row == column {
-                if !sum.is_finite() || sum <= 0.0 {
+            let mut residual = Interval::point(matrix[row * 6 + column]);
+            for index in 0..column {
+                let product = if row == column {
+                    interval_square(lower[row][index])
+                } else {
+                    interval_mul(lower[row][index], lower[column][index])
+                };
+                let Some(product) = product else {
                     return false;
-                }
-                lower[row][column] = sum.sqrt();
+                };
+                let Some(next_residual) = interval_sub(residual, product) else {
+                    return false;
+                };
+                residual = next_residual;
+            }
+
+            if row == column {
+                let Some(pivot) = interval_sqrt_positive(residual) else {
+                    return false;
+                };
+                lower[row][column] = pivot;
             } else {
                 let pivot = lower[column][column];
-                if !pivot.is_finite() || pivot <= 0.0 {
+                let Some(factor) = interval_div_positive(residual, pivot) else {
                     return false;
-                }
-                lower[row][column] = sum / pivot;
+                };
+                lower[row][column] = factor;
             }
         }
     }
