@@ -7,6 +7,11 @@ on:
       - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml"
       - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.lock"
       - ".github/workflows/aerb-lockfile-refresh.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.lock"
+      - ".github/workflows/aerb-lockfile-refresh.yml"
   workflow_dispatch:
 
 permissions:
