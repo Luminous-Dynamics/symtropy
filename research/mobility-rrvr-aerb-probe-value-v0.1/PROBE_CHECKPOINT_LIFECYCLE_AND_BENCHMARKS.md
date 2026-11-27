@@ -147,11 +147,9 @@ On a frozen controller/hardware profile and identical event schedule, compare: (
 
 ## Statistical power and reproducibility (preregister before blind runs)
 
-A zero observed failure count is not a zero failure probability. For (n) independent Bernoulli trials with zero failures, the exact one-sided upper confidence limit at confidence (1-\alpha) is:
+A zero observed failure count is not a zero failure probability. For `n` independent Bernoulli trials with zero failures, the exact one-sided upper confidence limit at confidence `1 - alpha` is:
 
-[
-p_{upper}=1-\alpha^{1/n}.
-]
+`p_upper = 1 - alpha^(1/n)`.
 
 As an illustration, zero failures in 3,000 independent trials gives a one-sided 95% upper bound of approximately 0.1% for that measured population. If reporting eight world classes with a family-wise 95% confidence requirement and Bonferroni allocation (\(\alpha/8\)), approximately 5,073 zero-failure trials **per world** are needed to put each class's upper bound below 0.1%. These are statistical illustrations, not evidence that such a rate is safe or an acceptable risk threshold. The deployment hazard analysis must set the required risk target.
 
