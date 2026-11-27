@@ -46,7 +46,7 @@ A covariance is stochastic, not a deterministic geometric enclosure. This evalua
 
 ## Risk-coverage frontier
 
-The benchmark sweeps confidence-score thresholds from 0 to 1,000,000 ppm and reports selected count, overall coverage, false-confidence count and selective risk. It also reports accepted-pose coverage, empirical covariance coverage, accepted translation p95, accepted rotation p95, median covariance log-determinant and median 95% pose-region log-volume.
+The benchmark sweeps confidence-score thresholds from 0 to 1,000,000 ppm over ACCEPT decisions only, reporting accepted-pose coverage, false-confidence count and selective risk. ABSTAIN decisions remain in the all-valid denominator and in the separate abstention count; they are never counted as false-confident accepts. It also reports accepted-pose coverage, empirical covariance coverage, accepted translation p95, accepted rotation p95, median covariance log-determinant and median 95% pose-region log-volume.
 
 A model is not rewarded for rejecting every difficult sample: the risk-coverage frontier exposes the accuracy/coverage tradeoff. Results must always be stratified by spacecraft identity, view, truncation, visibility, sensor mode, range and OOD regime in full model experiments.
 
