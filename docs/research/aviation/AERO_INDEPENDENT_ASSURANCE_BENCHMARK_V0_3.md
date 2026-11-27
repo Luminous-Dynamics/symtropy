@@ -209,6 +209,38 @@ The 32-case challenge seed remains unadjudicated. Three semantic distinctions ar
 
 These corrections improve the semantics of the proposed oracle; they do not constitute independent adjudication.
 
+### 7.3 Exact statistical confidence and minimum independent sample sizes
+
+Critical failure-rate claims are assessed with one-sided exact Clopper-Pearson confidence bounds, not only point estimates. For zero observed adverse outcomes in \(n\) independent Bernoulli units, the exact one-sided upper confidence bound at confidence \(1-\alpha\) is:
+
+\[
+U = 1 - \alpha^{1/n}
+\]
+
+The minimum number of independent units required to place the upper bound at or below target adverse-event probability \(p\), when zero adverse outcomes are observed, is:
+
+\[
+n = \left\lceil \frac{\ln(\alpha)}{\ln(1-p)} \right\rceil
+\]
+
+At 95% one-sided confidence (\(\alpha=0.05\)):
+
+| Maximum adverse-event probability | Minimum independent zero-event units |
+|---:|---:|
+| 1% | 299 |
+| 0.1% | 2,995 |
+| 0.01% | 29,956 |
+
+These are preregistered sample-size requirements, not achieved sample sizes and not evidence that the corresponding risk has been attained. The familiar \(3/n\) rule is an approximation only; the exact formula and values in the machine-readable registry are normative.
+
+**Independence discipline:** one independently sourced engineering episode/root-cause family is the statistical unit. Ten thousand generated variants from one fault seed are one correlated cluster, not ten thousand independent trials. Keep all siblings in one partition and report independent episodes, unique root-cause families, and generated variants separately.
+
+**Stratification discipline:** report every critical metric by preregistered fault family and critical stratum, and publish the worst critical stratum. Do not allow a large nominal population to dilute an identity, authority, temporal, model-domain or observer-coverage failure. For simultaneous claims over multiple critical metrics, publish per-metric 95% bounds and Bonferroni-adjusted family-wise bounds using \(\alpha/M\), where \(M\) is the preregistered number of critical hypotheses.
+
+A denominator of zero is \`NOT_ESTIMABLE\`, not zero and not a pass. When adverse outcomes are observed, publish the exact one-sided Clopper-Pearson upper bound using the frozen confidence level and include numerator and denominator. Success metrics publish the complementary exact lower bound. Do not use Wald/normal approximations for rare critical events.
+
+The registry now gives every hard-gate metric a critical threshold, including receipt replay and missing required model strata. CI recomputes the zero-event sample sizes and rejects a registry that silently drops a hard-gate threshold.
+
 ## 8. Statistical qualification
 
 For zero observed failures in n independent Bernoulli trials, the approximate one-sided 95% upper bound is 3/n (rule of three). Thus:
