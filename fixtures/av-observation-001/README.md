@@ -148,3 +148,6 @@ The separate [spatial-state-projection-v0.schema.json](./spatial-state-projectio
 ## Canonical pose/time adapter contract
 
 The projection schema now follows Symthaea #498/#611/#621/#632/#633/#625 identity and evidence semantics. Frame/clock refs are namespace + local ID + generation. Capture, known-at and projection-created times each name their own clock domain. Symthaea Pose3 is T_reference_from_local with WXYZ quaternion; Symtropy #1589 FrameTransformV1 uses XYZW but the same child-to-parent direction. The conversion is an explicit component reorder, verified by a non-identity 90-degree Z test vector. See [validation protocol](./spatial-state-projection-validation-v0.md) and [transform vectors](./spatial-state-projection-v0.transform-vectors.json).
+
+
+Source artifact and calibration/clock-transform references now carry explicit digest algorithm tags (sha256 or blake3) alongside the 64-hex value. The projection's own envelope/prefix/revision/parent hashes use the declared SHA-256 convention. Do not infer algorithms from digest length.
