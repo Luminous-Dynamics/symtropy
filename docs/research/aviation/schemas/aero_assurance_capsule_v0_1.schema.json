@@ -21,7 +21,8 @@
     "reproduction",
     "disclosure",
     "limitations",
-    "non_claims"
+    "non_claims",
+    "detached_integrity"
   ],
   "properties": {
     "schema": {
@@ -104,6 +105,35 @@
         },
         "certification_granted": {
           "const": false
+        }
+      }
+    },
+    "detached_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_envelope_id",
+        "detached_receipt_ref",
+        "detached_receipt_locator",
+        "digest_algorithm",
+        "signature_verification_owner"
+      ],
+      "properties": {
+        "package_envelope_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "detached_receipt_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "detached_receipt_locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest_algorithm": {
+          "const": "SHA-256"
+        },
+        "signature_verification_owner": {
+          "$ref": "#/$defs/identifier"
         }
       }
     }
