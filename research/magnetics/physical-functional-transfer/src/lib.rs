@@ -761,6 +761,43 @@ mod tests {
     }
 
     #[test]
+    fn z_axis_cross_coupling_and_channel_offset_are_propagated() {
+        let physical = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.2, 0.2)]);
+        let mut sensor = transfer();
+        sensor.gain[0][2] = iv(0.5, 0.5);
+        sensor.gain[1][2] = iv(0.25, 0.25);
+        sensor.offset[1] = iv(0.01, 0.01);
+        let result = certify_physical_sensor_function(&physical, &sensor, &requirements())
+            .expect("bounded cross-axis sensor transfer");
+        let x = result.measured_phasor_over_cell[0];
+        let y = result.measured_phasor_over_cell[1];
+        assert!(x.lower() <= 1.1 && x.upper() >= 1.1);
+        assert!(y.lower() <= 0.06 && y.upper() >= 0.06);
+        assert_eq!(result.combined_status, CombinedStatus::Safe);
+    }
+
+    #[test]
+    fn rejects_non_midpoint_and_internally_inconsistent_upstream_certificates() {
+        let mut wrong_centre = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
+        wrong_centre.centre_position_m[0] = 0.001;
+        assert_eq!(
+            certify_physical_sensor_function(&wrong_centre, &transfer(), &requirements()),
+            Err(FunctionalTransferError::InvalidInterval {
+                field: "physical_centre_position"
+            })
+        );
+
+        let mut wrong_field = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
+        wrong_field.physical_field_over_cell_t[0] = iv(2.0, 2.0);
+        assert_eq!(
+            certify_physical_sensor_function(&wrong_field, &transfer(), &requirements()),
+            Err(FunctionalTransferError::ScopeMismatch {
+                field: "physical_field_certificate_internal_consistency"
+            })
+        );
+    }
+
+    #[test]
     fn phasors_across_atan2_cut_remain_close() {
         let mut req = requirements();
         req.reference_phasor = [iv(-1.0, -1.0), iv(0.001, 0.001)];
