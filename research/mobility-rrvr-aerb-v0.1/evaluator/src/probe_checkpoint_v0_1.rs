@@ -646,7 +646,7 @@ mod tests {
         required_duration_ns: u64,
         safe_horizon_ns: Option<u64>,
     ) -> PhysicalPathReceipt {
-        PhysicalPathReceipt {
+        let mut receipt = PhysicalPathReceipt {
             path_kind: kind,
             attempt_id: "attempt-1".to_owned(),
             probe_id: "probe-1".to_owned(),
@@ -697,21 +697,20 @@ mod tests {
     }
 
     fn decision_receipt(support: &[String], sequence: u64) -> DecisionSufficiencyReceipt {
-        DecisionSufficiencyReceipt {
+        let mut receipt = DecisionSufficiencyReceipt {
             checkpoint_sequence: sequence,
             support_sha256: possible_world_support_sha256(support).expect("support digest"),
             oracle_profile_sha256: digest('1'),
-            receipt_sha256: digest('2'),
+            receipt_sha256: String::new(),
             all_supported_worlds_share_terminal_recommendation: true,
             no_remaining_probe_strictly_reduces_worst_case_loss: true,
-            receipt_sha256: String::new(),
         };
         receipt.receipt_sha256 = decision_sufficiency_commitment(&receipt).expect("decision receipt commitment");
         receipt
     }
 
     fn support_receipt(before: &[String], after: &[String], evidence: &EvidencePrefix) -> SupportUpdateReceipt {
-        SupportUpdateReceipt {
+        let mut receipt = SupportUpdateReceipt {
             checkpoint_sequence: 1,
             base_support_sha256: possible_world_support_sha256(before).expect("before digest"),
             resulting_support_sha256: possible_world_support_sha256(after).expect("after digest"),
