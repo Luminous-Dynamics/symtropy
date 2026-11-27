@@ -115,6 +115,9 @@ fn read_and_validate_camera_profile(
         || profile["clock_domain"]["generation"] != 0
         || profile["clock_domain"]["time_scale_id"]
             != "monotonic-seconds-since-app-start-v1"
+        || profile["transport"]["availability_ticks"] != json!([1, 2, 3])
+        || profile["transport"]["prefix_decision_cutoff_tick"] != 2
+        || profile["transport"]["first_distinguishing_observation_tick"] != 3
         || profile["capture_time_bounds"]["upper_bound_secs"] != 23.5
         || profile["capture_time_bounds"]["exact_exposure_timestamp_available"] != false
         || profile["capture_time_bounds"]["lower_bound_semantics"] != "scheduled screenshot request time"

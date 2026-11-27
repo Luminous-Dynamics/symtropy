@@ -82,7 +82,9 @@ jobs:
           assert camera["image"]["height_px"] == fixture["render"]["height_px"]
           assert camera["capture_time_bounds"]["capture_schedule_secs"] == [1.5, 4.0, 7.0]
           assert camera["capture_time_bounds"]["exact_exposure_timestamp_available"] is False
-          assert camera["transport"]["decision_cutoff_tick"] == 2
+          assert camera["transport"]["availability_ticks"] == [1, 2, 3]
+          assert camera["transport"]["delivery_order"] == [1, 2, 3]
+          assert camera["transport"]["prefix_decision_cutoff_tick"] == 2
           assert camera["transport"]["first_distinguishing_observation_tick"] == 3
           assert camera["calibration"]["calibration_profile_sha256"] is None
           print("PASS: common fixture and evaluator truth crosswalk are internally consistent")
