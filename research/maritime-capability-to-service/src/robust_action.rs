@@ -104,14 +104,22 @@ fn indeterminate(
     }
 }
 
+fn expected_split_conformal_rank(sample_count: u64, alpha_ppm: u32) -> Option<u64> {
+    if sample_count == 0 || alpha_ppm == 0 || alpha_ppm >= 1_000_000 {
+        return None;
+    }
+    let numerator = (u128::from(sample_count) + 1)
+        .checked_mul(u128::from(1_000_000 - alpha_ppm))?;
+    u64::try_from(numerator.div_ceil(1_000_000)).ok()
+}
+
 fn interval_is_well_formed(interval: &ConformalInterval, expected_alpha_ppm: u32) -> bool {
     interval.alpha_ppm == expected_alpha_ppm
         && interval.coverage_claim
             == CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
         && interval.nominal_coverage_claim_ppm == Some(1_000_000 - expected_alpha_ppm)
-        && interval.sample_count > 0
-        && interval.quantile_rank_1based > 0
-        && interval.quantile_rank_1based <= interval.sample_count
+        && expected_split_conformal_rank(interval.sample_count, expected_alpha_ppm)
+            == Some(interval.quantile_rank_1based)
         && interval.lower <= interval.point_prediction
         && interval.point_prediction <= interval.upper
         && interval.point_prediction.saturating_sub(interval.radius) == interval.lower
