@@ -341,6 +341,20 @@ Report absolute numbers and environment details, not only speedup. Compare exact
 
 This benchmark deliberately does not create a temporal database or ledger in Symtropy. It measures how the aviation evaluator composes existing owner-native event, receipt, trust and artifact systems.
 
+### 7.2 Executable replay kernel and scale probe
+
+A research-only Rust reference evaluator is now available in `crates/domains/symtropy-aero-material-qual/src/temporal_replay_v0_1.rs`. It consumes the frozen v0.1 corpus, selects the evidence/trust coordinate for each query mode, and compares normalized disposition, reason codes, applied event IDs and excluded event IDs. Unit tests exercise all 29 cases × 3 modes (87 expected results), plus late-evidence separation, historical-vs-current trust, event-order permutation and issuer-recorded-time non-substitution.
+
+A deterministic scale probe is available at `crates/domains/symtropy-aero-material-qual/examples/temporal_replay_scale.rs`:
+
+`cargo run --locked --package symtropy-aero-material-qual --example temporal_replay_scale -- 10000 5`
+
+It reports p50/p95/p99 separately for each of the three modes. The targeted GitHub Actions workflow runs a 10,000-event, five-iteration smoke. Larger 100k/1M/10M runs remain explicit research workloads and should be gated by a published resource envelope.
+
+The probe's event history is synthetic and deliberately simple (unique, valid issuance events). It measures reference-kernel JSON parsing-independent in-memory disposition logic for one fully admitted profile; it does not measure source ingestion, durable persistence, checkpoint creation, cryptographic verification, observer completeness, trust-root distribution, concurrency, compaction, incremental update cost or a real temporal database. The smoke is useful for detecting gross scaling/latency regressions in this evaluator, not for claiming database or vendor superiority.
+
+The Rust module reads `SYNTHETIC_VALID`/coverage fixture dispositions as inputs. It is not a production signature, TSA, clock or receipt verifier. Its corpus tests establish conformance to a fixture whose oracle review status remains `NOT_INDEPENDENTLY_REVIEWED`. Independent oracle adjudication remains a promotion gate.
+
 ### Metrics
 
 | Dimension | Metric |
@@ -383,7 +397,8 @@ This is a domain-specific assurance composition over established temporal concep
 
 ## 8. Standards and research comparators
 
-- **NIST IR 8536 (final, 9 September 2026):** Manufacturing Supply Chain Traceability Meta-Framework. It defines interoperable, cryptographically verifiable traceability links, temporally ordered provenance, selective disclosure and cross-ecosystem event exchange while preserving existing standards. Treat it as an architecture/interoperability comparator and map AERO's event envelope to its concepts; do not create a competing manufacturing traceability framework. NIST's September 2026 announcement stated its Python reference implementation was in final review and that the public repository would follow approval; check the project page before integrating or claiming implementation parity: https://csrc.nist.gov/pubs/ir/8536/final and https://www.nccoe.nist.gov/projects/supply-chain-traceability-principles-manufacturing-meta-framework.
+- **NIST IR 8536 (final, 9 September 2026):** Manufacturing Supply Chain Traceability Meta-Framework. It defines interoperable, cryptographically verifiable traceability links, temporally ordered provenance, selective disclosure and cross-ecosystem event exchange while preserving existing standards. Treat it as an architecture/interoperability comparator and map AERO's event envelope to its concepts; do not create a competing manufacturing traceability framework. There is a small official-source discrepancy worth preserving: the final report abstract describes an open-source Python reference implementation as released alongside the report, while NIST's September 2026 news release says that reference implementation was still in final review and that its public repository would follow approval. Do not claim code-level implementation parity or public repository availability until the official project page confirms it: https://csrc.nist.gov/pubs/ir/8536/final, https://www.nist.gov/news-events/news/2026/09/finalized-manufacturing-supply-chain-traceability-meta-framework and https://www.nccoe.nist.gov/projects/supply-chain-traceability-principles-manufacturing-meta-framework.
+- **ISO 23247-5:2026 (Edition 1, published June 2026):** specifies the manufacturing digital thread for creating, connecting, managing and maintaining digital twins across design, planning, production and testing. This is the current direct comparator for digital-thread lifecycle scope. AERO should be an assurance/evidence overlay consuming thread references, not a competing digital-twin or lifecycle-thread framework: https://www.iso.org/standard/87425.html.
 - **ISO 10303-242:2025 (AP242 Edition 4):** published 25 August 2025 and the current published baseline for this benchmark. ISO/CD 10303-242 Edition 5 was registered in February 2026; its committee-draft comment period closed 22 April 2026 and the draft was referred back to the working group. Edition 5 is watch-only until published; retain edition/profile identifiers and build a differential compatibility probe rather than silently upgrading the benchmark: https://www.iso.org/standard/84300.html and https://www.iso.org/standard/93277.html.
 - **ISO 23952:2020 (QIF Edition 1):** ISO records this edition as reviewed and confirmed on 14 June 2026, so it remains the current published QIF baseline as of this research revision: https://www.iso.org/standard/77461.html.
 - **RFC 3161 / RFC 5816:** Internet X.509 Time-Stamp Protocol. Comparator for independent timestamp evidence over a data digest.
@@ -434,7 +449,7 @@ It contains 29 synthetic controls: a positive no-event binding case; known-but-f
 
 Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. Timestamp status `valid` also requires a non-null token time and exact event-digest imprint equality. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
-**Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus is a contract fixture and is schema-validated in CI. It is not yet wired to the v0.2 Rust evaluator and must not be described as a passing semantic oracle. Independent review should precede evaluator integration.
+**Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus remains a synthetic contract fixture. A research-only Rust reference kernel in `temporal_replay_v0_1.rs` now evaluates all 29 cases in all three historical query modes against the frozen expected dispositions. This is executable conformance to the current fixture, not an independently adjudicated semantic oracle, cryptographic verifier, trusted-time service or production owner-receipt integration. Independent review is still required before any disposition is promoted.
 
 ## 11. Execution sequence
 

@@ -489,6 +489,7 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
+            "evaluated_at_unix_ms",
             "receiver_receipt_watermark_unix_ms",
             "trust_policy_id",
             "trust_status_as_of_unix_ms",
@@ -574,6 +575,9 @@
             "evidence_view_digest_sha256": {
               "type": "string",
               "pattern": "^[a-f0-9]{64}$"
+            },
+            "evaluated_at_unix_ms": {
+              "$ref": "#/$defs/time"
             }
           }
         },

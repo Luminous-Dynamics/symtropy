@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-event-effective-time-bounds-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-event-effective-time-bounds-v0.1", "research/aero-temporal-replay-rust-kernel-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -13,6 +13,7 @@ on:
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - "docs/research/aviation/AERO_AEROCOMMONS_BASALT_INTEROPERABILITY_MAP_V0_1.md"
       - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
       - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
@@ -31,7 +32,7 @@ on:
       - "docs/research/aviation/schemas/aero_effectivity_interval_cases_v0_1.schema.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-event-effective-time-bounds-v0.1", "research/aero-temporal-replay-rust-kernel-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -44,6 +45,7 @@ on:
       - "docs/research/aviation/schemas/aero_evidence_binding_case_v0_2.schema.json"
       - "docs/research/aviation/examples/synthetic_aero_evidence_binding_case_v0_2.json"
       - "docs/research/aviation/examples/adversarial_evidence_binding_mutations_v0_2.json"
+      - "docs/research/aviation/AERO_AEROCOMMONS_BASALT_INTEROPERABILITY_MAP_V0_1.md"
       - "docs/research/aviation/AERO_TEMPORAL_EVIDENCE_ASSURANCE_V0_1.md"
       - "docs/research/aviation/schemas/aero_temporal_replay_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_temporal_replay_corpus_v0_1.json"
@@ -601,6 +603,9 @@ jobs:
 
       - name: Run typed causal-cut 10k benchmark smoke
         run: cargo run --locked --package symtropy-aero-material-qual --example vector_cut_scale -- 10000 31
+
+      - name: Run three-axis temporal replay 10k benchmark smoke
+        run: cargo run --locked --package symtropy-aero-material-qual --example temporal_replay_scale -- 10000 5
 
       - name: Run evaluator CLI smoke test
         shell: bash
