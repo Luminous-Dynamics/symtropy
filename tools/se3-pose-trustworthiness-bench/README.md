@@ -50,7 +50,7 @@ The benchmark sweeps confidence-score thresholds from 0 to 1,000,000 ppm over AC
 
 A model is not rewarded for rejecting every difficult sample: the risk-coverage frontier exposes the accuracy/coverage tradeoff. Results must always be stratified by spacecraft identity, view, truncation, visibility, sensor mode, range and OOD regime in full model experiments.
 
-## 42-case synthetic corpus
+## 45-case synthetic corpus
 
 The frozen corpus includes:
 - identity and non-zero translation/rotation controls;
@@ -66,6 +66,7 @@ The frozen corpus includes:
 - correlated covariance controls;
 - direct-regression positive controls with no explicit correspondences;
 - direct-regression low-visibility rejection and invalid support-mode controls;
+- Gaussian NLL, covariance log-determinant and prediction-region volume known-answer checks;
 - duplicate samples and target identity leakage across splits;
 - deterministic receipt replay and independent Python parity.
 
