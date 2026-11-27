@@ -35,7 +35,11 @@ These results show why matched reproduction must precede any superiority claim. 
 |---|---|---|
 | Li et al., *Microgrid energy optimal scheduling in ports incorporating the bidirectional event trigger mechanism*, Journal of Cleaner Production 568 (15 Jun 2026), DOI [10.1016/j.jclepro.2026.148666](https://doi.org/10.1016/j.jclepro.2026.148666) | Tianjin Dongjiang case: operating cost reduced 18.64% vs MPC and 22.44% vs a logistics event-triggered approach; reported online-solve-time reductions 88.90% and 77.76%; near-zero renewable curtailment. | Reproduce the day-ahead/15-minute real-time cadence, 1-hour reoptimization horizon, event triggers, forecast deviations, storage, tariffs and exact baselines. Match all input traces and solver budgets before comparing. |
 | Li & Hu, *Integrated optimization of berth allocation, crane assignment, and onshore power supply with multi-source energy dispatch for green ports*, Journal of Cleaner Production 574 (18 Aug 2026), DOI [10.1016/j.jclepro.2026.149105](https://doi.org/10.1016/j.jclepro.2026.149105) | Integrated berth, crane, shore-power and energy dispatch; reports cost reductions up to 19.87% in its cases. | Match berth/crane/OPS decisions, energy sources, power tracing, carbon accounting, MILP linearization, constraints and all objective weights. |
-| Li & Hu, *Collaborative optimization of berth scheduling and multi-energy dispatch for green ports*, Omega 143 (Sep 2026), DOI [10.1016/j.omega.2026.103549](https://doi.org/10.1016/j.omega.2026.103549) | Joint berth and multi-energy dispatch; models logistics-driven load response, renewables, CCHP, electrical/thermal storage and bidirectional grid trading. | Reconstruct formulation, demand profiles, energy prices, renewable profiles, storage and network constraints before using it as a baseline. |
+| Zhang et al., *Scenario-driven day-ahead–intraday coordination of seaport virtual power plants under heterogeneous load uncertainty*, Sustainable Energy Research 13, 38 (11 Sep 2026), DOI [10.1186/s40807-026-00269-0](https://doi.org/10.1186/s40807-026-00269-0) | Reports 9.79% lower total operating cost and 52.11% lower maximum electricity-purchase deviation with storage; day-ahead/intraday coordination reports 18.4% lower execution-stage cost. Its source data are restricted and renewable profiles are forecast-driven in the main case. | Obtain rights-cleared source traces; reconstruct load scenarios, crane demand, storage parameterization, deviation penalty, forecast updates, and all three baseline cases. Do not compare with a different scenario set. |
+| Li & Hu, *Collaborative optimization of berth scheduling and multi-energy dispatch for green ports*, Omega 143 (Sep 2026), DOI [10.1016/j.omega.2026.103549](https://doi.org/10.1016/j.omega.2026.103549) | Joint berth and multi-energy dispatch; reports 1.61–2.17% cost savings, 0.32–14.44% emissions reductions and zero renewable curtailment against two-stage scheduling in its reported cases. Includes logistics-driven load response, renewables, CCHP, electrical/thermal storage and bidirectional grid trading. | Reconstruct formulation, demand profiles, energy prices, renewable profiles, storage, emission factors and network constraints before using it as a baseline. |
+| Yang et al., *Enabling grid-interactive data center-desalination coordination through thermo-electric coupling-based waste heat utilization*, Applied Energy 408 (1 Apr 2026), DOI [10.1016/j.apenergy.2026.127428](https://doi.org/10.1016/j.apenergy.2026.127428) | Reports 86.5% reduction in total annualized cost for its case; the authors attribute 17% savings specifically to waste-heat synergy. The full 86.5% must not be represented as a heat-recovery effect. | Reconstruct the thermo-electric and temperature-dependent RO model, two-stage stochastic planning, Benders/McCormick formulation, source/receiver temperature and heat-exchanger constraints, and baseline configuration. Require a real time-matched sink and verified water quality in any physical extension. |
+
+**Attribution warning.** These results are reported outcomes from distinct case studies, not universal performance limits and not directly comparable across studies. The 86.5% total annualized-cost result is particularly easy to misuse: the paper's abstract attributes 17% to waste-heat synergy alone.
 
 ### Mandatory parity sheet for every paper reproduction
 
@@ -57,7 +61,13 @@ The source assumptions include:
 
 Those assumptions must be preserved for Layer A faithful reproduction. Only after Layer A and independent feasibility reconstruction pass should we run Layer C controlled extensions: non-empty initial occupancy, labour absenteeism/skills/shifts, lift/crane capacity, transport fleets, inspection holds, rework, material delay and machine outage. Each extension receives a distinct scenario-family label and is not mixed into the published baseline score.
 
-## 5. End-to-end service and productive capability
+## 5. Connection to the existing port-city golden trace
+
+Mycelix [#6343](https://github.com/Luminous-Dynamics/mycelix/issues/6343) already owns the four-owner service-equivalent golden trace for shared PCC/feeder demand, shore power, terminal equipment, compute, cooling, desalination, thermal storage, common-cause risk and participant authority. Its synthetic v0.1 trace has four 15-minute intervals and includes a negative control where objective-only compute shifting creates a new PCC peak, alongside a no-new-peak candidate that preserves the same compute and vessel service energy. Its later fixture work expands to 48 expected dispositions, including source/clock/authority, heat, water, cable/common-cause and South African demand-response product controls.
+
+MCSC must consume those owner-native traces rather than implement another PCC verifier, workload scheduler, RO solver, heat ledger or dependency graph. Geographic proximity of a private industrial energy asset is not evidence of a shared PCC, wheeling/export entitlement, reserve accreditation, grid availability, or dispatch rights. The Ngqura/Coega/Durban pilot must keep each connection boundary and utility/participant authority explicit.
+
+## 6. End-to-end service and productive capability
 
 Consume the canonical owners:
 - Mycelix #6773: regional maritime productive capability and time-windowed qualification.
@@ -81,7 +91,7 @@ The MCSC contribution is only the counterfactual join: hold the service obligati
 
 Do not collapse these into one weighted scalar. Preserve hard gates, service floors, Pareto alternatives and distributional floors; publish trade-offs and dominated portfolios separately.
 
-## 6. Benchmark ladder and targets
+## 7. Benchmark ladder and targets
 
 Targets below are proposed qualification thresholds, not achieved results.
 
@@ -105,13 +115,13 @@ Targets below are proposed qualification thresholds, not achieved results.
 
 Do not set a numeric target against the 18–22% port-energy results until those specific studies have been faithfully reproduced. The first win is a correct, matched and independently replayable baseline—not a flattering number.
 
-## 7. Paradigm-shift hypothesis
+## 8. Paradigm-shift hypothesis
 
 The research hypothesis to test—not assume—is that **regional productive capability has marginal service value only when its complete qualified path is independent enough, available in the required time window, and connected to an accepted receiver outcome.**
 
 That reframes local industrial policy from an expenditure quota into a portfolio of service-capable options, and reframes maritime optimization from isolated asset efficiency into whole-chain capability formation, operation and recovery.
 
-## 8. New construct: service option value of qualified capability
+## 9. New construct: service option value of qualified capability
 
 Treat a qualified regional capability as an **option to preserve or restore a service**, not simply as locally sourced spend.
 
