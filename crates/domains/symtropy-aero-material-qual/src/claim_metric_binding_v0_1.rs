@@ -13,7 +13,9 @@ use crate::claim_specification_v0_1::{
     ComparisonOperatorV0_1, PopulationQuantifierV0_1, RationalV0_1,
     UnitCodeV0_1, UncertaintyTreatmentV0_1,
 };
-use crate::decision_context_v0_1::DecisionContextV0_1;
+use crate::decision_context_v0_1::{
+    DecisionContextV0_1, compute_required_evidence_manifest_sha256,
+};
 use crate::model_credibility_cut_v0_1::{
     MetricStratumStatus, ModelCredibilityCutV0_1,
 };
@@ -116,6 +118,8 @@ pub struct ClaimMetricSemanticBindingV0_1 {
     pub model_credibility_sha256: String,
     /// Exact owner-native evidence cut containing all receipt identities below.
     pub owner_evidence_cut_sha256: String,
+    /// Exact references included in DecisionContextV0_1.required_evidence_manifest_sha256.
+    pub required_evidence_refs: Vec<String>,
 
     /// Owner-native model metric identity. Never inferred from a display name.
     pub model_metric_id: String,
@@ -169,7 +173,13 @@ pub struct ClaimMetricSemanticBindingV0_1 {
 struct ClaimMetricBindingEnvelope<'a> {
     schema: &'static str,
     canonicalization_profile: &'static str,
+    binding: &'a ClaimMetricBindingDigestViewV0_1<'a>,
+}
+
+#[derive(Serialize)]
+struct ClaimMetricBindingDigestViewV0_1<'a> {
     binding: &'a ClaimMetricSemanticBindingV0_1,
+    required_evidence_refs: Vec<String>,
 }
 
 impl ClaimMetricSemanticBindingV0_1 {
@@ -253,10 +263,15 @@ impl ClaimMetricSemanticBindingV0_1 {
         if !errors.is_empty() {
             return Err(errors);
         }
+        let mut sorted_required_refs = self.required_evidence_refs.clone();
+        sorted_required_refs.sort();
         let envelope = ClaimMetricBindingEnvelope {
             schema: "AeroClaimMetricBindingCommitmentV0_1",
             canonicalization_profile: "rust-serde-json-struct-order-v1",
-            binding: self,
+            binding: &ClaimMetricBindingDigestViewV0_1 {
+                binding: self,
+                required_evidence_refs: sorted_required_refs,
+            },
         };
         let bytes = serde_json::to_vec(&envelope)
             .map_err(|_| vec!["CLAIM_METRIC_BINDING_SERIALIZATION_FAILED".to_owned()])?;
@@ -346,6 +361,19 @@ impl ClaimMetricSemanticBindingV0_1 {
         if decision_context.claim_specification_sha256 != semantic_digest {
             rejected = true;
             reasons.insert("DECISION_CONTEXT_CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned());
+        }
+
+        match compute_required_evidence_manifest_sha256(&self.required_evidence_refs) {
+            Ok(manifest_digest)
+                if manifest_digest == decision_context.required_evidence_manifest_sha256 => {}
+            Ok(_) => {
+                rejected = true;
+                reasons.insert("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned());
+            }
+            Err(reason) => {
+                rejected = true;
+                reasons.insert(reason);
+            }
         }
 
         for (code, actual, expected) in [
@@ -528,6 +556,13 @@ impl ClaimMetricSemanticBindingV0_1 {
             ("PRODUCER_AUTHORITY_RECEIPT", self.producer_authority_receipt_ref.as_str(), self.producer_authority_receipt_sha256.as_str()),
             ("SEMANTIC_VALIDATION_RECEIPT", self.semantic_validation_receipt_ref.as_str(), self.semantic_validation_receipt_sha256.as_str()),
         ];
+        let required_refs = self.required_evidence_refs.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        for (_, evidence_ref, _) in required_owner_records {
+            if !required_refs.contains(evidence_ref) {
+                rejected = true;
+                reasons.insert("CLAIM_METRIC_BINDING_OWNER_RECEIPT_NOT_IN_REQUIRED_MANIFEST".to_owned());
+            }
+        }
         let mut distinct_refs = BTreeSet::new();
         for (role, evidence_ref, expected_record_sha256) in required_owner_records {
             if !valid_identifier(evidence_ref) || !valid_sha256(expected_record_sha256) {
@@ -889,6 +924,19 @@ mod tests {
         let model_sha256 = model_cut.compute_sha256().expect("model cut digest");
         let owner_sha256 = owner_cut.compute_sha256().expect("owner cut digest");
 
+        let required_evidence_refs = vec![
+            "receipt:inspection-01".to_owned(),
+            "receipt:calibration-02".to_owned(),
+            "receipt:metric-semantics".to_owned(),
+            model_cut.evidence_ref.clone(),
+            "receipt:metric-owner-attestation".to_owned(),
+            "receipt:metric-authority-verification".to_owned(),
+            "receipt:metric-semantic-validation".to_owned(),
+        ];
+        context.required_evidence_manifest_sha256 =
+            compute_required_evidence_manifest_sha256(&required_evidence_refs)
+                .expect("expanded required evidence manifest");
+        let context_sha256 = context.compute_sha256().expect("expanded context digest");
         let binding = ClaimMetricSemanticBindingV0_1 {
             schema: CLAIM_METRIC_BINDING_SCHEMA_V0_1.to_owned(),
             binding_ref: "aero:metric-binding:wing-panel-strength-001".to_owned(),
