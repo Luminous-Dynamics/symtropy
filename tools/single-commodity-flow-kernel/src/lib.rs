@@ -953,8 +953,7 @@ mod tests {
         assert_eq!(maximum.min_cut.capacity, u64::MAX);
         maximum_capacity.verify_result(&maximum).unwrap();
 
-        let maximum_bundle =
-            FlowCertificateBundle::new(maximum_capacity.clone(), maximum).unwrap();
+        let maximum_bundle = FlowCertificateBundle::new(maximum_capacity.clone(), maximum).unwrap();
         let encoded = serde_json::to_vec(&maximum_bundle).unwrap();
         assert!(String::from_utf8_lossy(&encoded).contains("18446744073709551615"));
         let decoded: FlowCertificateBundle = serde_json::from_slice(&encoded).unwrap();
@@ -1085,10 +1084,7 @@ mod tests {
 
     #[test]
     fn portable_bundle_binds_graph_and_certificate_after_deserialization() {
-        let candidate = graph(
-            4,
-            &[(0, 1, 7), (0, 2, 5), (1, 2, 2), (1, 3, 4), (2, 3, 8)],
-        );
+        let candidate = graph(4, &[(0, 1, 7), (0, 2, 5), (1, 2, 2), (1, 3, 4), (2, 3, 8)]);
         let result = candidate.solve().unwrap();
         let bundle = FlowCertificateBundle::new(candidate.clone(), result).unwrap();
         let encoded = serde_json::to_vec(&bundle).unwrap();
@@ -1110,10 +1106,7 @@ mod tests {
 
     #[test]
     fn serialized_certificate_round_trips_and_reverifies_portably() {
-        let candidate = graph(
-            4,
-            &[(0, 1, 7), (0, 2, 5), (1, 2, 2), (1, 3, 4), (2, 3, 8)],
-        );
+        let candidate = graph(4, &[(0, 1, 7), (0, 2, 5), (1, 2, 2), (1, 3, 4), (2, 3, 8)]);
         let result = candidate.solve().unwrap();
         let encoded = serde_json::to_vec(&result).unwrap();
         let decoded: FlowResult = serde_json::from_slice(&encoded).unwrap();
