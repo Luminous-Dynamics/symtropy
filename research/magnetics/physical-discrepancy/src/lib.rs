@@ -1041,7 +1041,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn increasing_residual_jacobian_suprema_cannot_tighten_physical_field_bounds() {
         let original = certify_physical_field_discrepancy(&input()).expect("original bounds");
