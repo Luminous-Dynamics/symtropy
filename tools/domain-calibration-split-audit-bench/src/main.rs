@@ -1,6 +1,4 @@
-use domain_calibration_split_audit_bench::{
-    AuditReceipt, RECEIPT_SCHEMA, SampleRow, audit_rows,
-};
+use domain_calibration_split_audit_bench::{AuditReceipt, RECEIPT_SCHEMA, SampleRow, audit_rows};
 use std::error::Error;
 use std::fmt::Write as _;
 use std::fs;
@@ -27,7 +25,11 @@ fn json_string(value: &str) -> String {
 fn json_array(values: &[String]) -> String {
     format!(
         "[{}]",
-        values.iter().map(|value| json_string(value)).collect::<Vec<_>>().join(",")
+        values
+            .iter()
+            .map(|value| json_string(value))
+            .collect::<Vec<_>>()
+            .join(",")
     )
 }
 
