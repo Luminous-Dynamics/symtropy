@@ -50,6 +50,8 @@ pub mod ncdot_temporal;
 pub mod normal_positive_part;
 /// Exact paired finite-support counterfactual consequence comparisons.
 pub mod paired_counterfactual;
+/// Exact paired objective contrasts and a scenario-robust finite Pareto oracle.
+pub mod paired_objective_pareto;
 pub mod pathwise_event;
 pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
@@ -144,6 +146,13 @@ pub use paired_counterfactual::{
     PairedCounterfactualError, PairedCounterfactualReport, PairingEffect, PortfolioConsequence,
     PortfolioCounterfactualSummary, PortfolioPairComparison, SignedRational,
     compare_multi_portfolio_paired_support, compare_paired_counterfactual_support,
+};
+pub use paired_objective_pareto::{
+    PairedObjectiveAtom, PairedObjectiveContrast, PairedObjectiveDirection,
+    PairedObjectiveDominanceWitness, PairedObjectiveOutcome, PairedObjectiveParetoCampaign,
+    PairedObjectiveParetoError, PairedObjectiveParetoReport, PairedObjectivePortfolioBound,
+    PairedObjectiveSpec, PairedPortfolioDominanceWitness, ScenarioAtomUniverse,
+    ScenarioModelBinding, ScenarioObjectiveContrastWitness,
 };
 pub use pathwise_event::{
     EncounterWindow, HorizonContactDisposition, HorizonEventConfig, HorizonEventDefinition,
