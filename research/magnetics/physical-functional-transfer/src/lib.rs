@@ -330,15 +330,15 @@ fn validate_inputs(
             return Err(FunctionalTransferError::InvalidIdentity);
         }
     }
-    for component in 0..3 {
-        for axis in 0..3 {
-            let bound = physical.residual_jacobian_abs_supremum_t_per_m[component][axis];
-            if !bound.is_finite() || bound < 0.0 {
-                return Err(FunctionalTransferError::InvalidInterval {
-                    field: "physical_residual_jacobian",
-                });
-            }
-        }
+    if physical
+        .residual_jacobian_abs_supremum_t_per_m
+        .iter()
+        .flatten()
+        .any(|bound| !bound.is_finite() || *bound < 0.0)
+    {
+        return Err(FunctionalTransferError::InvalidInterval {
+            field: "physical_residual_jacobian",
+        });
     }
     for intervals in [
         physical.measured_field_at_centre_t,
