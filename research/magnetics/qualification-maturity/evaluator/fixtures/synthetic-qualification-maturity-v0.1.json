@@ -21,9 +21,28 @@
       "minimum_distinct_material_lots": 2,
       "policy_id": "REPLICATION-v1",
       "policy_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-    }
+    },
+    "production_site_id": "SITE-001"
   },
-  "receipts": [],
+  "receipts": [
+    {
+      "evidence_id": "MODEL-001",
+      "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "kind": "DesignModel",
+      "class": "PublishedLiterature",
+      "scope": {
+        "application_id": "ENCODER-80MM-001",
+        "route_family": "MEX",
+        "route_revision": "MEX-v1",
+        "material_family": "NdFeB",
+        "product_form": "polymer-bonded",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "linked_evidence_ids": []
+    }
+  ],
   "expected": {
     "derived_level": "M1",
     "supported_levels": [
