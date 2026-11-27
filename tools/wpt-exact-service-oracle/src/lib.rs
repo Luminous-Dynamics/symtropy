@@ -492,21 +492,16 @@ pub struct ServiceOracleReport {
 fn push_wpt_edge(
     edges: &mut Vec<FlowEdge>,
     edge_metadata: &mut BTreeMap<String, (String, String)>,
-    id: String,
-    from: String,
-    to: String,
-    capacity: u64,
+    edge: FlowEdge,
     kind: &str,
     label: String,
 ) {
     let metadata_ref = format!("wpt-exact-service-oracle-v0/{kind}/{label}");
-    edges.push(FlowEdge::new(
-        id.clone(),
-        from,
-        to,
-        capacity,
-        Some(metadata_ref),
-    ));
+    let id = edge.id.clone();
+    edges.push(FlowEdge {
+        metadata_ref: Some(metadata_ref),
+        ..edge
+    });
     edge_metadata.insert(id, (kind.to_string(), label));
 }
 
@@ -563,10 +558,13 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         push_wpt_edge(
             &mut edges,
             &mut edge_metadata,
-            edge_id.clone(),
-            "00-source".to_string(),
-            node_id,
-            slot.available_deliverable_energy_mwh,
+            FlowEdge::new(
+                edge_id.clone(),
+                "00-source",
+                node_id,
+                slot.available_deliverable_energy_mwh,
+                None,
+            ),
             "segment_supply",
             format!("{}@{}", slot.segment_id, slot.interval_index),
         );
@@ -588,10 +586,13 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         push_wpt_edge(
             &mut edges,
             &mut edge_metadata,
-            edge_id.clone(),
-            from,
-            to,
-            link.max_deliverable_energy_mwh,
+            FlowEdge::new(
+                edge_id.clone(),
+                from,
+                to,
+                link.max_deliverable_energy_mwh,
+                None,
+            ),
             "transfer_link",
             link.link_id.clone(),
         );
@@ -616,10 +617,13 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         push_wpt_edge(
             &mut edges,
             &mut edge_metadata,
-            edge_id.clone(),
-            from,
-            to,
-            slot.max_acceptance_mwh,
+            FlowEdge::new(
+                edge_id.clone(),
+                from,
+                to,
+                slot.max_acceptance_mwh,
+                None,
+            ),
             "receiver_acceptance",
             format!("{}@{}", slot.receiver_id, slot.interval_index),
         );
@@ -635,10 +639,13 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         push_wpt_edge(
             &mut edges,
             &mut edge_metadata,
-            edge_id.clone(),
-            from,
-            "99-sink".to_string(),
-            receiver.minimum_service_mwh,
+            FlowEdge::new(
+                edge_id.clone(),
+                from,
+                "99-sink",
+                receiver.minimum_service_mwh,
+                None,
+            ),
             "receiver_obligation",
             receiver_id.clone(),
         );
