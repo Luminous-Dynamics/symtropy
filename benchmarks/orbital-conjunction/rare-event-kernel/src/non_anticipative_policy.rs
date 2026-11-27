@@ -333,18 +333,36 @@ impl NonAnticipativePolicyCampaign {
 
         let mut derived_world_ids = Vec::new();
         let mut trajectory_digest_by_world_portfolio = BTreeMap::new();
+        let mut mission_union_contact_by_world_portfolio = BTreeMap::new();
+        let mut atom_mass_ticks_by_world = BTreeMap::new();
         for atom in &trajectory_report.canonical_atoms {
-            derived_world_ids.push(ScenarioAtomIdentity {
+            let world_identity = ScenarioAtomIdentity {
                 scenario_id: atom.shared_world.scenario_id,
                 atom_id: atom.shared_world.atom_id,
-            });
-            for receipt in &atom.portfolio_trajectories {
-                if trajectory_digest_by_world_portfolio
-                    .insert(
-                        (receipt.scenario_id, receipt.atom_id, receipt.portfolio_id),
-                        receipt.propagated_trajectory_digest,
-                    )
+            };
+            derived_world_ids.push(world_identity);
+            if atom.shared_world.atom_mass_ticks == 0
+                || atom_mass_ticks_by_world
+                    .insert(world_identity, atom.shared_world.atom_mass_ticks)
                     .is_some()
+            {
+                return Err(NonAnticipativePolicyError::InvalidTrajectoryReceiptReport);
+            }
+            for receipt in &atom.portfolio_trajectories {
+                let key = (receipt.scenario_id, receipt.atom_id, receipt.portfolio_id);
+                let contact = match receipt.mission_union_contact {
+                    MissionUnionContactDisposition::DefiniteContact => true,
+                    MissionUnionContactDisposition::DefiniteNoContact => false,
+                    MissionUnionContactDisposition::Ambiguous => {
+                        return Err(NonAnticipativePolicyError::AmbiguousPolicyRiskOutcome);
+                    }
+                };
+                if trajectory_digest_by_world_portfolio
+                    .insert(key, receipt.propagated_trajectory_digest)
+                    .is_some()
+                    || mission_union_contact_by_world_portfolio
+                        .insert(key, contact)
+                        .is_some()
                 {
                     return Err(NonAnticipativePolicyError::InvalidTrajectoryReceiptReport);
                 }
@@ -387,9 +405,39 @@ impl NonAnticipativePolicyCampaign {
         });
         if trajectory_digest_by_world_portfolio.len() != expected_trajectory_count
             || trajectory_digest_by_world_portfolio.values().any(is_zero)
+            || mission_union_contact_by_world_portfolio.len() != expected_trajectory_count
             || !trajectory_keys_are_exact
         {
             return Err(NonAnticipativePolicyError::InvalidTrajectoryReceiptReport);
+        }
+
+        let mut risk_contract_by_scenario = BTreeMap::new();
+        for check in &gate.scenario_portfolio_risk_checks {
+            let value = (check.total_mass_ticks, check.mission_risk_budget);
+            if risk_contract_by_scenario
+                .insert(check.scenario_id, value)
+                .is_some_and(|previous| previous != value)
+            {
+                return Err(NonAnticipativePolicyError::InvalidPolicyRiskContract);
+            }
+        }
+        for scenario_id in &trajectory_report.scenario_ids {
+            let (expected_mass_ticks, _) = risk_contract_by_scenario
+                .get(scenario_id)
+                .copied()
+                .ok_or(NonAnticipativePolicyError::InvalidPolicyRiskContract)?;
+            let observed_mass_ticks = derived_world_ids
+                .iter()
+                .filter(|identity| identity.scenario_id == *scenario_id)
+                .try_fold(0_u128, |sum, identity| {
+                    sum.checked_add(u128::from(
+                        *atom_mass_ticks_by_world.get(identity)?,
+                    ))
+                })
+                .ok_or(NonAnticipativePolicyError::PolicyRiskArithmeticFailure)?;
+            if observed_mass_ticks != u128::from(expected_mass_ticks) {
+                return Err(NonAnticipativePolicyError::InvalidPolicyRiskContract);
+            }
         }
 
         let mut scenario_ids = trajectory_report.scenario_ids.clone();
@@ -420,6 +468,9 @@ impl NonAnticipativePolicyCampaign {
             eligible_portfolio_ids,
             ineligible_portfolio_ids,
             trajectory_digest_by_world_portfolio,
+            mission_union_contact_by_world_portfolio,
+            atom_mass_ticks_by_world,
+            risk_contract_by_scenario,
             frozen_input_digest,
         })
     }
