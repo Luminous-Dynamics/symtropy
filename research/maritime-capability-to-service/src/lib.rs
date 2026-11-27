@@ -1472,6 +1472,116 @@ mod tests {
     }
 
     #[test]
+    fn finite_scenario_regret_envelope_keeps_dimension_specific_worst_cases() {
+        let candidate_one = recovery_outcome("ROBUST-POLICY");
+        let mut oracle_one = recovery_outcome("CLAIRVOYANT-BOUND");
+        oracle_one.receiver_accepted_units = 90;
+        oracle_one.on_time_accepted_units = 85;
+        oracle_one.unresolved_units = 5;
+        oracle_one.service_deficit_unit_hours = 300;
+        oracle_one.time_to_minimum_viable_service_day = 2;
+        oracle_one.time_to_full_service_day = 4;
+        oracle_one.recovery_cost_units = 400;
+        oracle_one.recovery_emissions_units = 250;
+        oracle_one.requalification_actions = 1;
+        let vector_one = compare_recovery_regret(&candidate_one, &oracle_one).unwrap();
+
+        let mut candidate_two = recovery_outcome("ROBUST-POLICY");
+        candidate_two.scenario_id = "CALIBRATION-AND-WORKFORCE".to_owned();
+        candidate_two.inspection_qualified_units = 80;
+        candidate_two.receiver_accepted_units = 70;
+        candidate_two.on_time_accepted_units = 50;
+        candidate_two.unresolved_units = 20;
+        candidate_two.service_deficit_unit_hours = 1_500;
+        candidate_two.time_to_minimum_viable_service_day = 5;
+        candidate_two.time_to_full_service_day = 15;
+        candidate_two.recovery_cost_units = 1_200;
+        candidate_two.recovery_emissions_units = 450;
+        candidate_two.requalification_actions = 4;
+
+        let mut oracle_two = recovery_outcome("CLAIRVOYANT-BOUND");
+        oracle_two.scenario_id = "CALIBRATION-AND-WORKFORCE".to_owned();
+        oracle_two.inspection_qualified_units = 95;
+        oracle_two.receiver_accepted_units = 90;
+        oracle_two.on_time_accepted_units = 80;
+        oracle_two.unresolved_units = 10;
+        oracle_two.service_deficit_unit_hours = 500;
+        oracle_two.time_to_minimum_viable_service_day = 3;
+        oracle_two.time_to_full_service_day = 8;
+        oracle_two.recovery_cost_units = 800;
+        oracle_two.recovery_emissions_units = 350;
+        oracle_two.requalification_actions = 2;
+        let vector_two = compare_recovery_regret(&candidate_two, &oracle_two).unwrap();
+
+        let envelope = worst_case_recovery_regret(&[vector_one, vector_two]).unwrap();
+        assert_eq!(envelope.scenario_count, 2);
+        assert_eq!(envelope.expected_units, 100);
+        assert_eq!(envelope.worst_case.len(), 11);
+
+        let bound = |metric| envelope
+            .worst_case
+            .iter()
+            .find(|item| item.metric == metric)
+            .unwrap();
+
+        assert_eq!(bound(RecoveryRegretMetric::UnmetUnitsAtDeadline).delta, 30);
+        assert_eq!(
+            bound(RecoveryRegretMetric::UnmetUnitsAtDeadline).scenario_id,
+            "CALIBRATION-AND-WORKFORCE"
+        );
+        assert_eq!(
+            bound(RecoveryRegretMetric::InspectionQualifiedUnits).delta,
+            -15
+        );
+        assert_eq!(
+            bound(RecoveryRegretMetric::ReceiverAcceptedUnits).delta,
+            -20
+        );
+        assert_eq!(bound(RecoveryRegretMetric::LateAcceptedUnits).delta, 15);
+        assert_eq!(bound(RecoveryRegretMetric::UnresolvedUnits).delta, 10);
+        assert_eq!(
+            bound(RecoveryRegretMetric::ServiceDeficitUnitHours).delta,
+            1_000
+        );
+        assert_eq!(
+            bound(RecoveryRegretMetric::TimeToMinimumViableServiceDay).delta,
+            2
+        );
+        assert_eq!(
+            bound(RecoveryRegretMetric::TimeToFullServiceDay).delta,
+            7
+        );
+        assert_eq!(bound(RecoveryRegretMetric::RecoveryCostUnits).delta, 400);
+        assert_eq!(
+            bound(RecoveryRegretMetric::RecoveryEmissionsUnits).delta,
+            100
+        );
+        assert_eq!(bound(RecoveryRegretMetric::RequalificationActions).delta, 2);
+    }
+
+    #[test]
+    fn finite_scenario_regret_envelope_rejects_duplicate_scenarios_and_mismatched_policies() {
+        let candidate = recovery_outcome("ROBUST-POLICY");
+        let oracle = recovery_outcome("CLAIRVOYANT-BOUND");
+        let vector = compare_recovery_regret(&candidate, &oracle).unwrap();
+        assert!(
+            worst_case_recovery_regret(&[vector.clone(), vector.clone()])
+                .unwrap_err()
+                .contains("duplicate scenario")
+        );
+
+        let mut other_policy = recovery_outcome("DIFFERENT-POLICY");
+        other_policy.scenario_id = "SECOND-SCENARIO".to_owned();
+        let other_reference = recovery_outcome("CLAIRVOYANT-BOUND");
+        let other_vector = compare_recovery_regret(&other_policy, &other_reference).unwrap();
+        assert!(
+            worst_case_recovery_regret(&[vector, other_vector])
+                .unwrap_err()
+                .contains("mismatched policy or service context")
+        );
+    }
+
+    #[test]
     fn receiver_day_overflow_is_reported_instead_of_wrapping() {
         let changed = FIXTURE.replace(
             "OPTION\tEXISTING\tEXISTING\t90\t20",
