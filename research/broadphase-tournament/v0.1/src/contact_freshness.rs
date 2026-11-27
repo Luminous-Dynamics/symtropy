@@ -722,6 +722,7 @@ mod tests {
             .expect("new pair decision");
         assert_eq!(decision.geometry, ReuseDisposition::RefreshRequired);
         assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert!(decision.pair_eligibility_recheck_required);
         assert!(decision.solver_activation_required);
         assert_eq!(decision.reasons, vec![FreshnessReason::NewPair]);
     }
