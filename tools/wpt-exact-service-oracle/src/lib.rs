@@ -802,7 +802,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         });
     }
 
-    let minimum_cut_edges = flow_result
+    let mut minimum_cut_edges = flow_result
         .min_cut
         .edges
         .iter()
