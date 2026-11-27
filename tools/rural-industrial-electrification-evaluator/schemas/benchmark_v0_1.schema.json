@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/benchmark_v0_1.schema.json",
+  "title": "Rural and Industrial Electrification Shift Screen v0.1",
+  "type": "object",
+  "required": ["schema_version", "scenarios"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "scenarios": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scenario" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "positive": { "type": "number", "exclusiveMinimum": 0 },
+    "scenario": {
+      "type": "object",
+      "required": ["scenario_id", "label"],
+      "properties": {
+        "scenario_id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string", "minLength": 1 },
+        "evidence_class": {
+          "type": "string",
+          "enum": ["synthetic", "measured", "manufacturer", "literature", "estimate"]
+        },
+        "demand_kwh_per_shift": { "$ref": "#/$defs/positive" },
+        "pack_nominal_kwh": { "$ref": "#/$defs/positive" },
+        "state_of_health_fraction": { "$ref": "#/$defs/fraction" },
+        "temperature_capacity_fraction": { "$ref": "#/$defs/fraction" },
+        "reserve_fraction": { "type": "number", "minimum": 0, "exclusiveMaximum": 1 },
+        "charger_power_kw": { "$ref": "#/$defs/positive" },
+        "charger_efficiency_fraction": { "$ref": "#/$defs/fraction" },
+        "charge_window_hours": { "$ref": "#/$defs/positive" },
+        "site_charge_power_budget_kw": { "type": "number", "minimum": 0 },
+        "simultaneous_chargers": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

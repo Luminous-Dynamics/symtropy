@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/tools/rural-industrial-electrification-evaluator/schemas/vehicle_designs_v0_1.schema.json",
+  "title": "Electric mobility design portfolio v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "catalog_id", "claim_ceiling", "designs"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "catalog_id": { "const": "EV-PLATFORM-001" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "designs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/design" }
+    }
+  },
+  "$defs": {
+    "fraction": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+    "nonnegative": { "type": "number", "minimum": 0 },
+    "positive": { "type": "number", "exclusiveMinimum": 0 },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["design_id", "label", "family", "architecture", "mission_functional_unit", "evidence_class", "evidence_reference", "evidence_note", "mass", "battery", "mission", "charging", "design_notes"],
+      "properties": {
+        "design_id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "label": { "type": "string", "minLength": 1 },
+        "family": { "type": "string", "minLength": 1 },
+        "architecture": { "type": "string", "minLength": 1 },
+        "mission_functional_unit": { "type": "string", "minLength": 1 },
+        "evidence_class": { "enum": ["synthetic", "measured", "manufacturer", "literature", "estimate", "unknown"] },
+        "evidence_reference": { "type": "string" },
+        "evidence_note": { "type": "string", "minLength": 1 },
+        "mass": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["base_curb_mass_kg", "installed_module_mass_kg", "target_payload_kg", "maximum_gross_mass_kg"],
+          "properties": {
+            "base_curb_mass_kg": { "$ref": "#/$defs/positive" },
+            "installed_module_mass_kg": { "$ref": "#/$defs/nonnegative" },
+            "target_payload_kg": { "$ref": "#/$defs/nonnegative" },
+            "maximum_gross_mass_kg": { "$ref": "#/$defs/positive" }
+          }
+        },
+        "battery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["nominal_pack_kwh", "state_of_health_fraction", "temperature_capacity_fraction", "reserve_fraction", "rated_continuous_power_kw", "rated_peak_power_kw"],
+          "properties": {
+            "nominal_pack_kwh": { "$ref": "#/$defs/positive" },
+            "state_of_health_fraction": { "$ref": "#/$defs/fraction" },
+            "temperature_capacity_fraction": { "$ref": "#/$defs/fraction" },
+            "reserve_fraction": { "type": "number", "minimum": 0, "exclusiveMaximum": 1 },
+            "rated_continuous_power_kw": { "$ref": "#/$defs/positive" },
+            "rated_peak_power_kw": { "$ref": "#/$defs/positive" }
+          }
+        },
+        "mission": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["battery_energy_demand_kwh_per_shift", "required_continuous_power_kw", "required_peak_power_kw"],
+          "properties": {
+            "battery_energy_demand_kwh_per_shift": { "$ref": "#/$defs/positive" },
+            "required_continuous_power_kw": { "$ref": "#/$defs/positive" },
+            "required_peak_power_kw": { "$ref": "#/$defs/positive" }
+          }
+        },
+        "charging": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["strategy", "charger_rating_kw", "site_power_budget_kw", "simultaneous_vehicles", "efficiency_fraction", "available_window_hours"],
+          "properties": {
+            "strategy": { "type": "string", "minLength": 1 },
+            "charger_rating_kw": { "$ref": "#/$defs/positive" },
+            "site_power_budget_kw": { "$ref": "#/$defs/positive" },
+            "simultaneous_vehicles": { "type": "integer", "minimum": 1 },
+            "efficiency_fraction": { "$ref": "#/$defs/fraction" },
+            "available_window_hours": { "$ref": "#/$defs/positive" }
+          }
+        },
+        "design_notes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "evidence_class": { "enum": ["measured", "manufacturer", "literature", "estimate"] } }, "required": ["evidence_class"] },
+          "then": { "properties": { "evidence_reference": { "type": "string", "minLength": 1 } } }
+        }
+      ]
+    }
+  }
+}
