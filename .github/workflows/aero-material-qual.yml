@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -47,9 +47,14 @@ on:
       - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
       - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
+      - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -97,6 +102,11 @@ on:
       - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
       - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
+      - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -984,6 +994,54 @@ jobs:
               if metric["direction"] == "report_only" and metric["target"] is not None:
                   raise SystemExit(f"{metric['metric_id']}: report-only metrics must not have optimization targets")
           print("AERO benchmark metric registry schema, 17-entry census and prospective targets passed.")
+          PY
+
+      - name: Validate AERO claim specification schemas, examples and challenge seed
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          pairs = [
+              (
+                  root / "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json",
+                  root / "docs/research/aviation/examples/aero_claim_specification_v0_1.json",
+              ),
+              (
+                  root / "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json",
+                  root / "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json",
+              ),
+          ]
+          for schema_path, instance_path in pairs:
+              schema = json.loads(schema_path.read_text())
+              instance = json.loads(instance_path.read_text())
+              if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+                  raise SystemExit(f"{schema_path.name}: Draft 2020-12 declaration required")
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(instance),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{instance_path.name} {list(error.absolute_path)}: {error.message}", file=sys.stderr)
+                  raise SystemExit(f"{instance_path.name}: {len(errors)} schema validation errors")
+          corpus = json.loads(pairs[1][1].read_text())
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(ids) != 12 or len(ids) != len(set(ids)):
+              raise SystemExit("claim-spec challenge seed must have exactly 12 unique case IDs")
+          if corpus["oracle_status"] != "NOT_INDEPENDENTLY_REVIEWED":
+              raise SystemExit("challenge seed must remain marked NOT_INDEPENDENTLY_REVIEWED")
+          if corpus["execution_status"] != "NOT_EXECUTED":
+              raise SystemExit("challenge seed must remain marked NOT_EXECUTED")
+          if not any(case["expected_disposition"] == "FORMALLY_WELL_SPECIFIED" for case in cases):
+              raise SystemExit("challenge seed must retain a positive control")
+          print("AERO claim-spec schemas/examples passed; 12-case challenge seed remains unreviewed and unexecuted.")
           PY
 
       - name: Run evaluator tests

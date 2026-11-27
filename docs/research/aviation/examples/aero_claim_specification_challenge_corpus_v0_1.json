@@ -1,0 +1,114 @@
+{
+  "schema": "AeroClaimSpecificationChallengeCorpusV0_1",
+  "corpus_id": "AERO-CLAIM-SPEC-CHALLENGE-001-V0_1",
+  "oracle_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "execution_status": "NOT_EXECUTED",
+  "cases": [
+    {
+      "case_id": "CS01",
+      "mutation": "Unmodified synthetic scalar claim with explicit subject, configuration, operating envelope, metric, unit, predicate, population, strata, uncertainty method, evidence classes and review authority.",
+      "expected_disposition": "FORMALLY_WELL_SPECIFIED",
+      "expected_reason_codes": [],
+      "case_class": "positive_control"
+    },
+    {
+      "case_id": "CS02",
+      "mutation": "Remove the acceptance-authority role reference.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_ACCEPTANCE_AUTHORITY_ROLE_REF_MISSING"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS03",
+      "mutation": "Remove all required population strata.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_REQUIRED_STRATA_EMPTY"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS04",
+      "mutation": "Use Pa for the threshold while the measurand is declared in MPa; no conversion receipt/profile exists in v0.1.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_PREDICATE_UNIT_MISMATCH"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS05",
+      "mutation": "Set the exact-rational threshold denominator to zero.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_THRESHOLD_RATIONAL_NONCANONICAL"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS06",
+      "mutation": "Encode 600/2 instead of the reduced exact rational 300/1.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_THRESHOLD_RATIONAL_NONCANONICAL"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS07",
+      "mutation": "Select population_confidence_bound but omit the confidence level.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS08",
+      "mutation": "Select a statistical upper confidence bound but omit the confidence level.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS09",
+      "mutation": "Set effective_until equal to effective_from, leaving an empty validity interval.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_VALIDITY_INTERVAL_INVALID"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS10",
+      "mutation": "Duplicate a required stratum identity while retaining distinct display text.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_STRATUM_ID_DUPLICATE"
+      ],
+      "case_class": "single_fault"
+    },
+    {
+      "case_id": "CS11",
+      "mutation": "Change the predicate threshold while retaining the original semantic digest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH"
+      ],
+      "case_class": "metamorphic"
+    },
+    {
+      "case_id": "CS12",
+      "mutation": "Replace the schema identifier with an unsupported future version and attempt to treat it as v0.1.",
+      "expected_disposition": "UNSUPPORTED_PROFILE",
+      "expected_reason_codes": [
+        "CLAIM_SPECIFICATION_SCHEMA_UNSUPPORTED"
+      ],
+      "case_class": "single_fault"
+    }
+  ]
+}

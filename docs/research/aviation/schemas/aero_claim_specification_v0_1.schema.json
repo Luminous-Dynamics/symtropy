@@ -1,0 +1,402 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-claim-specification-v0.1.schema.json",
+  "title": "AERO Claim Specification v0.1",
+  "description": "Bounded scalar claim contract. Shape validation does not establish engineering correctness or physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "specification_id",
+    "claim_id",
+    "subject_ref",
+    "configuration_ref",
+    "operating_envelope_ref",
+    "intended_use_ref",
+    "validity",
+    "measurand",
+    "predicate",
+    "population",
+    "uncertainty",
+    "required_evidence_classes",
+    "assumptions",
+    "exclusions",
+    "rationale_ref",
+    "verification_method_ref",
+    "acceptance_authority_role_ref",
+    "limitations"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroClaimSpecificationV0_1"
+    },
+    "specification_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "claim_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "subject_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "configuration_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "operating_envelope_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "intended_use_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "validity": {
+      "$ref": "#/$defs/validity"
+    },
+    "measurand": {
+      "$ref": "#/$defs/measurand"
+    },
+    "predicate": {
+      "$ref": "#/$defs/predicate"
+    },
+    "population": {
+      "$ref": "#/$defs/population"
+    },
+    "uncertainty": {
+      "$ref": "#/$defs/uncertainty"
+    },
+    "required_evidence_classes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "rationale_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "verification_method_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "acceptance_authority_role_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^\\S(?:[\\s\\S]*\\S)?$"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9:._/-]+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "validity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effective_from_unix_ms",
+        "effective_until_unix_ms"
+      ],
+      "properties": {
+        "effective_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_unix_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "unit_code": {
+      "type": "string",
+      "enum": [
+        "1",
+        "Pa",
+        "MPa",
+        "N",
+        "m",
+        "s",
+        "kg",
+        "K",
+        "m/s",
+        "m/s^2",
+        "J",
+        "W"
+      ]
+    },
+    "measurand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurand_id",
+        "definition",
+        "unit_code",
+        "aggregation"
+      ],
+      "properties": {
+        "measurand_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit_code": {
+          "$ref": "#/$defs/unit_code"
+        },
+        "aggregation": {
+          "type": "string",
+          "enum": [
+            "each_unit",
+            "maximum",
+            "minimum",
+            "mean",
+            "p95",
+            "p99"
+          ]
+        }
+      }
+    },
+    "rational": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "properties": {
+        "numerator": {
+          "type": "integer",
+          "minimum": -9223372036854776000,
+          "maximum": 9223372036854776000
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709552000
+        }
+      }
+    },
+    "predicate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator",
+        "threshold",
+        "unit_code"
+      ],
+      "properties": {
+        "operator": {
+          "type": "string",
+          "enum": [
+            "less_than",
+            "less_than_or_equal",
+            "greater_than",
+            "greater_than_or_equal"
+          ]
+        },
+        "threshold": {
+          "$ref": "#/$defs/rational"
+        },
+        "unit_code": {
+          "$ref": "#/$defs/unit_code"
+        }
+      }
+    },
+    "stratum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stratum_id",
+        "dimension_ref",
+        "level_ref"
+      ],
+      "properties": {
+        "stratum_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "dimension_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "level_ref": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "population": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "population_ref",
+        "sampling_unit_ref",
+        "population_manifest_sha256",
+        "quantifier",
+        "confidence_level_ppm",
+        "required_strata"
+      ],
+      "properties": {
+        "population_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "sampling_unit_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "population_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "quantifier": {
+          "type": "string",
+          "enum": [
+            "every_required_unit",
+            "worst_case_over_declared_population",
+            "population_confidence_bound"
+          ]
+        },
+        "confidence_level_ppm": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "required_strata": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/stratum"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "quantifier": {
+                "const": "population_confidence_bound"
+              }
+            },
+            "required": [
+              "quantifier"
+            ]
+          },
+          "then": {
+            "properties": {
+              "confidence_level_ppm": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999999
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "confidence_level_ppm": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "treatment",
+        "method_ref",
+        "confidence_level_ppm"
+      ],
+      "properties": {
+        "treatment": {
+          "type": "string",
+          "enum": [
+            "point_estimate",
+            "deterministic_upper_bound",
+            "deterministic_lower_bound",
+            "statistical_upper_confidence_bound",
+            "statistical_lower_confidence_bound",
+            "interval_enclosure"
+          ]
+        },
+        "method_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "confidence_level_ppm": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 999999
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "treatment": {
+                "enum": [
+                  "statistical_upper_confidence_bound",
+                  "statistical_lower_confidence_bound"
+                ]
+              }
+            },
+            "required": [
+              "treatment"
+            ]
+          },
+          "then": {
+            "properties": {
+              "confidence_level_ppm": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 999999
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "confidence_level_ppm": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

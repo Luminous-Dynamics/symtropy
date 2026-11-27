@@ -1,0 +1,69 @@
+{
+  "schema": "AeroClaimSpecificationV0_1",
+  "specification_id": "aero:claim-spec:wing-panel-strength-001",
+  "claim_id": "aero:claim:wing-panel-strength-001",
+  "subject_ref": "part:wing-panel-synthetic-001",
+  "configuration_ref": "configuration:wing-r17-synthetic",
+  "operating_envelope_ref": "envelope:transport-normal-synthetic",
+  "intended_use_ref": "intended-use:structural-strength-screening",
+  "validity": {
+    "effective_from_unix_ms": 1795514399900,
+    "effective_until_unix_ms": 1798668800000
+  },
+  "measurand": {
+    "measurand_id": "measurand:maximum-principal-stress",
+    "definition": "Maximum principal tensile stress over the declared population",
+    "unit_code": "MPa",
+    "aggregation": "maximum"
+  },
+  "predicate": {
+    "operator": "less_than_or_equal",
+    "threshold": {
+      "numerator": 300,
+      "denominator": 1
+    },
+    "unit_code": "MPa"
+  },
+  "population": {
+    "population_ref": "population:wing-panel-candidates-synthetic",
+    "sampling_unit_ref": "sampling-unit:physical-panel",
+    "population_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "quantifier": "worst_case_over_declared_population",
+    "confidence_level_ppm": null,
+    "required_strata": [
+      {
+        "stratum_id": "stratum:temperature-ambient",
+        "dimension_ref": "dimension:temperature",
+        "level_ref": "level:ambient"
+      },
+      {
+        "stratum_id": "stratum:limit-load",
+        "dimension_ref": "dimension:load-case",
+        "level_ref": "level:limit-load"
+      }
+    ]
+  },
+  "uncertainty": {
+    "treatment": "deterministic_upper_bound",
+    "method_ref": "method:synthetic-upper-bound-v1",
+    "confidence_level_ppm": null
+  },
+  "required_evidence_classes": [
+    "evidence-class:material-characterization",
+    "evidence-class:structural-test",
+    "evidence-class:model-validation"
+  ],
+  "assumptions": [
+    "assumption:synthetic-boundary-conditions"
+  ],
+  "exclusions": [
+    "exclusion:damage-growth"
+  ],
+  "rationale_ref": "rationale:synthetic-wing-panel-strength",
+  "verification_method_ref": "method:independent-structural-review",
+  "acceptance_authority_role_ref": "authority-role:delegated-engineering-authority",
+  "limitations": [
+    "Synthetic example only; no physical test or model result is represented.",
+    "Formal specification does not establish the selected threshold or assumptions as correct."
+  ]
+}
