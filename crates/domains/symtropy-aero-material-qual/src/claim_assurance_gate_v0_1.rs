@@ -319,6 +319,7 @@ fn validate_owner_evidence_cut(
     reasons: &mut BTreeSet<String>,
     unverified: &mut bool,
     incomplete: &mut bool,
+    out_of_scope: &mut bool,
     invalid: &mut bool,
 ) {
     let cut = input.owner_evidence_cut;
@@ -374,6 +375,7 @@ fn validate_owner_evidence_cut(
             reasons.insert("BASALT_OBSERVER_COVERAGE_UNVERIFIED".to_owned());
         }
         OwnerObserverCoverageStatus::OutOfScope => {
+            *out_of_scope = true;
             reasons.insert("BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned());
         }
     }
@@ -500,6 +502,7 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         &mut reasons,
         &mut unverified,
         &mut incomplete,
+        &mut out_of_scope,
         &mut invalid,
     );
 
@@ -1539,6 +1542,24 @@ mod tests {
         assert_eq!(result.status, ClaimGateStatus::Rejected);
         assert!(result.reason_codes.contains(
             &"OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned()
+        ));
+    }
+
+    #[test]
+    fn owner_observer_coverage_out_of_scope_cannot_be_reviewable() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.observer_coverage_status = OwnerObserverCoverageStatus::OutOfScope;
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::OutOfScope);
+        assert!(result.reason_codes.contains(
+            &"BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned()
         ));
     }
 
