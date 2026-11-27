@@ -1,0 +1,161 @@
+name: EV Robust Depot Capacity Frontier
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-capacity-robustness/**"
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-depot-workload/**"
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-robust-capacity-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-capacity-robustness/**"
+      - "tools/ev-depot-duty-audit/**"
+      - "tools/ev-depot-workload/**"
+      - "tools/ev-fleet-resilience/**"
+      - ".github/workflows/ev-robust-capacity-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: |
+          cargo fmt --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-depot-workload/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-fleet-resilience/Cargo.toml --all -- --check
+          cargo fmt --manifest-path tools/ev-capacity-robustness/Cargo.toml --all -- --check
+      - name: Run unit and negative-control tests
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/robust-target
+        run: |
+          cargo test --manifest-path tools/ev-depot-duty-audit/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-depot-workload/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-fleet-resilience/Cargo.toml --all-targets
+          cargo test --manifest-path tools/ev-capacity-robustness/Cargo.toml --all-targets
+      - name: Build all pipeline tools once
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/robust-target
+        run: |
+          cargo build --release --manifest-path tools/ev-depot-duty-audit/Cargo.toml
+          cargo build --release --manifest-path tools/ev-depot-workload/Cargo.toml
+          cargo build --release --manifest-path tools/ev-fleet-resilience/Cargo.toml
+          cargo build --release --manifest-path tools/ev-capacity-robustness/Cargo.toml
+      - name: Download all three pinned NLR operational-summary datasets
+        run: |
+          set -euo pipefail
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          ROOT="${RUNNER_TEMP}/ev-robust"
+          mkdir -p "${ROOT}/source" "${ROOT}/audit" "${ROOT}/inputs" "${ROOT}/results"
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            BASE="https://raw.githubusercontent.com/NatLabRockies/hdev-depot-charging-2021/${REV}/data/fleet-schedules/${fleet}"
+            curl --fail --show-error --silent --location "${BASE}/veh_op_days.csv" -o "${ROOT}/source/${fleet}-veh_op_days.csv"
+            curl --fail --show-error --silent --location "${BASE}/veh_schedules.csv" -o "${ROOT}/source/${fleet}-veh_schedules.csv"
+          done
+      - name: Validate all public source tables with pinned revisions and hashes
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/robust-target
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/ev-robust"
+          REV=61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          AUDITOR="${CARGO_TARGET_DIR}/release/ev-depot-duty-audit"
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            "${AUDITOR}" "${ROOT}/source/${fleet}-veh_op_days.csv" "${ROOT}/source/${fleet}-veh_schedules.csv" \
+              --fleet-id "${fleet}" \
+              --dataset-id nlr-hdev-depot-charging-2021 \
+              --source-uri https://github.com/NatLabRockies/hdev-depot-charging-2021 \
+              --source-revision "${REV}" \
+              --evidence-class published_operational_summary \
+              --kwh-per-mile 1.8 > "${ROOT}/audit/${fleet}.json"
+          done
+          jq -e '.operation_days_input_rows == 76 and .schedule_input_rows == 234 and .reconciled_operation_day_count == 76 and (.operation_days_invalid_rows | length == 0) and (.schedule_invalid_rows | length == 0) and (.operation_day_reconciliation_issues | length == 0)' "${ROOT}/audit/fleet1-beverage-delivery.json"
+          jq -e '.operation_days_input_rows == 100 and .schedule_input_rows == 302 and .reconciled_operation_day_count == 100 and (.operation_days_invalid_rows | length == 0) and (.schedule_invalid_rows | length == 0) and (.operation_day_reconciliation_issues | length == 0)' "${ROOT}/audit/fleet2-warehouse-delivery.json"
+          jq -e '.operation_days_input_rows == 236 and .schedule_input_rows == 782 and .reconciled_operation_day_count == 236 and (.operation_days_invalid_rows | length == 0) and (.schedule_invalid_rows | length == 0) and (.operation_day_reconciliation_issues | length == 0)' "${ROOT}/audit/fleet3-food-delivery.json"
+      - name: Generate 360 workloads across duty days and connector-release policies
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/robust-target
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/ev-robust"
+          GENERATOR="${CARGO_TARGET_DIR}/release/ev-depot-workload"
+          SIMULATOR="${CARGO_TARGET_DIR}/release/ev-fleet-resilience"
+          printf 'fleet_size\tseed\tvocation\tport_release_policy\treport_path\n' > "${ROOT}/runs.tsv"
+          for fleet in fleet1-beverage-delivery fleet2-warehouse-delivery fleet3-food-delivery; do
+            for fleet_size in 10 50 100; do
+              ports=$(((fleet_size + 1) / 2))
+              site_kw=$((ports * 150))
+              for seed in $(seq 0 19); do
+                for port_release_policy in release_on_charge_completion hold_until_departure; do
+                  tag="${fleet}-fleet-${fleet_size}-seed-${seed}-${port_release_policy}"
+                  input="${ROOT}/inputs/${tag}.json"
+                  manifest="${ROOT}/inputs/${tag}.manifest.json"
+                  report="${ROOT}/results/${tag}.json"
+                  "${GENERATOR}" \
+                    --input-report "${ROOT}/audit/${fleet}.json" \
+                    --output-corpus "${input}" \
+                    --output-manifest "${manifest}" \
+                    --fleet-size "${fleet_size}" --seed "${seed}" \
+                    --kwh-per-mile 1.8 --pack-capacity-kwh 1000 --initial-soc-fraction 0.1 \
+                    --state-of-health-fraction 0.9 --temperature-capacity-fraction 0.98 \
+                    --temperature-acceptance-fraction 0.8 --charging-efficiency-fraction 0.92 \
+                    --maximum-port-input-power-kw 150 --maximum-battery-acceptance-kw 140 \
+                    --charger-ports "${ports}" --site-power-budget-kw "${site_kw}" \
+                    --port-release-policy "${port_release_policy}"
+                  "${SIMULATOR}" "${input}" > "${report}"
+                  printf '%s\t%s\t%s\t%s\t%s\n' "${fleet_size}" "${seed}" "${fleet}" "${port_release_policy}" "results/${tag}.json" >> "${ROOT}/runs.tsv"
+                done
+              done
+            done
+          done
+          test "$(($(wc -l < "${ROOT}/runs.tsv") - 1))" -eq 360
+      - name: Aggregate empirical capacity reliability and create CSV
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/robust-target
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/ev-robust"
+          AGGREGATOR="${CARGO_TARGET_DIR}/release/ev-capacity-robustness"
+          cd "${ROOT}"
+          "${AGGREGATOR}" \
+            --runs-manifest "runs.tsv" \
+            --output-json "ev-robust-capacity-report.json" \
+            --output-csv "ev-robust-capacity-frontier.csv" \
+            --expected-seeds 20 --minimum-fleet-sizes 3 --minimum-vocations 3 \
+            --coverage-target 0.95
+          jq -e '.benchmark_id == "EV-ROBUST-001" and .validated_run_count == 360 and .expected_seeds_per_vocation_size_and_port_policy == 20 and (.fleet_sizes == [10,50,100]) and (.vocations | length == 3) and (.port_release_policies == ["hold_until_departure","release_on_charge_completion"]) and (.policy_aggregates | length == 36) and all(.policy_aggregates[]; .replicate_count == 20 and .sampled_capacity_spacing_percent == 5 and (.capacity_points | length == 20) and (.port_release_policy == "release_on_charge_completion" or .port_release_policy == "hold_until_departure") and .port_count == ((.fleet_size + 1) / 2 | floor) and all(.capacity_points[]; .replicate_count == 20 and .empirical_feasibility_fraction >= 0 and .empirical_feasibility_fraction <= 1 and (.wilson_95_percent_interval[0] >= 0) and (.wilson_95_percent_interval[1] <= 1)))' ev-robust-capacity-report.json
+          jq -r '.policy_aggregates[] | [.vocation, .fleet_size, .port_release_policy, .policy, .replicate_count, .robust_minimum_sampled_site_power_kw, .robust_minimum_sampled_site_power_kw_per_vehicle, .deadline_completion_fraction.p05, .deadline_completion_fraction.p50, .deadline_completion_fraction.p95, .energy_service_fraction.p05, .energy_service_fraction.p50, .energy_service_fraction.p95] | @tsv' ev-robust-capacity-report.json
+      - name: Hash pinned source, all run inputs/outputs and aggregate reports
+        run: |
+          set -euo pipefail
+          ROOT="${RUNNER_TEMP}/ev-robust"
+          cd "${ROOT}"
+          find source audit inputs results -type f -print0 | sort -z | xargs -0 sha256sum > all-files.sha256
+          sha256sum "${GITHUB_WORKSPACE}/tools/ev-capacity-robustness/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-capacity-robustness/src/main.rs" "${GITHUB_WORKSPACE}/tools/ev-depot-duty-audit/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-depot-duty-audit/src/main.rs" "${GITHUB_WORKSPACE}/tools/ev-depot-workload/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-depot-workload/src/main.rs" "${GITHUB_WORKSPACE}/tools/ev-fleet-resilience/Cargo.toml" "${GITHUB_WORKSPACE}/tools/ev-fleet-resilience/src/main.rs" runs.tsv ev-robust-capacity-report.json ev-robust-capacity-frontier.csv >> all-files.sha256
+      - name: Upload complete replay package (pinned source data excluded)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-robust-capacity-frontier-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ev-robust/audit/
+            ${{ runner.temp }}/ev-robust/inputs/
+            ${{ runner.temp }}/ev-robust/results/
+            ${{ runner.temp }}/ev-robust/runs.tsv
+            ${{ runner.temp }}/ev-robust/ev-robust-capacity-report.json
+            ${{ runner.temp }}/ev-robust/ev-robust-capacity-frontier.csv
+            ${{ runner.temp }}/ev-robust/all-files.sha256
+          if-no-files-found: error
+          retention-days: 14
