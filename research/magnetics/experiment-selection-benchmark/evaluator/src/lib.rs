@@ -266,17 +266,16 @@ fn validate_task(task: &BenchmarkTask) -> Vec<Blocker> {
             blockers.push(Blocker::InvalidObjective);
         }
     }
-    if let Some(oracle) = task.oracle_best_objective_0 {
-        if !oracle.is_finite() {
-            blockers.push(Blocker::InvalidOracle);
-        }
+    if let Some(oracle) = task.oracle_best_objective_0
+        && !oracle.is_finite()
+    {
+        blockers.push(Blocker::InvalidOracle);
     }
-    if task.objectives.len() >= 2 {
-        if let Some(reference) = &task.hypervolume_reference_point {
-            if reference.len() != 2 || reference.iter().any(|value| !value.is_finite()) {
-                blockers.push(Blocker::InvalidHypervolumeReference);
-            }
-        }
+    if task.objectives.len() >= 2
+        && let Some(reference) = &task.hypervolume_reference_point
+        && (reference.len() != 2 || reference.iter().any(|value| !value.is_finite()))
+    {
+        blockers.push(Blocker::InvalidHypervolumeReference);
     }
     blockers
 }
@@ -409,7 +408,7 @@ fn validate_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> Vec<Blocker> {
     blockers
 }
 
-fn group_key<'a>(unit: SplitUnit, outcome: &'a ExperimentOutcome) -> &'a str {
+fn group_key(unit: SplitUnit, outcome: &ExperimentOutcome) -> &str {
     match unit {
         SplitUnit::MaterialLot => &outcome.material_lot_id,
         SplitUnit::Build => &outcome.build_id,
@@ -418,7 +417,7 @@ fn group_key<'a>(unit: SplitUnit, outcome: &'a ExperimentOutcome) -> &'a str {
     }
 }
 
-fn group_key_holdout<'a>(unit: SplitUnit, observation: &'a HoldoutObservation) -> &'a str {
+fn group_key_holdout(unit: SplitUnit, observation: &HoldoutObservation) -> &str {
     match unit {
         SplitUnit::MaterialLot => &observation.material_lot_id,
         SplitUnit::Build => &observation.build_id,
