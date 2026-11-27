@@ -1,0 +1,286 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "CFI-SPACE-SYNTHETIC-CONTRACT-001",
+  "episodes": [
+    {
+      "episode_id": "episode-a-clean",
+      "input_bundle_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-clean-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-clean-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-clock",
+      "input_bundle_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-clock-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-clock-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-extrinsics",
+      "input_bundle_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-extrinsics-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-extrinsics-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-common",
+      "input_bundle_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-common-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-common-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-translation",
+      "input_bundle_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-translation-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-translation-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-ood",
+      "input_bundle_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-ood-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-ood-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-integrity",
+      "input_bundle_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-integrity-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-integrity-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-a-interaction",
+      "input_bundle_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-interaction-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-interaction-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-b-clean",
+      "input_bundle_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-b-clean-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-b-clean-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    },
+    {
+      "episode_id": "episode-b-clock",
+      "input_bundle_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-b-clock-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-b-clock-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ]
+    }
+  ]
+}
