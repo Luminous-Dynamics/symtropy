@@ -110,14 +110,20 @@ fn render_result(result: &ConsistencyReceipt) -> String {
     )
 }
 
-fn parse_pair(fields: &[&str], line: usize) -> Result<(PoseEstimate, PoseEstimate, GatePolicy), Box<dyn Error>> {
+fn parse_pair(
+    fields: &[&str],
+    line: usize,
+) -> Result<(PoseEstimate, PoseEstimate, GatePolicy), Box<dyn Error>> {
     if fields.len() != 59 {
         return Err(format!("line {line}: expected 59 fields, got {}", fields.len()).into());
     }
 
     let policy = GatePolicy {
         maximum_timestamp_skew_ms: parse(fields[6], "maximum_timestamp_skew_ms")?,
-        maximum_translation_disagreement_um: parse(fields[7], "maximum_translation_disagreement_um")?,
+        maximum_translation_disagreement_um: parse(
+            fields[7],
+            "maximum_translation_disagreement_um",
+        )?,
         maximum_orientation_chord_q30: parse(fields[8], "maximum_orientation_chord_q30")?,
         require_complete_dependency_declarations: true,
         shared_dependencies_fail_closed: true,
@@ -217,7 +223,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("cross-modal manifest has no pairs".into());
     }
 
-    let body = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let body = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     println!(
         "{{\"schema\":{},\"source_commit\":{},\"corpus_sha256\":{},\"pair_count\":{},\"results\":[{}],\"independence_proven\":false,\"physical_truth_established\":false,\"deterministic_safety_bound\":false,\"maneuver_authority_granted\":false}}",
         render_string(cross_modal_pose_consistency_bench::RECEIPT_SCHEMA),
