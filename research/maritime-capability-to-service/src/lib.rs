@@ -942,8 +942,8 @@ mod tests {
         // Partial receiver acceptance changes accepted quantity independently from
         // inspection qualification and from on-time delivery.
         let partial_fixture = FIXTURE.replace(
-            "RECEIVER_ACCEPTANCE\\tLOCAL-C\\tACCEPTED\\t10\\tREV-001",
-            "RECEIVER_ACCEPTANCE\\tLOCAL-C\\tACCEPTED\\t6\\tREV-001",
+            "RECEIVER_ACCEPTANCE\tLOCAL-C\tACCEPTED\t10\tREV-001",
+            "RECEIVER_ACCEPTANCE\tLOCAL-C\tACCEPTED\t6\tREV-001",
         );
         let partial_instance = parse_instance(&partial_fixture).unwrap();
         let partial_outcomes = evaluate(&partial_instance).unwrap();
