@@ -46,3 +46,6 @@ The initiated specimen denominator is the union of specimen IDs declared by ever
 Observed fractions are descriptive. Replication coverage reports the number of distinct valid builds and feedstock lots against a preregistered minimum; meeting that coverage gate is not inferential yield qualification. The v0.1 evaluator explicitly returns `inferential_yield_claim_available = false`.
 
 Campaign cost is consumed as one digest-bound cost receipt. Cost per accepted part remains represented by its total-campaign-cost numerator and final non-scrapped accepted-part denominator; no successful-part-only mean is invented.
+
+
+The replication gate uses `replication_eligible_builds` and the number of distinct valid feedstock lots actually referenced by valid builds. Unused lot records cannot satisfy the lot floor. Failed-before-inspection builds still count as attempted/eligible build replications when their identity and genealogy are valid. Duplicate receipt IDs invalidate the cohort.
