@@ -28,7 +28,7 @@ The v0.1 profile requires:
 - sample ID equals spacecraft/trajectory/timestamp;
 - bundle frame ID and non-empty calibration/extrinsics revision identifiers are required;
 - modality frame IDs and expected sensor IDs match the bundle;
-- each relative modality path is free of absolute/traversal components and contains the exact expected stream directory (rgb, depth, segmentation, lidar or pose), spacecraft, trajectory and frame timestamp;
+- each relative modality path is free of absolute/traversal components and contains the ordered spacecraft/trajectory/stream/timestamp key for the expected stream directory (rgb, depth, segmentation, lidar or pose);
 - LiDAR coordinates are explicitly in SensorLocalFrame;
 - pose semantics explicitly bind target-in-camera and camera/service-pose-in-world;
 - camera calibration and LiDAR-to-camera extrinsics have pinned revision IDs and SHA-256 references;
@@ -42,7 +42,7 @@ The naive source timestamp is used only as a dataset-local exact join key. No cl
 
 ## Frozen corpus and oracle
 
-The 49 fixtures include exact synchronized positive controls, each modality timestamp shifted, pre-correction pose revision, wrong sensor/frame/path, missing streams, malformed/invalid dates, leap-year controls, wrong coordinate conventions/units/pose semantics, commercial intent, source revision mutation, invalid calibration/extrinsics digests, modality-directory substitution, path traversal, empty calibration/extrinsics revision IDs, missing frame identity, two deliberate duplicate-sample pairs and one train/test spacecraft-identity leak pair. The Rust crate has 18 unit tests; the frozen corpus is independently checked by the Python oracle.
+The 50 fixtures include exact synchronized positive controls, each modality timestamp shifted, pre-correction pose revision, wrong sensor/frame/path, missing streams, malformed/invalid dates, leap-year controls, wrong coordinate conventions/units/pose semantics, commercial intent, source revision mutation, invalid calibration/extrinsics digests, modality-directory substitution, path traversal, reordered path identity components, empty calibration/extrinsics revision IDs, missing frame identity, two deliberate duplicate-sample pairs and one train/test spacecraft-identity leak pair. The Rust crate has 19 unit tests; the frozen corpus is independently checked by the Python oracle.
 
 The independent Python oracle implements the calendar check, source profile, timestamp identity, modality registration and manifest leakage checks separately. Exact Rust/Python JSON receipt equality is required.
 
