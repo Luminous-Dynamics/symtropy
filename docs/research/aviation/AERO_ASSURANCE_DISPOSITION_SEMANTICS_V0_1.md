@@ -94,7 +94,7 @@ AERO has two independent temporal questions:
 - **Subject-time effectivity:** was the event / requirement / configuration effective for every possible physical acquisition instant? The existing `effectivity_interval_v0_1` comparator consumes hard event-effective and acquisition-time intervals and returns `DEFINITELY_EFFECTIVE`, `DEFINITELY_NOT_YET_EFFECTIVE`, `TIME_BOUNDARY_AMBIGUOUS` or `INVALID_TIME_INTERVAL`.
 - **Receiver knowledge:** had the evidence actually been received by the selected `as_known_at` cutoff? A backdated issuer assertion does not move receiver-first-seen earlier.
 
-The disposition evaluator consumes these as separate outputs. `NOT_EFFECTIVE_AT_SUBJECT_TIME` is distinct from `NOT_KNOWN_AT_SNAPSHOT`; boundary ambiguity abstains and invalid intervals reject the temporal assertion. It does not recompute source chronology or substitute issuer-asserted time for receipt time.
+The disposition evaluator consumes the existing `EffectivityRelation` through an explicit Rust conversion into its normalized state-vector enum. The normalized values `BOUNDARY_AMBIGUOUS` and `INVALID_INTERVAL` correspond to the comparator's `TIME_BOUNDARY_AMBIGUOUS` and `INVALID_TIME_INTERVAL`. `NOT_EFFECTIVE_AT_SUBJECT_TIME` is distinct from `NOT_KNOWN_AT_SNAPSHOT`; boundary ambiguity abstains and invalid intervals reject the temporal assertion. It does not recompute source chronology or substitute issuer-asserted time for receipt time.
 
 Physical/acquisition bounds and event-effective bounds are owned by the interval comparator; receiver receipt watermarks and trust-policy commitments remain owner/decision-context inputs. The issuer-asserted event timestamp is retained with the source artifact and must not be inferred from either of those watermarks. The evaluator is a projection layer, not a replacement for the owner-native temporal ledger.
 
@@ -128,7 +128,7 @@ Symthaea may generate candidate defeaters, alternative explanations and acquisit
 
 ## 6. Temporal replay is an explicit query
 
-Every evaluation names a replay mode and immutable snapshots:
+Every evaluation names a replay mode and immutable snapshots. The v0.1 Rust projection preserves the selected replay mode in its result; it does not itself fetch or reconstruct snapshots. The caller must supply already-resolved, owner-verified obligation states and policy context. Replay orchestration remains a separate layer:
 
 - `HISTORICAL_AS_KNOWN`: evidence and trust policy as known at the original cutoff;
 - `CURRENT_POLICY_COUNTERFACTUAL`: same evidence cut evaluated under a named current trust policy;
