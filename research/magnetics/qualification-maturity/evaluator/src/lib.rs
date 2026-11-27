@@ -469,26 +469,26 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         && labs_cover_methods
         && !lab_scopes.is_empty();
 
-    let findings = build_findings(
-        &m1,
+    let findings = build_findings(FindingInputs {
+        m1: &m1,
         m2,
         m3,
         m4,
         m5,
-        !process_records.is_empty(),
-        !microstructure.is_empty(),
-        !links.is_empty(),
-        !as_built.is_empty(),
-        !component_function.is_empty(),
-        !component_acceptance.is_empty(),
-        !cohort_ok,
-        !variability,
-        !durability,
-        !site_quality,
-        !equipment_ok,
-        !labs_cover_methods,
-        &valid_receipts,
-    );
+        process_present: !process_records.is_empty(),
+        microstructure_present: !microstructure.is_empty(),
+        pspp_link_present: !links.is_empty(),
+        as_built_present: !as_built.is_empty(),
+        function_present: !component_function.is_empty(),
+        acceptance_present: !component_acceptance.is_empty(),
+        cohort_missing: !cohort_ok,
+        variability_missing: !variability,
+        durability_missing: !durability,
+        site_missing: !site_quality,
+        equipment_missing: !equipment_ok,
+        lab_missing: !labs_cover_methods,
+        valid_receipts: &valid_receipts,
+    });
 
     let derived_level = if m5 {
         MaturityLevel::M5
@@ -498,8 +498,6 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         MaturityLevel::M3
     } else if m2 {
         MaturityLevel::M2
-    } else if !m1.is_empty() {
-        MaturityLevel::M1
     } else if !m1.is_empty() {
         MaturityLevel::M1
     } else {
@@ -933,54 +931,138 @@ fn valid_sha256(value: &str) -> bool {
     hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn build_findings(
-    m1: &[&EvidenceReceipt],
+struct FindingInputs<'a> {
+    m1: &'a [&'a EvidenceReceipt],
     m2: bool,
     m3: bool,
     m4: bool,
     m5: bool,
-    process: bool,
-    microstructure: bool,
-    link: bool,
-    as_built: bool,
-    function: bool,
-    acceptance: bool,
+    process_present: bool,
+    microstructure_present: bool,
+    pspp_link_present: bool,
+    as_built_present: bool,
+    function_present: bool,
+    acceptance_present: bool,
     cohort_missing: bool,
     variability_missing: bool,
     durability_missing: bool,
     site_missing: bool,
     equipment_missing: bool,
     lab_missing: bool,
-    valid_receipts: &[&EvidenceReceipt],
-) -> Vec<LevelFinding> {
+    valid_receipts: &'a [&'a EvidenceReceipt],
+}
+
+fn build_findings(input: FindingInputs<'_>) -> Vec<LevelFinding> {
     let ids = |kinds: &[EvidenceKind]| {
-        valid_receipts
+        input
+            .valid_receipts
             .iter()
             .filter(|receipt| kinds.contains(&receipt.kind))
             .map(|receipt| receipt.evidence_id.clone())
             .collect::<Vec<_>>()
     };
+
+    let m3_missing = [
+        (!input.process_present, Capability::ProcessStructureProperty),
+        (
+            !input.microstructure_present,
+            Capability::ProcessStructureProperty,
+        ),
+        (
+            !input.pspp_link_present,
+            Capability::ProcessStructureProperty,
+        ),
+        (!input.m2, Capability::CouponMaterialProperties),
+    ]
+    .into_iter()
+    .filter_map(|(missing, capability)| missing.then_some(capability))
+    .collect::<Vec<_>>();
+
+    let m4_missing = [
+        (!input.as_built_present, Capability::AsBuiltGeometry),
+        (!input.function_present, Capability::ComponentFunction),
+        (!input.acceptance_present, Capability::ComponentAcceptance),
+    ]
+    .into_iter()
+    .filter_map(|(missing, capability)| missing.then_some(capability))
+    .collect::<Vec<_>>();
+
+    let m5_missing = [
+        (
+            input.cohort_missing,
+            Capability::ReplicatedBuildLotCohort,
+        ),
+        (
+            input.variability_missing,
+            Capability::VariabilityControl,
+        ),
+        (input.durability_missing, Capability::Durability),
+        (
+            input.site_missing,
+            Capability::ProductionSiteQuality,
+        ),
+        (
+            input.equipment_missing,
+            Capability::EquipmentIqOqPq,
+        ),
+        (
+            input.lab_missing,
+            Capability::LaboratoryMethodScope,
+        ),
+    ]
+    .into_iter()
+    .filter_map(|(missing, capability)| missing.then_some(capability))
+    .collect::<Vec<_>>();
+
+    let mut m5_blockers = Vec::new();
+    if input.cohort_missing {
+        m5_blockers.push(Blocker::InsufficientIndependentBuilds);
+    }
+    if input.variability_missing {
+        m5_blockers.push(Blocker::MissingVariabilityAnalysis);
+    }
+    if input.durability_missing {
+        m5_blockers.push(Blocker::MissingDurabilityEvidence);
+    }
+    if input.site_missing {
+        m5_blockers.push(Blocker::MissingSiteQualityEvidence);
+    }
+    if input.equipment_missing {
+        m5_blockers.extend([
+            Blocker::MissingEquipmentIq,
+            Blocker::MissingEquipmentOq,
+            Blocker::MissingEquipmentPq,
+        ]);
+    }
+    if input.lab_missing {
+        m5_blockers.push(Blocker::MissingLaboratoryScopeEvidence);
+    }
+
     vec![
         LevelFinding {
             level: MaturityLevel::M1,
-            supported: !m1.is_empty(),
+            supported: !input.m1.is_empty(),
             required_capabilities: vec![Capability::ConceptModel],
-            missing_capabilities: if m1.is_empty() {
+            missing_capabilities: if input.m1.is_empty() {
                 vec![Capability::ConceptModel]
             } else {
                 vec![]
             },
             blockers: vec![],
-            evidence_ids: m1.iter().map(|r| r.evidence_id.clone()).collect(),
+            evidence_ids: input
+                .m1
+                .iter()
+                .map(|receipt| receipt.evidence_id.clone())
+                .collect(),
         },
         LevelFinding {
             level: MaturityLevel::M2,
-            supported: m2,
+            supported: input.m2,
             required_capabilities: vec![
                 Capability::CouponMaterialProperties,
                 Capability::LaboratoryMethodScope,
             ],
-            missing_capabilities: if m2 {
+            missing_capabilities: if input.m2 {
                 vec![]
             } else {
                 vec![
@@ -988,7 +1070,7 @@ fn build_findings(
                     Capability::LaboratoryMethodScope,
                 ]
             },
-            blockers: if m2 {
+            blockers: if input.m2 {
                 vec![]
             } else {
                 vec![Blocker::LiteratureCannotPromotePhysicalLevel]
@@ -1000,27 +1082,14 @@ fn build_findings(
         },
         LevelFinding {
             level: MaturityLevel::M3,
-            supported: m3,
+            supported: input.m3,
             required_capabilities: vec![Capability::ProcessStructureProperty],
-            missing_capabilities: if m3 {
+            missing_capabilities: if input.m3 {
                 vec![]
             } else {
-                let mut missing = Vec::new();
-                if !process {
-                    missing.push(Capability::ProcessStructureProperty);
-                }
-                if !microstructure {
-                    missing.push(Capability::ProcessStructureProperty);
-                }
-                if !link {
-                    missing.push(Capability::ProcessStructureProperty);
-                }
-                if !m2 {
-                    missing.push(Capability::CouponMaterialProperties);
-                }
-                missing
+                m3_missing
             },
-            blockers: if m3 {
+            blockers: if input.m3 {
                 vec![]
             } else {
                 vec![Blocker::MissingPspPLink]
@@ -1033,21 +1102,18 @@ fn build_findings(
         },
         LevelFinding {
             level: MaturityLevel::M4,
-            supported: m4,
+            supported: input.m4,
             required_capabilities: vec![
                 Capability::AsBuiltGeometry,
                 Capability::ComponentFunction,
                 Capability::ComponentAcceptance,
             ],
-            missing_capabilities: [
-                (as_built, Capability::AsBuiltGeometry),
-                (function, Capability::ComponentFunction),
-                (acceptance, Capability::ComponentAcceptance),
-            ]
-            .into_iter()
-            .filter_map(|(present, capability)| if present { None } else { Some(capability) })
-            .collect(),
-            blockers: if m4 {
+            missing_capabilities: if input.m4 {
+                vec![]
+            } else {
+                m4_missing
+            },
+            blockers: if input.m4 {
                 vec![]
             } else {
                 vec![Blocker::MissingComponentAcceptance]
@@ -1060,7 +1126,7 @@ fn build_findings(
         },
         LevelFinding {
             level: MaturityLevel::M5,
-            supported: m5,
+            supported: input.m5,
             required_capabilities: vec![
                 Capability::ReplicatedBuildLotCohort,
                 Capability::VariabilityControl,
@@ -1069,29 +1135,16 @@ fn build_findings(
                 Capability::EquipmentIqOqPq,
                 Capability::LaboratoryMethodScope,
             ],
-            missing_capabilities: [
-                (cohort_missing, Capability::ReplicatedBuildLotCohort),
-                (variability_missing, Capability::VariabilityControl),
-                (durability_missing, Capability::Durability),
-                (site_missing, Capability::ProductionSiteQuality),
-                (equipment_missing, Capability::EquipmentIqOqPq),
-                (lab_missing, Capability::LaboratoryMethodScope),
-            ]
-            .into_iter()
-            .filter_map(|(missing, capability)| if missing { Some(capability) } else { None })
-            .collect(),
-            blockers: [
-                cohort_missing,
-                variability_missing,
-                durability_missing,
-                site_missing,
-                equipment_missing,
-                lab_missing,
-            ]
-            .into_iter()
-            .filter(|missing| *missing)
-            .map(|_| Blocker::InsufficientIndependentBuilds)
-            .collect(),
+            missing_capabilities: if input.m5 {
+                vec![]
+            } else {
+                m5_missing
+            },
+            blockers: if input.m5 {
+                vec![]
+            } else {
+                m5_blockers
+            },
             evidence_ids: ids(&[
                 EvidenceKind::CohortSummary,
                 EvidenceKind::VariabilityAnalysis,
