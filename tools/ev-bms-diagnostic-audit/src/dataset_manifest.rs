@@ -5,8 +5,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 const MANIFEST_VERSION: &str = "ev-bms-dataset-manifest/v0.1";
-const SCHEMA_ID: &str =
-    "https://luminousdynamics.io/schemas/transport/ev-bms-dataset-manifest/0.1";
+const SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/transport/ev-bms-dataset-manifest/0.1";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -129,10 +128,16 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         ("source_version", manifest.source_version.as_str()),
         ("count_basis_asset", manifest.count_basis_asset.as_str()),
         ("source_published_on", manifest.source_published_on.as_str()),
-        ("metadata_retrieved_on", manifest.metadata_retrieved_on.as_str()),
+        (
+            "metadata_retrieved_on",
+            manifest.metadata_retrieved_on.as_str(),
+        ),
         ("license_spdx", manifest.license_spdx.as_str()),
         ("source_domain", manifest.source_domain.as_str()),
-        ("measurement_boundary", manifest.measurement_boundary.as_str()),
+        (
+            "measurement_boundary",
+            manifest.measurement_boundary.as_str(),
+        ),
         ("claim_ceiling", manifest.claim_ceiling.as_str()),
     ] {
         if !nonempty(value) {
@@ -140,7 +145,9 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         }
     }
     if manifest.evidence_class != "operator_collected_field_observation" {
-        return Err("dataset evidence class must remain operator-collected field observation".to_owned());
+        return Err(
+            "dataset evidence class must remain operator-collected field observation".to_owned(),
+        );
     }
     if manifest.license_spdx != "CC-BY-4.0" {
         return Err("v0.1 admission requires the source record's CC-BY-4.0 licence".to_owned());
@@ -187,12 +194,22 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
 
     match manifest.admission_state.as_str() {
         "metadata_only" => {
-            if manifest.assets.iter().any(|asset| asset.local_sha256.is_some()) {
-                return Err("metadata_only manifests cannot claim locally verified file hashes".to_owned());
+            if manifest
+                .assets
+                .iter()
+                .any(|asset| asset.local_sha256.is_some())
+            {
+                return Err(
+                    "metadata_only manifests cannot claim locally verified file hashes".to_owned(),
+                );
             }
         }
         "snapshot_admitted" => {
-            if manifest.assets.iter().any(|asset| asset.local_sha256.is_none()) {
+            if manifest
+                .assets
+                .iter()
+                .any(|asset| asset.local_sha256.is_none())
+            {
                 return Err("snapshot_admitted requires a local SHA-256 for every asset".to_owned());
             }
         }
@@ -205,7 +222,10 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         || !nonempty(&manifest.label_contract.task)
         || !nonempty(&manifest.label_contract.granularity)
     {
-        return Err("label contract must describe task, granularity, classes, sources and limitations".to_owned());
+        return Err(
+            "label contract must describe task, granularity, classes, sources and limitations"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -240,9 +260,21 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
     }
     if manifest.label_contract.task != "multi_class_fault_warning"
         || manifest.label_contract.granularity != "sample_with_vehicle_group"
-        || expected_faults.iter().any(|fault| !manifest.label_contract.classes.iter().any(|item| item == fault))
-        || !manifest.asset_group_keys.iter().any(|key| key == "vehicle_id")
-        || !manifest.asset_group_keys.iter().any(|key| key == "manufacturer_group")
+        || expected_faults.iter().any(|fault| {
+            !manifest
+                .label_contract
+                .classes
+                .iter()
+                .any(|item| item == fault)
+        })
+        || !manifest
+            .asset_group_keys
+            .iter()
+            .any(|key| key == "vehicle_id")
+        || !manifest
+            .asset_group_keys
+            .iter()
+            .any(|key| key == "manufacturer_group")
     {
         return Err("Cao fault classes or physical grouping contract is incomplete".to_owned());
     }
@@ -256,10 +288,14 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
         ("QAS_5.zip", "f420b38bab7aca514ab834cbfa0010b8"),
     ];
     for (name, md5) in expected {
-        if !manifest.assets.iter().any(|asset| {
-            asset.name == name && asset.source_md5.as_deref() == Some(md5)
-        }) {
-            return Err(format!("Cao publisher file inventory or MD5 mismatch for {name}"));
+        if !manifest
+            .assets
+            .iter()
+            .any(|asset| asset.name == name && asset.source_md5.as_deref() == Some(md5))
+        {
+            return Err(format!(
+                "Cao publisher file inventory or MD5 mismatch for {name}"
+            ));
         }
     }
     Ok(())
@@ -289,12 +325,32 @@ fn validate_shenzhen_charging(manifest: &DatasetManifest) -> Result<(), String> 
     }
     if manifest.label_contract.task != "binary_fault_warning"
         || manifest.label_contract.granularity != "charging_session_sample"
-        || !manifest.label_contract.classes.iter().any(|item| item == "normal")
-        || !manifest.label_contract.classes.iter().any(|item| item == "fault")
-        || !manifest.asset_group_keys.iter().any(|key| key == "vehicle_id")
-        || !manifest.asset_group_keys.iter().any(|key| key == "station_id")
-        || !manifest.asset_group_keys.iter().any(|key| key == "data_owner_group")
-        || !manifest.asset_group_keys.iter().any(|key| key == "transaction_id")
+        || !manifest
+            .label_contract
+            .classes
+            .iter()
+            .any(|item| item == "normal")
+        || !manifest
+            .label_contract
+            .classes
+            .iter()
+            .any(|item| item == "fault")
+        || !manifest
+            .asset_group_keys
+            .iter()
+            .any(|key| key == "vehicle_id")
+        || !manifest
+            .asset_group_keys
+            .iter()
+            .any(|key| key == "station_id")
+        || !manifest
+            .asset_group_keys
+            .iter()
+            .any(|key| key == "data_owner_group")
+        || !manifest
+            .asset_group_keys
+            .iter()
+            .any(|key| key == "transaction_id")
     {
         return Err("Shenzhen label or group-disjoint split contract is incomplete".to_owned());
     }
@@ -328,8 +384,8 @@ pub fn audit_dataset_manifest(
         .build(&schema)
         .map_err(|error| format!("dataset schema compilation: {error}"))?;
 
-    let mut value: Value =
-        serde_json::from_slice(manifest_bytes).map_err(|error| format!("manifest JSON: {error}"))?;
+    let mut value: Value = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("manifest JSON: {error}"))?;
     canonicalize_manifest(&mut value);
     if let Err(error) = validator.validate(&value) {
         return Err(format!("manifest schema validation: {error}"));
@@ -342,9 +398,7 @@ pub fn audit_dataset_manifest(
     validate_common(&manifest)?;
     match manifest.dataset_id.as_str() {
         "cao-onboard-bms-zenodo-10656500" => validate_cao_bms(&manifest)?,
-        "shenzhen-charger-side-mendeley-c7gg94tmvz-v3" => {
-            validate_shenzhen_charging(&manifest)?
-        }
+        "shenzhen-charger-side-mendeley-c7gg94tmvz-v3" => validate_shenzhen_charging(&manifest)?,
         _ => return Err("dataset_id is not an admitted v0.1 benchmark source".to_owned()),
     }
 
@@ -458,7 +512,10 @@ mod tests {
         value["assets"].as_array_mut().unwrap().reverse();
         let bytes = serde_json::to_vec(&value).expect("permuted manifest JSON");
         let second = audit_dataset_manifest(SCHEMA, &bytes).expect("permuted Shenzhen manifest");
-        assert_eq!(first.canonical_manifest_sha256, second.canonical_manifest_sha256);
+        assert_eq!(
+            first.canonical_manifest_sha256,
+            second.canonical_manifest_sha256
+        );
         assert_eq!(first.report_sha256, second.report_sha256);
     }
 }
