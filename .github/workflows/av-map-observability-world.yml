@@ -1,0 +1,277 @@
+name: AV spatial observability world-pair binding
+
+on:
+  push:
+    branches:
+      - research/av-map-observability-world-v0
+    paths:
+      - "fixtures/av-observation-001/observability-world-pair-binding-v0.schema.json"
+      - "fixtures/av-observation-001/observability-world-pair-binding-v0.registry.json"
+      - "fixtures/av-observation-001/scenario-matrix-identifiability-v0.tsv"
+      - ".github/workflows/av-map-observability-world.yml"
+  pull_request:
+    branches:
+      - research/av-observation-001-fixtures-v0
+    paths:
+      - "fixtures/av-observation-001/observability-world-pair-binding-v0.schema.json"
+      - "fixtures/av-observation-001/observability-world-pair-binding-v0.registry.json"
+      - "fixtures/av-observation-001/scenario-matrix-identifiability-v0.tsv"
+      - ".github/workflows/av-map-observability-world.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: av-map-observability-world-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  exact-head-schema-and-crosswalk:
+    name: Exact-head Draft 2020-12 schema and pair crosswalk
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact checkout
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Set up Python for schema tooling
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: |
+          python -m pip install --disable-pip-version-check --no-cache-dir jsonschema==4.23.0
+
+      - name: Fetch pinned source-matrix branch history
+        run: git fetch --no-tags --depth=100 origin research/av-observation-001-fixtures-v0
+
+      - name: Validate schema, registry, source commit, and matrix crosswalk
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          import subprocess
+          from pathlib import Path
+
+          root = Path("fixtures/av-observation-001")
+          schema_path = root / "observability-world-pair-binding-v0.schema.json"
+          registry_path = root / "observability-world-pair-binding-v0.registry.json"
+
+          schema = json.loads(schema_path.read_text(encoding="utf-8"))
+          registry = json.loads(registry_path.read_text(encoding="utf-8"))
+
+          from jsonschema import Draft202012Validator
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema).validate(registry)
+
+          source = registry["source_matrix"]
+          source_commit = source["source_commit"]
+          source_path = source["path"]
+          if not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+              raise SystemExit("source_matrix.source_commit is not a full lowercase Git SHA")
+
+          subprocess.run(
+              ["git", "cat-file", "-e", source_commit],
+              check=True,
+              stdout=subprocess.DEVNULL,
+          )
+          pinned = subprocess.run(
+              ["git", "show", f"{source_commit}:{source_path}"],
+              check=True,
+              capture_output=True,
+              text=True,
+              encoding="utf-8",
+          ).stdout
+          current = Path(source_path).read_text(encoding="utf-8")
+          if pinned != current:
+              raise SystemExit("working identifiability matrix differs from the registry's pinned source commit")
+
+          rows = [
+              line.split("|")
+              for line in pinned.splitlines()
+              if line.strip() and not line.startswith("#")
+          ]
+          if len(rows) != 18:
+              raise SystemExit(f"expected 18 identifiability rows, found {len(rows)}")
+
+          by_pair = {}
+          all_case_ids = set()
+          for columns in rows:
+              if len(columns) != 10:
+                  raise SystemExit(f"expected 10 TSV columns, found {len(columns)}")
+              case_id, _, pair_id, variant = columns[:4]
+              if case_id in all_case_ids:
+                  raise SystemExit(f"duplicate case ID: {case_id}")
+              all_case_ids.add(case_id)
+              by_pair.setdefault(pair_id, []).append((case_id, variant))
+
+          if len(by_pair) != 9:
+              raise SystemExit(f"expected 9 source pair IDs, found {len(by_pair)}")
+
+          registry_pairs = registry["pairs"]
+          if len(registry_pairs) != 9:
+              raise SystemExit(f"expected 9 registry pairs, found {len(registry_pairs)}")
+          registry_by_id = {pair["pair_id"]: pair for pair in registry_pairs}
+          if len(registry_by_id) != 9:
+              raise SystemExit("registry contains duplicate pair IDs")
+          if set(registry_by_id) != set(by_pair):
+              raise SystemExit("registry pair IDs do not exactly match the pinned source matrix")
+
+          stage = {
+              "unbound": 0,
+              "manifest_bound": 1,
+              "prefix_committed": 2,
+              "rendered_replay_verified": 3,
+              "blind_ready": 4,
+          }
+          registry_stage = {
+              "unbound": 0,
+              "partially_bound": 1,
+              "all_manifest_bound": 1,
+              "all_prefix_committed": 2,
+              "rendered_replay_verified": 3,
+              "blind_ready": 4,
+          }
+          sha256_re = re.compile(r"^[0-9a-f]{64}$")
+          sha1_re = re.compile(r"^[0-9a-f]{40}$")
+          pair_stages = []
+
+          def require_artifact(value, label):
+              if not isinstance(value, dict):
+                  raise SystemExit(f"{label} is required at this readiness stage")
+              if not value.get("artifact_id") or not value.get("uri"):
+                  raise SystemExit(f"{label} lacks artifact identity/URI")
+              if not sha256_re.fullmatch(value.get("sha256", "")):
+                  raise SystemExit(f"{label} has an invalid SHA-256")
+
+          for pair_id, source_cases in by_pair.items():
+              pair = registry_by_id[pair_id]
+              expected_ids = sorted(case_id for case_id, _ in source_cases)
+              actual_ids = sorted(pair["case_ids"])
+              if actual_ids != expected_ids:
+                  raise SystemExit(f"case ID mismatch for {pair_id}")
+              variants = [variant for _, variant in source_cases]
+              if variants.count("control") != 1 or variants.count("mutated") != 1:
+                  raise SystemExit(f"pair {pair_id} must contain exactly one control and one mutated row")
+
+              pair_stage = stage[pair["binding_status"]]
+              pair_stages.append(pair_stage)
+              worlds = pair["worlds"]
+              prefix = pair["prefix_equivalence"]
+              shared = pair["shared_candidate_contract"]
+              evidence = pair["readiness_evidence"]
+
+              if [world["slot"] for world in worlds] != ["A", "B"]:
+                  raise SystemExit(f"{pair_id}: world slots must be ordered A/B")
+
+              if pair_stage == 0:
+                  if any(world["world_manifest_artifact"] is not None for world in worlds):
+                      raise SystemExit(f"{pair_id}: unbound pair contains a WorldManifest artifact")
+                  if any(world["truth_crosswalk_sha256"] is not None for world in worlds):
+                      raise SystemExit(f"{pair_id}: unbound pair contains a truth crosswalk")
+                  if prefix["relation"] != "unasserted":
+                      raise SystemExit(f"{pair_id}: unbound pair asserts candidate-prefix equivalence")
+                  if any(value is not None for key, value in evidence.items()):
+                      raise SystemExit(f"{pair_id}: unbound pair contains readiness evidence")
+              else:
+                  for slot, world in zip(("A", "B"), worlds, strict=True):
+                      require_artifact(world["world_manifest_artifact"], f"{pair_id} world {slot} manifest")
+                      if not world["scenario_id"] or not isinstance(world["world_generation"], int) or world["world_generation"] < 1:
+                          raise SystemExit(f"{pair_id} world {slot} lacks scenario/generation identity")
+                      if world["manifest_schema_version"] != 1:
+                          raise SystemExit(f"{pair_id} world {slot} has unsupported manifest schema version")
+                      if not sha256_re.fullmatch(world["truth_crosswalk_sha256"] or ""):
+                          raise SystemExit(f"{pair_id} world {slot} lacks a valid hidden-truth crosswalk digest")
+                  require_artifact(evidence["manifest_validation_report"], f"{pair_id} manifest validation report")
+
+              if pair_stage >= 2:
+                  if prefix["relation"] not in ("byte_exact", "distributionally_equivalent"):
+                      raise SystemExit(f"{pair_id}: prefix-committed pair lacks an admissible equivalence result")
+                  if not isinstance(prefix["decision_cutoff_availability_tick"], int):
+                      raise SystemExit(f"{pair_id}: prefix cutoff is missing")
+                  for key in (
+                      "world_a_candidate_input_sha256",
+                      "world_b_candidate_input_sha256",
+                      "world_a_transcript_sha256",
+                      "world_b_transcript_sha256",
+                  ):
+                      if not sha256_re.fullmatch(prefix[key] or ""):
+                          raise SystemExit(f"{pair_id}: missing/invalid prefix digest {key}")
+                  for key in (
+                      "sensor_profile_set_sha256",
+                      "camera_trajectory_sha256",
+                      "sampling_schedule_sha256",
+                      "transport_schedule_sha256",
+                      "observation_schema_revision_sha256",
+                  ):
+                      if not sha256_re.fullmatch(shared[key] or ""):
+                          raise SystemExit(f"{pair_id}: missing/invalid shared-contract digest {key}")
+                  require_artifact(evidence["prefix_equivalence_audit"], f"{pair_id} prefix audit")
+
+              if pair_stage >= 3:
+                  require_artifact(evidence["replay_run_receipt"], f"{pair_id} replay receipt")
+
+              if pair_stage >= 4:
+                  for key in ("rights_admission_receipt", "split_integrity_receipt", "custody_receipt"):
+                      require_artifact(evidence[key], f"{pair_id} {key}")
+                  if not sha1_re.fullmatch(evidence["frozen_candidate_commit_sha"] or ""):
+                      raise SystemExit(f"{pair_id}: blind-ready candidate commit is invalid")
+                  if not sha256_re.fullmatch(evidence["frozen_model_config_sha256"] or ""):
+                      raise SystemExit(f"{pair_id}: blind-ready model/config digest is invalid")
+
+          target = registry_stage[registry["registry_status"]]
+          if target == 0 and any(value != 0 for value in pair_stages):
+              raise SystemExit("unbound registry contains a promoted pair")
+          if target == 1 and not (any(value >= 1 for value in pair_stages) and any(value == 0 for value in pair_stages)):
+              raise SystemExit("partially_bound requires at least one manifest-bound and one unbound pair")
+          if target >= 1 and target != 1 and any(value < target for value in pair_stages):
+              raise SystemExit("registry_status overstates the minimum readiness of its pairs")
+
+          # Negative controls: schema and cross-field gates must reject false promotion.
+          import copy
+          validator = Draft202012Validator(schema)
+          mutations = []
+
+          bad_manifest = copy.deepcopy(registry)
+          bad_manifest["pairs"][0]["binding_status"] = "manifest_bound"
+          mutations.append(("manifest_bound without manifests", bad_manifest))
+
+          bad_prefix = copy.deepcopy(registry)
+          bad_prefix["pairs"][0]["binding_status"] = "prefix_committed"
+          mutations.append(("prefix_committed without input/transcript digests", bad_prefix))
+
+          bad_replay = copy.deepcopy(registry)
+          bad_replay["pairs"][0]["binding_status"] = "rendered_replay_verified"
+          mutations.append(("rendered_replay_verified without replay receipt", bad_replay))
+
+          bad_blind = copy.deepcopy(registry)
+          bad_blind["pairs"][0]["binding_status"] = "blind_ready"
+          mutations.append(("blind_ready without custody/rights/split receipts", bad_blind))
+
+          bad_registry = copy.deepcopy(registry)
+          bad_registry["registry_status"] = "blind_ready"
+          mutations.append(("blind_ready registry with unbound pairs", bad_registry))
+
+          for label, candidate in mutations:
+              if validator.is_valid(candidate):
+                  raise SystemExit(f"negative control was accepted: {label}")
+
+          print("PASS: Draft 2020-12 schema is valid and registry instance conforms")
+          print("PASS: pinned source commit resolves and working TSV matches it byte-for-byte")
+          print("PASS: 18 unique cases / 9 pairs cross-reference exactly")
+          print("PASS: each pair has one control and one mutation")
+          print("PASS: pair and registry readiness stages are evidence-gated")
+          print("PASS: five invalid readiness-promotion controls are rejected")
+          print("PASS: current registry remains explicitly unbound with no fabricated evidence")
+          PY
