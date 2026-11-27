@@ -167,6 +167,19 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     let nested_user_namespaces_disabled = user_namespace_limit == 1;
 
+    let process_status = fs::read_to_string("/proc/self/status")
+        .map_err(|error| error.to_string())?;
+    let capabilities_dropped = ["CapEff:", "CapPrm:", "CapBnd:"].iter().all(|label| {
+        process_status
+            .lines()
+            .find(|line| line.starts_with(label))
+            .is_some_and(|line| {
+                line.split_whitespace()
+                    .nth(1)
+                    .is_some_and(|value| value.bytes().all(|byte| byte == b'0'))
+            })
+    });
+
     let limits = fs::read_to_string("/proc/self/limits").map_err(|error| error.to_string())?;
     let resource_limits_active = limit_soft_is_bounded(&limits, "Max address space", 1_073_741_824)
         && limit_soft_is_bounded(&limits, "Max cpu time", 15)
@@ -197,7 +210,7 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         ("evaluator environment absent", evaluator_environment_absent),\n        ("evaluator secret absent from process table", evaluator_secret_absent_from_process_table),
         ("environment sanitized", environment_matches),
         ("PID namespace isolated", pid_namespace_isolated),
-        ("nested user namespaces disabled", nested_user_namespaces_disabled),
+        ("nested user namespaces disabled", nested_user_namespaces_disabled),\n        ("capabilities dropped", capabilities_dropped),
         ("resource limits active", resource_limits_active),
         ("host loopback unreachable", network_blocked),
     ];
@@ -324,7 +337,7 @@ fn host_mode() -> Result<(), String> {
         "evaluator_environment_absent=true",\n        "evaluator_secret_absent_from_process_table=true",
         "environment_matches=true",
         "pid_namespace_isolated=true",
-        "nested_user_namespaces_disabled=true",
+        "nested_user_namespaces_disabled=true",\n        "capabilities_dropped=true",
         "resource_limits_active=true",
         "network_blocked=true",
     ] {
