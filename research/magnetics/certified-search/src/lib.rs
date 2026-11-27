@@ -286,7 +286,6 @@ fn normalized_gap(upper: f64, lower: f64) -> Result<(f64, f64), SearchError> {
     Ok((absolute, relative))
 }
 
-
 fn objective_lower_bound<const N: usize>(
     root: &ParameterDomain<N>,
     node: &WorkNode,
@@ -987,7 +986,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn singular_boundary_remains_unresolved_and_cannot_claim_a_global_gap() {
         let root = root_domain();
@@ -1006,5 +1004,4 @@ mod tests {
         assert!(!result.certified_within_gap);
         assert_eq!(result.termination, SearchTermination::UnresolvedBoxesRemain);
     }
-
 }
