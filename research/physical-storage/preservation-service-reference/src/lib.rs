@@ -36,6 +36,8 @@ pub enum Stage {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Measurement boundaries are intentionally non-interchangeable:
+/// a device/subsystem result cannot be reported as whole-service energy.
 pub enum EnergyBoundary {
     WholeService,
     StorageSubsystem,
