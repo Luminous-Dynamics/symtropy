@@ -42,3 +42,6 @@ The route-source register distinguishes paper/review evidence from local specime
 
 
 Source-lot and recovery-stage input weights each carry their own digest-bound measurement record. The evaluator requires the source and stage-input mass uncertainty intervals to overlap; identical point values are not required, and disjoint intervals remain indeterminate.
+
+
+Source-lot mass and recovery-stage input mass each require their own digest-bound weighing record. The two measurement intervals must overlap; point-value equality is not required when both measurements carry defensible uncertainty. Disjoint intervals remain indeterminate.
