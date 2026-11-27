@@ -295,6 +295,14 @@ References:
 - [Box2D 3.2 release notes](https://box2d.org/documentation/md_release__notes__v320.html)
 - [Box2D simulation/contact documentation](https://box2d.org/documentation/md_simulation.html)
 
+### Contact lease predicate microbenchmark
+
+The tournament package now has a separate `contact-lease-benchmark` binary. Run:
+
+`cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin contact-lease-benchmark -- 100000`
+
+It emits 27 rows (nine witness/outcome classes × 2D/3D/4D) with requested checks, reuse/ended/refresh/unsupported/error counts, elapsed nanoseconds and nanoseconds per check. CI runs 100,000 checks per row and retains `contact-lease.csv` with the other exact-head benchmark artifacts. The harness times synthetic witness assembly plus the lease admission predicate; it does not call GJK/EPA/SAT, derive real feature margins or measure saved narrowphase work. Treat it as an admission-overhead baseline only.
+
 ### Qualification tests and targets
 
 The lease prototype has 23 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
