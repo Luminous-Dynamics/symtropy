@@ -283,6 +283,77 @@
         "cross-reference only; this programme does not claim formal conformity, certification or completeness",
         "apply only to relevant process/material scope and current edition"
       ]
+    },
+    {
+      "source_id": "ISOASTM-52951-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52951:2026",
+      "url": "https://www.iso.org/standard/76828.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "AM part data packages; technical basis PBF-LB/M with generalized workflow relevance to other AM processes"
+      },
+      "limitations": [
+        "data-package workflow, not a process qualification test or component acceptance method",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52953-2025",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52953:2025",
+      "url": "https://www.iso.org/standard/84117.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "registration of multimodal process-monitoring and QC data for metallic PBF-LB"
+      },
+      "limitations": [
+        "not data cleansing, sensor calibration or image processing",
+        "registration does not prove sensor validity or part acceptance",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52948-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52948:2026",
+      "url": "https://www.iso.org/standard/84919.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "classification and probable causes of imperfections in metallic PBF-LB/PBF-EB"
+      },
+      "limitations": [
+        "does not include acceptance criteria or dimensional scale",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-TR-52958-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM TR 52958:2026",
+      "url": "https://www.iso.org/ics/25.030/x/",
+      "evidence_class": "normative_technical_report_catalogue_entry",
+      "source_claims": {
+        "scope": "in-situ coaxial photodiode monitoring for lack-of-fusion flaw detection in PBF-LB"
+      },
+      "limitations": [
+        "one monitoring modality only; not complete process monitoring or NDT coverage",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52941-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52941:2026",
+      "url": "https://www.iso.org/sectors/engineering/additive-manufacturing",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "aerospace PBF-LB/M machine-system performance and reliability tests"
+      },
+      "limitations": [
+        "aerospace-specific application scope; not a general magnetic-component qualification standard",
+        "this programme does not claim conformity or certification"
+      ]
     }
   ]
 }
