@@ -1,6 +1,7 @@
 pub mod kite;
 pub mod kite_oracle;
 pub mod conformal;
+pub mod robust_action;
 
 use std::collections::{BTreeMap, BTreeSet};
 
