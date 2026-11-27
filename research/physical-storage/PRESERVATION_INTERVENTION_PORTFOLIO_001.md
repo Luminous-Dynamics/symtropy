@@ -65,7 +65,7 @@ The policy includes the currently available approval-authority IDs. A candidate 
 
 ## 5. Exact Pareto selection
 
-v0.1 caps the candidate set at 16, so exhaustive enumeration visits at most (2^{16}-1=65,535) non-empty subsets.
+v0.1 caps the candidate set at 16, so exhaustive enumeration visits at most (2^{16}-1=4,095) non-empty subsets.
 
 For each valid subset, the scorer checks coverage, dependencies, preconditions and all hard caps. It computes:
 - cost upper bound;
@@ -117,7 +117,7 @@ These are protocol targets, not measured operational performance.
 
 ## 8. Scaling boundary
 
-The exhaustive solver is a reference oracle for at most 16 actions, not a production-scale optimizer. At 16 candidates, 65,535 subsets are finite and bounded for the reference implementation; this does not demonstrate real-time large-scale planning.
+The exhaustive solver is a reference oracle for at most 12 actions, not a production-scale optimizer. At 12 candidates, 4,095 subsets are finite and bounded for the reference implementation; this does not demonstrate real-time large-scale planning.
 
 A future dynamic-programming, branch-and-bound or integer-programming implementation must reproduce the exact v0.1 frontier on the frozen corpus and property-generated small cases before it can be considered as a replacement. Optimizer speed is secondary to exactness and evidence integrity.
 
@@ -144,3 +144,5 @@ References:
 - BagIt RFC 8493: https://www.rfc-editor.org/rfc/rfc8493
 - OCFL 1.1: https://ocfl.io/1.1/spec/
 - PREMIS: https://www.loc.gov/standards/premis/
+
+The 12-action limit is deliberate: exhaustive enumeration is bounded to 4,095 non-empty subsets, while the reference pairwise Pareto filter can require up to about 16.8 million dominance checks. Increasing the candidate cap is gated on replacing this filter with a scalable exact skyline implementation and proving frontier equivalence on the frozen corpus and generated cases.
