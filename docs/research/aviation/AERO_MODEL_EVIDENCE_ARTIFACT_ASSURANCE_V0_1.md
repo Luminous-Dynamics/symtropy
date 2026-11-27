@@ -203,3 +203,25 @@ Before this contract can influence any physical pilot:
 7. A competent engineering authority independently evaluates the underlying physical claim.
 
 Until then this remains a research contract. It creates no operational authority and makes no physical qualification claim.
+
+## 10. Existing change-impact and requalification work to reuse
+
+AERO must not create a second bitemporal invalidation engine or a generic obligation ledger. The repository already contains the aviation-specific Track U model-evidence requalification work:
+
+- [Symtropy PR #5571](https://github.com/Luminous-Dynamics/symtropy/pull/5571) — current documented exact head `936dc49f684ced9acb5dabf2c9c6d35778616c29`, with workflow run [#43850752898](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43850752898) completed successfully. Its reported suite contains 46 passing tests. It computes per-claim, per-dependency affected, requalification, contradicted, historical-only, unsupported and indeterminate dimensions under separate effective-time and knowledge-time cutoffs, source stream sequence and bounded change-feed coverage.
+- [Symtropy PR #5426](https://github.com/Luminous-Dynamics/symtropy/pull/5426) is an earlier Track U predecessor with a 43-test exact-head run.
+- [Mycelix PR #6351](https://github.com/Luminous-Dynamics/mycelix/pull/6351) supplies an AeroCommons-side gate for mandatory/conditional/unknown requalification obligations. It blocks optional candidate tests while mandatory or unknown obligations remain open. Its closure receipt remains a typed reference, not proof of physical-test adequacy or authenticated issuer.
+- [Mycelix PR #3641](https://github.com/Luminous-Dynamics/mycelix/pull/3641) provides AeroEvidence and conservative configuration-impact primitives. Mycelix #6219/#1087/#2631/#1207/#181 remain the general evidence-invalidation, applicability, temporal and lease owners referenced by Track U.
+
+The integration target is therefore a narrow typed composition seam:
+
+1. Track U computes the aviation claim's exact dependency-impact dimensions and the evidence/coverage frontier under its bitemporal semantics.
+2. Mycelix/AeroCommons supplies owner-native evidence lifecycle, change-set, obligation and closure receipts.
+3. BASALT supplies resource-generation freshness and independently qualified dependency-observer coverage.
+4. AERO binds these exact reports to the same claim, article, configuration, operating envelope, model and decision-context digest, then composes their non-positive states without collapsing their reason sets.
+5. Symthaea may rank evidence-acquisition options against the resulting blockers and component-wise resource constraints, but cannot close the obligations or authorize work.
+
+Before reuse, verify that the Track U output schema can bind the current #7742 decision-context envelope without translation loss. In particular, preserve both time-scale identifiers, source/stream identity, sequence frontiers, effective and knowledge cutoffs, policy digest, claim package digest and each per-dimension result set. Any unmappable dimension becomes `UNKNOWN/INDETERMINATE`, not silently dropped.
+
+The #5571 workflow pass is exact-head evidence for that separate Track U branch only. It does not qualify #7742, #7765 or a cross-branch integration. The current owner contracts and adapters still require exact-head integration tests and independent semantic review.
+
