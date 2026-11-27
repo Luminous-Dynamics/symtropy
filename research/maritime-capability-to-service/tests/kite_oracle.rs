@@ -1,0 +1,130 @@
+use maritime_capability_to_service::kite::{
+    select_as_of, AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState,
+};
+use maritime_capability_to_service::kite_oracle::{
+    solve_r1_finite, ActionOutcome, DecisionContext, OutcomeVector, ScenarioDecision,
+};
+use maritime_capability_to_service::kite::Gate;
+
+fn context() -> DecisionContext {
+    DecisionContext {
+        instance_id: "MCSC-R1-TINY-001".to_owned(),
+        instance_version: "v0.1".to_owned(),
+        service_id: "RECEIVER-SERVICE-001".to_owned(),
+        service_deadline: 120,
+        expected_units: 10,
+    }
+}
+
+fn snapshot(vintage_id: &str, first_available_at: u64) -> maritime_capability_to_service::kite::AsOfSnapshot {
+    let evidence = EvidenceVintage {
+        logical_id: "GRID-FEEDER".to_owned(),
+        vintage_id: vintage_id.to_owned(),
+        revision: 1,
+        supersedes_vintage_id: None,
+        event_time: 20,
+        source_observed_at: first_available_at - 1,
+        first_available_at,
+        ingested_at: first_available_at + 1,
+        validated_at: first_available_at + 2,
+        valid_until: None,
+        rights: RightsState::Granted,
+        authority: AuthorityState::Valid,
+        evidence_state: EvidenceState::Observed,
+        clock_quality: ClockQuality::Trusted,
+        feature_uses_future_data: false,
+    };
+    select_as_of(&[evidence], 100).expect("valid evidence snapshot")
+}
+
+fn outcome(accepted: u64, cost: u64) -> OutcomeVector {
+    OutcomeVector {
+        receiver_accepted_units: accepted,
+        on_time_accepted_units: accepted,
+        unmet_units: 10 - accepted,
+        late_accepted_units: 0,
+        unresolved_units: 0,
+        protected_floor_breach_unit_hours: 0,
+        service_deficit_unit_hours: 0,
+        time_to_minimum_viable_service: 2,
+        time_to_full_service: 4,
+        recovery_cost_units: cost,
+        emissions_units: 5,
+        requalification_actions: 0,
+        replanning_invocations: 1,
+        plan_churn: 1,
+        decision_latency_ms: 100,
+    }
+}
+
+fn action(id: &str, accepted: u64, cost: u64) -> ActionOutcome {
+    ActionOutcome {
+        action_id: id.to_owned(),
+        admissibility: Gate::Yes,
+        hard_constraints_passed: true,
+        outcome: outcome(accepted, cost),
+    }
+}
+
+fn decision(id: &str, as_of: maritime_capability_to_service::kite::AsOfSnapshot, actions: Vec<ActionOutcome>) -> ScenarioDecision {
+    ScenarioDecision {
+        scenario_id: id.to_owned(),
+        decision_epoch: 1,
+        context: context(),
+        as_of,
+        actions,
+    }
+}
+
+#[test]
+fn public_r1_api_enforces_non_anticipativity_for_identical_information() {
+    let shared = snapshot("GRID-V1", 60);
+    let result = solve_r1_finite(
+        &[
+            decision("SCENARIO-A", shared.clone(), vec![
+                action("LOCAL", 10, 20),
+                action("IMPORT", 9, 10),
+            ]),
+            decision("SCENARIO-B", shared, vec![
+                action("LOCAL", 8, 30),
+                action("IMPORT", 9, 15),
+            ]),
+        ],
+        16,
+    ).expect("R1 finite solve");
+
+    assert_eq!(result.candidate_policy_count, 2);
+    assert_eq!(result.pareto_frontier.len(), 1);
+    assert_eq!(
+        result.pareto_frontier[0].choices.values().next().map(String::as_str),
+        Some("IMPORT")
+    );
+    assert_eq!(result.pareto_frontier[0].worst_case.receiver_accepted_units, 9);
+    assert_eq!(result.pareto_frontier[0].worst_case.recovery_cost_units, 15);
+}
+
+#[test]
+fn later_observable_histories_may_choose_different_actions() {
+    let result = solve_r1_finite(
+        &[
+            decision("SCENARIO-A", snapshot("GRID-V1", 60), vec![
+                action("LOCAL", 10, 20),
+                action("IMPORT", 7, 10),
+            ]),
+            decision("SCENARIO-B", snapshot("GRID-V2", 70), vec![
+                action("LOCAL", 7, 10),
+                action("IMPORT", 10, 20),
+            ]),
+        ],
+        16,
+    ).expect("R1 finite solve");
+
+    assert_eq!(result.candidate_policy_count, 4);
+    assert_eq!(result.pareto_frontier.len(), 1);
+    let selected: std::collections::BTreeSet<&str> = result.pareto_frontier[0]
+        .choices
+        .values()
+        .map(String::as_str)
+        .collect();
+    assert_eq!(selected, std::collections::BTreeSet::from(["LOCAL", "IMPORT"]));
+}
