@@ -48,7 +48,9 @@
     "semantic_validation_receipt_ref",
     "semantic_validation_receipt_sha256",
     "receiver_first_seen_earliest_unix_ms",
-    "receiver_first_seen_latest_unix_ms"
+    "receiver_first_seen_latest_unix_ms",
+    "receiver_first_seen_receipt_ref",
+    "receiver_first_seen_record_sha256"
   ],
   "properties": {
     "schema": {
@@ -293,6 +295,12 @@
     "receiver_first_seen_latest_unix_ms": {
       "type": "integer",
       "minimum": 0
+    },
+    "receiver_first_seen_receipt_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "receiver_first_seen_record_sha256": {
+      "$ref": "#/$defs/sha256"
     }
   },
   "allOf": [
