@@ -146,6 +146,8 @@ pub struct PoseResult {
     pub translation_error_m: Option<f64>,
     pub rotation_error_rad: Option<f64>,
     pub mahalanobis_squared: Option<f64>,
+    pub covariance_log_determinant: Option<f64>,
+    pub prediction_region_log_volume_95: Option<f64>,
     pub coverage_50: Option<bool>,
     pub coverage_80: Option<bool>,
     pub coverage_90: Option<bool>,
@@ -182,6 +184,7 @@ pub struct RiskCoveragePoint {
 pub struct EvaluationSummary {
     pub valid_count: usize,
     pub accepted_count: usize,
+    pub accepted_pose_coverage_fraction: Option<f64>,
     pub abstained_count: usize,
     pub invalid_count: usize,
     pub accepted_false_confident_95_count: usize,
@@ -192,6 +195,8 @@ pub struct EvaluationSummary {
     pub accepted_coverage_99: Option<f64>,
     pub accepted_translation_p95_m: Option<f64>,
     pub accepted_rotation_p95_rad: Option<f64>,
+    pub accepted_covariance_logdet_median: Option<f64>,
+    pub accepted_95_region_log_volume_median: Option<f64>,
     pub risk_coverage: Vec<RiskCoveragePoint>,
 }
 
@@ -386,6 +391,8 @@ fn base_result(
         translation_error_m: None,
         rotation_error_rad: None,
         mahalanobis_squared: None,
+        covariance_log_determinant: None,
+        prediction_region_log_volume_95: None,
         coverage_50: None,
         coverage_80: None,
         coverage_90: None,
@@ -554,6 +561,13 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
     let translation_error = world_delta.iter().map(|value| value * value).sum::<f64>().sqrt();
     let rotation_error = rotation_vector.iter().map(|value| value * value).sum::<f64>().sqrt();
     let [cov50, cov80, cov90, cov95, cov99] = covariance_coverage(mahalanobis);
+    let covariance_log_determinant =
+        2.0 * (0..6).map(|index| cholesky[index][index].ln()).sum::<f64>();
+    let prediction_region_log_volume_95 = (std::f64::consts::PI.powi(3) / 6.0).ln()
+        + 0.5 * covariance_log_determinant
+        + 3.0 * quantile(ADMISSION_LEVEL_BPS)
+            .expect("the fixed 95% chi-square quantile is present")
+            .ln();
 
     let observability_violation = input.ood_flag
         || input.symmetry_ambiguous
@@ -576,6 +590,8 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
     result.translation_error_m = Some(translation_error);
     result.rotation_error_rad = Some(rotation_error);
     result.mahalanobis_squared = Some(mahalanobis);
+    result.covariance_log_determinant = Some(covariance_log_determinant);
+    result.prediction_region_log_volume_95 = Some(prediction_region_log_volume_95);
     result.coverage_50 = Some(cov50);
     result.coverage_80 = Some(cov80);
     result.coverage_90 = Some(cov90);
@@ -685,6 +701,14 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         .iter()
         .filter_map(|result| result.rotation_error_rad)
         .collect();
+    let mut covariance_logd: Vec<f64> = accepted
+        .iter()
+        .filter_map(|result| result.covariance_log_determinant)
+        .collect();
+    let mut region_log_volume: Vec<f64> = accepted
+        .iter()
+        .filter_map(|result| result.prediction_region_log_volume_95)
+        .collect();
 
     let thresholds = [0, 250_000, 500_000, 750_000, 900_000, 950_000, 990_000, 1_000_000];
     let risk_coverage = thresholds
@@ -723,6 +747,11 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
     EvaluationSummary {
         valid_count: valid.len(),
         accepted_count: accepted.len(),
+        accepted_pose_coverage_fraction: if valid.is_empty() {
+            None
+        } else {
+            Some(accepted.len() as f64 / valid.len() as f64)
+        },
         abstained_count: valid.len().saturating_sub(accepted.len()),
         invalid_count: results.len().saturating_sub(valid.len()),
         accepted_false_confident_95_count: false_confident_count,
@@ -733,6 +762,8 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         accepted_coverage_99: coverage(|result| result.coverage_99),
         accepted_translation_p95_m: percentile(&mut translation_errors, 0.95),
         accepted_rotation_p95_rad: percentile(&mut rotation_errors, 0.95),
+        accepted_covariance_logdet_median: percentile(&mut covariance_logd, 0.5),
+        accepted_95_region_log_volume_median: percentile(&mut region_log_volume, 0.5),
         risk_coverage,
     }
 }
