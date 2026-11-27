@@ -1,0 +1,596 @@
+{
+  "schema_version": "av-observability-world-pair-binding-v0",
+  "source_matrix": {
+    "path": "fixtures/av-observation-001/scenario-matrix-identifiability-v0.tsv",
+    "source_commit": "083abcb53b1bf2c8ac8621f9d8a5c00e3fafeb28"
+  },
+  "registry_status": "unbound",
+  "pairs": [
+    {
+      "pair_id": "pair-coverage-absence-01",
+      "family": "coverage_vs_absence",
+      "case_ids": [
+        "avobs001-015",
+        "avobs001-016"
+      ],
+      "pair_mode": "coverage_qualified_negative_evidence",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-delayed-identifiability-01",
+      "family": "delayed_identifiability",
+      "case_ids": [
+        "avobs001-003",
+        "avobs001-004"
+      ],
+      "pair_mode": "shared_prefix_then_probe",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-global-gauge-01",
+      "family": "gauge_equivalence",
+      "case_ids": [
+        "avobs001-005",
+        "avobs001-006"
+      ],
+      "pair_mode": "gauge_equivalent_worlds",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-instance-identity-01",
+      "family": "instance_identity_ambiguity",
+      "case_ids": [
+        "avobs001-009",
+        "avobs001-010"
+      ],
+      "pair_mode": "shared_prefix_then_instance_cue",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-motion-decomposition-01",
+      "family": "ego_object_motion_ambiguity",
+      "case_ids": [
+        "avobs001-011",
+        "avobs001-012"
+      ],
+      "pair_mode": "shared_prefix_then_independent_constraint",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-probe-decision-invariance-01",
+      "family": "decision_irrelevant_distinction",
+      "case_ids": [
+        "avobs001-017",
+        "avobs001-018"
+      ],
+      "pair_mode": "shared_prefix_then_decision_invariant_probe",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-scale-anchor-arrival-01",
+      "family": "late_scale_anchor",
+      "case_ids": [
+        "avobs001-007",
+        "avobs001-008"
+      ],
+      "pair_mode": "shared_prefix_then_metric_anchor",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-symmetry-breaking-01",
+      "family": "symmetric_topology",
+      "case_ids": [
+        "avobs001-013",
+        "avobs001-014"
+      ],
+      "pair_mode": "shared_prefix_then_traversal",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    },
+    {
+      "pair_id": "pair-world-equivalence-01",
+      "family": "indistinguishable_worlds",
+      "case_ids": [
+        "avobs001-001",
+        "avobs001-002"
+      ],
+      "pair_mode": "identical_prefix_then_probe",
+      "binding_status": "unbound",
+      "worlds": [
+        {
+          "slot": "A",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        },
+        {
+          "slot": "B",
+          "evaluator_world_key": null,
+          "scenario_id": null,
+          "world_generation": null,
+          "manifest_schema_version": null,
+          "world_manifest_artifact": null,
+          "truth_crosswalk_sha256": null
+        }
+      ],
+      "shared_candidate_contract": {
+        "sensor_profile_set_sha256": null,
+        "camera_trajectory_sha256": null,
+        "sampling_schedule_sha256": null,
+        "transport_schedule_sha256": null,
+        "observation_schema_revision_sha256": null
+      },
+      "prefix_equivalence": {
+        "relation": "unasserted",
+        "decision_cutoff_availability_tick": null,
+        "world_a_candidate_input_sha256": null,
+        "world_b_candidate_input_sha256": null,
+        "world_a_transcript_sha256": null,
+        "world_b_transcript_sha256": null,
+        "first_distinguishing_observation": null
+      },
+      "decision_contract": {
+        "decision_need_sha256": null,
+        "action_catalogue_sha256": null,
+        "utility_loss_contract_sha256": null,
+        "decision_equivalence_rule_sha256": null
+      },
+      "notes": [
+        "UNBOUND: no WorldManifestV1 artifact pair or rendered candidate-visible stream has yet been admitted."
+      ],
+      "readiness_evidence": {
+        "manifest_validation_report": null,
+        "prefix_equivalence_audit": null,
+        "replay_run_receipt": null,
+        "rights_admission_receipt": null,
+        "split_integrity_receipt": null,
+        "custody_receipt": null,
+        "frozen_candidate_commit_sha": null,
+        "frozen_model_config_sha256": null
+      }
+    }
+  ],
+  "claim_ceiling": "evaluator-side manifest and observability crosswalk only; not rendered replay, model evaluation, hidden custody, or physical sensor qualification"
+}
