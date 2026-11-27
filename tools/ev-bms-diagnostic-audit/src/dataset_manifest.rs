@@ -140,7 +140,9 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         }
     }
     if manifest.evidence_class != "operator_collected_field_observation" {
-        return Err("dataset evidence class must remain operator-collected field observation".to_owned());
+        return Err(
+            "dataset evidence class must remain operator-collected field observation".to_owned(),
+        );
     }
     if manifest.license_spdx != "CC-BY-4.0" {
         return Err("v0.1 admission requires the source record's CC-BY-4.0 licence".to_owned());
@@ -188,7 +190,9 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
     match manifest.admission_state.as_str() {
         "metadata_only" => {
             if manifest.assets.iter().any(|asset| asset.local_sha256.is_some()) {
-                return Err("metadata_only manifests cannot claim locally verified file hashes".to_owned());
+                return Err(
+                    "metadata_only manifests cannot claim locally verified file hashes".to_owned(),
+                );
             }
         }
         "snapshot_admitted" => {
@@ -205,7 +209,10 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         || !nonempty(&manifest.label_contract.task)
         || !nonempty(&manifest.label_contract.granularity)
     {
-        return Err("label contract must describe task, granularity, classes, sources and limitations".to_owned());
+        return Err(
+            "label contract must describe task, granularity, classes, sources and limitations"
+                .to_owned(),
+        );
     }
     Ok(())
 }
@@ -240,7 +247,13 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
     }
     if manifest.label_contract.task != "multi_class_fault_warning"
         || manifest.label_contract.granularity != "sample_with_vehicle_group"
-        || expected_faults.iter().any(|fault| !manifest.label_contract.classes.iter().any(|item| item == fault))
+        || expected_faults.iter().any(|fault| {
+            !manifest
+                .label_contract
+                .classes
+                .iter()
+                .any(|item| item == fault)
+        })
         || !manifest.asset_group_keys.iter().any(|key| key == "vehicle_id")
         || !manifest.asset_group_keys.iter().any(|key| key == "manufacturer_group")
     {
