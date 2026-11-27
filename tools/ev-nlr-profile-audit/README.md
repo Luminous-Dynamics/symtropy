@@ -26,6 +26,8 @@ The expected CSV header is time,avg_power_kw.
 
 **Important:** These are modeled aggregate load profiles generated from published operating schedules and declared assumptions. They are not 81 measured charging sessions, measured battery trajectories, or direct substation observations. The reference archive is accepted as operator-published data; this tool validates structure and identity, not publisher authenticity or physical truth.
 
+Report schema: tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json.
+
 ## What the auditor does
 
 1. Requires the complete 3 × 3 × 3 × 3 = 81 profile matrix. Missing and unexpected CSVs are errors.
@@ -42,6 +44,15 @@ The expected CSV header is time,avg_power_kw.
    - maximum absolute profile peak-demand error.
 
 All candidate files are revalidated against the same expected file set and time grid before metrics are computed.
+
+## Tests
+
+The unit suite builds deterministic temporary archives containing all 81 profiles and checks:
+- the 81 × 96 profile/interval contract;
+- exact zero error for identical candidate/reference archives;
+- exact 0.5 kW MAE and bias for a candidate with a constant +0.5 kW offset;
+- rejection of timestamp drift, missing profiles, negative and non-finite power;
+- rejection when the average profile's peak exceeds the maximum-sample profile peak.
 
 ## Run
 
