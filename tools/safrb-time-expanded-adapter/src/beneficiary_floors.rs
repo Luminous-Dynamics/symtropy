@@ -790,7 +790,7 @@ fn verifier_reconstruct_floor_bounds(
             ));
         }
 
-        let edge_id = verifier_verifier_service_edge_id(&obligation.service_id);
+        let edge_id = verifier_service_edge_id(&obligation.service_id);
         let edge = graph_edges.get(edge_id.as_str()).ok_or_else(|| {
             format!("verifier base graph omitted service edge {edge_id}")
         })?;
@@ -971,7 +971,7 @@ fn verifier_check_original_allocation(
         return Err("verifier source/sink balance does not reconcile".to_string());
     }
     for (node_id, net) in &balance {
-        if *node_id != base_graph.source && *node_id != base_graph.sink && *net != 0 {
+        if *node_id != base_graph.source.as_str() && *node_id != base_graph.sink.as_str() && *net != 0 {
             return Err(format!(
                 "verifier original allocation violates conservation at {node_id}"
             ));
@@ -1006,7 +1006,7 @@ fn verifier_check_original_allocation(
                 obligation.service_id
             )
         })?;
-        let edge_id = verifier_verifier_service_edge_id(&obligation.service_id);
+        let edge_id = verifier_service_edge_id(&obligation.service_id);
         let allocated = flow_by_id
             .get(edge_id.as_str())
             .ok_or_else(|| format!("verifier allocation omitted {edge_id}"))?
