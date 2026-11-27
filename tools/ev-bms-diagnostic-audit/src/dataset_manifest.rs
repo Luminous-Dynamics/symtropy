@@ -5,6 +5,8 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 const MANIFEST_VERSION: &str = "ev-bms-dataset-manifest/v0.1";
+const SCHEMA_ID: &str =
+    "https://luminousdynamics.io/schemas/transport/ev-bms-dataset-manifest/0.1";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -121,6 +123,7 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         ("title", manifest.title.as_str()),
         ("doi", manifest.doi.as_str()),
         ("source_record_url", manifest.source_record_url.as_str()),
+        ("source_repository", manifest.source_repository.as_str()),
         ("source_version", manifest.source_version.as_str()),
         ("source_published_on", manifest.source_published_on.as_str()),
         ("metadata_retrieved_on", manifest.metadata_retrieved_on.as_str()),
@@ -212,7 +215,12 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
         "internal_short_circuit",
         "excessive_aging",
     ];
-    if manifest.source_domain != "onboard_bms"
+    if manifest.doi != "10.5281/zenodo.10656500"
+        || manifest.source_record_url != "https://zenodo.org/records/10656500"
+        || manifest.source_repository != "Zenodo"
+        || manifest.source_version != "v1"
+        || manifest.source_published_on != "2024-02-14"
+        || manifest.source_domain != "onboard_bms"
         || manifest.measurement_boundary != "vehicle_bms"
         || manifest.sample_interval_seconds != 30
         || counts.vehicle_count != 515
@@ -220,6 +228,7 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
         || counts.session_count.is_some()
         || counts.station_count.is_some()
         || counts.data_owner_group_count.is_some()
+        || counts.sample_count != 18_200_000
         || !counts.sample_count_is_approximate
         || manifest.assets.len() != 7
     {
@@ -254,7 +263,12 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
 
 fn validate_shenzhen_charging(manifest: &DatasetManifest) -> Result<(), String> {
     let counts = &manifest.counts;
-    if manifest.source_domain != "charger_side"
+    if manifest.doi != "10.17632/c7gg94tmvz.3"
+        || manifest.source_record_url != "https://data.mendeley.com/datasets/c7gg94tmvz/3"
+        || manifest.source_repository != "Mendeley Data"
+        || manifest.source_version != "3"
+        || manifest.source_published_on != "2024-10-08"
+        || manifest.source_domain != "charger_side"
         || manifest.measurement_boundary != "charging_station_metering"
         || manifest.sample_interval_seconds != 60
         || counts.vehicle_count != 10_154
@@ -297,6 +311,9 @@ pub fn audit_dataset_manifest(
         != Some("https://json-schema.org/draft/2020-12/schema")
     {
         return Err("dataset schema must declare JSON Schema Draft 2020-12".to_owned());
+    }
+    if schema.get("$id").and_then(Value::as_str) != Some(SCHEMA_ID) {
+        return Err("dataset manifest schema identity does not match v0.1".to_owned());
     }
     if !draft202012::meta::is_valid(&schema) {
         return Err("dataset schema fails Draft 2020-12 meta-schema validation".to_owned());
@@ -410,6 +427,22 @@ mod tests {
         value["sample_interval_seconds"] = Value::from(30);
         let bytes = serde_json::to_vec(&value).expect("mutated manifest JSON");
         assert!(audit_dataset_manifest(SCHEMA, &bytes).is_err());
+    }
+
+    #[test]
+    fn rejects_source_record_identity_mutation() {
+        let mut value: Value = serde_json::from_slice(CAO).expect("Cao manifest JSON");
+        value["source_record_url"] = Value::String("https://example.org/fake-record".to_owned());
+        let bytes = serde_json::to_vec(&value).expect("mutated manifest JSON");
+        assert!(audit_dataset_manifest(SCHEMA, &bytes).is_err());
+    }
+
+    #[test]
+    fn rejects_dataset_schema_identity_mutation() {
+        let mut value: Value = serde_json::from_slice(SCHEMA).expect("schema JSON");
+        value["$id"] = Value::String("https://example.org/not-this-schema".to_owned());
+        let bytes = serde_json::to_vec(&value).expect("mutated schema JSON");
+        assert!(audit_dataset_manifest(&bytes, CAO).is_err());
     }
 
     #[test]
