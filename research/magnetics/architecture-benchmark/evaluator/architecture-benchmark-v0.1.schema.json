@@ -9,7 +9,7 @@
     "claim_ceiling":{"type":"string","minLength":1},
     "spec":{"$ref":"#/$defs/spec"},
     "trials":{"type":"array","minItems":2,"items":{"$ref":"#/$defs/trial"}},
-    "expected":{"type":"object","required":["candidate_decisions"],"properties":{"candidate_decisions":{"type":"object","additionalProperties":{"enum":["NotComparable","Fail","Indeterminate","NonInferiorNoArchitectureBenefit","ArchitectureAdvantage"]}}},"additionalProperties":false}
+    "expected":{"type":"object","required":["candidate_decisions"],"properties":{"candidate_decisions":{"type":"object","additionalProperties":{"enum":["NotComparable","Fail","Indeterminate","InferiorToBaseline","NonInferiorNoArchitectureBenefit","ArchitectureAdvantage"]}}},"additionalProperties":false}
   },
   "additionalProperties":false,
   "$defs":{
