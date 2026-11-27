@@ -365,7 +365,7 @@ where
         if explored_node_count >= policy.maximum_nodes {
             budget_exhausted = true;
             let mut remainder = vec![node];
-            remainder.extend(queue.into_iter());
+            remainder.extend(queue);
             for pending in remainder {
                 records.push(DesignBoxRecord {
                     node_id: pending.node_id,
@@ -535,13 +535,11 @@ where
             &objective,
             &compliance_margin,
             &policy.compliance_expression_id,
-        )? {
-            if incumbent.as_ref().is_none_or(|existing| {
-                candidate.worst_case_objective_upper_bound
-                    < existing.worst_case_objective_upper_bound
-            }) {
-                incumbent = Some(candidate);
-            }
+        )? && incumbent.as_ref().is_none_or(|existing| {
+            candidate.worst_case_objective_upper_bound
+                < existing.worst_case_objective_upper_bound
+        }) {
+            incumbent = Some(candidate);
         }
 
         let objective_lower = objective_record.value_enclosure.lower();
