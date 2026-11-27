@@ -125,6 +125,7 @@ pub enum DecisionRevalidation {
     /// The old decision remains applicable at this exact cut. This is not a permit.
     CurrentForCommit {
         decision_id: String,
+        decision_support_receipt_sha256: String,
         action_ticket_sha256: String,
         coverage_sha256: String,
         current_cut: DecisionCut,
@@ -414,6 +415,7 @@ pub fn revalidate_before_effect(
 
     DecisionRevalidation::CurrentForCommit {
         decision_id: receipt.decision_id.clone(),
+        decision_support_receipt_sha256: receipt.decision_support_receipt_sha256.clone(),
         action_ticket_sha256: current_action_ticket_sha256.to_owned(),
         coverage_sha256: coverage.coverage_sha256.clone(),
         current_cut: current_cut.clone(),
