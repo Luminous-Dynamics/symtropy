@@ -52,8 +52,8 @@ jobs:
           rust = json.loads(Path("/tmp/se3-rust.json").read_text())
           oracle = json.loads(Path("/tmp/se3-python.json").read_text())
           assert rust == oracle
-          assert rust["case_count"] == 42
-          assert rust["expected_disposition_matches"] == 42
+          assert rust["case_count"] == 45
+          assert rust["expected_disposition_matches"] == 45
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["covariance_order"] == "BODY_LOCAL_TRANSLATION_XYZ_ROTATION_VECTOR_XYZ"
           assert rust["covariance_units"] == "m,m,m,rad,rad,rad"
@@ -70,11 +70,15 @@ jobs:
           assert cases["ST013"]["disposition"] == "INVALID_COVARIANCE"
           assert cases["ST039"]["disposition"] == "DUPLICATE_SAMPLE"
           assert cases["ST041"]["disposition"] == "SPLIT_LEAKAGE"
+          assert cases["ST043"]["benchmark_admissible"] is True
+          assert cases["ST043"]["observability_policy_violation"] is False
+          assert cases["ST044"]["false_confident_95"] is True
+          assert cases["ST045"]["disposition"] == "OUT_OF_SCOPE"
           assert rust["summary"]["risk_coverage"]
           assert rust["summary"]["accepted_pose_coverage_fraction"] is not None
           assert rust["summary"]["accepted_covariance_logdet_median"] is not None
           assert rust["summary"]["accepted_95_region_log_volume_median"] is not None
-          print("42 SE3 trust cases: exact Rust/Python receipt equality")
+          print("45 SE3 trust cases: exact Rust/Python receipt equality")
           PY
       - name: Retain exact-head evidence
         if: success()
