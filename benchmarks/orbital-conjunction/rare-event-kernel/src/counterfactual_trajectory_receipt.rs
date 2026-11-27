@@ -103,6 +103,14 @@ pub struct PortfolioTrajectoryReceipt {
     pub shared_exogenous_receipt_digest: [u8; 32],
     /// Manoeuvre-plan/intervention digest. A baseline arm uses an explicit no-op plan.
     pub maneuver_plan_digest: [u8; 32],
+    /// Portfolio-specific manoeuvre execution/actuation uncertainty realization.
+    ///
+    /// This is distinct from the shared exogenous process-noise realization.
+    /// It may differ across portfolios; equal values are permitted only when
+    /// the physical experiment explicitly declares a common actuation error.
+    /// A deterministic/no-noise arm must still bind an explicit nonzero
+    /// deterministic execution-noise identity.
+    pub maneuver_execution_noise_digest: [u8; 32],
     /// State digest immediately after the portfolio's intervention.
     pub post_action_initial_state_digest: [u8; 32],
     /// Physical-world/force-model identity matching the scenario contract.
@@ -474,6 +482,7 @@ impl CounterfactualTrajectoryReceiptCampaign {
                 }
                 if is_zero(&receipt.shared_exogenous_receipt_digest)
                     || is_zero(&receipt.maneuver_plan_digest)
+                    || is_zero(&receipt.maneuver_execution_noise_digest)
                     || is_zero(&receipt.post_action_initial_state_digest)
                     || is_zero(&receipt.propagated_trajectory_digest)
                     || is_zero(&receipt.mission_manifest_digest)
@@ -639,6 +648,7 @@ fn digest_receipt_report(report: &CounterfactualTrajectoryReceiptReport) -> [u8;
             hasher.update(receipt.portfolio_id);
             hasher.update(receipt.shared_exogenous_receipt_digest);
             hasher.update(receipt.maneuver_plan_digest);
+            hasher.update(receipt.maneuver_execution_noise_digest);
             hasher.update(receipt.post_action_initial_state_digest);
             hasher.update(receipt.scenario_physics_configuration_digest);
             hasher.update(receipt.propagator_configuration_digest);
@@ -826,6 +836,7 @@ mod tests {
                     portfolio_id,
                     shared_exogenous_receipt_digest: shared_digest,
                     maneuver_plan_digest: [130 + portfolio_id[0]; 32],
+                    maneuver_execution_noise_digest: [131 + portfolio_id[0]; 32],
                     post_action_initial_state_digest: [140 + portfolio_id[0]; 32],
                     scenario_physics_configuration_digest: contract
                         .scenario_physics_configuration_digest,
@@ -895,6 +906,10 @@ mod tests {
         assert_eq!(
             first.portfolio_trajectories[0].shared_exogenous_receipt_digest,
             first.portfolio_trajectories[1].shared_exogenous_receipt_digest
+        );
+        assert_ne!(
+            first.portfolio_trajectories[0].maneuver_execution_noise_digest,
+            first.portfolio_trajectories[1].maneuver_execution_noise_digest
         );
     }
 
@@ -985,6 +1000,26 @@ mod tests {
         let second = campaign().validate(reversed).unwrap();
         assert_eq!(first.frozen_input_digest, second.frozen_input_digest);
         assert_eq!(first.result_digest, second.result_digest);
+    }
+
+    #[test]
+    fn action_execution_noise_is_portfolio_specific_and_bound_into_the_digest() {
+        let atoms = complete_atoms();
+        let first = campaign().validate(atoms.clone()).unwrap();
+        let mut changed = atoms;
+        changed[0].portfolio_trajectories[0].maneuver_execution_noise_digest = [194; 32];
+        let changed_report = campaign().validate(changed).unwrap();
+        assert_ne!(first.result_digest, changed_report.result_digest);
+    }
+
+    #[test]
+    fn zero_action_execution_noise_identity_is_rejected() {
+        let mut atoms = complete_atoms();
+        atoms[0].portfolio_trajectories[0].maneuver_execution_noise_digest = [0; 32];
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::MissingTrajectoryEvidence)
+        );
     }
 
     #[test]
