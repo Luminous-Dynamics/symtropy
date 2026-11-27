@@ -1,0 +1,15 @@
+[package]
+name = "se3-pose-trustworthiness-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "se3-pose-trustworthiness-bench"
+path = "src/main.rs"
+
+[workspace]
