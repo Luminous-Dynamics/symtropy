@@ -68,6 +68,17 @@ pub enum OwnerObserverCoverageStatus {
     OutOfScope,
 }
 
+impl OwnerObserverCoverageStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::QualifiedCompleteForScope => "QUALIFIED_COMPLETE_FOR_SCOPE",
+            Self::Incomplete => "INCOMPLETE",
+            Self::Unverified => "UNVERIFIED",
+            Self::OutOfScope => "OUT_OF_SCOPE",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OwnerEvidenceRecordV0_1 {
