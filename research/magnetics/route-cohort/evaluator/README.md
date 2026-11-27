@@ -37,3 +37,12 @@ Aggregate specimen-level qualification into an auditable manufacturing-cohort su
 This crate validates identity, denominators, event semantics and descriptive arithmetic. It does not estimate a population yield distribution, build a hierarchical model, derive process capability, compute process uncertainty, qualify a physical process, authenticate receipt producers, or issue product release.
 
 Synthetic fixtures are test oracles only.
+
+
+## Cohort semantics
+
+The initiated specimen denominator is the union of specimen IDs declared by every initiated build manifest. Missing specimen records do not shrink that denominator. Duplicate, orphaned, mismatched, or receipt-invalid records invalidate cohort structure and cannot increase observed acceptance.
+
+Observed fractions are descriptive. Replication coverage reports the number of distinct valid builds and feedstock lots against a preregistered minimum; meeting that coverage gate is not inferential yield qualification. The v0.1 evaluator explicitly returns `inferential_yield_claim_available = false`.
+
+Campaign cost is consumed as one digest-bound cost receipt. Cost per accepted part remains represented by its total-campaign-cost numerator and final non-scrapped accepted-part denominator; no successful-part-only mean is invented.
