@@ -284,19 +284,39 @@ def main() -> int:
         raise SystemExit("FAIL: source-binding claim specification/context IDs differ")
     owner_cuts = source_fixture["owner_evidence_cuts"]
     owner_watermarks = {}
+    owner_records = {}
     for owner_cut in owner_cuts:
         owner = owner_cut["owner_namespace"]
         if owner in owner_watermarks:
             raise SystemExit(f"FAIL: duplicate owner evidence cut: {owner}")
         if owner_cut["receiver_receipt_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
             raise SystemExit(f"FAIL: owner receipt watermark does not cover as-known cutoff: {owner}")
+        if owner_cut["trust_policy_sha256"] != context["trust_policy_sha256"]:
+            raise SystemExit(f"FAIL: owner cut has a different trust-policy snapshot: {owner}")
+        if not owner_cut["artifact_payloads_verified"]:
+            raise SystemExit(f"FAIL: owner cut has unverified artifact payloads: {owner}")
+        if owner_cut["observer_coverage_receipt_sha256"] != source_fixture["observer_coverage"]["receipt_sha256"]:
+            raise SystemExit(f"FAIL: owner cut observer receipt mismatch: {owner}")
+        if owner_cut["observer_coverage_profile_id"] != source_fixture["observer_coverage"]["profile_id"]:
+            raise SystemExit(f"FAIL: owner cut observer profile mismatch: {owner}")
+        if owner_cut["observer_coverage_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+            raise SystemExit(f"FAIL: owner-cut observer watermark does not cover as-known cutoff: {owner}")
         owner_watermarks[owner] = owner_cut["receiver_receipt_watermark_unix_ms"]
+        records = {}
+        for record in owner_cut["evidence_records"]:
+            if record["evidence_ref"] in records:
+                raise SystemExit(f"FAIL: duplicate owner-cut evidence ref: {record['evidence_ref']}")
+            records[record["evidence_ref"]] = record
+        owner_records[owner] = records
     if source_fixture["observer_coverage"]["watermark_unix_ms"] < context["as_known_at_unix_ms"]:
         raise SystemExit("FAIL: observer watermark does not cover the selected as-known cutoff")
 
-    acquisition = context["acquisition_interval"]
-    if acquisition["earliest_unix_ms"] > acquisition["latest_unix_ms"]:
+    if context["acquisition_time_earliest_unix_ms"] > context["acquisition_time_latest_unix_ms"]:
         raise SystemExit("FAIL: physical acquisition interval is malformed")
+    if specification["sha256"] != context["claim_specification_sha256"]:
+        raise SystemExit("FAIL: DecisionContext does not commit to the exact ClaimSpecification digest")
+    if source_fixture["trust_policy"]["snapshot_sha256"] != context["trust_policy_sha256"]:
+        raise SystemExit("FAIL: DecisionContext does not commit to the exact trust-policy snapshot")
     policy = source_fixture["trust_policy"]
     if policy["effective_from_unix_ms"] > policy["effective_until_unix_ms"]:
         raise SystemExit("FAIL: trust-policy effective interval is malformed")
@@ -323,20 +343,41 @@ def main() -> int:
             if evidence["configuration_ref"] != context["configuration_ref"]:
                 raise SystemExit(f"FAIL: evidence configuration mismatch: {evidence['evidence_ref']}")
             receiver_first_seen = evidence["receiver_first_seen_at_unix_ms"]
-            owner_watermark = owner_watermarks.get(evidence["owner_namespace"])
+            owner_name = evidence["owner_namespace"]
+            owner_watermark = owner_watermarks.get(owner_name)
             if owner_watermark is None:
                 raise SystemExit(f"FAIL: evidence has no matching owner cut: {evidence['evidence_ref']}")
+            owner_record = owner_records[owner_name].get(evidence["evidence_ref"])
+            if owner_record is None:
+                raise SystemExit(f"FAIL: evidence is absent from owner-cut record manifest: {evidence['evidence_ref']}")
+            if owner_record["record_sha256"] != evidence["owner_record_sha256"]:
+                raise SystemExit(f"FAIL: owner record digest mismatch: {evidence['evidence_ref']}")
+            if (
+                owner_record["subject_ref"] != context["subject_ref"]
+                or owner_record["configuration_ref"] != context["configuration_ref"]
+            ):
+                raise SystemExit(f"FAIL: owner-cut record context mismatch: {evidence['evidence_ref']}")
             if evidence["admission_state"] == "ADMITTED":
                 if (
                     receiver_first_seen is None
+                    or receiver_first_seen > context["as_known_at_unix_ms"]
                     or receiver_first_seen > owner_watermark
                     or evidence["owner_receipt_ref"] is None
                     or evidence["owner_receipt_sha256"] is None
                     or evidence["verification_state"] != "VERIFIED"
                     or evidence["verification_report_sha256"] is None
+                    or evidence["lifecycle"] != "active"
+                    or evidence["freshness"] != "fresh"
+                    or evidence["dependency_coverage"] != "complete"
+                    or owner_record["lifecycle"] != "active"
+                    or owner_record["freshness"] != "fresh"
+                    or owner_record["dependency_coverage"] != "complete"
+                    or owner_record["requires_reverification"]
+                    or not owner_record["eligible_under_declared_coverage"]
+                    or owner_record["unresolved_inputs"]
                 ):
                     raise SystemExit(
-                        f"FAIL: admitted evidence lacks a timely verified owner receipt: {evidence['evidence_ref']}"
+                        f"FAIL: admitted evidence violates owner/receiver/freshness/coverage contract: {evidence['evidence_ref']}"
                     )
             if evidence.get("event_effective_interval") is not None:
                 interval = evidence["event_effective_interval"]
