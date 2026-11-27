@@ -83,6 +83,11 @@ pub enum CombinedStatus {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PhysicalFunctionalCertificate {
+    /// Complete upstream and downstream input contracts are retained verbatim
+    /// so the result can be replayed without reconstructing omitted provenance.
+    pub upstream_physical_certificate: PhysicalFieldDiscrepancyCertificate,
+    pub sensor_transfer_contract: BoundedSensorTransfer,
+    pub functional_requirements: FunctionalRequirements,
     pub domain_id: String,
     pub cell_id: String,
     pub cell_bounds_m: [Interval; 3],
@@ -378,7 +383,49 @@ fn validate_inputs(
             });
         }
     }
+    let mut half_widths_m = [0.0; 3];
+    for (axis, bounds) in physical.cell_bounds_m.iter().enumerate() {
+        let centre_point = Interval::point(physical.centre_position_m[axis]).map_err(|_| {
+            FunctionalTransferError::InvalidInterval {
+                field: "physical_centre_point",
+            }
+        })?;
+        half_widths_m[axis] = (*bounds - centre_point)
+            .abs_upper_bound()
+            .ok_or(FunctionalTransferError::NonFiniteDerivedInterval)?;
+    }
+
     for (component, centre_residual) in physical.centre_residual_t.iter().enumerate() {
+        let mut required_variation_radius = 0.0;
+        for (axis, half_width) in half_widths_m.iter().enumerate() {
+            let derivative_bound =
+                Interval::point(physical.residual_jacobian_abs_supremum_t_per_m[component][axis])
+                    .map_err(|_| FunctionalTransferError::InvalidInterval {
+                        field: "physical_residual_jacobian",
+                    })?;
+            let cell_radius = Interval::point(*half_width).map_err(|_| {
+                FunctionalTransferError::InvalidInterval {
+                    field: "physical_cell_half_width",
+                }
+            })?;
+            let contribution = (derivative_bound * cell_radius)
+                .abs_upper_bound()
+                .ok_or(FunctionalTransferError::NonFiniteDerivedInterval)?;
+            let accumulated = Interval::point(required_variation_radius)
+                .map_err(|_| FunctionalTransferError::NonFiniteDerivedInterval)?
+                + Interval::point(contribution)
+                    .map_err(|_| FunctionalTransferError::NonFiniteDerivedInterval)?;
+            required_variation_radius = accumulated
+                .abs_upper_bound()
+                .ok_or(FunctionalTransferError::NonFiniteDerivedInterval)?;
+        }
+
+        if physical.residual_variation_radius_t[component] < required_variation_radius {
+            return Err(FunctionalTransferError::ScopeMismatch {
+                field: "physical_residual_radius_below_jacobian_bound",
+            });
+        }
+
         let measured_minus_model =
             physical.measured_field_at_centre_t[component]
                 - physical.model_field_at_centre_t[component];
@@ -552,6 +599,9 @@ pub fn certify_physical_sensor_function(
     let combined_status = combine(phase_status, amplitude_status);
 
     Ok(PhysicalFunctionalCertificate {
+        upstream_physical_certificate: physical.clone(),
+        sensor_transfer_contract: transfer.clone(),
+        functional_requirements: requirements.clone(),
         domain_id: physical.domain_id.clone(),
         cell_id: physical.cell_id.clone(),
         cell_bounds_m: physical.cell_bounds_m,
@@ -772,6 +822,35 @@ mod tests {
         assert!(x.lower() <= 1.1 && x.upper() >= 1.1);
         assert!(y.lower() <= 0.06 && y.upper() >= 0.06);
         assert_eq!(result.combined_status, CombinedStatus::Safe);
+    }
+
+    #[test]
+    fn understated_residual_radius_against_cellwide_jacobian_is_rejected() {
+        let mut physical = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
+        physical.residual_jacobian_abs_supremum_t_per_m[0][0] = 2.0;
+        assert_eq!(
+            certify_physical_sensor_function(&physical, &transfer(), &requirements()),
+            Err(FunctionalTransferError::ScopeMismatch {
+                field: "physical_residual_radius_below_jacobian_bound"
+            })
+        );
+    }
+
+    #[test]
+    fn output_certificate_retains_complete_input_contracts() {
+        let physical_input =
+            physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
+        let transfer_input = transfer();
+        let requirements_input = requirements();
+        let result = certify_physical_sensor_function(
+            &physical_input,
+            &transfer_input,
+            &requirements_input,
+        )
+        .expect("valid scoped inputs");
+        assert_eq!(result.upstream_physical_certificate, physical_input);
+        assert_eq!(result.sensor_transfer_contract, transfer_input);
+        assert_eq!(result.functional_requirements, requirements_input);
     }
 
     #[test]
