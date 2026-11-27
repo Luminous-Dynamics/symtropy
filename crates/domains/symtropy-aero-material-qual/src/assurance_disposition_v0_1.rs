@@ -236,6 +236,16 @@ fn nonempty_canonical(value: &str) -> bool {
     !value.trim().is_empty() && value == value.trim()
 }
 
+fn valid_sha256_reference(value: &str) -> bool {
+    let Some(digest) = value.strip_prefix("sha256:") else {
+        return false;
+    };
+    digest.len() == 64
+        && digest
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+}
+
 /// Deterministically project a typed obligation vector into a review disposition.
 ///
 /// All component reason codes are preserved and sorted. A failed mandatory
@@ -259,7 +269,7 @@ pub fn evaluate_assurance_state_case_v0_1(
         || !nonempty_canonical(&case.claim_context.physical_subject_ref)
         || !nonempty_canonical(&case.claim_context.configuration_ref)
         || !nonempty_canonical(&case.claim_context.as_known_cutoff)
-        || !nonempty_canonical(&case.claim_context.trust_policy_snapshot_digest)
+        || !valid_sha256_reference(&case.claim_context.trust_policy_snapshot_digest)
         || case.obligations.is_empty()
         || !case.obligations.iter().any(|item| item.mandatory)
     {
@@ -290,12 +300,36 @@ pub fn evaluate_assurance_state_case_v0_1(
 
         let mut blocks = false;
         if obligation.mandatory {
+            let mut evidence_refs_seen = BTreeSet::new();
+            let evidence_refs_valid = obligation.evidence_refs.iter().all(|reference| {
+                nonempty_canonical(reference) && evidence_refs_seen.insert(reference.as_str())
+            });
+            let has_evidence_reference = evidence_refs_valid && !obligation.evidence_refs.is_empty();
+            if !evidence_refs_valid
+                || (obligation.proposition_evidence
+                    != PropositionEvidenceStateV0_1::Neither
+                    && !has_evidence_reference)
+            {
+                incomplete = true;
+                blocks = true;
+                local_reasons.insert("MANDATORY_EVIDENCE_REFERENCE_MISSING_OR_INVALID".to_owned());
+            }
+
+            if obligation.kind == ObligationKindV0_1::ProducerAuthority
+                && obligation.authority == AuthorityStateV0_1::NotRequired
+            {
+                incomplete = true;
+                blocks = true;
+                local_reasons.insert("MANDATORY_PRODUCER_AUTHORITY_CANNOT_BE_WAIVED".to_owned());
+            }
+
             // A verified negative result on a hard gate is a known failure.
             if obligation.hard_gate
-                && (obligation.proposition_evidence
+                && ((obligation.proposition_evidence
                     == PropositionEvidenceStateV0_1::RefutedOnly
                     && obligation.verification == VerificationStateV0_1::Verified
                     || obligation.verification == VerificationStateV0_1::Failed)
+                    && has_evidence_reference)
             {
                 rejected = true;
                 blocks = true;
@@ -398,27 +432,6 @@ pub fn evaluate_assurance_state_case_v0_1(
                 unverified = true;
                 blocks = true;
                 local_reasons.insert("OUT_OF_SCOPE_ASSERTION_NOT_VERIFIED".to_owned());
-            }
-
-            if !matches!(
-                obligation.temporal_knowledge,
-                TemporalKnowledgeStateV0_1::KnownAtCutoff
-                    | TemporalKnowledgeStateV0_1::NotTemporal
-                    | TemporalKnowledgeStateV0_1::NotKnownAtCutoff
-            ) {
-                incomplete = true;
-                blocks = true;
-            }
-
-            if !matches!(
-                obligation.observer_coverage,
-                ObserverCoverageStateV0_1::Complete
-                    | ObserverCoverageStateV0_1::NotApplicable
-                    | ObserverCoverageStateV0_1::Incomplete
-                    | ObserverCoverageStateV0_1::Unknown
-            ) {
-                incomplete = true;
-                blocks = true;
             }
 
             if blocks {
@@ -674,6 +687,35 @@ mod tests {
         for item in &mut case.obligations {
             item.mandatory = false;
         }
+        assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn supported_proposition_without_evidence_reference_is_incomplete() {
+        let mut case = positive_case();
+        case.obligations[2].evidence_refs.clear();
+        assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn mandatory_producer_authority_cannot_be_waived() {
+        let mut case = positive_case();
+        case.obligations[1].authority = Authority::NotRequired;
+        assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn invalid_trust_policy_digest_fails_closed() {
+        let mut case = positive_case();
+        case.claim_context.trust_policy_snapshot_digest = "not-a-digest".to_owned();
+        assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn unsupported_hard_gate_without_evidence_reference_is_not_rejected() {
+        let mut case = positive_case();
+        case.obligations[0].proposition_evidence = Evidence::RefutedOnly;
+        case.obligations[0].evidence_refs.clear();
         assert_eq!(disposition(&case), Disposition::Incomplete);
     }
 
