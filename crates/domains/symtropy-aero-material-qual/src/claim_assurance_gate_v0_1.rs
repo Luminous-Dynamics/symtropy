@@ -502,7 +502,7 @@ fn validate_model_credibility_cut(
         Ok(digest) => {
             match input.owner_evidence_cut.find_evidence(&model.evidence_ref) {
                 Some(record) if record.record_sha256 == digest => {
-                    if record.subject_ref != model.model_ref {
+                    if record.subject_ref != input.decision_context.subject_ref {
                         *invalid = true;
                         reasons.insert(
                             "MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned(),
@@ -2055,6 +2055,7 @@ mod tests {
             .iter_mut()
             .find(|item| item.evidence_ref == model_cut.evidence_ref)
             .unwrap();
+        record.record_sha256 = model_cut.compute_sha256().unwrap();
         record.subject_ref = "instrument:unrelated-caliper".to_owned();
         let mut context = context_for_evidence(&evidence);
         context.evidence_knowledge_cut_sha256 = owner_cut.compute_sha256().unwrap();
