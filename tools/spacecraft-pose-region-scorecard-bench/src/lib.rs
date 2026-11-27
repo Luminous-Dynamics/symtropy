@@ -584,6 +584,8 @@ mod tests {
     fn exact_pose_is_inside_all_five_nested_regions() {
         let result = evaluate(&input("exact"));
         assert_eq!(result.disposition, ScoreDisposition::Scored);
+        assert_eq!(result.translation_error_l2_um, Some(0));
+        assert_eq!(result.orientation_error_urad, Some(0));
         assert!(result.regions.iter().all(|region| region.joint_covered));
     }
 
@@ -593,6 +595,7 @@ mod tests {
         value.truth_quaternion = [0.0, 0.0, 0.0, -1.0];
         let result = evaluate(&value);
         assert_eq!(result.regions[0].orientation_error_urad, 0);
+        assert_eq!(result.orientation_error_urad, Some(0));
         assert!(result.regions.iter().all(|region| region.orientation_covered));
     }
 
@@ -605,6 +608,23 @@ mod tests {
         assert!(!result.regions[0].translation_axis_covered[0]);
         assert!(result.regions[4].translation_joint_covered);
         assert!(!result.regions[0].orientation_covered);
+    }
+
+    #[test]
+    fn point_translation_error_is_reported_separately_from_region_coverage() {
+        let mut value = input("point-error");
+        value.truth_translation_um = [3, 4, 0];
+        let result = evaluate(&value);
+        assert_eq!(result.translation_error_l2_um, Some(5));
+        assert_eq!(result.orientation_error_urad, Some(0));
+    }
+
+    #[test]
+    fn point_orientation_error_is_reported_in_microradians() {
+        let mut value = input("rotation-error");
+        value.truth_quaternion = [1.0, 0.0, 0.0, 0.0];
+        let result = evaluate(&value);
+        assert_eq!(result.orientation_error_urad, Some(3_141_593));
     }
 
     #[test]
