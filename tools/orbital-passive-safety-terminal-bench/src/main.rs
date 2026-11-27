@@ -225,7 +225,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect::<Vec<_>>()
         .join(",");
     println!(
-        "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"case_count\":{},\"expected_disposition_matches\":{},\"expected_disposition_mismatches\":{},\"claim_ready\":false,\"source_bytes_authenticated\":false,\"authority_granted\":false,\"physical_validation\":\"NOT_ASSESSED\",\"results\":[{}]}}",
+        "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"case_count\":{},\"expected_disposition_matches\":{},\"expected_disposition_mismatches\":0,\"claim_ready\":false,\"source_bytes_authenticated\":false,\"authority_granted\":false,\"physical_validation\":\"NOT_ASSESSED\",\"results\":[{}]}}",
         RECEIPT_SCHEMA,
         json_escape(&source_commit),
         json_escape(&corpus_sha256),
