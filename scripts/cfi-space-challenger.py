@@ -27,6 +27,10 @@ FAULT_FAMILIES = [
     "translation", "dynamics", "observability", "integrity",
 ]
 SPLITS = {"development", "calibration", "confirmatory", "blind_holdout"}
+GENERALIZATION = {
+    "seen_target", "unseen_target", "unseen_target_family",
+    "unseen_renderer", "unseen_sensor_rig",
+}
 VARIANTS = {"clean", "single_fault", "interaction"}
 HEX64 = re.compile(r"^[a-f0-9]{64}$")
 
@@ -193,8 +197,8 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
     for row in rows:
         exact_keys(row, {
             "episode_id", "parent_episode_id", "counterfactual_group_id",
-            "variant_kind", "split", "independent_unit", "fault_ids",
-            "fault_families", "critical", "expected_disposition",
+            "variant_kind", "split", "generalization", "independent_unit",
+            "fault_ids", "fault_families", "critical", "expected_disposition",
         }, "ledger episode")
         eid = row["episode_id"]
         require(is_string(eid) and eid not in by_id,
@@ -203,6 +207,8 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
             require(is_string(row[field]), f"empty {field} for {eid}")
         require(row["variant_kind"] in VARIANTS, f"unknown variant kind for {eid}")
         require(row["split"] in SPLITS, f"unknown split for {eid}")
+        require(row["generalization"] in GENERALIZATION,
+                f"unknown generalization stratum for {eid}")
         require(row["expected_disposition"] in DISPOSITIONS,
                 f"unknown expected disposition for {eid}")
         require(type(row["critical"]) is bool, f"critical must be boolean for {eid}")
@@ -293,6 +299,9 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     clean_qualified = false_abstentions = correctly_contained_faults = 0
     unsafe_accepts = exact_disposition_matches = false_positive_family_labels = 0
     family_counts = {family: [0, 0] for family in FAULT_FAMILIES}
+    generalization_counts = {
+        stratum: [0, 0, 0, 0, 0, 0, 0] for stratum in GENERALIZATION
+    }
 
     for eid, episode in candidate_by_id.items():
         truth = truth_by_id[eid]
@@ -311,18 +320,26 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
         expected = truth["expected_disposition"]
         actual = prediction["disposition"]
         exact_disposition_matches += expected == actual
+        stratum_counts = generalization_counts[truth["generalization"]]
+        stratum_counts[0] += 1
         if expected == "qualified":
             clean_episodes += 1
+            stratum_counts[4] += 1
             if actual == "qualified":
                 clean_qualified += 1
+                stratum_counts[5] += 1
             else:
                 false_abstentions += 1
+                stratum_counts[6] += 1
         else:
             fault_episodes += 1
             critical_fault_episodes += truth["critical"]
+            stratum_counts[1] += 1
+            stratum_counts[2] += truth["critical"]
             if actual == "qualified":
                 unsafe_accepts += 1
                 critical_unsafe_accepts += truth["critical"]
+                stratum_counts[3] += 1
             else:
                 correctly_contained_faults += 1
                 critical_correctly_contained_faults += truth["critical"]
@@ -337,6 +354,19 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     family_detection = [
         {"family": family, "episodes": values[0], "detected": values[1]}
         for family, values in family_counts.items() if values[0] > 0
+    ]
+    generalization = [
+        {
+            "stratum": stratum,
+            "episodes": values[0],
+            "fault_episodes": values[1],
+            "critical_fault_episodes": values[2],
+            "unsafe_accepts": values[3],
+            "clean_episodes": values[4],
+            "clean_qualified": values[5],
+            "false_abstentions": values[6],
+        }
+        for stratum, values in generalization_counts.items() if values[0] > 0
     ]
     return {
         "benchmark_id": benchmark_id,
@@ -355,6 +385,7 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
         "exact_disposition_matches": exact_disposition_matches,
         "false_positive_family_labels": false_positive_family_labels,
         "family_detection": family_detection,
+        "generalization": generalization,
     }
 
 
