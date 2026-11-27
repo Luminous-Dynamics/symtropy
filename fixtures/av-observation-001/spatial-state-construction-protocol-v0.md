@@ -601,3 +601,28 @@ These are research targets, not achieved results:
 Keep the real and synthetic portions separate. For any SLAM or navigation reproduction, pin the exact scene/split, sensor modality and ground-truth source. The paper describes Unity-exported camera poses for its synthetic evaluation and different provenance for real-world capture; do not imply all tracks have identical ground-truth independence. Treat the emulator as simulation evaluation, not physical field evidence.
 
 Source: https://www.nature.com/articles/s41597-026-07993-8 and https://github.com/jackyzengl/THUD-plus-plus.
+
+
+### 23.7 THUD++ matched dynamic-scene protocol and targets
+
+Use THUD++ to test whether the candidate separates persistent structure from transient occupancy. Its published data include 13 scenes (8 real, 5 synthetic), more than 90,000 RGB-D frames, over 20 million static/dynamic object boxes, camera poses/IMU, more than 6,000 pedestrian trajectories and a Unity navigation emulator with more than 15 scenes. The paper reports fixed 5-, 10- and 15-pedestrian density settings for selected synthetic navigation/SLAM experiments.
+
+For the synthetic RGB-D SLAM cohort, the paper describes matched RGB-D frames, camera intrinsics and depth scale without wheel odometry, IMU or laser scans, with camera poses exported from Unity. Do not silently add IMU or odometry to that comparison. Real-scene results use their own data/ground-truth provenance and must remain a separate cohort.
+
+**Metrics:**
+- static-structure false addition/deletion rate under dynamic occlusion;
+- dynamic-object detection/association and track identity continuity;
+- map change precision/recall, separating movable-object state from persistent geometry;
+- ATE, 1-second translational/rotational RPE and trajectory coverage on the official SLAM cohorts;
+- relocalization rate by pedestrian-density split;
+- route success, collision/near-collision events and intervention/abstention rate in the navigation emulator;
+- compute, latency, memory and observation cost.
+
+**Initial targets:**
+- Reproduce the paper's strongest compatible baseline under its exact per-scene sensor and ground-truth protocol before attempting a superiority claim.
+- On matched dynamic-density splits, target at least 10% relative reduction in false static-map changes while keeping trajectory coverage and relocalization non-inferior within a preregistered 1-point absolute margin.
+- Improve trajectory ATE/RPE only if coverage is non-inferior; short surviving fragments must not hide tracking failure.
+- On the navigation emulator, reduce collision/near-collision and false structural blockage decisions without increasing route failure or unnecessary stopping.
+- Report 5/10/15 pedestrian strata independently; do not average away the failure mode that appears only in crowded scenes.
+
+These are prospective Symtropy/Symthaea research targets, not reported THUD++ results. Real-world data, Unity simulation, and simulator-generated truth remain separate evidence classes.
