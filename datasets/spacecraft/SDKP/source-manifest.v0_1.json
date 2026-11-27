@@ -1,0 +1,150 @@
+{
+  "schema": "luminous.spacecraft-dataset-manifest.v0.1",
+  "dataset": {
+    "id": "SDKP",
+    "title": "Spacecraft Detection, Keypoint and Pose Dataset",
+    "paper": {
+      "doi": "10.3390/data11110294",
+      "url": "https://doi.org/10.3390/data11110294",
+      "published": "2026-11-03",
+      "authors": [
+        "Zhixiang Wang",
+        "Liang Ye",
+        "Shifan Bi",
+        "Chenyin Lin",
+        "Hanyu Hong"
+      ]
+    },
+    "dataset_doi": "10.57967/hf/9797",
+    "dataset_url": "https://huggingface.co/datasets/zhixiang320/Spacecraft_Detection_Keypoint_and_Pose_Dataset",
+    "observed_card_revision_short": "804e109",
+    "license": {
+      "spdx": "CC-BY-4.0",
+      "scope": "Final composited images only",
+      "raw_background_sources_released": false,
+      "raw_background_source_licenses_confirmed": false
+    },
+    "asset": {
+      "target_model": "Fermi-GLAST",
+      "target_model_count": 1,
+      "model_source_acknowledged": "NASA public 3D model",
+      "asset_sha256": null,
+      "asset_bytes_verified": false
+    },
+    "counts": {
+      "images_total": 24000,
+      "train": 20000,
+      "validation": 2000,
+      "test": 2000,
+      "declared_total_matches_splits": true,
+      "exact_archive_bytes": null,
+      "hugging_face_size_bucket": "10K-100K"
+    },
+    "modalities": [
+      "RGB"
+    ],
+    "annotations": [
+      "bbox_2d",
+      "bbox_3d",
+      "keypoints_2d",
+      "keypoint_template_3d",
+      "camera_quaternion",
+      "camera_translation",
+      "camera_intrinsics"
+    ],
+    "annotation_correction": {
+      "required": true,
+      "directory": "Correction/",
+      "corrected_files": [
+        "annotation_train.json",
+        "annotation_val.json",
+        "annotation_test.json"
+      ],
+      "initial_release_omitted_bbox_3d": true,
+      "corrected_bbox_3d_expected": true,
+      "correction_bytes_downloaded": false,
+      "correction_file_sha256": null
+    },
+    "camera_and_sampling": {
+      "camera_model": "Pinhole",
+      "image_width_px": 1920,
+      "image_height_px": 1200,
+      "focal_length_m": {
+        "fx": 0.0172,
+        "fy": 0.0172
+      },
+      "pixel_pitch_um": {
+        "x": 5.86,
+        "y": 5.86
+      },
+      "camera_pose_semantics": "CAMERA_TO_WORLD",
+      "quaternion_component_order": "UNVERIFIED",
+      "camera_local_axes": "Blender: +X right, +Y up, -Z forward",
+      "camera_roll_deg": 0.0,
+      "camera_optical_axis": "Aimed at target model centre",
+      "pointing_jitter_sigma_deg": 0.5,
+      "azimuth_sampling_deg": [
+        0,
+        360
+      ],
+      "elevation_sampling_deg": [
+        -90,
+        90
+      ],
+      "range_m": [
+        100,
+        600
+      ],
+      "translation_unit": "metre",
+      "keypoint_template_unit": "metre"
+    },
+    "rendering_and_background": {
+      "renderer": "Blender Cycles",
+      "illumination_components": [
+        "parallel sunlight",
+        "camera-aligned key fill light",
+        "Earth albedo fill light",
+        "rim light",
+        "ambient light"
+      ],
+      "earth_background_fraction": 0.2,
+      "deep_space_background_fraction": 0.8,
+      "earth_background_compositing": "Alpha-composited after spacecraft render",
+      "earth_background_in_mesh_lighting": false,
+      "spacecraft_shadows_on_earth_background": false
+    },
+    "split_design": {
+      "generation": "Each split rendered separately with independent random seeds",
+      "viewpoint_and_distance_distributions_equal_across_splits": true,
+      "geometry_ood_holdout_provided_by_source": false,
+      "near_duplicate_avoidance_claimed_by_paper": true
+    }
+  },
+  "reproducibility": {
+    "image_files_downloaded": false,
+    "annotation_files_downloaded": false,
+    "raw_backgrounds_downloaded": false,
+    "file_sha256": {},
+    "file_byte_counts": {},
+    "quaternion_order_resolved_from_sample": false,
+    "source_commit_pinned": false,
+    "source_authentication": "NOT_PERFORMED"
+  },
+  "known_limitations": [
+    "One spacecraft model (Fermi-GLAST)",
+    "Camera roll is fixed at zero",
+    "Optical axis is aimed at the target centre",
+    "Camera range is limited to 100-600 m",
+    "Earth background is composited after mesh rendering and does not physically illuminate or receive mesh shadows",
+    "Raw Earth-background assets are not released with confirmed underlying licenses",
+    "Initial annotation JSON files omit bbox_3d; use Correction files",
+    "Train/validation/test retain the same viewpoint and distance distributions rather than geometry-held-out OOD partitions",
+    "Quaternion order must be resolved from an acquired annotation sample rather than guessed"
+  ],
+  "claim_boundary": {
+    "dataset_pose_labels_are_physical_truth": false,
+    "on_orbit_validation_performed": false,
+    "pose_model_benchmark_performed": false,
+    "source_bytes_authenticated": false
+  }
+}
