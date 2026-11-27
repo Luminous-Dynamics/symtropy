@@ -95,6 +95,14 @@ References:
 - [EASA MOC-5 SC-VTOL, Issue 2, 5 November 2026](https://www.easa.europa.eu/en/downloads/144423/en).
 - [EUROCAE ED-342: Guidance on Using Simulation in Handling Qualities Certification of VTOL (September 2026)](https://www.eurocae.net/product/ed-342-guidance-on-using-simulation-in-handling-qualities-certification-of-vtol/).
 
+### EASA VIRTUA: lifecycle authenticity and revocation
+
+EASA's VIRTUA project is a directly relevant adjacent workstream. Its stated objective is the use of virtualisation and decentralised-ledger concepts to manage approved aircraft parts and EASA Form 1 certificates across their lifecycle, from issuance by production organisations through design/maintenance changes. The motivating challenges include checking certificate authenticity and revoking certificates when defects or suspected unapproved parts are identified. The project is listed as closed.
+
+Implication: provenance and revocation are not an AERO novelty claim. AERO should interoperate with owner-native certificate/part lifecycle services and compare their receipts, revocation events and historical states. Its proposed contribution is claim-level composition: determine which exact engineering claim, physical/configuration context, model-use envelope and downstream evidence depend on the affected certificate at a particular knowledge/policy snapshot. This must work regardless of whether the owner uses a distributed ledger, signed database events or another trustworthy mechanism.
+
+Reference: [EASA VIRTUA project](https://www.easa.europa.eu/en/research-projects/virtua-digital-transformation-case-studies-aviation-safety-standards).
+
 ### Certification acceptance and existing assurance tooling
 
 AERO must operate alongside established certification and assurance infrastructure, not imply that it replaces it.
