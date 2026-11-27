@@ -16,11 +16,9 @@ use serde::{Deserialize, Serialize};
 use single_commodity_flow_kernel::FlowCertificateBundle;
 use std::collections::BTreeSet;
 
-pub const COHERENT_SCENARIO_SET_SCHEMA: &str =
-    "safrb-coherent-scenario-set-v0.1";
+pub const COHERENT_SCENARIO_SET_SCHEMA: &str = "safrb-coherent-scenario-set-v0.1";
 
-pub const SCENARIO_SET_CLAIM_CEILING: &str =
-    "Maximum aggregate requested delivery within each supplied coherent synthetic scenario only; no scenario-set completeness, evidence authority, probability, beneficiary-floor guarantee, physical qualification, dispatch authority or actual service claim.";
+pub const SCENARIO_SET_CLAIM_CEILING: &str = "Maximum aggregate requested delivery within each supplied coherent synthetic scenario only; no scenario-set completeness, evidence authority, probability, beneficiary-floor guarantee, physical qualification, dispatch authority or actual service claim.";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -204,14 +202,12 @@ pub fn verify_coherent_scenario_set(
                 scenario.scenario_id
             ));
         }
-        verify_temporal_certificate(&scenario.profile, &outcome.certificate).map_err(
-            |error| {
-                format!(
-                    "scenario {} certificate failed independent verification: {error}",
-                    scenario.scenario_id
-                )
-            },
-        )?;
+        verify_temporal_certificate(&scenario.profile, &outcome.certificate).map_err(|error| {
+            format!(
+                "scenario {} certificate failed independent verification: {error}",
+                scenario.scenario_id
+            )
+        })?;
         if outcome.graph_sha256 != outcome.certificate.result.graph_sha256
             || outcome.maximum_requested_delivery != outcome.certificate.result.max_flow
         {
@@ -233,9 +229,7 @@ pub fn verify_coherent_scenario_set(
         .copied()
         .max()
         .ok_or_else(|| "scenario report has no outcomes".to_string())?;
-    if report.minimum_scenario_maximum != minimum
-        || report.maximum_scenario_maximum != maximum
-    {
+    if report.minimum_scenario_maximum != minimum || report.maximum_scenario_maximum != maximum {
         return Err("scenario maximum range does not match verified receipts".to_string());
     }
 
@@ -246,7 +240,7 @@ pub fn verify_coherent_scenario_set(
 mod tests {
     use super::*;
     use crate::temporal_profile::{
-        TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer, TEMPORAL_PROFILE_SCHEMA,
+        TEMPORAL_PROFILE_SCHEMA, TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer,
         compile_temporal_profile,
     };
 
@@ -265,11 +259,7 @@ mod tests {
         }
     }
 
-    fn profile(
-        case_id: &str,
-        route_a_capacity: u64,
-        route_b_capacity: u64,
-    ) -> TemporalProfile {
+    fn profile(case_id: &str, route_a_capacity: u64, route_b_capacity: u64) -> TemporalProfile {
         TemporalProfile {
             schema_version: TEMPORAL_PROFILE_SCHEMA.to_string(),
             case_id: case_id.to_string(),
@@ -369,10 +359,8 @@ mod tests {
             scenario_id: "mode-b".to_string(),
             profile: profile("case-b", 0, 10),
         };
-        let forward =
-            evaluate_coherent_scenario_set("set-v1", &[a.clone(), b.clone()]).unwrap();
-        let reverse =
-            evaluate_coherent_scenario_set("set-v1", &[b, a]).unwrap();
+        let forward = evaluate_coherent_scenario_set("set-v1", &[a.clone(), b.clone()]).unwrap();
+        let reverse = evaluate_coherent_scenario_set("set-v1", &[b, a]).unwrap();
         assert_eq!(forward, reverse);
     }
 
@@ -428,10 +416,9 @@ mod tests {
 
     #[test]
     fn published_json_schemas_are_valid_json_documents() {
-        let temporal: serde_json::Value = serde_json::from_str(include_str!(
-            "../schemas/temporal-profile-v0.1.schema.json"
-        ))
-        .unwrap();
+        let temporal: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/temporal-profile-v0.1.schema.json"))
+                .unwrap();
         let scenario_input: serde_json::Value = serde_json::from_str(include_str!(
             "../schemas/coherent-scenario-input-v0.1.schema.json"
         ))
@@ -449,10 +436,7 @@ mod tests {
             scenario_report["properties"]["schema_version"]["const"],
             COHERENT_SCENARIO_SET_SCHEMA
         );
-        assert_eq!(
-            scenario_input["properties"]["scenarios"]["type"],
-            "array"
-        );
+        assert_eq!(scenario_input["properties"]["scenarios"]["type"], "array");
     }
 
     #[test]
