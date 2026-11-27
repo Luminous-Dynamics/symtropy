@@ -7,6 +7,7 @@
   "required": [
     "schema_version",
     "scenario_set_id",
+    "scenario_set_sha256",
     "outcomes",
     "minimum_scenario_maximum",
     "maximum_scenario_maximum",
@@ -66,6 +67,11 @@
     },
     "claim_ceiling": {
       "const": "Maximum aggregate requested delivery within each supplied coherent synthetic scenario only; no scenario-set completeness, evidence authority, probability, beneficiary-floor guarantee, physical qualification, dispatch authority or actual service claim."
+    },
+    "scenario_set_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "Binds the scenario-set identifier, sorted scenario IDs and canonical temporal profiles."
     }
   },
   "description": "Per-scenario graph-bound receipts. Minimum/maximum are ranges of aggregate maxima, not a guaranteed or jointly committed beneficiary allocation."
