@@ -1,0 +1,102 @@
+name: Spacecraft Unit-Level Conformal Calibration
+
+on:
+  pull_request:
+    paths:
+      - "tools/spacecraft-unit-conformal-calibration-bench/**"
+      - ".github/workflows/spacecraft-unit-conformal-calibration.yml"
+  push:
+    branches:
+      - "research/spacecraft-unit-conformal-calibration-v0-1"
+    paths:
+      - "tools/spacecraft-unit-conformal-calibration-bench/**"
+      - ".github/workflows/spacecraft-unit-conformal-calibration.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Independent-unit conformal calibration and challenger
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rust formatting
+        run: cargo fmt --manifest-path tools/spacecraft-unit-conformal-calibration-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/spacecraft-unit-conformal-calibration-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/spacecraft-unit-conformal-calibration-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Positive and test-only domain receipt parity
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/unit-conformal-receipts
+          for name in sequence-conformal-positive-v0_1 test-only-domain-v0_1; do
+            manifest="tools/spacecraft-unit-conformal-calibration-bench/fixtures/$name.tsv"
+            digest=$(sha256sum "$manifest" | cut -d' ' -f1)
+            cargo run --quiet --locked --manifest-path tools/spacecraft-unit-conformal-calibration-bench/Cargo.toml -- "$manifest" "$GITHUB_SHA" "$digest" > "/tmp/unit-conformal-receipts/$name.rust.json"
+            python3 tools/spacecraft-unit-conformal-calibration-bench/tests/reference_oracle.py "$manifest" "$GITHUB_SHA" "$digest" > "/tmp/unit-conformal-receipts/$name.python.json"
+            python3 - "$name" "/tmp/unit-conformal-receipts/$name.rust.json" "/tmp/unit-conformal-receipts/$name.python.json" <<'PY'
+          import json
+          import sys
+          name, rust_path, python_path = sys.argv[1:]
+          rust = json.load(open(rust_path, encoding="utf-8"))
+          oracle = json.load(open(python_path, encoding="utf-8"))
+          assert rust == oracle, f"{name}: Rust/Python receipt mismatch"
+          assert rust["claim_ready"] is False
+          assert rust["dataset_source_bytes_authenticated"] is False
+          assert rust["calibration_exchangeability_proven"] is False
+          assert rust["physical_calibration_validated"] is False
+          assert rust["deterministic_safety_bound"] is False
+          assert rust["maneuver_authority_granted"] is False
+          if name == "sequence-conformal-positive-v0_1":
+              assert rust["observation_count"] == 715
+              scope = rust["results"][0]
+              levels = {item["nominal_level_bps"]: item for item in scope["levels"]}
+              at_90 = levels[9000]
+              assert at_90["framewise_threshold_q32_32"] == 100
+              assert at_90["unitwise_threshold_q32_32"] == 1000
+              assert at_90["framewise_complete_unit_success_count"] == 0
+              assert at_90["unitwise_complete_unit_success_count"] == 35
+              assert at_90["framewise_silent_miss_unit_count"] == 35
+              assert at_90["unitwise_silent_miss_unit_count"] == 0
+              assert at_90["unitwise_complete_unit_wilson_95"]["lower_ppm"] > 900000
+              assert at_90["promotion_eligible_for_declared_scope"] is True
+              assert levels[9500]["promotion_eligible_for_declared_scope"] is False
+              assert levels[9900]["unitwise_finite"] is False
+              assert levels[9900]["promotion_reason"] == "NO_FINITE_UNIT_CONFORMAL_THRESHOLD"
+          else:
+              assert rust["results"][0]["levels"][2]["unitwise_threshold_q32_32"] is None
+              assert rust["results"][0]["levels"][2]["promotion_eligible_for_declared_scope"] is False
+          PY
+          done
+      - name: Malformed manifests fail closed in both implementations
+        run: |
+          set -euo pipefail
+          for name in cross-split-unit-leakage-v0_1 incomplete-unit-v0_1; do
+            manifest="tools/spacecraft-unit-conformal-calibration-bench/fixtures/$name.tsv"
+            digest=$(sha256sum "$manifest" | cut -d' ' -f1)
+            if cargo run --quiet --locked --manifest-path tools/spacecraft-unit-conformal-calibration-bench/Cargo.toml -- "$manifest" "$GITHUB_SHA" "$digest"; then
+              echo "$name unexpectedly accepted by Rust" >&2
+              exit 1
+            fi
+            if python3 tools/spacecraft-unit-conformal-calibration-bench/tests/reference_oracle.py "$manifest" "$GITHUB_SHA" "$digest"; then
+              echo "$name unexpectedly accepted by Python" >&2
+              exit 1
+            fi
+          done
+      - name: Retain exact receipts and fixture digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacecraft-unit-conformal-calibration-evidence
+          path: |
+            /tmp/unit-conformal-receipts/*.json
+            tools/spacecraft-unit-conformal-calibration-bench/fixtures/*.tsv
+          if-no-files-found: error
+          retention-days: 30
