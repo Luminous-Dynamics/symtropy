@@ -26,7 +26,7 @@ The expected CSV header is time,avg_power_kw.
 
 **Important:** These are modeled aggregate load profiles generated from published operating schedules and declared assumptions. They are not 81 measured charging sessions, measured battery trajectories, or direct substation observations. The reference archive is accepted as operator-published data; this tool validates structure and identity, not publisher authenticity or physical truth.
 
-Report schema: tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json.
+Report schema: tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_2.schema.json.
 
 ## What the auditor does
 
