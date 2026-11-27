@@ -242,6 +242,12 @@ The contact-response digest is currently caller-supplied metadata just like the 
 
 In the live Symtropy PhysicsCallback interface, modulate_impulse and friction_multiplier are evaluated inside contact resolution, while on_collision and apply_trauma are emitted after a nontrivial normal impulse. record_dissipation is emitted for frictional dissipation. Geometry reuse must not bypass these current-step semantic paths. A per-contact callback/response revision is not proof that a callback has been delivered; event delivery needs separate identity/commit evidence when replay or exactly-once semantics are required. The #7699 observer must independently qualify the resulting contact payload bytes.
 
+### Contact callback and event delivery receipts
+
+The current model tracks global response-policy and per-endpoint response-state revisions, but those do not prove that callbacks were evaluated or events delivered. Symtropy's live PhysicsCallback includes per-contact friction/impulse modulation and collision/trauma/dissipation outputs. Geometry reuse must leave those semantics current.
+
+The next event-identity and replayable-delivery increment is tracked in [#7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718). Event identity must be per world step and bind endpoint generations, contact/manifold identity, event kind and a deterministic ordinal. Continuous contacts on different steps must remain distinct legitimate events. For delivery across process failure, prefer an idempotent sink/outbox; exactly-once cannot be claimed without a receiver-side transaction. Callback evaluation counts and emitted event counts must be recorded separately.
+
 ### 8.2 Candidate topology is not exact contact topology
 
 The present AABB receipt prototype uses the broadphase candidate relation as its pair relation. That is suitable for candidate-to-contact work obligations, but it does not distinguish an exact narrowphase contact from a conservative false-positive candidate. Therefore the absence of a post-contact stamp after a geometry refresh is not by itself proof that narrowphase ran and found no contact.
@@ -266,6 +272,10 @@ using (2sin(	heta/2) le 	heta), conservative for the admitted angle interval ([0
 
 Reuse is admitted only when the pair identity, proxy generations, shape revisions and feature identity remain valid; the feature-margin lower bound strictly exceeds the relative-motion upper bound; the normal-variation upper bound stays within tolerance; and the updated gap interval remains inside the declared contact/penetration envelope. The result is `ReuseCertified`, `ContactEnded`, `RefreshRequired(reason)` or `UnsupportedGeometry`. Equality at the feature-margin or contact-slop boundary refreshes rather than reuses.
 
+
+
+The current feature identity must be compared against the cached feature identity on every lease evaluation. A missing cached/current feature witness returns `UnsupportedGeometry`; a mismatch returns `RefreshRequired(FeatureIdentityChanged)`. The predicate also rejects unsupported dimensions outside 2D–4D. Tests cover support-feature change, missing current identity, 2D/4D input, and cumulative motion measured from the last fresh manifold rather than rebased per recycled frame.
+
 ### Evidence boundary
 
 This is a predicate over externally supplied witnesses. It does not yet derive the relative transform, feature margin, normal-variation interval, or updated gap interval from the real shape/manifold types. A production adapter must conservatively compute and independently qualify those values, or fall back to fresh narrowphase. The prototype does not modify production contacts and does not establish a speedup.
@@ -287,7 +297,7 @@ References:
 
 ### Qualification tests and targets
 
-The lease prototype has 19 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
+The lease prototype has 23 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
 
 ## 10. Current authored test inventory
 
