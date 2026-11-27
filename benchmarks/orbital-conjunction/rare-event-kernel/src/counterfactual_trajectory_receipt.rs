@@ -724,6 +724,13 @@ fn validate_pathwise_risk_masses(
         if scenario_atoms.len() != contract.atom_ids.len() || total_mass_ticks == 0 {
             return Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass);
         }
+        if gate_checks
+            .iter()
+            .filter(|((scenario_id, _), _)| *scenario_id == contract.scenario_id)
+            .any(|(_, check)| check.total_mass_ticks != total_mass_ticks)
+        {
+            return Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass);
+        }
 
         for portfolio_id in eligible_portfolio_ids {
             let check = gate_checks
@@ -1119,6 +1126,42 @@ mod tests {
         let second = campaign().validate(reversed).unwrap();
         assert_eq!(first.frozen_input_digest, second.frozen_input_digest);
         assert_eq!(first.result_digest, second.result_digest);
+    }
+
+    #[test]
+    fn pathwise_contact_reclassification_cannot_forge_the_hard_risk_mass() {
+        let mut atoms = complete_atoms();
+        atoms[0].portfolio_trajectories[0].mission_union_contact =
+            MissionUnionContactDisposition::DefiniteNoContact;
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::MissionUnionMassMismatch)
+        );
+    }
+
+    #[test]
+    fn ambiguous_pathwise_contact_is_never_treated_as_no_contact() {
+        let mut atoms = complete_atoms();
+        atoms[0].portfolio_trajectories[0].mission_union_contact =
+            MissionUnionContactDisposition::Ambiguous;
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::AmbiguousMissionUnionClassification)
+        );
+    }
+
+    #[test]
+    fn total_target_mass_is_rechecked_after_shared_receipt_mutation() {
+        let mut atoms = complete_atoms();
+        atoms[0].shared_world.atom_mass_ticks = 74;
+        let shared_digest = digest_shared_world(&atoms[0].shared_world);
+        for receipt in &mut atoms[0].portfolio_trajectories {
+            receipt.shared_exogenous_receipt_digest = shared_digest;
+        }
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass)
+        );
     }
 
     #[test]
