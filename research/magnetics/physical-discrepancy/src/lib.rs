@@ -110,15 +110,33 @@ pub struct PhysicalFieldDiscrepancyCertificate {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum DiscrepancyError {
     InvalidIdentity,
-    InvalidSha256 { field: &'static str },
-    InvalidCellBounds { axis: usize },
-    CentreNotAtCellMidpoint { axis: usize },
-    UnboundedFieldInterval { field: &'static str, component: usize },
+    InvalidSha256 {
+        field: &'static str,
+    },
+    InvalidCellBounds {
+        axis: usize,
+    },
+    CentreNotAtCellMidpoint {
+        axis: usize,
+    },
+    UnboundedFieldInterval {
+        field: &'static str,
+        component: usize,
+    },
     JacobianCellIdentityMismatch,
-    InvalidJacobianBound { field_component: usize, spatial_axis: usize },
-    ModelCentreOutsideCellEnclosure { component: usize },
-    NonFiniteResidualRadius { component: usize },
-    NonFinitePhysicalFieldEnclosure { component: usize },
+    InvalidJacobianBound {
+        field_component: usize,
+        spatial_axis: usize,
+    },
+    ModelCentreOutsideCellEnclosure {
+        component: usize,
+    },
+    NonFiniteResidualRadius {
+        component: usize,
+    },
+    NonFinitePhysicalFieldEnclosure {
+        component: usize,
+    },
 }
 
 fn nonempty(value: &str) -> bool {
@@ -185,12 +203,21 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
     if identities.into_iter().any(|value| !nonempty(value)) {
         return Err(DiscrepancyError::InvalidIdentity);
     }
-    validate_digest(&input.centre_measurement_sha256, "centre_measurement_sha256")?;
+    validate_digest(
+        &input.centre_measurement_sha256,
+        "centre_measurement_sha256",
+    )?;
     validate_digest(&input.model_input_sha256, "model_input_sha256")?;
     validate_digest(&input.model_artifact_sha256, "model_artifact_sha256")?;
     validate_digest(&input.model_environment_sha256, "model_environment_sha256")?;
-    validate_digest(&input.residual_jacobian_artifact_sha256, "residual_jacobian_artifact_sha256")?;
-    validate_digest(&input.residual_jacobian_environment_sha256, "residual_jacobian_environment_sha256")?;
+    validate_digest(
+        &input.residual_jacobian_artifact_sha256,
+        "residual_jacobian_artifact_sha256",
+    )?;
+    validate_digest(
+        &input.residual_jacobian_environment_sha256,
+        "residual_jacobian_environment_sha256",
+    )?;
     validate_digest(&input.geometry_sha256, "geometry_sha256")?;
     validate_digest(&input.material_sha256, "material_sha256")?;
 
@@ -214,21 +241,13 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
         &input.measured_field_at_centre_t,
         "measured_field_at_centre_t",
     )?;
-    validate_finite_intervals(
-        &input.model_field_at_centre_t,
-        "model_field_at_centre_t",
-    )?;
-    validate_finite_intervals(
-        &input.model_field_over_cell_t,
-        "model_field_over_cell_t",
-    )?;
+    validate_finite_intervals(&input.model_field_at_centre_t, "model_field_at_centre_t")?;
+    validate_finite_intervals(&input.model_field_over_cell_t, "model_field_over_cell_t")?;
 
     for component in 0..3 {
         let centre_model = input.model_field_at_centre_t[component];
         let cell_model = input.model_field_over_cell_t[component];
-        if cell_model.lower() > centre_model.lower()
-            || cell_model.upper() < centre_model.upper()
-        {
+        if cell_model.lower() > centre_model.lower() || cell_model.upper() < centre_model.upper() {
             return Err(DiscrepancyError::ModelCentreOutsideCellEnclosure { component });
         }
 
@@ -259,8 +278,8 @@ pub fn certify_physical_field_discrepancy(
     let mut physical_field_over_cell_t = [Interval::ZERO; 3];
 
     let half_widths: [f64; 3] = std::array::from_fn(|axis| {
-        let centre = Interval::point(input.centre_position_m[axis])
-            .expect("validated finite centre");
+        let centre =
+            Interval::point(input.centre_position_m[axis]).expect("validated finite centre");
         (input.cell_bounds_m[axis] - centre)
             .abs_upper_bound()
             .expect("validated finite cell bounds")
@@ -272,17 +291,15 @@ pub fn certify_physical_field_discrepancy(
 
         let mut variation_radius = 0.0;
         for axis in 0..3 {
-            let derivative_bound = Interval::point(
-                input.residual_jacobian_abs_supremum_t_per_m[component][axis],
-            )
-            .expect("validated finite Jacobian bound");
-            let cell_radius = Interval::point(half_widths[axis])
-                .expect("validated finite half-width");
+            let derivative_bound =
+                Interval::point(input.residual_jacobian_abs_supremum_t_per_m[component][axis])
+                    .expect("validated finite Jacobian bound");
+            let cell_radius =
+                Interval::point(half_widths[axis]).expect("validated finite half-width");
             let contribution = (derivative_bound * cell_radius)
                 .abs_upper_bound()
                 .ok_or(DiscrepancyError::NonFiniteResidualRadius { component })?;
-            let accumulated = Interval::point(variation_radius)
-                .expect("finite accumulated radius")
+            let accumulated = Interval::point(variation_radius).expect("finite accumulated radius")
                 + Interval::point(contribution).expect("finite contribution");
             variation_radius = accumulated
                 .abs_upper_bound()
@@ -295,8 +312,7 @@ pub fn certify_physical_field_discrepancy(
         residual_variation_radius_t[component] = variation_radius;
         let variation_interval = Interval::new(-variation_radius, variation_radius)
             .expect("symmetric finite residual variation");
-        residual_field_over_cell_t[component] =
-            centre_residual_t[component] + variation_interval;
+        residual_field_over_cell_t[component] = centre_residual_t[component] + variation_interval;
         physical_field_over_cell_t[component] =
             input.model_field_over_cell_t[component] + residual_field_over_cell_t[component];
 
@@ -484,11 +500,7 @@ mod tests {
     #[test]
     fn zero_width_cell_reduces_to_the_centre_residual() {
         let mut evidence = input();
-        evidence.cell_bounds_m = [
-            interval(0.0, 0.0),
-            interval(0.0, 0.0),
-            interval(0.0, 0.0),
-        ];
+        evidence.cell_bounds_m = [interval(0.0, 0.0), interval(0.0, 0.0), interval(0.0, 0.0)];
         let result = certify_physical_field_discrepancy(&evidence).expect("point cell");
         for component in 0..3 {
             assert_eq!(result.residual_variation_radius_t[component], 0.0);
@@ -504,7 +516,8 @@ mod tests {
         let original = certify_physical_field_discrepancy(&input()).expect("original");
         let mut wider = input();
         wider.measured_field_at_centre_t[0] = interval(0.05, 0.15);
-        let result = certify_physical_field_discrepancy(&wider).expect("wider measurement interval");
+        let result =
+            certify_physical_field_discrepancy(&wider).expect("wider measurement interval");
         assert!(
             result.physical_field_over_cell_t[0].lower()
                 <= original.physical_field_over_cell_t[0].lower()
@@ -520,8 +533,7 @@ mod tests {
         let mut evidence = input();
         evidence.centre_position_m[0] = 0.01;
         assert_eq!(
-            certify_physical_field_discrepancy(&evidence)
-                .expect_err("wrong centre sample"),
+            certify_physical_field_discrepancy(&evidence).expect_err("wrong centre sample"),
             DiscrepancyError::CentreNotAtCellMidpoint { axis: 0 }
         );
     }
@@ -531,8 +543,7 @@ mod tests {
         let mut evidence = input();
         evidence.residual_jacobian_cell_id = "another-cell".to_owned();
         assert_eq!(
-            certify_physical_field_discrepancy(&evidence)
-                .expect_err("wrong Jacobian cell"),
+            certify_physical_field_discrepancy(&evidence).expect_err("wrong Jacobian cell"),
             DiscrepancyError::JacobianCellIdentityMismatch
         );
     }
@@ -542,8 +553,7 @@ mod tests {
         let mut negative = input();
         negative.residual_jacobian_abs_supremum_t_per_m[1][2] = -0.01;
         assert_eq!(
-            certify_physical_field_discrepancy(&negative)
-                .expect_err("negative absolute supremum"),
+            certify_physical_field_discrepancy(&negative).expect_err("negative absolute supremum"),
             DiscrepancyError::InvalidJacobianBound {
                 field_component: 1,
                 spatial_axis: 2
@@ -553,8 +563,7 @@ mod tests {
         let mut nonfinite = input();
         nonfinite.residual_jacobian_abs_supremum_t_per_m[2][1] = f64::INFINITY;
         assert_eq!(
-            certify_physical_field_discrepancy(&nonfinite)
-                .expect_err("unbounded supremum"),
+            certify_physical_field_discrepancy(&nonfinite).expect_err("unbounded supremum"),
             DiscrepancyError::InvalidJacobianBound {
                 field_component: 2,
                 spatial_axis: 1
@@ -626,7 +635,10 @@ mod tests {
         assert_eq!(result.model_source_revision, "model-source-v1");
         assert_eq!(result.model_implementation_id, "magnetostatic-model-v1");
         assert_eq!(result.model_artifact_sha256, DIGEST_B);
-        assert_eq!(result.residual_jacobian_source_revision, "jacobian-source-v1");
+        assert_eq!(
+            result.residual_jacobian_source_revision,
+            "jacobian-source-v1"
+        );
         assert_eq!(result.residual_jacobian_artifact_sha256, DIGEST_A);
         assert_eq!(result.requirement_id, "minimum-field-reserve");
         assert_eq!(result.evidence_role, EvidenceRole::BlindHoldout);
@@ -637,8 +649,7 @@ mod tests {
         let mut model = input();
         model.model_artifact_sha256 = "bad-digest".to_owned();
         assert_eq!(
-            certify_physical_field_discrepancy(&model)
-                .expect_err("solver artifact identity"),
+            certify_physical_field_discrepancy(&model).expect_err("solver artifact identity"),
             DiscrepancyError::InvalidSha256 {
                 field: "model_artifact_sha256"
             }
@@ -647,8 +658,7 @@ mod tests {
         let mut jacobian = input();
         jacobian.residual_jacobian_artifact_sha256 = "bad-digest".to_owned();
         assert_eq!(
-            certify_physical_field_discrepancy(&jacobian)
-                .expect_err("Jacobian artifact identity"),
+            certify_physical_field_discrepancy(&jacobian).expect_err("Jacobian artifact identity"),
             DiscrepancyError::InvalidSha256 {
                 field: "residual_jacobian_artifact_sha256"
             }
