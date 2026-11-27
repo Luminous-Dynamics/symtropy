@@ -945,9 +945,7 @@ mod tests {
             metrics.holdout_mean_interval_width,
             vec![Some(4.0), Some(0.15)]
         );
-        assert!(
-            (metrics.holdout_feasibility_brier.expect("Brier score") - 0.04).abs() < 1e-12
-        );
+        assert!((metrics.holdout_feasibility_brier.expect("Brier score") - 0.04).abs() < 1e-12);
         assert_eq!(metrics.holdout_unresolved_count, 0);
     }
 
