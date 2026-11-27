@@ -521,6 +521,16 @@ mod tests {
     }
 
     #[test]
+    fn orientation_chord_exceeding_policy_is_disagreement() {
+        let rgb = estimate(Modality::Rgb, 0);
+        let mut event = estimate(Modality::Event, 0);
+        event.quaternion_xyzw_q30[0] = 100_000;
+        let receipt = evaluate_pair(&rgb, &event, &policy()).expect("valid pair");
+        assert_eq!(receipt.disposition, "DISAGREEMENT");
+        assert!(receipt.orientation_chord_q30.unwrap_or(0) > 1_000);
+    }
+
+    #[test]
     fn quaternion_sign_equivalence_does_not_create_false_conflict() {
         let rgb = estimate(Modality::Rgb, 0);
         let mut event = estimate(Modality::Event, 0);
