@@ -64,12 +64,16 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                     .parse::<usize>()
                     .map_err(|_| format!("line {line_number}: invalid node ID"))?;
                 if !(1..=node_count).contains(&node_id) {
-                    return Err(format!("line {line_number}: node ID outside 1..={node_count}"));
+                    return Err(format!(
+                        "line {line_number}: node ID outside 1..={node_count}"
+                    ));
                 }
                 match tokens[2] {
                     "s" => {
                         if source.replace(node_id).is_some() {
-                            return Err(format!("line {line_number}: duplicate source declaration"));
+                            return Err(format!(
+                                "line {line_number}: duplicate source declaration"
+                            ));
                         }
                     }
                     "t" => {
@@ -99,7 +103,9 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                     ));
                 }
                 if from == to {
-                    return Err(format!("line {line_number}: self-loop arcs are unsupported"));
+                    return Err(format!(
+                        "line {line_number}: self-loop arcs are unsupported"
+                    ));
                 }
                 let capacity = tokens[3]
                     .parse::<u64>()
@@ -115,7 +121,9 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                 arcs.push((from, to, capacity));
             }
             other => {
-                return Err(format!("line {line_number}: unsupported record type {other}"));
+                return Err(format!(
+                    "line {line_number}: unsupported record type {other}"
+                ));
             }
         }
     }
@@ -172,12 +180,11 @@ fn run() -> Result<(), String> {
         return Err("exactly one DIMACS input path is required".to_string());
     }
 
-    let input = fs::read_to_string(&path)
-        .map_err(|error| format!("cannot read {path}: {error}"))?;
+    let input =
+        fs::read_to_string(&path).map_err(|error| format!("cannot read {path}: {error}"))?;
     let graph = parse_dimacs_max(&input)?;
     let result = graph.solve().map_err(|error| error.to_string())?;
-    let bundle = FlowCertificateBundle::new(graph, result)
-        .map_err(|error| error.to_string())?;
+    let bundle = FlowCertificateBundle::new(graph, result).map_err(|error| error.to_string())?;
     bundle.verify().map_err(|error| error.to_string())?;
 
     let stdout = io::stdout();
@@ -252,24 +259,37 @@ a 1 2 2
             "p max 2 1\nn 1 s\nn 2 t\na 1 2 {}\n",
             DIMACS_MAX_CAPACITY + 1
         );
-        assert!(parse_dimacs_max(&input).unwrap_err().contains("DIMACS .max capacity"));
+        assert!(
+            parse_dimacs_max(&input)
+                .unwrap_err()
+                .contains("DIMACS .max capacity")
+        );
     }
 
     #[test]
     fn rejects_declared_arc_count_mismatch_and_out_of_range_nodes() {
         let short = "p max 2 2\nn 1 s\nn 2 t\na 1 2 1\n";
-        assert!(parse_dimacs_max(short).unwrap_err().contains("declared 2 arcs"));
+        assert!(
+            parse_dimacs_max(short)
+                .unwrap_err()
+                .contains("declared 2 arcs")
+        );
 
         let bad_node = "p max 2 1\nn 1 s\nn 2 t\na 1 3 1\n";
-        assert!(parse_dimacs_max(bad_node).unwrap_err().contains("arc endpoint"));
+        assert!(
+            parse_dimacs_max(bad_node)
+                .unwrap_err()
+                .contains("arc endpoint")
+        );
     }
 
     #[test]
     fn rejects_oversized_instances_before_building_the_graph() {
-        let oversized = format!(
-            "p max {} 0\nn 1 s\nn 2 t\n",
-            MAX_NODES + 1
+        let oversized = format!("p max {} 0\nn 1 s\nn 2 t\n", MAX_NODES + 1);
+        assert!(
+            parse_dimacs_max(&oversized)
+                .unwrap_err()
+                .contains("node count outside supported")
         );
-        assert!(parse_dimacs_max(&oversized).unwrap_err().contains("node count outside supported"));
     }
 }
