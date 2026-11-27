@@ -117,10 +117,11 @@ def base_result(
         "scope": scope_object(row),
         "disposition": disposition,
         "central_gravity_numerator": None,
-        "differential_acceleration_numerator": None,
         "radial_domain_denominator": None,
-        "exact_total_numerator": None,
-        "exact_total_denominator": None,
+        "differential_acceleration_upper_mm_per_s2": None,
+        "transform_operator_norm_upper_scaled": None,
+        "scaled_central_numerator": None,
+        "scaled_perturbation_term": None,
         "m_upper_scaled_per_s2": None,
         "m_scale": 1_000_000,
         "m_unit": "s^-2",
@@ -209,30 +210,31 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if central_numerator is None:
         return base_result(row, "OVERFLOW", "CENTRAL_GRAVITY_PRODUCT_OVERFLOW")
 
-    perturbation_numerator = checked_mul(differential, denominator)
-    if perturbation_numerator is None:
-        return base_result(row, "OVERFLOW", "PERTURBATION_PRODUCT_OVERFLOW")
+    scaled_central_numerator = checked_mul(transform, central_numerator)
+    if scaled_central_numerator is None:
+        return base_result(row, "OVERFLOW", "SCALED_CENTRAL_NUMERATOR_OVERFLOW")
 
-    acceleration_numerator = checked_add(central_numerator, perturbation_numerator)
-    if acceleration_numerator is None:
-        return base_result(row, "OVERFLOW", "ACCELERATION_SUM_OVERFLOW")
+    scaled_perturbation_term = checked_mul(transform, differential)
+    if scaled_perturbation_term is None:
+        return base_result(row, "OVERFLOW", "SCALED_PERTURBATION_TERM_OVERFLOW")
 
-    total_numerator = checked_mul(transform, acceleration_numerator)
-    if total_numerator is None:
-        return base_result(row, "OVERFLOW", "TRANSFORMED_NUMERATOR_OVERFLOW")
+    central_m_upper = ceil_div_nonnegative(scaled_central_numerator, denominator)
+    if central_m_upper is None:
+        return base_result(row, "OVERFLOW", "CENTRAL_OUTWARD_DIVISION_FAILED")
 
-    m_upper = ceil_div_nonnegative(total_numerator, denominator)
+    m_upper = checked_add(central_m_upper, scaled_perturbation_term)
     if m_upper is None:
-        return base_result(row, "OVERFLOW", "OUTWARD_DIVISION_FAILED")
+        return base_result(row, "OVERFLOW", "OUTWARD_BOUND_SUM_OVERFLOW")
 
     result = base_result(row, "BOUND_READY", None)
     result.update(
         {
             "central_gravity_numerator": central_numerator,
-            "differential_acceleration_numerator": perturbation_numerator,
             "radial_domain_denominator": denominator,
-            "exact_total_numerator": total_numerator,
-            "exact_total_denominator": denominator,
+            "differential_acceleration_upper_mm_per_s2": differential,
+            "transform_operator_norm_upper_scaled": transform,
+            "scaled_central_numerator": scaled_central_numerator,
+            "scaled_perturbation_term": scaled_perturbation_term,
             "m_upper_scaled_per_s2": m_upper,
             "radial_slack_mm": radial_slack,
             "bound_ready": True,
