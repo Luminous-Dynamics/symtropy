@@ -12,20 +12,12 @@ fn snapshot_has_exact_eight_dwell_and_seven_weekly_flow_rows() {
     assert_eq!(columns[10], "report_date");
     assert_eq!(columns[11], "source_updated_date");
 
-    let rows: Vec<Vec<&str>> = lines
-        .map(|line| line.split('\t').collect())
-        .collect();
+    let rows: Vec<Vec<&str>> = lines.map(|line| line.split('\t').collect()).collect();
     assert_eq!(rows.len(), 15, "all published rows remain present");
     assert!(rows.iter().all(|row| row.len() == columns.len()));
 
-    let dwell: Vec<&Vec<&str>> = rows
-        .iter()
-        .filter(|row| row[0] == "vessel_dwell")
-        .collect();
-    let flow: Vec<&Vec<&str>> = rows
-        .iter()
-        .filter(|row| row[0] == "weekly_flow")
-        .collect();
+    let dwell: Vec<&Vec<&str>> = rows.iter().filter(|row| row[0] == "vessel_dwell").collect();
+    let flow: Vec<&Vec<&str>> = rows.iter().filter(|row| row[0] == "weekly_flow").collect();
     assert_eq!(dwell.len(), 8);
     assert_eq!(flow.len(), 7);
 
@@ -43,10 +35,7 @@ fn snapshot_has_exact_eight_dwell_and_seven_weekly_flow_rows() {
         assert_eq!(row[2], "2026-11-01");
         assert_eq!(row[10], "2026-11-01");
         assert_eq!(row[11], "2026-11-01");
-        assert_eq!(
-            row[13],
-            "PUBLISHED_AGGREGATE / OPERATOR_DERIVED"
-        );
+        assert_eq!(row[13], "PUBLISHED_AGGREGATE / OPERATOR_DERIVED");
     }
 }
 
@@ -118,7 +107,9 @@ fn terminal_dwell_known_answers_and_asynchronous_dates_are_preserved() {
         }));
     }
 
-    assert!(records.iter().all(|row| {
-        row[10] == "2026-11-01" && row[11] == "2026-11-03"
-    }));
+    assert!(
+        records
+            .iter()
+            .all(|row| { row[10] == "2026-11-01" && row[11] == "2026-11-03" })
+    );
 }
