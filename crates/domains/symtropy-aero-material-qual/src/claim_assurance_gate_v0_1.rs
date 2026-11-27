@@ -1076,7 +1076,7 @@ mod tests {
             .iter_mut()
             .find(|record| record.evidence_ref == model.evidence_ref)
             .expect("model evidence reference is included in owner cut");
-        model_record.subject_ref = model.model_ref.clone();
+        model_record.subject_ref = cut.physical_unit_ref.clone();
         model_record.configuration_ref = model.configuration_ref.clone();
         model_record.record_sha256 = model.compute_sha256().expect("model cut serializes");
         cut
