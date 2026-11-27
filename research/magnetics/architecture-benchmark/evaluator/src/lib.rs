@@ -519,14 +519,20 @@ fn evaluate_candidate(
     let has_not_comparable = blockers.iter().any(|blocker| {
         matches!(
             blocker,
-            Blocker::ScopeMismatch
+            Blocker::MissingIdentity
+                | Blocker::ScopeMismatch
+                | Blocker::WrongArchitectureRole
                 | Blocker::MissingRequiredBaseline
                 | Blocker::MissingRequiredBaselineFamilies
                 | Blocker::NoConventionalPmBaseline
                 | Blocker::NoCandidateArchitecture
                 | Blocker::InvalidMetricSet
+                | Blocker::DuplicateMetricSpec
+                | Blocker::InvalidHardBounds
+                | Blocker::MissingNonInferiorityMargin
                 | Blocker::DuplicateArchitectureId
                 | Blocker::DuplicateComponentId
+                | Blocker::ReluctanceOnlyCannotBeSoleBaseline
         )
     });
     let decision = if has_not_comparable {
@@ -536,25 +542,9 @@ fn evaluate_candidate(
     } else if hard_unresolved
         || missing_metrics
         || !all_baselines_have_admissible_evidence
-        || blockers.iter().any(|blocker| {
-            matches!(
-                blocker,
-                Blocker::MissingM4Acceptance
-                    | Blocker::NonQualifiedAcceptance
-                    | Blocker::InadmissibleEvidenceClass
-                    | Blocker::MissingMetricObservation
-                    | Blocker::DuplicateMetricObservation
-                    | Blocker::WrongMetricUnit
-                    | Blocker::MissingMeasurementMethod
-                    | Blocker::InvalidOptimizationReceipt
-                    | Blocker::MissingOptimizationReceipt
-                    | Blocker::InvalidDigest
-                    | Blocker::NonFiniteMetric
-                    | Blocker::NegativeUncertainty
-                    | Blocker::UnresolvedHardLimit
-                    | Blocker::BaselineHardLimitUnresolved
-            )
-        })
+        || blockers
+            .iter()
+            .any(|blocker| *blocker != Blocker::NonInferiorMarginViolation)
     {
         Decision::Indeterminate
     } else if !all_baselines_non_inferior {
