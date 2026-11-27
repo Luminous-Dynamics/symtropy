@@ -842,9 +842,9 @@ mod tests {
             "acknowledged-without-authorization-rejected",
         ] {
             let case = report
-            .payload
-            .cases
-            .iter()
+                .payload
+                .cases
+                .iter()
                 .find(|case| case.case_id == id)
                 .unwrap();
             assert!(!case.accepted, "negative control {id} should reject");
