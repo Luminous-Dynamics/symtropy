@@ -1,4 +1,5 @@
 pub mod kite;
+pub mod kite_oracle;
 
 use std::collections::{BTreeMap, BTreeSet};
 
