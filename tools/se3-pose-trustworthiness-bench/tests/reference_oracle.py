@@ -180,6 +180,8 @@ def base_result(row: dict[str, str], disposition: str, reason: str | None) -> di
         "translation_error_m": None,
         "rotation_error_rad": None,
         "mahalanobis_squared": None,
+        "covariance_log_determinant": None,
+        "prediction_region_log_volume_95": None,
         "coverage_50": None,
         "coverage_80": None,
         "coverage_90": None,
@@ -281,6 +283,12 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     translation_error = math.sqrt(sum(value * value for value in delta_world))
     rotation_error = math.sqrt(sum(value * value for value in rotation_vector))
     coverages = [mahal <= threshold for _, threshold in CHI2]
+    covariance_logdet = 2.0 * sum(math.log(lower[index][index]) for index in range(6))
+    region_log_volume_95 = (
+        math.log(math.pi ** 3 / 6.0)
+        + 0.5 * covariance_logdet
+        + 3.0 * math.log(CHI2[3][1])
+    )
     ood = row["ood_flag"] == "true"
     symmetry = row["symmetry_ambiguous"] == "true"
     corr = int(row["correspondence_count"])
@@ -300,6 +308,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             "translation_error_m": f"{translation_error:.12f}",
             "rotation_error_rad": f"{rotation_error:.12f}",
             "mahalanobis_squared": f"{mahal:.12f}",
+            "covariance_log_determinant": f"{covariance_logdet:.12f}",
+            "prediction_region_log_volume_95": f"{region_log_volume_95:.12f}",
             "coverage_50": coverages[0],
             "coverage_80": coverages[1],
             "coverage_90": coverages[2],
@@ -381,6 +391,14 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         float(result["rotation_error_rad"]) for result in accepted
         if result["rotation_error_rad"] is not None
     ]
+    covariance_logd = [
+        float(result["covariance_log_determinant"]) for result in accepted
+        if result["covariance_log_determinant"] is not None
+    ]
+    region_log_volume = [
+        float(result["prediction_region_log_volume_95"]) for result in accepted
+        if result["prediction_region_log_volume_95"] is not None
+    ]
     risk = []
     for threshold in THRESHOLDS:
         selected = [
@@ -407,6 +425,7 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
     return {
         "valid_count": len(valid),
         "accepted_count": len(accepted),
+        "accepted_pose_coverage_fraction": None if not valid else f"{len(accepted) / len(valid):.12f}",
         "abstained_count": len(valid) - len(accepted),
         "invalid_count": len(results) - len(valid),
         "accepted_false_confident_95_count": false_count,
@@ -417,6 +436,8 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         "accepted_coverage_99": coverage("coverage_99"),
         "accepted_translation_p95_m": fmt_optional(translations, 0.95),
         "accepted_rotation_p95_rad": fmt_optional(rotations, 0.95),
+        "accepted_covariance_logdet_median": fmt_optional(covariance_logd, 0.5),
+        "accepted_95_region_log_volume_median": fmt_optional(region_log_volume, 0.5),
         "risk_coverage": risk,
     }
 
