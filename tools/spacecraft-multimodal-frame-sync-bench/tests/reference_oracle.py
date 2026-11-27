@@ -137,6 +137,15 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             "POSE_CSV_NOT_FROM_CORRECTED_FRAME_ALIGNED_REVISION",
         )
 
+    if row["sample_id"] != "/".join(
+        (row["spacecraft_id"], row["trajectory_id"], row["capture_timestamp"])
+    ):
+        return result_base(
+            row,
+            "OUT_OF_SCOPE",
+            "SAMPLE_ID_DOES_NOT_BIND_SPACECRAFT_TRAJECTORY_AND_TIMESTAMP",
+        )
+
     if not valid_timestamp(row["capture_timestamp"]):
         return result_base(row, "INVALID_INPUT", "CAPTURE_TIMESTAMP_INVALID")
 
@@ -154,6 +163,14 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
 
         if not valid_text(str(record["path"])) or not valid_sha(str(record["sha256"])):
             return result_base(row, "INVALID_INPUT", "MODALITY_PATH_OR_DIGEST_INVALID")
+
+        required_path_scope = f"{row['spacecraft_id']}/{row['trajectory_id']}/"
+        if required_path_scope not in str(record["path"]) or row["capture_timestamp"] not in str(record["path"]):
+            return result_base(
+                row,
+                "OUT_OF_SCOPE",
+                "MODALITY_PATH_DOES_NOT_BIND_TRAJECTORY_AND_FRAME_TIME",
+            )
 
         if (
             not valid_text(str(record["sensor_id"]))
