@@ -277,8 +277,8 @@ pub fn evaluate(case: &TerminalCase) -> TerminalResult {
         BoundState::Fail => {
             return result(
                 case,
-                TerminalDisposition::NotPassiveSafe,
-                "UPSTREAM_BOUND_FAIL",
+                TerminalDisposition::Indeterminate,
+                "UPSTREAM_BOUND_UNRESOLVED",
                 None,
                 "UPSTREAM_BOUND_PROVIDER_FAILED",
                 false,
@@ -623,7 +623,7 @@ mod tests {
         value.bounds.state = BoundState::Fail;
         assert_eq!(
             evaluate(&value).disposition,
-            TerminalDisposition::NotPassiveSafe
+            TerminalDisposition::Indeterminate
         );
     }
 
