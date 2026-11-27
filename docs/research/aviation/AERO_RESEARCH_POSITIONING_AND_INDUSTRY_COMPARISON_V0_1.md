@@ -83,6 +83,18 @@ References:
 - [Siemens: Digital approach to airworthiness](https://static.sw.cdn.siemens.com/siemens-disw-assets/public/OuFPhhtGA5To47IB60A4m/en-US/VM---Technical-guide---Digital-approach-to-airworthiness_tcm27-106699.pdf).
 - [IEEE Aerospace 2024: Automating Model Validation for Quantifying System Maturity & Quality Assurance](https://doi.org/10.1109/AERO58975.2024.10521227).
 
+### Current eVTOL simulation assurance: EASA MOC-5 and EUROCAE ED-342
+
+The fifth publication of EASA's Means of Compliance with the Special Condition VTOL, Issue 2 dated 5 November 2026, gives a current, concrete reference for simulation-supported compliance demonstration. It requires the representativeness and limitations of simulation benches and models to be established, including failure cases; where flight-test data are available they should support representativeness, and the guidance addresses validation of models for hazardous or catastrophic failure cases. It also requires relevant functional/operational impacts of model limitations to be documented and included in configuration management. The EASA text emphasises aircraft-level, multi-system representativeness rather than a narrow isolated component view.
+
+EUROCAE ED-342, published September 2026, describes a structured approach to using simulation in VTOL handling-qualities certification and presents simulation as a means of compliance for cases where flight testing may be reduced or partially substituted by pilot-in-the-loop simulation. This increases—not decreases—the importance of documenting simulator configuration, flight domain, failure cases, model representativeness and limitations.
+
+Implication: this is a strong transfer domain for AERO after the structural-material benchmark is established. A future eVTOL challenge should test whether the same claim capsule can bind: (a) aircraft and configuration identity; (b) simulator bench and model version; (c) failure-case and flight-envelope coverage; (d) flight-test / rig / validation artefacts; (e) owner-stated model representativeness and limits; and (f) the configuration-management state used for the compliance demonstration. AERO should report missing or mismatched evidence; the model owner and authorised applicant/authority retain the engineering and approval decisions.
+
+References:
+- [EASA MOC-5 SC-VTOL, Issue 2, 5 November 2026](https://www.easa.europa.eu/en/downloads/144423/en).
+- [EUROCAE ED-342: Guidance on Using Simulation in Handling Qualities Certification of VTOL (September 2026)](https://www.eurocae.net/product/ed-342-guidance-on-using-simulation-in-handling-qualities-certification-of-vtol/).
+
 ### Certification acceptance and existing assurance tooling
 
 AERO must operate alongside established certification and assurance infrastructure, not imply that it replaces it.
