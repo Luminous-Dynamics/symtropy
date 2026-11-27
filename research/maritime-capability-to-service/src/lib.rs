@@ -1,8 +1,6 @@
 pub mod kite;
 pub mod kite_oracle;
 
-pub mod kite;
-
 use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(test)]
@@ -1652,4 +1650,3 @@ mod tests {
         );
     }
 }
-pub mod kite_oracle;
