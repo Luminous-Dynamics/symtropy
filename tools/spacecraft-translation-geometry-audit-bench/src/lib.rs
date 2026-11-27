@@ -243,8 +243,8 @@ fn ceil_sqrt(value: u128) -> Option<u64> {
 }
 
 fn displacement_mpx(dx: i64, dy: i64) -> Option<u64> {
-    let x = i128::from(dx).abs() as u128;
-    let y = i128::from(dy).abs() as u128;
+    let x = i128::from(dx).unsigned_abs();
+    let y = i128::from(dy).unsigned_abs();
     let squared = x.checked_mul(x)?.checked_add(y.checked_mul(y)?)?;
     ceil_sqrt(squared)
 }
@@ -669,13 +669,12 @@ pub fn audit_manifest(frames: &[FrameAnnotations]) -> Result<AuditReceipt, Strin
         }
         if let Some(existing) =
             scopes.insert(frame.metadata.unit_id.clone(), frame.metadata.scope.clone())
+            && existing != frame.metadata.scope
         {
-            if existing != frame.metadata.scope {
-                return Err(format!(
-                    "unit {} crosses geometry audit scopes",
-                    frame.metadata.unit_id
-                ));
-            }
+            return Err(format!(
+                "unit {} crosses geometry audit scopes",
+                frame.metadata.unit_id
+            ));
         }
         units
             .entry(frame.metadata.unit_id.clone())
