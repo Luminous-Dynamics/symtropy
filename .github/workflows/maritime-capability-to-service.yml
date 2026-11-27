@@ -2,7 +2,7 @@ name: Maritime Capability-to-Service Reference
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-kite-reusable-replay-v0]
     paths:
       - "research/maritime-capability-to-service/**"
       - "docs/research/maritime-capability-to-service/**"
