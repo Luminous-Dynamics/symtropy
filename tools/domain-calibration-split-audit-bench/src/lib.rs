@@ -79,10 +79,9 @@ fn add_partition(
 fn cross_partition_leaks(values: BTreeMap<String, BTreeSet<String>>) -> Vec<String> {
     values
         .into_iter()
-        .filter_map(|(identity, partitions)| {
-            (partitions.len() > 1).then(|| {
-                format!("{identity}:{}", partitions.into_iter().collect::<Vec<_>>().join("|"))
-            })
+        .filter(|(_, partitions)| partitions.len() > 1)
+        .map(|(identity, partitions)| {
+            format!("{identity}:{}", partitions.into_iter().collect::<Vec<_>>().join("|"))
         })
         .collect()
 }
@@ -184,12 +183,14 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
     let missing_partitions = ["TRAIN", "CALIBRATION", "TEST"]
         .iter()
         .enumerate()
-        .filter_map(|(index, name)| (partition_counts[index] == 0).then(|| (*name).to_owned()))
+        .filter(|(index, _)| partition_counts[*index] == 0)
+        .map(|(_, name)| (*name).to_owned())
         .collect::<Vec<_>>();
 
     let duplicate_sample_ids = sample_counts
         .into_iter()
-        .filter_map(|(sample, count)| (count > 1).then_some(sample))
+        .filter(|(_, count)| *count > 1)
+        .map(|(sample, _)| sample)
         .collect::<Vec<_>>();
 
     let group_leaks = cross_partition_leaks(group_partitions);
@@ -344,6 +345,33 @@ mod tests {
         rows[1].split_group_kind = "TARGET".to_owned();
         rows[1].split_group_id = rows[1].target_id.clone();
         assert!(audit_rows(&rows).is_err());
+    }
+
+
+    #[test]
+    fn target_disjoint_mode_uses_target_identity() {
+        let mut rows = clean_rows();
+        for (index, row) in rows.iter_mut().enumerate() {
+            row.target_id = format!("target-{index}");
+            row.split_group_kind = "TARGET".to_owned();
+            row.split_group_id = row.target_id.clone();
+        }
+        let receipt = audit_rows(&rows).expect("target-disjoint manifest");
+        assert_eq!(receipt.disposition, "PASS_SPLIT_INTEGRITY");
+        assert_eq!(receipt.split_group_kind, "TARGET");
+    }
+
+    #[test]
+    fn session_disjoint_mode_uses_session_identity() {
+        let mut rows = clean_rows();
+        for (index, row) in rows.iter_mut().enumerate() {
+            row.session_id = format!("session-{index}");
+            row.split_group_kind = "SESSION".to_owned();
+            row.split_group_id = row.session_id.clone();
+        }
+        let receipt = audit_rows(&rows).expect("session-disjoint manifest");
+        assert_eq!(receipt.disposition, "PASS_SPLIT_INTEGRITY");
+        assert_eq!(receipt.split_group_kind, "SESSION");
     }
 
     #[test]
