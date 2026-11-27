@@ -296,7 +296,7 @@ fn action_executability(case: &ReplayCase) -> Truth {
     Truth::Yes
 }
 
-fn by_id(cases: &[ReplayCase], id: &str) -> &ReplayCase {
+fn by_id<'a>(cases: &'a [ReplayCase], id: &str) -> &'a ReplayCase {
     cases
         .iter()
         .find(|case| case.id == id)
