@@ -15,8 +15,8 @@ use super::decision_context_v0_1::{
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::owner_evidence_cut_v0_1::{
-    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
-    OwnerEvidenceLifecycle, OwnerObserverCoverageStatus,
+    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness, OwnerEvidenceLifecycle,
+    OwnerObserverCoverageStatus,
 };
 use super::vector_watermark_v0_1::{CutAssessment, CutStatus};
 use serde::Serialize;
@@ -1439,9 +1439,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Unverified);
-        assert!(result.reason_codes.contains(
-            &"BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned())
+        );
     }
 
     #[test]
@@ -1457,9 +1459,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Unverified);
-        assert!(result.reason_codes.contains(
-            &"MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned())
+        );
     }
 
     #[test]
@@ -1478,15 +1482,21 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned()
-        ));
-        assert!(result.reason_codes.contains(
-            &"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()
-        ));
-        assert!(result.reason_codes.contains(
-            &"BASALT_EVIDENCE_REVERIFICATION_REQUIRED:receipt:inspection-01".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned())
+        );
+        assert!(
+            result.reason_codes.contains(
+                &"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()
+            )
+        );
+        assert!(
+            result.reason_codes.contains(
+                &"BASALT_EVIDENCE_REVERIFICATION_REQUIRED:receipt:inspection-01".to_owned()
+            )
+        );
     }
 
     #[test]
@@ -1522,9 +1532,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"OWNER_EVIDENCE_REFERENCE_NOT_IN_CUT:receipt:inspection-01".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_EVIDENCE_REFERENCE_NOT_IN_CUT:receipt:inspection-01".to_owned())
+        );
     }
 
     #[test]
@@ -1540,9 +1552,11 @@ mod tests {
             &wrong_subject,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_PHYSICAL_UNIT_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_PHYSICAL_UNIT_MISMATCH".to_owned())
+        );
 
         let mut wrong_configuration = owner_cut_for_evidence(&evidence);
         wrong_configuration.configuration_ref = "configuration:wing-r18".to_owned();
@@ -1554,9 +1568,11 @@ mod tests {
             &wrong_configuration,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_CONFIGURATION_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_CONFIGURATION_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1572,9 +1588,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1590,9 +1608,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::OutOfScope);
-        assert!(result.reason_codes.contains(
-            &"BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned())
+        );
     }
 
     #[test]
@@ -1608,9 +1628,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_RECEIPT_WATERMARK_AFTER_CONTEXT_SNAPSHOT".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_RECEIPT_WATERMARK_AFTER_CONTEXT_SNAPSHOT".to_owned())
+        );
     }
 
     #[test]
