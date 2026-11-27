@@ -88,7 +88,7 @@ cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo
 
 The current Rust reference parses the frozen service obligation, dependency inventory, day-zero shock and alternatives; rejects unknown/duplicate dependencies and unsupported shock timing; computes no-shock and shocked receiver days; preserves the expected-unit denominator; and emits a deterministic tab-delimited receipt containing source inputs and outcomes.
 
-Six Rust tests are authored: the five hand-calculated known answers, full denominator retention for a late option, input-record-order invariance, unknown-dependency rejection, duplicate-dependency rejection and rejection of later-starting shocks. The exact-head GitHub Actions workflow also runs formatting, locked tests, strict Clippy and the CLI receipt.
+Six Rust unit tests and one separately implemented Rust integration-test oracle are authored. The unit suite covers the five hand-calculated known answers, full denominator retention for a late option, input-record-order invariance, unknown-dependency rejection, duplicate-dependency rejection and rejection of later-starting shocks. The integration test independently parses the fixture and reconstructs every receipt outcome without calling the library parser or evaluator. The exact-head GitHub Actions workflow also runs formatting, locked tests, strict Clippy and the CLI receipt.
 
 **Qualification status:** this authored crate and workflow have not yet been observed passing at the current PR head. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed. The hand calculation is an independent arithmetic check, not a separately implemented oracle.
 
@@ -101,7 +101,7 @@ The result is conditional on the exact declared synthetic dependency topology an
 ## Next qualification steps
 
 1. Observe exact-head formatting, test, strict-Clippy and deterministic receipt results; address every failure without weakening gates.
-2. Add an independent reference implementation and mutation controls for shared transitive dependencies, stale/revoked evidence, inspection failure, revision mismatch, unknown dependency remainder, partial delivery and denominator deletion.
+2. Add mutation controls for shared transitive dependencies, stale/revoked evidence, inspection failure, revision mismatch, unknown dependency remainder, partial delivery and denominator deletion.
 3. Extend to at least 15 tiny cases and 30 total cases, then hold out complete disruption families.
 4. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 5. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
