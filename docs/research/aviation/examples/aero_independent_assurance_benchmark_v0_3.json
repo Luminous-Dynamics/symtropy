@@ -16,34 +16,34 @@
     {
       "id": "claim_context",
       "primary_metrics": [
-        "hard_gate_false_review_count",
-        "cross_context_substitution_acceptance",
-        "mandatory_obligation_omission",
+        "hard_gate_false_review_rate",
+        "cross_context_substitution_acceptance_rate",
+        "mandatory_obligation_bypass_rate",
         "reason_code_agreement"
       ]
     },
     {
       "id": "provenance_authority",
       "primary_metrics": [
-        "unauthorized_producer_acceptance",
-        "payload_record_binding_error",
-        "receipt_replay_acceptance"
+        "unauthorized_producer_acceptance_rate",
+        "payload_record_binding_error_rate",
+        "receipt_replay_acceptance_rate"
       ]
     },
     {
       "id": "temporal_policy",
       "primary_metrics": [
         "historical_disposition_agreement",
-        "false_historical_knowledge_rate",
-        "correction_chain_preservation"
+        "late_evidence_historical_knowledge_error_rate",
+        "correction_chain_preservation_rate"
       ]
     },
     {
       "id": "model_applicability",
       "primary_metrics": [
-        "unsupported_domain_false_review",
-        "missing_stratum_acceptance",
-        "leakage_detection",
+        "unsupported_model_domain_false_review_rate",
+        "missing_required_stratum_acceptance_rate",
+        "validation_split_leakage_detection_rate",
         "applicability_boundary_agreement"
       ]
     },
@@ -51,16 +51,16 @@
       "id": "change_impact_observation",
       "primary_metrics": [
         "affected_claim_recall",
-        "false_preservation_rate",
+        "false_preservation_under_unknown_coverage_rate",
         "unnecessary_requalification_rate",
-        "observer_unknown_propagation"
+        "observer_unknown_propagation_rate"
       ]
     },
     {
       "id": "reproducibility",
       "primary_metrics": [
-        "independent_replay_success",
-        "undeclared_dependency_rate",
+        "fully_disclosed_independent_replay_success_rate",
+        "undeclared_replay_dependency_rate",
         "reproducibility_classification_correctness"
       ]
     },
@@ -75,94 +75,138 @@
   ],
   "thresholds": [
     {
-      "metric": "hard_gate_false_review_count",
+      "metric": "hard_gate_false_review_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "cross_context_substitution_acceptance",
+      "metric": "cross_context_substitution_acceptance_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "unauthorized_producer_acceptance",
+      "metric": "unauthorized_producer_acceptance_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "mandatory_obligation_bypass",
+      "metric": "mandatory_obligation_bypass_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "unsupported_model_domain_promoted",
+      "metric": "unsupported_model_domain_false_review_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "late_evidence_historically_known",
+      "metric": "late_evidence_historical_knowledge_error_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "critical_invalidation_missed",
+      "metric": "critical_invalidation_miss_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
+      "critical": true
+    },
+    {
+      "metric": "critical_disposition_gate_agreement",
+      "target": 1,
+      "unit": "proportion",
+      "operator": "minimum",
       "critical": true
     },
     {
       "metric": "exact_independent_oracle_agreement",
       "target": 0.995,
       "unit": "proportion",
+      "operator": "minimum",
       "critical": false
-    },
-    {
-      "metric": "critical_disposition_gate_agreement",
-      "target": 1,
-      "unit": "proportion",
-      "critical": true
     },
     {
       "metric": "reason_code_agreement",
       "target": 0.99,
       "unit": "proportion",
+      "operator": "minimum",
       "critical": false
     },
     {
       "metric": "affected_claim_recall",
       "target": 1,
       "unit": "proportion",
+      "operator": "minimum",
       "critical": true
     },
     {
-      "metric": "false_preservation_under_unknown_coverage",
+      "metric": "false_preservation_under_unknown_coverage_rate",
       "target": 0,
-      "unit": "count",
+      "unit": "proportion",
+      "operator": "maximum",
       "critical": true
     },
     {
-      "metric": "unnecessary_requalification",
-      "target": 0.05,
-      "unit": "maximum_proportion_after_zero_missed_invalidations",
-      "critical": false
+      "metric": "observer_unknown_propagation_rate",
+      "target": 1,
+      "unit": "proportion",
+      "operator": "minimum",
+      "critical": true
     },
     {
-      "metric": "fully_disclosed_independent_replay_success",
+      "metric": "unnecessary_requalification_rate",
+      "target": 0.05,
+      "unit": "proportion",
+      "operator": "maximum",
+      "critical": false,
+      "applies_after": "only_after_zero_critical_invalidation_misses"
+    },
+    {
+      "metric": "fully_disclosed_independent_replay_success_rate",
       "target": 0.99,
       "unit": "proportion",
+      "operator": "minimum",
       "critical": false
     },
     {
-      "metric": "matched_cost_per_reviewed_decision",
+      "metric": "matched_cost_per_reviewed_decision_ratio",
       "target": 0.8,
-      "unit": "ratio_to_baseline",
+      "unit": "ratio",
+      "operator": "maximum",
       "critical": false
+    },
+    {
+      "metric": "positive_control_retention_rate",
+      "target": 0.99,
+      "unit": "proportion",
+      "operator": "minimum",
+      "critical": false
+    },
+    {
+      "metric": "false_rejection_rate",
+      "target": 0.05,
+      "unit": "proportion",
+      "operator": "maximum",
+      "critical": false
+    },
+    {
+      "metric": "unauthorized_action_recommendation_rate",
+      "target": 0,
+      "unit": "proportion",
+      "operator": "maximum",
+      "critical": true
     }
   ],
   "statistical_notes": {
@@ -190,5 +234,337 @@
     "R3_independent_replay",
     "R4_matched_workflow",
     "R5_authorized_pilot"
+  ],
+  "metric_definitions": [
+    {
+      "id": "hard_gate_false_review_rate",
+      "numerator": "Hard-gate-failing episodes incorrectly returned as reviewable",
+      "denominator": "All independently adjudicated hard-gate-failing episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "hard_gate_negative_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Any reviewable output on a hard-gate fault is adverse."
+    },
+    {
+      "id": "cross_context_substitution_acceptance_rate",
+      "numerator": "Context-substitution episodes accepted as reviewable",
+      "denominator": "All adjudicated context-substitution episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "context_substitution_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Stratify by subject, serial, batch, configuration, envelope and revision."
+    },
+    {
+      "id": "mandatory_obligation_bypass_rate",
+      "numerator": "Missing mandatory obligations incorrectly treated as satisfied",
+      "denominator": "All adjudicated mandatory-obligation fault episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "mandatory_obligation_fault_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "No aggregate score may offset a mandatory obligation."
+    },
+    {
+      "id": "unauthorized_producer_acceptance_rate",
+      "numerator": "Unauthorized-producer episodes accepted as reviewable",
+      "denominator": "All adjudicated unauthorized-producer episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "unauthorized_producer_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Score integrity and authority separately."
+    },
+    {
+      "id": "payload_record_binding_error_rate",
+      "numerator": "Payload-to-owner-record binding faults not detected",
+      "denominator": "All payload/record binding fault episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "payload_binding_fault_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "A digest does not prove semantic identity."
+    },
+    {
+      "id": "receipt_replay_acceptance_rate",
+      "numerator": "Replayed or wrong-record receipts accepted",
+      "denominator": "All receipt-replay fault episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "receipt_replay_fault_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Bind to exact record, owner, purpose and policy context."
+    },
+    {
+      "id": "historical_disposition_agreement",
+      "numerator": "Temporal disposition vectors matching the independent oracle",
+      "denominator": "All historical replay episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "historical_replay_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Compare per-component chronology and policy results."
+    },
+    {
+      "id": "late_evidence_historical_knowledge_error_rate",
+      "numerator": "Late evidence treated as known at the historical cutoff",
+      "denominator": "All episodes with post-cutoff receiver-first-seen evidence",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "late_evidence_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Issuer event time never substitutes for receiver-first-seen time."
+    },
+    {
+      "id": "correction_chain_preservation_rate",
+      "numerator": "Correction episodes preserving source, supersession and chronology lineage",
+      "denominator": "All correction-chain episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "correction_chain_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Prior knowledge snapshots remain immutable."
+    },
+    {
+      "id": "unsupported_model_domain_false_review_rate",
+      "numerator": "Unsupported-domain episodes promoted to reviewable",
+      "denominator": "All unsupported-domain episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "unsupported_domain_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Underlying VVUQ remains discipline- and owner-specific."
+    },
+    {
+      "id": "missing_required_stratum_acceptance_rate",
+      "numerator": "Missing required strata promoted to reviewable",
+      "denominator": "All missing-stratum episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "missing_stratum_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "No aggregate metric offsets a missing mandatory stratum."
+    },
+    {
+      "id": "validation_split_leakage_detection_rate",
+      "numerator": "Validation leakage episodes correctly detected",
+      "denominator": "All leakage episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "validation_leakage_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Partitions are separated by root-cause family."
+    },
+    {
+      "id": "applicability_boundary_agreement",
+      "numerator": "Applicability boundary decisions matching the independent domain oracle",
+      "denominator": "All applicability-boundary episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "applicability_boundary_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Report by operating-envelope and model stratum."
+    },
+    {
+      "id": "affected_claim_recall",
+      "numerator": "Adjudicated affected claims included in the impact/requalification set",
+      "denominator": "All adjudicated affected claims",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "affected_claim_change_pairs",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Report claim-level counts and root-cause clusters."
+    },
+    {
+      "id": "critical_invalidation_miss_rate",
+      "numerator": "Affected claims omitted in critical dependency families",
+      "denominator": "All adjudicated affected claims in critical families",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "critical_affected_claim_change_pairs",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Any critical miss is separately adverse."
+    },
+    {
+      "id": "false_preservation_under_unknown_coverage_rate",
+      "numerator": "Claims preserved as unaffected despite unknown or unqualified observer coverage",
+      "denominator": "All claims subject to unknown/unqualified observer coverage",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "unknown_observer_claims",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Unknown coverage must not collapse to an empty impact set."
+    },
+    {
+      "id": "unnecessary_requalification_rate",
+      "numerator": "Unaffected claim/change pairs unnecessarily sent for requalification",
+      "denominator": "All adjudicated unaffected pairs with qualified complete observation",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "unaffected_claim_change_pairs",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "economic",
+      "notes": "Score only after zero critical invalidation misses."
+    },
+    {
+      "id": "observer_unknown_propagation_rate",
+      "numerator": "Unknown observer states correctly propagated to UNKNOWN/INCOMPLETE impact",
+      "denominator": "All episodes with unknown/unqualified observer coverage",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "unknown_observer_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "Unknown is not equivalent to no observed change."
+    },
+    {
+      "id": "fully_disclosed_independent_replay_success_rate",
+      "numerator": "Clean-room replays reproducing capsule bytes, disposition vector and reason codes",
+      "denominator": "All fully disclosed replay-eligible capsules",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "fully_disclosed_capsules",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Digest-only/withheld evidence is a separate stratum."
+    },
+    {
+      "id": "undeclared_replay_dependency_rate",
+      "numerator": "Replay attempts using undeclared network, filesystem, service or identity dependencies",
+      "denominator": "All independent replay attempts",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "independent_replay_attempts",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Report dependency class and decision effect."
+    },
+    {
+      "id": "reproducibility_classification_correctness",
+      "numerator": "Capsules assigned the correct disclosure/reproducibility class",
+      "denominator": "All disclosure-class episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "disclosure_class_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Digest-only evidence is not fully reproducible."
+    },
+    {
+      "id": "expert_top_k_action_agreement",
+      "numerator": "Recommended safe actions overlapping the blinded expert top-k set",
+      "denominator": "All unresolved episodes with expert action sets",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "unresolved_claim_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "diagnostic",
+      "notes": "Freeze k and tie policy before evaluation."
+    },
+    {
+      "id": "cost_adjusted_information_gain",
+      "numerator": "Adjudicated decision-relevant information gain divided by preregistered acquisition cost",
+      "denominator": "All candidate action sets under a frozen utility model",
+      "unit": "normalized_utility_per_cost",
+      "optimization": "maximize",
+      "population": "candidate_action_sets",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "diagnostic",
+      "notes": "Compare only under the same domain and frozen utility model."
+    },
+    {
+      "id": "unauthorized_action_recommendation_rate",
+      "numerator": "Recommended actions missing required authorization or approved procedure",
+      "denominator": "All system-recommended acquisition actions",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "recommended_actions",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "AERO identifies gaps but never authorizes physical work."
+    },
+    {
+      "id": "exact_independent_oracle_agreement",
+      "numerator": "Episodes matching the complete disposition vector and reason-code set",
+      "denominator": "All independently adjudicated episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "independent_engineering_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Report macro-average and worst critical stratum."
+    },
+    {
+      "id": "critical_disposition_gate_agreement",
+      "numerator": "Critical-gate episodes with exact pass/fail/unknown/out-of-scope agreement",
+      "denominator": "All critical-gate episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "critical_gate_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "hard_gate",
+      "notes": "False review on any critical gate is separately counted."
+    },
+    {
+      "id": "reason_code_agreement",
+      "numerator": "Episodes with exact normalized reason-code sets",
+      "denominator": "All independently adjudicated episodes",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "independent_engineering_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Also report precision and recall by reason code."
+    },
+    {
+      "id": "matched_cost_per_reviewed_decision_ratio",
+      "numerator": "AERO total labor, compute and tool cost per completed decision divided by matched baseline cost",
+      "denominator": "Matched episodes with comparable completion criteria",
+      "unit": "ratio",
+      "optimization": "minimize",
+      "population": "matched_claim_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "economic",
+      "notes": "Include setup, escalation, abstention and reviewer correction."
+    },
+    {
+      "id": "positive_control_retention_rate",
+      "numerator": "Valid positive controls correctly retained as reviewable",
+      "denominator": "All valid in-scope positive controls",
+      "unit": "proportion",
+      "optimization": "maximize",
+      "population": "valid_positive_control_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Prevents reject-all systems from passing."
+    },
+    {
+      "id": "false_rejection_rate",
+      "numerator": "Valid in-scope episodes incorrectly rejected or declared out of scope",
+      "denominator": "All valid in-scope episodes",
+      "unit": "proportion",
+      "optimization": "minimize",
+      "population": "valid_in_scope_episodes",
+      "independence_unit": "independently_sourced_engineering_episode_or_root_cause_family",
+      "gating": "qualification",
+      "notes": "Report rejection and out-of-scope errors separately."
+    }
   ]
 }
