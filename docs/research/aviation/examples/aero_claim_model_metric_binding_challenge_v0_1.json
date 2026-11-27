@@ -225,6 +225,24 @@
       "mutation": "Permute order of the required strata and required evidence references without changing membership.",
       "expected_disposition": "SEMANTICS_BOUND",
       "expected_reason_codes": []
+    },
+    {
+      "case_id": "MB26",
+      "case_class": "single_fault",
+      "mutation": "Remove the owner-native receiver-first-seen receipt while retaining the timestamp interval fields.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_RECEIPT_OWNER_RECORD_MISSING"
+      ]
+    },
+    {
+      "case_id": "MB27",
+      "case_class": "single_fault",
+      "mutation": "Reuse the metric semantic receipt as the receiver-first-seen receipt role.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_METRIC_BINDING_OWNER_RECORD_ROLE_REUSED"
+      ]
     }
   ]
 }
