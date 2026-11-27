@@ -234,8 +234,7 @@ fn validate_candidate_manifest(manifest: &CandidateManifest) -> Result<(), Strin
                     episode.episode_id, frame.frame_id
                 ));
             }
-            let offset = u64::try_from(index)
-                .map_err(|_| "frame index exceeds u64".to_string())?;
+            let offset = u64::try_from(index).map_err(|_| "frame index exceeds u64".to_string())?;
             let expected_sequence = episode
                 .first_sequence
                 .checked_add(offset)
@@ -273,12 +272,10 @@ fn validate_candidate_manifest(manifest: &CandidateManifest) -> Result<(), Strin
             previous_timestamp = Some(frame.timestamp_us);
         }
 
-        let start = first_timestamp.ok_or_else(|| {
-            format!("episode {} has no first timestamp", episode.episode_id)
-        })?;
-        let end = previous_timestamp.ok_or_else(|| {
-            format!("episode {} has no last timestamp", episode.episode_id)
-        })?;
+        let start = first_timestamp
+            .ok_or_else(|| format!("episode {} has no first timestamp", episode.episode_id))?;
+        let end = previous_timestamp
+            .ok_or_else(|| format!("episode {} has no last timestamp", episode.episode_id))?;
         if end - start > episode.horizon_us {
             return Err(format!(
                 "episode {} exceeds its declared fixed horizon",
@@ -315,7 +312,10 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
         for (field, value) in [
             ("episode_id", row.episode_id.as_str()),
             ("parent_episode_id", row.parent_episode_id.as_str()),
-            ("counterfactual_group_id", row.counterfactual_group_id.as_str()),
+            (
+                "counterfactual_group_id",
+                row.counterfactual_group_id.as_str(),
+            ),
             ("target_id", row.independent_unit.target_id.as_str()),
             ("session_id", row.independent_unit.session_id.as_str()),
             ("trajectory_id", row.independent_unit.trajectory_id.as_str()),
@@ -420,9 +420,7 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
         ] {
             if let Some(existing) = map.insert(value.to_string(), row.split) {
                 if existing != row.split {
-                    return Err(format!(
-                        "{name} {value} leaks across dataset splits"
-                    ));
+                    return Err(format!("{name} {value} leaks across dataset splits"));
                 }
             }
         }
@@ -469,7 +467,9 @@ fn validate_and_score(
         .map(|prediction| prediction.episode_id.as_str())
         .collect();
     if manifest_ids != ledger_ids {
-        return Err("candidate manifest and evaluator ledger episode identities differ".to_string());
+        return Err(
+            "candidate manifest and evaluator ledger episode identities differ".to_string(),
+        );
     }
     if manifest_ids != prediction_ids {
         return Err("candidate manifest and prediction episode identities differ".to_string());
@@ -630,8 +630,8 @@ fn validate_and_score(
 }
 
 fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, String> {
-    let metadata = fs::metadata(path)
-        .map_err(|error| format!("cannot stat {}: {error}", path.display()))?;
+    let metadata =
+        fs::metadata(path).map_err(|error| format!("cannot stat {}: {error}", path.display()))?;
     if metadata.len() > MAX_INPUT_BYTES {
         return Err(format!(
             "input {} exceeds {} bytes",
@@ -639,8 +639,8 @@ fn read_json<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, String> {
             MAX_INPUT_BYTES
         ));
     }
-    let bytes = fs::read(path)
-        .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
+    let bytes =
+        fs::read(path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
     serde_json::from_slice(&bytes)
         .map_err(|error| format!("invalid JSON in {}: {error}", path.display()))
 }
@@ -679,10 +679,8 @@ fn run() -> Result<(), String> {
 
     let manifest_path = manifest_path.ok_or_else(|| "missing --manifest".to_string())?;
     let ledger_path = ledger_path.ok_or_else(|| "missing --ledger".to_string())?;
-    let predictions_path =
-        predictions_path.ok_or_else(|| "missing --predictions".to_string())?;
-    let expected_unsafe =
-        expected_unsafe.ok_or_else(|| "missing --expect-unsafe".to_string())?;
+    let predictions_path = predictions_path.ok_or_else(|| "missing --predictions".to_string())?;
+    let expected_unsafe = expected_unsafe.ok_or_else(|| "missing --expect-unsafe".to_string())?;
 
     let manifest: CandidateManifest = read_json(Path::new(&manifest_path))?;
     let ledger: EvaluatorLedger = read_json(Path::new(&ledger_path))?;
@@ -714,14 +712,18 @@ fn main() {
 mod tests {
     use super::*;
 
-    const MANIFEST: &str =
-        include_str!("../../../research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json");
-    const LEDGER: &str =
-        include_str!("../../../research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json");
-    const SAFE_PREDICTIONS: &str =
-        include_str!("../../../research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json");
-    const UNSAFE_PREDICTIONS: &str =
-        include_str!("../../../research/spacecraft/cfi-space/fixtures/synthetic-predictions-unsafe-v0.1.json");
+    const MANIFEST: &str = include_str!(
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json"
+    );
+    const LEDGER: &str = include_str!(
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json"
+    );
+    const SAFE_PREDICTIONS: &str = include_str!(
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json"
+    );
+    const UNSAFE_PREDICTIONS: &str = include_str!(
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-predictions-unsafe-v0.1.json"
+    );
 
     fn parse<T: serde::de::DeserializeOwned>(source: &str) -> T {
         serde_json::from_str(source).unwrap()
