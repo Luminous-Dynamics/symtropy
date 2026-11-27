@@ -463,7 +463,7 @@ def main() -> int:
     with corpus.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.DictReader(handle))
 
-    assert len(rows) == 42, f"expected 42 cases, found {len(rows)}"
+    assert len(rows) == 45, f"expected 45 cases, found {len(rows)}"
     assert len({row["case_id"] for row in rows}) == len(rows), "duplicate case ID"
     results = evaluate_manifest(rows)
     expected = {row["case_id"]: row["expected"] for row in rows}
