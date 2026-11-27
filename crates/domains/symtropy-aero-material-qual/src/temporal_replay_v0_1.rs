@@ -165,7 +165,7 @@ fn same_event_semantics(left: &Value, right: &Value) -> bool {
     ];
     SEMANTIC_FIELDS
         .iter()
-        .all(|field| left.get(field) == right.get(field))
+        .all(|field| left.get(*field) == right.get(*field))
 }
 
 fn identity_label(event: &Value, colliding_local_ids: &BTreeSet<String>) -> String {
