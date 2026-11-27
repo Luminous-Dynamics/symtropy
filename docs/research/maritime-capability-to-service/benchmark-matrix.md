@@ -232,6 +232,21 @@ Compose the canonical causal owners:
 
 The detailed [causal evaluation protocol](causal-evaluation-protocol.md) freezes interference-aware estimands, cluster/network exposure, randomized and phased rollouts, target-trial emulation, falsification controls, and the paired-site limitations. In particular, Ngqura and Durban are evidence-acquisition environments; two non-randomized sites alone cannot identify a causal regional-development effect.
 
+## Capability lifecycle, qualification decay and offer authority
+
+MCSC's next paradigm shift is from a static capability graph to a **time-bounded, configuration-bound capability option**. Reuse:
+- Mycelix #6533 for immutable, versioned manufacturing resource offers, provider/site/process references, capacity calendars, issuer authority, validity and revocation;
+- Symtropy #5710 for change-triggered claim invalidation, dependency closure and minimum requalification;
+- Symtropy #3121 for component/interface/composition/end-to-end VVUQ.
+
+An offer published is not a resolved resource; a resolved resource is not a qualified process; a qualified capability is not calendar availability; calendar availability is not a reservation; a reservation is not job authority; job execution is not inspection acceptance; and inspection acceptance is not receiver acceptance.
+
+The [capability lifecycle protocol](capability-lifecycle-protocol.md) defines these states, source/time/configuration joins, expiry and revocation, change-triggered requalification, SOVQC across a horizon, 20 micro-cases and proposed targets. MCSC consumes those owner-native transitions rather than recreating their registry or assurance graph.
+
+### Investment and renewal option value
+
+Compare not only the immediate service result of a qualified portfolio, but the time it becomes available, time it expires, cost to maintain/renew it, and service at risk while requalification occurs. Capability that becomes qualified after the required receiver deadline has no current-service credit. Skills, tools, materials, calibration and permits must all remain valid for the execution window. This is how we measure durable regional capability rather than counting machines or certificates.
+
 ## 9. New construct: service option value of qualified capability
 
 Treat a qualified regional capability as an **option to preserve or restore a service**, not simply as locally sourced spend.
