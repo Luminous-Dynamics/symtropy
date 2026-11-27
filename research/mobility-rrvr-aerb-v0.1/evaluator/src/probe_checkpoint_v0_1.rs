@@ -1605,7 +1605,9 @@ mod tests {
         abort.receipt_sha256 = physical_path_commitment(&abort).expect("abort commitment");
         input.physical_path_receipts = vec![hold, abort];
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::AbortProbe
         );
     }
@@ -1632,7 +1634,9 @@ mod tests {
         abort.receipt_sha256 = physical_path_commitment(&abort).expect("abort commitment");
         input.physical_path_receipts = vec![hold, abort];
         assert_eq!(
-            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            evaluate_checkpoint(&initial_cursor(), &input)
+                .expect("checkpoint")
+                .action,
             CheckpointAction::NoSafeContinuation
         );
     }
@@ -1666,5 +1670,4 @@ mod tests {
             ))
         );
     }
-
 }
