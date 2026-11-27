@@ -384,7 +384,8 @@ impl ModelCredibilityCutV0_1 {
         }
         let mut uncertainty_records = BTreeSet::new();
         for record in &self.uncertainty_components {
-            if !valid_sha256(&record.method_profile_sha256) || !valid_sha256(&record.report_sha256) {
+            if !valid_sha256(&record.method_profile_sha256) || !valid_sha256(&record.report_sha256)
+            {
                 errors.push("MODEL_CREDIBILITY_UNCERTAINTY_EVIDENCE_INVALID".to_owned());
             }
             if !uncertainty_records.insert(record.component) {
