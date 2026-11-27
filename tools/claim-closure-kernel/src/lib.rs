@@ -769,6 +769,8 @@ mod tests {
     use super::*;
 
     const POSITIVE_FIXTURE: &str = include_str!("../fixtures/positive-v0.1.json");
+    const MUTATION_BASE_FIXTURE: &str =
+        include_str!("../fixtures/mutation-base-v0.1.json");
     const MUTATION_CORPUS: &str = include_str!("../fixtures/mutation-cases-v0.1.json");
 
     #[derive(Deserialize)]
@@ -837,65 +839,8 @@ mod tests {
     }
 
     fn sample_input() -> ClaimClosureInput {
-        let mut measurement = evidence_record(
-            "evidence:measurement",
-            'a',
-            "measurement",
-            "part:wing-001",
-            "configuration:r17",
-            "scope:hot-static",
-            150,
-        );
-        measurement.dependencies.push(DependencyBinding {
-            evidence_ref: "evidence:calibration".to_owned(),
-            expected_record_sha256: digest('b'),
-        });
-
-        let mut calibration = evidence_record(
-            "evidence:calibration",
-            'b',
-            "calibration",
-            "instrument:load-cell-01",
-            "configuration:calibration-v3",
-            "scope:force-range-100kn",
-            110,
-        );
-        calibration.dependencies.push(DependencyBinding {
-            evidence_ref: "evidence:reference".to_owned(),
-            expected_record_sha256: digest('c'),
-        });
-
-        let reference = evidence_record(
-            "evidence:reference",
-            'c',
-            "reference_standard",
-            "standard:force-100kn",
-            "configuration:reference-v2",
-            "scope:force-range-100kn",
-            90,
-        );
-
-        ClaimClosureInput {
-            schema_version: INPUT_SCHEMA_VERSION.to_owned(),
-            claim: Claim {
-                claim_id: "claim:wing-panel-001".to_owned(),
-                subject_ref: "part:wing-001".to_owned(),
-                configuration_ref: "configuration:r17".to_owned(),
-                scope_ref: "scope:hot-static".to_owned(),
-                acquisition_start_unix_ms: 100,
-                acquisition_end_unix_ms: 120,
-                knowledge_cut_unix_ms: 160,
-                evaluated_at_unix_ms: 180,
-                requirements: vec![EvidenceRequirement {
-                    evidence_ref: "evidence:measurement".to_owned(),
-                    expected_record_sha256: digest('a'),
-                    role: "measurement".to_owned(),
-                    uncertainty_budget_ref: "uncertainty:evidence:measurement".to_owned(),
-                    uncertainty_budget_sha256: digest('3'),
-                }],
-            },
-            evidence_records: vec![measurement, calibration, reference],
-        }
+        serde_json::from_str(MUTATION_BASE_FIXTURE)
+            .expect("frozen mutation base fixture parses")
     }
 
     fn has_code(report: &ClosureReport, code: &str) -> bool {
