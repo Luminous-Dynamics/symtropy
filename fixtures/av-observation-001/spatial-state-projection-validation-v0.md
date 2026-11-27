@@ -183,3 +183,6 @@ The projection therefore uses:
 The validator must recompute each digest over the exact source representation agreed by its owner. The artifact digest is not the spatial projection digest; a source payload interpreted with a different pose/frame/clock/calibration/profile yields a different spatial statement.
 
 Do not silently convert BLAKE3 to SHA-256 and discard the upstream digest. If a downstream manifest requires SHA-256, preserve both source identity and derived artifact identity with an explicit derivation record.
+
+
+The v0 schema represents both calibration-state and clock-transform references as the same explicit algorithm/value object used for source content digests. Projection envelope, evidence-prefix, producer revision and parent projection digests remain SHA-256 by this schema's declared convention.
