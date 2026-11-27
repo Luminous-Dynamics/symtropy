@@ -112,7 +112,7 @@ pub struct ReplicationEvidence {
     pub cohort_policy_digest: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Capability {
     ConceptModel,
     CouponMaterialProperties,
@@ -340,7 +340,7 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         .filter(|receipt| {
             receipt.class == EvidenceClass::PhysicalMeasurement
                 && receipt.component_id.as_deref() == Some(candidate.component_id.as_str())
-                && receipt.geometry_digest.as_ref().is_some_and(valid_sha256)
+                && receipt.geometry_digest.as_ref().is_some_and(|digest| valid_sha256(digest.as_str()))
                 && method_evidence_complete(receipt)
         })
         .collect::<Vec<_>>();
@@ -1100,6 +1100,7 @@ fn build_findings(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::MaturityLevel::{M1, M2, M3, M4, M5};
 
     fn digest(ch: char) -> String {
         format!("sha256:{}", ch.to_string().repeat(64))
