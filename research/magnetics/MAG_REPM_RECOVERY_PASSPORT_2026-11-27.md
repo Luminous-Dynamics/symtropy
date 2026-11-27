@@ -63,7 +63,7 @@ For an input measurement interval (I=[m_i-u_i,m_i+u_i]) and all measured output 
 - (R.upper<0): measured outputs exceed input beyond uncertainty.
 - Otherwise: unresolved mass balance.
 
-Never silently assign unknown loss to a recovered product or normalize unexplained mass away. This v0.1 uses a fixed mass unit (mg) to avoid unit conversion ambiguity; a later adapter may add other units only with explicit conversion evidence.
+Never silently assign unknown loss to a recovered product or normalize unexplained mass away. This v0.1 uses a fixed mass unit (mg) to avoid unit conversion ambiguity; a later adapter may add other units only with explicit conversion evidence. The v0.1 evaluator computes total mass-balance intervals only; element-specific mass balances remain a separate method-scoped assay adapter and must not be inferred from total magnet mass.
 
 Elemental balances should be separate from total mass balances and require method-scoped composition assays. Do not infer Nd/Pr/Dy/Fe/B/Co/Ni/Cu/Al outputs from total magnet mass.
 
