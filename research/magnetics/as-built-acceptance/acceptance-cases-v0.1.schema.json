@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/magnetics/as-built-acceptance/acceptance-cases-v0.1.schema.json",
+  "title": "Synthetic as-built magnetic acceptance cases v0.1",
+  "description": "Structural schema only. Semantic acceptance is exercised by the Rust reference evaluator; these records are synthetic and are not physical evidence.",
+  "type": "object",
+  "required": ["schema_version", "program_id", "fixture_class", "claim_ceiling", "cases", "metamorphic_relations"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "program_id": { "const": "MAG-ASBUILT-FUNCTION-QUAL-001" },
+    "fixture_class": { "const": "synthetic_semantic_controls" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "cases": {
+      "type": "array",
+      "minItems": 9,
+      "items": { "$ref": "#/$defs/case" }
+    },
+    "metamorphic_relations": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/metamorphic" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["case_id", "name", "expected_disposition", "evidence", "purpose"],
+      "properties": {
+        "case_id": { "type": "string", "pattern": "^ASB-[0-9]{3}$" },
+        "name": { "type": "string", "minLength": 1 },
+        "expected_disposition": { "enum": ["QUALIFIED", "FAIL", "INDETERMINATE", "NOT_EVALUABLE"] },
+        "evidence": { "type": "object" },
+        "purpose": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "metamorphic": {
+      "type": "object",
+      "required": ["relation_id", "source_case", "mutation", "expected_invariant", "expected_disposition"],
+      "properties": {
+        "relation_id": { "type": "string", "pattern": "^ASB-META-[0-9]{3}$" },
+        "source_case": { "type": "string", "pattern": "^ASB-[0-9]{3}$" },
+        "mutation": { "type": "string", "minLength": 1 },
+        "expected_invariant": { "type": "string", "minLength": 1 },
+        "expected_disposition": { "enum": ["QUALIFIED", "FAIL", "INDETERMINATE", "NOT_EVALUABLE"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}
