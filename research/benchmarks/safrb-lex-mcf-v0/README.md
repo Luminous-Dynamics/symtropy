@@ -47,7 +47,7 @@ Observed result in the recorded execution:
 | NetworkX capacity_scaling | 100/100 | 0.805 ms | 1.374 ms | 2.377 ms |
 | NetworkX network_simplex | 100/100 | 0.458 ms | 0.799 ms | 1.713 ms |
 
-The tuple compared is maximum total flow, negative service volume for each priority tier in priority order, then route cost. Tied but different optimal flow assignments are accepted.
+The tuple compared is maximum total flow, negative service volume for each priority tier in priority order, then route cost. Tied but different optimal flow assignments are accepted. The harness also independently checks the final arc witness for exact arc coverage, lower/upper bounds, fixed total flow, and intermediate-node conservation; each previously optimized priority-gate amount must remain unchanged in the final cost pass.
 
 ## Limits — do not overclaim
 
