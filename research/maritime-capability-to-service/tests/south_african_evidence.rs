@@ -90,24 +90,18 @@ fn validate(rows: &[EvidenceRow<'_>]) -> Result<(), String> {
                 } else {
                     if row.evidence_class != "ESTIMATED_FROM_TNPA_VESSEL_LOGS_AND_REFERENCE_POWER"
                         || row.claim_ceiling.contains("Do not treat dash as zero")
+                        || !row
+                            .claim_ceiling
+                            .contains("Not an interval-metered demand observation")
                     {
                         return Err(format!(
-                            "shore-power value {} at {} must remain model-estimated",
+                            "shore-power value {} at {} must preserve its model-estimate claim ceiling",
                             row.period, row.site
                         ));
                     }
                     row.value
                         .parse::<f64>()
                         .map_err(|_| format!("non-numeric shore-power value {}", row.value))?;
-                }
-                if !row
-                    .claim_ceiling
-                    .contains("Not an interval-metered demand observation")
-                {
-                    return Err(format!(
-                        "shore-power estimate {} at {} lost its measurement caveat",
-                        row.period, row.site
-                    ));
                 }
             }
             other => return Err(format!("unrecognized source identifier {other}")),
