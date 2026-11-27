@@ -4,7 +4,8 @@
 # DEPENDENCY <dependency_id> <available_from_day>
 # SHOCK <dependency_id> <unavailable_start_day_inclusive> <unavailable_end_day_exclusive>
 # OPTION <option_id> <region> <cost_units> <production_or_supply_days> <inspection_days> <commissioning_days> <receiver_handoff_days> <emissions_units> <regional_value_units> <dependency_ids_csv> <configuration_revision>
-# INSPECTION <option_id> <PASS|FAIL|UNKNOWN> <accepted_units> <configuration_revision>
+# INSPECTION <option_id> <PASS|FAIL|UNKNOWN> <qualified_units> <configuration_revision>
+# RECEIVER_ACCEPTANCE <option_id> <ACCEPTED|REJECTED|UNKNOWN> <accepted_units> <configuration_revision>
 INSTANCE	MCSC-TINY-001	v0.1
 SERVICE	SERVICE-001	10	cargo_unit	10
 DEPENDENCY	MILL-01	0
@@ -26,3 +27,8 @@ INSPECTION	LOCAL-B	PASS	10	REV-001
 INSPECTION	LOCAL-C	PASS	10	REV-001
 INSPECTION	IMPORT	PASS	10	REV-001
 INSPECTION	EXISTING	PASS	10	REV-001
+RECEIVER_ACCEPTANCE	LOCAL-A	ACCEPTED	10	REV-001
+RECEIVER_ACCEPTANCE	LOCAL-B	ACCEPTED	10	REV-001
+RECEIVER_ACCEPTANCE	LOCAL-C	ACCEPTED	10	REV-001
+RECEIVER_ACCEPTANCE	IMPORT	ACCEPTED	10	REV-001
+RECEIVER_ACCEPTANCE	EXISTING	ACCEPTED	10	REV-001
