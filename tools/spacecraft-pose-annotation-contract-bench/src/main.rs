@@ -12,15 +12,21 @@ struct ParsedCase {
 }
 
 fn parse_u32(value: &str, field: &str) -> Result<u32, Box<dyn Error>> {
-    value.parse::<u32>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u32>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_u16(value: &str, field: &str) -> Result<u16, Box<dyn Error>> {
-    value.parse::<u16>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u16>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_f64(value: &str, field: &str) -> Result<f64, Box<dyn Error>> {
-    value.parse::<f64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<f64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_bool(value: &str, field: &str) -> Result<bool, Box<dyn Error>> {
@@ -77,10 +83,7 @@ fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn 
                 parse_f64(fields[27], "kpy")?,
                 parse_f64(fields[28], "kpz")?,
             ],
-            observed_pixel: [
-                parse_f64(fields[29], "u")?,
-                parse_f64(fields[30], "v")?,
-            ],
+            observed_pixel: [parse_f64(fields[29], "u")?, parse_f64(fields[30], "v")?],
             reprojection_tolerance_px: parse_f64(fields[31], "tolerance_px")?,
         },
     })
@@ -140,7 +143,9 @@ fn render_result(result: &PoseResult) -> String {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let corpus_path = args.next().ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
+    let corpus_path = args
+        .next()
+        .ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
     let source_commit = args.next().ok_or("missing source_commit")?;
     let corpus_sha256 = args.next().ok_or("missing corpus_sha256")?;
     let content = fs::read_to_string(&corpus_path)?;
@@ -153,7 +158,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
         let item = parse_row(&line.split(',').collect::<Vec<_>>(), index + 1)?;
-        if expected.insert(item.input.case_id.clone(), item.expected.clone()).is_some() {
+        if expected
+            .insert(item.input.case_id.clone(), item.expected.clone())
+            .is_some()
+        {
             return Err(format!("duplicate case ID: {}", item.input.case_id).into());
         }
         parsed.push(item.input);
@@ -179,7 +187,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     let consistent_count = results
         .iter()
         .filter(|result| result.disposition == AnnotationDisposition::GeometricallyConsistent)
