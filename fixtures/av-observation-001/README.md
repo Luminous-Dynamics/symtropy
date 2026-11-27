@@ -198,3 +198,10 @@ The external comparison crosswalk now includes OVO-S, VideoZeroBench, FPS-Bench,
 ## Observability quotient hypothesis
 
 The protocol now separates **observational equivalence** (what worlds can be distinguished from the sensor prefix) from **decision equivalence** (what distinctions change the action for one declared DecisionNeed). It proposes a query-relative quotient state: stop resolving map details when all admissible worlds imply the same action within a worst-case regret bound, but retain source-linked residuals so a later query can reopen them. This composes existing #7558/#7577 decision evaluation and #6675 acquisition; it does not add a second map store or scheduler. See section 22 of the protocol.
+
+
+## Active spatial exploration and dynamic environments
+
+The registry now includes [scenario-matrix-active-exploration-v0.tsv](./scenario-matrix-active-exploration-v0.tsv): four paired counterfactuals / eight cases for targeted versus random views, falsification-seeking versus confirmation, stopping at decision sufficiency versus over-acquisition, and uncertain-3D fallback versus corrupted-3D commitment.
+
+The research crosswalk adds [ESI-Bench](https://esi-bench.github.io/) as the active perception-action reference (3,081 tasks, 10 categories, 29 subcategories, with passive-single, random multi-view, active exploration and oracle-trajectory arms) and [THUD++](https://www.nature.com/articles/s41597-026-07993-8) as a dynamic indoor RGB-D/navigation reference. Their native task and ground-truth protocols are kept separate from OVO-S, metric SLAM and the metadata-only twin-world matrices.
