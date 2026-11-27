@@ -7,6 +7,7 @@ on:
       - research/safrb-temporal-semantics-v0
       - research/safrb-time-expanded-adapter-v0
       - research/safrb-beneficiary-floor-feasibility-v0
+      - research/safrb-robust-floor-scenarios-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
