@@ -1,0 +1,397 @@
+{
+  "schema_id": "AERO_ASSURANCE_BENCHMARK_METRIC_REGISTRY_V0_1",
+  "schema_version": "0.1",
+  "registry_id": "aero-assurance-metrics-v0.1",
+  "registry_status": "PROSPECTIVE_NOT_EXECUTED",
+  "case_adjudication_status": "NOT_INDEPENDENTLY_ADJUDICATED",
+  "metric_count": 17,
+  "metrics": [
+    {
+      "metric_id": "hard_gate_false_review_rate",
+      "dimension": "decision_safety",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Independently adjudicated non-reviewable claims AERO marks reviewable.",
+      "denominator_definition": "All independently adjudicated non-reviewable claims presented.",
+      "population": "Public and blinded negative claims.",
+      "inclusions": "Include every executed negative case.",
+      "exclusions": "Exclude unresolved ground truth but report count separately.",
+      "stratify_by": [
+        "risk_class",
+        "claim_family",
+        "fault_family"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No false review; publish denominator and one-sided exact confidence bound."
+    },
+    {
+      "metric_id": "cross_context_substitution_acceptance_rate",
+      "dimension": "context_integrity",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Injected claim, article, configuration, envelope, model, solver, profile or trust-policy substitutions accepted as reviewable.",
+      "denominator_definition": "All executed context-substitution attempts.",
+      "population": "Single and coupled substitution controls.",
+      "inclusions": "Include every tested substitution dimension.",
+      "exclusions": "Exclude invalid harness executions and enumerate them.",
+      "stratify_by": [
+        "substitution_dimension",
+        "risk_class",
+        "fault_coupling"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No cross-context substitution may pass."
+    },
+    {
+      "metric_id": "owner_integrity_authority_bypass_rate",
+      "dimension": "owner_trust",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Cases with missing/rejected payload, producer, key, authority, trust-snapshot or receipt proof that still become reviewable.",
+      "denominator_definition": "All owner-integrity and producer-authority challenges.",
+      "population": "Owner receipt and trust boundary controls.",
+      "inclusions": "Separate byte integrity, producer authority, key state and historical trust.",
+      "exclusions": "Exclude unexecuted verifier outages only with explicit reporting.",
+      "stratify_by": [
+        "owner_proof_axis",
+        "source_owner",
+        "trust_mode"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "A digest or signature alone is not semantic correctness or authority."
+    },
+    {
+      "metric_id": "mandatory_obligation_acceptance_rate",
+      "dimension": "obligation_completeness",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims marked reviewable despite a missing, stale, rejected, unresolved or out-of-scope mandatory obligation.",
+      "denominator_definition": "All executed mandatory-obligation negative cases.",
+      "population": "Claim-gate hard negatives.",
+      "inclusions": "Stratify by obligation owner and state.",
+      "exclusions": "Exclude advisory items unless claim profile makes them mandatory.",
+      "stratify_by": [
+        "owner",
+        "obligation_state",
+        "claim_family"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No positive obligation compensates for a failed mandatory obligation."
+    },
+    {
+      "metric_id": "unsupported_domain_reviewability_rate",
+      "dimension": "model_applicability",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Unsupported or indeterminate model domains returned as reviewable.",
+      "denominator_definition": "All adjudicated out-of-domain and applicability-indeterminate cases.",
+      "population": "AeroWeft applicability challenges.",
+      "inclusions": "Separate out-of-scope from indeterminate and identity mismatch.",
+      "exclusions": "Exclude in-domain controls.",
+      "stratify_by": [
+        "model_family",
+        "operating_stratum",
+        "applicability_state"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "In-domain performance cannot expand a model's validated domain."
+    },
+    {
+      "metric_id": "required_stratum_omission_acceptance_rate",
+      "dimension": "model_credibility",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims reviewable when a required metric/material/load/environment stratum is missing, failed or unverified.",
+      "denominator_definition": "All required-stratum omission/non-positive cases.",
+      "population": "AeroWeft metric/stratum challenges.",
+      "inclusions": "Report each required stratum separately.",
+      "exclusions": "Exclude strata not required by owner-approved profile.",
+      "stratify_by": [
+        "metric",
+        "material",
+        "load_case",
+        "environment",
+        "operating_stratum"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "No averaging may hide a non-positive required stratum."
+    },
+    {
+      "metric_id": "temporal_replay_disagreement_rate",
+      "dimension": "temporal_correctness",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Case/mode outputs whose disposition or exact reason set differs from independent oracle.",
+      "denominator_definition": "All executed case x temporal-mode evaluations.",
+      "population": "Three-mode bitemporal replay corpus.",
+      "inclusions": "Report AS_KNOWN_AT, CURRENT_TRUST and CURRENT_EVIDENCE_AND_TRUST separately.",
+      "exclusions": "Exclude only independently marked non-executable cases and disclose them.",
+      "stratify_by": [
+        "mode",
+        "event_type",
+        "trust_transition",
+        "chronology_fault"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Oracle must be independently authored and not call the implementation under test."
+    },
+    {
+      "metric_id": "independent_oracle_exact_agreement_rate",
+      "dimension": "oracle_conformance",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Cases where disposition and complete reason-code set match independent adjudication.",
+      "denominator_definition": "All executed, independently adjudicated cases.",
+      "population": "Adjudicated public seed plus blinded holdout.",
+      "inclusions": "Report disposition-only and exact reason-set agreement separately.",
+      "exclusions": "Unadjudicated seed cases are not passes.",
+      "stratify_by": [
+        "oracle_version",
+        "case_family",
+        "partition",
+        "reviewer"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Correct disposition with missing or misleading reason codes is not exact agreement."
+    },
+    {
+      "metric_id": "hard_gate_mutation_survival_rate",
+      "dimension": "mutation_resilience",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Valid non-equivalent hard-gate mutants that survive because tests still pass.",
+      "denominator_definition": "All valid non-equivalent hard-gate mutants executed.",
+      "population": "Mutations across claim, time, trust, obligation, model and owner boundaries.",
+      "inclusions": "Report surviving mutants by operator and gate.",
+      "exclusions": "Equivalent mutants excluded only with independent written justification.",
+      "stratify_by": [
+        "operator",
+        "gate_family",
+        "severity",
+        "owner"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Publish all survivors and all excluded equivalent mutants."
+    },
+    {
+      "metric_id": "affected_claim_invalidation_miss_rate",
+      "dimension": "change_impact",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Claims invalidated by adjudicated dependency change but not marked for requalification, contradiction or indeterminate review.",
+      "denominator_definition": "All independently adjudicated affected claims under qualified dependency observation.",
+      "population": "Track U/BASALT dependency-impact challenges.",
+      "inclusions": "Separate known change, incomplete observation, correction and policy-only change.",
+      "exclusions": "Do not call unqualified observer scope unaffected.",
+      "stratify_by": [
+        "dependency_type",
+        "resource_generation",
+        "claim_family",
+        "impact_dimension"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Zero missed invalidations is prior to reducing unnecessary requalification."
+    },
+    {
+      "metric_id": "unnecessary_requalification_rate",
+      "dimension": "change_impact",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Unaffected claims unnecessarily sent for full requalification after proven unrelated change under qualified complete observation.",
+      "denominator_definition": "All adjudicated unaffected claims in qualified complete observation scope.",
+      "population": "Disjoint-resource metamorphic cases.",
+      "inclusions": "Report graph size and claim fan-out.",
+      "exclusions": "Exclude incomplete/unqualified dependency observation; those remain indeterminate.",
+      "stratify_by": [
+        "change_type",
+        "claim_family",
+        "graph_size",
+        "fanout"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0.05,
+        "relation": "less_than_or_equal",
+        "status": "prospective"
+      },
+      "interpretation": "At most 5% prospective efficiency target, subordinate to zero missed invalidations."
+    },
+    {
+      "metric_id": "unrelated_change_preservation_rate",
+      "dimension": "change_impact",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Disjoint claims that remain unchanged/reviewable after a proven unrelated mutation.",
+      "denominator_definition": "All unrelated-change controls under qualified complete observation.",
+      "population": "Public and blinded metamorphic controls.",
+      "inclusions": "Stratify graph topology, owner and fan-out.",
+      "exclusions": "Exclude changes later adjudicated causally relevant.",
+      "stratify_by": [
+        "topology",
+        "owner",
+        "claim_family"
+      ],
+      "direction": "higher_is_better",
+      "target": {
+        "value": 1,
+        "relation": "equal",
+        "status": "prospective"
+      },
+      "interpretation": "Reject-everything cannot pass the benchmark."
+    },
+    {
+      "metric_id": "abstention_rate",
+      "dimension": "decision_coverage",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Presented claims with explicit non-positive/abstaining disposition.",
+      "denominator_definition": "All claims presented.",
+      "population": "All positive and negative benchmark cases.",
+      "inclusions": "Report risk, evidence completeness, fault and model-domain breakdown.",
+      "exclusions": "Do not erase abstentions from denominator.",
+      "stratify_by": [
+        "risk_class",
+        "evidence_completeness",
+        "claim_family",
+        "model_domain"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "No universal target; publish risk-coverage and reason distributions."
+    },
+    {
+      "metric_id": "false_rejection_rate",
+      "dimension": "decision_coverage",
+      "unit": "rate",
+      "aggregation": "ratio",
+      "numerator_definition": "Independently reviewable claims rejected despite all required obligations being qualified.",
+      "denominator_definition": "All independently adjudicated positive controls.",
+      "population": "Positive controls and mixed-evidence cases.",
+      "inclusions": "Report claim family and owner profile.",
+      "exclusions": "Exclude unresolved adjudication.",
+      "stratify_by": [
+        "risk_class",
+        "claim_family",
+        "owner_profile"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "Report separately so rejecting everything cannot appear safe."
+    },
+    {
+      "metric_id": "reviewer_minutes_per_independent_decision",
+      "dimension": "engineering_economics",
+      "unit": "minutes",
+      "aggregation": "median",
+      "numerator_definition": "Active reviewer minutes to reproduce, challenge and record an independent disposition.",
+      "denominator_definition": "Completed independent reviewer decisions.",
+      "population": "Matched AERO-assisted and comparator review sessions.",
+      "inclusions": "Include evidence navigation, discrepancy resolution and replay; waiting separately.",
+      "exclusions": "Exclude training/admin under preregistered rules.",
+      "stratify_by": [
+        "reviewer_role",
+        "complexity",
+        "baseline",
+        "risk_class"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "Use randomized/counterbalanced matched tasks; publish distributions."
+    },
+    {
+      "metric_id": "cost_per_independent_decision_ratio",
+      "dimension": "engineering_economics",
+      "unit": "ratio",
+      "aggregation": "ratio",
+      "numerator_definition": "Fully loaded AERO-assisted cost per independent decision divided by matched comparator cost at equal risk and quality.",
+      "denominator_definition": "Matched independent decisions with complete cost/time data in both arms.",
+      "population": "Human, checklist, LLM, RAG, multi-agent and PLM/QMS comparators.",
+      "inclusions": "Include evidence gathering, verifier, reviewer and requalification cost.",
+      "exclusions": "Exclude unmatched risk and incomplete records, with counts.",
+      "stratify_by": [
+        "baseline",
+        "risk_class",
+        "complexity",
+        "outcome"
+      ],
+      "direction": "lower_is_better",
+      "target": {
+        "value": 0.8,
+        "relation": "less_than_or_equal",
+        "status": "prospective"
+      },
+      "interpretation": "Prospective <=0.80 target, only at matched risk and independent decision quality."
+    },
+    {
+      "metric_id": "replay_p95_latency_ms",
+      "dimension": "performance",
+      "unit": "milliseconds",
+      "aggregation": "p95",
+      "numerator_definition": "p95 wall-clock time to replay frozen evidence cut and emit disposition plus reason report.",
+      "denominator_definition": "All replay executions in one declared workload cell.",
+      "population": "10k, 100k, 1M and 10M events; 1-10k evidence refs.",
+      "inclusions": "Report cache, hardware, CPU, RSS, bytes read and verifier build; receipt production separate.",
+      "exclusions": "Exclude failures from quantiles but report failures/reasons.",
+      "stratify_by": [
+        "event_count",
+        "reference_count",
+        "cache",
+        "hardware",
+        "build"
+      ],
+      "direction": "report_only",
+      "target": null,
+      "interpretation": "No SOTA claim before matched workload and hardware baselines."
+    }
+  ]
+}

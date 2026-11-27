@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -40,6 +40,13 @@ on:
       - "docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
+      - "docs/research/aviation/AERO_MODEL_EVIDENCE_ARTIFACT_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_model_evidence_attestation_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
+      - "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1"]
@@ -83,6 +90,13 @@ on:
       - "docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
+      - "docs/research/aviation/AERO_MODEL_EVIDENCE_ARTIFACT_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_model_evidence_attestation_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
+      - "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -818,6 +832,158 @@ jobs:
           if manifest["status"] != "DISCOVERY_ONLY":
               raise SystemExit("manifest status must remain DISCOVERY_ONLY until all promotion gates are evidenced")
           print(f"SHM manifest structure passed: {len(ids)} datasets; rights clearance and ingestion remain pending.")
+          PY
+
+      - name: Validate owner-verified model evidence attestation schema and hostile controls
+        run: |
+          python - <<'PY'
+          import copy
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema_path = root / "docs/research/aviation/schemas/aero_model_evidence_attestation_v0_1.schema.json"
+          example_path = root / "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
+          schema = json.loads(schema_path.read_text())
+          example = json.loads(example_path.read_text())
+
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("model-evidence attestation schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = sorted(validator.iter_errors(example), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"model-evidence attestation example failed schema validation ({len(errors)} errors)")
+
+          def cross_field_valid(candidate):
+              if not validator.is_valid(candidate):
+                  return False
+              context = candidate["claim_context"]
+              applicability = candidate["applicability"]
+              receiver = candidate["receiver_time"]
+              return (
+                  context["applicability_profile_sha256"]
+                  == applicability["applicability_profile_sha256"]
+                  and receiver["first_seen_earliest_unix_ms"]
+                  <= receiver["first_seen_latest_unix_ms"]
+              )
+
+          if not cross_field_valid(example):
+              raise SystemExit("synthetic positive violates attestation cross-field invariants")
+
+          hostile = []
+          changed_bytes = copy.deepcopy(example)
+          changed_bytes["artifact"]["sha256"] = "not-a-sha256"
+          hostile.append(("malformed artifact digest", changed_bytes))
+          missing_integrity = copy.deepcopy(example)
+          missing_integrity["integrity"]["verification_receipt"] = None
+          hostile.append(("verified byte integrity without owner receipt", missing_integrity))
+          missing_authority = copy.deepcopy(example)
+          missing_authority["producer_authority"]["verification_receipt"] = None
+          hostile.append(("verified producer authority without receipt", missing_authority))
+          missing_semantics = copy.deepcopy(example)
+          missing_semantics["semantic_validation"]["verification_receipt"] = None
+          hostile.append(("passed semantic validation without receipt", missing_semantics))
+          mismatched_applicability = copy.deepcopy(example)
+          mismatched_applicability["applicability"]["applicability_profile_sha256"] = "abababababababababababababababababababababababababababababababab"
+          hostile.append(("applicability profile differs from claim context", mismatched_applicability))
+          reversed_receiver_time = copy.deepcopy(example)
+          reversed_receiver_time["receiver_time"]["first_seen_earliest_unix_ms"] = (
+              reversed_receiver_time["receiver_time"]["first_seen_latest_unix_ms"] + 1
+          )
+          hostile.append(("reversed receiver-first-seen interval", reversed_receiver_time))
+          unknown_field = copy.deepcopy(example)
+          unknown_field["integrity"]["caller_supplied_trust"] = True
+          hostile.append(("unknown integrity field", unknown_field))
+
+          for label, candidate in hostile:
+              if cross_field_valid(candidate):
+                  raise SystemExit(f"hostile control unexpectedly validated: {label}")
+
+          print("Model-evidence attestation Draft 2020-12 schema, synthetic positive and seven hostile controls passed.")
+          PY
+
+      - name: Validate AERO model-evidence challenge seed corpus
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("challenge corpus schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"challenge corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(cases) != 24 or len(ids) != len(set(ids)):
+              raise SystemExit("AERO challenge corpus must contain exactly 24 unique case IDs")
+          if corpus["oracle_review_status"] != "NOT_INDEPENDENTLY_REVIEWED" or corpus["execution_status"] != "NOT_EXECUTED":
+              raise SystemExit("proposed challenge seed must not be represented as independently reviewed or executed")
+          by_id = {case["case_id"]: case for case in cases}
+          if by_id["late-revocation-preserves-as-known-history"].get("expected_by_temporal_mode") != {
+              "AS_KNOWN_AT": "ELIGIBLE_FOR_AERO_COMPOSITION",
+              "RECOMPUTED_WITH_CURRENT_TRUST": "REJECTED",
+              "RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST": "REJECTED",
+          }:
+              raise SystemExit("three-axis late-revocation control has incorrect or incomplete mode dispositions")
+          for case in cases:
+              if case["case_type"] in ("single_fault", "coupled_fault") and case["proposed_disposition"] == "ELIGIBLE_FOR_AERO_COMPOSITION":
+                  raise SystemExit(f"{case['case_id']}: fault-bearing case cannot propose a positive disposition")
+          print("AERO challenge seed schema and 24-case census passed; oracle review and execution remain NOT DONE.")
+          PY
+
+      - name: Validate AERO benchmark metric registry
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json").read_text())
+          registry = json.loads((root / "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("AERO benchmark metric schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(registry), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"AERO benchmark metric registry failed schema validation ({len(errors)} errors)")
+          metrics = registry["metrics"]
+          ids = [metric["metric_id"] for metric in metrics]
+          if len(metrics) != 17 or len(ids) != len(set(ids)):
+              raise SystemExit("AERO benchmark registry must contain exactly 17 unique metric IDs")
+          if registry["registry_status"] != "PROSPECTIVE_NOT_EXECUTED":
+              raise SystemExit("AERO metric registry must not be represented as executed")
+          by_id = {metric["metric_id"]: metric for metric in metrics}
+          if by_id["hard_gate_false_review_rate"]["target"]["value"] != 0:
+              raise SystemExit("hard-gate false-review target must remain zero observed")
+          if by_id["cost_per_independent_decision_ratio"]["target"]["value"] != 0.8:
+              raise SystemExit("matched-cost target must remain at most 0.80")
+          if by_id["unnecessary_requalification_rate"]["target"]["value"] != 0.05:
+              raise SystemExit("unnecessary requalification target must remain at most 5%")
+          for metric in metrics:
+              if metric["direction"] == "report_only" and metric["target"] is not None:
+                  raise SystemExit(f"{metric['metric_id']}: report-only metrics must not have optimization targets")
+          print("AERO benchmark metric registry schema, 17-entry census and prospective targets passed.")
           PY
 
       - name: Run evaluator tests

@@ -1,0 +1,425 @@
+{
+  "schema_id": "AERO_MODEL_EVIDENCE_CHALLENGE_CORPUS_V0_1",
+  "schema_version": "0.1",
+  "corpus_id": "aero-model-evidence-challenges-v0.1-public-seed",
+  "oracle_review_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "execution_status": "NOT_EXECUTED",
+  "corpus_scope": "PUBLIC_DEVELOPMENT_SEED_NOT_BLINDED_HOLDOUT",
+  "case_count": 24,
+  "temporal_modes": [
+    "AS_KNOWN_AT",
+    "RECOMPUTED_WITH_CURRENT_TRUST",
+    "RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST"
+  ],
+  "cases": [
+    {
+      "case_id": "exact-bytes-authority-and-scope-positive",
+      "family": "payload_integrity",
+      "case_type": "positive_control",
+      "mutations": [],
+      "proposed_disposition": "ELIGIBLE_FOR_AERO_COMPOSITION",
+      "proposed_reason_codes": [],
+      "oracle_rationale": "Owner verifier confirms exact bytes; producer is authorized; semantic report is passed; scope and receiver time are bound.",
+      "owner_boundary": "Mycelix/AeroCommons",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "single-byte-report-mutation",
+      "family": "payload_integrity",
+      "case_type": "coupled_fault",
+      "mutations": [
+        "Mutate one raw report byte while preserving its declared digest and length.",
+        "Retain an otherwise valid owner receipt for the original report bytes."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_BYTES_DIGEST_MISMATCH"
+      ],
+      "oracle_rationale": "The owner verifier recomputes the raw artifact digest over supplied bytes; a previously valid receipt for different bytes cannot compensate.",
+      "owner_boundary": "Mycelix/AeroCommons",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "declared-byte-length-mismatch",
+      "family": "payload_integrity",
+      "case_type": "single_fault",
+      "mutations": [
+        "Change declared byte length without changing the supplied payload."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_BYTES_LENGTH_MISMATCH"
+      ],
+      "oracle_rationale": "The owner byte verifier checks both length and digest.",
+      "owner_boundary": "Mycelix/AeroCommons",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "signature-from-unauthorized-producer",
+      "family": "producer_authority",
+      "case_type": "single_fault",
+      "mutations": [
+        "Present a cryptographically valid signature from a producer not authorized for this report role and scope."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_PRODUCER_AUTHORITY_REJECTED"
+      ],
+      "oracle_rationale": "Cryptographic validity and organizational authorization are separate checks.",
+      "owner_boundary": "Owner trust verifier",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "producer-authority-unresolved",
+      "family": "producer_authority",
+      "case_type": "single_fault",
+      "mutations": [
+        "Keep artifact bytes valid but remove the owner authority resolution receipt."
+      ],
+      "proposed_disposition": "UNVERIFIED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_PRODUCER_AUTHORITY_UNVERIFIED"
+      ],
+      "oracle_rationale": "A missing authority proof is not a positive or a rejection of the underlying physical proposition.",
+      "owner_boundary": "Owner trust verifier",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "invalid-signature-under-pinned-key",
+      "family": "producer_authority",
+      "case_type": "single_fault",
+      "mutations": [
+        "Modify signed report bytes after signing while keeping the signer key identifier unchanged."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_SIGNATURE_REJECTED"
+      ],
+      "oracle_rationale": "The signature verifier must bind the signed statement to the exact raw artifact commitment.",
+      "owner_boundary": "Owner trust verifier",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "historical-key-revocation",
+      "family": "historical_trust",
+      "case_type": "single_fault",
+      "mutations": [
+        "Use a signing key whose revocation was effective and known under the pinned historical trust snapshot."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_TRUST_POLICY_REJECTED"
+      ],
+      "oracle_rationale": "Key validity is assessed under the pinned policy snapshot, not a caller-supplied current status.",
+      "owner_boundary": "Owner trust verifier",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "producer-role-authority-scope-mismatch",
+      "family": "producer_authority",
+      "case_type": "single_fault",
+      "mutations": [
+        "Use a valid producer identity and role whose authority scope excludes this report type or claim class."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_PRODUCER_AUTHORITY_SCOPE_MISMATCH"
+      ],
+      "oracle_rationale": "A role label alone does not prove authority for this particular statement.",
+      "owner_boundary": "Owner trust verifier",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "physical-unit-substitution",
+      "family": "applicability",
+      "case_type": "single_fault",
+      "mutations": [
+        "Bind an otherwise valid report to a different physical unit serial or article identity."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_PHYSICAL_UNIT_MISMATCH"
+      ],
+      "oracle_rationale": "Exact physical subject identity must match the typed decision context and owner packet.",
+      "owner_boundary": "AERO + Mycelix/AeroCommons",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "configuration-or-envelope-substitution",
+      "family": "applicability",
+      "case_type": "single_fault",
+      "mutations": [
+        "Substitute configuration revision or operating-envelope reference while preserving the report digest."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_CONFIGURATION_OR_ENVELOPE_MISMATCH"
+      ],
+      "oracle_rationale": "Model report applicability cannot be borrowed across configuration or operating-envelope contexts.",
+      "owner_boundary": "AeroWeft + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "solver-identity-substitution",
+      "family": "applicability",
+      "case_type": "single_fault",
+      "mutations": [
+        "Change solver build or solver-configuration digest while retaining the original model report."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_SOLVER_CONFIGURATION_MISMATCH"
+      ],
+      "oracle_rationale": "Solver and executable configuration are part of the model identity envelope.",
+      "owner_boundary": "AeroWeft + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "typed-cut-digest-used-as-raw-report-digest",
+      "family": "payload_integrity",
+      "case_type": "single_fault",
+      "mutations": [
+        "Replace the raw report artifact digest with the digest of the normalized typed model cut."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_RAW_ARTIFACT_IDENTITY_MISMATCH"
+      ],
+      "oracle_rationale": "Raw source bytes and normalized AERO cut are different objects with distinct identities.",
+      "owner_boundary": "Mycelix/AeroCommons + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "unsupported-model-domain",
+      "family": "applicability",
+      "case_type": "single_fault",
+      "mutations": [
+        "Supply strong in-domain metrics while the requested claim is outside the declared validated operating domain."
+      ],
+      "proposed_disposition": "OUT_OF_SCOPE",
+      "proposed_reason_codes": [
+        "MODEL_CLAIM_OUTSIDE_VALIDATED_DOMAIN"
+      ],
+      "oracle_rationale": "Good results in one domain cannot expand a model's qualified domain.",
+      "owner_boundary": "AeroWeft",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "required-validation-modality-missing",
+      "family": "semantic_validation",
+      "case_type": "single_fault",
+      "mutations": [
+        "Remove an owner-required validation modality while keeping other modalities passed."
+      ],
+      "proposed_disposition": "UNVERIFIED",
+      "proposed_reason_codes": [
+        "MODEL_REQUIRED_MODALITY_NOT_QUALIFIED"
+      ],
+      "oracle_rationale": "Validation modalities are owner-defined; one modality cannot compensate for another required modality.",
+      "owner_boundary": "AeroWeft",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "required-metric-stratum-missing",
+      "family": "semantic_validation",
+      "case_type": "single_fault",
+      "mutations": [
+        "Remove one required metric/stratum report while all remaining strata pass."
+      ],
+      "proposed_disposition": "INCOMPLETE",
+      "proposed_reason_codes": [
+        "MODEL_METRIC_STRATUM_REPORT_MISSING"
+      ],
+      "oracle_rationale": "A missing required stratum cannot be averaged away by other strata.",
+      "owner_boundary": "AeroWeft",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "confirmatory-split-leakage",
+      "family": "semantic_validation",
+      "case_type": "single_fault",
+      "mutations": [
+        "Introduce overlap between development/calibration and confirmatory units or groups."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "MODEL_CONFIRMATORY_SPLIT_LEAKAGE"
+      ],
+      "oracle_rationale": "The split-integrity owner result is a hard obligation, not a score penalty.",
+      "owner_boundary": "AeroWeft",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "independent-reference-unverified",
+      "family": "semantic_validation",
+      "case_type": "single_fault",
+      "mutations": [
+        "Keep the validation package present but leave the independent-reference identity or evidence unverified."
+      ],
+      "proposed_disposition": "UNVERIFIED",
+      "proposed_reason_codes": [
+        "MODEL_INDEPENDENT_REFERENCE_UNVERIFIED"
+      ],
+      "oracle_rationale": "A supplied reference locator does not demonstrate an independently verified reference.",
+      "owner_boundary": "AeroWeft",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "receiver-first-seen-after-historical-cutoff",
+      "family": "receiver_time",
+      "case_type": "single_fault",
+      "mutations": [
+        "Set receiver-first-seen after the requested historical evidence cutoff while issuer time is earlier."
+      ],
+      "proposed_disposition": "NOT_KNOWN_AT_SNAPSHOT",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_NOT_KNOWN_AT_SNAPSHOT"
+      ],
+      "oracle_rationale": "A later-received artifact cannot enter the original historical evidence view.",
+      "owner_boundary": "Owner receipt verifier + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "backdated-issuer-time-does-not-predate-receipt",
+      "family": "receiver_time",
+      "case_type": "coupled_fault",
+      "mutations": [
+        "Backdate issuer-recorded time.",
+        "Keep independently observed receiver-first-seen after the evidence cutoff."
+      ],
+      "proposed_disposition": "NOT_KNOWN_AT_SNAPSHOT",
+      "proposed_reason_codes": [
+        "MODEL_REPORT_NOT_KNOWN_AT_SNAPSHOT"
+      ],
+      "oracle_rationale": "Issuer-declared recorded time is not receiver-observed first-seen time; a backdated assertion cannot move the receipt frontier.",
+      "owner_boundary": "Owner receipt verifier + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "stale-transitive-basalt-dependency",
+      "family": "owner_freshness",
+      "case_type": "coupled_fault",
+      "mutations": [
+        "Advance a model-report dependency resource generation and leave a descendant receipt pinned to the prior generation.",
+        "Substitute the decision context risk-classification digest."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "BASALT_EVIDENCE_STALE_TRANSITIVE",
+        "MODEL_CREDIBILITY_RISK_CLASSIFICATION_MISMATCH"
+      ],
+      "oracle_rationale": "The owner freshness blocker and context substitution remain independently visible; the context mismatch cannot be compensated by an otherwise valid model report.",
+      "owner_boundary": "BASALT + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "incomplete-dependency-observation-with-no-known-change",
+      "family": "owner_freshness",
+      "case_type": "single_fault",
+      "mutations": [
+        "Declare an unobserved dependency channel or unresolved input while no observed resource has changed."
+      ],
+      "proposed_disposition": "INCOMPLETE",
+      "proposed_reason_codes": [
+        "BASALT_DEPENDENCY_COVERAGE_INCOMPLETE"
+      ],
+      "oracle_rationale": "Unknown dependency coverage is itself non-positive; absence of an observed change is not proof of no change.",
+      "owner_boundary": "BASALT",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "unrelated-resource-change-preserves-disjoint-claim",
+      "family": "owner_freshness",
+      "case_type": "metamorphic",
+      "mutations": [
+        "Change a resource proven unrelated to this claim under a qualified complete dependency scope."
+      ],
+      "proposed_disposition": "ELIGIBLE_FOR_AERO_COMPOSITION",
+      "proposed_reason_codes": [],
+      "oracle_rationale": "The exact affected-claim frontier changes, while a disjoint claim's evidence remains valid; this is conditional on qualified complete observation.",
+      "owner_boundary": "BASALT + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "same-source-identity-conflicting-payload",
+      "family": "producer_authority",
+      "case_type": "single_fault",
+      "mutations": [
+        "Present two different payload digests under one source-scoped artifact identity and one owner authority."
+      ],
+      "proposed_disposition": "REJECTED",
+      "proposed_reason_codes": [
+        "OWNER_RECEIPT_IDENTITY_CONFLICT"
+      ],
+      "oracle_rationale": "Conflicting payloads for one source-scoped identity must not be treated as independent corroboration or silently selected.",
+      "owner_boundary": "Mycelix/AeroCommons",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT"
+    },
+    {
+      "case_id": "late-revocation-preserves-as-known-history",
+      "family": "historical_trust",
+      "case_type": "metamorphic",
+      "mutations": [
+        "A later-received revocation is backdated to before the claim cutoff; compare all three temporal replay modes."
+      ],
+      "proposed_disposition": "ELIGIBLE_FOR_AERO_COMPOSITION",
+      "proposed_reason_codes": [],
+      "oracle_rationale": "The original as-known report remains reproducible; trust-only and current-evidence/current-trust replays must produce the newly qualified adverse disposition.",
+      "owner_boundary": "Owner trust verifier + AERO",
+      "adjudication_status": "PROPOSED_NOT_ADJUDICATED",
+      "execution_status": "NOT_EXECUTED",
+      "partition": "PUBLIC_DEVELOPMENT",
+      "expected_by_temporal_mode": {
+        "AS_KNOWN_AT": "ELIGIBLE_FOR_AERO_COMPOSITION",
+        "RECOMPUTED_WITH_CURRENT_TRUST": "REJECTED",
+        "RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST": "REJECTED"
+      }
+    }
+  ]
+}

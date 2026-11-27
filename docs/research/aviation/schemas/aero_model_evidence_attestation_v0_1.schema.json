@@ -1,0 +1,641 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-model-evidence-attestation-v0.1.schema.json",
+  "title": "AERO Model-Evidence Artifact Attestation v0.1",
+  "description": "Research-only adapter envelope. Receipt references point to owner-native verification evidence; this schema does not authenticate bytes or signatures.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "attestation_ref",
+    "evidence_ref",
+    "claim_context",
+    "artifact",
+    "integrity",
+    "producer_authority",
+    "semantic_validation",
+    "applicability",
+    "receiver_time",
+    "owner_receipt"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "AERO_MODEL_EVIDENCE_ATTESTATION_V0_1"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "attestation_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "evidence_ref": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "claim_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "physical_unit_ref",
+        "configuration_ref",
+        "operating_envelope_ref",
+        "model_ref",
+        "model_artifact_sha256",
+        "solver_configuration_sha256",
+        "applicability_profile_sha256",
+        "risk_classification_sha256",
+        "decision_context_sha256",
+        "model_credibility_cut_sha256"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "physical_unit_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "operating_envelope_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "model_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "model_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "solver_configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "applicability_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "risk_classification_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "decision_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_credibility_cut_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_ref",
+        "role",
+        "media_type",
+        "byte_length",
+        "sha256"
+      ],
+      "properties": {
+        "artifact_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "role": {
+          "const": "aeroweift_model_credibility_report"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "verifier_id",
+        "verifier_build_sha256",
+        "verifier_profile_sha256",
+        "verification_receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "rejected"
+          ]
+        },
+        "verifier_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "verifier_build_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verifier_profile_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification_receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verifier_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "verifier_build_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "verifier_profile_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "verification_receipt": {
+                "$ref": "#/$defs/receipt"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "producer_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "producer_id",
+        "producer_role_ref",
+        "authority_scope_ref",
+        "signing_key_ref",
+        "trust_policy_ref",
+        "trust_policy_sha256",
+        "verification_receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "rejected"
+          ]
+        },
+        "producer_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "producer_role_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "authority_scope_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "signing_key_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "trust_policy_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "trust_policy_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification_receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "producer_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "producer_role_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "authority_scope_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "signing_key_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "trust_policy_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "trust_policy_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "verification_receipt": {
+                "$ref": "#/$defs/receipt"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "semantic_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "verifier_id",
+        "verifier_build_sha256",
+        "validation_profile_sha256",
+        "validation_report_sha256",
+        "verification_receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "incomplete",
+            "rejected",
+            "not_assessed"
+          ]
+        },
+        "verifier_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "verifier_build_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validation_profile_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "validation_report_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification_receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "passed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "verifier_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "verifier_build_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "validation_profile_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "validation_report_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "verification_receipt": {
+                "$ref": "#/$defs/receipt"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "applicability_profile_sha256",
+        "scope_report_sha256",
+        "verification_receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "in_scope",
+            "out_of_scope",
+            "indeterminate"
+          ]
+        },
+        "applicability_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scope_report_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification_receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "in_scope"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "scope_report_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "verification_receipt": {
+                "$ref": "#/$defs/receipt"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "receiver_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "first_seen_earliest_unix_ms",
+        "first_seen_latest_unix_ms",
+        "verification_receipt"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "rejected"
+          ]
+        },
+        "first_seen_earliest_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "first_seen_latest_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "verification_receipt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/receipt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "verified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "first_seen_earliest_unix_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "first_seen_latest_unix_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "verification_receipt": {
+                "$ref": "#/$defs/receipt"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "owner_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_system",
+        "owner_receipt_ref",
+        "owner_receipt_sha256",
+        "owner_packet_ref"
+      ],
+      "properties": {
+        "owner_system": {
+          "enum": [
+            "mycelix_aerocommons",
+            "other_owner_native"
+          ]
+        },
+        "owner_receipt_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "owner_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "owner_packet_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_ref",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "receipt_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-assurance-benchmark-metrics-v0.1.schema.json",
+  "title": "AERO Assurance Benchmark Metric Registry v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "schema_version",
+    "registry_id",
+    "registry_status",
+    "case_adjudication_status",
+    "metric_count",
+    "metrics"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "AERO_ASSURANCE_BENCHMARK_METRIC_REGISTRY_V0_1"
+    },
+    "schema_version": {
+      "const": "0.1"
+    },
+    "registry_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registry_status": {
+      "const": "PROSPECTIVE_NOT_EXECUTED"
+    },
+    "case_adjudication_status": {
+      "const": "NOT_INDEPENDENTLY_ADJUDICATED"
+    },
+    "metric_count": {
+      "const": 17
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 17,
+      "maxItems": 17,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    }
+  },
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "relation",
+        "status"
+      ],
+      "properties": {
+        "value": {
+          "type": "number"
+        },
+        "relation": {
+          "enum": [
+            "equal",
+            "less_than_or_equal",
+            "greater_than_or_equal"
+          ]
+        },
+        "status": {
+          "const": "prospective"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "dimension",
+        "unit",
+        "aggregation",
+        "numerator_definition",
+        "denominator_definition",
+        "population",
+        "inclusions",
+        "exclusions",
+        "stratify_by",
+        "direction",
+        "target",
+        "interpretation"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{2,95}$"
+        },
+        "dimension": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "enum": [
+            "rate",
+            "ratio",
+            "minutes",
+            "milliseconds"
+          ]
+        },
+        "aggregation": {
+          "enum": [
+            "ratio",
+            "median",
+            "p95"
+          ]
+        },
+        "numerator_definition": {
+          "type": "string",
+          "minLength": 20
+        },
+        "denominator_definition": {
+          "type": "string",
+          "minLength": 20
+        },
+        "population": {
+          "type": "string",
+          "minLength": 10
+        },
+        "inclusions": {
+          "type": "string",
+          "minLength": 10
+        },
+        "exclusions": {
+          "type": "string",
+          "minLength": 10
+        },
+        "stratify_by": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "direction": {
+          "enum": [
+            "lower_is_better",
+            "higher_is_better",
+            "report_only"
+          ]
+        },
+        "target": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/target"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    }
+  }
+}
