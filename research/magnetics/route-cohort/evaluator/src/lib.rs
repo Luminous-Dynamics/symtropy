@@ -372,6 +372,15 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
         if specimen.inspection_completed {
             counts.inspected_specimens += 1;
         }
+
+        // An observation can be internally well-formed yet still be
+        // ineligible for this cohort because its build identity, route,
+        // machine revision, recipe or source lot did not close.
+        if !valid_build_ids.contains(build.build_id.as_str()) {
+            counts.first_pass_not_evaluable += 1;
+            continue;
+        }
+
         match specimen.first_pass_disposition {
             SpecimenDisposition::Qualified => counts.first_pass_qualified += 1,
             SpecimenDisposition::Fail => counts.first_pass_fail += 1,
@@ -951,6 +960,24 @@ mod tests {
                 .blockers
                 .contains(&Blocker::BuildRouteRevisionMismatch)
         );
+    }
+
+    #[test]
+    fn specimens_from_invalid_builds_remain_denominated_but_not_accepted() {
+        let mut cohort = valid_cohort();
+        cohort.builds[0].route_revision = "MEX-v2".to_string();
+
+        let result = evaluate_cohort(&cohort);
+        assert!(result.blockers.contains(&Blocker::BuildRouteRevisionMismatch));
+        assert_eq!(result.summary.counts.initiated_specimens, 3);
+        assert_eq!(result.summary.counts.completed_specimens, 2);
+        assert_eq!(result.summary.counts.inspected_specimens, 2);
+        assert_eq!(result.summary.counts.first_pass_qualified, 0);
+        assert_eq!(result.summary.counts.first_pass_fail, 0);
+        assert_eq!(result.summary.counts.first_pass_not_evaluable, 2);
+        assert_eq!(result.summary.counts.missing_specimen_outcomes, 1);
+        assert_eq!(result.summary.counts.final_accepted_specimens, 0);
+        assert_eq!(result.summary.final_accepted_fraction, Rate::new(0, 3));
     }
 
     #[test]
