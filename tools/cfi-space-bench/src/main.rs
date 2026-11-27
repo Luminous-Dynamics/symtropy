@@ -67,6 +67,7 @@ struct LedgerEpisode {
     counterfactual_group_id: String,
     variant_kind: VariantKind,
     split: Split,
+    generalization: GeneralizationStratum,
     independent_unit: IndependentUnit,
     fault_ids: Vec<String>,
     fault_families: Vec<FaultFamily>,
@@ -90,6 +91,16 @@ enum Split {
     Calibration,
     Confirmatory,
     BlindHoldout,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "snake_case")]
+enum GeneralizationStratum {
+    SeenTarget,
+    UnseenTarget,
+    UnseenTargetFamily,
+    UnseenRenderer,
+    UnseenSensorRig,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -160,6 +171,7 @@ struct Score {
     exact_disposition_matches: usize,
     false_positive_family_labels: usize,
     family_detection: Vec<FamilyMetric>,
+    generalization: Vec<GeneralizationMetric>,
 }
 
 #[derive(Debug, Serialize)]
@@ -167,6 +179,18 @@ struct FamilyMetric {
     family: FaultFamily,
     episodes: usize,
     detected: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct GeneralizationMetric {
+    stratum: GeneralizationStratum,
+    episodes: usize,
+    fault_episodes: usize,
+    critical_fault_episodes: usize,
+    unsafe_accepts: usize,
+    clean_episodes: usize,
+    clean_qualified: usize,
+    false_abstentions: usize,
 }
 
 fn is_sha256_hex(value: &str) -> bool {
@@ -625,6 +649,8 @@ fn validate_and_score(
     let mut exact_disposition_matches = 0;
     let mut false_positive_family_labels = 0;
     let mut family_counts: BTreeMap<FaultFamily, (usize, usize)> = BTreeMap::new();
+    let mut generalization_counts: BTreeMap<GeneralizationStratum, [usize; 7]> =
+        BTreeMap::new();
 
     for episode_id in &manifest_ids {
         let episode = candidate_by_id[episode_id];
@@ -668,20 +694,33 @@ fn validate_and_score(
         if truth.expected_disposition == prediction.disposition {
             exact_disposition_matches += 1;
         }
+        let stratum_counts = generalization_counts
+            .entry(truth.generalization)
+            .or_insert([0; 7]);
+        stratum_counts[0] += 1;
+
         if expected_qualified {
             clean_episodes += 1;
+            stratum_counts[4] += 1;
             if predicted_qualified {
                 clean_qualified += 1;
+                stratum_counts[5] += 1;
             } else {
                 false_abstentions += 1;
+                stratum_counts[6] += 1;
             }
         } else {
             fault_episodes += 1;
+            stratum_counts[1] += 1;
+            if truth.critical {
+                stratum_counts[2] += 1;
+            }
             if truth.critical {
                 critical_fault_episodes += 1;
             }
             if predicted_qualified {
                 unsafe_accepts += 1;
+                stratum_counts[3] += 1;
                 if truth.critical {
                     critical_unsafe_accepts += 1;
                 }
@@ -706,6 +745,20 @@ fn validate_and_score(
             family,
             episodes,
             detected,
+        })
+        .collect();
+
+    let generalization = generalization_counts
+        .into_iter()
+        .map(|(stratum, counts)| GeneralizationMetric {
+            stratum,
+            episodes: counts[0],
+            fault_episodes: counts[1],
+            critical_fault_episodes: counts[2],
+            unsafe_accepts: counts[3],
+            clean_episodes: counts[4],
+            clean_qualified: counts[5],
+            false_abstentions: counts[6],
         })
         .collect();
 
@@ -745,6 +798,7 @@ fn validate_and_score(
         exact_disposition_matches,
         false_positive_family_labels,
         family_detection,
+        generalization,
     })
 }
 
@@ -873,6 +927,14 @@ mod tests {
         assert_eq!(score.false_abstentions, 0);
         assert_eq!(score.correctly_contained_faults, 8);
         assert_eq!(score.exact_disposition_matches, 10);
+        assert_eq!(score.generalization.len(), 2);
+        assert_eq!(score.generalization[0].stratum, GeneralizationStratum::SeenTarget);
+        assert_eq!(score.generalization[0].episodes, 8);
+        assert_eq!(score.generalization[0].fault_episodes, 7);
+        assert_eq!(score.generalization[0].critical_fault_episodes, 6);
+        assert_eq!(score.generalization[1].stratum, GeneralizationStratum::UnseenTarget);
+        assert_eq!(score.generalization[1].episodes, 2);
+        assert_eq!(score.generalization[1].fault_episodes, 1);
     }
 
     #[test]
