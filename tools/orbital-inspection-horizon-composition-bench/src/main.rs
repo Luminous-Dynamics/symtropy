@@ -7,6 +7,14 @@ use std::env;
 use std::error::Error;
 use std::fs;
 
+struct ParsedRow {
+    horizon_id: String,
+    expected: String,
+    horizon_start_ns: u64,
+    horizon_end_ns: u64,
+    segment: Segment,
+}
+
 struct Group {
     horizon_start_ns: u64,
     horizon_end_ns: u64,
@@ -92,13 +100,13 @@ fn parse_row(
         motion,
     };
 
-    Ok((
+    Ok(ParsedRow {
         horizon_id,
         expected,
         horizon_start_ns,
         horizon_end_ns,
         segment,
-    ))
+    })
 }
 
 fn json_escape(value: &str) -> String {
@@ -160,18 +168,25 @@ fn main() -> Result<(), Box<dyn Error>> {
             continue;
         }
         let fields = line.split(',').collect::<Vec<_>>();
-        let (horizon_id, expected, start, end, segment) = parse_row(&fields, index + 1)?;
+        let parsed = parse_row(&fields, index + 1)?;
+        let ParsedRow {
+            horizon_id,
+            expected,
+            horizon_start_ns,
+            horizon_end_ns,
+            segment,
+        } = parsed;
 
         let group = groups.entry(horizon_id).or_insert_with(|| Group {
-            horizon_start_ns: start,
-            horizon_end_ns: end,
+            horizon_start_ns,
+            horizon_end_ns,
             expected: expected.clone(),
             scope: Some(segment.scope.clone()),
             segments: Vec::new(),
         });
 
-        if group.horizon_start_ns != start
-            || group.horizon_end_ns != end
+        if group.horizon_start_ns != horizon_start_ns
+            || group.horizon_end_ns != horizon_end_ns
             || group.expected != expected
         {
             return Err(format!(
