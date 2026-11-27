@@ -936,7 +936,8 @@ impl ClaimMetricSemanticBindingV0_1 {
         }
         if !unexpected_reports.is_empty() {
             rejected = true;
-            reasons.insert("CLAIM_METRIC_BINDING_MODEL_REPORT_SET_HAS_UNEXPECTED_STRATA".to_owned());
+            reasons
+                .insert("CLAIM_METRIC_BINDING_MODEL_REPORT_SET_HAS_UNEXPECTED_STRATA".to_owned());
         }
         for stratum_ref in mapped_model_strata {
             let Some(report) = reports.get(stratum_ref) else {
