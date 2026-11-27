@@ -21,8 +21,8 @@ use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
 pub struct RelativeMotionEnvelope<const D: usize> {
     /// Translation change of the canonical relative transform.
     pub relative_translation_delta: [f64; D],
-    /// Entry-wise difference between current and cached relative rotation matrices.
-    pub relative_rotation_delta: [[f64; D]; D],
+    /// Outward upper bounds on abs(current_relative_rotation - cached_relative_rotation), entry-wise.
+    pub relative_rotation_delta_abs_upper: [[f64; D]; D],
     /// Conservative maximum radius of the cached contact geometry from the
     /// relative transform's rotation reference point.
     pub maximum_lever_arm_radius: f64,
@@ -170,7 +170,7 @@ fn frobenius_norm_upper<const D: usize>(
     let mut squared_sum = 0.0_f64;
     for row in matrix {
         for entry in row {
-            if !entry.is_finite() {
+            if !entry.is_finite() || *entry < 0.0 {
                 return Err(ContactLeaseError::InvalidRelativeMotion);
             }
             let square = multiply_upper(entry.abs(), entry.abs())?;
@@ -208,7 +208,7 @@ impl<const D: usize> RelativeMotionEnvelope<D> {
         }
 
         let translation_upper = norm_upper(&self.relative_translation_delta)?;
-        let rotation_matrix_delta_upper = frobenius_norm_upper(&self.relative_rotation_delta)?;
+        let rotation_matrix_delta_upper = frobenius_norm_upper(&self.relative_rotation_delta_abs_upper)?;
         let rotation_displacement_upper =
             multiply_upper(self.maximum_lever_arm_radius, rotation_matrix_delta_upper)?;
         let combined = add_upper(translation_upper, rotation_displacement_upper)?;
@@ -361,18 +361,18 @@ mod tests {
         angle: f64,
         radius: f64,
     ) -> RelativeMotionEnvelope<D> {
-        let mut relative_rotation_delta = [[0.0; D]; D];
+        let mut relative_rotation_delta_abs_upper = [[0.0; D]; D];
         if D >= 2 {
             let cosine_delta = angle.cos() - 1.0;
             let sine = angle.sin();
-            relative_rotation_delta[0][0] = cosine_delta;
-            relative_rotation_delta[0][1] = -sine;
-            relative_rotation_delta[1][0] = sine;
-            relative_rotation_delta[1][1] = cosine_delta;
+            relative_rotation_delta_abs_upper[0][0] = cosine_delta.abs();
+            relative_rotation_delta_abs_upper[0][1] = sine.abs();
+            relative_rotation_delta_abs_upper[1][0] = sine.abs();
+            relative_rotation_delta_abs_upper[1][1] = cosine_delta.abs();
         }
         RelativeMotionEnvelope {
             relative_translation_delta: translation,
-            relative_rotation_delta,
+            relative_rotation_delta_abs_upper,
             maximum_lever_arm_radius: radius,
             rounding_allowance: 1.0e-12,
         }
@@ -602,7 +602,7 @@ mod tests {
         let witness = lease();
         let invalid_motion = RelativeMotionEnvelope {
             relative_translation_delta: [0.0; 3],
-            relative_rotation_delta: [
+            relative_rotation_delta_abs_upper: [
                 [f64::NAN, 0.0, 0.0],
                 [0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0],
@@ -774,5 +774,52 @@ mod tests {
         );
     }
 
+
+
+    #[test]
+    fn four_dimensional_two_plane_rotation_uses_all_matrix_delta_entries() {
+        let mut delta = [[0.0; 4]; 4];
+        let angle_a: f64 = 0.2;
+        let angle_b: f64 = 0.3;
+        let (sin_a, cos_a) = angle_a.sin_cos();
+        let (sin_b, cos_b) = angle_b.sin_cos();
+        delta[0][0] = (cos_a - 1.0).abs();
+        delta[0][1] = sin_a.abs();
+        delta[1][0] = sin_a.abs();
+        delta[1][1] = (cos_a - 1.0).abs();
+        delta[2][2] = (cos_b - 1.0).abs();
+        delta[2][3] = sin_b.abs();
+        delta[3][2] = sin_b.abs();
+        delta[3][3] = (cos_b - 1.0).abs();
+
+        let bound = RelativeMotionEnvelope {
+            relative_translation_delta: [0.0; 4],
+            relative_rotation_delta_abs_upper: delta,
+            maximum_lever_arm_radius: 1.0,
+            rounding_allowance: 1.0e-12,
+        }
+        .displacement_upper_bound()
+        .expect("4D two-plane relative rotation");
+        assert!(bound.rotation_displacement_upper > 0.0);
+        assert!(bound.rotation_displacement_upper < 1.0);
+    }
+
+    #[test]
+    fn negative_rotation_delta_upper_entry_fails_closed() {
+        let invalid = RelativeMotionEnvelope {
+            relative_translation_delta: [0.0; 3],
+            relative_rotation_delta_abs_upper: [
+                [-0.1, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+            ],
+            maximum_lever_arm_radius: 1.0,
+            rounding_allowance: 0.0,
+        };
+        assert_eq!(
+            invalid.displacement_upper_bound(),
+            Err(ContactLeaseError::InvalidRelativeMotion)
+        );
+    }
 
 }
