@@ -3,7 +3,7 @@
 //!
 //! The suite is intentionally narrower than the engine's public API:
 //! - uniform-gravity semi-implicit Euler convergence against a closed form;
-//! - transformed 2D OBB overlap against an independent SAT implementation.
+//! - transformed 2D/3D OBB overlap against independent SAT implementations.
 //!
 //! This does not qualify 4D collisions, general CCD, full rigid-body
 //! validation, experimental physics fidelity, or cross-platform determinism.
