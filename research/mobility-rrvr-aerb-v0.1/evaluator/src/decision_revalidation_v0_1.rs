@@ -921,7 +921,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn relevant_change_receipt_and_new_revision_are_carried_to_recompute_result() {
         let receipt = receipt();
