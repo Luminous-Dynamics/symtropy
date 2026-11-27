@@ -4,8 +4,7 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-const SCHEMA_ID: &str =
-    "https://luminousdynamics.io/schemas/transport/ev-bms-diagnostic-event/0.1";
+const SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/transport/ev-bms-diagnostic-event/0.1";
 const CORPUS_VERSION: &str = "ev-bms-diagnostic-corpus/0.1";
 const EVENT_VERSION: &str = "ev-bms-diagnostic-event/0.1";
 
@@ -223,7 +222,10 @@ fn validate_event(event: &Event) -> Vec<String> {
         || !nonempty(&asset.pack_ref)
         || !is_digest(&asset.vehicle_configuration_digest)
         || !is_digest(&asset.pack_configuration_digest)
-        || asset.module_ref.as_deref().is_some_and(|value| !nonempty(value))
+        || asset
+            .module_ref
+            .as_deref()
+            .is_some_and(|value| !nonempty(value))
     {
         errors.push("physical asset identity/configuration evidence is incomplete".to_owned());
     }
@@ -235,7 +237,8 @@ fn validate_event(event: &Event) -> Vec<String> {
         || !is_digest(&bms.calibration_digest)
         || !is_digest(&bms.diagnostic_rule_digest)
     {
-        errors.push("BMS hardware, software, firmware or calibration identity is invalid".to_owned());
+        errors
+            .push("BMS hardware, software, firmware or calibration identity is invalid".to_owned());
     }
 
     let context = &event.observation_context;
@@ -263,7 +266,10 @@ fn validate_event(event: &Event) -> Vec<String> {
             || !is_digest(&observation.sensor_calibration_digest)
             || !is_digest(&observation.source_digest)
             || !allowed_evidence_class(&observation.evidence_class)
-            || !matches!(observation.validity.as_str(), "valid" | "suspect" | "invalid")
+            || !matches!(
+                observation.validity.as_str(),
+                "valid" | "suspect" | "invalid"
+            )
         {
             errors.push(format!(
                 "observation {} has invalid value, unit, validity or provenance",
@@ -308,12 +314,17 @@ fn validate_event(event: &Event) -> Vec<String> {
     if matches!(diagnosis.state.as_str(), "identified" | "classified")
         && diagnosis.fault_candidates.is_empty()
     {
-        errors.push("identified/classified diagnosis requires at least one fault candidate".to_owned());
+        errors.push(
+            "identified/classified diagnosis requires at least one fault candidate".to_owned(),
+        );
     }
     if matches!(diagnosis.state.as_str(), "not_identified" | "abstained")
         && !diagnosis.fault_candidates.is_empty()
     {
-        errors.push("not_identified/abstained diagnosis cannot publish classified fault candidates".to_owned());
+        errors.push(
+            "not_identified/abstained diagnosis cannot publish classified fault candidates"
+                .to_owned(),
+        );
     }
 
     let mut fault_ids = BTreeSet::new();
@@ -385,14 +396,24 @@ fn validate_event(event: &Event) -> Vec<String> {
     match reaction.authority_status.as_str() {
         "not_requested" => {
             if reaction.authority_ref.is_some() || reaction.authority_digest.is_some() {
-                errors.push("not-requested authority must not fabricate an approval reference".to_owned());
+                errors.push(
+                    "not-requested authority must not fabricate an approval reference".to_owned(),
+                );
             }
         }
         "approved" | "denied" => {
-            if reaction.authority_ref.as_deref().is_none_or(|value| !nonempty(value))
-                || reaction.authority_digest.as_deref().is_none_or(|value| !is_digest(value))
+            if reaction
+                .authority_ref
+                .as_deref()
+                .is_none_or(|value| !nonempty(value))
+                || reaction
+                    .authority_digest
+                    .as_deref()
+                    .is_none_or(|value| !is_digest(value))
             {
-                errors.push("authority decision requires an authority reference and digest".to_owned());
+                errors.push(
+                    "authority decision requires an authority reference and digest".to_owned(),
+                );
             }
         }
         _ => {}
@@ -416,7 +437,8 @@ fn validate_event(event: &Event) -> Vec<String> {
                 || reaction.authority_digest.is_none()
             {
                 errors.push(
-                    "acknowledged/executed reaction requires explicit authority approval".to_owned(),
+                    "acknowledged/executed reaction requires explicit authority approval"
+                        .to_owned(),
                 );
             }
             if reaction
@@ -425,7 +447,8 @@ fn validate_event(event: &Event) -> Vec<String> {
                 .is_none_or(|digest| !is_digest(digest))
             {
                 errors.push(
-                    "acknowledged/executed reaction requires an execution receipt digest".to_owned(),
+                    "acknowledged/executed reaction requires an execution receipt digest"
+                        .to_owned(),
                 );
             }
         }
@@ -443,18 +466,21 @@ fn validate_event(event: &Event) -> Vec<String> {
                 .as_deref()
                 .is_some_and(|digest| !is_digest(digest))
             {
-                errors.push("unknown execution receipt, when present, must be a valid digest".to_owned());
+                errors.push(
+                    "unknown execution receipt, when present, must be a valid digest".to_owned(),
+                );
             }
         }
         _ => {}
     }
 
-    let requires_reconciliation = reaction.execution_status == "unknown"
-        || reaction.execution_status == "failed";
-    if requires_reconciliation
-        && (!reaction.reconciliation_required || !reaction.mutation_blocked)
+    let requires_reconciliation =
+        reaction.execution_status == "unknown" || reaction.execution_status == "failed";
+    if requires_reconciliation && (!reaction.reconciliation_required || !reaction.mutation_blocked)
     {
-        errors.push("unknown/failed execution requires reconciliation and mutation blocking".to_owned());
+        errors.push(
+            "unknown/failed execution requires reconciliation and mutation blocking".to_owned(),
+        );
     }
     if reaction.reconciliation_required && !reaction.mutation_blocked {
         errors.push("reconciliation-required event must block subsequent mutations".to_owned());
@@ -467,7 +493,10 @@ fn validate_event(event: &Event) -> Vec<String> {
             || reaction.post_action_test_digest.is_some()
             || reaction.verification_status != "not_applicable")
     {
-        errors.push("not-executed reaction cannot claim service, post-action test or verification".to_owned());
+        errors.push(
+            "not-executed reaction cannot claim service, post-action test or verification"
+                .to_owned(),
+        );
     }
     if reaction.execution_status != "executed"
         && (reaction.maintenance_event_digest.is_some()
@@ -479,7 +508,8 @@ fn validate_event(event: &Event) -> Vec<String> {
     }
 
     let service_or_replacement = matches!(reaction.proposal.as_str(), "service" | "replace");
-    if service_or_replacement && reaction.execution_status == "executed"
+    if service_or_replacement
+        && reaction.execution_status == "executed"
         && reaction
             .maintenance_event_digest
             .as_deref()
@@ -490,8 +520,14 @@ fn validate_event(event: &Event) -> Vec<String> {
     if !service_or_replacement && reaction.maintenance_event_digest.is_some() {
         errors.push("non-service reaction cannot claim a maintenance event".to_owned());
     }
-    if reaction.maintenance_event_digest.as_deref().is_some_and(|digest| !is_digest(digest))
-        || reaction.post_action_test_digest.as_deref().is_some_and(|digest| !is_digest(digest))
+    if reaction
+        .maintenance_event_digest
+        .as_deref()
+        .is_some_and(|digest| !is_digest(digest))
+        || reaction
+            .post_action_test_digest
+            .as_deref()
+            .is_some_and(|digest| !is_digest(digest))
     {
         errors.push("maintenance or post-action evidence digest is malformed".to_owned());
     }
@@ -505,15 +541,20 @@ fn validate_event(event: &Event) -> Vec<String> {
     match reaction.verification_status.as_str() {
         "not_applicable" => {
             if reaction.verifier_ref.is_some() || reaction.verifier_digest.is_some() {
-                errors.push("not-applicable verification cannot carry a verifier receipt".to_owned());
+                errors
+                    .push("not-applicable verification cannot carry a verifier receipt".to_owned());
             }
         }
         "pending" => {
             if reaction.execution_status != "executed" {
-                errors.push("pending post-action verification requires an executed reaction".to_owned());
+                errors.push(
+                    "pending post-action verification requires an executed reaction".to_owned(),
+                );
             }
             if reaction.verifier_ref.is_some() || reaction.verifier_digest.is_some() {
-                errors.push("pending verification cannot claim an independent verifier receipt".to_owned());
+                errors.push(
+                    "pending verification cannot claim an independent verifier receipt".to_owned(),
+                );
             }
         }
         "verified" | "rejected" => {
@@ -522,13 +563,21 @@ fn validate_event(event: &Event) -> Vec<String> {
                     .post_action_test_digest
                     .as_deref()
                     .is_none_or(|digest| !is_digest(digest))
-                || reaction.verifier_ref.as_deref().is_none_or(|value| !nonempty(value))
-                || reaction.verifier_digest.as_deref().is_none_or(|digest| !is_digest(digest))
+                || reaction
+                    .verifier_ref
+                    .as_deref()
+                    .is_none_or(|value| !nonempty(value))
+                || reaction
+                    .verifier_digest
+                    .as_deref()
+                    .is_none_or(|digest| !is_digest(digest))
             {
                 errors.push("final verification requires execution, post-action test and independent verifier evidence".to_owned());
             }
             if reaction.verifier_ref == reaction.authority_ref {
-                errors.push("independent verifier must be distinct from the reaction authority".to_owned());
+                errors.push(
+                    "independent verifier must be distinct from the reaction authority".to_owned(),
+                );
             }
         }
         _ => {}
@@ -548,7 +597,8 @@ fn canonicalize_corpus(value: &mut Value) {
     });
     for case in cases {
         if let Some(event) = case.get_mut("event") {
-            if let Some(observations) = event.get_mut("observations").and_then(Value::as_array_mut) {
+            if let Some(observations) = event.get_mut("observations").and_then(Value::as_array_mut)
+            {
                 observations.sort_by(|left, right| {
                     (
                         left.get("channel_id").and_then(Value::as_str),
@@ -571,7 +621,10 @@ fn canonicalize_corpus(value: &mut Value) {
                         .cmp(&right.get("fault_id").and_then(Value::as_str))
                 });
                 for candidate in candidates {
-                    if let Some(digests) = candidate.get_mut("evidence_digests").and_then(Value::as_array_mut) {
+                    if let Some(digests) = candidate
+                        .get_mut("evidence_digests")
+                        .and_then(Value::as_array_mut)
+                    {
                         digests.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
                     }
                 }
@@ -585,8 +638,8 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<CorpusRe
     let mut value: Value =
         serde_json::from_slice(corpus_bytes).map_err(|error| format!("corpus JSON: {error}"))?;
     canonicalize_corpus(&mut value);
-    let canonical = serde_json::to_vec(&value)
-        .map_err(|error| format!("canonical corpus: {error}"))?;
+    let canonical =
+        serde_json::to_vec(&value).map_err(|error| format!("canonical corpus: {error}"))?;
     let corpus: Corpus =
         serde_json::from_slice(&canonical).map_err(|error| format!("typed corpus: {error}"))?;
     if corpus.corpus_version != CORPUS_VERSION || corpus.schema_id != SCHEMA_ID {
@@ -599,7 +652,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<CorpusRe
     let mut rejected_count = 0usize;
     for case in corpus.cases {
         if !nonempty(&case.case_id) || !seen.insert(case.case_id.clone()) {
-            return Err(format!("case identity is empty or duplicated: {}", case.case_id));
+            return Err(format!(
+                "case identity is empty or duplicated: {}",
+                case.case_id
+            ));
         }
         if !matches!(case.expectation.as_str(), "accept" | "reject") {
             return Err(format!("case {} has invalid expectation", case.case_id));
@@ -629,7 +685,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<CorpusRe
                 Ok(_) => "unexpected acceptance".to_owned(),
                 Err(errors) => errors.join("; "),
             };
-            return Err(format!("case {} expectation mismatch: {}", case.case_id, detail));
+            return Err(format!(
+                "case {} expectation mismatch: {}",
+                case.case_id, detail
+            ));
         }
         let (event, errors) = match result {
             Ok(event) => {
@@ -659,8 +718,12 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<CorpusRe
             event_id: event.as_ref().map(|event| event.event_id.clone()),
             diagnosis_state: event.as_ref().map(|event| event.diagnosis.state.clone()),
             reaction_proposal: event.as_ref().map(|event| event.reaction.proposal.clone()),
-            authority_status: event.as_ref().map(|event| event.reaction.authority_status.clone()),
-            execution_status: event.as_ref().map(|event| event.reaction.execution_status.clone()),
+            authority_status: event
+                .as_ref()
+                .map(|event| event.reaction.authority_status.clone()),
+            execution_status: event
+                .as_ref()
+                .map(|event| event.reaction.execution_status.clone()),
             verification_status: event
                 .as_ref()
                 .map(|event| event.reaction.verification_status.clone()),
@@ -711,7 +774,10 @@ mod tests {
     #[test]
     fn recommendation_is_not_authorization_or_execution() {
         let report = report();
-        let case = report.payload.cases.iter()
+        let case = report
+            .payload
+            .cases
+            .iter()
             .find(|case| case.case_id == "recommendation-not-authorized")
             .unwrap();
         assert!(case.accepted);
@@ -722,7 +788,10 @@ mod tests {
     #[test]
     fn unknown_execution_requires_reconciliation_and_mutation_block() {
         let report = report();
-        let case = report.payload.cases.iter()
+        let case = report
+            .payload
+            .cases
+            .iter()
             .find(|case| case.case_id == "unknown-execution-blocks-mutation")
             .unwrap();
         assert!(case.accepted);
@@ -732,11 +801,17 @@ mod tests {
     #[test]
     fn unknown_execution_without_receipt_is_allowed_only_with_mutation_block() {
         let audited = report();
-        let accepted = audited.payload.cases.iter()
+        let accepted = audited
+            .payload
+            .cases
+            .iter()
             .find(|case| case.case_id == "unknown-execution-blocks-mutation")
             .expect("unknown execution case");
         assert!(accepted.accepted);
-        let rejected = audited.payload.cases.iter()
+        let rejected = audited
+            .payload
+            .cases
+            .iter()
             .find(|case| case.case_id == "unknown-execution-without-mutation-block-rejected")
             .expect("unblocked unknown control");
         assert!(!rejected.accepted);
@@ -745,7 +820,10 @@ mod tests {
     #[test]
     fn service_execution_is_not_independent_verification() {
         let report = report();
-        let case = report.payload.cases.iter()
+        let case = report
+            .payload
+            .cases
+            .iter()
             .find(|case| case.case_id == "service-executed-not-yet-verified")
             .unwrap();
         assert!(case.accepted);
@@ -763,7 +841,10 @@ mod tests {
             "observation-outside-window-rejected",
             "acknowledged-without-authorization-rejected",
         ] {
-            let case = report.payload.cases.iter()
+            let case = report
+            .payload
+            .cases
+            .iter()
                 .find(|case| case.case_id == id)
                 .unwrap();
             assert!(!case.accepted, "negative control {id} should reject");
@@ -777,10 +858,22 @@ mod tests {
         let mut value: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
         value["cases"].as_array_mut().unwrap().reverse();
         for case in value["cases"].as_array_mut().unwrap() {
-            case["event"]["observations"].as_array_mut().unwrap().reverse();
-            case["event"]["diagnosis"]["fault_candidates"].as_array_mut().unwrap().reverse();
-            for candidate in case["event"]["diagnosis"]["fault_candidates"].as_array_mut().unwrap() {
-                candidate["evidence_digests"].as_array_mut().unwrap().reverse();
+            case["event"]["observations"]
+                .as_array_mut()
+                .unwrap()
+                .reverse();
+            case["event"]["diagnosis"]["fault_candidates"]
+                .as_array_mut()
+                .unwrap()
+                .reverse();
+            for candidate in case["event"]["diagnosis"]["fault_candidates"]
+                .as_array_mut()
+                .unwrap()
+            {
+                candidate["evidence_digests"]
+                    .as_array_mut()
+                    .unwrap()
+                    .reverse();
             }
         }
         let bytes = serde_json::to_vec(&value).expect("permuted corpus");
