@@ -427,6 +427,35 @@ mod tests {
     }
 
     #[test]
+    fn published_json_schemas_are_valid_json_documents() {
+        let temporal: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/temporal-profile-v0.1.schema.json"
+        ))
+        .unwrap();
+        let scenario_input: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/coherent-scenario-input-v0.1.schema.json"
+        ))
+        .unwrap();
+        let scenario_report: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/coherent-scenario-report-v0.1.schema.json"
+        ))
+        .unwrap();
+
+        assert_eq!(
+            temporal["properties"]["schema_version"]["const"],
+            crate::temporal_profile::TEMPORAL_PROFILE_SCHEMA
+        );
+        assert_eq!(
+            scenario_report["properties"]["schema_version"]["const"],
+            COHERENT_SCENARIO_SET_SCHEMA
+        );
+        assert_eq!(
+            scenario_input["properties"]["scenarios"]["type"],
+            "array"
+        );
+    }
+
+    #[test]
     fn verifier_rejects_tampered_scenario_range() {
         let scenarios = vec![
             CoherentScenario {
