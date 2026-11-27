@@ -72,7 +72,7 @@ pub struct R1OracleResult {
     pub pareto_frontier: Vec<R1Policy>,
 }
 
-struct InformationGroup<'a> {
+struct InformationGroup {
     key: InformationSetKey,
     common_actions: Vec<String>,
 }
@@ -321,7 +321,7 @@ pub fn solve_r1_finite(
 
 fn enumerate_policies(
     index: usize,
-    groups: &[InformationGroup<'_>],
+    groups: &[InformationGroup],
     all_decisions: &[ScenarioDecision],
     choices: &mut BTreeMap<InformationSetKey, String>,
     output: &mut Vec<R1Policy>,
