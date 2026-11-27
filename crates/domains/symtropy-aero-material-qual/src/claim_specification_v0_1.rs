@@ -364,9 +364,7 @@ impl ClaimSpecificationV0_1 {
             reasons.insert("CLAIM_SPECIFICATION_ASSUMPTION_ID_INVALID_OR_DUPLICATE".to_owned());
         }
         if !unique_identifiers(&self.exclusions) {
-            reasons.insert(
-                "CLAIM_SPECIFICATION_EXCLUSION_ID_INVALID_OR_DUPLICATE".to_owned(),
-            );
+            reasons.insert("CLAIM_SPECIFICATION_EXCLUSION_ID_INVALID_OR_DUPLICATE".to_owned());
         }
         if self.limitations.is_empty()
             || self.limitations.iter().any(|item| !valid_description(item))
@@ -664,9 +662,10 @@ mod tests {
     #[test]
     fn duplicate_stratum_id_is_rejected() {
         let mut specification = valid_specification();
-        specification.population.required_strata[1].stratum_id = specification.population.required_strata[0]
-            .stratum_id
-            .clone();
+        specification.population.required_strata[1].stratum_id =
+            specification.population.required_strata[0]
+                .stratum_id
+                .clone();
         let result = specification.assess();
         assert_eq!(
             result.disposition,
@@ -699,7 +698,10 @@ mod tests {
         specification.uncertainty.treatment =
             UncertaintyTreatmentV0_1::StatisticalUpperConfidenceBound;
         let result = specification.assess();
-        assert_eq!(result.disposition, ClaimSpecificationDispositionV0_1::Incomplete);
+        assert_eq!(
+            result.disposition,
+            ClaimSpecificationDispositionV0_1::Incomplete
+        );
         assert!(result.reason_codes.contains(
             &"CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING_OR_INVALID".to_owned()
         ));
