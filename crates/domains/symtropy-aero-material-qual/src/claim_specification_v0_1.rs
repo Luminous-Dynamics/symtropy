@@ -545,6 +545,18 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_json_fixture_deserializes_and_is_formally_well_specified() {
+        let specification: ClaimSpecificationV0_1 = serde_json::from_str(include_str!(
+            "../../../../docs/research/aviation/examples/aero_claim_specification_v0_1.json"
+        ))
+        .expect("synthetic claim specification fixture deserializes");
+        assert_eq!(
+            specification.assess().disposition,
+            ClaimSpecificationDispositionV0_1::FormallyWellSpecified
+        );
+    }
+
+    #[test]
     fn explicit_scalar_claim_is_formally_well_specified() {
         let result = valid_specification().assess();
         assert_eq!(
