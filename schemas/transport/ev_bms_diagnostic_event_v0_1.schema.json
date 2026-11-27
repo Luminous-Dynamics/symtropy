@@ -1,0 +1,421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transport/ev-bms-diagnostic-event/0.1",
+  "title": "EV BMS diagnostic event evidence contract v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "evidence_class",
+    "asset",
+    "bms",
+    "observation_context",
+    "observations",
+    "diagnosis",
+    "reaction"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "ev-bms-diagnostic-event/0.1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "enum": [
+        "physical_observation",
+        "derived_from_physical",
+        "simulation_output",
+        "synthetic_fixture",
+        "vendor_claim"
+      ]
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vehicle_ref",
+        "vehicle_configuration_digest",
+        "pack_ref",
+        "pack_configuration_digest",
+        "module_ref"
+      ],
+      "properties": {
+        "vehicle_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vehicle_configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "pack_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pack_configuration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "module_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "bms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hardware_ref",
+        "software_digest",
+        "firmware_digest",
+        "calibration_digest",
+        "diagnostic_rule_digest"
+      ],
+      "properties": {
+        "hardware_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "software_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "firmware_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "calibration_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "diagnostic_rule_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "observation_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "window_start_ms",
+        "window_end_ms",
+        "temperature_min_c",
+        "temperature_max_c",
+        "soc_min_fraction",
+        "soc_max_fraction",
+        "context_digest"
+      ],
+      "properties": {
+        "window_start_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "window_end_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "temperature_min_c": {
+          "type": "number"
+        },
+        "temperature_max_c": {
+          "type": "number"
+        },
+        "soc_min_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "soc_max_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "context_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "channel_id",
+          "value",
+          "unit",
+          "sample_time_ms",
+          "validity",
+          "sensor_calibration_digest",
+          "source_digest",
+          "evidence_class"
+        ],
+        "properties": {
+          "channel_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sample_time_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "validity": {
+            "enum": [
+              "valid",
+              "suspect",
+              "invalid"
+            ]
+          },
+          "sensor_calibration_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "evidence_class": {
+            "enum": [
+              "physical_observation",
+              "derived_from_physical",
+              "simulation_output",
+              "synthetic_fixture",
+              "vendor_claim"
+            ]
+          }
+        }
+      }
+    },
+    "diagnosis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "classification_rule_digest",
+        "fault_candidates",
+        "diagnosis_digest"
+      ],
+      "properties": {
+        "state": {
+          "enum": [
+            "not_identified",
+            "identified",
+            "classified",
+            "unknown",
+            "abstained"
+          ]
+        },
+        "classification_rule_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "diagnosis_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fault_candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fault_id",
+              "classification",
+              "severity",
+              "confidence",
+              "evidence_digests",
+              "model_digest"
+            ],
+            "properties": {
+              "fault_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "classification": {
+                "enum": [
+                  "cell_undervoltage",
+                  "cell_overvoltage",
+                  "thermal_anomaly",
+                  "isolation_fault",
+                  "contactor_fault",
+                  "sensor_fault",
+                  "cell_imbalance",
+                  "capacity_loss",
+                  "resistance_growth",
+                  "other",
+                  "unknown"
+                ]
+              },
+              "severity": {
+                "enum": [
+                  "informational",
+                  "minor",
+                  "major",
+                  "critical",
+                  "unknown"
+                ]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "evidence_digests": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "model_digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "reaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposal",
+        "reason",
+        "authority_status",
+        "authority_ref",
+        "authority_digest",
+        "safety_policy_digest",
+        "operating_envelope_digest",
+        "execution_status",
+        "execution_receipt_digest",
+        "reconciliation_required",
+        "mutation_blocked",
+        "maintenance_event_digest",
+        "post_action_test_digest",
+        "verification_status",
+        "verifier_ref",
+        "verifier_digest"
+      ],
+      "properties": {
+        "proposal": {
+          "enum": [
+            "no_action",
+            "monitor",
+            "warn",
+            "derate",
+            "isolate",
+            "service",
+            "replace"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_status": {
+          "enum": [
+            "not_requested",
+            "approved",
+            "denied"
+          ]
+        },
+        "authority_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authority_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "safety_policy_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "operating_envelope_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "execution_status": {
+          "enum": [
+            "not_executed",
+            "acknowledged",
+            "executed",
+            "failed",
+            "unknown"
+          ]
+        },
+        "execution_receipt_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reconciliation_required": {
+          "type": "boolean"
+        },
+        "mutation_blocked": {
+          "type": "boolean"
+        },
+        "maintenance_event_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "post_action_test_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "verification_status": {
+          "enum": [
+            "not_applicable",
+            "pending",
+            "verified",
+            "rejected"
+          ]
+        },
+        "verifier_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verifier_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
