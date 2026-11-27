@@ -178,3 +178,9 @@ A passing fixture is evidence of this model's arithmetic and declared topology o
 The one-epoch finite R1 implementation is specified in [same-information-oracle-protocol.md](same-information-oracle-protocol.md) and tracked in [MCSC-SAME-INFO-ORACLE-001 #7834](https://github.com/Luminous-Dynamics/symtropy/issues/7834). It composes KITE's as-of evidence snapshots and enforces one common action across scenarios with identical observable information. It enumerates bounded action policies and reports a component-wise adverse outcome envelope with scenario witnesses and a Pareto frontier without probabilities or scalar weights.
 
 The first executable slice is deliberately one decision epoch. It is not a multistage optimizer or deployable recovery policy. R0 clairvoyant bounds, R1 same-information oracle results, and R2 compute-budget-matched operational policies remain separate.
+
+## Multi-epoch R1 policy-tree validation
+
+The follow-on [multi-epoch policy-tree protocol](multistage-policy-tree-protocol-v0.1.md) is tracked in [MCSC-R1-POLICY-TREE-001 #7848](https://github.com/Luminous-Dynamics/symtropy/issues/7848). The new Rust validator checks non-anticipativity at every stage of a supplied finite scenario policy tree: identical committed observable states require identical action catalogues and selected actions, while later actions may diverge after observations diverge.
+
+This is a validator, not yet a multistage optimizer. It does not infer transitions, probabilities, cumulative recovery outcomes or live authority.
