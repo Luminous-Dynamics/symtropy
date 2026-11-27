@@ -336,3 +336,9 @@ This is a better witness interface than a scalar angle, but the production adapt
 A new `shape_coverage` module aligns directly with the already-qualified OBB reference lane. It reuses #7622's 2D/3D seeds, extents, random draw order and 3D plane-rotation composition, computes outward-rounded transformed AABBs, and asserts exact OBB SAT contacts are contained in the exact AABB pair relation. The CI binary runs 4,096 pairs in each dimension and records candidate-only amplification separately from missed contacts.
 
 This completes the shape-to-conservative-envelope implication on the frozen corpus. The temporal tournament separately validates each candidate backend against the AABB oracle, so their correctness contracts compose at the abstract relation level. The next stronger experiment is to run each backend on the exact same OBB-derived frames and replay the union of backend candidates plus exact shape contacts. 4D is still not a physical-engine claim until generalized 4D SAT is qualified.
+
+### 7.14 Same-frame OBB candidate recall across every backend
+
+The new `shape-backend-coverage-benchmark` uses one 8,192-proxy frame for each 2D/3D OBB corpus and invokes every backend in `BackendKind::ALL` on the same OBB-derived AABBs. This closes the gap between separately proving the OBB contact subset of the AABB oracle and separately proving each backend matches the AABB oracle: each backend now has its own same-frame false-negative count and derived shape-contact recall.
+
+The campaign emits 18 rows (nine backends × two dimensions), with exact shape contacts, candidate count, AABB false negatives, derived contact recall, candidate amplification and a single cold-frame latency. The latter is deliberately not used for SOTA ranking; use the multi-frame tournament for p50/p95/p99 performance comparisons. The same-frame campaign is a correctness bridge, not a whole physics engine comparison.
