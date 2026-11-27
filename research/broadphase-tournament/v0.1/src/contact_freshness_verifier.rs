@@ -1147,4 +1147,172 @@ mod tests {
             ))
         );
     }
+
+    #[test]
+    fn receipt_replay_commits_shape_refresh_and_warm_start_reset() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut changed_left = endpoint(1);
+        changed_left.shape += 1;
+        receipt.current_endpoints.insert(ProxyId(1), changed_left);
+
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("shape change produces a typed revalidation");
+        let prior = receipt.previous_contact_stamps[&pair];
+        let committed = prior
+            .commit_transition(
+                receipt.current_global,
+                changed_left,
+                endpoint(2),
+                true,
+                true,
+                false,
+                false,
+            )
+            .expect("geometry and warm-start work completed");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("shape update receipt replay succeeds");
+        assert_eq!(report.revalidated_pairs, 1);
+        assert_eq!(report.geometry_reuses, 0);
+        assert_eq!(report.warm_start_reuses, 0);
+        assert_eq!(report.full_contact_builds, 1);
+    }
+
+    #[test]
+    fn receipt_replay_rejects_omitted_shape_revalidation() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut changed_left = endpoint(1);
+        changed_left.shape += 1;
+        receipt.current_endpoints.insert(ProxyId(1), changed_left);
+        let prior = receipt.previous_contact_stamps[&pair];
+        let committed = prior
+            .commit_transition(
+                receipt.current_global,
+                changed_left,
+                endpoint(2),
+                true,
+                true,
+                false,
+                false,
+            )
+            .expect("producer completed required work");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+        receipt.producer_plan.actions.clear();
+
+        assert_eq!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Plan(
+                ContactLifecycleVerificationError::ActionCountMismatch {
+                    expected: 1,
+                    actual: 0,
+                }
+            ))
+        );
+    }
+
+    #[test]
+    fn receipt_replay_requires_filter_recheck_and_post_stamp() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        receipt.current_global.collision_policy += 1;
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("global filter revision requires revalidation");
+        let prior = receipt.previous_contact_stamps[&pair];
+        let committed = prior
+            .commit_transition(
+                receipt.current_global,
+                endpoint(1),
+                endpoint(2),
+                true,
+                true,
+                true,
+                false,
+            )
+            .expect("geometry, warm-start and eligibility work completed");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("filter revision receipt replay succeeds");
+        assert_eq!(report.revalidated_pairs, 1);
+        assert_eq!(report.geometry_reuses, 0);
+    }
+
+    #[test]
+    fn receipt_replay_accepts_generation_advance_with_counter_reset() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut recycled = endpoint(1);
+        recycled.generation += 1;
+        recycled.transform = 0;
+        recycled.shape = 0;
+        recycled.eligibility = 0;
+        recycled.motion_class = 0;
+        recycled.material = 0;
+        recycled.wake_epoch = 0;
+        receipt.current_endpoints.insert(ProxyId(1), recycled);
+
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("new proxy generation is a new residency");
+        let prior = receipt.previous_contact_stamps[&pair];
+        let committed = prior
+            .commit_transition(
+                receipt.current_global,
+                recycled,
+                endpoint(2),
+                true,
+                true,
+                true,
+                false,
+            )
+            .expect("new generation gets a new contact stamp");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("generation change receipt replay succeeds");
+        assert_eq!(report.revalidated_pairs, 1);
+        assert_eq!(report.full_contact_builds, 1);
+    }
+
+    #[test]
+    fn receipt_replay_rejects_generation_regression() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let mut older = endpoint(1);
+        older.generation -= 1;
+        receipt.current_endpoints.insert(ProxyId(1), older);
+        assert!(matches!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Receipt(
+                ContactLifecycleReceiptError::EndpointRevisionRegressed {
+                    proxy: ProxyId(1),
+                    domain: RevisionDomain::Generation,
+                }
+            ))
+        ));
+    }
+
+
 }
