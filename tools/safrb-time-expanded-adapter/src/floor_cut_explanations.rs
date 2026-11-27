@@ -48,6 +48,14 @@ pub enum FloorCutConstraintFamily {
     CirculationReturnClosure,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TemporalNodeState {
+    Inventory,
+    Handling,
+    ServiceIssue,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SemanticCutEdge {
@@ -61,6 +69,7 @@ pub struct SemanticCutEdge {
     pub original_edge_id: Option<String>,
     /// Physical temporal node when the cut arc is a node-period gate/balance.
     pub node_id: Option<String>,
+    pub node_state: Option<TemporalNodeState>,
     pub period: Option<u64>,
     /// Directly associated service IDs; not a causal attribution.
     pub related_service_ids: Vec<String>,
@@ -88,6 +97,7 @@ struct EdgeAttribution {
     family: FloorCutConstraintFamily,
     original_edge_id: Option<String>,
     node_id: Option<String>,
+    node_state: Option<TemporalNodeState>,
     period: Option<u64>,
     related_service_ids: Vec<String>,
 }
@@ -158,6 +168,7 @@ fn base_edge_attribution(
             family: FloorCutConstraintFamily::BeneficiaryRequestCeilingResidual,
             original_edge_id: Some(base_edge.id.clone()),
             node_id: Some(service.node_id.clone()),
+            node_state: Some(TemporalNodeState::ServiceIssue),
             period: Some(service.period),
             related_service_ids: vec![service.service_id.clone()],
         });
@@ -176,6 +187,7 @@ fn base_edge_attribution(
                 family: FloorCutConstraintFamily::RouteCapacityAndTransit,
                 original_edge_id: Some(base_edge.id.clone()),
                 node_id: Some(transfer.from_node_id.clone()),
+                node_state: Some(TemporalNodeState::Handling),
                 period: Some(transfer.departure_period),
                 related_service_ids: Vec::new(),
             });
@@ -195,6 +207,7 @@ fn base_edge_attribution(
                 family: FloorCutConstraintFamily::ReceiptAvailabilityQuantity,
                 original_edge_id: Some(base_edge.id.clone()),
                 node_id: Some(receipt.node_id.clone()),
+                node_state: Some(TemporalNodeState::Inventory),
                 period: Some(receipt.available_period),
                 related_service_ids: Vec::new(),
             });
@@ -214,6 +227,7 @@ fn base_edge_attribution(
                 family: FloorCutConstraintFamily::OpeningInventoryQuantity,
                 original_edge_id: Some(base_edge.id.clone()),
                 node_id: Some(node.node_id.clone()),
+                node_state: Some(TemporalNodeState::Inventory),
                 period: Some(0),
                 related_service_ids: Vec::new(),
             });
@@ -235,6 +249,7 @@ fn base_edge_attribution(
                     family: FloorCutConstraintFamily::OutboundHandlingCapacity,
                     original_edge_id: Some(base_edge.id.clone()),
                     node_id: Some(node.node_id.clone()),
+                    node_state: Some(TemporalNodeState::Handling),
                     period: Some(period),
                     related_service_ids: Vec::new(),
                 });
@@ -257,6 +272,7 @@ fn base_edge_attribution(
                     family: FloorCutConstraintFamily::BeneficiaryServiceIssueCapacity,
                     original_edge_id: Some(base_edge.id.clone()),
                     node_id: Some(node.node_id.clone()),
+                    node_state: Some(TemporalNodeState::ServiceIssue),
                     period: Some(period),
                     related_service_ids: related,
                 });
@@ -275,6 +291,7 @@ fn base_edge_attribution(
                     family: FloorCutConstraintFamily::EndOfPeriodStorageCarryCapacity,
                     original_edge_id: Some(base_edge.id.clone()),
                     node_id: Some(node.node_id.clone()),
+                    node_state: Some(TemporalNodeState::Inventory),
                     period: Some(period),
                     related_service_ids: Vec::new(),
                 });
@@ -288,11 +305,19 @@ fn base_edge_attribution(
     ))
 }
 
+#[derive(Debug, Clone)]
+struct BalanceNodeIdentity {
+    graph_node_id: String,
+    physical_node_id: String,
+    period: u64,
+    state: TemporalNodeState,
+}
+
 fn node_for_balance_edge(
     profile: &TemporalProfile,
     edge: &CutEdge,
     prefix: &str,
-) -> Result<String, String> {
+) -> Result<BalanceNodeIdentity, String> {
     let metadata_prefix = if prefix == SUPER_SOURCE_PREFIX {
         SUPER_SOURCE_META_PREFIX
     } else {
@@ -309,42 +334,61 @@ fn node_for_balance_edge(
         .horizon_last_period
         .checked_add(1)
         .ok_or_else(|| "temporal horizon overflows while attributing balance edge".to_string())?;
-    let matches = profile
-        .nodes
-        .iter()
-        .flat_map(|physical| {
-            let mut ids = Vec::new();
-            for period in 0..period_count {
-                ids.push(state_node_id(&physical.node_id, period));
-                ids.push(handling_node_id(&physical.node_id, period));
-                ids.push(issue_node_id(&physical.node_id, period));
-            }
-            ids
-        })
-        .find(|node_id| node_id == declared_node)
-        .ok_or_else(|| {
-            format!(
-                "balance edge {} references unknown temporal node {}",
-                edge.id, declared_node
-            )
-        })?;
 
-    let expected_id = format!("{prefix}{}{matches}", matches.len());
-    if edge.id != expected_id {
-        return Err(format!(
-            "balance edge {} does not preserve its node identity",
-            edge.id
-        ));
+    for physical in &profile.nodes {
+        for period in 0..period_count {
+            let candidates = [
+                (
+                    state_node_id(&physical.node_id, period),
+                    TemporalNodeState::Inventory,
+                ),
+                (
+                    handling_node_id(&physical.node_id, period),
+                    TemporalNodeState::Handling,
+                ),
+                (
+                    issue_node_id(&physical.node_id, period),
+                    TemporalNodeState::ServiceIssue,
+                ),
+            ];
+            for (graph_node_id, state) in candidates {
+                if graph_node_id == declared_node {
+                    let expected_id = format!("{prefix}{}{graph_node_id}", graph_node_id.len());
+                    if edge.id != expected_id {
+                        return Err(format!(
+                            "balance edge {} does not preserve its node identity",
+                            edge.id
+                        ));
+                    }
+                    return Ok(BalanceNodeIdentity {
+                        graph_node_id,
+                        physical_node_id: physical.node_id.clone(),
+                        period,
+                        state,
+                    });
+                }
+            }
+        }
     }
-    Ok(matches)
+
+    Err(format!(
+        "balance edge {} references unknown temporal node {}",
+        edge.id, declared_node
+    ))
 }
 
-fn balance_node_services(profile: &TemporalProfile, node_id: &str) -> Vec<String> {
+fn balance_node_services(
+    profile: &TemporalProfile,
+    identity: &BalanceNodeIdentity,
+) -> Vec<String> {
+    if identity.state != TemporalNodeState::ServiceIssue {
+        return Vec::new();
+    }
     profile
         .services
         .iter()
         .filter(|service| {
-            issue_node_id(&service.node_id, service.period) == node_id
+            service.node_id == identity.physical_node_id && service.period == identity.period
         })
         .map(|service| service.service_id.clone())
         .collect()
@@ -402,38 +446,47 @@ fn attribute_cut_edge(
             family: FloorCutConstraintFamily::CirculationReturnClosure,
             original_edge_id: None,
             node_id: None,
+            node_state: None,
             period: None,
             related_service_ids: Vec::new(),
         }
     } else if edge.from == AUX_SOURCE {
-        let node_id = node_for_balance_edge(profile, edge, SUPER_SOURCE_PREFIX)?;
-        if edge.to != node_id
+        let identity = node_for_balance_edge(profile, edge, SUPER_SOURCE_PREFIX)?;
+        if edge.to != identity.graph_node_id
             || edge.metadata_ref.as_deref()
-                != Some(format!("{SUPER_SOURCE_META_PREFIX}{node_id}").as_str())
+                != Some(format!("{SUPER_SOURCE_META_PREFIX}{}", identity.graph_node_id).as_str())
         {
-            return Err(format!("positive lower-bound balance edge {} has invalid endpoints or metadata", edge.id));
+            return Err(format!(
+                "positive lower-bound balance edge {} has invalid endpoints or metadata",
+                edge.id
+            ));
         }
         EdgeAttribution {
             family: FloorCutConstraintFamily::LowerBoundPositiveBalanceDemand,
             original_edge_id: None,
-            node_id: Some(node_id.clone()),
-            period: None,
-            related_service_ids: balance_node_services(profile, &node_id),
+            node_id: Some(identity.physical_node_id.clone()),
+            node_state: Some(identity.state),
+            period: Some(identity.period),
+            related_service_ids: balance_node_services(profile, &identity),
         }
     } else if edge.to == AUX_SINK {
-        let node_id = node_for_balance_edge(profile, edge, SUPER_SINK_PREFIX)?;
-        if edge.from != node_id
+        let identity = node_for_balance_edge(profile, edge, SUPER_SINK_PREFIX)?;
+        if edge.from != identity.graph_node_id
             || edge.metadata_ref.as_deref()
-                != Some(format!("{SUPER_SINK_META_PREFIX}{node_id}").as_str())
+                != Some(format!("{SUPER_SINK_META_PREFIX}{}", identity.graph_node_id).as_str())
         {
-            return Err(format!("negative lower-bound balance edge {} has invalid endpoints or metadata", edge.id));
+            return Err(format!(
+                "negative lower-bound balance edge {} has invalid endpoints or metadata",
+                edge.id
+            ));
         }
         EdgeAttribution {
             family: FloorCutConstraintFamily::LowerBoundNegativeBalanceDischarge,
             original_edge_id: None,
-            node_id: Some(node_id.clone()),
-            period: None,
-            related_service_ids: balance_node_services(profile, &node_id),
+            node_id: Some(identity.physical_node_id.clone()),
+            node_state: Some(identity.state),
+            period: Some(identity.period),
+            related_service_ids: balance_node_services(profile, &identity),
         }
     } else {
         return Err(format!(
@@ -451,6 +504,7 @@ fn attribute_cut_edge(
         constraint_family: attribution.family,
         original_edge_id: attribution.original_edge_id,
         node_id: attribution.node_id,
+        node_state: attribution.node_state,
         period: attribution.period,
         related_service_ids: attribution.related_service_ids,
     })
@@ -647,6 +701,7 @@ mod tests {
         assert!(explanation.cut_edges.iter().any(|edge| {
             edge.constraint_family == FloorCutConstraintFamily::OutboundHandlingCapacity
                 && edge.node_id.as_deref() == Some("origin-yard")
+                && edge.node_state == Some(TemporalNodeState::Handling)
                 && edge.period == Some(0)
         }));
         verify_beneficiary_floor_infeasibility_explanation(
