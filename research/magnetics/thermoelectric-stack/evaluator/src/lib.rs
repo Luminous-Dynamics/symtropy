@@ -76,6 +76,8 @@ pub enum Decision {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Scope {
     pub application_id: String,
+    /// Digest of canonical JSON of all other Scope fields, excluding this field.
+    pub comparison_scope_digest: String,
     pub duty_digest: String,
     pub waveform_digest: String,
     pub coolant_digest: String,
@@ -129,6 +131,7 @@ pub struct ComponentAcceptance {
     pub maturity: Maturity,
     pub disposition: Disposition,
     pub acceptance_policy_digest: String,
+    pub comparison_scope_digest: String,
     pub receipt_digest: String,
     pub physical_evidence_digest: String,
 }
@@ -147,6 +150,7 @@ pub struct OptimizationReceipt {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Observation {
     pub metric_id: String,
+    pub comparison_scope_digest: String,
     pub component_id: String,
     pub specimen_id: String,
     pub build_id: String,
@@ -270,7 +274,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
             blockers.push(Blocker::WrongCandidateFamily);
         }
 
-        validate_acceptance(candidate, &mut blockers);
+        validate_acceptance(candidate, spec, &mut blockers);
         validate_optimization(candidate, spec, &mut blockers);
         let candidate_intervals = validate_observations(candidate, spec, &mut blockers);
         let candidate_hard = hard_limit_status(&candidate_intervals, &spec.metrics);
@@ -304,7 +308,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
 
                 let mut baseline_blockers = Vec::new();
                 validate_optimization(baseline, spec, &mut baseline_blockers);
-                validate_acceptance(baseline, &mut baseline_blockers);
+                validate_acceptance(baseline, spec, &mut baseline_blockers);
                 let intervals = validate_observations(baseline, spec, &mut baseline_blockers);
                 let hard = hard_limit_status(&intervals, &spec.metrics);
                 baseline_blockers.extend(hard.blockers);
@@ -404,6 +408,7 @@ fn validate_spec(spec: &BenchmarkSpec) -> Vec<Blocker> {
 
     if spec.benchmark_id.trim().is_empty()
         || spec.scope.application_id.trim().is_empty()
+        || !valid_sha256(&spec.scope.comparison_scope_digest)
         || [
             &spec.scope.duty_digest,
             &spec.scope.waveform_digest,
@@ -532,7 +537,11 @@ fn validate_spec(spec: &BenchmarkSpec) -> Vec<Blocker> {
     blockers
 }
 
-fn validate_acceptance(trial: &Trial, blockers: &mut Vec<Blocker>) {
+fn validate_acceptance(
+    trial: &Trial,
+    spec: &BenchmarkSpec,
+    blockers: &mut Vec<Blocker>,
+) {
     let acceptance = &trial.acceptance;
     if acceptance.component_id != trial.component_id
         || acceptance.specimen_id.trim().is_empty()
@@ -543,6 +552,8 @@ fn validate_acceptance(trial: &Trial, blockers: &mut Vec<Blocker>) {
         || acceptance.maturity < Maturity::M4
         || acceptance.disposition != Disposition::Qualified
         || !valid_sha256(&acceptance.acceptance_policy_digest)
+        || acceptance.comparison_scope_digest != spec.scope.comparison_scope_digest
+        || !valid_sha256(&acceptance.comparison_scope_digest)
         || !valid_sha256(&acceptance.receipt_digest)
         || !valid_sha256(&acceptance.physical_evidence_digest)
     {
@@ -593,7 +604,8 @@ fn validate_observations(
             blockers.push(Blocker::DuplicateObservation);
             valid = false;
         }
-        if observation.component_id != trial.component_id
+        if observation.comparison_scope_digest != spec.scope.comparison_scope_digest
+            || observation.component_id != trial.component_id
             || observation.specimen_id != trial.acceptance.specimen_id
             || observation.build_id != trial.acceptance.build_id
             || observation.material_lot_id.trim().is_empty()
@@ -799,6 +811,7 @@ mod tests {
     fn scope() -> Scope {
         Scope {
             application_id: "MOTOR-50KW-001".to_string(),
+            comparison_scope_digest: digest('0'),
             duty_digest: digest('a'),
             waveform_digest: digest('b'),
             coolant_digest: digest('c'),
@@ -967,6 +980,7 @@ mod tests {
             maturity: Maturity::M4,
             disposition: Disposition::Qualified,
             acceptance_policy_digest: digest('1'),
+            comparison_scope_digest: digest('0'),
             receipt_digest: digest('4'),
             physical_evidence_digest: digest('5'),
         }
@@ -1004,6 +1018,7 @@ mod tests {
             .map(
                 |(metric_id, unit, value, uncertainty_radius, suffix)| Observation {
                     metric_id: metric_id.to_string(),
+                    comparison_scope_digest: digest('0'),
                     component_id: component_id.clone(),
                     specimen_id: specimen_id.clone(),
                     build_id: build_id.clone(),
@@ -1238,6 +1253,21 @@ mod tests {
         assert!(result[0]
             .blockers
             .contains(&Blocker::InvalidOptimizationReceipt));
+    }
+
+    #[test]
+    fn wrong_measurement_scope_cannot_create_a_false_hard_fail() {
+        let mut trials = known_trials();
+        trials[0].observations[0].value = 500.0;
+        trials[0].observations[0].comparison_scope_digest = digest('f');
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(!result[0]
+            .blockers
+            .contains(&Blocker::DefiniteHardLimitViolation));
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::BrokenSpecimenBinding));
     }
 
     #[test]
