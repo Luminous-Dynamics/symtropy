@@ -1,0 +1,43 @@
+name: maritime-receiver-service
+
+on:
+  push:
+    paths:
+      - "research/maritime-receiver-service/**"
+      - ".github/workflows/maritime-receiver-service.yml"
+  pull_request:
+    paths:
+      - "research/maritime-receiver-service/**"
+      - ".github/workflows/maritime-receiver-service.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-receiver-service/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-receiver-service/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-receiver-service/Cargo.toml --all-targets -- -D warnings
+      - name: Emit deterministic receiver service receipt
+        run: cargo run --locked --manifest-path research/maritime-receiver-service/Cargo.toml --bin receiver-service-audit > receiver-service-receipt.tsv
+      - name: Independent receiver service reference
+        run: python3 research/maritime-receiver-service/scripts/independent_reference.py --receipt receiver-service-receipt.tsv
+      - name: Upload deterministic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-receiver-service-receipt
+          path: receiver-service-receipt.tsv
+          if-no-files-found: error
+          retention-days: 30

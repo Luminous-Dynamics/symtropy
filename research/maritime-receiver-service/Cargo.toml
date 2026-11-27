@@ -1,0 +1,16 @@
+[package]
+name = "maritime-receiver-service"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "receiver-service-audit"
+path = "src/bin/receiver_service_audit.rs"
+
+[dependencies]
+
+[workspace]
