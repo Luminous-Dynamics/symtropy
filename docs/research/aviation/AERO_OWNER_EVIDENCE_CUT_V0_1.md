@@ -67,6 +67,8 @@ The owner cut is encoded as a versioned field-ordered Rust/Serde JSON envelope:
 
 This is a defined profile, not a general RFC 8785/JCS implementation. A separate Python workflow recomputes the frozen digest vector. Any cross-language production consumer must reproduce this exact profile and pass the frozen byte/digest vectors or agree a new versioned profile before use.
 
+The checked-in synthetic fixture `examples/aero_owner_evidence_cut_v0_1.json` has owner-cut digest `da95f7ba160dc5883cea7ab6828cbf3abd84246a0aaf596121a846377e735ec8`. When bound to the current decision-context example, the complete context digest is `018dca27c7f9cddb276d11698a27de5e1162a02edebdf5711b4fc7c9dbda0b3a`. Rust unit tests and the independent Python workflow both pin these values.
+
 The claim gate requires:
 1. recomputed owner-cut digest equals `DecisionContextV0_1.evidence_knowledge_cut_sha256`;
 2. owner packet physical-unit identity equals the decision context subject;
