@@ -901,7 +901,13 @@ mod tests {
 
     #[test]
     fn capability_receipt_can_supply_the_only_admitted_plan_evidence() {
-        let fixture = "INSTANCE\tMCSC-NO-DEPENDENCY\tv0.4\nSERVICE\tS\t10\tcargo_unit\t10\nOPTION\tO\tIMPORT\t1\t1\t1\t1\t1\t1\t0\t-\tREV-001\nINSPECTION\tO\tPASS\t10\tREV-001\nRECEIVER_ACCEPTANCE\tO\tACCEPTED\t10\tREV-001\n";
+        let fixture = concat!(
+            "INSTANCE\\tMCSC-NO-DEPENDENCY\\tv0.4\\n",
+            "SERVICE\\tS\\t10\\tcargo_unit\\t10\\n",
+            "OPTION\\tO\\tIMPORT\\t1\\t1\\t1\\t1\\t1\\t1\\t0\\t-\\tREV-001\\n",
+            "INSPECTION\\tO\\tPASS\\t10\\tREV-001\\n",
+            "RECEIVER_ACCEPTANCE\\tO\\tACCEPTED\\t10\\tREV-001\\n",
+        );
         let receipt = run_audit(fixture)
             .expect("an option can be sourced through an external capability receipt");
         assert!(receipt.contains(
