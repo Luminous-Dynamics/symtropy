@@ -54,6 +54,12 @@ quad	ext{and}quad
 
 The state is calculated only from admissible evidence: payload integrity, owner/producer authority, semantic validation, applicability and time must be evaluated as separate gates before an item contributes support or rebuttal. An unauthenticated assertion is not admissible merely because its contents look plausible.
 
+### 3.2 Intrinsic hard gates and policy authority
+
+The v0.1 projection treats claim identity, evidence/payload integrity and producer authority as intrinsic mandatory hard gates. Every state vector must include each kind, and no instance may mark one optional or non-hard. Missing or downgraded intrinsic gates produce `UNVERIFIED`, never reviewability.
+
+This protects against the most direct self-declared-policy bypass. It does **not** solve the broader policy-authority problem: whether every other obligation is mandatory, which domain strata are required, and which gates apply to a particular intended use must be bound to a verified claim specification / requirement profile and its exact digest. The present reference evaluator receives those additional obligations as caller-supplied inputs; it does not authenticate a requirement profile or acceptance authority. Until that profile binding exists, this module is a reference projection and must not be used as a standalone production approval gate.
+
 ## 3. Orthogonal gates and open-world semantics
 
 The proposition state is only one axis. Each obligation also records:
