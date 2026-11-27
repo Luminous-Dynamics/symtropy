@@ -222,12 +222,69 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
     }
     let bytes = fs::read(&resolved)
         .map_err(|error| format!("cannot read bundle {}: {error}", resolved.display()))?;
+    if bytes.len() as u64 > MAX_INPUT_BYTES {
+        return Err(format!("episode {} bundle grew beyond the byte limit", episode.episode_id));
+    }
     let actual = format!("{:x}", Sha256::digest(&bytes));
     if actual != episode.input_bundle_sha256 {
         return Err(format!(
             "episode {} source bundle SHA-256 mismatch: expected {}, observed {}",
             episode.episode_id, episode.input_bundle_sha256, actual
         ));
+    }
+
+    // The non-image contract fixture cross-binds the episode header and every
+    // frame identity/time/modality row to the manifest. This prevents a valid
+    // source-byte digest from being paired with substituted metadata.
+    let text = std::str::from_utf8(&bytes)
+        .map_err(|error| format!("episode {} bundle is not UTF-8: {error}", episode.episode_id))?;
+    let mut lines = text.lines();
+    if lines.next() != Some("CFI_SPACE_SYNTHETIC_NON_IMAGE_PAYLOAD_V1")
+        || lines.next() != Some(format!("episode={}", episode.episode_id).as_str())
+        || lines.next()
+            != Some(
+                format!(
+                    "frame_budget={};expected_frame_count={};first_sequence={};horizon_us={}",
+                    episode.frame_budget,
+                    episode.expected_frame_count,
+                    episode.first_sequence,
+                    episode.horizon_us
+                )
+                .as_str(),
+            )
+    {
+        return Err(format!("episode {} bundle header does not match manifest", episode.episode_id));
+    }
+
+    for (index, frame) in episode.frames.iter().enumerate() {
+        let modalities = frame
+            .modalities
+            .iter()
+            .map(|modality| match modality {
+                Modality::Rgb => "rgb",
+                Modality::Event => "event",
+                Modality::Depth => "depth",
+                Modality::Infrared => "infrared",
+                Modality::Lidar => "lidar",
+            })
+            .collect::<Vec<_>>()
+            .join(",");
+        let prefix = format!(
+            "frame={index};frame_id={};sequence={};timestamp_us={};modalities={modalities};payload=",
+            frame.frame_id, frame.sequence, frame.timestamp_us
+        );
+        let row = lines
+            .next()
+            .ok_or_else(|| format!("episode {} bundle omits frame {index}", episode.episode_id))?;
+        if !row.starts_with(&prefix) || row.len() <= prefix.len() {
+            return Err(format!(
+                "episode {} bundle frame {index} metadata/payload mismatch",
+                episode.episode_id
+            ));
+        }
+    }
+    if lines.next().is_some() {
+        return Err(format!("episode {} bundle has unmanifested trailing records", episode.episode_id));
     }
     Ok(())
 }
