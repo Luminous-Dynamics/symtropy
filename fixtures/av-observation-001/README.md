@@ -151,3 +151,6 @@ The projection schema now follows Symthaea #498/#611/#621/#632/#633/#625 identit
 
 
 Source artifact and calibration/clock-transform references now carry explicit digest algorithm tags (sha256 or blake3) alongside the 64-hex value. The projection's own envelope/prefix/revision/parent hashes use the declared SHA-256 convention. Do not infer algorithms from digest length.
+
+
+Spatial projection v0 now requires an explicit epistemic origin on every transform, as it already does for entity and relation claims. The origin remains a candidate assertion; it is not a calibration or physical truth attestation.
