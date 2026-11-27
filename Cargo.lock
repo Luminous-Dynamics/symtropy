@@ -11796,6 +11796,7 @@ dependencies = [
 name = "safrb-time-expanded-adapter"
 version = "0.1.0"
 dependencies = [
+ "serde",
  "serde_json",
  "sha2",
  "single-commodity-flow-kernel",
