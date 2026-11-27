@@ -9,8 +9,7 @@
     "semantics_version",
     "status",
     "authority_ceiling",
-    "cases",
-    "subject_time_effectivity"
+    "cases"
   ],
   "properties": {
     "schema": {
@@ -40,7 +39,8 @@
           "defeaters",
           "expected_disposition",
           "expected_blocking_obligation_ids",
-          "expected_reason_codes"
+          "expected_reason_codes",
+          "subject_time_effectivity"
         ],
         "properties": {
           "case_id": {
@@ -272,17 +272,17 @@
             "items": {
               "type": "string"
             }
+          },
+          "subject_time_effectivity": {
+            "enum": [
+              "DEFINITELY_EFFECTIVE",
+              "DEFINITELY_NOT_YET_EFFECTIVE",
+              "BOUNDARY_AMBIGUOUS",
+              "INVALID_INTERVAL"
+            ]
           }
         }
       }
-    },
-    "subject_time_effectivity": {
-      "enum": [
-        "DEFINITELY_EFFECTIVE",
-        "DEFINITELY_NOT_YET_EFFECTIVE",
-        "BOUNDARY_AMBIGUOUS",
-        "INVALID_INTERVAL"
-      ]
     }
   }
 }
