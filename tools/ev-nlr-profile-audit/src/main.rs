@@ -871,6 +871,18 @@ mod tests {
         fs::write(path, lines.join("\n") + "\n").expect("rewrite source profile");
     }
 
+    fn shift_profile(directory: &Path, key: &ProfileKey, delta_kw: f64) {
+        let path = directory.join(key.file_name());
+        let source = fs::read_to_string(&path).expect("read candidate profile");
+        let mut lines = source.lines().map(str::to_owned).collect::<Vec<_>>();
+        for line in lines.iter_mut().skip(1) {
+            let (time, power) = line.split_once(',').expect("two CSV fields");
+            let shifted = power.parse::<f64>().expect("numeric profile power") + delta_kw;
+            *line = format!("{time},{shifted:.6}");
+        }
+        fs::write(path, lines.join("\n") + "\n").expect("shift candidate profile");
+    }
+
     #[test]
     fn rejects_negative_and_non_finite_power_values() {
         let key = expected_keys()
@@ -889,6 +901,30 @@ mod tests {
         overwrite_first_power(&non_finite_dir, &key, "NaN");
         assert!(audit_archive(&non_finite_dir).is_err());
         fs::remove_dir_all(non_finite_dir).expect("remove non-finite fixture");
+    }
+
+    #[test]
+    fn opposite_profile_biases_do_not_cancel_profile_level_error() {
+        let reference_dir = temporary_directory("cancel-reference");
+        let candidate_dir = temporary_directory("cancel-candidate");
+        write_fixture_archive(&reference_dir, 0.0);
+        write_fixture_archive(&candidate_dir, 0.0);
+        let keys = expected_keys();
+        shift_profile(&candidate_dir, &keys[0], 0.5);
+        shift_profile(&candidate_dir, &keys[1], -0.5);
+
+        let reference = audit_archive(&reference_dir).expect("reference fixture");
+        let candidate = audit_archive(&candidate_dir).expect("candidate fixture");
+        let report = compare_archives(&reference, &candidate, "opposite-biases", "estimate")
+            .expect("compare opposite profile biases");
+        assert!(report.aggregate_energy_bias_kwh.abs() < 1e-9);
+        assert!(report.aggregate_energy_absolute_error_kwh < 1e-9);
+        assert!(
+            (report.sum_profile_daily_energy_absolute_error_kwh - 24.0).abs() < 1e-9
+        );
+
+        fs::remove_dir_all(reference_dir).expect("remove reference fixture");
+        fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
 
     #[test]
