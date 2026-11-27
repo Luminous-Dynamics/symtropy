@@ -699,10 +699,11 @@ pub fn wilson_interval(successes: usize, total: usize) -> Option<(f64, f64)> {
     let z2 = Z * Z;
     let denominator = 1.0 + z2 / n;
     let center = (p + z2 / (2.0 * n)) / denominator;
-    let half_width = Z
-        * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt())
-        / denominator;
-    Some(((center - half_width).max(0.0), (center + half_width).min(1.0)))
+    let half_width = Z * ((p * (1.0 - p) / n + z2 / (4.0 * n * n)).sqrt()) / denominator;
+    Some((
+        (center - half_width).max(0.0),
+        (center + half_width).min(1.0),
+    ))
 }
 
 fn percentile(values: &mut [f64], percentile: f64) -> Option<f64> {
@@ -812,8 +813,7 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         .iter()
         .filter(|result| result.coverage_95 == Some(true))
         .count();
-    let accepted_coverage_95_interval =
-        wilson_interval(accepted_coverage_95_count, accepted.len());
+    let accepted_coverage_95_interval = wilson_interval(accepted_coverage_95_count, accepted.len());
     let false_confident_interval = wilson_interval(false_confident_count, accepted.len());
 
     EvaluationSummary {
