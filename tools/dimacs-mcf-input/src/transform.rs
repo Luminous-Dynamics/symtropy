@@ -600,7 +600,7 @@ mod tests {
             let mut state = seed.wrapping_add(0x5A17_2026);
             let mut rows = Vec::new();
             let mut chosen_flows = Vec::new();
-            let mut supplies = vec![0_i64; 4];
+            let mut supplies = [0_i64; 4];
             for _ in 0..5 {
                 let tail = (next(&mut state) % 3 + 1) as usize;
                 let head = (next(&mut state) % 3 + 1) as usize;
