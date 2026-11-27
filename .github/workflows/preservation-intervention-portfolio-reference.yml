@@ -26,6 +26,8 @@ jobs:
       SOURCE: research/physical-storage/preservation-intervention-portfolio-reference/src/lib.rs
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
       - name: Set up pinned Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
