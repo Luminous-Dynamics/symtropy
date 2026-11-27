@@ -173,7 +173,7 @@ fn render_result(result: &CurvatureResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"scope\":{},\"disposition\":\"{}\",\"central_gravity_numerator\":{},\"differential_acceleration_numerator\":{},\"radial_domain_denominator\":{},\"exact_total_numerator\":{},\"exact_total_denominator\":{},\"m_upper_scaled_per_s2\":{},\"radial_slack_mm\":{},\"perturbation_inventory_id\":\"{}\",\"perturbation_inventory_complete\":{},\"evidence\":{{\"mu\":{},\"chief_radius\":{},\"relative_separation\":{},\"differential_acceleration\":{},\"transform_norm\":{}}},\"reason_codes\":[{}],\"bound_ready\":{},\"source_bytes_authenticated\":{},\"authority_granted\":{},\"physical_validation\":\"{}\"}}",
+        "{{\"case_id\":\"{}\",\"scope\":{},\"disposition\":\"{}\",\"central_gravity_numerator\":{},\"differential_acceleration_numerator\":{},\"radial_domain_denominator\":{},\"exact_total_numerator\":{},\"exact_total_denominator\":{},\"m_upper_scaled_per_s2\":{},\"m_scale\":{},\"m_unit\":\"{}\",\"radial_slack_mm\":{},\"perturbation_inventory_id\":\"{}\",\"perturbation_inventory_complete\":{},\"evidence\":{{\"mu\":{},\"chief_radius\":{},\"relative_separation\":{},\"differential_acceleration\":{},\"transform_norm\":{}}},\"reason_codes\":[{}],\"bound_ready\":{},\"source_bytes_authenticated\":{},\"authority_granted\":{},\"physical_validation\":\"{}\"}}",
         json_escape(&result.case_id),
         render_scope(&result.scope),
         result.disposition.as_str(),
