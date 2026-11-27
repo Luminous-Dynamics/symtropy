@@ -369,6 +369,20 @@ def evaluate_manifest(rows: list[dict[str, str]]) -> list[dict[str, object]]:
     return results
 
 
+def wilson_interval(successes: int, total: int) -> tuple[float, float] | None:
+    """Two-sided 95% Wilson score interval for a binomial proportion."""
+    if total == 0 or successes > total:
+        return None
+    z = 1.959963984540054
+    n = float(total)
+    p = successes / n
+    z2 = z * z
+    denominator = 1.0 + z2 / n
+    center = (p + z2 / (2.0 * n)) / denominator
+    half = z * math.sqrt(p * (1.0 - p) / n + z2 / (4.0 * n * n)) / denominator
+    return max(0.0, center - half), min(1.0, center + half)
+
+
 def percentile(values: list[float], p: float) -> float | None:
     if not values:
         return None
@@ -419,6 +433,11 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         float(result["prediction_region_log_volume_95"]) for result in accepted
         if result["prediction_region_log_volume_95"] is not None
     ]
+    accepted_pose_interval = wilson_interval(len(accepted), len(valid))
+    accepted_coverage_95_count = sum(result["coverage_95"] is True for result in accepted)
+    accepted_coverage_95_interval = wilson_interval(accepted_coverage_95_count, len(accepted))
+    false_confident_interval = wilson_interval(false_count, len(accepted))
+
     risk = []
     for threshold in THRESHOLDS:
         selected = [
@@ -427,6 +446,7 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
             and int(result["confidence_score_ppm"]) >= threshold
         ]
         false = sum(bool(result["false_confident_95"]) for result in selected)
+        risk_interval = wilson_interval(false, len(selected))
         risk.append(
             {
                 "confidence_threshold_ppm": threshold,
@@ -434,12 +454,16 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
                 "coverage_fraction": 0.0 if not valid else len(selected) / len(valid),
                 "false_confident_count": false,
                 "selective_risk": None if not selected else f"{false / len(selected):.12f}",
+                "selective_risk_ci_lower": None if risk_interval is None else f"{risk_interval[0]:.12f}",
+                "selective_risk_ci_upper": None if risk_interval is None else f"{risk_interval[1]:.12f}",
             }
         )
     return {
         "valid_count": len(valid),
         "accepted_count": len(accepted),
         "accepted_pose_coverage_fraction": None if not valid else f"{len(accepted) / len(valid):.12f}",
+        "accepted_pose_coverage_ci_lower": None if accepted_pose_interval is None else f"{accepted_pose_interval[0]:.12f}",
+        "accepted_pose_coverage_ci_upper": None if accepted_pose_interval is None else f"{accepted_pose_interval[1]:.12f}",
         "abstained_count": len(valid) - len(accepted),
         "invalid_count": len(results) - len(valid),
         "accepted_false_confident_95_count": false_count,
@@ -447,7 +471,11 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
         "accepted_coverage_80": coverage("coverage_80"),
         "accepted_coverage_90": coverage("coverage_90"),
         "accepted_coverage_95": coverage("coverage_95"),
+        "accepted_coverage_95_ci_lower": None if accepted_coverage_95_interval is None else f"{accepted_coverage_95_interval[0]:.12f}",
+        "accepted_coverage_95_ci_upper": None if accepted_coverage_95_interval is None else f"{accepted_coverage_95_interval[1]:.12f}",
         "accepted_coverage_99": coverage("coverage_99"),
+        "accepted_false_confident_95_rate_ci_lower": None if false_confident_interval is None else f"{false_confident_interval[0]:.12f}",
+        "accepted_false_confident_95_rate_ci_upper": None if false_confident_interval is None else f"{false_confident_interval[1]:.12f}",
         "accepted_translation_p95_m": fmt_optional(translations, 0.95),
         "accepted_rotation_p95_rad": fmt_optional(rotations, 0.95),
         "accepted_gaussian_nll_mean": None if not gaussian_nll else f"{sum(gaussian_nll) / len(gaussian_nll):.12f}",
