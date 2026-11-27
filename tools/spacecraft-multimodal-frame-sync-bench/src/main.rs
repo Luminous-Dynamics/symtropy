@@ -36,9 +36,9 @@ fn parse_modality(
 }
 
 fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn Error>> {
-    if fields.len() != 51 {
+    if fields.len() != 57 {
         return Err(format!(
-            "line {line_number}: expected 51 comma-separated fields, found {}",
+            "line {line_number}: expected 57 comma-separated fields, found {}",
             fields.len()
         )
         .into());
@@ -63,15 +63,21 @@ fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn 
             pose_csv_revision: fields[14].to_owned(),
             camera_frame: fields[15].to_owned(),
             world_frame: fields[16].to_owned(),
-            quaternion_convention: fields[17].to_owned(),
-            pose_length_unit: fields[18].to_owned(),
-            depth_unit: fields[19].to_owned(),
-            lidar_unit: fields[20].to_owned(),
-            rgb: parse_modality(fields, 21, "rgb_present")?,
-            depth: parse_modality(fields, 27, "depth_present")?,
-            segmentation: parse_modality(fields, 33, "segmentation_present")?,
-            lidar: parse_modality(fields, 39, "lidar_present")?,
-            pose: parse_modality(fields, 45, "pose_present")?,
+            lidar_coordinate_frame: fields[17].to_owned(),
+            pose_semantics: fields[18].to_owned(),
+            quaternion_convention: fields[19].to_owned(),
+            pose_length_unit: fields[20].to_owned(),
+            depth_unit: fields[21].to_owned(),
+            lidar_unit: fields[22].to_owned(),
+            camera_calibration_revision: fields[23].to_owned(),
+            camera_calibration_sha256: fields[24].to_owned(),
+            lidar_to_camera_revision: fields[25].to_owned(),
+            lidar_to_camera_sha256: fields[26].to_owned(),
+            rgb: parse_modality(fields, 27, "rgb_present")?,
+            depth: parse_modality(fields, 33, "depth_present")?,
+            segmentation: parse_modality(fields, 39, "segmentation_present")?,
+            lidar: parse_modality(fields, 45, "lidar_present")?,
+            pose: parse_modality(fields, 51, "pose_present")?,
         },
     })
 }
@@ -115,7 +121,7 @@ fn render_result(result: &BundleResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"license\":\"{}\",\"spacecraft_id\":\"{}\",\"trajectory_id\":\"{}\",\"sample_id\":\"{}\",\"frame_id\":\"{}\",\"split\":\"{}\",\"capture_timestamp\":\"{}\",\"pose_csv_revision\":\"{}\",\"disposition\":\"{}\",\"modality_sha256\":{{{}}},\"modality_paths\":{{{}}},\"reason_codes\":[{}],\"bundle_admissible\":{},\"source_bytes_authenticated\":{},\"calibration_physically_validated\":{},\"authority_granted\":{}}}",
+        "{{\"case_id\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"license\":\"{}\",\"spacecraft_id\":\"{}\",\"trajectory_id\":\"{}\",\"sample_id\":\"{}\",\"frame_id\":\"{}\",\"split\":\"{}\",\"capture_timestamp\":\"{}\",\"pose_csv_revision\":\"{}\",\"camera_calibration_revision\":\"{}\",\"camera_calibration_sha256\":\"{}\",\"lidar_to_camera_revision\":\"{}\",\"lidar_to_camera_sha256\":\"{}\",\"lidar_coordinate_frame\":\"{}\",\"pose_semantics\":\"{}\",\"disposition\":\"{}\",\"modality_sha256\":{{{}}},\"modality_paths\":{{{}}},\"reason_codes\":[{}],\"bundle_admissible\":{},\"source_bytes_authenticated\":{},\"calibration_physically_validated\":{},\"authority_granted\":{}}}",
         json_escape(&result.case_id),
         json_escape(&result.dataset_id),
         json_escape(&result.dataset_revision),
@@ -127,6 +133,12 @@ fn render_result(result: &BundleResult) -> String {
         json_escape(&result.split),
         json_escape(&result.capture_timestamp),
         json_escape(&result.pose_csv_revision),
+        json_escape(&result.camera_calibration_revision),
+        json_escape(&result.camera_calibration_sha256),
+        json_escape(&result.lidar_to_camera_revision),
+        json_escape(&result.lidar_to_camera_sha256),
+        json_escape(&result.lidar_coordinate_frame),
+        json_escape(&result.pose_semantics),
         result.disposition.as_str(),
         render_map(&result.modality_sha256),
         render_map(&result.modality_paths),
