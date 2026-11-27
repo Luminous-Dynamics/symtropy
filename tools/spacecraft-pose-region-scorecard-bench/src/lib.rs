@@ -245,7 +245,7 @@ fn score_accepted(input: &PredictionInput) -> Result<Vec<RegionScore>, &'static 
     let mut scores = Vec::with_capacity(5);
     let mut previous: Option<&PoseRegion> = None;
 
-    for (index, region) in input.regions.iter().enumerate() {
+    for (region, &nominal_percent) in input.regions.iter().zip(NOMINAL_LEVELS.iter()) {
         if region.orientation_radius_urad > MAX_ANGLE_RADIUS_URAD {
             return Err("ORIENTATION_REGION_RADIUS_OUT_OF_RANGE");
         }
@@ -302,7 +302,7 @@ fn score_accepted(input: &PredictionInput) -> Result<Vec<RegionScore>, &'static 
         let orientation_covered = orientation_error <= region.orientation_radius_urad;
 
         scores.push(RegionScore {
-            nominal_percent: NOMINAL_LEVELS[index],
+            nominal_percent,
             translation_axis_covered: axis_covered,
             translation_joint_covered: translation_joint,
             orientation_covered,
@@ -361,8 +361,7 @@ fn aggregate(scores: &[&PoseScore]) -> Vec<LevelAggregate> {
         if score.disposition != ScoreDisposition::Scored {
             continue;
         }
-        for (index, region) in score.regions.iter().enumerate() {
-            let entry = &mut levels[index];
+        for (entry, region) in levels.iter_mut().zip(score.regions.iter()) {
             entry.accepted_count += 1;
             for ((covered_count, width_sum), (&covered, &width)) in entry
                 .translation_axis_covered
