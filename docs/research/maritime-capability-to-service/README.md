@@ -189,3 +189,8 @@ This remains a calibration and decision-gate primitive, not a predictive model, 
 The follow-on [sequential conformal protocol](sequential-conformal-benchmark-protocol-v0.1.md) is tracked in [MCSC-SEQUENTIAL-CONFORMAL-001 #7866](https://github.com/Luminous-Dynamics/symtropy/issues/7866). It compares fixed split conformal with rolling windows, ACI, ECI, SAOCP, heterogeneous-horizon ensembles and fresh-fold sequential calibration under temporal dependence, regime shifts, delayed labels and multistage selection.
 
 The protocol preserves each method's guarantee class and evaluates prequential coverage, interval width, subgroup gaps, shift-recovery time and online compute. It is a benchmark plan; it does not claim these methods have already been implemented or reproduced here.
+## Joint conformal risk budget and multi-resource robust action gate
+
+The [joint-risk-budget protocol](joint-conformal-risk-budget-v0.1.md) is tracked in [MCSC-ROBUST-ACTION-ENVELOPE-001 #7858](https://github.com/Luminous-Dynamics/symtropy/issues/7858). The Rust module src/robust_action.rs allocates integer alpha across arrival, handling, crane minutes, shore power and yard slots, checks the total against a joint miscoverage budget using the union bound, validates each interval with the canonical conformal validator and evaluates adverse resource bounds for one candidate action.
+
+This avoids claiming that multiple marginal 90% intervals automatically provide 90% simultaneous feasibility. The adapter is a bounded single-action feasibility filter, not a multi-vessel berth/quay-crane/yard optimizer or live action authority.
