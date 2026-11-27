@@ -1,0 +1,382 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/mobility-rrvr-aerb-v0.1/schemas/aerb_probe_checkpoint_v0_1.schema.json",
+  "title": "AERB Probe Checkpoint v0.1",
+  "description": "Candidate-visible checkpoint request and receipts. This schema does not authenticate issuers or authorize physical effects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "attempt_id",
+    "probe_id",
+    "checkpoint_id",
+    "sequence",
+    "previous_checkpoint_sha256",
+    "lifecycle",
+    "physical_plan_sha256",
+    "requested_scope",
+    "evidence_prefix",
+    "proposed_possible_world_support_ids",
+    "support_update_receipt",
+    "decision_sufficiency_receipt",
+    "physical_path_receipts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-probe-checkpoint-v0.1"
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "probe_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "checkpoint_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "previous_checkpoint_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "lifecycle": {
+      "enum": [
+        "acquiring",
+        "interrupted",
+        "completed"
+      ]
+    },
+    "physical_plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "requested_scope": {
+      "$ref": "#/$defs/evidence_scope"
+    },
+    "evidence_prefix": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/evidence_prefix"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "proposed_possible_world_support_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "support_update_receipt": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/support_update_receipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "decision_sufficiency_receipt": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/decision_sufficiency_receipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "physical_path_receipts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/physical_path_receipt"
+      }
+    }
+  },
+  "$defs": {
+    "evidence_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "proposition_id",
+        "clock_domain_id",
+        "clock_mapping_profile_sha256",
+        "start_ns",
+        "end_ns"
+      ],
+      "properties": {
+        "proposition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_mapping_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_ns": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "evidence_prefix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "artifact_sha256",
+        "source_id",
+        "source_profile_sha256",
+        "calibration_profile_sha256",
+        "proposition_id",
+        "claim_semantics",
+        "quality",
+        "clock_domain_id",
+        "clock_mapping_profile_sha256",
+        "coverage_start_ns",
+        "coverage_end_ns"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "calibration_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "proposition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_semantics": {
+          "enum": [
+            "positive_event",
+            "general_measurement",
+            "absence_over_interval"
+          ]
+        },
+        "quality": {
+          "enum": [
+            "admitted",
+            "stale",
+            "unknown",
+            "disputed"
+          ]
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_mapping_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "coverage_start_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_end_ns": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "support_update_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_sequence",
+        "base_support_sha256",
+        "resulting_support_sha256",
+        "evidence_artifact_sha256",
+        "oracle_profile_sha256",
+        "derivation_receipt_sha256",
+        "derivation_complete",
+        "open_world_scope_closure_receipt_sha256"
+      ],
+      "properties": {
+        "checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "base_support_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "resulting_support_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "oracle_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "derivation_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "derivation_complete": {
+          "type": "boolean"
+        },
+        "open_world_scope_closure_receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "decision_sufficiency_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpoint_sequence",
+        "support_sha256",
+        "oracle_profile_sha256",
+        "receipt_sha256",
+        "oracle_complete",
+        "all_supported_worlds_share_terminal_recommendation",
+        "no_remaining_probe_strictly_reduces_worst_case_loss"
+      ],
+      "properties": {
+        "checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "support_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "oracle_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "oracle_complete": {
+          "type": "boolean"
+        },
+        "all_supported_worlds_share_terminal_recommendation": {
+          "type": "boolean"
+        },
+        "no_remaining_probe_strictly_reduces_worst_case_loss": {
+          "type": "boolean"
+        }
+      }
+    },
+    "physical_path_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path_kind",
+        "attempt_id",
+        "probe_id",
+        "checkpoint_sequence",
+        "physical_plan_sha256",
+        "path_profile_sha256",
+        "receipt_sha256",
+        "full_trajectory_covered",
+        "required_duration_ns",
+        "safe_horizon_ns",
+        "qualification"
+      ],
+      "properties": {
+        "path_kind": {
+          "enum": [
+            "continue_probe",
+            "safe_stop_hold",
+            "abort_probe"
+          ]
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "probe_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checkpoint_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "physical_plan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "path_profile_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "full_trajectory_covered": {
+          "type": "boolean"
+        },
+        "required_duration_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "safe_horizon_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "qualification": {
+          "enum": [
+            "qualified",
+            "not_qualified",
+            "unknown"
+          ]
+        }
+      }
+    }
+  }
+}
