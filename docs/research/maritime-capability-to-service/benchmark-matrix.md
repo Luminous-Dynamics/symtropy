@@ -67,6 +67,46 @@ Mycelix [#6343](https://github.com/Luminous-Dynamics/mycelix/issues/6343) alread
 
 MCSC must consume those owner-native traces rather than implement another PCC verifier, workload scheduler, RO solver, heat ledger or dependency graph. Geographic proximity of a private industrial energy asset is not evidence of a shared PCC, wheeling/export entitlement, reserve accreditation, grid availability, or dispatch rights. The Ngqura/Coega/Durban pilot must keep each connection boundary and utility/participant authority explicit.
 
+## South African paired-site evidence acquisition protocol
+
+Keep Ngqura/Coega and Durban as paired research environments, not a premature site competition. The first tests industrial integration and productive-capability formation; the second tests service continuity and constrained infrastructure. Neither site is an approved demonstrator until the relevant port, utility, participant, environmental and data-rights holders authorize the work.
+
+### Required evidence packets
+
+| Packet | Minimum evidence | Admission rule |
+|---|---|---|
+| Port and vessel service | Port-call event IDs/timestamps, terminal/berth identifiers, vessel and cargo service obligations, terminal work events, inland handoff and receiver acceptance | Use DCSA/IAPH-compatible semantics where applicable; record the actual event source and accepted service denominator. Port-call timestamps alone do not establish inland delivery. |
+| Grid and PCC | Utility-confirmed PCC identity/topology, single-line diagram revision, connection/contracted/import/export limits, voltage level, transformer/feeder constraints, protection and metering boundaries, time-series import/export, outages/deratings and power quality | No pre-feasibility figure or nameplate value becomes an available capacity offer. Require utility/source approval, meter class/calibration and the validity period. |
+| Shore power | Ship/berth interface compatibility, connector readiness, power rating and ramp/quality limits, slot windows, metered concurrent kW and integrated kWh, authorization/contract and unserved-service events | Keep kW instantaneous service, kWh delivered, connector availability, vessel compatibility and authority as separate gates. |
+| Generation and storage | Asset identity/site boundary, MW and MWh separately, commissioning certificate/date, operating envelope, SOC/health, round-trip efficiency, metering, availability history, network connection, control owner and dispatch/aggregation rights | Planned, near-commissioning or nearby assets are not available capacity. No shared PCC, wheeling/export, reserve or dispatch entitlement is inferred from geography. |
+| Water and thermal | Feedwater/source rights, flows, feed/product quality, RO process energy, brine/outfall limits and monitoring; heat source/sink temperature, flow, grade, time-matched sink demand, exchange losses and metered useful delivery | A modelled heat flow or nominal RO rating cannot earn product-water or recovered-heat credit. Keep water quality and environmental authorization explicit. |
+| Regional manufacturing | Supplier/facility identity, material grade and provenance, exact process/tolerance, qualified workforce and shift, equipment availability, capacity by time window, inspection/NDT capacity, quality/rework, transport and repair history | Supplier registration or theoretical machine capacity is not qualified capability. Inspection/receiver acceptance must close for the exact configuration/revision. |
+| Spatial, rights and ecology | Land/sea/port boundary, corridor/access, title/lease/permit, indigenous/community/participant rights where applicable, ecological constraints, sensitive habitat and environmental limits | Preserve no-go areas, rights conflicts and uncertainty; an optimizer cannot trade away statutory or participant authority. |
+| Inland logistics and receivers | Rail/road/barge path, capacity/window, transshipment, customs/clearance, inland terminal, receiving facility, proof of receipt and acceptance | Distinguish dispatched, delivered, received and accepted states; unknown receiver status is not success. |
+
+### Evidence and temporal integrity
+
+Every admitted datum must carry:
+- stable source and observation identity;
+- measurement/event time, first-available time, ingestion time and decision cutoff;
+- source revision/digest, unit, coordinate reference or asset boundary;
+- method, calibration/uncertainty and validity interval;
+- owner, rights/permission, revocation/expiry and allowed purpose;
+- explicit missingness and claim ceiling.
+
+Historical replays may use only information available at the decision cutoff. Later-corrected measurements can support a restated report, not silently alter what the original policy knew.
+
+### Read-only pilot gate
+
+1. Obtain written data-sharing, use, privacy and publication permissions from each source owner.
+2. Secure utility/port-confirmed connection boundaries, capacity offers and operating constraints.
+3. Validate time synchronization, meters, units, coordinate references and event joins.
+4. Run a read-only baseline and independent reconciliation against owner-native ledgers.
+5. Freeze a matched scenario family and human-adjudicated acceptance outcomes.
+6. Only after that, compare candidate policies offline. No connection request, dispatch, shore-power switching, water treatment, cargo allocation or procurement authority is created by this benchmark.
+
+The output is a site evidence-readiness report: admitted, missing, stale, disputed, rights-restricted and not-applicable evidence by service chain. It is not a ranking of Ngqura/Coega vs Durban, and it must not infer physical grid capacity from pre-feasibility or nameplate figures.
+
 ## 6. End-to-end service and productive capability
 
 Consume the canonical owners:
