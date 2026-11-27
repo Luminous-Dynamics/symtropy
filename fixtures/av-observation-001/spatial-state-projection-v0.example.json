@@ -8,7 +8,10 @@
     {
       "observation_id": "obs-frame-41",
       "modality": "video_frame",
-      "artifact_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "artifact_digest": {
+        "algorithm": "sha256",
+        "value": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
       "capture_support": {
         "clock_domain_ref": {
           "namespace": "sensor:camera-serial-redacted",
@@ -36,7 +39,10 @@
     {
       "observation_id": "obs-frame-57",
       "modality": "video_frame",
-      "artifact_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "artifact_digest": {
+        "algorithm": "sha256",
+        "value": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
       "capture_support": {
         "clock_domain_ref": {
           "namespace": "sensor:camera-serial-redacted",
@@ -128,7 +134,10 @@
       ],
       "transform_revision": 3,
       "epistemic_origin": "inferred",
-      "calibration_state_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      "calibration_state_digest": {
+        "algorithm": "sha256",
+        "value": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
     }
   ],
   "entity_hypotheses": [
