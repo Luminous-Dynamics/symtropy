@@ -101,6 +101,8 @@ This is a synthetic joint-feasibility proof for the declared graph only. It does
 
 The separate `dimacs_mcf` module implements a strict parser/validator for the DIMACS MCF ASCII format. It preserves signed 64-bit lower/upper arc bounds, signed 32-bit unit costs, signed 64-bit node supplies and every parallel arc as an independent ordered record. It rejects malformed field counts, unknown/case-mismatched records, duplicate or zero node-supply records, invalid one-based node IDs, lower bounds above upper bounds, declared-count mismatches, non-ASCII input, and configured node/arc/input/memory budget violations.
 
+Each import can emit a strict portable `DimacsMcfImportReceipt` (`schemas/dimacs-mcf-import-receipt-v0.1.schema.json`). The receipt binds parser/format version, both hashes, node/arc counts, supply summaries, signed-bound/negative-cost counts, exact admission limits and a conservative claim ceiling. `verify_dimacs_mcf_import_receipt` reparses the exact raw file using the recorded limits and compares every receipt field. This validates input/receipt correspondence; it is not an independent parser implementation or an MCF solver.
+
 Each import records two different digests:
 - `raw_sha256`: exact uploaded bytes, including comments and whitespace;
 - `canonical_sha256`: the versioned semantic representation, independent of comments, whitespace and node-supply record ordering, while preserving distinct arc ordinals and input record order.
