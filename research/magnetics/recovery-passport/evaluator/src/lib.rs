@@ -78,6 +78,7 @@ pub struct FeedstockLot {
     pub process_history_digest: String,
     pub modification_history_digest: String,
     pub service_history_digest: Option<String>,
+    pub feedstock_mass_record: DigestRecord,
     pub feedstock_mass: MassMeasurement,
 }
 
@@ -118,6 +119,7 @@ pub struct RecoveryStage {
     pub feedstock_lot_id: String,
     pub route: RecoveryRoute,
     pub method_id: String,
+    pub input_mass_record: DigestRecord,
     pub input_mass: MassMeasurement,
     pub outputs: Vec<RecoveryOutput>,
     pub closure_tolerance_mg: u64,
@@ -160,6 +162,7 @@ pub enum Blocker {
     MissingElementalProductPurity,
     MissingResidueDisposition,
     InvalidMassUncertainty,
+    InvalidMassMeasurementRecord,
     MassBalanceUnaccountedInput,
     MassBalanceOutputExceedsInput,
     MassBalanceUnresolved,
@@ -206,7 +209,13 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
     if passport.stage.feedstock_lot_id != passport.feedstock.lot_id {
         blockers.push(Blocker::StageFeedstockMismatch);
     }
-    if passport.stage.input_mass != passport.feedstock.feedstock_mass {
+    if !valid_record(&passport.stage.input_mass_record) {
+        blockers.push(Blocker::InvalidMassMeasurementRecord);
+    }
+    if !measurement_intervals_overlap(
+        passport.stage.input_mass,
+        passport.feedstock.feedstock_mass,
+    ) {
         blockers.push(Blocker::StageInputMassMismatch);
     }
     let mass_balance = evaluate_mass_balance(&passport.stage, &mut blockers);
@@ -326,6 +335,9 @@ fn validate_feedstock(feedstock: &FeedstockLot, blockers: &mut Vec<Blocker>) {
         .is_some_and(|digest| !valid_sha256(digest))
     {
         blockers.push(Blocker::InvalidDigest);
+    }
+    if !valid_record(&feedstock.feedstock_mass_record) {
+        blockers.push(Blocker::InvalidMassMeasurementRecord);
     }
     if feedstock.feedstock_mass.uncertainty_mg > feedstock.feedstock_mass.value_mg {
         blockers.push(Blocker::InvalidMassUncertainty);
@@ -529,6 +541,13 @@ fn valid_sha256(value: &str) -> bool {
     hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+fn measurement_intervals_overlap(left: MassMeasurement, right: MassMeasurement) -> bool {
+    let left_interval = measurement_interval(left);
+    let right_interval = measurement_interval(right);
+    left_interval.lower_mg <= right_interval.upper_mg
+        && right_interval.lower_mg <= left_interval.upper_mg
+}
+
 fn measurement_interval(measurement: MassMeasurement) -> SignedInterval {
     SignedInterval {
         lower_mg: i128::from(measurement.value_mg) - i128::from(measurement.uncertainty_mg),
@@ -564,6 +583,7 @@ mod tests {
             process_history_digest: digest('4'),
             modification_history_digest: digest('5'),
             service_history_digest: Some(digest('6')),
+            feedstock_mass_record: record("SOURCE-MASS-001", '7'),
             feedstock_mass: MassMeasurement {
                 value_mg: 1000,
                 uncertainty_mg: 0,
@@ -615,6 +635,7 @@ mod tests {
                 feedstock_lot_id: "LOT-001".to_string(),
                 route: RecoveryRoute::PolymerHydrolysis,
                 method_id: "LAB-METHOD-001".to_string(),
+                input_mass_record: record("STAGE-MASS-001", '8'),
                 input_mass: MassMeasurement {
                     value_mg: 1000,
                     uncertainty_mg: 0,
@@ -770,6 +791,28 @@ mod tests {
         let result = evaluate(&passport);
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::StageFeedstockMismatch));
+    }
+
+    #[test]
+    fn overlapping_source_and_stage_mass_uncertainty_intervals_are_admissible() {
+        let mut passport = valid_passport();
+        passport.feedstock.feedstock_mass.uncertainty_mg = 5;
+        passport.stage.input_mass.value_mg = 1004;
+        passport.stage.input_mass.uncertainty_mg = 5;
+        let result = evaluate(&passport);
+        assert!(!result
+            .blockers
+            .contains(&Blocker::StageInputMassMismatch));
+    }
+
+    #[test]
+    fn disjoint_source_and_stage_mass_intervals_are_rejected() {
+        let mut passport = valid_passport();
+        passport.stage.input_mass.value_mg = 1100;
+        let result = evaluate(&passport);
+        assert!(result
+            .blockers
+            .contains(&Blocker::StageInputMassMismatch));
     }
 
     #[test]
