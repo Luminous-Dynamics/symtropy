@@ -280,16 +280,11 @@ fn rotation_log(q: [f64; 4]) -> [f64; 3] {
             *value = -*value;
         }
     }
-    let vector_norm = (canonical[0] * canonical[0]
-        + canonical[1] * canonical[1]
-        + canonical[2] * canonical[2])
-        .sqrt();
+    let vector_norm =
+        (canonical[0] * canonical[0] + canonical[1] * canonical[1] + canonical[2] * canonical[2])
+            .sqrt();
     if vector_norm <= 1.0e-12 {
-        return [
-            2.0 * canonical[0],
-            2.0 * canonical[1],
-            2.0 * canonical[2],
-        ];
+        return [2.0 * canonical[0], 2.0 * canonical[1], 2.0 * canonical[2]];
     }
     let angle = 2.0 * vector_norm.atan2(canonical[3].clamp(-1.0, 1.0));
     let factor = angle / vector_norm;
@@ -304,7 +299,10 @@ fn cholesky(matrix: &[f64; 36]) -> Option<[[f64; 6]; 6]> {
     if !finite(matrix) {
         return None;
     }
-    let scale = matrix.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let scale = matrix
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0_f64, f64::max);
     if scale <= 0.0 || !scale.is_finite() {
         return None;
     }
@@ -376,11 +374,7 @@ fn covariance_coverage(value: f64) -> [bool; 5] {
     ]
 }
 
-fn base_result(
-    input: &PoseInput,
-    disposition: EvaluationDisposition,
-    reason: &str,
-) -> PoseResult {
+fn base_result(input: &PoseInput, disposition: EvaluationDisposition, reason: &str) -> PoseResult {
     let accepted = input.decision == PoseDecision::Accept;
     PoseResult {
         case_id: input.case_id.clone(),
@@ -493,10 +487,8 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
             input.ground_truth_translation_m[2],
         ])
         || !(0.0..=1.0).contains(&input.visible_fraction)
-        || (input.support_mode != "DIRECT_REGRESSION"
-            && input.geometry_condition <= 0.0)
-        || (input.support_mode == "DIRECT_REGRESSION"
-            && input.geometry_condition < 0.0)
+        || (input.support_mode != "DIRECT_REGRESSION" && input.geometry_condition <= 0.0)
+        || (input.support_mode == "DIRECT_REGRESSION" && input.geometry_condition < 0.0)
     {
         return base_result(
             input,
@@ -579,20 +571,27 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
             "MAHALANOBIS_SOLVE_FAILED",
         );
     };
-    let translation_error = world_delta.iter().map(|value| value * value).sum::<f64>().sqrt();
-    let rotation_error = rotation_vector.iter().map(|value| value * value).sum::<f64>().sqrt();
+    let translation_error = world_delta
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>()
+        .sqrt();
+    let rotation_error = rotation_vector
+        .iter()
+        .map(|value| value * value)
+        .sum::<f64>()
+        .sqrt();
     let [cov50, cov80, cov90, cov95, cov99] = covariance_coverage(mahalanobis);
     let covariance_log_determinant =
         2.0 * (0..6).map(|index| cholesky[index][index].ln()).sum::<f64>();
-    let gaussian_negative_log_likelihood = 0.5
-        * (mahalanobis
-            + covariance_log_determinant
-            + 6.0 * (2.0 * std::f64::consts::PI).ln());
+    let gaussian_negative_log_likelihood =
+        0.5 * (mahalanobis + covariance_log_determinant + 6.0 * (2.0 * std::f64::consts::PI).ln());
     let prediction_region_log_volume_95 = (std::f64::consts::PI.powi(3) / 6.0).ln()
         + 0.5 * covariance_log_determinant
-        + 3.0 * quantile(ADMISSION_LEVEL_BPS)
-            .expect("the fixed 95% chi-square quantile is present")
-            .ln();
+        + 3.0
+            * quantile(ADMISSION_LEVEL_BPS)
+                .expect("the fixed 95% chi-square quantile is present")
+                .ln();
 
     let requires_correspondence_geometry = matches!(
         input.support_mode.as_str(),
@@ -604,8 +603,8 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
         || (requires_correspondence_geometry
             && (input.correspondence_count < MIN_CORRESPONDENCES
                 || input.geometry_condition > MAX_GEOMETRY_CONDITION));
-    let false_confident = input.decision == PoseDecision::Accept
-        && (!cov95 || observability_violation);
+    let false_confident =
+        input.decision == PoseDecision::Accept && (!cov95 || observability_violation);
     let admissible = input.decision == PoseDecision::Accept && !false_confident;
 
     let mut result = base_result(
@@ -745,7 +744,9 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
         .filter_map(|result| result.prediction_region_log_volume_95)
         .collect();
 
-    let thresholds = [0, 250_000, 500_000, 750_000, 900_000, 950_000, 990_000, 1_000_000];
+    let thresholds = [
+        0, 250_000, 500_000, 750_000, 900_000, 950_000, 990_000, 1_000_000,
+    ];
     let risk_coverage = thresholds
         .iter()
         .map(|threshold| {
@@ -810,7 +811,7 @@ pub fn summarize(results: &[PoseResult]) -> EvaluationSummary {
 #[cfg(test)]
 mod tests {
     use super::{
-        EvaluationDisposition, PoseDecision, PoseInput, ComputeState, evaluate, evaluate_manifest,
+        ComputeState, EvaluationDisposition, PoseDecision, PoseInput, evaluate, evaluate_manifest,
         summarize,
     };
 
@@ -871,9 +872,7 @@ mod tests {
     fn exact_pose_has_known_unit_covariance_gaussian_nll() {
         let result = evaluate(&input());
         let expected = 3.0 * (2.0 * std::f64::consts::PI).ln();
-        assert!(
-            (result.gaussian_negative_log_likelihood.unwrap() - expected).abs() < 1.0e-12
-        );
+        assert!((result.gaussian_negative_log_likelihood.unwrap() - expected).abs() < 1.0e-12);
     }
 
     #[test]
@@ -1006,9 +1005,11 @@ mod tests {
         second.sample_id = "sample-002".to_owned();
         second.split = "train".to_owned();
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|result| {
-            result.disposition == EvaluationDisposition::SplitLeakage
-        }));
+        assert!(
+            results
+                .iter()
+                .all(|result| { result.disposition == EvaluationDisposition::SplitLeakage })
+        );
     }
 
     #[test]
