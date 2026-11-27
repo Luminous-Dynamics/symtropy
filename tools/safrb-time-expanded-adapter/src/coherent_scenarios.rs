@@ -513,14 +513,14 @@ mod tests {
         let reordered = scenario_set_digest("set-v1", &[reordered_a, b.clone()]).unwrap();
         assert_eq!(forward, reordered);
 
+        let different_set_id =
+            scenario_set_digest("different-set-id", &[a.clone(), b.clone()]).unwrap();
+        assert_ne!(forward, different_set_id);
+
         let mut changed = b;
         changed.profile.transfers[0].route_capacity += 1;
         let mutated = scenario_set_digest("set-v1", &[a, changed]).unwrap();
         assert_ne!(forward, mutated);
-        assert_ne!(
-            forward,
-            scenario_set_digest("different-set-id", &[a.clone()]).unwrap()
-        );
     }
 
     #[test]
