@@ -45,3 +45,6 @@ Source-lot and recovery-stage input weights each carry their own digest-bound me
 
 
 Source-lot mass and recovery-stage input mass each require their own digest-bound weighing record. The two measurement intervals must overlap; point-value equality is not required when both measurements carry defensible uncertainty. Disjoint intervals remain indeterminate.
+
+
+A closed-loop reuse claim now requires a digest-bound consumption receipt and a positive consumed mass that cannot exceed the identified recovered magnet-feedstock/alloy output. Merely linking an output ID to a later build is not sufficient. Residues and elemental products cannot be counted as magnet-feedstock reuse.
