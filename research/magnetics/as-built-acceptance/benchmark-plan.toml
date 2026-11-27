@@ -1,0 +1,162 @@
+schema_version = "0.1"
+program_id = "MAG-ASBUILT-FUNCTION-QUAL-001"
+revision = "0.1-draft"
+status = "protocol_and_synthetic_fixtures"
+date = "2026-11-27"
+issue = 7745
+protocol = "../MAG_ASBUILT_FUNCTIONAL_ACCEPTANCE_2026-11-27.md"
+
+[decision]
+unit = "identified_manufactured_specimen"
+question = "Does this specimen meet its target magnetic function over the declared operating envelope?"
+nominal_cad_is_physical_evidence = false
+solver_convergence_is_physical_validation = false
+digest_is_authenticity_proof = false
+simulation_can_substitute_for_observation = false
+
+[dispositions]
+values = ["QUALIFIED", "FAIL", "INDETERMINATE", "NOT_EVALUABLE"]
+qualified_requires_all_hard_requirements_safe = true
+qualified_requires_complete_identity_closure = true
+qualified_requires_complete_domain_coverage = true
+missing_evidence_can_pass = false
+hard_failure_can_be_offset_by_weighted_score = false
+uncertainty_widening_may_upgrade_status = false
+
+[evidence_roles]
+values = ["DESIGN_INTENT", "PROCESS_RECORD", "PREDICTED", "CALIBRATION", "PHYSICAL_OBSERVATION", "INDEPENDENT_REFERENCE", "BLIND_HOLDOUT"]
+physical_observation_must_bind_specimen = true
+blind_holdout_may_be_used_for_fit = false
+calibration_may_be_relabelled_as_holdout = false
+witness_coupon_is_automatically_specimen_truth = false
+
+[identity]
+required_keys = ["requirement_id", "acceptance_policy_digest", "specimen_id", "material_lot_id", "build_run_id", "nominal_geometry_digest", "as_built_geometry_digest", "process_genealogy_ref", "post_magnetization_ref", "material_state_ref", "solver_run_ref", "physical_observation_ref", "field_comparison_ref", "spatial_certificate_ref"]
+solver_geometry_must_match_inspected_as_built_geometry = true
+solver_and_observation_conditions_must_match = true
+comparison_must_bind_prediction_and_observation_digests = true
+spatial_certificate_must_bind_same_specimen_and_requirement = true
+
+[measurement]
+require_frame_id = true
+require_exact_grid_id = true
+require_standoff = true
+require_probe_and_calibration_chain = true
+require_background_field_treatment = true
+require_temperature = true
+require_magnetization_state = true
+mass_specific_and_volumetric_units_are_interchangeable = false
+surface_probe_field_is_intrinsic_remanence = false
+in_process_alignment_field_is_post_build_magnetizing_field = false
+
+[uncertainty]
+common_cause_must_be_preserved = true
+unknown_dependence_can_be_assumed_independent = false
+widening_must_not_improve_margin = true
+unknown_uncertainty_can_qualify = false
+
+[initial_correctness_targets]
+false_safe_count = 0
+qualified_identity_closure_fraction = 1.0
+calibration_holdout_leakage_count = 0
+uncovered_domain_for_qualified_specimen = 0.0
+all_targets_achieved = false
+
+[performance_hypotheses]
+physical_observation_reduction_factor = 2.0
+compare_against = ["uniform_grid", "decision_directed_active_metrology"]
+equal_false_safe_rate_required = true
+equal_experiment_budget_required = true
+equal_compute_budget_required = true
+all_targets_achieved = false
+
+[[benchmark_stages]]
+id = "A0"
+name = "protocol_and_provenance"
+evidence_class = "literature_and_contract"
+physical_claim_allowed = false
+
+[[benchmark_stages]]
+id = "A1"
+name = "synthetic_semantic_controls"
+evidence_class = "synthetic"
+physical_claim_allowed = false
+
+[[benchmark_stages]]
+id = "A2"
+name = "analytical_field_references"
+evidence_class = "analytical_reference"
+physical_claim_allowed = false
+
+[[benchmark_stages]]
+id = "A3"
+name = "numerical_solver_verification"
+evidence_class = "numerical"
+physical_claim_allowed = false
+
+[[benchmark_stages]]
+id = "A4"
+name = "held_out_process_material_prediction"
+evidence_class = "measured_build_data"
+physical_claim_allowed = false
+
+[[benchmark_stages]]
+id = "A5"
+name = "physical_component_qualification"
+evidence_class = "independent_physical_measurement"
+physical_claim_allowed = true
+requires_independent_authorization = true
+
+[[comparators]]
+id = "nominal_cad"
+name = "nominal CAD plus nominal material card"
+budget_matching_required = true
+
+[[comparators]]
+id = "process_blind_solver"
+name = "process-blind FEM with nominal material properties"
+budget_matching_required = true
+
+[[comparators]]
+id = "process_aware"
+name = "process-aware model without as-built inspection"
+budget_matching_required = true
+
+[[comparators]]
+id = "as_built_joined"
+name = "process-aware model with as-built geometry and material evidence"
+budget_matching_required = true
+
+[[comparators]]
+id = "uniform_grid"
+name = "uniform-grid physical inspection"
+budget_matching_required = true
+
+[[comparators]]
+id = "active_metrology"
+name = "decision-directed active metrology"
+budget_matching_required = true
+
+[[comparators]]
+id = "evidence_gated"
+name = "evidence-gated as-built specimen acceptance"
+budget_matching_required = true
+
+[claim_policy]
+synthetic_fixtures_prove_physical_performance = false
+solver_convergence_proves_physical_accuracy = false
+commercial_solver_superiority_claim_without_matched_test = false
+standards_conformity_claim_without_scope_review = false
+product_release_authority_granted = false
+
+[implementation]
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 15
+unit_tests_executed = false
+local_toolchain_available = false
+exact_head_ci_pass = false
+schema = "acceptance-cases-v0.1.schema.json"
+semantic_fixtures = "fixtures/acceptance-cases-v0.1.json"
