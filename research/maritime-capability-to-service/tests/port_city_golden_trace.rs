@@ -130,7 +130,10 @@ fn parse_projection(input: &str) -> Trace {
                 };
                 assert!(heat.insert(f[1].to_owned(), partition).is_none());
             }
-            other => panic!("unknown projection record {other} at line {}", line_index + 1),
+            other => panic!(
+                "unknown projection record {other} at line {}",
+                line_index + 1
+            ),
         }
     }
 
@@ -151,9 +154,7 @@ fn close(left: f64, right: f64) {
 
 #[test]
 fn all_forty_eight_owner_dispositions_are_present_and_source_bound() {
-    assert!(OWNER_JSON.contains(
-        "\"fixture_id\": \"port-city-service-equivalence-4slot-v0-1\""
-    ));
+    assert!(OWNER_JSON.contains("\"fixture_id\": \"port-city-service-equivalence-4slot-v0-1\""));
     assert!(OWNER_JSON.contains("\"case_count\": 48"));
     assert!(OWNER_JSON.contains("\"prohibited_scalar_winner\": true"));
 
@@ -178,8 +179,7 @@ fn all_forty_eight_owner_dispositions_are_present_and_source_bound() {
             .expect("case object closes");
         let source_case = &OWNER_JSON[start..end];
         let source_category = format!("\"category\": \"{category}\"");
-        let source_disposition =
-            format!("\"expected_disposition\": \"{disposition}\"");
+        let source_disposition = format!("\"expected_disposition\": \"{disposition}\"");
         assert!(
             source_case.contains(source_category.as_str()),
             "owner case {id} category differs from projection"
@@ -264,10 +264,7 @@ fn heat_partitions_close_but_never_create_water_product_credit() {
     let trace = parse_projection(PROJECTION);
     assert_eq!(trace.heat.len(), 3);
     for (id, heat) in &trace.heat {
-        close(
-            heat.recovered_source_kw,
-            heat.useful_sink_kw + heat.loss_kw,
-        );
+        close(heat.recovered_source_kw, heat.useful_sink_kw + heat.loss_kw);
         close(
             heat.it_heat_kw,
             heat.recovered_source_kw + heat.direct_seawater_kw,
