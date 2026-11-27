@@ -37,7 +37,7 @@ fn render_receipt(receipt: &AuditReceipt, source_commit: &str, corpus_sha256: &s
     let mut output = String::new();
     write!(
         output,
-        "{{\"schema\":{},\"source_commit\":{},\"corpus_sha256\":{},\"row_count\":{},\"split_group_kind\":{},\"partition_counts\":{{\"TRAIN\":{},\"CALIBRATION\":{},\"TEST\":{}}},\"missing_partitions\":{},\"duplicate_sample_ids\":{},\"cross_partition_group_leaks\":{},\"cross_partition_frame_digest_leaks\":{},\"cross_partition_image_digest_leaks\":{},\"translation_lineage_unqualified\":{},\"disposition\":{},\"dataset_source_bytes_authenticated\":false,\"translation_geometry_verified_here\":false,\"operational_exchangeability_proven\":false,\"flight_qualification\":false}}",
+        "{{\"schema\":{},\"source_commit\":{},\"corpus_sha256\":{},\"row_count\":{},\"split_group_kind\":{},\"partition_counts\":{{\"TRAIN\":{},\"CALIBRATION\":{},\"TEST\":{}}},\"missing_partitions\":{},\"duplicate_sample_ids\":{},\"cross_partition_group_leaks\":{},\"cross_partition_frame_digest_leaks\":{},\"cross_partition_image_digest_leaks\":{},\"cross_partition_translated_digest_leaks\":{},\"translation_lineage_unqualified\":{},\"disposition\":{},\"dataset_source_bytes_authenticated\":false,\"translation_geometry_verified_here\":false,\"operational_exchangeability_proven\":false,\"flight_qualification\":false}}",
         json_string(RECEIPT_SCHEMA),
         json_string(source_commit),
         json_string(corpus_sha256),
@@ -51,6 +51,7 @@ fn render_receipt(receipt: &AuditReceipt, source_commit: &str, corpus_sha256: &s
         json_array(&receipt.cross_partition_group_leaks),
         json_array(&receipt.cross_partition_frame_digest_leaks),
         json_array(&receipt.cross_partition_image_digest_leaks),
+        json_array(&receipt.cross_partition_translated_digest_leaks),
         json_array(&receipt.translation_lineage_unqualified),
         json_string(receipt.disposition)
     )
