@@ -96,6 +96,12 @@ pub struct PairedObjectiveOutcome {
     pub objective_id: [u8; 32],
     /// Directly evaluated post-action objective value.
     pub value_ticks: i32,
+    /// Digest of the exact portfolio trajectory from which this value was computed.
+    ///
+    /// Arithmetic-only finite-oracle calls may leave this zero. The
+    /// receipt-qualified evaluator requires an exact match to the validated
+    /// portfolio trajectory receipt for this scenario/atom/portfolio cell.
+    pub source_trajectory_digest: [u8; 32],
 }
 
 /// One joint trajectory realization for every eligible portfolio/objective.
@@ -523,7 +529,10 @@ impl PairedObjectiveParetoCampaign {
             })
             .collect::<BTreeMap<_, _>>();
 
-        let mut rows = BTreeMap::<([u8; 32], [u8; 32]), BTreeMap<([u8; 32], [u8; 32]), i32>>::new();
+        let mut rows = BTreeMap::<
+            ([u8; 32], [u8; 32]),
+            BTreeMap<([u8; 32], [u8; 32]), (i32, [u8; 32])>,
+        >::new();
         let expected_cells_per_atom = self
             .eligible_portfolio_ids
             .len()
@@ -572,7 +581,7 @@ impl PairedObjectiveParetoCampaign {
                 if outcomes
                     .insert(
                         (outcome.portfolio_id, outcome.objective_id),
-                        outcome.value_ticks,
+                        (outcome.value_ticks, outcome.source_trajectory_digest),
                     )
                     .is_some()
                 {
@@ -599,7 +608,7 @@ impl PairedObjectiveParetoCampaign {
             let mut canonical_outcomes = Vec::with_capacity(expected_cells_per_atom);
             for portfolio_id in &self.eligible_portfolio_ids {
                 for spec in &self.objective_specs {
-                    let value_ticks = outcomes
+                    let (value_ticks, source_trajectory_digest) = outcomes
                         .get(&(*portfolio_id, spec.objective_id))
                         .copied()
                         .ok_or(PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix)?;
@@ -607,6 +616,7 @@ impl PairedObjectiveParetoCampaign {
                         portfolio_id: *portfolio_id,
                         objective_id: spec.objective_id,
                         value_ticks,
+                        source_trajectory_digest,
                     });
                 }
             }
@@ -627,13 +637,13 @@ impl PairedObjectiveParetoCampaign {
                             let outcomes = rows.get(&(support.scenario_id, *atom_id)).ok_or(
                                 PairedObjectiveParetoError::IncompleteScenarioAtomEvidence,
                             )?;
-                            let left_value = outcomes
+                            let (left_value, _) = outcomes
                                 .get(&(*left_portfolio_id, spec.objective_id))
                                 .copied()
                                 .ok_or(
                                     PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix,
                                 )?;
-                            let right_value = outcomes
+                            let (right_value, _) = outcomes
                                 .get(&(*right_portfolio_id, spec.objective_id))
                                 .copied()
                                 .ok_or(
@@ -1337,11 +1347,13 @@ mod tests {
                 portfolio_id,
                 objective_id: OBJECTIVE_FUEL,
                 value_ticks: *fuel,
+                source_trajectory_digest: [0; 32],
             });
             values.push(PairedObjectiveOutcome {
                 portfolio_id,
                 objective_id: OBJECTIVE_SERVICE,
                 value_ticks: *service,
+                source_trajectory_digest: [0; 32],
             });
         }
         PairedObjectiveAtom {
