@@ -99,17 +99,19 @@ For 26 October–1 November 2026, the report attributes weekly terminal flow to 
 | Other | 1,253 | 8,770 | +7% |
 | All terminals | 14,346 | 100,423 | +20% |
 
+The six displayed terminal/Other daily averages sum to 14,347 TEU/day, while the published national daily average is 14,346 TEU/day. The terminal averages are rounded source values; preserve both the published terminal rows and the published national total rather than adjusting either to force arithmetic equality.
+
 **Admission class:** PUBLISHED_AGGREGATE / OPERATOR_DERIVED.
 
 **Claim ceiling:** weekly terminal TEU throughput as reported/calculated from TPT data. Not vessel counts, dwell-time denominators, individual cargo acceptance or a per-receiver delivery record. “Other” must not be allocated to named ports.
 
 ### Frozen source projection
 
-The values above are frozen in [busa-cargo-movement-update-306-snapshot-v0.tsv](fixtures/busa-cargo-movement-update-306-vessel-dwell-v0.tsv). The file retains the separate report date and source-update date, uses empty period boundaries where the PDF does not state a precise dwell observation window, and stores the two source families under different record_type and source_basis values.
+The values above are frozen in [busa-cargo-movement-update-306-snapshot-v0.tsv](fixtures/busa-cargo-movement-update-306-snapshot-v0.tsv). The file retains the separate report date and source-update date, uses empty period boundaries where the PDF does not state a precise dwell observation window, and stores the two source families under different record_type and source_basis values.
 
 This is a useful first local benchmark baseline for terminal-level congestion and throughput comparisons. It still does not provide source event timestamps, first-availability timestamps, per-vessel traces or a historical decision-time corpus for KITE.
 
-## 3. UNCTAD 2026 international comparator
+## 4. UNCTAD 2026 international comparator
 
 Sources:
 - [Review of Maritime Transport 2026](https://unctad.org/publication/review-maritime-transport-2026)
@@ -122,7 +124,7 @@ Selected figures:
 
 These are international/regional aggregates and a useful external motivation for corridor resilience. They must not be represented as South African port-specific waiting-time estimates. UNCTAD also emphasizes continuity plans spanning whole transport corridors, including pre-agreed routes and customs procedures; this supports MCSC's corridor-level research question, not any specific South African event claim.
 
-## 4. Voydar monthly port-call aggregates
+## 5. Voydar monthly port-call aggregates
 
 Source: [Voydar Open Datasets](https://www.voydar.com/data).
 
@@ -138,7 +140,7 @@ Critical limitations:
 
 This dataset is a useful external detector/coverage comparator only after its actual rows and source coverage have been inspected.
 
-## 5. Voydar per-port movement view: Durban (ZADUR)
+## 6. Voydar per-port movement view: Durban (ZADUR)
 
 Source: [Voydar Port of Durban page](https://www.voydar.com/port/zadur-durban), retrieved 26 November 2026. UN/LOCODE ZADUR.
 
@@ -160,7 +162,7 @@ Do not:
 
 The API JSON endpoint could not be fetched by the available web retrieval path during this audit, so no raw JSON bytes, per-section source metadata, licence records or immutable digest have been frozen. The visible webpage itself is a source lead, not a qualified empirical archive. The page also distinguishes nearby AIS sightings from port calls; these must not be conflated.
 
-## 6. IMF PortWatch-derived Ngqura estimates
+## 7. IMF PortWatch-derived Ngqura estimates
 
 Source: [El Estrecho Digital, Port of Ngqura daily activity](https://www.elestrechodigital.com/en/maritime-radar/ports/port2063), using IMF PortWatch AIS estimates; page reports data through 20 November 2026.
 
@@ -175,7 +177,7 @@ This is a useful regional time-series comparator for Ngqura, but:
 - the page's weekly update and revision behaviour must be preserved;
 - other IMF PortWatch-derived views are the same upstream provenance family, not independent corroboration.
 
-## 7. Dues live AIS vessel board: coverage control
+## 8. Dues live AIS vessel board: coverage control
 
 Source: [Dues South African ports vessel finder](https://dues.co.za/vessel-finder), observed 27 November 2026.
 
@@ -185,7 +187,7 @@ Admission class: OBSERVED_MOVEMENT_DERIVED / LIVE FEED, licensing and raw-histor
 
 This is useful as a **negative coverage control**: no observed Ngqura vessel on this feed cannot be interpreted as no vessel activity at Ngqura. Its current two-week replay is not evidence of a long historical archive or decision-authority first-availability timestamp. Its source provenance and redistribution terms must be obtained before ingestion.
 
-## 5. Candidate: GuillermoSiaira Open AIS Historical Dataset
+## 9. Candidate: GuillermoSiaira Open AIS Historical Dataset
 
 Public repository: [GuillermoSiaira/marine-traffic](https://github.com/GuillermoSiaira/marine-traffic).
 
