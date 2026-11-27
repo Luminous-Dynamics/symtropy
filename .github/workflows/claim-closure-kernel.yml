@@ -1,0 +1,56 @@
+name: Engineering Claim Closure Kernel
+
+on:
+  pull_request:
+    paths:
+      - "tools/claim-closure-kernel/**"
+      - ".github/workflows/claim-closure-kernel.yml"
+  push:
+    branches:
+      - "research/claim-closure-kernel-v0.1"
+    paths:
+      - "tools/claim-closure-kernel/**"
+      - ".github/workflows/claim-closure-kernel.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: Rust semantic contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/claim-closure-kernel/Cargo.toml -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/claim-closure-kernel/Cargo.toml --all-targets -- -D warnings
+      - name: Run tests
+        run: cargo test --manifest-path tools/claim-closure-kernel/Cargo.toml --all-targets
+      - name: Check fixture schema and positive-control structure
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("tools/claim-closure-kernel")
+          schema = json.loads((root / "schemas/input-v0.1.schema.json").read_text())
+          fixture = json.loads((root / "fixtures/positive-v0.1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = list(Draft202012Validator(schema).iter_errors(fixture))
+          if errors:
+              for error in errors:
+                  print(list(error.absolute_path), error.message)
+              raise SystemExit(1)
+          assert fixture["claim"]["requirements"]
+          assert len(fixture["evidence_records"]) == 3
+          print("PASS: Draft 2020-12 schema and three-node positive fixture")
+          PY
