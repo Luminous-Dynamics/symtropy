@@ -155,6 +155,36 @@ jobs:
               if not sha256_re.fullmatch(value.get("sha256", "")):
                   raise SystemExit(f"{label} has an invalid SHA-256")
 
+          def require_equivalence_evidence(pair_id, prefix):
+              evidence = prefix["equivalence_evidence"]
+              if not isinstance(evidence, dict):
+                  raise SystemExit(f"{pair_id}: distributional equivalence lacks a preregistered evidence record")
+              lower = evidence["equivalence_margin_lower"]
+              upper = evidence["equivalence_margin_upper"]
+              alpha = evidence["alpha"]
+              confidence = evidence["confidence_level"]
+              if not (lower < upper):
+                  raise SystemExit(f"{pair_id}: equivalence lower margin must be below upper margin")
+              if not (0.0 < alpha <= 0.1):
+                  raise SystemExit(f"{pair_id}: equivalence alpha is outside the preregistered range")
+              if abs(confidence - (1.0 - 2.0 * alpha)) > 1e-9:
+                  raise SystemExit(f"{pair_id}: confidence level must equal 1 - 2*alpha for TOST/two-sided bounds")
+              if evidence["power_target"] < 0.90:
+                  raise SystemExit(f"{pair_id}: equivalence power target is below 0.90")
+              if evidence["independent_cluster_count"] < evidence["required_cluster_count"]:
+                  raise SystemExit(f"{pair_id}: observed independent clusters do not meet the preregistered sample-size plan")
+              if evidence["required_cluster_count"] < 2 or evidence["replicates_per_cluster"] < 1:
+                  raise SystemExit(f"{pair_id}: invalid independent-cluster or replicate count")
+              method = evidence["method"]
+              if method in ("energy_distance_upper_bound", "mmd_upper_bound", "wasserstein_upper_bound") and not (lower == 0.0 and upper > 0.0):
+                  raise SystemExit(f"{pair_id}: distance-based equivalence must use zero lower margin and positive upper bound")
+              if method == "scalar_tost" and not (lower < 0.0 < upper):
+                  raise SystemExit(f"{pair_id}: scalar TOST bounds must straddle zero")
+              if not evidence["statistic_id"] or not evidence["margin_justification"]:
+                  raise SystemExit(f"{pair_id}: equivalence statistic or margin justification is missing")
+              for key in ("preregistration_plan", "sample_size_plan", "raw_results", "analysis_implementation"):
+                  require_artifact(evidence[key], f"{pair_id} equivalence {key}")
+
           for pair_id, source_cases in by_pair.items():
               pair = registry_by_id[pair_id]
               expected_ids = sorted(case_id for case_id, _ in source_cases)
@@ -176,6 +206,8 @@ jobs:
                   raise SystemExit(f"{pair_id}: world slots must be ordered A/B")
 
               if pair_stage == 0:
+                  if prefix["equivalence_evidence"] is not None:
+                      raise SystemExit(f"{pair_id}: unbound pair contains statistical equivalence evidence")
                   if any(world["world_manifest_artifact"] is not None for world in worlds):
                       raise SystemExit(f"{pair_id}: unbound pair contains a WorldManifest artifact")
                   if any(world["truth_crosswalk_sha256"] is not None for world in worlds):
@@ -218,6 +250,10 @@ jobs:
                       if not sha256_re.fullmatch(shared[key] or ""):
                           raise SystemExit(f"{pair_id}: missing/invalid shared-contract digest {key}")
                   require_artifact(evidence["prefix_equivalence_audit"], f"{pair_id} prefix audit")
+                  if prefix["relation"] == "distributionally_equivalent":
+                      require_equivalence_evidence(pair_id, prefix)
+                  elif prefix["equivalence_evidence"] is not None:
+                      raise SystemExit(f"{pair_id}: byte-exact equivalence must not carry a statistical test record")
 
               if pair_stage >= 3:
                   require_artifact(evidence["replay_run_receipt"], f"{pair_id} replay receipt")
@@ -259,6 +295,17 @@ jobs:
           bad_blind["pairs"][0]["binding_status"] = "blind_ready"
           mutations.append(("blind_ready without custody/rights/split receipts", bad_blind))
 
+          bad_distributional = copy.deepcopy(registry)
+          bad_distributional["pairs"][0]["binding_status"] = "prefix_committed"
+          bad_distributional["pairs"][0]["prefix_equivalence"]["relation"] = "distributionally_equivalent"
+          mutations.append(("distributionally_equivalent without a preregistered equivalence record", bad_distributional))
+
+          bad_byte_exact = copy.deepcopy(registry)
+          bad_byte_exact["pairs"][0]["prefix_equivalence"]["equivalence_evidence"] = {
+              "method": "scalar_tost"
+          }
+          mutations.append(("byte_exact with a statistical record", bad_byte_exact))
+
           bad_registry = copy.deepcopy(registry)
           bad_registry["registry_status"] = "blind_ready"
           mutations.append(("blind_ready registry with unbound pairs", bad_registry))
@@ -272,6 +319,7 @@ jobs:
           print("PASS: 18 unique cases / 9 pairs cross-reference exactly")
           print("PASS: each pair has one control and one mutation")
           print("PASS: pair and registry readiness stages are evidence-gated")
-          print("PASS: five invalid readiness-promotion controls are rejected")
+          print("PASS: stochastic equivalence requires preregistered margins, power, clusters and raw analysis receipts")
+          print("PASS: seven invalid readiness/equivalence controls are rejected")
           print("PASS: current registry remains explicitly unbound with no fabricated evidence")
           PY

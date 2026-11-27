@@ -145,3 +145,21 @@ The schema's conditional branches enforce:
 - rights, split-integrity and custody receipts plus frozen candidate/model identities before `blind_ready`.
 
 Registry-wide stages cannot overstate the least-ready pair. The exact-head workflow tests five invalid promotion mutations (manifest, prefix, replay, blind-ready pair and blind-ready registry) and must reject each. A JSON Schema check does not prove receipt authenticity or physical truth; the independent owners still validate each referenced artifact and custody claim.
+
+
+## 11. Statistical equivalence for stochastic prefixes
+
+A deterministic fixture must use byte-exact equality where the renderer/input contract promises determinism. A stochastic sensor pair may use `distributionally_equivalent` only after a preregistered equivalence analysis; a non-significant difference test is not an equivalence result.
+
+The evaluator must commit:
+- metric/statistic and its raw calibrated units;
+- lower/upper equivalence margins with operational justification;
+- alpha and confidence level (for TOST at alpha .05, the corresponding 90% interval must lie wholly inside both bounds);
+- target power at least .90 and sample-size plan;
+- independent cluster unit (scene, episode, recording session, sensor run or calibration block), cluster count, within-cluster replicates and paired-seed schedule;
+- multiplicity family and adjustment;
+- preregistration, raw-results and analysis-code receipts.
+
+Frames/samples within one scene/session/episode are correlated; do not count them as independent units. The required independent cluster count must meet the preregistered sample-size plan. If the plan is underpowered, return `UNDERPOWERED` / `NOT_EVALUATED`. For multivariate distributions, use a preregistered distance/statistic (e.g. energy distance, MMD or Wasserstein) with a justified upper equivalence bound; do not choose embeddings/thresholds after observing results.
+
+The schema and exact-head workflow enforce required artifacts and cross-field conditions. This establishes a valid evidence envelope only; the evaluator must still review the statistical design and reproduce the reported result independently.
