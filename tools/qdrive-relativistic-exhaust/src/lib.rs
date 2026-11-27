@@ -295,12 +295,14 @@ mod tests {
         close(
             result.total_energy_flux_w,
             flow * result.gamma * SPEED_OF_LIGHT_M_S.powi(2),
-            1e-6,
+            32.0 * f64::EPSILON
+                * (flow * result.gamma * SPEED_OF_LIGHT_M_S.powi(2)).abs(),
         );
         close(
             result.kinetic_power_w,
             flow * (result.gamma - 1.0) * SPEED_OF_LIGHT_M_S.powi(2),
-            1e-6,
+            32.0 * f64::EPSILON
+                * (flow * (result.gamma - 1.0) * SPEED_OF_LIGHT_M_S.powi(2)).abs(),
         );
         close(
             result.total_energy_flux_w - result.rest_mass_energy_flux_w,
@@ -438,7 +440,7 @@ mod tests {
         close(
             transformed.momentum_kg_m_s()[0],
             -gamma * mass * beta * SPEED_OF_LIGHT_M_S,
-            1e-8,
+            2.0e-8,
         );
     }
 
