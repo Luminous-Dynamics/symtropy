@@ -672,4 +672,65 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn lease_predicate_supports_two_and_four_dimensions() {
+        let witness = lease();
+        let feature = witness.feature_identity;
+        let two_dimensional = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 4],
+            [7, 8],
+            feature,
+            &motion([0.0; 2], 0.0, 1.0),
+        )
+        .expect("2D relative transform");
+        let four_dimensional = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 4],
+            [7, 8],
+            feature,
+            &motion([0.0; 4], 0.0, 1.0),
+        )
+        .expect("4D relative transform");
+        assert_eq!(two_dimensional.disposition, ContactLeaseDisposition::ReuseCertified);
+        assert_eq!(four_dimensional.disposition, ContactLeaseDisposition::ReuseCertified);
+    }
+
+    #[test]
+    fn cumulative_relative_motion_is_measured_from_last_fresh_manifold() {
+        let witness = lease();
+        let feature = witness.feature_identity;
+        for cumulative_translation in [0.1, 0.2, 0.3, 0.4] {
+            let decision = evaluate_contact_geometry_lease(
+                &witness,
+                pair(),
+                [3, 4],
+                [7, 8],
+                feature,
+                &motion([cumulative_translation, 0.0, 0.0], 0.0, 1.0),
+            )
+            .expect("cumulative relative motion");
+            assert_eq!(decision.disposition, ContactLeaseDisposition::ReuseCertified);
+        }
+        let at_margin = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 4],
+            [7, 8],
+            feature,
+            &motion([0.5, 0.0, 0.0], 0.0, 1.0),
+        )
+        .expect("cached transform reference is unchanged");
+        assert_eq!(
+            at_margin.disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::RelativeMotionExceedsFeatureMargin
+            )
+        );
+    }
+
+
 }
