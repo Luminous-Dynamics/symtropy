@@ -394,7 +394,7 @@ mod tests {
         )
         .unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
-        assert_eq!(residual.adjusted_supplies, vec![0, 3, 1, -4]);
+        assert_eq!(residual.adjusted_supplies, vec![0, 3, 0, -3]);
         assert_eq!(residual.arcs[0].capacity, 3);
         assert_eq!(residual.arcs[1].capacity, 3);
         assert_eq!(residual.lower_bounds, vec![2, 1]);
@@ -402,6 +402,34 @@ mod tests {
         assert!(residual.is_supply_balanced());
         assert_eq!(restore_original_flows(&residual, &[3, 3]).unwrap(), vec![5, 4]);
         assert_eq!(reconstruct_objective(&residual, &[3, 3]).unwrap(), 23);
+    }
+
+    #[test]
+    fn lower_bound_reduction_preserves_node_balance_for_restored_flow() {
+        let instance = parse_dimacs_mcf(
+            "p min 3 2\nn 1 5\nn 2 -1\nn 3 -4\na 1 2 2 5 7\na 2 3 1 4 -3",
+        )
+        .unwrap();
+        let residual = remove_lower_bounds(&instance).unwrap();
+        let residual_flows = [3_i64, 3_i64];
+        let original_flows =
+            restore_original_flows(&residual, &residual_flows).unwrap();
+
+        let mut original_balance = vec![0_i128; 4];
+        let mut residual_balance = vec![0_i128; 4];
+        for (arc, &flow) in instance.arcs.iter().zip(&original_flows) {
+            original_balance[arc.tail as usize] += i128::from(flow);
+            original_balance[arc.head as usize] -= i128::from(flow);
+        }
+        for (arc, &flow) in residual.arcs.iter().zip(&residual_flows) {
+            residual_balance[arc.tail as usize] += i128::from(flow);
+            residual_balance[arc.head as usize] -= i128::from(flow);
+        }
+        assert_eq!(
+            original_balance,
+            instance.node_supplies.iter().map(|&x| i128::from(x)).collect::<Vec<_>>()
+        );
+        assert_eq!(residual_balance, residual.adjusted_supplies);
     }
 
     #[test]
