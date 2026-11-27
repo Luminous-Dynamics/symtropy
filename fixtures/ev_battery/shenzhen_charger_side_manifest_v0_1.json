@@ -60,5 +60,6 @@
     }
   ],
   "admission_state": "metadata_only",
-  "claim_ceiling": "Metadata-only source registration. No raw bytes, label frequencies, event boundaries, model score, station split or physical fault claim has yet been independently verified by this project."
+  "claim_ceiling": "Metadata-only source registration. No raw bytes, label frequencies, event boundaries, model score, station split or physical fault claim has yet been independently verified by this project.",
+  "count_basis_asset": "processed_data_longer_than_30.xlsx"
 }
