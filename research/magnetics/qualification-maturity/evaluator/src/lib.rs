@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MaturityLevel {
+    Unestablished,
     M1,
     M2,
     M3,
@@ -217,6 +218,15 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
     };
 
     let m1 = has(EvidenceKind::DesignModel);
+    let lab_scopes = has(EvidenceKind::LaboratoryMethodScope)
+        .into_iter()
+        .filter(|receipt| {
+            receipt.class == EvidenceClass::ExternalAttestation
+                && receipt.laboratory_id.is_some()
+                && receipt.method_scope_id.is_some()
+                && receipt.standard_reference.as_deref() == Some("ISO/IEC 17025:2017")
+        })
+        .collect::<Vec<_>>();
     let m2_measurements = has(EvidenceKind::MaterialPropertyMeasurement)
         .into_iter()
         .filter(|receipt| {
@@ -226,7 +236,11 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                 && method_evidence_complete(receipt)
         })
         .collect::<Vec<_>>();
-    let m2 = !m2_measurements.is_empty();
+    let m2_lab_scope_ok = !m2_measurements.is_empty()
+        && m2_measurements
+            .iter()
+            .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
+    let m2 = !m2_measurements.is_empty() && m2_lab_scope_ok;
 
     let process_records = has(EvidenceKind::ProcessRecord)
         .into_iter()
@@ -253,18 +267,32 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                 && receipt.linked_evidence_ids.iter().all(|id| evidence_by_id.contains_key(id.as_str()))
         })
         .collect::<Vec<_>>();
+    let m3_lab_scope_ok = microstructure
+        .iter()
+        .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
     let m3 = m2
         && !process_records.is_empty()
         && !microstructure.is_empty()
         && !links.is_empty()
+        && m3_lab_scope_ok
         && links.iter().any(|link| {
-            link.linked_evidence_ids.iter().any(|id| {
-                process_records.iter().any(|e| e.evidence_id == *id)
-            }) && link.linked_evidence_ids.iter().any(|id| {
-                microstructure.iter().any(|e| e.evidence_id == *id)
-            }) && link.linked_evidence_ids.iter().any(|id| {
-                m2_measurements.iter().any(|e| e.evidence_id == *id)
-            })
+            let linked_process = link.linked_evidence_ids.iter().find_map(|id| {
+                process_records.iter().find(|receipt| receipt.evidence_id == *id)
+            });
+            let linked_microstructure = link.linked_evidence_ids.iter().find_map(|id| {
+                microstructure.iter().find(|receipt| receipt.evidence_id == *id)
+            });
+            let linked_property = link.linked_evidence_ids.iter().find_map(|id| {
+                m2_measurements.iter().find(|receipt| receipt.evidence_id == *id)
+            });
+            matches!(
+                (linked_process, linked_microstructure, linked_property),
+                (Some(process), Some(structure), Some(property))
+                    if process.material_lot_id == structure.material_lot_id
+                        && structure.material_lot_id == property.material_lot_id
+                        && structure.specimen_id == property.specimen_id
+                        && structure.build_id == process.build_id
+            )
         });
 
     let as_built = has(EvidenceKind::AsBuiltInspection)
@@ -292,10 +320,15 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                 && receipt.component_id.as_deref() == Some(candidate.component_id.as_str())
         })
         .collect::<Vec<_>>();
+    let m4_lab_scope_ok = as_built
+        .iter()
+        .chain(component_function.iter())
+        .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
     let m4 = m3
         && !as_built.is_empty()
         && !component_function.is_empty()
         && !component_acceptance.is_empty()
+        && m4_lab_scope_ok
         && component_function.iter().any(|function| {
             as_built.iter().any(|inspection| {
                 inspection.geometry_digest == function.geometry_digest
@@ -350,31 +383,15 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         || (equipment_iq.iter().any(|r| r.standard_reference.as_deref() == Some("ISO/ASTM TS 52930:2021"))
             && equipment_oq.iter().any(|r| r.standard_reference.as_deref() == Some("ISO/ASTM TS 52930:2021"))
             && equipment_pq.iter().any(|r| r.standard_reference.as_deref() == Some("ISO/ASTM TS 52930:2021")));
-    let lab_scopes = has(EvidenceKind::LaboratoryMethodScope)
-        .into_iter()
-        .filter(|receipt| {
-            receipt.class == EvidenceClass::ExternalAttestation
-                && receipt.laboratory_id.is_some()
-                && receipt.method_scope_id.is_some()
-        })
-        .collect::<Vec<_>>();
-    let required_methods = receipts
+    let required_method_receipts = valid_receipts
         .iter()
-        .filter(|receipt| {
-            matches!(
-                receipt.kind,
-                EvidenceKind::MaterialPropertyMeasurement
-                    | EvidenceKind::MicrostructureCharacterization
-                    | EvidenceKind::AsBuiltInspection
-                    | EvidenceKind::ComponentFunctionalTest
-                    | EvidenceKind::DurabilityTest
-            )
-        })
-        .filter_map(|receipt| receipt.method_scope_id.as_deref())
-        .collect::<BTreeSet<_>>();
-    let labs_cover_methods = required_methods.iter().all(|method_scope| {
-        lab_scopes.iter().any(|scope| scope.method_scope_id.as_deref() == Some(*method_scope))
-    });
+        .filter(|receipt| is_physical_kind(receipt.kind))
+        .copied()
+        .collect::<Vec<_>>();
+    let labs_cover_methods = !required_method_receipts.is_empty()
+        && required_method_receipts
+            .iter()
+            .all(|receipt| lab_scope_covers(receipt, &lab_scopes));
     let m5 = m4
         && cohort_ok
         && variability
@@ -411,8 +428,10 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         MaturityLevel::M2
     } else if !m1.is_empty() {
         MaturityLevel::M1
-    } else {
+    } else if !m1.is_empty() {
         MaturityLevel::M1
+    } else {
+        MaturityLevel::Unestablished
     };
 
     let mut capability_vector = BTreeMap::new();
@@ -635,6 +654,15 @@ fn validate_method(receipt: &EvidenceReceipt, blockers: &mut Vec<Blocker>) {
     }
 }
 
+fn lab_scope_covers(receipt: &EvidenceReceipt, lab_scopes: &[&EvidenceReceipt]) -> bool {
+    receipt.method_scope_id.as_deref().is_some_and(|method_scope| {
+        lab_scopes.iter().any(|scope| {
+            scope.method_scope_id.as_deref() == Some(method_scope)
+                && scope.laboratory_id == receipt.laboratory_id
+        })
+    })
+}
+
 fn method_evidence_complete(receipt: &EvidenceReceipt) -> bool {
     receipt.method_id.as_deref().is_some_and(|v| !v.trim().is_empty())
         && receipt.method_scope_id.as_deref().is_some_and(|v| !v.trim().is_empty())
@@ -824,7 +852,8 @@ mod tests {
             uncertainty_digest: method.then(|| digest('1')),
             conditions_digest: method.then(|| digest('2')),
             geometry_digest: (kind == EvidenceKind::AsBuiltInspection || kind == EvidenceKind::ComponentFunctionalTest).then(|| digest('3')),
-            standard_reference: None,
+            standard_reference: (kind == EvidenceKind::LaboratoryMethodScope)
+                .then(|| "ISO/IEC 17025:2017".to_string()),
             linked_evidence_ids: vec![],
             replication: (kind == EvidenceKind::CohortSummary).then(|| ReplicationEvidence {
                 independent_builds: 3,
@@ -880,6 +909,38 @@ mod tests {
         lab_scope.laboratory_id = Some("LAB-001".to_string());
         receipts.push(lab_scope);
         receipts
+    }
+
+    #[test]
+    fn no_physical_or_conceptual_evidence_is_unestablished() {
+        let result = evaluate(&candidate(), &[]);
+        assert_eq!(result.derived_level, MaturityLevel::Unestablished);
+        assert!(!result.findings[0].supported);
+    }
+
+    #[test]
+    fn m2_requires_matching_laboratory_method_scope_receipt() {
+        let mut receipts = m2_receipts();
+        receipts.retain(|receipt| receipt.kind != EvidenceKind::LaboratoryMethodScope);
+        let result = evaluate(&candidate(), &receipts);
+        assert_eq!(result.derived_level, MaturityLevel::M1);
+        assert!(result.global_blockers.contains(&Blocker::MissingLaboratoryScopeEvidence));
+    }
+
+    #[test]
+    fn laboratory_scope_from_another_lab_cannot_cover_measurement() {
+        let mut receipts = m2_receipts();
+        receipts[2].laboratory_id = Some("LAB-OTHER".to_string());
+        let result = evaluate(&candidate(), &receipts);
+        assert_eq!(result.derived_level, MaturityLevel::M1);
+    }
+
+    #[test]
+    fn pspp_link_requires_same_specimen_lot_and_build_chain() {
+        let mut receipts = m3_receipts();
+        receipts[4].build_id = Some("BUILD-OTHER".to_string());
+        let result = evaluate(&candidate(), &receipts);
+        assert_eq!(result.derived_level, M2);
     }
 
     #[test]
