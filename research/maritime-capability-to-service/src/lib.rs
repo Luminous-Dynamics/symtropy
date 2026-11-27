@@ -583,6 +583,9 @@ pub struct RecoveryServiceOutcome {
     pub recovery_cost_units: u64,
     pub recovery_emissions_units: u64,
     pub requalification_actions: u64,
+    pub replan_invocations: u64,
+    pub plan_churn_changes: u64,
+    pub decision_latency_millis: u64,
 }
 
 /// Candidate-minus-reference regret vector. Positive values mean the candidate
@@ -610,6 +613,9 @@ pub struct RecoveryRegretVector {
     pub recovery_cost_units_delta: i128,
     pub recovery_emissions_units_delta: i128,
     pub requalification_actions_delta: i128,
+    pub replan_invocations_delta: i128,
+    pub plan_churn_changes_delta: i128,
+    pub decision_latency_millis_delta: i128,
 }
 
 const RECOVERY_UNITS_ERROR: &str =
@@ -703,6 +709,12 @@ pub fn compare_recovery_regret(
             - i128::from(reference.recovery_emissions_units),
         requalification_actions_delta: i128::from(candidate.requalification_actions)
             - i128::from(reference.requalification_actions),
+        replan_invocations_delta: i128::from(candidate.replan_invocations)
+            - i128::from(reference.replan_invocations),
+        plan_churn_changes_delta: i128::from(candidate.plan_churn_changes)
+            - i128::from(reference.plan_churn_changes),
+        decision_latency_millis_delta: i128::from(candidate.decision_latency_millis)
+            - i128::from(reference.decision_latency_millis),
     })
 }
 
@@ -719,6 +731,9 @@ pub enum RecoveryRegretMetric {
     RecoveryCostUnits,
     RecoveryEmissionsUnits,
     RequalificationActions,
+    ReplanInvocations,
+    PlanChurnChanges,
+    DecisionLatencyMillis,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -831,6 +846,21 @@ pub fn worst_case_recovery_regret(
             delta: first.requalification_actions_delta,
             scenario_id: first.scenario_id.clone(),
         },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::ReplanInvocations,
+            delta: first.replan_invocations_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::PlanChurnChanges,
+            delta: first.plan_churn_changes_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
+        WorstCaseRecoveryRegret {
+            metric: RecoveryRegretMetric::DecisionLatencyMillis,
+            delta: first.decision_latency_millis_delta,
+            scenario_id: first.scenario_id.clone(),
+        },
     ];
 
     for vector in vectors.iter().skip(1) {
@@ -863,6 +893,9 @@ pub fn worst_case_recovery_regret(
                 RecoveryRegretMetric::RequalificationActions => {
                     vector.requalification_actions_delta
                 }
+                RecoveryRegretMetric::ReplanInvocations => vector.replan_invocations_delta,
+                RecoveryRegretMetric::PlanChurnChanges => vector.plan_churn_changes_delta,
+                RecoveryRegretMetric::DecisionLatencyMillis => vector.decision_latency_millis_delta,
             };
             let candidate_is_worse = match bound.metric {
                 RecoveryRegretMetric::InspectionQualifiedUnits
@@ -1371,6 +1404,9 @@ mod tests {
             recovery_cost_units: 500,
             recovery_emissions_units: 300,
             requalification_actions: 2,
+            replan_invocations: 2,
+            plan_churn_changes: 12,
+            decision_latency_millis: 8_000,
         }
     }
 
@@ -1388,6 +1424,9 @@ mod tests {
         oracle.recovery_cost_units = 400;
         oracle.recovery_emissions_units = 250;
         oracle.requalification_actions = 1;
+        oracle.replan_invocations = 1;
+        oracle.plan_churn_changes = 8;
+        oracle.decision_latency_millis = 5_000;
 
         let regret = compare_recovery_regret(&candidate, &oracle).unwrap();
         assert_eq!(regret.unmet_units_at_deadline_delta, 25);
@@ -1401,6 +1440,9 @@ mod tests {
         assert_eq!(regret.recovery_cost_units_delta, 100);
         assert_eq!(regret.recovery_emissions_units_delta, 50);
         assert_eq!(regret.requalification_actions_delta, 1);
+        assert_eq!(regret.replan_invocations_delta, 1);
+        assert_eq!(regret.plan_churn_changes_delta, 4);
+        assert_eq!(regret.decision_latency_millis_delta, 3_000);
     }
 
     #[test]
@@ -1469,6 +1511,9 @@ mod tests {
         assert_eq!(regret.recovery_cost_units_delta, 0);
         assert_eq!(regret.recovery_emissions_units_delta, 0);
         assert_eq!(regret.requalification_actions_delta, 0);
+        assert_eq!(regret.replan_invocations_delta, 0);
+        assert_eq!(regret.plan_churn_changes_delta, 0);
+        assert_eq!(regret.decision_latency_millis_delta, 0);
     }
 
     #[test]
@@ -1498,6 +1543,9 @@ mod tests {
         candidate_two.recovery_cost_units = 1_200;
         candidate_two.recovery_emissions_units = 450;
         candidate_two.requalification_actions = 4;
+        candidate_two.replan_invocations = 5;
+        candidate_two.plan_churn_changes = 24;
+        candidate_two.decision_latency_millis = 15_000;
 
         let mut oracle_two = recovery_outcome("CLAIRVOYANT-BOUND");
         oracle_two.scenario_id = "CALIBRATION-AND-WORKFORCE".to_owned();
@@ -1511,12 +1559,15 @@ mod tests {
         oracle_two.recovery_cost_units = 800;
         oracle_two.recovery_emissions_units = 350;
         oracle_two.requalification_actions = 2;
+        oracle_two.replan_invocations = 2;
+        oracle_two.plan_churn_changes = 12;
+        oracle_two.decision_latency_millis = 9_000;
         let vector_two = compare_recovery_regret(&candidate_two, &oracle_two).unwrap();
 
         let envelope = worst_case_recovery_regret(&[vector_one, vector_two]).unwrap();
         assert_eq!(envelope.scenario_count, 2);
         assert_eq!(envelope.expected_units, 100);
-        assert_eq!(envelope.worst_case.len(), 11);
+        assert_eq!(envelope.worst_case.len(), 14);
 
         let bound = |metric| envelope
             .worst_case
@@ -1557,6 +1608,9 @@ mod tests {
             100
         );
         assert_eq!(bound(RecoveryRegretMetric::RequalificationActions).delta, 2);
+        assert_eq!(bound(RecoveryRegretMetric::ReplanInvocations).delta, 3);
+        assert_eq!(bound(RecoveryRegretMetric::PlanChurnChanges).delta, 12);
+        assert_eq!(bound(RecoveryRegretMetric::DecisionLatencyMillis).delta, 6_000);
     }
 
     #[test]
