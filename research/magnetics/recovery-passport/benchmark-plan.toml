@@ -51,7 +51,7 @@ synthetic_fixture = "evaluator/fixtures/synthetic-recovery-passport-v0.1.json"
 source_register = "fixtures/recovery-route-source-register-v0.1.json"
 language = "Rust 2024"
 dependencies = []
-unit_tests_authored = 22
+unit_tests_authored = 26
 unit_tests_executed = false
 exact_head_ci_pass = false
 
@@ -65,3 +65,11 @@ bound_to_exact_feedstock_family_form_and_lot = true
 polymer_hydrolysis_evidence_scope = "NDFeB_POLYMER_BONDED_ONLY"
 hydrogen_short_loop_evidence_scope = "NDFEB_SINTERED_OR_POWDER_ONLY"
 cross_family_transfer_without_new_receipt = false
+
+
+[mass_measurement_evidence]
+source_mass_measurement_has_unique_record = true
+recovery_stage_input_mass_has_unique_record = true
+source_and_stage_mass_intervals_must_overlap = true
+point_value_equality_is_not_required_when_intervals_overlap = true
+disjoint_intervals_are_indeterminate = true
