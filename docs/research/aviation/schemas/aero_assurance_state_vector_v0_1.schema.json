@@ -254,6 +254,7 @@
               "REJECTED",
               "OUT_OF_SCOPE",
               "NOT_KNOWN_AT_SNAPSHOT",
+              "NOT_EFFECTIVE_AT_SUBJECT_TIME",
               "UNVERIFIED",
               "INCOMPLETE",
               "REVIEWABLE_FOR_INDEPENDENT_DECISION"
