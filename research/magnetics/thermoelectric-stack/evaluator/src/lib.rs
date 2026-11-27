@@ -1256,6 +1256,21 @@ mod tests {
     }
 
     #[test]
+    fn acceptance_scope_mismatch_cannot_create_a_false_hard_fail() {
+        let mut trials = known_trials();
+        trials[0].observations[0].value = 500.0;
+        trials[0].acceptance.comparison_scope_digest = digest('f');
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(!result[0]
+            .blockers
+            .contains(&Blocker::DefiniteHardLimitViolation));
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::InvalidAcceptance));
+    }
+
+    #[test]
     fn wrong_measurement_scope_cannot_create_a_false_hard_fail() {
         let mut trials = known_trials();
         trials[0].observations[0].value = 500.0;
