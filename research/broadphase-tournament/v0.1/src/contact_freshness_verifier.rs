@@ -254,6 +254,12 @@ fn independently_assess(
         reasons.insert(FreshnessReason::SolverConfigurationChanged);
         warm_start = ReuseDisposition::RefreshRequired;
     }
+    if global.contact_response_policy_sha256
+        != stamp.global.contact_response_policy_sha256
+    {
+        reasons.insert(FreshnessReason::ContactResponsePolicyChanged);
+        warm_start = ReuseDisposition::RefreshRequired;
+    }
 
     if !reasons.is_empty() && global.world == stamp.global.world {
         return Err(ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation.into());
@@ -524,6 +530,8 @@ pub fn verify_contact_lifecycle_receipt(
             || stamp.global.narrowphase_config_sha256
                 != receipt.previous_global.narrowphase_config_sha256
             || stamp.global.solver_config_sha256 != receipt.previous_global.solver_config_sha256
+            || stamp.global.contact_response_policy_sha256
+                != receipt.previous_global.contact_response_policy_sha256
             || stamp.global.world > receipt.previous_global.world
         {
             return Err(ContactLifecycleReceiptError::PriorContactStampGlobalMismatch(*key).into());
@@ -555,7 +563,9 @@ pub fn verify_contact_lifecycle_receipt(
         || receipt.current_global.narrowphase_config_sha256
             != receipt.previous_global.narrowphase_config_sha256
         || receipt.current_global.solver_config_sha256
-            != receipt.previous_global.solver_config_sha256;
+            != receipt.previous_global.solver_config_sha256
+        || receipt.current_global.contact_response_policy_sha256
+            != receipt.previous_global.contact_response_policy_sha256;
 
     let mut delta = PairDeltaFrame::default();
     delta.added = current.difference(&previous).copied().collect();
@@ -589,6 +599,8 @@ pub fn verify_contact_lifecycle_receipt(
             || stamp.global.narrowphase_config_sha256
                 != receipt.current_global.narrowphase_config_sha256
             || stamp.global.solver_config_sha256 != receipt.current_global.solver_config_sha256
+            || stamp.global.contact_response_policy_sha256
+                != receipt.current_global.contact_response_policy_sha256
             || stamp.global.world > receipt.current_global.world
         {
             return Err(ContactLifecycleReceiptError::PostContactStampMismatch(*pair).into());
@@ -792,6 +804,7 @@ mod tests {
             collision_policy: 5,
             narrowphase_config_sha256: [11; 32],
             solver_config_sha256: [12; 32],
+            contact_response_policy_sha256: [13; 32],
         }
     }
 
@@ -1517,6 +1530,33 @@ mod tests {
                 ContactLifecycleReceiptError::WarmStartPayloadRevisionDidNotAdvance(pair)
             ))
         );
+    }
+
+    #[test]
+    fn verifier_replays_response_policy_change_without_geometry_refresh() {
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        let stamps = BTreeMap::from([(pair, stamp())]);
+        let mut changed_global = next_global();
+        changed_global.contact_response_policy_sha256 = [45; 32];
+        let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
+        let mut plan = make_plan(&delta, &stamps, changed_global, &endpoints);
+
+        let decision = plan.actions[0].decision.as_mut().expect("decision");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+
+        let report = verify_contact_lifecycle_plan(
+            &delta,
+            &stamps,
+            changed_global,
+            &endpoints,
+            &plan,
+        )
+        .expect("response-policy receipt is independently reconstructed");
+        assert_eq!(report.geometry_reuses, 1);
+        assert_eq!(report.warm_start_reuses, 0);
     }
 
 }
