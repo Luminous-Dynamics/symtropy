@@ -1329,13 +1329,13 @@ mod tests {
         let mut input = sample_input();
         let chain_len = MAX_GRAPH_DEPTH + 3;
         input.claim.requirements[0].evidence_ref = "evidence:chain-0".to_owned();
-        input.claim.requirements[0].expected_record_sha256 = digest('a');
+        input.claim.requirements[0].expected_record_sha256 = digest('0');
         input.claim.requirements[0].role = "chain".to_owned();
         input.claim.requirements[0].uncertainty_budget_ref =
             "uncertainty:evidence:chain-0".to_owned();
         let mut chain = Vec::with_capacity(chain_len);
         for index in 0..chain_len {
-            let character = char::from_u32('a' as u32 + (index % 20) as u32).unwrap();
+            let character = char::from_digit((index % 16) as u32, 16).unwrap();
             let mut record = evidence_record(
                 &format!("evidence:chain-{index}"),
                 character,
@@ -1346,8 +1346,7 @@ mod tests {
                 100,
             );
             if index + 1 < chain_len {
-                let next_character =
-                    char::from_u32('a' as u32 + ((index + 1) % 20) as u32).unwrap();
+                let next_character = char::from_digit(((index + 1) % 16) as u32, 16).unwrap();
                 record.dependencies.push(DependencyBinding {
                     evidence_ref: format!("evidence:chain-{}", index + 1),
                     expected_record_sha256: digest(next_character),
