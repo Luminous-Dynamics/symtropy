@@ -180,3 +180,16 @@ Full metrics, roles, and caveats are in [spatial-state-construction-protocol-v0.
 LaMAria is distinct from the earlier **LaMAR** dataset. Its surveyed control points provide sparse independent metric anchors, while its dense pseudo-GT trajectory is produced by a joint optimization initialized from Aria's proprietary SLAM API on regular sequences; difficult moving-platform sections require special handling. The paper excludes Aria from its own pseudo-GT recall metric because Aria initializes that pseudo-GT. Keep CP-based scoring distinct from pseudo-GT R@5m.
 
 CROSS is a system-published benchmark. Its 93% T3 / 93% T2 / 0.35% T1 headline refers to the stereo-plus-odometry reference configuration and mixed dataset-specific odometry provenance. Reproduce the pinned protocol, sensor mode, session split and full failure denominators before using it as a comparative result; do not treat it as an independently audited universal SOTA ranking.
+
+
+## Claim-level spatial evidence and observation density
+
+The spatial-state protocol now composes with [AV-EVIDENCE-CERTIFICATE-001 #6856 / PR #6859](https://github.com/Luminous-Dynamics/symtropy/pull/6859): claims are scored separately for answer correctness, exact source citations, temporal support, spatial support, unsupported claims and abstention. Evaluator-defined alternative minimal sufficient evidence sets remain hidden; derived map summaries must resolve back to original source observations.
+
+The protocol also adds a claim-conditioned **minimum sufficient observation-density frontier**, extending FPS-Bench's minFPS idea. Temporal sampling rate and spatial viewpoint coverage are separate dimensions. A single universal FPS target is not meaningful across fast motion, static room geometry, occlusion and camera rotation.
+
+The external comparison crosswalk now includes OVO-S, VideoZeroBench, FPS-Bench, VideoOdyssey, Beyond Recall, ProactiveBench and EgoWitness, alongside TUM/EuRoC/KITTI/OpenLORIS/LaMAria/CROSS. Their native scores are deliberately kept separate.
+
+## World-manifest binding work
+
+[AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) now owns binding the eight identifiability pairs to versioned WorldManifestV1 records and evaluator-only twin-world crosswalks. It composes #1595, #6183, #6201, #6859, #7693 and #6754. This is the next manifest/audit increment; no indoor camera renderer or rendered twin-world media is claimed to exist yet.
