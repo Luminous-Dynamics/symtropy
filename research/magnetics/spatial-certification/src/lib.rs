@@ -89,10 +89,11 @@ impl AxisAlignedBox3 {
 
     pub fn widths_m(self) -> Result<[f64; 3], CertificationError> {
         self.validate()?;
-        let widths = std::array::from_fn(|index| {
-            self.maximum_m[index] - self.minimum_m[index]
-        });
-        if widths.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        let widths = std::array::from_fn(|index| self.maximum_m[index] - self.minimum_m[index]);
+        if widths
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+        {
             return Err(CertificationError::InvalidBox);
         }
         Ok(widths)
@@ -394,10 +395,7 @@ fn validate_evidence(evidence: &CellMarginEvidence) -> Result<(), CertificationE
     {
         return Err(CertificationError::InvalidIdentity);
     }
-    validate_digest(
-        &evidence.centre_sample_sha256,
-        "centre_sample_sha256",
-    )?;
+    validate_digest(&evidence.centre_sample_sha256, "centre_sample_sha256")?;
     validate_digest(&evidence.geometry_sha256, "geometry_sha256")?;
     validate_digest(&evidence.material_sha256, "material_sha256")?;
     evidence.bounds.validate()?;
@@ -475,7 +473,10 @@ pub fn bind_centre_observation_to_spatial_derivative(
         (&scope.geometry_sha256, "geometry_sha256"),
         (&scope.material_sha256, "material_sha256"),
         (&derivative.artifact_sha256, "derivative_artifact_sha256"),
-        (&derivative.environment_sha256, "derivative_environment_sha256"),
+        (
+            &derivative.environment_sha256,
+            "derivative_environment_sha256",
+        ),
     ] {
         if !valid_sha256(value) {
             return Err(EvidenceBindingError::InvalidSha256 { field });
@@ -526,13 +527,34 @@ pub fn bind_centre_observation_to_spatial_derivative(
     }
 
     for (matches, field) in [
-        (derivative.coordinate_frame_id == scope.coordinate_frame_id, "coordinate_frame_id"),
-        (derivative.operating_condition_id == scope.operating_condition_id, "operating_condition_id"),
-        (derivative.model_set_id == scope.model_set_id, "model_set_id"),
-        (derivative.solver_run_id == scope.solver_run_id, "solver_run_id"),
-        (derivative.geometry_sha256 == scope.geometry_sha256, "geometry_sha256"),
-        (derivative.material_sha256 == scope.material_sha256, "material_sha256"),
-        (derivative.requirement_id == scope.requirement_id, "requirement_id"),
+        (
+            derivative.coordinate_frame_id == scope.coordinate_frame_id,
+            "coordinate_frame_id",
+        ),
+        (
+            derivative.operating_condition_id == scope.operating_condition_id,
+            "operating_condition_id",
+        ),
+        (
+            derivative.model_set_id == scope.model_set_id,
+            "model_set_id",
+        ),
+        (
+            derivative.solver_run_id == scope.solver_run_id,
+            "solver_run_id",
+        ),
+        (
+            derivative.geometry_sha256 == scope.geometry_sha256,
+            "geometry_sha256",
+        ),
+        (
+            derivative.material_sha256 == scope.material_sha256,
+            "material_sha256",
+        ),
+        (
+            derivative.requirement_id == scope.requirement_id,
+            "requirement_id",
+        ),
     ] {
         if !matches {
             return Err(EvidenceBindingError::DerivativeScopeMismatch { field });
@@ -581,13 +603,8 @@ pub fn bind_centre_observation_to_validated_derivative<const N: usize>(
         "metre",
     )
     .map_err(EvidenceBindingError::IntervalMapping)?;
-    bind_centre_observation_to_spatial_derivative(
-        scope,
-        observation,
-        &derivative,
-        evidence_role,
-    )
-    .map_err(EvidenceBindingError::SpatialCertification)
+    bind_centre_observation_to_spatial_derivative(scope, observation, &derivative, evidence_role)
+        .map_err(EvidenceBindingError::SpatialCertification)
 }
 
 fn dominant_axis(contributions: [f64; 3]) -> Option<Axis> {
@@ -607,9 +624,7 @@ fn dominant_axis(contributions: [f64; 3]) -> Option<Axis> {
 ///
 /// The result is conditional on the supplied component-wise derivative
 /// suprema being valid everywhere inside this exact box.
-pub fn certify_cell(
-    evidence: &CellMarginEvidence,
-) -> Result<CellCertificate, CertificationError> {
+pub fn certify_cell(evidence: &CellMarginEvidence) -> Result<CellCertificate, CertificationError> {
     validate_evidence(evidence)?;
     let half_widths = evidence.bounds.half_widths_m();
     let mut contributions = [0.0; 3];
@@ -630,10 +645,14 @@ pub fn certify_cell(
         }
     }
 
-    let margin_lower_enclosure =
-        subtract_down(evidence.centre_margin_lower_bound, maximum_spatial_variation);
-    let margin_upper_enclosure =
-        add_up(evidence.centre_margin_upper_bound, maximum_spatial_variation);
+    let margin_lower_enclosure = subtract_down(
+        evidence.centre_margin_lower_bound,
+        maximum_spatial_variation,
+    );
+    let margin_upper_enclosure = add_up(
+        evidence.centre_margin_upper_bound,
+        maximum_spatial_variation,
+    );
     if !margin_lower_enclosure.is_finite() || !margin_upper_enclosure.is_finite() {
         return Err(CertificationError::NonFiniteDerivedMargin);
     }
@@ -664,8 +683,7 @@ fn stable_midpoint(minimum: f64, maximum: f64) -> Option<f64> {
     } else {
         minimum * 0.5 + maximum * 0.5
     };
-    (midpoint.is_finite() && midpoint > minimum && midpoint < maximum)
-        .then_some(midpoint)
+    (midpoint.is_finite() && midpoint > minimum && midpoint < maximum).then_some(midpoint)
 }
 
 pub fn validate_split(
@@ -768,12 +786,7 @@ pub fn plan_refinement(
     let finish = |disposition, split: Option<CellSplit>, resulting_leaf_count| {
         let suggested_probe_positions_m = split
             .as_ref()
-            .map(|value| {
-                vec![
-                    value.left_bounds.centre_m(),
-                    value.right_bounds.centre_m(),
-                ]
-            })
+            .map(|value| vec![value.left_bounds.centre_m(), value.right_bounds.centre_m()])
             .unwrap_or_default();
         RefinementPlan {
             certificate: certificate.clone(),
@@ -922,10 +935,7 @@ pub fn validate_leaf_partition(
         }
         for y_window in y_planes.windows(2) {
             let [y_min, y_max] = [y_window[0], y_window[1]];
-            if y_min < root.minimum_m[1]
-                || y_max > root.maximum_m[1]
-                || y_min >= y_max
-            {
+            if y_min < root.minimum_m[1] || y_max > root.maximum_m[1] || y_min >= y_max {
                 continue;
             }
 
@@ -1002,10 +1012,7 @@ pub fn certify_domain(
         cell_certificates.push(certify_cell(cell)?);
     }
 
-    let leaves = evidence
-        .iter()
-        .map(|cell| cell.bounds)
-        .collect::<Vec<_>>();
+    let leaves = evidence.iter().map(|cell| cell.bounds).collect::<Vec<_>>();
     let partition = validate_leaf_partition(root, &leaves)?;
     let certified_safe_cell_count = cell_certificates
         .iter()
@@ -1045,7 +1052,9 @@ pub fn certify_domain(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use magnetic_interval_ad::{certify_expression_centered, Interval, IntervalDual, ParameterDomain};
+    use magnetic_interval_ad::{
+        Interval, IntervalDual, ParameterDomain, certify_expression_centered,
+    };
 
     const DIGEST_A: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -1127,9 +1136,7 @@ mod tests {
         }
     }
 
-    fn validated_xyz_derivative(
-        scope: &SpatialDomainScope,
-    ) -> ValidatedDerivativeEnclosure<3> {
+    fn validated_xyz_derivative(scope: &SpatialDomainScope) -> ValidatedDerivativeEnclosure<3> {
         let bounds = scope.bounds;
         let interval = |lower, upper| Interval::new(lower, upper).expect("finite interval");
         let domain = ParameterDomain {
@@ -1213,11 +1220,9 @@ mod tests {
     fn exact_split_children_cover_parent_without_gap_or_overlap() {
         let input = evidence();
         let split = build_split(&input.cell_id, input.bounds, Axis::Y).expect("representable");
-        let metrics = validate_leaf_partition(
-            input.bounds,
-            &[split.left_bounds, split.right_bounds],
-        )
-        .expect("complete partition");
+        let metrics =
+            validate_leaf_partition(input.bounds, &[split.left_bounds, split.right_bounds])
+                .expect("complete partition");
         assert_eq!(metrics.leaf_count, 2);
         assert!((metrics.domain_volume_m3 - metrics.summed_leaf_volume_m3).abs() < 1.0e-12);
     }
@@ -1230,8 +1235,7 @@ mod tests {
         left.maximum_m[0] = -0.1;
         right.minimum_m[0] = 0.1;
         assert_eq!(
-            validate_leaf_partition(root, &[left, right])
-                .expect_err("missing slab is not covered"),
+            validate_leaf_partition(root, &[left, right]).expect_err("missing slab is not covered"),
             CertificationError::PartitionVolumeMismatch
         );
     }
@@ -1244,8 +1248,7 @@ mod tests {
         left.maximum_m[0] = 0.2;
         right.minimum_m[0] = -0.2;
         assert_eq!(
-            validate_leaf_partition(root, &[left, right])
-                .expect_err("overlap is invalid"),
+            validate_leaf_partition(root, &[left, right]).expect_err("overlap is invalid"),
             CertificationError::OverlappingPartitionCells
         );
     }
@@ -1493,7 +1496,10 @@ mod tests {
         assert_eq!(evidence.evidence_role, EvidenceRole::AdaptiveExploration);
 
         let certificate = certify_cell(&evidence).expect("joined evidence certifies a cell");
-        assert_eq!(certificate.classification, CellClassification::CertifiedSafe);
+        assert_eq!(
+            certificate.classification,
+            CellClassification::CertifiedSafe
+        );
     }
 
     #[test]
