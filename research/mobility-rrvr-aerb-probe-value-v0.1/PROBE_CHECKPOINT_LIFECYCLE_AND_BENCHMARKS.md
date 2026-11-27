@@ -27,7 +27,8 @@ Source: `evaluator/src/probe_checkpoint_v0_1.rs`.
 - Removing `open_world_residual` additionally requires an explicit scope-closure receipt and an admitted complete declared scope. A partial observation can never close the residual.
 - Decision sufficiency is accepted only from a complete, payload-committed receipt bound to the exact checkpoint and current support, asserting that all supported worlds share a terminal recommendation and no remaining probe strictly reduces worst-case terminal loss.
 - Continue, safe-stop/hold and abort are distinct path kinds. A path must bind the exact attempt, probe, checkpoint and physical plan; cover the full trajectory; be qualified; and have a known safe horizon no shorter than its required duration. Unknown horizon is not infinity.
-- A `completed` acquisition is not automatically a qualified physical hold: the completed state still needs a checkpoint-bound safe-stop/hold path, or the reducer returns `NO_SAFE_CONTINUATION`. When acquisition cannot continue and no decision-sufficiency oracle has required abort, a qualified hold is preferred to abort.
+- The physical supervisor may mark exactly one path as mandatory for this checkpoint. That checkpoint-bound directive overrides the observer's information-value preference. If the mandatory path is unqualified, missing, stale or incomplete, the reducer returns `NO_SAFE_CONTINUATION` rather than falling back to another path. Conflicting mandatory directives are invalid. The reducer consumes this upstream assertion; it does not authenticate the supervisor.
+- A `completed` acquisition is not automatically a qualified physical hold: the completed state still needs a checkpoint-bound safe-stop/hold path, or the reducer returns `NO_SAFE_CONTINUATION`. When acquisition cannot continue and no supervisor-mandated route exists, a qualified hold is the default lower-motion fallback over abort; an explicit supervisor-mandated abort overrides this preference.
 - `STOP_SENSING_HOLD`, `ABORT_PROBE` and `NO_SAFE_CONTINUATION` never grant a new physical effect. New effects still require #7788/#7814 pre-effect revalidation and #6503 independent action-ticket commit authority.
 
 ### Dispositions
@@ -43,7 +44,7 @@ Partial-evidence disposition is orthogonal to the lifecycle action: `ADMITTED_FO
 
 ## Trust boundary
 
-The Rust reducer verifies identity, sequence, digest shape, deterministic payload commitments, exact scope binding and cross-receipt consistency. The gap-free coverage bit is an upstream assertion, not independently established by this reducer. A hash/commitment detects payload changes; it does **not** authenticate an issuer. It does not prove that an upstream sensor measured reality, that an upstream dependency inventory is complete, that the physical supervisor's horizon is sound, or that an abort actually stopped motion. Those remain upstream and independently qualified responsibilities.
+The Rust reducer verifies identity, sequence, digest shape, deterministic payload commitments, exact scope binding and cross-receipt consistency. The gap-free coverage bit and any mandatory physical-path directive are upstream assertions, not independently established by this reducer. A hash/commitment detects payload changes; it does **not** authenticate an issuer. It does not prove that an upstream sensor measured reality, that an upstream dependency inventory is complete, that the physical supervisor's horizon is sound, or that an abort actually stopped motion. Those remain upstream and independently qualified responsibilities.
 
 The module is a pure process-model reducer. No simulator, HIL, physical robot or regulatory qualification is implied.
 
@@ -89,7 +90,7 @@ Hard-safety and false-finality errors are disqualifying and must never be averag
 - Zero false safe-to-continue/stop/abort in frozen negative controls.
 - Zero partial-prefix promotion beyond measured scope; zero gapful-prefix admission for support narrowing; zero partial absence promotion to full-window absence.
 - Zero open-world residual deletion without the required complete scope-closure receipt.
-- Zero acceptance of replayed, stale, wrong-plan or payload-tampered receipts.
+- Zero acceptance of replayed, stale, wrong-plan or payload-tampered receipts; zero fallback away from a mandatory physical supervisor path.
 - Zero new-effect authorization from this reducer (invariant, not a benchmark score).
 - Deterministic replay under non-semantic input permutations.
 - Rust 1.96.0 formatting, locked tests and strict Clippy on the exact commit before software qualification.
