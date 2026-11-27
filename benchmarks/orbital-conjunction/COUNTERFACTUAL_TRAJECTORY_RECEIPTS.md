@@ -26,10 +26,13 @@ The shared receipt records the exogenous inputs:
 
 The portfolio receipt records what changes under intervention:
 - manoeuvre plan (including an explicit no-op plan for a baseline arm);
+- portfolio-specific manoeuvre execution/actuation-noise realization;
 - post-action initial state;
 - propagator and integrator configuration;
 - complete post-action trajectory;
 - post-action encounter inventory and risk-policy linkage.
+
+Actuation error is not automatically a common random variable. The receipt binds a separate nonzero execution-noise digest per portfolio. Equal execution-noise digests are allowed only when the experiment explicitly justifies a shared actuation error; otherwise the same seed must not be reused across physically different action mechanisms.
 
 Different post-action trajectories and event inventories are expected. The common pre-action state and exogenous disturbance are not.
 
@@ -61,6 +64,7 @@ A digest proves only content identity relative to the supplied bytes. It does no
 - that the simulator is deterministic or correctly implemented;
 - that two supposedly common latent atoms were sampled from the correct target measure;
 - that the environment or process-noise realization is physically representative.
+- that portfolio-specific actuation-noise realizations are physically representative.
 
 A subsequent independent-replay service must re-run the same scenario/atom/portfolio campaign through a separately implemented propagator path, compare full trajectory and encounter outputs, and retain build, binary, kernel, input-product and numerical-tolerance provenance. This repository module is only the structural contract for that future service.
 
