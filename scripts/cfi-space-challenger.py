@@ -7,6 +7,7 @@ It intentionally reimplements the contract joins and count metrics in Python.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -57,7 +58,7 @@ def is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def validate_candidate(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict[str, Any]]:
     exact_keys(doc, {"schema_version", "benchmark_id", "episodes"}, "manifest")
     require(doc["schema_version"] == 1, "unsupported manifest schema version")
     require(is_string(doc["benchmark_id"]), "manifest benchmark_id is empty")
@@ -67,14 +68,28 @@ def validate_candidate(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
     by_id: dict[str, dict[str, Any]] = {}
     for episode in episodes:
         exact_keys(episode, {
-            "episode_id", "input_bundle_sha256", "frame_budget",
+            "episode_id", "input_bundle_path", "input_bundle_sha256", "frame_budget",
             "expected_frame_count", "first_sequence", "horizon_us", "frames",
         }, "candidate episode")
         eid = episode["episode_id"]
         require(is_string(eid), "empty episode_id")
         require(eid not in by_id, f"duplicate episode_id {eid}")
-        require(isinstance(episode["input_bundle_sha256"], str)
-                and HEX64.fullmatch(episode["input_bundle_sha256"]) is not None,
+        require(is_string(episode["input_bundle_path"]),
+                f"empty input bundle path for {eid}")
+        relative = Path(episode["input_bundle_path"])
+        require(not relative.is_absolute() and relative.parts
+                and all(part not in {"", ".", ".."} for part in relative.parts),
+                f"unsafe input bundle path for {eid}")
+        root = bundle_root.resolve(strict=True)
+        resolved = (root / relative).resolve(strict=True)
+        require(resolved.is_relative_to(root),
+                f"input bundle path escapes declared root for {eid}")
+        require(resolved.is_file() and resolved.stat().st_size <= MAX_INPUT_BYTES,
+                f"input bundle is not a regular file or exceeds byte limit for {eid}")
+        actual_digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        require(actual_digest == episode["input_bundle_sha256"],
+                f"source bundle SHA-256 mismatch for {eid}")
+        require(HEX64.fullmatch(episode["input_bundle_sha256"]) is not None,
                 f"malformed input digest for {eid}")
         budget = episode["frame_budget"]
         expected = episode["expected_frame_count"]
@@ -195,8 +210,8 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def score(manifest: dict[str, Any], ledger: dict[str, Any],
-          prediction_doc: dict[str, Any]) -> dict[str, Any]:
-    candidate_by_id = validate_candidate(manifest)
+          prediction_doc: dict[str, Any], bundle_root: Path) -> dict[str, Any]:
+    candidate_by_id = validate_candidate(manifest, bundle_root)
     truth_by_id = validate_ledger(ledger)
     exact_keys(prediction_doc, {"schema_version", "benchmark_id", "predictions"},
                "predictions")
@@ -306,11 +321,12 @@ def main() -> int:
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--ledger", type=Path, required=True)
     parser.add_argument("--predictions", type=Path, required=True)
+    parser.add_argument("--bundle-root", type=Path, required=True)
     parser.add_argument("--expect-unsafe", type=int, required=True)
     args = parser.parse_args()
     try:
         result = score(read_json(args.manifest), read_json(args.ledger),
-                       read_json(args.predictions))
+                       read_json(args.predictions), args.bundle_root)
         print(json.dumps(result, indent=2))
         require(result["unsafe_accepts"] == args.expect_unsafe,
                 f"unsafe_accepts expected {args.expect_unsafe}, got {result['unsafe_accepts']}")
