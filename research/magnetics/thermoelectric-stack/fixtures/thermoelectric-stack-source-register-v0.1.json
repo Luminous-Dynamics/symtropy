@@ -7,7 +7,12 @@
       "doi": "10.1109/ACCESS.2026.3726145",
       "url": "https://doi.org/10.1109/ACCESS.2026.3726145",
       "published": "2026-08-24",
-      "supports": ["AM winding opportunity", "integrated cooling", "system-level net-benefit boundary", "technology maturity caveats"],
+      "supports": [
+        "AM winding opportunity",
+        "integrated cooling",
+        "system-level net-benefit boundary",
+        "technology maturity caveats"
+      ],
       "claim_ceiling": "review synthesis; not a matched performance experiment"
     },
     {
@@ -16,7 +21,14 @@
       "doi": "10.1002/adem.71259",
       "url": "https://doi.org/10.1002/adem.71259",
       "published": "2026-09-09",
-      "supports": ["conductor conductivity and AC loss", "dielectric reliability", "coolant pressure drop and pump power", "leak tightness", "thermal cycles", "M1-M5 evidence maturity"],
+      "supports": [
+        "conductor conductivity and AC loss",
+        "dielectric reliability",
+        "coolant pressure drop and pump power",
+        "leak tightness",
+        "thermal cycles",
+        "M1-M5 evidence maturity"
+      ],
       "claim_ceiling": "perspective / evidence review; not a product performance comparison"
     },
     {
@@ -39,6 +51,84 @@
       "url": "https://www.iso.org/standard/84919.html",
       "published": "2026-01",
       "scope_note": "PBF-LB/PBF-EB imperfection classification; does not include acceptance criteria or dimensional scale"
+    },
+    {
+      "id": "DREXLER-2025-EV-MOTOR-TEARDOWN-BENCHMARK",
+      "citation": "Advances in electric motors: a review and benchmarking of product design and manufacturing technologies",
+      "doi": "10.1007/s00502-025-01331-3",
+      "url": "https://doi.org/10.1007/s00502-025-01331-3",
+      "published": "2025-07-15",
+      "evidence_class": "commercial_teardown_review",
+      "source_claims": {
+        "traction_motors_analyzed": 48,
+        "evs_analyzed": 31,
+        "direct_end_winding_cooling_motors_in_sample": 9
+      },
+      "claim_ceiling": "review and product teardown dataset; not a matched controlled thermal performance experiment"
+    },
+    {
+      "id": "MADDUMAGE-2025-MULTINOZZLE-OIL-JETS",
+      "citation": "Experimental Evaluation of Axial Multinozzle Impinging Oil Jets for End-Winding Cooling in Electric Vehicle Hairpin Traction Motors",
+      "doi": "10.1109/TTE.2025.3600151",
+      "url": "https://doi.org/10.1109/TTE.2025.3600151",
+      "published": "2025-08-18",
+      "evidence_class": "experimental_component_study",
+      "source_claims": {
+        "tested_nozzle_count_range": [
+          12,
+          90
+        ],
+        "compared_with": [
+          "water_jacket",
+          "axial_spray"
+        ],
+        "reported_near_doubling_of_max_current_density_vs_study_water_jacket_reference": true,
+        "reported_thermal_performance_comparable_to_spray_at_lower_pump_power_and_pressure": true
+      },
+      "claim_ceiling": "study-specific rig/machine and baseline; no transfer of factor to different machines or AM candidate"
+    },
+    {
+      "id": "ZARGHANI-2026-HAIRPIN-COOLING-MULTIPHYSICS",
+      "citation": "Multi-Physics Study of Hairpin Winding Cooling Systems in Less-Rare-Earth Permanent Magnet Traction Motors",
+      "doi": "10.3390/machines14070776",
+      "url": "https://doi.org/10.3390/machines14070776",
+      "published": "2026-07-10",
+      "evidence_class": "coupled_multiphysics_model",
+      "source_claims": {
+        "cooling_topologies": [
+          "end_winding_oil",
+          "slot_bottom",
+          "slot_middle",
+          "slot_opening",
+          "hollow_conductor"
+        ],
+        "base_speed_hotspot_deg_c": {
+          "slot_opening": 166.4,
+          "end_winding_oil": 63.3,
+          "hollow_conductor": 54
+        },
+        "hollow_conductor_pressure_drop_kpa": 11.7,
+        "slot_channel_pressure_drop_kpa_approx": 0.5
+      },
+      "claim_ceiling": "model-specific results for one machine/duty and coolant choice; not experimental AM validation"
+    },
+    {
+      "id": "AXIAL-OIL-SPRAY-HAIRPIN-2026",
+      "citation": "Experimental study of axial oil spray cooling in hairpin motor for end windings",
+      "doi": "10.1016/j.rineng.2026.111097",
+      "url": "https://doi.org/10.1016/j.rineng.2026.111097",
+      "published": "2026-06",
+      "evidence_class": "experimental_component_study",
+      "source_claims": {
+        "higher_flow_improves_cooling_uniformity_and_capacity": true,
+        "pump_power_increases_with_flow": true,
+        "reported_max_temperature_stddev_reduction_with_speed_percent": 33.5,
+        "branch_flow_optimization_uniformity_improvement_percent_range": [
+          5.2,
+          18.8
+        ]
+      },
+      "claim_ceiling": "specific end-winding test rig; results are not universal and must be compared with equal flow/pump power"
     }
   ]
 }
