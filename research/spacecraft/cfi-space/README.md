@@ -142,3 +142,39 @@ CFI-Space owns cross-program benchmark orchestration, counterfactual pairing, ba
 ## Claim ceiling
 
 This document specifies a research benchmark. No estimator accuracy, fault rate, physical performance, SOTA superiority, deterministic safety outside the finite injected suite, flight readiness or certification is claimed. Synthetic known-answer fixtures validate scorer semantics only.
+
+## P1 executable contract slice (2026-11-27)
+
+The first machine-readable and executable contract increment is now present:
+
+- `schemas/cfi-space/candidate-manifest-v0.1.schema.json`: candidate-visible episode/frame identity, fixed horizon and modality metadata. It contains no injected fault labels or expected dispositions.
+- `schemas/cfi-space/evaluator-ledger-v0.1.schema.json`: evaluator-side fault identity, variant type, independent-unit group, split and expected disposition. This file must not be mounted in a candidate process.
+- `schemas/cfi-space/predictions-v0.1.schema.json`: candidate output disposition and detected fault-family labels.
+- `research/spacecraft/cfi-space/fixtures/`: ten public synthetic episodes across two independent units and two counterfactual groups, including clean, single-fault and interaction cases. The public evaluator ledger is a scorer fixture, not a blind secret.
+- `tools/cfi-space-bench/`: dependency-light Rust scorer that checks schema versions, strict frame sequence/time/horizon continuity, digest syntax and identity binding, independent-unit split isolation, counterfactual sibling integrity, exact prediction coverage, and disposition outcomes.
+
+Run locally:
+
+```sh
+cargo fmt --manifest-path tools/cfi-space-bench/Cargo.toml -- --check
+cargo test --manifest-path tools/cfi-space-bench/Cargo.toml
+cargo clippy --manifest-path tools/cfi-space-bench/Cargo.toml --all-targets -- -D warnings
+
+cargo run --quiet --manifest-path tools/cfi-space-bench/Cargo.toml -- \
+  --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
+  --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json \
+  --predictions research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json \
+  --expect-unsafe 0
+```
+
+The paired unsafe prediction fixture deliberately marks a common-cause-corrupted episode `qualified`; the scorer must report exactly one unsafe acceptance when run with `--expect-unsafe 1`. The focused workflow runs both controls.
+
+### P1 scorer limits
+
+The scorer validates the *contract and the supplied result joins*. It does not decode images, authenticate the producer of a source bundle, recompute the named source bundle hash from unavailable pixels, estimate pose, measure physical fault prevalence, prove real statistical independence, or establish blind custody. The fixture digests are schema/identity test values; they are not spacecraft data commitments.
+
+The scorecard reports raw counts and per-family detection counts. It intentionally does not claim a meaningful precision/recall confidence interval from this ten-episode synthetic fixture. Those statistics require independently sampled target/session/trajectory units and prospective holdout data.
+
+### Next P1 increment
+
+Add source-bundle byte verification, canonical manifest receipts and an independent scorer challenger, then test malformed/incomplete episode variants. After that, integrate the Symthaea observer witness as an additional candidate output without changing the pose/authority gates.
