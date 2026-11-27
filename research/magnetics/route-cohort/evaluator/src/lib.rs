@@ -437,7 +437,8 @@ fn validate_cohort_identity(cohort: &RouteCohort) -> Vec<Blocker> {
         if !valid_sha256(&cost.digest) {
             blockers.push(Blocker::InvalidDigest);
         }
-        if cost.currency.len() != 3 || !cost.currency.bytes().all(|byte| byte.is_ascii_uppercase()) {
+        if cost.currency.len() != 3 || !cost.currency.bytes().all(|byte| byte.is_ascii_uppercase())
+        {
             blockers.push(Blocker::InvalidCurrency);
         }
     }
@@ -461,7 +462,8 @@ fn validate_lot_record(
         blockers.push(Blocker::InvalidDigest);
         valid = false;
     }
-    if !lot.recycled_mass_fraction.is_finite() || !(0.0..=1.0).contains(&lot.recycled_mass_fraction) {
+    if !lot.recycled_mass_fraction.is_finite() || !(0.0..=1.0).contains(&lot.recycled_mass_fraction)
+    {
         blockers.push(Blocker::InvalidRecycledFraction);
         valid = false;
     }
