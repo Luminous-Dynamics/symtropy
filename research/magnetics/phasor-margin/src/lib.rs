@@ -123,9 +123,8 @@ fn normalized_phasor_margin<const N: usize>(
     let reference_norm_squared = components.reference_x.square() + components.reference_y.square();
     let magnitude_product = measured_norm_squared * reference_norm_squared;
     let magnitude = magnitude_product.sqrt()?;
-    let dot_product =
-        components.measured_x * components.reference_x
-            + components.measured_y * components.reference_y;
+    let dot_product = components.measured_x * components.reference_x
+        + components.measured_y * components.reference_y;
     let normalized_similarity = dot_product / magnitude;
     Ok(normalized_similarity - components.minimum_cosine)
 }
@@ -174,8 +173,8 @@ pub fn certify_phasor_phase_margin(
         measured_norm_squared_enclosure: measured_norm_squared,
         reference_norm_squared_enclosure: reference_norm_squared,
         metric_id: "normalized-phasor-dot-product".to_owned(),
-        shortest_arc_contract: "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi"
-            .to_owned(),
+        shortest_arc_contract:
+            "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi".to_owned(),
     })
 }
 
@@ -236,9 +235,7 @@ where
         let components = evaluate(variables)?;
         Ok(components.minimum_cosine)
     })?;
-    if threshold.value_enclosure.lower() <= -1.0
-        || threshold.value_enclosure.upper() > 1.0
-    {
+    if threshold.value_enclosure.lower() <= -1.0 || threshold.value_enclosure.upper() > 1.0 {
         return Err(PhaseMarginError::InvalidThresholdCosineDomain);
     }
 
@@ -330,11 +327,7 @@ mod tests {
             artifact_sha256: DIGEST_B.to_owned(),
             environment_sha256: DIGEST_C.to_owned(),
             parameter_ids: ["x".to_owned(), "y".to_owned(), "z".to_owned()],
-            parameter_units: [
-                "metre".to_owned(),
-                "metre".to_owned(),
-                "metre".to_owned(),
-            ],
+            parameter_units: ["metre".to_owned(), "metre".to_owned(), "metre".to_owned()],
             parameter_bounds: [
                 interval(-0.1, 0.1),
                 interval(-0.1, 0.1),
@@ -532,7 +525,12 @@ mod tests {
         assert_eq!(mapped.output_unit, "dimensionless");
         assert_eq!(mapped.derivative_unit, "dimensionless/metre");
         assert_eq!(mapped.requirement_id, scope.requirement_id);
-        assert!(mapped.derivative_abs_supremum_by_axis.iter().all(|value| value.is_finite()));
+        assert!(
+            mapped
+                .derivative_abs_supremum_by_axis
+                .iter()
+                .all(|value| value.is_finite())
+        );
         assert!(certificate.measured_norm_squared_enclosure.lower() > 0.0);
         assert!(certificate.reference_norm_squared_enclosure.lower() > 0.0);
         assert!(certificate.minimum_cosine_enclosure.lower() > -1.0);
@@ -547,8 +545,10 @@ mod tests {
         assert_eq!(certificate.derivative_enclosure.cell_id, scope.cell_id);
         // The spatial centre sample and uncertainty are still required by
         // CellMarginEvidence; only derivative evidence is provided here.
-        assert_eq!(certificate.spatial_derivative_evidence.source_record_id,
-            certificate.derivative_enclosure.record_id);
+        assert_eq!(
+            certificate.spatial_derivative_evidence.source_record_id,
+            certificate.derivative_enclosure.record_id
+        );
     }
 
     #[test]
@@ -581,7 +581,10 @@ mod tests {
         // adapter binds this record to the explicitly supplied requirement.
         let certificate = certify_spatial_phasor_phase_margin(&scope, spatial_phasors)
             .expect("valid alternative requirement identity");
-        assert_eq!(certificate.spatial_derivative_evidence.requirement_id, "other-phase-limit");
+        assert_eq!(
+            certificate.spatial_derivative_evidence.requirement_id,
+            "other-phase-limit"
+        );
     }
 
     #[test]
