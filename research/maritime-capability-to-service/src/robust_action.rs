@@ -79,6 +79,7 @@ pub struct RobustActionAssessment {
     pub reason: &'static str,
     pub allocated_joint_alpha_ppm: u32,
     pub target_joint_alpha_ppm: u32,
+    pub joint_coverage_lower_bound_ppm: Option<u32>,
     pub decision_cutoff: Option<u64>,
     pub worst_case_berth_start: Option<u64>,
     pub worst_case_finish: Option<u64>,
@@ -95,6 +96,7 @@ fn indeterminate(
         reason,
         allocated_joint_alpha_ppm: budget.allocations().iter().copied().sum(),
         target_joint_alpha_ppm: budget.target_joint_alpha_ppm,
+        joint_coverage_lower_bound_ppm: None,
         decision_cutoff,
         worst_case_berth_start: None,
         worst_case_finish: None,
@@ -107,6 +109,9 @@ fn interval_is_well_formed(interval: &ConformalInterval, expected_alpha_ppm: u32
         && interval.coverage_claim
             == CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
         && interval.nominal_coverage_claim_ppm == Some(1_000_000 - expected_alpha_ppm)
+        && interval.sample_count > 0
+        && interval.quantile_rank_1based > 0
+        && interval.quantile_rank_1based <= interval.sample_count
         && interval.lower <= interval.point_prediction
         && interval.point_prediction <= interval.upper
         && interval.point_prediction.saturating_sub(interval.radius) == interval.lower
@@ -132,6 +137,7 @@ pub fn assess_joint_robust_action(
             reason: "sum of marginal alpha allocations exceeds the joint risk budget",
             allocated_joint_alpha_ppm: allocated_alpha,
             target_joint_alpha_ppm: risk_budget.target_joint_alpha_ppm,
+            joint_coverage_lower_bound_ppm: None,
             decision_cutoff: None,
             worst_case_berth_start: None,
             worst_case_finish: None,
@@ -271,6 +277,7 @@ pub fn assess_joint_robust_action(
         },
         allocated_joint_alpha_ppm: allocated_alpha,
         target_joint_alpha_ppm: risk_budget.target_joint_alpha_ppm,
+        joint_coverage_lower_bound_ppm: Some(1_000_000 - allocated_alpha),
         decision_cutoff: Some(decision_cutoff),
         worst_case_berth_start: Some(worst_case_berth_start),
         worst_case_finish: Some(worst_case_finish),
@@ -343,6 +350,7 @@ mod tests {
         )
         .expect("robust action assessment");
         assert_eq!(result.allocated_joint_alpha_ppm, 100_000);
+        assert_eq!(result.joint_coverage_lower_bound_ppm, Some(900_000));
         assert_eq!(result.gate, DecisionGate::Feasible);
         assert_eq!(result.worst_case_berth_start, Some(105));
         assert_eq!(result.worst_case_finish, Some(117));
@@ -400,7 +408,7 @@ mod tests {
     #[test]
     fn mismatched_decision_cutoffs_are_rejected_as_indeterminate() {
         let mut values = intervals(20_000, 50);
-        values.power.as_mut().expect("power").decision_cutoff = 51;
+        values.shore_power_kw.as_mut().expect("shore power").decision_cutoff = 51;
         assert_eq!(
             assess_joint_robust_action(budget(20_000, 100_000), &values, capacities())
                 .expect("cutoff mismatch result")
