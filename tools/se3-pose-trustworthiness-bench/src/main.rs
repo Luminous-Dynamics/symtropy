@@ -49,9 +49,9 @@ fn parse_f64_array<const N: usize>(
 }
 
 fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn Error>> {
-    if fields.len() != 80 {
+    if fields.len() != 81 {
         return Err(format!(
-            "line {line_number}: expected 80 CSV fields, found {}",
+            "line {line_number}: expected 81 CSV fields, found {}",
             fields.len()
         )
         .into());
@@ -86,6 +86,7 @@ fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn 
             translation_unit: fields[16].to_owned(),
             rotation_unit: fields[17].to_owned(),
             decision,
+            support_mode: fields[80].to_owned(),
             abstain_reason: fields[19].to_owned(),
             admission_confidence_bps: parse_u16(fields[20], "admission_confidence_bps")?,
             confidence_score_ppm: parse_u32(fields[21], "confidence_score_ppm")?,
@@ -146,7 +147,7 @@ fn render_result(result: &PoseResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"sample_id\":\"{}\",\"target_id\":\"{}\",\"split\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"dataset_sha256\":\"{}\",\"model_revision\":\"{}\",\"model_sha256\":\"{}\",\"calibration_revision\":\"{}\",\"calibration_sha256\":\"{}\",\"sensor_mode\":\"{}\",\"frame_convention\":\"{}\",\"tangent_convention\":\"{}\",\"decision\":\"{}\",\"decision_reason\":\"{}\",\"disposition\":\"{}\",\"translation_error_m\":{},\"rotation_error_rad\":{},\"mahalanobis_squared\":{},\"covariance_log_determinant\":{},\"prediction_region_log_volume_95\":{},\"coverage_50\":{},\"coverage_80\":{},\"coverage_90\":{},\"coverage_95\":{},\"coverage_99\":{},\"confidence_score_ppm\":{},\"accepted_by_model\":{},\"observability_policy_violation\":{},\"false_confident_95\":{},\"benchmark_admissible\":{},\"visible_fraction\":\"{:.12}\",\"correspondence_count\":{},\"geometry_condition\":\"{:.12}\",\"ood_flag\":{},\"symmetry_ambiguous\":{},\"latency_us\":{},\"energy_uj\":{},\"reason_codes\":[{}],\"source_bytes_authenticated\":{},\"physical_calibration_validated\":{},\"maneuver_authority_granted\":{}}}",
+        "{{\"case_id\":\"{}\",\"sample_id\":\"{}\",\"target_id\":\"{}\",\"split\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"dataset_sha256\":\"{}\",\"model_revision\":\"{}\",\"model_sha256\":\"{}\",\"calibration_revision\":\"{}\",\"calibration_sha256\":\"{}\",\"sensor_mode\":\"{}\",\"support_mode\":\"{}\",\"frame_convention\":\"{}\",\"tangent_convention\":\"{}\",\"decision\":\"{}\",\"decision_reason\":\"{}\",\"disposition\":\"{}\",\"translation_error_m\":{},\"rotation_error_rad\":{},\"mahalanobis_squared\":{},\"covariance_log_determinant\":{},\"prediction_region_log_volume_95\":{},\"coverage_50\":{},\"coverage_80\":{},\"coverage_90\":{},\"coverage_95\":{},\"coverage_99\":{},\"confidence_score_ppm\":{},\"accepted_by_model\":{},\"observability_policy_violation\":{},\"false_confident_95\":{},\"benchmark_admissible\":{},\"visible_fraction\":\"{:.12}\",\"correspondence_count\":{},\"geometry_condition\":\"{:.12}\",\"ood_flag\":{},\"symmetry_ambiguous\":{},\"latency_us\":{},\"energy_uj\":{},\"reason_codes\":[{}],\"source_bytes_authenticated\":{},\"physical_calibration_validated\":{},\"maneuver_authority_granted\":{}}}",
         json_escape(&result.case_id),
         json_escape(&result.sample_id),
         json_escape(&result.target_id),
@@ -159,6 +160,7 @@ fn render_result(result: &PoseResult) -> String {
         json_escape(&result.calibration_revision),
         json_escape(&result.calibration_sha256),
         json_escape(&result.sensor_mode),
+        json_escape(&result.support_mode),
         json_escape(&result.frame_convention),
         json_escape(&result.tangent_convention),
         result.decision.as_str(),
