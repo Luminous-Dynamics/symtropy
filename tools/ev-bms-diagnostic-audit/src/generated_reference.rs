@@ -185,11 +185,13 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         || manifest.redistribution_allowed
     {
         return Err(
-            "CH-BatteryGen v1.0.0 terms must remain CC-BY-NC-SA-4.0, academic/non-commercial and non-redistributable".to_owned(),
+            "CH-BatteryGen v1.0.0 terms must remain CC-BY-NC-SA-4.0, academic/non-commercial and non-redistributable"
+                .to_owned(),
         );
     }
     if manifest.evidence_class != "mechanism_constrained_generated"
-        || manifest.generation_method != "mechanism_constrained_generated_from_real_fleet_distribution"
+        || manifest.generation_method
+            != "mechanism_constrained_generated_from_real_fleet_distribution"
         || manifest.raw_fault_labelled_field_telemetry_released
     {
         return Err(
