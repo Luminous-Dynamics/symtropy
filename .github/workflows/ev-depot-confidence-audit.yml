@@ -1,0 +1,53 @@
+name: EV Depot Confidence Audit
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-depot-confidence-audit/**"
+      - ".github/workflows/ev-depot-confidence-audit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/ev-depot-confidence-audit/**"
+      - ".github/workflows/ev-depot-confidence-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  confidence-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@v4
+      - name: Install stable Rust and rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-depot-confidence-audit/Cargo.toml --all -- --check
+      - name: Run exact-statistics and negative-control tests
+        run: cargo test --manifest-path tools/ev-depot-confidence-audit/Cargo.toml --all-targets
+      - name: Analyze synthetic empirical versus confidence frontier
+        run: |
+          cargo run --quiet --manifest-path tools/ev-depot-confidence-audit/Cargo.toml -- \
+            tools/ev-depot-confidence-audit/fixtures/robust-cases-synthetic-v0_1.json \
+            --confidence 0.95 --target 0.95 synthetic-confidence-report.json
+          jq -e '.benchmark_id == "EV-DEPOT-CONFIDENCE-001" and .input_case_count == 2 and .observation_count == 4 and (.conditions | length == 2) and (.frontiers | length == 1) and (.conditions[0].confidence_level == 0.95) and (.conditions[0].target_pass_probability == 0.95) and all(.conditions[]; .exact_one_sided_lower_confidence_bound <= .empirical_pass_rate + 0.000000001) and .frontiers[0].minimum_sampled_capacity_meeting_empirical_target_kw == 100 and .frontiers[0].minimum_sampled_capacity_statistically_demonstrating_target_kw == null' synthetic-confidence-report.json
+      - name: Hash code, fixture and confidence report
+        run: |
+          sha256sum tools/ev-depot-confidence-audit/Cargo.toml tools/ev-depot-confidence-audit/src/main.rs tools/ev-depot-confidence-audit/fixtures/robust-cases-synthetic-v0_1.json tools/ev-depot-confidence-audit/README.md synthetic-confidence-report.json > ev-depot-confidence.sha256
+      - name: Upload reproducible confidence evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-depot-confidence-${{ github.sha }}
+          path: |
+            synthetic-confidence-report.json
+            ev-depot-confidence.sha256
+            tools/ev-depot-confidence-audit/Cargo.toml
+            tools/ev-depot-confidence-audit/src/main.rs
+            tools/ev-depot-confidence-audit/fixtures/robust-cases-synthetic-v0_1.json
+            tools/ev-depot-confidence-audit/README.md
+          if-no-files-found: error
+          retention-days: 14
