@@ -20,8 +20,8 @@ be translated into ordinary fixed-supply minimum-cost-flow passes without using 
 1. Compute maximum total service (F^*) on the original network.
 2. Fix source supply to (-F^*) and sink demand to (+F^*), using NetworkX's demand convention (negative = supply, positive = demand).
 3. For each priority tier in order, solve a min-cost-flow pass with unit cost (-1) on that tier's service gate and zero incremental costs elsewhere. This maximizes that tier's flow while total flow and previously frozen tier totals remain fixed.
-4. Convert each frozen service-gate flow into an exact lower/upper bound. For the reference solvers that expose only capacities, the script applies the standard lower-bound-to-node-balance transformation:
-   - residual capacity = upper - lower;
+4. Freeze each completed service-gate flow at exactly x by setting its lower and upper bounds both to x. For reference solvers that expose only capacities, the script applies the standard lower-bound-to-node-balance transformation:
+   - residual capacity = upper - lower (zero for a frozen gate);
    - demand at the arc tail increases by lower;
    - demand at the arc head decreases by lower.
 5. With all service-tier totals fixed, solve a final min-cost-flow pass using the original route costs.
