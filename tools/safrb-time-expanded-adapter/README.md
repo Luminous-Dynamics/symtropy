@@ -97,6 +97,30 @@ The verifier reconstructs the auxiliary graph from the original temporal graph a
 
 This is a synthetic joint-feasibility proof for the declared graph only. It does not prove that the beneficiary identity is authenticated, that the physical capacity evidence is true or current, that legal authority exists, that a dispatch is authorized, or that service was actually delivered. Priority allocation and cost optimization are separate stages and must preserve all mandatory floors; no arbitrary Big-M scalarization is admitted.
 
+## Robust beneficiary-floor scenarios v0.1
+
+The separate `robust_floor_scenarios` module evaluates one common set of mandatory beneficiary floors in every supplied coherent scenario. It composes with `beneficiary_floors`: each scenario gets its own exact lower-bound circulation certificate and independently verified original allocation or infeasibility result.
+
+### Disposition semantics
+
+- `GuaranteedAcrossSuppliedScenarios`: every supplied scenario jointly satisfies every declared floor.
+- `PossibleInAtLeastOneSuppliedScenario`: at least one supplied scenario satisfies all floors, but at least one does not; this is not a robust guarantee.
+- `NotFeasibleInAnySuppliedScenario`: no supplied scenario satisfies all floors.
+
+All scenarios must share the same commodity, unit, beneficiary quantity boundary, timebase, temporal schema and horizon. Every scenario must declare every floor service with a request ceiling at least as high as the floor. Incomparable inputs are rejected rather than reported as a range.
+
+### Independent verification and portable identity
+
+The report retains each per-scenario floor report and certificate. Its independent verifier recomputes the scenario-set digest, floor-set digest and combined assurance-input digest; verifies every scenario-specific lower-bound certificate; and recomputes the aggregate disposition and counts. Scenario and profile-array ordering does not change canonical identity, while changing a scenario profile, floor or scenario-set ID invalidates the old report.
+
+Portable schemas:
+- `schemas/robust-beneficiary-floors-input-v0.1.schema.json`
+- `schemas/robust-beneficiary-floors-report-v0.1.schema.json`
+
+### Claim boundary
+
+Guaranteed means guaranteed across the *supplied finite synthetic scenario set only*. It does not establish that the set is complete, that scenarios are authenticated or mutually exclusive in the physical world, that probabilities are known, or that source authority, legal rights, physical qualification, dispatch authorization or actual service exists. It never splices capacity maxima from different scenarios.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
