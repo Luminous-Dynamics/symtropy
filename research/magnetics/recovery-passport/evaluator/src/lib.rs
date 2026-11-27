@@ -129,6 +129,8 @@ pub struct RecoveryStage {
 pub struct DownstreamUseReceipt {
     pub recovered_output_id: String,
     pub new_material_lot_id: String,
+    pub material_consumption_record: DigestRecord,
+    pub consumed_mass_mg: u64,
     pub manufacturing_genealogy: DigestRecord,
     pub as_built_acceptance_receipt: DigestRecord,
     pub downstream_disposition: Disposition,
@@ -169,6 +171,7 @@ pub enum Blocker {
     DownstreamOutputMismatch,
     DownstreamOutputNotReusableForm,
     MissingDownstreamEvidence,
+    InvalidDownstreamConsumption,
     DownstreamAcceptanceNotQualified,
 }
 
@@ -253,21 +256,30 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
             blockers.push(Blocker::DownstreamOutputNotReusableForm);
         }
         if use_receipt.new_material_lot_id.trim().is_empty()
+            || !valid_record(&use_receipt.material_consumption_record)
+            || use_receipt.consumed_mass_mg == 0
             || !valid_record(&use_receipt.manufacturing_genealogy)
             || !valid_record(&use_receipt.as_built_acceptance_receipt)
         {
             blockers.push(Blocker::MissingDownstreamEvidence);
         }
+        if recovered_output.is_some_and(|output| use_receipt.consumed_mass_mg > output.mass.value_mg) {
+            blockers.push(Blocker::InvalidDownstreamConsumption);
+        }
         if use_receipt.downstream_disposition != Disposition::Qualified {
             blockers.push(Blocker::DownstreamAcceptanceNotQualified);
         }
-        if recovered_output.is_some_and(|output| matches!(
-            output.form,
-            ProductForm::MagnetFeedstock | ProductForm::RemanufacturableAlloy
-        ))
+        if recovered_output.is_some_and(|output| {
+            matches!(
+                output.form,
+                ProductForm::MagnetFeedstock | ProductForm::RemanufacturableAlloy
+            ) && use_receipt.consumed_mass_mg <= output.mass.value_mg
+        })
             && !blockers.contains(&Blocker::DownstreamOutputMismatch)
             && !blockers.contains(&Blocker::DownstreamOutputNotReusableForm)
             && use_receipt.downstream_disposition == Disposition::Qualified
+            && valid_record(&use_receipt.material_consumption_record)
+            && use_receipt.consumed_mass_mg > 0
             && valid_record(&use_receipt.manufacturing_genealogy)
             && valid_record(&use_receipt.as_built_acceptance_receipt)
             && !use_receipt.new_material_lot_id.trim().is_empty()
@@ -649,6 +661,8 @@ mod tests {
             downstream_use: Some(DownstreamUseReceipt {
                 recovered_output_id: "MAGNET-FEED".to_string(),
                 new_material_lot_id: "RECYCLED-LOT-001".to_string(),
+                material_consumption_record: record("CONSUMPTION-001", 'a'),
+                consumed_mass_mg: 500,
                 manufacturing_genealogy: record("NEW-GENEALOGY-001", 'b'),
                 as_built_acceptance_receipt: record("NEW-ACCEPTANCE-001", 'c'),
                 downstream_disposition: Disposition::Qualified,
@@ -773,6 +787,28 @@ mod tests {
             passport.stage.outputs[0].record.record_id.clone();
         let result = evaluate(&passport);
         assert!(result.blockers.contains(&Blocker::DuplicateEvidenceRecordId));
+    }
+
+    #[test]
+    fn downstream_consumed_mass_must_not_exceed_recovered_output() {
+        let mut passport = valid_passport();
+        passport.downstream_use.as_mut().unwrap().consumed_mass_mg = 701;
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::InvalidDownstreamConsumption));
+        assert!(result.qualified_closed_loop_product_ids.is_empty());
+    }
+
+    #[test]
+    fn downstream_reuse_requires_a_nonzero_consumption_record() {
+        let mut passport = valid_passport();
+        passport.downstream_use.as_mut().unwrap().consumed_mass_mg = 0;
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingDownstreamEvidence));
+        assert!(result.qualified_closed_loop_product_ids.is_empty());
     }
 
     #[test]
