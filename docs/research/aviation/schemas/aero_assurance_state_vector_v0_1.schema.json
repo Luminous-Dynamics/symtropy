@@ -9,7 +9,8 @@
     "semantics_version",
     "status",
     "authority_ceiling",
-    "cases"
+    "cases",
+    "subject_time_effectivity"
   ],
   "properties": {
     "schema": {
@@ -26,7 +27,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 8,
+      "minItems": 13,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -274,6 +275,14 @@
           }
         }
       }
+    },
+    "subject_time_effectivity": {
+      "enum": [
+        "DEFINITELY_EFFECTIVE",
+        "DEFINITELY_NOT_YET_EFFECTIVE",
+        "BOUNDARY_AMBIGUOUS",
+        "INVALID_INTERVAL"
+      ]
     }
   }
 }
