@@ -105,7 +105,7 @@ For 26 October–1 November 2026, the report attributes weekly terminal flow to 
 
 ### Frozen source projection
 
-The values above are frozen in [busa-cargo-movement-update-306-vessel-dwell-v0.tsv](fixtures/busa-cargo-movement-update-306-vessel-dwell-v0.tsv). The file retains the separate report date and source-update date, uses empty period boundaries where the PDF does not state a precise dwell observation window, and stores the two source families under different record_type and source_basis values.
+The values above are frozen in [busa-cargo-movement-update-306-snapshot-v0.tsv](fixtures/busa-cargo-movement-update-306-vessel-dwell-v0.tsv). The file retains the separate report date and source-update date, uses empty period boundaries where the PDF does not state a precise dwell observation window, and stores the two source families under different record_type and source_basis values.
 
 This is a useful first local benchmark baseline for terminal-level congestion and throughput comparisons. It still does not provide source event timestamps, first-availability timestamps, per-vessel traces or a historical decision-time corpus for KITE.
 
