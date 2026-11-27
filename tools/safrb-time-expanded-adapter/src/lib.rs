@@ -215,7 +215,10 @@ fn half_open(value: &str, path: &str, index: u64) -> Result<(), String> {
     let (start, end) = body.split_once(',').ok_or_else(|| err(path, "missing interval comma"))?;
     let start = start.parse::<u64>().map_err(|_| err(path, "invalid interval start"))?;
     let end = end.parse::<u64>().map_err(|_| err(path, "invalid interval end"))?;
-    if start != index || end != index.saturating_add(1) {
+    let expected_end = index
+        .checked_add(1)
+        .ok_or_else(|| err(path, "one-step interval end overflows u64"))?;
+    if start != index || end != expected_end {
         return Err(err(path, "interval must match the declared one-step time index"));
     }
     Ok(())
@@ -372,11 +375,19 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         let edge_unit = sfield(row, "unit", &path)?;
         if edge_unit != unit { return Err(err(&path, "unit differs from scenario commodity unit")); }
         let time = nfield(row, "time_index", &path)?;
-        if time != from_node.time || to_node.time < time || to_node.time > time.saturating_add(1) {
+        if time != from_node.time
+            || to_node.time < time
+            || (to_node.time > time && time.checked_add(1) != Some(to_node.time))
+        {
             return Err(err(&path, "time-expanded edge chronology is invalid"));
         }
-        if from_node.kind == "resource_output" && to_node.kind == "route_arrival" && to_node.time != time.saturating_add(1) {
-            return Err(err(&path, "route transit must advance one interval"));
+        if from_node.kind == "resource_output" && to_node.kind == "route_arrival" {
+            let expected_arrival = time
+                .checked_add(1)
+                .ok_or_else(|| err(&path, "route arrival time overflows u64"))?;
+            if to_node.time != expected_arrival {
+                return Err(err(&path, "route transit must advance one interval"));
+            }
         }
         edges.push(Edge { id, from, to, lower, upper, resource: sfield(row, "resource_id", &path)?, time });
     }
@@ -1175,6 +1186,13 @@ mod tests {
         input["edges"].as_array_mut().unwrap().iter_mut()
             .find(|e| e["id"] == "pump-physical-t1").unwrap()["capacity_lower"] = Value::from(9);
         assert!(evaluate_scenario(&input).is_err());
+    }
+
+    #[test]
+    fn half_open_interval_rejects_u64_max_time_index() {
+        let maximum = u64::MAX.to_string();
+        let interval = format!("[{maximum},{maximum})");
+        assert!(half_open(&interval, "$.interval", u64::MAX).is_err());
     }
 
     #[test]
