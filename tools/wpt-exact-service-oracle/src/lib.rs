@@ -8,10 +8,10 @@
 //! those envelopes, optimize fairness, or authorize physical operation.
 
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
 use single_commodity_flow_kernel::{
     FlowCertificateBundle, FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES,
 };
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_INTERVALS: u64 = 256;
 const MAX_SEGMENT_SLOTS: usize = 4096;
@@ -687,9 +687,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         } else {
             None
         };
-    let obligation_edge_ids = demand_edge_ids
-        .values()
-        .collect::<BTreeSet<_>>();
+    let obligation_edge_ids = demand_edge_ids.values().collect::<BTreeSet<_>>();
     let mut receiver_allocations = Vec::with_capacity(scenario.receivers.len());
     for (receiver_id, receiver) in &scenario.receivers {
         let edge_id = demand_edge_ids
@@ -722,10 +720,9 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
                 .solve()
                 .map_err(|error| format!("individual maximum for {receiver_id}: {error}"))?;
             Some(
-                FlowCertificateBundle::new(individual_graph, individual_result)
-                    .map_err(|error| {
-                        format!("individual WPT certificate for {receiver_id}: {error}")
-                    })?,
+                FlowCertificateBundle::new(individual_graph, individual_result).map_err(
+                    |error| format!("individual WPT certificate for {receiver_id}: {error}"),
+                )?,
             )
         } else {
             None
@@ -874,8 +871,7 @@ mod tests {
         report.joint_certificate.verify().unwrap();
         assert_eq!(report.joint_certificate.result.max_flow, 16);
         let encoded_joint = serde_json::to_vec(&report.joint_certificate).unwrap();
-        let decoded_joint: FlowCertificateBundle =
-            serde_json::from_slice(&encoded_joint).unwrap();
+        let decoded_joint: FlowCertificateBundle = serde_json::from_slice(&encoded_joint).unwrap();
         decoded_joint.verify().unwrap();
         assert!(
             report
@@ -995,8 +991,7 @@ mod tests {
                         bundle.verify().is_ok()
                             && Some(bundle.result.graph_sha256.as_str())
                                 == row.individual_max_graph_sha256.as_deref()
-                            && Some(bundle.result.max_flow)
-                                == row.individual_max_deliverable_mwh
+                            && Some(bundle.result.max_flow) == row.individual_max_deliverable_mwh
                             && bundle.result.max_flow == bundle.result.min_cut.capacity
                     })
         }));
@@ -1018,8 +1013,7 @@ mod tests {
             let decoded: FlowCertificateBundle = serde_json::from_slice(&encoded).unwrap();
             decoded.verify().unwrap();
             assert_ne!(
-                decoded.graph,
-                report.joint_certificate.graph,
+                decoded.graph, report.joint_certificate.graph,
                 "isolated receiver graph must exclude other receiver sink obligations"
             );
         }
