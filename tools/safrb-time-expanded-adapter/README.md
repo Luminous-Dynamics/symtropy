@@ -115,6 +115,8 @@ Every floor service ID must map to the same beneficiary node and exact service p
 
 The report retains per-scenario lower-bound reports. Its verifier recomputes the scenario-set digest, floor-set digest and combined assurance-input digest; verifies every scenario certificate; and recomputes the aggregate disposition and counts. Scenario and profile-array ordering does not change canonical identity, while changing a scenario profile, floor, service-node mapping, service period, recourse assumption or scenario-set ID invalidates the report.
 
+The robust scenario suite also includes a 250-seed physical-oracle corpus. Each set contains two to four complete scenarios; the independent oracle classifies each using the declared common handling ceiling and the sum of mandatory floors, then checks the aggregate `Guaranteed` / `Possible` / `NotFeasible` disposition and every scenario-specific lower-bound receipt. It does not rely on the temporal graph compiler or circulation reduction to determine the expected scenario-set disposition.
+
 Portable schemas:
 - `schemas/robust-beneficiary-floors-input-v0.1.schema.json`
 - `schemas/robust-beneficiary-floors-report-v0.1.schema.json`
