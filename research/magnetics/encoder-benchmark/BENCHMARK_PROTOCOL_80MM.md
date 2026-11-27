@@ -53,7 +53,7 @@ Before collecting comparison data, freeze:
 - test order/randomisation seed, measurement grid, repetitions, outlier/rejection rules, filters, interpolation and reduction-code digest;
 - blind-holdout angular sectors, environment/speed cases and access controls.
 
-For AksIM-4 MC080/MCD06, the protocol remains **not ready for a matched comparison** until the current supplier document and ordering code are frozen. Keep all unknowns as unknowns.
+For AksIM-4 MC080/MCD06, the protocol remains **not ready for a matched comparison** until the current supplier document and ordering code are frozen. The present public source inconsistency must be resolved against the exact ordered HDSL configuration. Do not borrow 22-bit resolution information from the separate AksIM-4 BiSS product family. Keep all unknowns as unknowns.
 
 ## 5. Common mechanical and environment envelope
 
@@ -219,7 +219,7 @@ Do not create one misleading leaderboard from products that solve different meas
 
 **RLS AksIM-2 MRA080 / MB080** is the frozen baseline. MBD01 Issue 15 (13 May 2026) reports ±0.004° system accuracy, typical ±0.009° installed accuracy after calibration and ±0.029° uncalibrated. Keep the three definitions separate and use the exact product/install/calibration configuration in the result.
 
-**RLS AksIM-4 HIPERFACE DSL MC080 / MCD06** remains a provisional, potentially stronger magnetic comparator. Current catalogue/product snippets list an MC080 ±0.004° system-accuracy variant, but the accessible product page has also served legacy MCD05 documentation. RLS's MCD05 document says that revision is not recommended for new designs and points new applications to MCD06. Until the supplier provides the exact MCD06 PDF revision and order code, record the public ±0.004° figure as a provisional catalogue claim only; do not assert datasheet-verified parity or substitute MCD05 limits for MCD06.
+**RLS AksIM-4 HIPERFACE DSL MC080 / MCD06** remains a provisional magnetic comparator. The current indexed RLS HDSL product listing reports system accuracy of ±0.006° for MC053 and ±0.004° for MC080 and identifies an MCD06 data sheet. However, the opened HDSL product-page body still reports a different ±0.005° headline and links an MCD05 PDF. This is a real source/version inconsistency, not evidence that either figure should be selected opportunistically. Record ±0.004° for MC080 only as a provisional catalogue-page claim; freeze the exact order code, supplier-provided MCD06 PDF revision and source digest before comparison. Never substitute MCD05 figures or transfer the separate AksIM-4 BiSS product family's 22-bit maximum-resolution claim to this HDSL configuration.
 
 ### B. Optical absolute encoders — metrology ceiling, not a like-for-like product claim
 
