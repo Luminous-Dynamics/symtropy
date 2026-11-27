@@ -83,3 +83,8 @@ The exported `contact_freshness` module separates three decisions that a single 
 The API and adversarial qualification plan are described in [CONTACT_FRESHNESS_PROTOCOL.md](CONTACT_FRESHNESS_PROTOCOL.md). This is a revision-decision prototype only: it is not wired to a live contact manager, authoritative world journal, receipt verifier, or solver. Its unit tests are authored but must still pass exact-head format/test/Clippy CI before any qualification claim. Do not interpret the wake-only optimization as a measured engine result.
 
 Industry comparison and prospective external benchmark tiers: [INDUSTRY_AND_RESEARCH_PLAN.md](INDUSTRY_AND_RESEARCH_PLAN.md).
+
+
+## Relative-motion contact geometry lease
+
+The research crate exports `contact_reuse_lease`, a conservative geometric admission predicate for #6865. It uses a canonical relative-transform displacement upper bound, feature-margin lower bound, normal-variation upper bound, and updated gap interval. It refreshes at uncertain or exact-threshold boundaries, ends a contact only when the interval proves separation, and rejects unsupported featureless geometry. See [CONTACT_FRESHNESS_PROTOCOL.md](CONTACT_FRESHNESS_PROTOCOL.md) for assumptions and limits. This is a research primitive over supplied witnesses—not production manifold recycling and not a measured speedup. Box2D 3.2 already ships relative-motion contact recycling, so Symtropy's differentiator must be revision-bound feature/normal evidence and independent replay, not the basic idea of reusing a manifold.
