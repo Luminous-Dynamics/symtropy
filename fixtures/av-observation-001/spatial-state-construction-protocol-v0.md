@@ -321,3 +321,30 @@ Benchmark datasets do not establish method comparability by themselves. Use dist
 Keep off-the-shelf and adapted/trained variants separate. Pin repository commit, weights digest, preprocessing, resolution, camera model, calibration, hardware, precision and runtime. Match causal prefix, frames, IMU access, inference budget and downstream evaluator. The 15 FPS reported for MASt3R-SLAM is a paper result, not a target until hardware/input parity is reproduced.
 
 The intended contribution is not to replace mature SLAM or a strong geometric VLM with HDC. It is to test whether explicit provenance, joint pose/map dependence, topological constraints, reopenable alternatives and task-aware sensing improve the end-to-end state/decision frontier when paired with the strongest appropriate perceptual/geometry specialists.
+
+
+## 19. Prospective target ladder and SOTA claim discipline
+
+All values below are prospective engineering gates, not Symthaea results. Each baseline must be reproduced under the same task definition, sensor modality, data split, calibration, frame/IMU access, alignment, hardware and compute budget.
+
+| Lane | Published/reference anchor | First target | Stretch / promotion gate |
+|---|---|---|---|
+| OVO-S native streaming QA | Gemini-3.1-Pro 59.2 overall / 54.9 L4; Qwen3-VL-235B-A22B 53.6 best listed open overall; Qwen3.5-27B 47.7 best listed open L4; streaming human 86.6 / 79.2 L4 | >=62 overall and >=58 L4 | >=65 overall / >=62 L4, no material L1/L2 regression; keep the human gap visible |
+| KITTI stereo odometry | SOFT2 0.53% translation / 0.0009 deg/m rotation | <0.50% / <0.00085 deg/m on official hidden-test protocol | further gain with same stereo inputs, fixed parameter set and official evaluator; no training-split score described as leaderboard result |
+| TUM RGB-D / EuRoC | ORB-SLAM3 + strongest reproduced compatible dense/visual-inertial baseline | >=10% paired ATE and RPE reduction at matched compute | preserve gain on held-out sequence families with calibrated uncertainty and no tracking-loss/failure regression |
+| OpenLORIS lifelong SLAM | ORB-SLAM3 + strongest compatible lifelong baseline; GT provenance stratified | >=10% lower long-term drift or false structural-map updates with non-inferior relocalization | hold across scene change, day/night and sessions; keep OptiTrack vs offline LiDAR-SLAM GT sources separate |
+| Long-horizon memory | 4DMemoryBench / EgoMemReason / LongSpace native protocols | >=5 absolute points above the strongest reproduced compatible baseline at matched observer/harness/input budget | sustain gain across horizon and multi-history strata; report memory and observer costs |
+| Decision/constraint correctness | Symtropy known-answer pairs + #7577 independent evaluator | zero false-sufficient claims, false-safe decisions, false adjacency and false loop closure on deterministic controls | positive paired regret reduction on held-out cases with non-inferior coverage/abstention and exact oracle agreement |
+| Efficiency | strongest matched-quality baseline | >=20% lower all-in measured cost at a preregistered non-inferiority margin | better quality–latency–memory–energy frontier with p50/p95/p99, hardware, model/tool calls and power reported |
+
+### Superiority claim protocol
+
+1. Reproduce the published anchor with pinned source/model/dataset revision and official evaluator.
+2. Match modality and all input/calibration/runtime conditions.
+3. Use recording/sequence/scene-clustered paired intervals; frames within one recording are not independent trials.
+4. Hold out scene generators, identities, recording sessions and environments.
+5. Publish all failures, tracking-loss, invalid geometry, unsupported claims, abstentions, timeouts and denominators.
+6. Compare end-task map/decision utility and lifecycle cost, not only representation/reconstruction probes.
+7. Keep L0 native streaming separate from L1 common evidence, L2 oracle evidence (diagnostic only) and L3 map-state evaluator. Never present L2 as a deployable streaming score.
+
+Beating one paper number under a different modality or protocol is not "better than SOTA". A defensible claim requires the strongest compatible reproduced baseline, exact-head evidence and held-out matched comparison.
