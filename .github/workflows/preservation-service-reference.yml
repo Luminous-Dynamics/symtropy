@@ -51,6 +51,37 @@ jobs:
           git push origin "HEAD:$PR_BRANCH"
       - name: Check formatting
         run: cargo fmt --manifest-path "$MANIFEST" -- --check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Draft 2020-12 schemas and frozen fixtures
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          pairs = [
+              ("research/physical-storage/preservation_service_workloads_v0_1.schema.json", "research/physical-storage/fixtures/preservation_service_workloads_v0_1.json"),
+    ("research/physical-storage/preservation_service_receipts_v0_1.schema.json", "research/physical-storage/fixtures/preservation_service_receipts_v0_1.json"),
+    ("research/physical-storage/preservation_migration_receipts_v0_1.schema.json", "research/physical-storage/fixtures/preservation_migration_receipts_v0_1.json"),
+          ]
+          for schema_path, fixture_path in pairs:
+              schema = json.loads(Path(schema_path).read_text())
+              fixture = json.loads(Path(fixture_path).read_text())
+              assert schema.get("$schema") == "https://json-schema.org/draft/2020-12/schema", schema_path
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(fixture),
+                  key=lambda error: list(map(str, error.absolute_path)),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{fixture_path}: {list(error.absolute_path)}: {error.message}")
+                  raise SystemExit(1)
+              print(f"VALID Draft 2020-12: {fixture_path}")
+          PY
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path "$MANIFEST" --all-targets -- -D warnings
       - name: Run unit tests
