@@ -517,6 +517,8 @@ fn solve_square_system(matrix: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
         for value in augmented[column].iter_mut().take(n + 1).skip(column) {
             *value /= divisor;
         }
+        // Snapshot the pivot row so target-row mutation never aliases it.
+        let pivot_row = augmented[column].clone();
         for row in 0..n {
             if row == column {
                 continue;
@@ -527,10 +529,10 @@ fn solve_square_system(matrix: &[Vec<f64>], rhs: &[f64]) -> Option<Vec<f64>> {
             }
             for (value, pivot_value) in augmented[row]
                 .iter_mut()
-                .zip(augmented[column].iter())
+                .zip(pivot_row.iter())
                 .skip(column)
             {
-                *value -= factor * pivot_value;
+                *value -= factor * *pivot_value;
             }
         }
     }
