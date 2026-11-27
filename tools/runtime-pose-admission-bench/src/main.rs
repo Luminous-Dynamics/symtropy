@@ -213,6 +213,8 @@ fn render_result(result: &runtime_pose_admission_bench::AdmissionResult) -> Stri
         json_escape(&result.profile_revision),
         json_escape(&result.profile_sha256),
         result.profile_source_bytes_authenticated,
+        result.upstream_source_bytes_authenticated,
+        result.source_authentication_verified_here,
         json_escape(&result.sensor_mode),
         json_escape(&result.frame_convention),
         json_escape(&result.tangent_convention),
