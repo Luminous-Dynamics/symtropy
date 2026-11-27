@@ -97,6 +97,32 @@ The verifier reconstructs the auxiliary graph from the original temporal graph a
 
 This is a synthetic joint-feasibility proof for the declared graph only. It does not prove that the beneficiary identity is authenticated, that the physical capacity evidence is true or current, that legal authority exists, that a dispatch is authorized, or that service was actually delivered. Priority allocation and cost optimization are separate stages and must preserve all mandatory floors; no arbitrary Big-M scalarization is admitted.
 
+## Robust beneficiary-floor scenarios v0.1
+
+The separate `robust_floor_scenarios` module evaluates one common set of mandatory beneficiary floors across each supplied complete scenario. Each scenario gets its own lower-bound circulation certificate and independently verified allocation or infeasibility result.
+
+### Disposition semantics
+
+- `GuaranteedAcrossSuppliedScenarios`: every supplied scenario jointly satisfies every declared floor.
+- `PossibleInAtLeastOneSuppliedScenario`: at least one supplied scenario satisfies all floors, but at least one does not.
+- `NotFeasibleInAnySuppliedScenario`: no supplied scenario satisfies all floors.
+
+**Recourse assumption:** v0.1 supports only `scenario_observed_before_allocation`. It assumes the operating scenario is identified before the scenario-specific beneficiary allocation is chosen. Therefore the guarantee is a full-recourse guarantee across the supplied set. It is not a here-and-now common allocation. A non-anticipative or staged-revelation policy requires explicit scenario-tree constraints and a separate model class; the API rejects any attempt to claim it through this v0.1 profile.
+
+Every floor service ID must map to the same beneficiary node and exact service period in every scenario. Scenario-dependent route, handling, storage, issue capacity and request ceilings may vary, but service identity/window may not drift. Incomparable quantity units, quantity boundaries, calendars, timebases, schemas or horizons are rejected.
+
+### Independent verification and portable identity
+
+The report retains per-scenario lower-bound reports. Its verifier recomputes the scenario-set digest, floor-set digest and combined assurance-input digest; verifies every scenario certificate; and recomputes the aggregate disposition and counts. Scenario and profile-array ordering does not change canonical identity, while changing a scenario profile, floor, service-node mapping, service period, recourse assumption or scenario-set ID invalidates the report.
+
+Portable schemas:
+- `schemas/robust-beneficiary-floors-input-v0.1.schema.json`
+- `schemas/robust-beneficiary-floors-report-v0.1.schema.json`
+
+### Claim boundary
+
+Guaranteed means guaranteed across the *supplied finite synthetic scenario set*, assuming scenario observation before allocation. It does not establish that the set is complete, that scenarios are authenticated or physically exhaustive, that probabilities are known, or that source authority, legal rights, physical qualification, dispatch authorization or actual service exists. It never splices capacity maxima from different scenarios.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
