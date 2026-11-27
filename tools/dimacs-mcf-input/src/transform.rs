@@ -622,14 +622,14 @@ mod tests {
                 chosen_flows.push(chosen);
             }
 
-            let mut text = "p min 3 5\\n".to_string();
+            let mut text = "p min 3 5\n".to_string();
             for (node, supply) in supplies.iter().enumerate().skip(1) {
                 if *supply != 0 {
-                    text.push_str(&format!("n {node} {supply}\\n"));
+                    text.push_str(&format!("n {node} {supply}\n"));
                 }
             }
             for (tail, head, lower, upper, cost) in &rows {
-                text.push_str(&format!("a {tail} {head} {lower} {upper} {cost}\\n"));
+                text.push_str(&format!("a {tail} {head} {lower} {upper} {cost}\n"));
             }
 
             let instance = parse_dimacs_mcf(&text).unwrap();
