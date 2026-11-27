@@ -6,7 +6,7 @@
 //! The evaluator expects a development-only A/B folder pair. Variant labels
 //! and source paths remain outside the candidate observation payload.
 
-use image::DynamicImage;
+use image::{DynamicImage, ImageFormat};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -18,10 +18,14 @@ use std::{
 
 const CAPTURE_TIMES: [f64; 3] = [1.5, 4.0, 7.0];
 const CAPTURE_STEM: &str = "room-twin";
+const MAX_PNG_BYTES: u64 = 256 * 1024 * 1024;
+const MAX_IMAGE_PIXELS: u64 = 20_000_000;
 
 struct DecodedCapture {
     width: u32,
     height: u32,
+    png_byte_len: u64,
+    png_sha256: String,
     rgba: Vec<u8>,
     rgba_sha256: String,
 }
@@ -31,13 +35,37 @@ fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 fn decode_capture(path: &Path) -> Result<DecodedCapture, Box<dyn Error>> {
-    let decoded: DynamicImage = image::open(path)?;
+    let metadata = fs::metadata(path)?;
+    if metadata.len() > MAX_PNG_BYTES {
+        return Err(format!("PNG exceeds {} byte limit", MAX_PNG_BYTES).into());
+    }
+
+    let png_bytes = fs::read(path)?;
+    let png_byte_len = u64::try_from(png_bytes.len())?;
+    if png_byte_len != metadata.len() {
+        return Err("PNG size changed while reading".into());
+    }
+    if png_byte_len > MAX_PNG_BYTES {
+        return Err(format!("PNG exceeds {} byte limit", MAX_PNG_BYTES).into());
+    }
+
+    let png_sha256 = sha256_hex(&png_bytes);
+    let decoded: DynamicImage = image::load_from_memory_with_format(&png_bytes, ImageFormat::Png)?;
     let rgba = decoded.to_rgba8();
     let (width, height) = rgba.dimensions();
+    let pixels = u64::from(width)
+        .checked_mul(u64::from(height))
+        .ok_or("decoded PNG pixel count overflow")?;
+    if width == 0 || height == 0 || pixels > MAX_IMAGE_PIXELS {
+        return Err(format!("decoded PNG exceeds {MAX_IMAGE_PIXELS} pixel limit").into());
+    }
     let bytes = rgba.into_raw();
+
     Ok(DecodedCapture {
         width,
         height,
+        png_byte_len,
+        png_sha256,
         rgba_sha256: sha256_hex(&bytes),
         rgba: bytes,
     })
@@ -53,7 +81,8 @@ fn validate_receipt(
     receipt: &Value,
     directory: &Path,
 ) -> Result<Vec<DecodedCapture>, Box<dyn Error>> {
-    if receipt["capture_status"] != "complete"
+    if receipt["schema_version"] != 1
+        || receipt["capture_status"] != "complete"
         || receipt["capture_complete"] != true
         || receipt["qualification_status"] != "qualified_metadata"
         || receipt["expected_image_count"].as_u64() != Some(CAPTURE_TIMES.len() as u64)
@@ -76,12 +105,16 @@ fn validate_receipt(
         .into());
     }
 
-    let width = receipt["metadata"]["width_px"]
-        .as_u64()
-        .ok_or("receipt lacks width_px")? as u32;
-    let height = receipt["metadata"]["height_px"]
-        .as_u64()
-        .ok_or("receipt lacks height_px")? as u32;
+    let width = u32::try_from(
+        receipt["metadata"]["width_px"]
+            .as_u64()
+            .ok_or("receipt lacks width_px")?,
+    )?;
+    let height = u32::try_from(
+        receipt["metadata"]["height_px"]
+            .as_u64()
+            .ok_or("receipt lacks height_px")?,
+    )?;
     let images = receipt["images"]
         .as_array()
         .ok_or("receipt images field is not an array")?;
@@ -105,8 +138,23 @@ fn validate_receipt(
         }
 
         let expected_name = format!("{CAPTURE_STEM}_t{expected_time:.1}.png");
-        let path = directory.join(expected_name);
+        let receipt_path = image["path"]
+            .as_str()
+            .ok_or("capture receipt lacks image path")?;
+        if Path::new(receipt_path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            != Some(expected_name.as_str())
+        {
+            return Err(format!("capture {index} receipt path does not match {expected_name}").into());
+        }
+        let path = directory.join(&expected_name);
         let frame = decode_capture(&path)?;
+        if image["byte_len"].as_u64() != Some(frame.png_byte_len)
+            || image["sha256"].as_str() != Some(frame.png_sha256.as_str())
+        {
+            return Err(format!("capture {index} PNG bytes do not match the receipt digest/length").into());
+        }
         if frame.width != width || frame.height != height {
             return Err(format!(
                 "capture {index} dimensions {}x{} differ from receipt {}x{}",

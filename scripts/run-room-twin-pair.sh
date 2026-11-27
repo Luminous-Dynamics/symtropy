@@ -37,7 +37,13 @@ width=1280
 height=720
 capture_times="1.5,4.0,7.0"
 output_root="${SYMTROPY_ROOM_TWIN_OUTPUT_DIR:-target/room-twin}"
-rm -rf "$output_root/world-a" "$output_root/world-b"
+for variant_dir in "$output_root/world-a" "$output_root/world-b"; do
+  if [[ -e "$variant_dir" ]]; then
+    echo "refusing to reuse existing output directory: $variant_dir" >&2
+    echo "move or remove stale artifacts explicitly before a new run" >&2
+    exit 2
+  fi
+done
 mkdir -p "$output_root/world-a" "$output_root/world-b"
 
 settings="$output_root/render-settings.json"

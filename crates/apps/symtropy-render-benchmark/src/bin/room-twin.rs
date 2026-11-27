@@ -339,7 +339,8 @@ fn setup_scene(
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.72, -0.62, 0.0)),
     ));
 
-    let first_pose = &camera_rail().waypoints[0].transform;
+    let initial_rail = camera_rail();
+    let first_pose = &initial_rail.waypoints[0].transform;
     let initial = Transform {
         translation: first_pose.translation,
         rotation: first_pose.rotation,
