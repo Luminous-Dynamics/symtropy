@@ -149,3 +149,23 @@ The projection is promoted from a JSON interchange draft only after:
 6. the candidate map output beats no-map and frozen-general-backbone baselines on held-out spatial cases at matched evidence/compute budgets.
 
 Until then it is a candidate assertion schema, not a verified world model, SLAM result, or action-authorizing map.
+
+
+## 7. Checked-in schema refinements and current local checks
+
+The v0 schema now additionally requires:
+- a typed sensor frame reference for video, audio, RGB-D, stereo, IMU and LiDAR observations;
+- typed projection creation time (ClockDomainId + tick), separate from each source capture support and known-at time;
+- parent projection digests and #621 clock-transform digests as lineage references;
+- both subject and object candidate hypotheses for pairwise relation claims;
+- a frame reference whenever an entity hypothesis emits metric position.
+
+The candidate projection example currently passes local structural checks for the schema keywords used. Seven adversarial mutations were rejected: injected evaluator truth, prefixed/malformed digest, missing candidate-only frame marker, source-free inferred entity, malformed quaternion arity, missing sensor frame, and metric position without a frame reference. This is a targeted structural check, **not full Draft 2020-12 conformance** and not the runtime validation described above.
+
+The checked-in [transform vector file](./spatial-state-projection-v0.transform-vectors.json) provides:
+- a 90° Z rotation with non-zero translation;
+- expected Symthaea WXYZ and Symtropy XYZW quaternion forms;
+- transformed point and inverse pose expectations;
+- six negative adapter/lineage cases.
+
+The vector file is a test fixture specification. No Rust adapter test has run yet. The validation work should implement an independent reference transform, not merely call the same conversion function for both expected and actual values.
