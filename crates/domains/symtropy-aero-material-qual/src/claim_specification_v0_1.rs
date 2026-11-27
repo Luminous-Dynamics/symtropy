@@ -717,9 +717,11 @@ mod tests {
             result.disposition,
             ClaimSpecificationDispositionV0_1::Incomplete
         );
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING".to_owned())
+        );
     }
 
     #[test]
@@ -732,9 +734,11 @@ mod tests {
             result.disposition,
             ClaimSpecificationDispositionV0_1::Incomplete
         );
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING".to_owned())
+        );
     }
 
     #[test]
