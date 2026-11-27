@@ -45,11 +45,18 @@ All values are integers:
 - transform operator norm: ceil(||L||_2 * 1,000,000 mm) (u64)
 - output M upper bound: ceil(||q''|| * 1,000,000 s^2), reported with m_scale=1,000,000 and m_unit=s^-2 (u128)
 
-With D = R_min^3, the exact scaled numerator is:
+With D = R_min^3, define:
 
-    N = L_norm_scaled * (2 * mu_upper * rho_rel_upper + A_diff_upper * D)
+    C = 2 * mu_upper * rho_rel_upper
+    T = L_norm_scaled
+    P = T * A_diff_upper
 
-The result is ceil(N/D). Every intermediate is checked u128. No floating-point conversion or downward rounding is used. Non-positive R_min, overflow, invalid inputs, missing/currentness/source-scope failures and unsupported time-varying transforms never produce BOUND_READY.
+Then use the exact identity for integer P:
+
+    ceil(T * (C / D + A_diff_upper)) = ceil(T * C / D) + P
+    M_upper_scaled = ceil((T * C) / D) + P
+
+The implementation separately checks T*C, T*A_diff_upper, and the final sum. This avoids materializing A_diff_upper*D and the combined numerator, which can overflow u128 even when the final outward bound is representable. The result remains exact and outward-rounded; no floating-point conversion or downward rounding is used. The receipt preserves C, D, T, both scaled terms and the final M witness. Non-positive R_min, genuine intermediate/final overflow, invalid inputs, missing/currentness/source-scope failures and unsupported time-varying transforms never produce BOUND_READY.
 
 ## Required evidence inputs
 
@@ -75,7 +82,7 @@ The CSV has 36 deterministic known-answer cases covering:
 - incomplete perturbation inventory;
 - time-varying transform;
 - each provider failure/currentness/scope/digest gate;
-- u128 overflow at the radial cube, central product, perturbation product, aggregate sum and transformed numerator.
+- u128 overflow at the radial cube, central product, scaled central term, scaled perturbation term and final outward sum; a high-magnitude positive control demonstrates that avoidable aggregate intermediates no longer cause false overflow.
 
 The Rust tests include monotonicity checks. The independent Python oracle uses arbitrary-precision integers and checked u128 emulation, and reproduces the full provenance-bearing receipt independently.
 
