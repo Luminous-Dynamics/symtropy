@@ -33,7 +33,7 @@ impl Default for McfParseLimits {
 }
 
 /// One DIMACS arc, with its original input-order identity preserved.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct McfArc {
     /// One-based ordinal among arc records; distinct parallel arcs stay distinct.
     pub ordinal: u32,
@@ -47,6 +47,19 @@ pub struct McfArc {
     /// One-based source line, diagnostic metadata and not serialized.
     pub source_line: usize,
 }
+
+impl PartialEq for McfArc {
+    fn eq(&self, other: &Self) -> bool {
+        self.ordinal == other.ordinal
+            && self.tail == other.tail
+            && self.head == other.head
+            && self.lower_bound == other.lower_bound
+            && self.upper_bound == other.upper_bound
+            && self.unit_cost == other.unit_cost
+    }
+}
+
+impl Eq for McfArc {}
 
 /// Parsed DIMACS minimum-cost-flow instance.
 ///
