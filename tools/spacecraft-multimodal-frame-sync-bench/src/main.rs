@@ -1,6 +1,6 @@
 use spacecraft_multimodal_frame_sync_bench::{
-    BundleDisposition, BundleInput, BundleResult, ModalityRecord, RECEIPT_SCHEMA, SPACESENSE_REVISION,
-    evaluate_manifest,
+    BundleDisposition, BundleInput, BundleResult, ModalityRecord, RECEIPT_SCHEMA,
+    SPACESENSE_REVISION, evaluate_manifest,
 };
 use std::collections::BTreeSet;
 use std::env;
@@ -102,13 +102,7 @@ fn json_escape(value: &str) -> String {
 
 fn render_map(map: &std::collections::BTreeMap<String, String>) -> String {
     map.iter()
-        .map(|(key, value)| {
-            format!(
-                "\"{}\":\"{}\"",
-                json_escape(key),
-                json_escape(value)
-            )
-        })
+        .map(|(key, value)| format!("\"{}\":\"{}\",", json_escape(key), json_escape(value)))
         .collect::<Vec<_>>()
         .join(",")
 }
@@ -203,7 +197,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     let synchronized_count = results
         .iter()
         .filter(|result| result.disposition == BundleDisposition::Synchronized)
