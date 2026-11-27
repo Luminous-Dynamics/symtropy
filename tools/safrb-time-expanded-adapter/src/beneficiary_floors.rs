@@ -1154,6 +1154,9 @@ mod tests {
 
     #[test]
     fn published_floor_schemas_are_valid_json_documents() {
+        let temporal_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/temporal-profile-v0.1.schema.json"))
+                .unwrap();
         let report_schema: serde_json::Value = serde_json::from_str(include_str!(
             "../schemas/beneficiary-floor-feasibility-v0.1.schema.json"
         ))
@@ -1162,6 +1165,10 @@ mod tests {
             "../schemas/beneficiary-floor-feasibility-input-v0.1.schema.json"
         ))
         .unwrap();
+        assert_eq!(
+            temporal_schema["properties"]["schema_version"]["const"],
+            TEMPORAL_PROFILE_SCHEMA
+        );
         assert_eq!(
             report_schema["properties"]["schema_version"]["const"],
             FLOOR_FEASIBILITY_SCHEMA
