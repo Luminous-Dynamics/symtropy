@@ -58,6 +58,7 @@ jobs:
               "scenario-matrix-geometric-validation-v0.tsv": (20, 10),
               "scenario-matrix-identifiability-v0.tsv": (18, 9),
               "scenario-matrix-active-exploration-v0.tsv": (8, 4),
+              "scenario-matrix-actspace-v0.tsv": (8, 4),
           }
 
           global_case_ids = set()
@@ -143,12 +144,12 @@ jobs:
                   f"{len(by_pair)} complete control/mutation pairs"
               )
 
-          if total_rows != 108 or len(global_case_ids) != 108:
-              raise SystemExit(f"expected 108 unique cases, got {total_rows}")
-          if total_pairs != 54 or len(global_pair_ids) != 54:
-              raise SystemExit(f"expected 54 unique pairs, got {total_pairs}")
+          if total_rows != 116 or len(global_case_ids) != 116:
+              raise SystemExit(f"expected 116 unique cases, got {total_rows}")
+          if total_pairs != 58 or len(global_pair_ids) != 58:
+              raise SystemExit(f"expected 58 unique pairs, got {total_pairs}")
 
-          print("PASS all five matrices: 108 unique cases / 54 paired controls and mutations")
+          print("PASS all six matrices: 116 unique cases / 58 paired controls and mutations")
           print("PASS every row has 10 fields and every pair has one control + one mutation")
           print("PASS no case ID or pair ID is reused across matrix files")
           print("CLAIM CEILING: metadata structure only; no world binding, rendering, replay, model or physical validation")
