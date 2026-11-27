@@ -330,7 +330,8 @@
         "full_trajectory_covered",
         "required_duration_ns",
         "safe_horizon_ns",
-        "qualification"
+        "qualification",
+        "required_by_safety_supervisor"
       ],
       "properties": {
         "path_kind": {
@@ -384,6 +385,9 @@
             "not_qualified",
             "unknown"
           ]
+        },
+        "required_by_safety_supervisor": {
+          "type": "boolean"
         }
       }
     }
