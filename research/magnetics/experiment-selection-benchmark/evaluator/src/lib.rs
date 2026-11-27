@@ -298,8 +298,16 @@ fn validate_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> Vec<Blocker> {
         blockers.push(Blocker::InvalidHoldoutSplit);
     }
 
-    let training_groups = trace.training_group_ids.iter().collect::<BTreeSet<_>>();
-    let holdout_groups = trace.holdout_group_ids.iter().collect::<BTreeSet<_>>();
+    let training_groups = trace
+        .training_group_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let holdout_groups = trace
+        .holdout_group_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
     if !training_groups.is_disjoint(&holdout_groups) {
         blockers.push(Blocker::TrainingHoldoutLeakage);
     }
@@ -482,14 +490,20 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
         .count() as u64;
 
     let simple_regret = task.oracle_best_objective_0.and_then(|oracle| {
-        qualified
-            .iter()
-            .map(|outcome| outcome.objective_values[0])
-            .reduce(f64::min)
-            .map(|observed| match task.objectives[0].direction {
-                ObjectiveDirection::Minimize => (observed - oracle).max(0.0),
-                ObjectiveDirection::Maximize => (oracle - observed).max(0.0),
-            })
+        let best_observed = match task.objectives[0].direction {
+            ObjectiveDirection::Minimize => qualified
+                .iter()
+                .map(|outcome| outcome.objective_values[0])
+                .reduce(f64::min),
+            ObjectiveDirection::Maximize => qualified
+                .iter()
+                .map(|outcome| outcome.objective_values[0])
+                .reduce(f64::max),
+        };
+        best_observed.map(|observed| match task.objectives[0].direction {
+            ObjectiveDirection::Minimize => (observed - oracle).max(0.0),
+            ObjectiveDirection::Maximize => (oracle - observed).max(0.0),
+        })
     });
 
     let hypervolume = if task.objectives.len() == 2 {
@@ -619,8 +633,7 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
         total_experiment_cost_minor: trace
             .outcomes
             .iter()
-            .map(|outcome| outcome.cost_minor)
-            .sum(),
+            .fold(0u64, |total, outcome| total.saturating_add(outcome.cost_minor)),
         cost_to_first_qualified_minor: cost_to_first,
         false_feasible_selections,
         unresolved_feasibility_selections,
@@ -968,6 +981,30 @@ mod tests {
         assert_eq!(metrics.cost_to_first_qualified_minor, None);
         assert_eq!(metrics.total_experiment_cost_minor, 11_500);
         assert_eq!(metrics.qualified_experiments, 1);
+    }
+
+    #[test]
+    fn maximize_objective_uses_the_best_maximum_for_simple_regret() {
+        let mut benchmark_task = task();
+        benchmark_task.objectives[0].direction = ObjectiveDirection::Maximize;
+        benchmark_task.oracle_best_objective_0 = Some(40.0);
+        let metrics = score_trace(&benchmark_task, &trace(PolicyFamily::ExpertPrior));
+        assert_eq!(metrics.simple_regret_objective_0, Some(30.0));
+    }
+
+    #[test]
+    fn holdout_groups_are_canonical_strings_not_reference_wrappers() {
+        let benchmark_run = run();
+        assert!(evaluate_run(&benchmark_run).valid);
+    }
+
+    #[test]
+    fn experiment_cost_aggregation_saturates_instead_of_overflowing() {
+        let mut policy_trace = trace(PolicyFamily::ExpertPrior);
+        policy_trace.outcomes[0].cost_minor = u64::MAX;
+        policy_trace.outcomes[1].cost_minor = u64::MAX;
+        let metrics = score_trace(&task(), &policy_trace);
+        assert_eq!(metrics.total_experiment_cost_minor, u64::MAX);
     }
 
     #[test]
