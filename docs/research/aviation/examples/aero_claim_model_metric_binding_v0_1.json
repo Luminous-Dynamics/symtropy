@@ -14,7 +14,8 @@
     "aeroweift:validation:wing-panel-001",
     "receipt:metric-owner-attestation",
     "receipt:metric-authority-verification",
-    "receipt:metric-semantic-validation"
+    "receipt:metric-semantic-validation",
+    "receipt:receiver-first-seen-binding"
   ],
   "model_metric_id": "maximum_principal_stress",
   "measurand_id": "measurand:maximum-principal-stress",
@@ -61,5 +62,7 @@
   "semantic_validation_receipt_ref": "receipt:metric-semantic-validation",
   "semantic_validation_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
   "receiver_first_seen_earliest_unix_ms": 1795516500000,
-  "receiver_first_seen_latest_unix_ms": 1795516600000
+  "receiver_first_seen_latest_unix_ms": 1795516600000,
+  "receiver_first_seen_receipt_ref": "receipt:receiver-first-seen-binding",
+  "receiver_first_seen_record_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
 }
