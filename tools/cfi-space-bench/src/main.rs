@@ -445,6 +445,7 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
 
     let mut episode_ids = BTreeSet::new();
     let mut groups: BTreeMap<String, (String, Split, IndependentUnit)> = BTreeMap::new();
+    let mut group_variants: BTreeMap<String, (usize, usize)> = BTreeMap::new();
     let mut target_splits = BTreeMap::new();
     let mut session_splits = BTreeMap::new();
     let mut trajectory_splits = BTreeMap::new();
@@ -517,6 +518,14 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
             }
         }
 
+        let counts = group_variants
+            .entry(row.counterfactual_group_id.clone())
+            .or_insert((0, 0));
+        match row.variant_kind {
+            VariantKind::Clean => counts.0 += 1,
+            VariantKind::SingleFault | VariantKind::Interaction => counts.1 += 1,
+        }
+
         if let Some((parent, split, unit)) = groups.get(&row.counterfactual_group_id) {
             if parent != &row.parent_episode_id
                 || split != &row.split
@@ -565,6 +574,14 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
                     return Err(format!("{name} {value} leaks across dataset splits"));
                 }
             }
+        }
+    }
+
+    for (group, (clean_count, variant_count)) in group_variants {
+        if clean_count != 1 || variant_count == 0 {
+            return Err(format!(
+                "counterfactual group {group} must contain exactly one clean episode and at least one fault variant"
+            ));
         }
     }
     Ok(())
@@ -964,6 +981,16 @@ mod tests {
         let manifest: CandidateManifest = parse(MANIFEST);
         let mut ledger: EvaluatorLedger = parse(LEDGER);
         ledger.episodes[1].split = Split::Calibration;
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
+    }
+
+    #[test]
+    fn counterfactual_group_requires_exactly_one_clean_reference() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let mut ledger: EvaluatorLedger = parse(LEDGER);
+        ledger.episodes.retain(|episode| episode.episode_id != "episode-a-clean");
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
         assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
