@@ -80,6 +80,9 @@ fn make_records(
 #[test]
 fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
     let plans = owner_plans(OWNER_RECEIPT);
+    assert!(OWNER_RECEIPT.lines().any(|line| line == "RESOURCE\\tREGIONAL-PLATE\\tYARD-A\\tP1\\t3.000\\tt"));
+    assert!(OWNER_RECEIPT.lines().any(|line| line == "RESOURCE\\tREGIONAL-WELD\\tYARD-A\\tP1\\t12.000\\th"));
+    assert!(OWNER_RECEIPT.lines().any(|line| line == "RESOURCE\\tREGIONAL-NDT\\tYARD-A\\tP1\\t2.000\\tjob"));
     assert_eq!(plans.len(), 4);
     assert_eq!(plans.values().filter(|plan| plan.feasible).count(), 3);
     assert_eq!(plans.values().filter(|plan| plan.pareto).count(), 3);
@@ -96,8 +99,18 @@ fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
         .find(|(id, _)| id.contains("A-LOCAL@REGIONAL+WP-B=B-LOCAL@REGIONAL"))
         .expect("all-local alternative exists in owner receipt");
     assert!(!all_local.1.feasible);
-    assert!(all_local.1.blockers.iter().any(|reason| reason.contains("REGIONAL-PLATE")));
-    assert!(all_local.1.blockers.iter().any(|reason| reason.contains("REGIONAL-WELD")));
+    assert!(all_local.1.blockers.iter().any(|reason| {
+        reason.contains("REGIONAL-PLATE")
+            && reason.contains("used=4.000")
+            && reason.contains("capacity=3.000")
+            && reason.contains("unit=t")
+    }));
+    assert!(all_local.1.blockers.iter().any(|reason| {
+        reason.contains("REGIONAL-WELD")
+            && reason.contains("used=16.000")
+            && reason.contains("capacity=12.000")
+            && reason.contains("unit=h")
+    }));
 
     let mut records = Vec::new();
     let mut floors = Vec::new();
