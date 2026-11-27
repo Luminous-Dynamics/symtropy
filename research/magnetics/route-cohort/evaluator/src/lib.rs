@@ -853,8 +853,8 @@ mod tests {
         assert_eq!(result.summary.counts.missing_specimen_outcomes, 1);
         assert_eq!(result.summary.first_pass_acceptance, Rate::new(1, 3));
         assert_eq!(result.summary.unresolved, Rate::new(1, 3));
-        assert_eq!(result.summary.reworked_specimens, 1);
-        assert_eq!(result.summary.rework_recovered, 1);
+        assert_eq!(result.summary.counts.reworked_specimens, 1);
+        assert_eq!(result.summary.counts.rework_recovered, 1);
         assert_eq!(result.summary.rework_recovery, Rate::new(1, 1));
         assert_eq!(result.summary.final_accepted_fraction, Rate::new(2, 3));
     }
