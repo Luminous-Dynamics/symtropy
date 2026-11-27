@@ -16,6 +16,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use sha2::{Digest, Sha256};
 
+use crate::counterfactual_trajectory_receipt::{
+    CounterfactualTrajectoryAtom, CounterfactualTrajectoryReceiptCampaign,
+};
 use crate::mission_risk_aggregation::ExactMass;
 use crate::paired_counterfactual::{
     PairedCounterfactualAtom, PairedCounterfactualError, PairingEffect, SignedRational,
@@ -93,6 +96,12 @@ pub struct PairedObjectiveOutcome {
     pub objective_id: [u8; 32],
     /// Directly evaluated post-action objective value.
     pub value_ticks: i32,
+    /// Digest of the exact portfolio trajectory from which this value was computed.
+    ///
+    /// Arithmetic-only finite-oracle calls may leave this zero. The
+    /// receipt-qualified evaluator requires an exact match to the validated
+    /// portfolio trajectory receipt for this scenario/atom/portfolio cell.
+    pub source_trajectory_digest: [u8; 32],
 }
 
 /// One joint trajectory realization for every eligible portfolio/objective.
@@ -211,6 +220,8 @@ pub struct PairedObjectiveParetoReport {
     pub pareto_frontier_portfolio_ids: Vec<[u8; 32]>,
     /// Digest of the frozen campaign universe and hard-risk gate.
     pub frozen_input_digest: [u8; 32],
+    /// Optional digest of the structurally validated shared-exogenous trajectory receipts.
+    pub trajectory_receipt_digest: Option<[u8; 32]>,
     /// Digest of the complete canonical evidence and oracle result.
     pub result_digest: [u8; 32],
     /// Always false; this arithmetic oracle has no manoeuvre authority.
@@ -248,6 +259,8 @@ pub enum PairedObjectiveParetoError {
     ObjectiveOutcomeOutsideBound,
     /// Exact paired moment arithmetic failed or overflowed.
     ArithmeticFailure,
+    /// Trajectory receipts do not match the hard-risk/objective campaign universe.
+    TrajectoryReceiptMismatch,
 }
 
 impl core::fmt::Display for PairedObjectiveParetoError {
@@ -287,6 +300,9 @@ impl core::fmt::Display for PairedObjectiveParetoError {
                 "objective outcome is outside its frozen per-portfolio bound"
             }
             Self::ArithmeticFailure => "exact paired contrast arithmetic failed",
+            Self::TrajectoryReceiptMismatch => {
+                "shared-exogenous trajectory receipts do not match the Pareto campaign"
+            },
         };
         formatter.write_str(message)
     }
@@ -513,7 +529,10 @@ impl PairedObjectiveParetoCampaign {
             })
             .collect::<BTreeMap<_, _>>();
 
-        let mut rows = BTreeMap::<([u8; 32], [u8; 32]), BTreeMap<([u8; 32], [u8; 32]), i32>>::new();
+        let mut rows = BTreeMap::<
+            ([u8; 32], [u8; 32]),
+            BTreeMap<([u8; 32], [u8; 32]), (i32, [u8; 32])>,
+        >::new();
         let expected_cells_per_atom = self
             .eligible_portfolio_ids
             .len()
@@ -562,7 +581,7 @@ impl PairedObjectiveParetoCampaign {
                 if outcomes
                     .insert(
                         (outcome.portfolio_id, outcome.objective_id),
-                        outcome.value_ticks,
+                        (outcome.value_ticks, outcome.source_trajectory_digest),
                     )
                     .is_some()
                 {
@@ -589,7 +608,7 @@ impl PairedObjectiveParetoCampaign {
             let mut canonical_outcomes = Vec::with_capacity(expected_cells_per_atom);
             for portfolio_id in &self.eligible_portfolio_ids {
                 for spec in &self.objective_specs {
-                    let value_ticks = outcomes
+                    let (value_ticks, source_trajectory_digest) = outcomes
                         .get(&(*portfolio_id, spec.objective_id))
                         .copied()
                         .ok_or(PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix)?;
@@ -597,6 +616,7 @@ impl PairedObjectiveParetoCampaign {
                         portfolio_id: *portfolio_id,
                         objective_id: spec.objective_id,
                         value_ticks,
+                        source_trajectory_digest,
                     });
                 }
             }
@@ -617,13 +637,13 @@ impl PairedObjectiveParetoCampaign {
                             let outcomes = rows.get(&(support.scenario_id, *atom_id)).ok_or(
                                 PairedObjectiveParetoError::IncompleteScenarioAtomEvidence,
                             )?;
-                            let left_value = outcomes
+                            let (left_value, _) = outcomes
                                 .get(&(*left_portfolio_id, spec.objective_id))
                                 .copied()
                                 .ok_or(
                                     PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix,
                                 )?;
-                            let right_value = outcomes
+                            let (right_value, _) = outcomes
                                 .get(&(*right_portfolio_id, spec.objective_id))
                                 .copied()
                                 .ok_or(
@@ -727,9 +747,107 @@ impl PairedObjectiveParetoCampaign {
             dominance_witnesses,
             pareto_frontier_portfolio_ids,
             frozen_input_digest: self.frozen_input_digest,
+            trajectory_receipt_digest: None,
             result_digest: [0; 32],
             authority_granted: false,
         };
+        report.result_digest = digest_report(&report);
+        Ok(report)
+    }
+
+    /// Evaluate the Pareto frontier only after a separate campaign has
+    /// structurally validated the shared-exogenous trajectory receipts.
+    ///
+    /// The receipt campaign must use the same hard-risk gate, scenario physics
+    /// identities, eligible portfolio set and exact scenario/atom universe.
+    /// Its result digest is bound into this Pareto report. This does not
+    /// authenticate the receipt issuer or prove that a propagator executed.
+    pub fn evaluate_with_trajectory_receipts(
+        &self,
+        atoms: &[PairedObjectiveAtom],
+        trajectory_campaign: &CounterfactualTrajectoryReceiptCampaign,
+        trajectory_atoms: Vec<CounterfactualTrajectoryAtom>,
+    ) -> Result<PairedObjectiveParetoReport, PairedObjectiveParetoError> {
+        let trajectory_report = trajectory_campaign
+            .validate(trajectory_atoms)
+            .map_err(|_| PairedObjectiveParetoError::TrajectoryReceiptMismatch)?;
+        let expected_scenario_ids = self
+            .scenario_supports
+            .iter()
+            .map(|support| support.scenario_id)
+            .collect::<Vec<_>>();
+        let expected_scenario_atom_ids = self
+            .scenario_supports
+            .iter()
+            .flat_map(|support| {
+                support.atom_ids.iter().map(move |atom_id| {
+                    crate::counterfactual_trajectory_receipt::ScenarioAtomIdentity {
+                        scenario_id: support.scenario_id,
+                        atom_id: *atom_id,
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+        let expected_physics_bindings = self
+            .scenario_supports
+            .iter()
+            .map(|support| {
+                (
+                    support.scenario_id,
+                    support.scenario_physics_configuration_digest,
+                )
+            })
+            .collect::<Vec<_>>();
+        let actual_physics_bindings = trajectory_report
+            .scenario_contracts
+            .iter()
+            .map(|contract| {
+                (
+                    contract.scenario_id,
+                    contract.scenario_physics_configuration_digest,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        if trajectory_report.authority_granted
+            || trajectory_report.mission_risk_gate_digest != self.mission_risk_gate_digest
+            || trajectory_report.scenario_ids != expected_scenario_ids
+            || trajectory_report.eligible_portfolio_ids != self.eligible_portfolio_ids
+            || trajectory_report.ineligible_portfolio_ids != self.ineligible_portfolio_ids
+            || trajectory_report.scenario_atom_ids != expected_scenario_atom_ids
+            || actual_physics_bindings != expected_physics_bindings
+            || is_zero(&trajectory_report.result_digest)
+        {
+            return Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch);
+        }
+
+        let trajectory_digest_by_portfolio_atom = trajectory_report
+            .canonical_atoms
+            .iter()
+            .flat_map(|atom| {
+                atom.portfolio_trajectories.iter().map(move |receipt| {
+                    (
+                        (receipt.scenario_id, receipt.atom_id, receipt.portfolio_id),
+                        receipt.propagated_trajectory_digest,
+                    )
+                })
+            })
+            .collect::<BTreeMap<_, _>>();
+        for atom in atoms {
+            for outcome in &atom.outcomes {
+                let expected_digest = trajectory_digest_by_portfolio_atom
+                    .get(&(atom.scenario_id, atom.atom_id, outcome.portfolio_id))
+                    .ok_or(PairedObjectiveParetoError::TrajectoryReceiptMismatch)?;
+                if is_zero(&outcome.source_trajectory_digest)
+                    || outcome.source_trajectory_digest != *expected_digest
+                {
+                    return Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch);
+                }
+            }
+        }
+
+        let mut report = self.evaluate(atoms)?;
+        report.trajectory_receipt_digest = Some(trajectory_report.result_digest);
         report.result_digest = digest_report(&report);
         Ok(report)
     }
@@ -803,7 +921,7 @@ impl PairedObjectiveParetoCampaign {
     }
 }
 
-fn validate_and_digest_gate(
+pub(crate) fn validate_and_digest_gate(
     gate: &ScenarioMissionRiskGateReport,
 ) -> Result<[u8; 32], PairedObjectiveParetoError> {
     if gate.authority_granted
@@ -966,6 +1084,13 @@ fn digest_report(report: &PairedObjectiveParetoReport) -> [u8; 32] {
     hasher.update(b"luminous.orbital.paired-objective-pareto.report.v0.1\0");
     hasher.update(report.mission_risk_gate_digest);
     hasher.update(report.frozen_input_digest);
+    match report.trajectory_receipt_digest {
+        Some(digest) => {
+            hasher.update([1]);
+            hasher.update(digest);
+        }
+        None => hasher.update([0]),
+    }
     hash_ids(&mut hasher, &report.scenario_ids);
     hasher.update((report.scenario_model_bindings.len() as u64).to_be_bytes());
     for binding in &report.scenario_model_bindings {
@@ -991,6 +1116,7 @@ fn digest_report(report: &PairedObjectiveParetoReport) -> [u8; 32] {
             hasher.update(outcome.portfolio_id);
             hasher.update(outcome.objective_id);
             hasher.update(outcome.value_ticks.to_be_bytes());
+            hasher.update(outcome.source_trajectory_digest);
         }
     }
     hasher.update((report.pairwise_contrasts.len() as u64).to_be_bytes());
@@ -1113,7 +1239,7 @@ mod tests {
             } else {
                 [54; 32]
             },
-            event_inventory_digest: [55; 32],
+            event_inventory_digest: [90 + portfolio_id[0]; 32],
             risk_envelope_digest: [56 + portfolio_id[0]; 32],
             total_mass_ticks: 100,
             post_action_horizon_digest: [57; 32],
@@ -1247,11 +1373,13 @@ mod tests {
                 portfolio_id,
                 objective_id: OBJECTIVE_FUEL,
                 value_ticks: *fuel,
+                source_trajectory_digest: [0; 32],
             });
             values.push(PairedObjectiveOutcome {
                 portfolio_id,
                 objective_id: OBJECTIVE_SERVICE,
                 value_ticks: *service,
+                source_trajectory_digest: [0; 32],
             });
         }
         PairedObjectiveAtom {
@@ -1819,6 +1947,181 @@ mod tests {
                 "seed {seed}"
             );
         }
+    }
+
+
+    fn trajectory_contracts(
+        supports: &[ScenarioAtomUniverse],
+    ) -> Vec<crate::counterfactual_trajectory_receipt::ScenarioTrajectoryContract> {
+        supports
+            .iter()
+            .map(|support| {
+                let scenario_a = support.scenario_id == SCENARIO_A;
+                crate::counterfactual_trajectory_receipt::ScenarioTrajectoryContract {
+                    scenario_id: support.scenario_id,
+                    scenario_physics_configuration_digest: support
+                        .scenario_physics_configuration_digest,
+                    target_measure_digest: if scenario_a { [51; 32] } else { [52; 32] },
+                    density_space_digest: if scenario_a { [53; 32] } else { [54; 32] },
+                    reference_frame_digest: if scenario_a { [66; 32] } else { [76; 32] },
+                    time_scale_digest: if scenario_a { [67; 32] } else { [77; 32] },
+                    reference_epoch_digest: if scenario_a { [68; 32] } else { [78; 32] },
+                    propagator_configuration_digest: if scenario_a { [69; 32] } else { [79; 32] },
+                    integrator_configuration_digest: if scenario_a { [80; 32] } else { [81; 32] },
+                    atom_ids: support.atom_ids.clone(),
+                }
+            })
+            .collect()
+    }
+
+    fn trajectory_atoms(
+        supports: &[ScenarioAtomUniverse],
+        gate: &crate::scenario_mission_risk_gate::ScenarioMissionRiskGateReport,
+    ) -> Vec<crate::counterfactual_trajectory_receipt::CounterfactualTrajectoryAtom> {
+        use crate::counterfactual_trajectory_receipt::{
+            CounterfactualTrajectoryAtom, PortfolioTrajectoryReceipt,
+            SharedExogenousWorldReceipt,
+        };
+
+        let contracts = trajectory_contracts(supports);
+        let mut rows = Vec::new();
+        for support in supports {
+            let contract = contracts
+                .iter()
+                .find(|contract| contract.scenario_id == support.scenario_id)
+                .unwrap();
+            for atom_id in &support.atom_ids {
+                let shared_world = SharedExogenousWorldReceipt {
+                    scenario_id: support.scenario_id,
+                    atom_id: *atom_id,
+                    initial_state_digest: [120 + atom_id[0]; 32],
+                    initial_covariance_digest: [121; 32],
+                    latent_uncertainty_digest: [122 + atom_id[0]; 32],
+                    environment_realization_digest: [124; 32],
+                    process_noise_realization_digest: [125; 32],
+                    target_measure_digest: contract.target_measure_digest,
+                    density_space_digest: contract.density_space_digest,
+                    reference_frame_digest: contract.reference_frame_digest,
+                    time_scale_digest: contract.time_scale_digest,
+                    reference_epoch_digest: contract.reference_epoch_digest,
+                };
+                let shared_digest = shared_world.canonical_digest();
+                let portfolio_trajectories = [PORTFOLIO_A, PORTFOLIO_C]
+                    .into_iter()
+                    .map(|portfolio_id| {
+                        let check = gate
+                            .scenario_portfolio_risk_checks
+                            .iter()
+                            .find(|check| {
+                                check.scenario_id == support.scenario_id
+                                    && check.portfolio_id == portfolio_id
+                            })
+                            .unwrap();
+                        PortfolioTrajectoryReceipt {
+                            scenario_id: support.scenario_id,
+                            atom_id: *atom_id,
+                            portfolio_id,
+                            shared_exogenous_receipt_digest: shared_digest,
+                            maneuver_plan_digest: [130 + portfolio_id[0]; 32],
+                            post_action_initial_state_digest: [140 + portfolio_id[0]; 32],
+                            scenario_physics_configuration_digest: contract
+                                .scenario_physics_configuration_digest,
+                            propagator_configuration_digest: contract
+                                .propagator_configuration_digest,
+                            integrator_configuration_digest: contract
+                                .integrator_configuration_digest,
+                            propagated_trajectory_digest: [150 + portfolio_id[0]; 32],
+                            mission_manifest_digest: check.manifest_digest,
+                            post_action_event_inventory_digest: check.event_inventory_digest,
+                            post_action_horizon_digest: check.post_action_horizon_digest,
+                            risk_policy_digest: check.risk_policy_digest,
+                            risk_envelope_digest: check.risk_envelope_digest,
+                        }
+                    })
+                    .collect();
+                rows.push(CounterfactualTrajectoryAtom {
+                    shared_world,
+                    portfolio_trajectories,
+                });
+            }
+        }
+        rows
+    }
+
+    #[test]
+    fn trajectory_receipts_are_required_to_bind_a_qualified_pareto_report() {
+        use crate::counterfactual_trajectory_receipt::CounterfactualTrajectoryReceiptCampaign;
+
+        let supports = standard_supports();
+        let gate = gate_report();
+        let process = campaign(
+            supports.clone(),
+            vec![specs()[0]],
+            vec![
+                bound(PORTFOLIO_A, OBJECTIVE_FUEL, 0, 200),
+                bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
+            ],
+        );
+        let receipt_campaign =
+            CounterfactualTrajectoryReceiptCampaign::new(&gate, trajectory_contracts(&supports))
+                .unwrap();
+        let receipt_atoms = trajectory_atoms(&supports, &gate);
+        let mut objective_atoms = fuel_only_atoms();
+        for atom in &mut objective_atoms {
+            for outcome in &mut atom.outcomes {
+                outcome.source_trajectory_digest = receipt_atoms
+                    .iter()
+                    .find(|receipt_atom| {
+                        receipt_atom.shared_world.scenario_id == atom.scenario_id
+                            && receipt_atom.shared_world.atom_id == atom.atom_id
+                    })
+                    .unwrap()
+                    .portfolio_trajectories
+                    .iter()
+                    .find(|receipt| receipt.portfolio_id == outcome.portfolio_id)
+                    .unwrap()
+                    .propagated_trajectory_digest;
+            }
+        }
+        let report = process
+            .evaluate_with_trajectory_receipts(
+                &objective_atoms,
+                &receipt_campaign,
+                receipt_atoms.clone(),
+            )
+            .unwrap();
+        assert!(report.trajectory_receipt_digest.is_some());
+        assert!(!report.authority_granted);
+
+        let mut bad_objective_atoms = objective_atoms.clone();
+        bad_objective_atoms[0].outcomes[0].source_trajectory_digest = [198; 32];
+        assert_eq!(
+            process.evaluate_with_trajectory_receipts(
+                &bad_objective_atoms,
+                &receipt_campaign,
+                receipt_atoms.clone(),
+            ),
+            Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch)
+        );
+
+        let mut mismatched_supports = supports;
+        mismatched_supports[0].scenario_physics_configuration_digest = [199; 32];
+        let mismatched = campaign(
+            mismatched_supports,
+            vec![specs()[0]],
+            vec![
+                bound(PORTFOLIO_A, OBJECTIVE_FUEL, 0, 200),
+                bound(PORTFOLIO_C, OBJECTIVE_FUEL, 0, 200),
+            ],
+        );
+        assert_eq!(
+            mismatched.evaluate_with_trajectory_receipts(
+                &objective_atoms,
+                &receipt_campaign,
+                receipt_atoms,
+            ),
+            Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch)
+        );
     }
 
     #[test]

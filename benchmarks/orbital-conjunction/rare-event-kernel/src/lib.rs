@@ -31,6 +31,8 @@ pub mod adaptive_importance_comparison;
 /// Outward-rounded affine geometry used by the independent coverage research.
 pub mod adaptive_importance_sampling;
 pub mod conditional_velocity;
+/// Shared-exogenous intervention and post-action trajectory receipts.
+pub mod counterfactual_trajectory_receipt;
 pub mod coverage;
 pub mod decision_gate;
 pub mod decision_refinement;
@@ -87,6 +89,12 @@ pub use adaptive_importance_sampling::{
     AdaptiveImportanceDraw, AdaptiveImportanceSamplingConfidenceSequence,
     AdaptiveImportanceSamplingError, AdaptiveImportanceSamplingSummary, BoundedMeanBettingSequence,
     BoundedMeanConfidenceSequence,
+};
+pub use counterfactual_trajectory_receipt::{
+    CounterfactualTrajectoryAtom, CounterfactualTrajectoryReceiptCampaign,
+    CounterfactualTrajectoryReceiptError, CounterfactualTrajectoryReceiptReport,
+    PortfolioTrajectoryReceipt, ScenarioAtomIdentity, ScenarioTrajectoryContract,
+    SharedExogenousWorldReceipt,
 };
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
