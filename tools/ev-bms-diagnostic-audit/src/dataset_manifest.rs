@@ -18,6 +18,7 @@ struct DatasetManifest {
     source_record_url: String,
     source_repository: String,
     source_version: String,
+    count_basis_asset: String,
     source_published_on: String,
     metadata_retrieved_on: String,
     license_spdx: String,
@@ -73,6 +74,7 @@ pub struct DatasetAdmissionReport {
     pub source_domain: String,
     pub measurement_boundary: String,
     pub sample_interval_seconds: u64,
+    pub count_basis_asset: String,
     pub sample_count: u64,
     pub sample_count_is_approximate: bool,
     pub vehicle_count: u64,
@@ -125,6 +127,7 @@ fn validate_common(manifest: &DatasetManifest) -> Result<(), String> {
         ("source_record_url", manifest.source_record_url.as_str()),
         ("source_repository", manifest.source_repository.as_str()),
         ("source_version", manifest.source_version.as_str()),
+        ("count_basis_asset", manifest.count_basis_asset.as_str()),
         ("source_published_on", manifest.source_published_on.as_str()),
         ("metadata_retrieved_on", manifest.metadata_retrieved_on.as_str()),
         ("license_spdx", manifest.license_spdx.as_str()),
@@ -220,6 +223,7 @@ fn validate_cao_bms(manifest: &DatasetManifest) -> Result<(), String> {
         || manifest.source_repository != "Zenodo"
         || manifest.source_version != "v1"
         || manifest.source_published_on != "2024-02-14"
+        || manifest.count_basis_asset != "all_seven_archive_parts"
         || manifest.source_domain != "onboard_bms"
         || manifest.measurement_boundary != "vehicle_bms"
         || manifest.sample_interval_seconds != 30
@@ -268,6 +272,7 @@ fn validate_shenzhen_charging(manifest: &DatasetManifest) -> Result<(), String> 
         || manifest.source_repository != "Mendeley Data"
         || manifest.source_version != "3"
         || manifest.source_published_on != "2024-10-08"
+        || manifest.count_basis_asset != "processed_data_longer_than_30.xlsx"
         || manifest.source_domain != "charger_side"
         || manifest.measurement_boundary != "charging_station_metering"
         || manifest.sample_interval_seconds != 60
@@ -352,6 +357,7 @@ pub fn audit_dataset_manifest(
         source_domain: manifest.source_domain,
         measurement_boundary: manifest.measurement_boundary,
         sample_interval_seconds: manifest.sample_interval_seconds,
+        count_basis_asset: manifest.count_basis_asset,
         sample_count: manifest.counts.sample_count,
         sample_count_is_approximate: manifest.counts.sample_count_is_approximate,
         vehicle_count: manifest.counts.vehicle_count,
