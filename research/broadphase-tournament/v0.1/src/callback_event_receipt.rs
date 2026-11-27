@@ -125,7 +125,12 @@ pub fn verify_callback_event_receipts(
     let mut previous_expected = None;
 
     for snapshot in expected {
-        validate_snapshot(snapshot, current_world_revision, current_response_policy_sha256, current_endpoints)?;
+        validate_snapshot(
+            snapshot,
+            current_world_revision,
+            current_response_policy_sha256,
+            current_endpoints,
+        )?;
         if previous_expected.is_some_and(|previous| previous >= snapshot.id) {
             if !expected_ids.insert(snapshot.id) {
                 return Err(CallbackEventVerificationError::DuplicateExpectedEvent(snapshot.id));
@@ -146,7 +151,12 @@ pub fn verify_callback_event_receipts(
     };
 
     for receipt in supplied {
-        validate_snapshot(&receipt.snapshot, current_world_revision, current_response_policy_sha256, current_endpoints)?;
+        validate_snapshot(
+            &receipt.snapshot,
+            current_world_revision,
+            current_response_policy_sha256,
+            current_endpoints,
+        )?;
         let id = receipt.snapshot.id;
         if previous_supplied.is_some_and(|previous| previous >= id) {
             if !supplied_ids.insert(id) {
@@ -225,7 +235,9 @@ fn validate_snapshot(
                 } else {
                     pair.1
                 };
-                return Err(CallbackEventVerificationError::EndpointGenerationMismatch(proxy));
+                return Err(CallbackEventVerificationError::EndpointGenerationMismatch(
+                    proxy,
+                ));
             }
             if snapshot.endpoint_response_state != [left.response_state, right.response_state] {
                 let proxy = if snapshot.endpoint_response_state[0] != left.response_state {
@@ -233,7 +245,9 @@ fn validate_snapshot(
                 } else {
                     pair.1
                 };
-                return Err(CallbackEventVerificationError::EndpointResponseStateMismatch(proxy));
+                return Err(CallbackEventVerificationError::EndpointResponseStateMismatch(
+                    proxy,
+                ));
             }
         }
         (
@@ -248,13 +262,19 @@ fn validate_snapshot(
                 .get(&proxy)
                 .ok_or(CallbackEventVerificationError::MissingEndpointState(proxy))?;
             if generation != endpoint.generation {
-                return Err(CallbackEventVerificationError::EndpointGenerationMismatch(proxy));
+                return Err(CallbackEventVerificationError::EndpointGenerationMismatch(
+                    proxy,
+                ));
             }
             if actuator_revision != endpoint.actuator_revision {
-                return Err(CallbackEventVerificationError::ActuatorRevisionMismatch(proxy));
+                return Err(CallbackEventVerificationError::ActuatorRevisionMismatch(
+                    proxy,
+                ));
             }
             if snapshot.endpoint_response_state != [endpoint.response_state, 0] {
-                return Err(CallbackEventVerificationError::EndpointResponseStateMismatch(proxy));
+                return Err(CallbackEventVerificationError::EndpointResponseStateMismatch(
+                    proxy,
+                ));
             }
         }
         _ => return Err(CallbackEventVerificationError::SubjectKindMismatch(id)),
@@ -266,7 +286,9 @@ fn validate_snapshot(
         return Err(CallbackEventVerificationError::MissingResponsePolicyDigest(id));
     }
     if snapshot.response_policy_sha256 != current_response_policy_sha256 {
-        return Err(CallbackEventVerificationError::ResponsePolicyDigestMismatch(id));
+        return Err(CallbackEventVerificationError::ResponsePolicyDigestMismatch(
+            id,
+        ));
     }
     if snapshot.payload_sha256.iter().all(|byte| *byte == 0) {
         return Err(CallbackEventVerificationError::MissingPayloadDigest(id));
@@ -337,7 +359,7 @@ mod tests {
         expected: &[CallbackEventSnapshot],
         supplied: &[CallbackEventReceipt],
     ) -> Result<CallbackEventVerificationReport, CallbackEventVerificationError> {
-        super::verify(
+        super::verify_callback_event_receipts(
             world_revision,
             [11; 32],
             &endpoint_states(),
@@ -478,7 +500,7 @@ mod tests {
                 kind: CallbackEventKind::Work,
                 ordinal: 0,
             },
-            response_policy_sha256: [21; 32],
+            response_policy_sha256: [11; 32],
             endpoint_response_state: [8, 0],
             payload_sha256: [22; 32],
         };
@@ -528,7 +550,9 @@ mod tests {
         };
         assert_eq!(
             verify(10, &[event], &[receipt(event)]),
-            Err(CallbackEventVerificationError::EndpointGenerationMismatch(ProxyId(1)))
+            Err(CallbackEventVerificationError::EndpointGenerationMismatch(
+                ProxyId(1)
+            ))
         );
     }
 
@@ -538,7 +562,9 @@ mod tests {
         event.endpoint_response_state[0] += 1;
         assert_eq!(
             verify(10, &[event], &[receipt(event)]),
-            Err(CallbackEventVerificationError::EndpointResponseStateMismatch(ProxyId(1)))
+            Err(CallbackEventVerificationError::EndpointResponseStateMismatch(
+                ProxyId(1)
+            ))
         );
     }
 
@@ -571,7 +597,9 @@ mod tests {
         };
         assert_eq!(
             verify(10, &[event], &[receipt(event)]),
-            Err(CallbackEventVerificationError::ActuatorRevisionMismatch(ProxyId(9)))
+            Err(CallbackEventVerificationError::ActuatorRevisionMismatch(
+                ProxyId(9)
+            ))
         );
     }
 
