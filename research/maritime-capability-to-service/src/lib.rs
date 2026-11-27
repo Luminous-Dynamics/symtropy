@@ -532,7 +532,7 @@ pub fn compare_service_options(
         || baseline.expected_units != candidate.expected_units
     {
         return Err(
-            "service option comparison requires the same frozen instance, service, deadline and expected-unit denominator"
+            "service option comparison context does not match the frozen instance"
                 .to_owned(),
         );
     }
@@ -901,9 +901,12 @@ mod tests {
 
     #[test]
     fn capability_receipt_can_supply_the_only_admitted_plan_evidence() {
-        let fixture = "INSTANCE\\tMCSC-NO-DEPENDENCY\\tv0.4\\nSERVICE\\tS\\t10\\tcargo_unit\\t10\\nOPTION\\tO\\tIMPORT\\t1\\t1\\t1\\t1\\t1\\t1\\t0\\t-\\tREV-001\\nINSPECTION\\tO\\tPASS\\t10\\tREV-001\\nRECEIVER_ACCEPTANCE\\tO\\tACCEPTED\\t10\\tREV-001\\n";
-        let receipt = run_audit(fixture).expect("an option can be sourced through an external capability receipt");
-        assert!(receipt.contains("OUTCOME\\tO\\tIMPORT\\t4\\t4\\t10\\t10\\t10\\t10"));
+        let fixture = "INSTANCE\tMCSC-NO-DEPENDENCY\tv0.4\nSERVICE\tS\t10\tcargo_unit\t10\nOPTION\tO\tIMPORT\t1\t1\t1\t1\t1\t1\t0\t-\tREV-001\nINSPECTION\tO\tPASS\t10\tREV-001\nRECEIVER_ACCEPTANCE\tO\tACCEPTED\t10\tREV-001\n";
+        let receipt = run_audit(fixture)
+            .expect("an option can be sourced through an external capability receipt");
+        assert!(receipt.contains(
+            "OUTCOME\tO\tIMPORT\t4\t4\t10\t10\t10\t10"
+        ));
     }
 
     #[test]
@@ -940,7 +943,10 @@ mod tests {
             .find(|outcome| outcome.option_id == "IMPORT")
             .unwrap();
 
-        let changed_units = FIXTURE.replace("SERVICE-001\\t10\\tcargo_unit", "SERVICE-001\\t11\\tcargo_unit");
+        let changed_units = FIXTURE.replace(
+            "SERVICE-001\t10\tcargo_unit",
+            "SERVICE-001\t11\tcargo_unit",
+        );
         let changed = parse_instance(&changed_units).unwrap();
         let changed_outcomes = evaluate(&changed).unwrap();
         assert!(
@@ -955,7 +961,10 @@ mod tests {
             .contains("same frozen instance")
         );
 
-        let changed_deadline = FIXTURE.replace("SERVICE-001\\t10\\tcargo_unit\\t10", "SERVICE-001\\t10\\tcargo_unit\\t11");
+        let changed_deadline = FIXTURE.replace(
+            "SERVICE-001\t10\tcargo_unit\t10",
+            "SERVICE-001\t10\tcargo_unit\t11",
+        );
         let changed = parse_instance(&changed_deadline).unwrap();
         let changed_outcomes = evaluate(&changed).unwrap();
         assert!(
