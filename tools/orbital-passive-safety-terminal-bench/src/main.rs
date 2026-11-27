@@ -1,7 +1,7 @@
 use orbital_inspection_horizon_composition_bench::{HorizonDisposition, HorizonScope};
 use orbital_passive_safety_terminal_bench::{
-    BoundEnvelope, BoundState, PeriodWitness, TerminalCase, TerminalDisposition, TerminalResult,
-    RECEIPT_SCHEMA, evaluate,
+    BoundEnvelope, BoundState, PeriodWitness, RECEIPT_SCHEMA, TerminalCase, TerminalDisposition,
+    TerminalResult, evaluate,
 };
 use std::env;
 use std::error::Error;
@@ -13,11 +13,15 @@ struct ParsedCase {
 }
 
 fn parse_u64(value: &str, field: &str) -> Result<u64, Box<dyn Error>> {
-    value.parse::<u64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<u64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_i64(value: &str, field: &str) -> Result<i64, Box<dyn Error>> {
-    value.parse::<i64>().map_err(|error| format!("invalid {field}: {error}").into())
+    value
+        .parse::<i64>()
+        .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
 fn parse_scope(fields: &[&str], offset: usize) -> HorizonScope {
@@ -155,7 +159,9 @@ fn render_result(result: &TerminalResult) -> String {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let corpus_path = args.next().ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
+    let corpus_path = args
+        .next()
+        .ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
     let source_commit = args.next().ok_or("missing source_commit")?;
     let corpus_sha256 = args.next().ok_or("missing corpus_sha256")?;
     let content = fs::read_to_string(&corpus_path)?;
@@ -190,7 +196,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("empty corpus or expected disposition mismatch".into());
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     println!(
         "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"case_count\":{},\"expected_disposition_matches\":{},\"expected_disposition_mismatches\":{},\"claim_ready\":false,\"source_bytes_authenticated\":false,\"authority_granted\":false,\"physical_validation\":\"NOT_ASSESSED\",\"results\":[{}]}}",
         RECEIPT_SCHEMA,
