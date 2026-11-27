@@ -578,6 +578,211 @@ mod tests {
         }
     }
 
+    fn residual_component_record(
+        scope: &CellDiscrepancyInput,
+        record_id: &str,
+        expression_id: &str,
+        coefficients: [f64; 3],
+    ) -> ValidatedDerivativeEnclosure<3> {
+        let domain = ParameterDomain {
+            record_id: record_id.to_owned(),
+            expression_id: expression_id.to_owned(),
+            cell_id: scope.cell_id.clone(),
+            input_sha256: DIGEST_A.to_owned(),
+            source_revision: scope.residual_jacobian_source_revision.clone(),
+            implementation_id: scope.residual_jacobian_implementation_id.clone(),
+            artifact_sha256: scope.residual_jacobian_artifact_sha256.clone(),
+            environment_sha256: scope.residual_jacobian_environment_sha256.clone(),
+            parameter_ids: ["x".to_owned(), "y".to_owned(), "z".to_owned()],
+            parameter_units: [
+                "metre".to_owned(),
+                "metre".to_owned(),
+                "metre".to_owned(),
+            ],
+            parameter_bounds: scope.cell_bounds_m,
+            output_unit: scope.field_unit.clone(),
+            coordinate_frame_id: scope.coordinate_frame_id.clone(),
+            operating_condition_id: scope.operating_condition_id.clone(),
+            model_set_id: scope.model_set_id.clone(),
+            solver_run_id: scope.solver_run_id.clone(),
+            geometry_sha256: scope.geometry_sha256.clone(),
+            material_sha256: scope.material_sha256.clone(),
+            requirement_id: scope.requirement_id.clone(),
+        };
+        certify_expression_centered(&domain, move |[x, y, z]| {
+            let cx = IntervalDual::constant(
+                Interval::point(coefficients[0]).expect("finite coefficient"),
+            );
+            let cy = IntervalDual::constant(
+                Interval::point(coefficients[1]).expect("finite coefficient"),
+            );
+            let cz = IntervalDual::constant(
+                Interval::point(coefficients[2]).expect("finite coefficient"),
+            );
+            Ok(cx * x + cy * y + cz * z)
+        })
+        .expect("valid residual component interval-AD certificate")
+    }
+
+    #[test]
+    fn interval_ad_component_certificates_populate_cell_jacobian() {
+        let mut evidence = input();
+        let records = [
+            residual_component_record(
+                &evidence,
+                "interval-ad-rx-001",
+                "residual-bx-expression",
+                [0.1, 0.2, 0.3],
+            ),
+            residual_component_record(
+                &evidence,
+                "interval-ad-ry-001",
+                "residual-by-expression",
+                [0.05, 0.1, 0.0],
+            ),
+            residual_component_record(
+                &evidence,
+                "interval-ad-rz-001",
+                "residual-bz-expression",
+                [0.0, 0.2, 0.1],
+            ),
+        ];
+
+        bind_interval_ad_residual_jacobian(
+            &mut evidence,
+            [&records[0], &records[1], &records[2]],
+            [
+                "residual-bx-expression",
+                "residual-by-expression",
+                "residual-bz-expression",
+            ],
+            ["x", "y", "z"],
+        )
+        .expect("three scope-matched whole-cell derivative records");
+
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[0][0] >= 0.1);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[0][1] >= 0.2);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[0][2] >= 0.3);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[1][0] >= 0.05);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[1][1] >= 0.1);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[1][2] >= 0.0);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[2][1] >= 0.2);
+        assert!(evidence.residual_jacobian_abs_supremum_t_per_m[2][2] >= 0.1);
+        assert_eq!(
+            evidence.residual_jacobian_component_record_ids,
+            [
+                "interval-ad-rx-001".to_owned(),
+                "interval-ad-ry-001".to_owned(),
+                "interval-ad-rz-001".to_owned()
+            ]
+        );
+        assert_eq!(
+            evidence.residual_jacobian_component_expression_ids,
+            [
+                "residual-bx-expression".to_owned(),
+                "residual-by-expression".to_owned(),
+                "residual-bz-expression".to_owned()
+            ]
+        );
+
+        let certificate =
+            certify_physical_field_discrepancy(&evidence).expect("bound physical-field cell");
+        assert_eq!(
+            certificate.residual_jacobian_abs_supremum_t_per_m,
+            evidence.residual_jacobian_abs_supremum_t_per_m
+        );
+        assert_eq!(
+            certificate.residual_jacobian_component_record_ids,
+            evidence.residual_jacobian_component_record_ids
+        );
+    }
+
+    #[test]
+    fn interval_ad_jacobian_handoff_rejects_expression_scope_mismatch() {
+        let mut evidence = input();
+        let records = [
+            residual_component_record(
+                &evidence,
+                "interval-ad-rx-001",
+                "wrong-residual-x-expression",
+                [0.1, 0.2, 0.3],
+            ),
+            residual_component_record(
+                &evidence,
+                "interval-ad-ry-001",
+                "residual-by-expression",
+                [0.05, 0.1, 0.0],
+            ),
+            residual_component_record(
+                &evidence,
+                "interval-ad-rz-001",
+                "residual-bz-expression",
+                [0.0, 0.2, 0.1],
+            ),
+        ];
+        assert_eq!(
+            bind_interval_ad_residual_jacobian(
+                &mut evidence,
+                [&records[0], &records[1], &records[2]],
+                [
+                    "residual-bx-expression",
+                    "residual-by-expression",
+                    "residual-bz-expression",
+                ],
+                ["x", "y", "z"],
+            )
+            .expect_err("component expression must be exact"),
+            DiscrepancyError::IntervalAdScopeMismatch {
+                component: 0,
+                field: "expression_id"
+            }
+        );
+    }
+
+    #[test]
+    fn interval_ad_jacobian_handoff_rejects_different_cell_bounds() {
+        let mut evidence = input();
+        let mut wrong = residual_component_record(
+            &evidence,
+            "interval-ad-rx-001",
+            "residual-bx-expression",
+            [0.1, 0.2, 0.3],
+        );
+        wrong.parameter_bounds[0] = interval(-0.9, 0.9);
+        let records = [
+            wrong,
+            residual_component_record(
+                &evidence,
+                "interval-ad-ry-001",
+                "residual-by-expression",
+                [0.05, 0.1, 0.0],
+            ),
+            residual_component_record(
+                &evidence,
+                "interval-ad-rz-001",
+                "residual-bz-expression",
+                [0.0, 0.2, 0.1],
+            ),
+        ];
+        assert_eq!(
+            bind_interval_ad_residual_jacobian(
+                &mut evidence,
+                [&records[0], &records[1], &records[2]],
+                [
+                    "residual-bx-expression",
+                    "residual-by-expression",
+                    "residual-bz-expression",
+                ],
+                ["x", "y", "z"],
+            )
+            .expect_err("cell bounds must be identical"),
+            DiscrepancyError::IntervalAdScopeMismatch {
+                component: 0,
+                field: "cell_bounds_m"
+            }
+        );
+    }
+
     #[test]
     fn affine_residual_enclosure_contains_known_cell_wide_residual() {
         let result =
