@@ -416,7 +416,12 @@ pub fn compile_temporal_profile(profile: &TemporalProfile) -> Result<FlowGraph, 
         let arrival_period = transfer
             .departure_period
             .checked_add(transfer.transit_periods)
-            .ok_or_else(|| format!("transfer {} arrival period overflowed u64", transfer.transfer_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "transfer {} arrival period overflowed u64",
+                    transfer.transfer_id
+                )
+            })?;
         graph_edges.push(FlowEdge::new(
             edge_id.clone(),
             handling_node_id(&transfer.from_node_id, transfer.departure_period),
