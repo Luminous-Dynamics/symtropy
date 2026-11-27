@@ -285,7 +285,10 @@ impl ModelCredibilityCutV0_1 {
             ("CLAIM_ID", self.claim_id.as_str()),
             ("MODEL_REF", self.model_ref.as_str()),
             ("CONFIGURATION_REF", self.configuration_ref.as_str()),
-            ("OPERATING_ENVELOPE_REF", self.operating_envelope_ref.as_str()),
+            (
+                "OPERATING_ENVELOPE_REF",
+                self.operating_envelope_ref.as_str(),
+            ),
         ] {
             if !valid_identifier(value) {
                 errors.push(format!("MODEL_CREDIBILITY_{field}_INVALID"));
@@ -293,15 +296,42 @@ impl ModelCredibilityCutV0_1 {
         }
         for (field, value) in [
             ("MODEL_ARTIFACT", self.model_artifact_sha256.as_str()),
-            ("SOLVER_CONFIGURATION", self.solver_configuration_sha256.as_str()),
-            ("APPLICABILITY_PROFILE", self.applicability_profile_sha256.as_str()),
-            ("RISK_CLASSIFICATION", self.risk_classification_sha256.as_str()),
-            ("VALIDATION_PACKAGE", self.validation_package_sha256.as_str()),
-            ("VALIDATION_PROTOCOL", self.validation_protocol_sha256.as_str()),
-            ("CALIBRATION_MANIFEST", self.calibration_manifest_sha256.as_str()),
-            ("DEVELOPMENT_MANIFEST", self.development_manifest_sha256.as_str()),
-            ("CONFIRMATORY_MANIFEST", self.confirmatory_manifest_sha256.as_str()),
-            ("INDEPENDENT_REFERENCE_MANIFEST", self.independent_reference_manifest_sha256.as_str()),
+            (
+                "SOLVER_CONFIGURATION",
+                self.solver_configuration_sha256.as_str(),
+            ),
+            (
+                "APPLICABILITY_PROFILE",
+                self.applicability_profile_sha256.as_str(),
+            ),
+            (
+                "RISK_CLASSIFICATION",
+                self.risk_classification_sha256.as_str(),
+            ),
+            (
+                "VALIDATION_PACKAGE",
+                self.validation_package_sha256.as_str(),
+            ),
+            (
+                "VALIDATION_PROTOCOL",
+                self.validation_protocol_sha256.as_str(),
+            ),
+            (
+                "CALIBRATION_MANIFEST",
+                self.calibration_manifest_sha256.as_str(),
+            ),
+            (
+                "DEVELOPMENT_MANIFEST",
+                self.development_manifest_sha256.as_str(),
+            ),
+            (
+                "CONFIRMATORY_MANIFEST",
+                self.confirmatory_manifest_sha256.as_str(),
+            ),
+            (
+                "INDEPENDENT_REFERENCE_MANIFEST",
+                self.independent_reference_manifest_sha256.as_str(),
+            ),
         ] {
             if !valid_sha256(value) {
                 errors.push(format!("MODEL_CREDIBILITY_{field}_DIGEST_INVALID"));
@@ -321,7 +351,10 @@ impl ModelCredibilityCutV0_1 {
         let mut required_modalities = BTreeSet::new();
         for modality in &self.required_modalities {
             if !required_modalities.insert(*modality) {
-                errors.push(format!("MODEL_CREDIBILITY_DUPLICATE_REQUIRED_MODALITY:{}", modality.as_str()));
+                errors.push(format!(
+                    "MODEL_CREDIBILITY_DUPLICATE_REQUIRED_MODALITY:{}",
+                    modality.as_str()
+                ));
             }
         }
         let mut modality_records = BTreeSet::new();
@@ -333,21 +366,25 @@ impl ModelCredibilityCutV0_1 {
                 errors.push("MODEL_CREDIBILITY_MODALITY_EVIDENCE_INVALID".to_owned());
             }
             if !modality_records.insert((record.modality, record.evidence_ref.as_str())) {
-                errors.push(format!("MODEL_CREDIBILITY_DUPLICATE_MODALITY_EVIDENCE:{}", record.evidence_ref));
+                errors.push(format!(
+                    "MODEL_CREDIBILITY_DUPLICATE_MODALITY_EVIDENCE:{}",
+                    record.evidence_ref
+                ));
             }
         }
 
         let mut required_uncertainty = BTreeSet::new();
         for component in &self.required_uncertainty_components {
             if !required_uncertainty.insert(*component) {
-                errors.push(format!("MODEL_CREDIBILITY_DUPLICATE_REQUIRED_UNCERTAINTY:{}", component.as_str()));
+                errors.push(format!(
+                    "MODEL_CREDIBILITY_DUPLICATE_REQUIRED_UNCERTAINTY:{}",
+                    component.as_str()
+                ));
             }
         }
         let mut uncertainty_records = BTreeSet::new();
         for record in &self.uncertainty_components {
-            if !valid_sha256(&record.method_profile_sha256)
-                || !valid_sha256(&record.report_sha256)
-            {
+            if !valid_sha256(&record.method_profile_sha256) || !valid_sha256(&record.report_sha256) {
                 errors.push("MODEL_CREDIBILITY_UNCERTAINTY_EVIDENCE_INVALID".to_owned());
             }
             if !uncertainty_records.insert(record.component) {
@@ -571,8 +608,8 @@ impl ModelCredibilityCutV0_1 {
 pub(crate) mod tests {
     use super::{
         IndependentReferenceStatus, MetricStratumReportV0_1, MetricStratumStatus,
-        ModelCredibilityCutV0_1, ModelDomainCoverageStatus, ModelPackageStatus,
-        ModalityEvidenceStatus, ModalityEvidenceV0_1, RequiredMetricStratumV0_1,
+        ModalityEvidenceStatus, ModalityEvidenceV0_1, ModelCredibilityCutV0_1,
+        ModelDomainCoverageStatus, ModelPackageStatus, RequiredMetricStratumV0_1,
         SplitIntegrityStatus, UncertaintyComponentEvidenceV0_1, UncertaintyComponentKind,
         UncertaintyEvidenceStatus, ValidationModality,
     };
@@ -673,14 +710,17 @@ pub(crate) mod tests {
     #[test]
     fn modality_requirements_are_owner_defined_not_a_universal_ladder() {
         let mut cut = fixture();
-        cut.required_modalities.push(ValidationModality::HardwareInLoop);
+        cut.required_modalities
+            .push(ValidationModality::HardwareInLoop);
         let blockers = cut.reviewability_blockers();
-        assert!(blockers.contains(
-            &"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:hardware_in_loop".to_owned()
-        ));
-        assert!(!blockers.contains(
-            &"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:synthetic_known_truth".to_owned()
-        ));
+        assert!(
+            blockers.contains(&"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:hardware_in_loop".to_owned())
+        );
+        assert!(
+            !blockers.contains(
+                &"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:synthetic_known_truth".to_owned()
+            )
+        );
     }
 
     #[test]
@@ -745,9 +785,10 @@ pub(crate) mod tests {
         let blockers = cut.reviewability_blockers();
         assert!(blockers.contains(&"MODEL_CONFIRMATORY_SPLIT_LEAKAGE".to_owned()));
         assert!(blockers.contains(&"MODEL_DOMAIN_COVERAGE_INDETERMINATE".to_owned()));
-        assert!(blockers.contains(
-            &"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:analytic_reference".to_owned()
-        ));
+        assert!(
+            blockers
+                .contains(&"MODEL_REQUIRED_MODALITY_NOT_QUALIFIED:analytic_reference".to_owned())
+        );
     }
 
     #[test]
@@ -756,9 +797,10 @@ pub(crate) mod tests {
         cut.uncertainty_components.clear();
         cut.metric_stratum_reports.remove(0);
         let blockers = cut.reviewability_blockers();
-        assert!(blockers.contains(
-            &"MODEL_UNCERTAINTY_COMPONENT_UNVERIFIED:observation_noise".to_owned()
-        ));
+        assert!(
+            blockers
+                .contains(&"MODEL_UNCERTAINTY_COMPONENT_UNVERIFIED:observation_noise".to_owned())
+        );
         assert!(blockers.contains(
             &"MODEL_METRIC_STRATUM_REPORT_MISSING:prediction_interval_coverage:material:aluminium".to_owned()
         ));
@@ -771,7 +813,9 @@ pub(crate) mod tests {
         assert!(zero.compute_sha256().is_err());
 
         let mut duplicate = fixture();
-        duplicate.metric_stratum_reports.push(duplicate.metric_stratum_reports[0].clone());
+        duplicate
+            .metric_stratum_reports
+            .push(duplicate.metric_stratum_reports[0].clone());
         assert!(duplicate.compute_sha256().is_err());
     }
 }
