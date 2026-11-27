@@ -1571,6 +1571,121 @@
       "expected_contract_error": "SupersedesNonHealthyObservation",
       "expected_actions": [],
       "rationale": "Only a verified Healthy observation can clear an alert; an Alert cannot itself carry a supersession."
+    },
+    {
+      "case_id": "PW-021-REMEDIATION-RECEIPT-REUSED",
+      "target_id": "archive-A",
+      "evaluated_at_unix": 150,
+      "policy": {
+        "required_signals": [
+          "Fixity",
+          "Calibration",
+          "TrustAnchor"
+        ],
+        "minimum_independent_copies": 0
+      },
+      "observations": [
+        {
+          "observation_id": "FIX-ALERT-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 1,
+          "state": "Alert",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-ALERT-2",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 2,
+          "state": "Alert",
+          "observed_at_unix": 102,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-CLEAR-1",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 3,
+          "state": "Healthy",
+          "observed_at_unix": 103,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "FIX-ALERT-1",
+          "remediation_receipt_id": "REM-REUSED",
+          "remediation_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "FIX-CLEAR-2",
+          "target_id": "archive-A",
+          "signal": "Fixity",
+          "sequence": 4,
+          "state": "Healthy",
+          "observed_at_unix": 104,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": "FIX-ALERT-2",
+          "remediation_receipt_id": "REM-REUSED",
+          "remediation_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "CAL-1",
+          "target_id": "archive-A",
+          "signal": "Calibration",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        },
+        {
+          "observation_id": "TRUST-1",
+          "target_id": "archive-A",
+          "signal": "TrustAnchor",
+          "sequence": 1,
+          "state": "Healthy",
+          "observed_at_unix": 101,
+          "valid_until_unix": 200,
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "observer_id": "independent-watcher",
+          "provenance": "Verified",
+          "supersedes_observation_id": null,
+          "remediation_receipt_id": null,
+          "remediation_receipt_sha256": null,
+          "observed_independent_copies": null
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "DuplicateRemediationReceiptId",
+      "expected_actions": [],
+      "rationale": "Each cleared alert requires a distinct remediation receipt; a reused receipt identifier is rejected."
     }
   ]
 }
