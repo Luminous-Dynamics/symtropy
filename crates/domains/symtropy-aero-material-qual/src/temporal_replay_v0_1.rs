@@ -952,6 +952,36 @@ mod tests {
     }
 
     #[test]
+    fn every_corpus_case_is_invariant_to_event_array_permutation() {
+        for case in corpus()["cases"].as_array().unwrap() {
+            let baseline = evaluate_temporal_replay_case_all_modes(case);
+            let mut reversed = case.clone();
+            let events = case["events"].as_array().unwrap();
+            reversed["events"] = Value::Array(events.iter().cloned().rev().collect());
+            assert_eq!(
+                baseline,
+                evaluate_temporal_replay_case_all_modes(&reversed),
+                "{}",
+                case["case_id"].as_str().unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn issuer_recorded_time_does_not_substitute_for_receiver_first_seen() {
+        let mut case = corpus()["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["case_id"] == "known-effective-revocation")
+            .unwrap()
+            .clone();
+        let baseline = evaluate_temporal_replay_case_all_modes(&case);
+        case["events"][0]["issuer_recorded_at_unix_ms"] = Value::from(9_999_999);
+        assert_eq!(baseline, evaluate_temporal_replay_case_all_modes(&case));
+    }
+
+    #[test]
     fn event_order_permutation_preserves_each_query_mode() {
         let case = corpus()["cases"]
             .as_array()
