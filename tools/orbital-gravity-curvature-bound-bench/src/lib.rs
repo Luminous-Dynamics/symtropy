@@ -1,7 +1,5 @@
 #![deny(unsafe_code)]
 
-use std::collections::BTreeSet;
-
 pub const RECEIPT_SCHEMA: &str = "luminous.orbital-gravity-curvature-bound.receipt.v0.1";
 pub const CURVATURE_SCALE: u128 = 1_000_000;
 pub const SHA256_HEX_LEN: usize = 64;
