@@ -212,3 +212,10 @@ The research crosswalk adds [ESI-Bench](https://esi-bench.github.io/) as the act
 Opened [DYN-MAP-PERSISTENCE-001 #7787](https://github.com/Luminous-Dynamics/symtropy/issues/7787) to qualify persistent structure versus transient indoor occupancy. It composes #1595, #6183, #6201, #7693 and #6754 and uses THUD++ as an external dynamic-scene reference. The first target is to separate temporary people/carts/occlusion from lasting structural changes, report 5/10/15-pedestrian strata independently, and score map revisions and tracking coverage without pooling real-world, synthetic and Unity-emulator results.
 
 THUD++ data: [paper](https://www.nature.com/articles/s41597-026-07993-8) · [code](https://github.com/jackyzengl/THUD-plus-plus) · [dataset DOI](https://doi.org/10.5281/zenodo.18459791).
+
+
+## Failure-inclusive benchmark qualification
+
+The spatial protocol now adopts a mandatory failure/coverage scorecard. Conditional ATE/RPE on successful trajectories must be reported beside the complete attempt denominator, sequence coverage, tracking loss, timeouts, crashes, abstentions and unsupported cases. It also defines risk–coverage and preregistered utility reporting so failed runs cannot disappear from a mean. This is informed by the [CROSS leaderboard's explicit rule](https://jiaming.im/CROSS/leaderboard/): tracking failures below 80% frame coverage, crashes and timeouts are excluded from mean ATE and leave rows unranked. Our comparisons must retain those failures rather than repeat that censoring as a single headline metric.
+
+The work composes existing [NAV-TRANSITION-001 #6434](https://github.com/Luminous-Dynamics/symtropy/issues/6434) for continuity across observability-regime changes and [NAV-ACTIVE-ACQUISITION-RELIABILITY-001 #7080](https://github.com/Luminous-Dynamics/symtropy/issues/7080) for acquisition success/failure/unknown-outcome branches. No new navigation controller or generic reliability engine is proposed.
