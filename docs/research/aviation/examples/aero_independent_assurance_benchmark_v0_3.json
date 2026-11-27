@@ -207,14 +207,28 @@
       "unit": "proportion",
       "operator": "maximum",
       "critical": true
+    },
+    {
+      "metric": "receipt_replay_acceptance_rate",
+      "target": 0,
+      "unit": "proportion",
+      "operator": "maximum",
+      "critical": true
+    },
+    {
+      "metric": "missing_required_stratum_acceptance_rate",
+      "target": 0,
+      "unit": "proportion",
+      "operator": "maximum",
+      "critical": true
     }
   ],
   "statistical_notes": {
-    "zero_failure_upper_95_approx": "3/n independent trials",
-    "n_for_1_percent": 300,
+    "zero_failure_upper_95_approx": "3/n independent trials (approximation only); use exact one-sided Clopper-Pearson bounds for reporting",
+    "n_for_1_percent": 299,
     "n_for_0_1_percent": 2995,
     "n_for_0_01_percent": 29956,
-    "caveat": "Clustered mutations are not independent trials; report independent episodes, root-cause families, and generated variants separately."
+    "caveat": "One independent unit is one independently sourced engineering episode/root-cause family. Variants sharing a root cause are clustered descendants, not independent Bernoulli trials. Report independent units, unique root-cause families, and generated variants separately."
   },
   "baselines": [
     "expert_review",
@@ -566,5 +580,33 @@
       "gating": "qualification",
       "notes": "Report rejection and out-of-scope errors separately."
     }
-  ]
+  ],
+  "statistical_protocol": {
+    "method": "one_sided_exact_binomial_clopper_pearson",
+    "confidence_level": 0.95,
+    "alpha": 0.05,
+    "zero_adverse_event_upper_bound_formula": "1 - alpha^(1/n)",
+    "sample_size_for_zero_adverse_events_formula": "ceil(log(alpha) / log(1 - target_adverse_event_probability))",
+    "required_independent_units_for_zero_adverse_events": [
+      {
+        "target_upper_adverse_event_probability": 0.01,
+        "required_independent_units": 299
+      },
+      {
+        "target_upper_adverse_event_probability": 0.001,
+        "required_independent_units": 2995
+      },
+      {
+        "target_upper_adverse_event_probability": 0.0001,
+        "required_independent_units": 29956
+      }
+    ],
+    "statistical_unit": "One independently sourced engineering episode or root-cause family, with no sibling mutation counted as a separate independent observation.",
+    "cluster_policy": "All mutations, derived prompts, evidence variants, graph perturbations and replay modes generated from one root cause remain one cluster and one statistical unit. Report variant count separately; do not inflate n with correlated mutations.",
+    "stratum_policy": "Report every critical metric separately for each preregistered critical stratum and report the worst critical stratum. Do not pool away rare subject/configuration/model-domain or authority failures.",
+    "confidence_reporting": "Report exact one-sided 95% Clopper-Pearson bounds for adverse-event probabilities and the complementary lower bound for success metrics. For simultaneous claims over multiple critical metrics, also report preregistered Bonferroni-adjusted bounds using alpha divided by the number of critical hypotheses.",
+    "zero_denominator": "A metric with denominator zero is NOT_ESTIMABLE, not zero, not a pass and not omitted.",
+    "nonzero_events": "When adverse events are observed, report the exact one-sided Clopper-Pearson upper bound using the preregistered confidence level; point estimates alone are insufficient.",
+    "status": "PROSPECTIVE_PREREGISTERED_NOT_EXECUTED"
+  }
 }
