@@ -153,6 +153,9 @@ fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
         recovery_cost_units: 120,
         recovery_emissions_units: 50,
         requalification_actions: 3,
+        replan_invocations: 5,
+        plan_churn_changes: 24,
+        decision_latency_millis: 15_000,
     };
     let clairvoyant_bound = RecoveryServiceOutcome {
         instance_id: candidate.instance_id.clone(),
@@ -173,6 +176,9 @@ fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
         recovery_cost_units: 100,
         recovery_emissions_units: 40,
         requalification_actions: 1,
+        replan_invocations: 2,
+        plan_churn_changes: 12,
+        decision_latency_millis: 9_000,
     };
 
     let regret = compare_recovery_regret(&candidate, &clairvoyant_bound).unwrap();
@@ -187,4 +193,7 @@ fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
     assert_eq!(regret.recovery_cost_units_delta, 20);
     assert_eq!(regret.recovery_emissions_units_delta, 10);
     assert_eq!(regret.requalification_actions_delta, 2);
+    assert_eq!(regret.replan_invocations_delta, 3);
+    assert_eq!(regret.plan_churn_changes_delta, 12);
+    assert_eq!(regret.decision_latency_millis_delta, 6_000);
 }
