@@ -526,7 +526,6 @@ mod tests {
     }
 
     #[test]
-    fn positive_differential_acceleration_increases_the_bound() {    #[test]
     fn positive_differential_acceleration_increases_the_bound() {
         let baseline = derive(&input());
         let mut higher = input();
