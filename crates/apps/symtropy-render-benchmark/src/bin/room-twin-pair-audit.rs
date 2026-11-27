@@ -49,20 +49,31 @@ fn read_receipt(directory: &Path) -> Result<Value, Box<dyn Error>> {
     Ok(serde_json::from_slice(&bytes)?)
 }
 
-fn validate_receipt(receipt: &Value, directory: &Path) -> Result<Vec<DecodedCapture>, Box<dyn Error>> {
+fn validate_receipt(
+    receipt: &Value,
+    directory: &Path,
+) -> Result<Vec<DecodedCapture>, Box<dyn Error>> {
     if receipt["capture_status"] != "complete"
         || receipt["capture_complete"] != true
         || receipt["qualification_status"] != "qualified_metadata"
         || receipt["expected_image_count"].as_u64() != Some(CAPTURE_TIMES.len() as u64)
         || receipt["capture_stem"].as_str() != Some(CAPTURE_STEM)
     {
-        return Err(format!("capture receipt is incomplete or unqualified in {}", directory.display()).into());
+        return Err(format!(
+            "capture receipt is incomplete or unqualified in {}",
+            directory.display()
+        )
+        .into());
     }
 
     if receipt["metadata"]["fixture_id"].as_str() != Some("ROOM-TWIN-01")
         || receipt["metadata"]["camera_id"].as_str() != Some("room-twin-camera-v1")
     {
-        return Err(format!("capture receipt has the wrong fixture/camera identity in {}", directory.display()).into());
+        return Err(format!(
+            "capture receipt has the wrong fixture/camera identity in {}",
+            directory.display()
+        )
+        .into());
     }
 
     let width = receipt["metadata"]["width_px"]
@@ -87,7 +98,10 @@ fn validate_receipt(receipt: &Value, directory: &Path) -> Result<Vec<DecodedCapt
             .as_f64()
             .ok_or("capture lacks scheduled_time_secs")?;
         if (actual_time - expected_time).abs() > 0.01 {
-            return Err(format!("capture {index} scheduled at {actual_time}, expected {expected_time}").into());
+            return Err(format!(
+                "capture {index} scheduled at {actual_time}, expected {expected_time}"
+            )
+            .into());
         }
 
         let expected_name = format!("{CAPTURE_STEM}_t{expected_time:.1}.png");
@@ -103,7 +117,9 @@ fn validate_receipt(receipt: &Value, directory: &Path) -> Result<Vec<DecodedCapt
         if image["width_px"].as_u64() != Some(u64::from(width))
             || image["height_px"].as_u64() != Some(u64::from(height))
         {
-            return Err(format!("capture {index} decoded dimensions differ from receipt fields").into());
+            return Err(
+                format!("capture {index} decoded dimensions differ from receipt fields").into(),
+            );
         }
         decoded.push(frame);
     }
@@ -112,8 +128,14 @@ fn validate_receipt(receipt: &Value, directory: &Path) -> Result<Vec<DecodedCapt
 
 fn run() -> Result<(), Box<dyn Error>> {
     let mut args = env::args_os().skip(1);
-    let world_a = PathBuf::from(args.next().ok_or("usage: room-twin-pair-audit <world-a-dir> <world-b-dir>")?);
-    let world_b = PathBuf::from(args.next().ok_or("usage: room-twin-pair-audit <world-a-dir> <world-b-dir>")?);
+    let world_a = PathBuf::from(
+        args.next()
+            .ok_or("usage: room-twin-pair-audit <world-a-dir> <world-b-dir>")?,
+    );
+    let world_b = PathBuf::from(
+        args.next()
+            .ok_or("usage: room-twin-pair-audit <world-a-dir> <world-b-dir>")?,
+    );
     if args.next().is_some() {
         return Err("too many arguments".into());
     }
@@ -137,7 +159,8 @@ fn run() -> Result<(), Box<dyn Error>> {
 
     if !(prefix_1_equal && prefix_2_equal && within_a_stable && within_b_stable && reveal_differs) {
         return Err(format!(
-            "ROOM-TWIN-01 pixel audit failed: prefix1={prefix_1_equal}, prefix2={prefix_2_equal},              stableA={within_a_stable}, stableB={within_b_stable}, revealDiffers={reveal_differs}"
+            "ROOM-TWIN-01 pixel audit failed: prefix1={prefix_1_equal}, prefix2={prefix_2_equal}, \\
+             stableA={within_a_stable}, stableB={within_b_stable}, revealDiffers={reveal_differs}"
         )
         .into());
     }

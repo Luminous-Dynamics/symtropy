@@ -14,7 +14,6 @@ use std::env;
 use symtropy_demo_capture::CapturePlugin;
 
 const FIXTURE_ID: &str = "ROOM-TWIN-01";
-const CAMERA_ID: &str = "room-twin-camera-v1";
 const CAPTURE_PREFIX: f32 = 4.0;
 const REVEAL_CAPTURE: f32 = 7.0;
 
@@ -84,7 +83,7 @@ fn camera_rail() -> CameraRail {
                 transform: corridor_hold,
             },
             CameraWaypoint {
-                at_secs: 4.5,
+                at_secs: CAPTURE_PREFIX + 0.5,
                 transform: corridor_view,
             },
             CameraWaypoint {
@@ -96,7 +95,7 @@ fn camera_rail() -> CameraRail {
                 transform: inner_room,
             },
             CameraWaypoint {
-                at_secs: 6.8,
+                at_secs: REVEAL_CAPTURE - 0.2,
                 transform: reveal,
             },
         ],
@@ -162,7 +161,7 @@ fn main() {
     };
 
     let window = Window {
-        title: FIXTURE_ID.to_owned(),
+        title: format!("{FIXTURE_ID} — room-twin-camera-v1"),
         resolution: (width, height).into(),
         ..default()
     };
@@ -400,12 +399,3 @@ mod tests {
     }
 }
 
-impl WorldVariant {
-    fn from_value(value: &str) -> Option<Self> {
-        match value {
-            "A" => Some(Self::AOpen),
-            "B" => Some(Self::BClosed),
-            _ => None,
-        }
-    }
-}
