@@ -529,3 +529,75 @@ Report separately:
 - **Reopen cost:** additional evidence, computation, latency and retained-state bytes needed to split a previously decision-equivalent class when a new query makes the distinction relevant.
 
 The paradigm-shift target is not maximal reconstruction. It is the smallest auditable spatial quotient that preserves the current decision, plus enough residual structure to answer a later query correctly. Evaluate storage/compute savings only at matched grounded-decision quality, coverage and regret; compression that drops future-relevant residuals is a failure.
+
+
+## 23. Active exploration and falsification-seeking benchmark lane
+
+### 23.1 External reference: ESI-Bench
+
+[ESI-Bench](https://esi-bench.github.io/) evaluates embodied spatial intelligence in OmniGibson across 3,081 tasks, 10 categories and 29 subcategories. It compares four access regimes: passive single-view; passive random multi-view with 30 views; active exploration under a 30-step action budget; and ground-truth passive trajectories as an oracle for separating action-selection from perception errors. Its action space includes perception, locomotion and manipulation.
+
+The paper reports several results that directly change our research priorities:
+- Active exploration improves View Hallucination from 39.9% to 68.1% and Rigid Containment from 47.5% to 67.5% in the reported comparisons.
+- Passive random multi-view can be neutral or harmful despite more images; GPT-5 drops from 53.9% to 49.1% on Spatial Distance in the cited single-view versus random multi-view comparison.
+- Oracle trajectories expose action-selection as a major bottleneck: GPT-5 on Rigid Containment rises from 42.5% under active exploration to 95.0% with ground-truth trajectory views; on Physical Contact it rises from 64.2% to 90.0%.
+- Imperfect 3D reconstruction can be worse than a 2D baseline: VGGT+Gemini reaches 9.9% on Geometric Configuration versus 27.5% for Gemini 3.1, and 0.0% versus 3.3% on Counting with Occlusion.
+- The authors also identify a metacognitive gap in falsification-seeking and belief revision. Exact ESI scores are specific to its simulator, tasks, models, prompts and action interface; they are not SLAM metrics.
+
+Sources: https://esi-bench.github.io/ and https://arxiv.org/abs/2605.18746.
+
+### 23.2 Symtropy active-exploration crosswalk
+
+The new `scenario-matrix-active-exploration-v0.tsv` adds four paired counterfactuals / eight metadata-only cases:
+1. targeted diagnostic view versus equally budgeted random views;
+2. falsification-seeking probe versus confirmatory re-view;
+3. stop when the decision-sufficiency gate passes versus waste the remaining observation budget;
+4. defer/fallback from uncertain 3D versus promoting corrupted 3D as authoritative.
+
+This is not a clone of ESI-Bench. ESI supplies an established embodied baseline and oracle-ablation design; our added score planes ask whether the action is *decision-useful*, whether it falsifies an existing map claim, whether the residual alternatives remain recoverable, and whether extra observations or noisy 3D actually improve the current decision.
+
+### 23.3 Required tournament arms
+
+On a rights-qualified active environment, compare matched task instances and compute/interaction budgets across:
+- passive single view;
+- passive random multi-view at the same maximum observation/action count;
+- candidate's active exploration policy;
+- oracle diagnostic viewpoint/action trajectory (evaluator only);
+- 2D/source-evidence fallback;
+- reconstructed-3D representation with explicit uncertainty;
+- oracle 3D geometry (diagnostic upper bound only).
+
+Preserve identical task seeds, initial states, action vocabulary, deadlines and evaluator labels across arms. Separate perception ceiling from action-selection regret by comparing candidate trajectories with the oracle trajectory. Do not treat oracle geometry or hidden state as candidate input.
+
+### 23.4 New metrics
+
+Report:
+- active gain over passive-single and random-multiview at matched budgets;
+- decision value per action and per delivered observation;
+- falsification-seeking rate when a legal action can discriminate a high-impact competing hypothesis;
+- belief-revision latency and correctness after contradiction;
+- action-selection regret against evaluator oracle actions;
+- observation overload / irrelevant-view citation rate;
+- step-to-sufficiency and cost-to-sufficiency;
+- noisy-3D degradation versus 2D/source-grounded fallback;
+- stop-policy violations and post-sufficiency wasted acquisitions.
+
+A model that sees more images but chooses poor viewpoints has not solved active spatial intelligence. A model that acquires a correct view but fails to revise its belief has not solved it either.
+
+### 23.5 Prospective promotion targets
+
+These are research targets, not achieved results:
+- First reproduce ESI-Bench under its exact environment, model, prompt, action and budget protocol; target within ±2 absolute points on matched reproduced scores before claiming a baseline reproduction.
+- Then target at least +5 absolute points over the strongest reproduced compatible active baseline on preregistered task strata, at no greater interaction budget.
+- Beat passive random multi-view at matched observation count on decision quality and cost-to-sufficiency, not merely final answer accuracy.
+- In deterministic falsification controls, zero premature unique-map/safe claims before the distinguishing observation and zero failure to revise the contradicted claim after it arrives.
+- Require uncertain reconstructed 3D to be non-inferior to the source-grounded 2D fallback within a preregistered 1-point absolute margin; otherwise the candidate must retain alternatives or fall back.
+- Report mean, standard deviation, confidence intervals and failure denominators across at least five independent seeds where the benchmark supports stochastic replication; do not report the best seed alone.
+
+### 23.6 Dynamic indoor environment reference: THUD++
+
+[THUD++](https://www.nature.com/articles/s41597-026-07993-8) is a complementary dynamic indoor dataset: 13 scenarios (8 real and 5 synthetic), more than 90,000 RGB-D frames, over 20 million static/dynamic 2D/3D boxes, camera poses and IMU measurements, plus more than 6,000 pedestrian trajectories and a Unity-based closed-loop navigation emulator with more than 15 scenes. Its fixed pedestrian-density splits and crowded real-world scenes are valuable for testing dynamic-object persistence, static-structure protection, relocalization and route safety.
+
+Keep the real and synthetic portions separate. For any SLAM or navigation reproduction, pin the exact scene/split, sensor modality and ground-truth source. The paper describes Unity-exported camera poses for its synthetic evaluation and different provenance for real-world capture; do not imply all tracks have identical ground-truth independence. Treat the emulator as simulation evaluation, not physical field evidence.
+
+Source: https://www.nature.com/articles/s41597-026-07993-8 and https://github.com/jackyzengl/THUD-plus-plus.
