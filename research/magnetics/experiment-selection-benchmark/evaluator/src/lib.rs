@@ -820,6 +820,18 @@ mod tests {
         objectives: Vec<f64>,
         probability: f64,
     ) -> HoldoutObservation {
+        let predicted_intervals = vec![
+            PredictionInterval {
+                objective_index: 0,
+                lower: objectives[0] - 2.0,
+                upper: objectives[0] + 2.0,
+            },
+            PredictionInterval {
+                objective_index: 1,
+                lower: objectives[1] - 0.075,
+                upper: objectives[1] + 0.075,
+            },
+        ];
         HoldoutObservation {
             holdout_id: id.to_string(),
             candidate_id: candidate.to_string(),
@@ -830,18 +842,7 @@ mod tests {
             objective_values: objectives,
             design_features: vec![0.5, 0.75],
             predicted_feasibility_probability: probability,
-            predicted_intervals: vec![
-                PredictionInterval {
-                    objective_index: 0,
-                    lower: 10.0,
-                    upper: 14.0,
-                },
-                PredictionInterval {
-                    objective_index: 1,
-                    lower: 0.35,
-                    upper: 0.50,
-                },
-            ],
+            predicted_intervals,
         }
     }
 
