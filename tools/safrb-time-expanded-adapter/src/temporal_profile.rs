@@ -10,9 +10,7 @@
 //! This compiler does not authenticate inputs, infer event ordering, model
 //! cross-node common resources, perform grade conversion, or authorize actions.
 
-use single_commodity_flow_kernel::{
-    FlowCertificateBundle, FlowEdge, FlowGraph, FlowNode, FlowResult, MAX_EDGES, MAX_NODES,
-};
+use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES};
 use std::collections::BTreeSet;
 
 pub const TEMPORAL_PROFILE_SCHEMA: &str =
@@ -458,6 +456,7 @@ pub fn compile_temporal_profile(profile: &TemporalProfile) -> Result<FlowGraph, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use single_commodity_flow_kernel::{FlowCertificateBundle, FlowResult};
 
     fn node(
         id: &str,
