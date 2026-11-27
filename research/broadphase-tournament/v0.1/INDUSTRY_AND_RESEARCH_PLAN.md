@@ -256,3 +256,19 @@ The Dimforge Q3 2026 technical report says Physmark detects engine timeouts and 
 - Keep every CPU/GPU/device comparison lane separate unless both hardware and semantic comparison groups are explicitly matched.
 
 This is a methodological differentiator, not an algorithmic speed result. It prevents a system from appearing faster by failing to finish difficult cases. See the [Dimforge Q3 2026 report](https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/), and compose with [#3822](https://github.com/Luminous-Dynamics/symtropy/issues/3822), [#3866](https://github.com/Luminous-Dynamics/symtropy/issues/3866) and [#4559](https://github.com/Luminous-Dynamics/symtropy/issues/4559).
+
+
+### 7.7 Contact recycling is now established prior art
+
+The October 2026 Box2D contact-recycling publication changes our novelty boundary. Box2D 3.2 enables contact recycling by default: it caches a relative transform, bounds relative translation/rotation, reuses contact points when movement is small, and updates separation to retain stability. The 3.2 release notes describe default thresholds around 5 cm / 11 degrees and per-world/per-body controls. The Box2D 3.2 release reports an approximately 3x total improvement over 3.1, with contact recycling one contributor; treat that as a vendor-reported breakdown, not a matched external result.
+
+Symtropy must not claim basic relative-motion manifold reuse as novel. Compare Box2D 3.2 one-shot manifold recycling, PhysX persistent contact manifold/contact-cache alternatives, and exact pinned Bepu/Avian/Rapier implementations where appropriate.
+
+The research target is an **evidence-qualified lease**: feature-margin lower bounds, normal-variation bounds, gap intervals, exact shape/proxy generations, material/callback and solver freshness as separate state, and independent replay. The new `contact_reuse_lease` module is a reference admission predicate over externally supplied witnesses, not production integration.
+
+Box2D also warns that cached relative transforms must not be rebased every recycled step because this accumulates drift. Symtropy's benchmark must include long-duration drift tests where the cached reference transform changes only on a fresh narrowphase/manifold build.
+
+References:
+- [Box2D contact recycling design (2026-10-12)](https://box2d.org/posts/2026/10/contact-recycling/)
+- [Box2D 3.2 release notes](https://box2d.org/documentation/md_release__notes__v320.html)
+- [Box2D simulation/contact documentation](https://box2d.org/documentation/md_simulation.html)
