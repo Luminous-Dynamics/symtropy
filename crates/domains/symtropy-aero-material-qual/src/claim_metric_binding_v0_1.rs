@@ -402,6 +402,9 @@ impl ClaimMetricSemanticBindingV0_1 {
         } else if !valid_sha256(raw_specification_payload_sha256) {
             rejected = true;
             reasons.insert("CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_INVALID".to_owned());
+        } else if self.claim_specification_payload_sha256.trim().is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_METRIC_BINDING_SPECIFICATION_PAYLOAD_DIGEST_MISSING".to_owned());
         } else if self.claim_specification_payload_sha256 != raw_specification_payload_sha256 {
             rejected = true;
             reasons.insert("CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH".to_owned());
@@ -409,6 +412,9 @@ impl ClaimMetricSemanticBindingV0_1 {
         if semantic_digest.is_empty() {
             incomplete = true;
             reasons.insert("CLAIM_SPECIFICATION_SEMANTIC_COMMITMENT_UNAVAILABLE".to_owned());
+        } else if self.claim_specification_semantic_sha256.trim().is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_METRIC_BINDING_SPECIFICATION_SEMANTIC_DIGEST_MISSING".to_owned());
         } else if self.claim_specification_semantic_sha256 != semantic_digest {
             rejected = true;
             reasons.insert("CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned());
@@ -422,7 +428,10 @@ impl ClaimMetricSemanticBindingV0_1 {
                 String::new()
             }
         };
-        if !context_digest.is_empty() && self.decision_context_sha256 != context_digest {
+        if self.decision_context_sha256.trim().is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_METRIC_BINDING_DECISION_CONTEXT_DIGEST_MISSING".to_owned());
+        } else if !context_digest.is_empty() && self.decision_context_sha256 != context_digest {
             rejected = true;
             reasons.insert("CLAIM_METRIC_BINDING_DECISION_CONTEXT_MISMATCH".to_owned());
         }
@@ -548,7 +557,10 @@ impl ClaimMetricSemanticBindingV0_1 {
                 String::new()
             }
         };
-        if !model_digest.is_empty() && self.model_credibility_sha256 != model_digest {
+        if self.model_credibility_sha256.trim().is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_METRIC_BINDING_MODEL_CREDIBILITY_DIGEST_MISSING".to_owned());
+        } else if !model_digest.is_empty() && self.model_credibility_sha256 != model_digest {
             rejected = true;
             reasons.insert("CLAIM_METRIC_BINDING_MODEL_CREDIBILITY_DIGEST_MISMATCH".to_owned());
         }
@@ -571,7 +583,10 @@ impl ClaimMetricSemanticBindingV0_1 {
                 String::new()
             }
         };
-        if !owner_digest.is_empty() && self.owner_evidence_cut_sha256 != owner_digest {
+        if self.owner_evidence_cut_sha256.trim().is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_METRIC_BINDING_OWNER_CUT_DIGEST_MISSING".to_owned());
+        } else if !owner_digest.is_empty() && self.owner_evidence_cut_sha256 != owner_digest {
             rejected = true;
             reasons.insert("CLAIM_METRIC_BINDING_OWNER_CUT_DIGEST_MISMATCH".to_owned());
         }
