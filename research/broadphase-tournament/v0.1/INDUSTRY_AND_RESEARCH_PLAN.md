@@ -322,3 +322,12 @@ The current target is not to claim an aggregate win over PhysX/Rapier/Nexus imme
 A new `contact-lease-benchmark` binary produces nine scenarios across 2D/3D/4D and reports per-check time and outcome accounting. The CI campaign runs 100,000 checks per row and retains 27 rows. This isolates the cost of processing a geometric lease witness and deciding reuse versus refresh.
 
 Do not interpret the microbenchmark as proof of contact recycling speedup: it does not build the feature margin, normal-variation interval, updated separation, nor run actual GJK/EPA/SAT. The next matched stage comparison must pair it with fresh narrowphase cost and include witness derivation and update-separation cost. The final comparison must include solver and callback/event semantics.
+
+
+### 7.12 Transform-derived rotation displacement bounds
+
+The contact lease no longer accepts a caller-reported maximum rotation angle. Its input is the entrywise outward upper bound on the absolute difference between the current and last-fresh relative rotation matrices. It derives a Frobenius-norm upper bound and multiplies by the maximum contact-anchor lever arm.
+
+For any anchor x, `||ΔR x||₂ ≤ ||ΔR||₂ ||x||₂ ≤ ||ΔR||F ||x||₂`. The Frobenius bound is more conservative than the spectral norm but avoids angle extraction and covers any number of independent rotation planes, including 4D. Each supplied matrix entry must already bound the absolute difference outward; the code then performs outward-rounded squares, sums, square root and radius multiplication.
+
+This is a better witness interface than a scalar angle, but the production adapter still must derive the entrywise matrix-difference bounds from authoritative transforms and account for transform quantization/error. The current lease microbenchmark uses synthetic matrix witnesses; it does not yet measure transform extraction from live physics state.
