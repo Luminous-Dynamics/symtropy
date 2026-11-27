@@ -4,13 +4,13 @@ Companion to [MCSC-ROBUST-ACTION-ENVELOPE-001 #7858](https://github.com/Luminous
 
 ## Why a joint risk budget is required
 
-Five marginal 90% intervals do not imply that all five values are simultaneously within their intervals with 90% probability. Without relying on independence, a union-bound guarantee requires allocating marginal miscoverage probabilities whose sum is no greater than the desired joint miscoverage budget.
+Five marginal 90% intervals do not imply that all five values are simultaneously inside their intervals with 90% probability. Without relying on independence, a union-bound guarantee requires marginal miscoverage probabilities whose sum is no greater than the desired joint miscoverage budget.
 
 v0.1 requires a predeclared alpha allocation for arrival, handling duration, crane minutes, shore power and yard slots. Each interval must carry exactly its allocated alpha, and the allocation sum must not exceed the target joint alpha.
 
 ## Implemented API
 
-The Rust module src/robust_action.rs provides JointRiskBudget, JointPredictionIntervals, ResourceCapacities, per-constraint assessments and an overall Feasible/Infeasible/Indeterminate result. It verifies interval alpha allocation and same-decision-cutoff semantics, then computes adverse berth start/finish using latest arrival and upper handling duration.
+The Rust module src/robust_action.rs provides JointRiskBudget, JointPredictionIntervals, ResourceCapacities, per-constraint assessments and an overall Feasible/Infeasible/Indeterminate result. It verifies interval alpha allocation, exact finite-sample rank from sample count and alpha, same-decision-cutoff semantics, and the adverse berth start/finish using latest arrival and upper handling duration.
 
 The interval type carries alpha_ppm so the adapter can verify each calibrated interval against the predeclared resource risk allocation.
 
@@ -18,7 +18,7 @@ The interval type carries alpha_ppm so the adapter can verify each calibrated in
 
 For resource intervals with marginal miscoverage allowances alpha_i, the union bound gives joint miscoverage <= sum(alpha_i), without requiring independence between the resource errors. If the sum exceeds the declared joint alpha target, the adapter returns Indeterminate. Five 2% marginal intervals fit a 10% joint budget; five 10% marginal intervals do not.
 
-This is a lower-bound guarantee only under the declared marginal split-conformal assumptions for each interval. It does not repair distribution shift, temporal dependence or unsupported exchangeability. Any shifted/unknown interval, missing/unbounded interval, alpha mismatch or decision-cutoff mismatch prevents a Feasible result.
+This is a lower-bound guarantee only under the declared marginal split-conformal assumptions for each interval. It does not repair distribution shift, temporal dependence or unsupported exchangeability. Any shifted/unknown interval, missing/unbounded interval, alpha mismatch, invalid rank or decision-cutoff mismatch prevents a Feasible result.
 
 ## Resource gate
 
@@ -37,7 +37,7 @@ v0.1 does not model berth overlap with other vessels, crane interference, tidal 
 ## Required benchmark reporting
 
 - predeclared per-resource alpha allocations and total joint alpha;
-- interval sample count, model/schema/data digests, calibration windows and decision cutoff;
+- interval sample count, exact finite-sample rank, model/schema/data digests, calibration windows and decision cutoff;
 - exchangeability applicability for each marginal interval;
 - interval width and empirical marginal coverage per resource;
 - union-bound joint coverage lower bound implied by the alpha allocation;
