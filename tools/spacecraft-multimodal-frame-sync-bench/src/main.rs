@@ -102,7 +102,7 @@ fn json_escape(value: &str) -> String {
 
 fn render_map(map: &std::collections::BTreeMap<String, String>) -> String {
     map.iter()
-        .map(|(key, value)| format!("\"{}\":\"{}\",", json_escape(key), json_escape(value)))
+        .map(|(key, value)| format!("\"{}\":\"{}\"", json_escape(key), json_escape(value)))
         .collect::<Vec<_>>()
         .join(",")
 }
