@@ -1207,12 +1207,11 @@ mod tests {
         context.evidence_knowledge_cut_sha256 = owner_cut
             .compute_sha256()
             .expect("owner cut fixture digest");
-        context.required_evidence_manifest_sha256 =
-            compute_required_evidence_manifest_sha256(&[
-                "receipt:inspection-01".to_owned(),
-                "receipt:calibration-02".to_owned(),
-            ])
-            .expect("required evidence manifest");
+        context.required_evidence_manifest_sha256 = compute_required_evidence_manifest_sha256(&[
+            "receipt:inspection-01".to_owned(),
+            "receipt:calibration-02".to_owned(),
+        ])
+        .expect("required evidence manifest");
         let model_sha256 = model_cut.compute_sha256().expect("model cut digest");
         let owner_sha256 = owner_cut.compute_sha256().expect("owner cut digest");
 
