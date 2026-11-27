@@ -219,11 +219,8 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     }
     let mut temporal_keys = BTreeSet::new();
     for key in &manifest.temporal_exclusion_keys {
-        if !nonempty(key)
-            || !temporal_keys.insert(key)
-            || key == &manifest.group_key
-        {
-            return Err("temporal exclusion keys must be non-empty, unique and distinct from group_key".to_owned());
+        if !nonempty(key) || !temporal_keys.insert(key) {
+            return Err("temporal exclusion keys must be non-empty and unique".to_owned());
         }
     }
     if manifest.leakage_keys.is_empty() {
