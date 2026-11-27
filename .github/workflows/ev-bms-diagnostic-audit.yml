@@ -41,7 +41,7 @@ jobs:
 
       - name: Audit frozen synthetic corpus
         run: |
-          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml -- --schema schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json --corpus fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json > "$RUNNER_TEMP/ev-bms-diagnostic-report.json"
+          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-diagnostic-audit -- --schema schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json --corpus fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json > "$RUNNER_TEMP/ev-bms-diagnostic-report.json"
           jq -e '
             .case_count == 12 and
             .accepted_count == 6 and
