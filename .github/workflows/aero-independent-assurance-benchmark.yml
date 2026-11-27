@@ -62,6 +62,6 @@ jobs:
       - name: Check AERO evaluator formatting
         run: cargo fmt --manifest-path Cargo.toml --package symtropy-aero-material-qual -- --check
       - name: Test AERO disposition evaluator (locked dependency graph)
-        run: cargo test --locked --manifest-path Cargo.toml --package symtropy-aero-material-qual assurance_disposition_v0_1
+        run: cargo test --locked --manifest-path Cargo.toml --package symtropy-aero-material-qual
       - name: Clippy AERO evaluator (locked dependency graph)
         run: cargo clippy --locked --manifest-path Cargo.toml --package symtropy-aero-material-qual --all-targets -- -D warnings
