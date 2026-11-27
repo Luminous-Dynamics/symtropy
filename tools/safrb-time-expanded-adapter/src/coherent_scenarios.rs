@@ -13,6 +13,7 @@
 use crate::temporal_profile::{TemporalProfile, compile_temporal_profile};
 use crate::temporal_verify::verify_temporal_certificate;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use single_commodity_flow_kernel::FlowCertificateBundle;
 use std::collections::BTreeSet;
 
@@ -52,6 +53,8 @@ pub struct CoherentScenarioOutcome {
 pub struct CoherentScenarioSetReport {
     pub schema_version: String,
     pub scenario_set_id: String,
+    /// Digest of the sorted complete scenario profiles and scenario IDs.
+    pub scenario_set_sha256: String,
     /// Sorted by scenario_id, independent of input ordering.
     pub outcomes: Vec<CoherentScenarioOutcome>,
     /// Minimum of the per-scenario aggregate maximum requested deliveries.
@@ -68,6 +71,48 @@ fn require_nonempty(value: &str, label: &str) -> Result<(), String> {
         return Err(format!("{label} must not be empty"));
     }
     Ok(())
+}
+
+fn push_length_prefixed(bytes: &mut Vec<u8>, value: &[u8]) -> Result<(), String> {
+    let length = u64::try_from(value.len())
+        .map_err(|_| "scenario-set digest field exceeds u64 length".to_string())?;
+    bytes.extend_from_slice(&length.to_be_bytes());
+    bytes.extend_from_slice(value);
+    Ok(())
+}
+
+fn canonical_profile_bytes(profile: &TemporalProfile) -> Result<Vec<u8>, String> {
+    let mut canonical = profile.clone();
+    canonical.nodes.sort_by(|left, right| left.node_id.cmp(&right.node_id));
+    canonical
+        .receipts
+        .sort_by(|left, right| left.receipt_id.cmp(&right.receipt_id));
+    canonical
+        .transfers
+        .sort_by(|left, right| left.transfer_id.cmp(&right.transfer_id));
+    canonical
+        .services
+        .sort_by(|left, right| left.service_id.cmp(&right.service_id));
+    serde_json::to_vec(&canonical)
+        .map_err(|error| format!("could not encode canonical temporal profile: {error}"))
+}
+
+fn scenario_set_digest(
+    scenario_set_id: &str,
+    scenarios: &[CoherentScenario],
+) -> Result<String, String> {
+    let mut ordered = scenarios.iter().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
+
+    let mut bytes = b"LUMINOUS-SAFRB-COHERENT-SCENARIO-SET-V1\\0".to_vec();
+    push_length_prefixed(&mut bytes, scenario_set_id.as_bytes())?;
+    for scenario in ordered {
+        push_length_prefixed(&mut bytes, scenario.scenario_id.as_bytes())?;
+        let profile_bytes = canonical_profile_bytes(&scenario.profile)?;
+        push_length_prefixed(&mut bytes, &profile_bytes)?;
+    }
+
+    Ok(format!("sha256:{:x}", Sha256::digest(bytes)))
 }
 
 fn validate_scenario_identities(scenarios: &[CoherentScenario]) -> Result<(), String> {
@@ -165,6 +210,7 @@ pub fn evaluate_coherent_scenario_set(
         });
     }
 
+    let scenario_set_sha256 = scenario_set_digest(scenario_set_id, scenarios)?;
     let minimum_scenario_maximum = outcomes
         .iter()
         .map(|outcome| outcome.maximum_requested_delivery)
@@ -179,6 +225,7 @@ pub fn evaluate_coherent_scenario_set(
     Ok(CoherentScenarioSetReport {
         schema_version: COHERENT_SCENARIO_SET_SCHEMA.to_string(),
         scenario_set_id: scenario_set_id.to_string(),
+        scenario_set_sha256,
         outcomes,
         minimum_scenario_maximum,
         maximum_scenario_maximum,
@@ -220,6 +267,10 @@ pub fn verify_coherent_scenario_set(
     }
     if report.scenario_set_id != scenario_set_id {
         return Err("scenario-set identifier mismatch".to_string());
+    }
+    let expected_scenario_set_sha256 = scenario_set_digest(scenario_set_id, scenarios)?;
+    if report.scenario_set_sha256 != expected_scenario_set_sha256 {
+        return Err("scenario-set profile digest mismatch".to_string());
     }
     if report.claim_ceiling != SCENARIO_SET_CLAIM_CEILING {
         return Err("scenario-set claim ceiling mismatch".to_string());
@@ -438,6 +489,47 @@ mod tests {
         assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
             .unwrap_err()
             .contains("comparison context mismatch"));
+    }
+
+    #[test]
+    fn scenario_set_digest_binds_all_profiles_but_ignores_input_order() {
+        let a = CoherentScenario {
+            scenario_id: "mode-a".to_string(),
+            profile: profile("case-a", 10, 0),
+        };
+        let b = CoherentScenario {
+            scenario_id: "mode-b".to_string(),
+            profile: profile("case-b", 0, 10),
+        };
+        let forward = scenario_set_digest("set-v1", &[a.clone(), b.clone()]).unwrap();
+        let reverse = scenario_set_digest("set-v1", &[b.clone(), a.clone()]).unwrap();
+        assert_eq!(forward, reverse);
+
+        let mut changed = b;
+        changed.profile.transfers[0].route_capacity += 1;
+        let mutated = scenario_set_digest("set-v1", &[a, changed]).unwrap();
+        assert_ne!(forward, mutated);
+    }
+
+    #[test]
+    fn verifier_rejects_scenario_profile_digest_mismatch() {
+        let scenarios = vec![
+            CoherentScenario {
+                scenario_id: "mode-a".to_string(),
+                profile: profile("case-a", 10, 0),
+            },
+            CoherentScenario {
+                scenario_id: "mode-b".to_string(),
+                profile: profile("case-b", 0, 10),
+            },
+        ];
+        let mut report = evaluate_coherent_scenario_set("set-v1", &scenarios).unwrap();
+        report.scenario_set_sha256 = "sha256:".to_string() + &"0".repeat(64);
+        assert!(
+            verify_coherent_scenario_set("set-v1", &scenarios, &report)
+                .unwrap_err()
+                .contains("scenario-set profile digest mismatch")
+        );
     }
 
     #[test]
