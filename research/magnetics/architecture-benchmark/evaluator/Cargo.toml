@@ -1,0 +1,11 @@
+[package]
+name = "magnetic-architecture-benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Evidence-gated AM/hybrid motor architecture comparison against optimized conventional PM baselines"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
