@@ -1345,7 +1345,7 @@ mod tests {
                     .unwrap()
             )
             .unwrap_err()
-            .contains("same frozen instance")
+            .contains("context does not match the frozen instance")
         );
 
         let changed_deadline = FIXTURE.replace(
@@ -1365,7 +1365,7 @@ mod tests {
                     .unwrap()
             )
             .unwrap_err()
-            .contains("same frozen instance")
+            .contains("context does not match the frozen instance")
         );
         let changed = parse_instance(&changed_deadline).unwrap();
         let changed_outcomes = evaluate(&changed).unwrap();
@@ -1378,7 +1378,7 @@ mod tests {
                     .unwrap()
             )
             .unwrap_err()
-            .contains("same frozen instance")
+            .contains("context does not match the frozen instance")
         );
     }
 
@@ -1470,7 +1470,7 @@ mod tests {
         assert!(
             compare_recovery_regret(&invalid_units, &recovery_outcome("ORACLE"))
                 .unwrap_err()
-                .contains("inconsistent expected/accepted")
+                .contains("inconsistent expected/qualified/accepted/on-time/unresolved units")
         );
 
         let mut invalid_qualification = recovery_outcome("INVALID-QUALIFICATION");
@@ -1623,7 +1623,8 @@ mod tests {
 
         let mut other_policy = recovery_outcome("DIFFERENT-POLICY");
         other_policy.scenario_id = "SECOND-SCENARIO".to_owned();
-        let other_reference = recovery_outcome("CLAIRVOYANT-BOUND");
+        let mut other_reference = recovery_outcome("CLAIRVOYANT-BOUND");
+        other_reference.scenario_id = "SECOND-SCENARIO".to_owned();
         let other_vector = compare_recovery_regret(&other_policy, &other_reference).unwrap();
         assert!(
             worst_case_recovery_regret(&[vector, other_vector])
