@@ -512,7 +512,7 @@ a 1 2 1 2 -1";
     fn comments_blank_lines_crlf_and_missing_final_newline_are_supported() {
         let instance = parse_dimacs_mcf("c header\r\n\r\np min 2 1\r\nn 1 1\r\nn 2 -1\r\na 1 2 0 1 0").unwrap();
         assert_eq!(instance.arcs.len(), 1);
-        assert_eq!(instance.is_supply_balanced(), true);
+        assert!(instance.is_supply_balanced());
     }
 
     #[test]
