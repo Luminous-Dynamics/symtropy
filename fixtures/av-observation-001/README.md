@@ -233,3 +233,12 @@ ActSpace is now the primary real-scene active-exploration reproduction target; E
 
 **Rights:** the ActSpace paper itself does not establish a commercial license for its derived assets. Original ARKitScenes / ScanNet++ terms govern scene media and scans. Do not download or use restricted content for commercial model training until the applicable terms and author permissions are confirmed.
 
+
+
+## MemAct: present, retrieved and action-acquired evidence
+
+The protocol now includes a MemAct crosswalk and a seventh metadata-only matrix, scenario-matrix-memact-v0.tsv, with four pairs / eight cases for action-observation persistence, historical-frame retrieval, bitemporal memory correction and decision-sufficient stopping.
+
+MemAct's prepared release reports 20,000 main QA turns plus 2,000 separate Timing questions, Current/Memory/Action lanes, and up to three camera actions; Action QA is simulation-only. Its memory records link timestamped summaries to original frames and permit bounded historical RGB retrieval; action observations are not automatically persisted. The protocol separates never-observed, in-context, retained/retrievable, evicted, reacquired and invalid/unknown evidence states.
+
+Rights are mixed: original MemAct code Apache-2.0, original annotation contributions CC BY 4.0, but upstream recordings, meshes, GLBs, textures/HDRIs and derived material keep their original rights. No blanket commercial training permission is inferred. See https://huggingface.co/datasets/vfishc/memact and https://arxiv.org/abs/2610.17640.
