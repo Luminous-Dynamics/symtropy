@@ -135,3 +135,17 @@ These are targets, not achieved results.
 A passing synthetic corpus qualifies only the declared reference rules. It does not establish physical independence, actual spare capacity, real production recovery, port uptime or causal regional benefit.
 
 The next integration should ingest #5762's exact owner dependency closure and #5710's invalidation/requalification receipt by digest and freshness; then feed admissible service options into #7554. No second schema or estimator should be introduced where the canonical owner already supplies the contract.
+
+
+## 4B. Knowledge-indexed decision regret (KITE)
+
+Companion work is tracked in [MCSC-KITE-001 #7775](https://github.com/Luminous-Dynamics/symtropy/issues/7775) and specified in [information-set-regret-protocol.md](information-set-regret-protocol.md). The key change is to distinguish the clairvoyant scenario bound from an information-set-constrained oracle.
+
+A deployable recovery policy must be compared with the evidence that was actually available, ingested, validated, authorized and fresh at each decision cutoff. Preserve event occurrence, first availability, ingestion, validation, decision cutoff, plan publication, authorization and action-start times separately. Late or corrected evidence may change current admissibility but must not rewrite an earlier replay's knowledge state.
+
+The KITE reference hierarchy is:
+- R0: perfect-information / clairvoyant scenario bound (upper/lower bound only; not deployable);
+- R1: information-set-constrained decision oracle (same as-of evidence and hard constraints; compute idealization disclosed);
+- R2: operational policies under matched wall-clock and compute budgets.
+
+This permits separate information-gap and decision-gap vectors. Execution and authorization delay remain separately reported. The synthetic 20-case negative-control manifest is at `fixtures/information-set-replay-v0.tsv`; it is not yet consumed by an executable Rust replay parser. The KITE issue tracks implementation of as-of selection and no-lookahead controls.
