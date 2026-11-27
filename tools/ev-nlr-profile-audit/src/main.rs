@@ -14,7 +14,7 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::ExitCode,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::AtomicU64,
 };
 
 const SOURCE_REVISION: &str = "61530df51f6cd7d64f014ebbf8714cef24c8ca70";
@@ -546,7 +546,7 @@ fn compare_archives(
         mean_absolute_error_kw: mean_absolute_error,
         root_mean_squared_error_kw: rmse,
         p95_absolute_error_kw: p95,
-        mean_bias_kw,
+        mean_bias_kw: mean_bias,
         total_reference_energy_kwh: reference_energy_sum,
         total_candidate_energy_kwh: candidate_energy_sum,
         total_energy_absolute_error_kwh: total_energy_absolute_error,
