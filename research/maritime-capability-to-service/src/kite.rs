@@ -659,7 +659,14 @@ mod tests {
             AuthorityState::Revoked,
         );
         let after = select_as_of(&[first, second], 50).expect("snapshot after append");
-        assert_eq!(before, after);
+        assert_eq!(before.decision_cutoff, after.decision_cutoff);
+        assert_eq!(before.selected, after.selected);
+        assert!(before.withheld.is_empty());
+        assert_eq!(after.withheld.len(), 1);
+        assert_eq!(
+            after.withheld[0].disposition,
+            VintageDisposition::NotYetAvailable
+        );
     }
 
     #[test]
