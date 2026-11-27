@@ -54,10 +54,13 @@ jobs:
               "split-leakage-v0_1": "SPLIT_LEAKAGE",
               "pending-translation-v0_1": "BLOCKED_TRANSLATION_LINEAGE",
               "duplicate-sample-v0_1": "SPLIT_LEAKAGE",
+              "translated-output-leakage-v0_1": "SPLIT_LEAKAGE",
           }[name]
           assert rust["disposition"] == expected, (name, rust["disposition"], expected)
           assert rust["dataset_source_bytes_authenticated"] is False
           assert rust["translation_geometry_verified_here"] is False
+          if name == "translated-output-leakage-v0_1":
+              assert rust["cross_partition_translated_digest_leaks"]
           assert rust["operational_exchangeability_proven"] is False
           assert rust["flight_qualification"] is False
           PY
