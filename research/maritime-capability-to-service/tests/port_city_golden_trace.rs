@@ -177,12 +177,15 @@ fn all_forty_eight_owner_dispositions_are_present_and_source_bound() {
             .map(|offset| start + offset)
             .expect("case object closes");
         let source_case = &OWNER_JSON[start..end];
+        let source_category = format!("\"category\": \"{category}\"");
+        let source_disposition =
+            format!("\"expected_disposition\": \"{disposition}\"");
         assert!(
-            source_case.contains(&format!("\"category\": \"{category}\"")),
+            source_case.contains(source_category.as_str()),
             "owner case {id} category differs from projection"
         );
         assert!(
-            source_case.contains(&format!("\"expected_disposition\": \"{disposition}\"")),
+            source_case.contains(source_disposition.as_str()),
             "owner case {id} disposition differs from projection"
         );
     }
