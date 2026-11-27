@@ -212,11 +212,7 @@ fn obb_sat_3d_reference(
     true
 }
 
-fn transform_point_3d(
-    rotation: &Rotor<3>,
-    point: [f64; 3],
-    translation: [f64; 3],
-) -> [f64; 3] {
+fn transform_point_3d(rotation: &Rotor<3>, point: [f64; 3], translation: [f64; 3]) -> [f64; 3] {
     let rotated = rotation.rotate_vector(&SVector::from(point));
     [
         rotated[0] + translation[0],
@@ -429,14 +425,7 @@ fn transformed_obb_3d_classification_is_invariant_under_common_rigid_motion() {
             sample_range(&mut state, -10.0, 10.0),
         ];
 
-        let base_expected = obb_sat_3d_reference(
-            center_a,
-            half_a,
-            &rotation_a,
-            center_b,
-            half_b,
-            &rotation_b,
-        );
+        let base_expected = obb_sat_3d_reference(center_a, half_a, &rotation_a, center_b, half_b, &rotation_b);
         let base_observed = gjk::intersects_transformed(
             &shape_a,
             &Transform {
@@ -451,10 +440,8 @@ fn transformed_obb_3d_classification_is_invariant_under_common_rigid_motion() {
         )
         .intersecting;
 
-        let moved_center_a =
-            transform_point_3d(&global_rotation, center_a, translation);
-        let moved_center_b =
-            transform_point_3d(&global_rotation, center_b, translation);
+        let moved_center_a = transform_point_3d(&global_rotation, center_a, translation);
+        let moved_center_b = transform_point_3d(&global_rotation, center_b, translation);
         let moved_rotation_a = global_rotation.compose(&rotation_a);
         let moved_rotation_b = global_rotation.compose(&rotation_b);
 
