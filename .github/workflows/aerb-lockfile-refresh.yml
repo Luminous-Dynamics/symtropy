@@ -4,13 +4,11 @@ on:
     branches:
       - research/mobility-rrvr-aerb-probe-value-v0-1
     paths:
-      - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml"
-      - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.lock"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - ".github/workflows/aerb-lockfile-refresh.yml"
   pull_request:
     paths:
-      - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml"
-      - "research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.lock"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
       - ".github/workflows/aerb-lockfile-refresh.yml"
   workflow_dispatch:
 
@@ -43,6 +41,7 @@ jobs:
         run: cargo run --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --bin aerb_evaluate -- research/mobility-rrvr-aerb-v0.1/fixtures/candidate_episode_synthetic_v0_1.json research/mobility-rrvr-aerb-v0.1/fixtures/candidate_submission_synthetic_v0_1.json research/mobility-rrvr-aerb-v0.1/fixtures/evaluator_only/world_pack_synthetic_v0_1.json
 
       - name: Upload regenerated lockfile for source-control update
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: aerb-evaluator-cargo-lock
