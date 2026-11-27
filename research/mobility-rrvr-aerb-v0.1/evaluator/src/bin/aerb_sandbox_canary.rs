@@ -15,7 +15,7 @@ use std::io::Write;
 use std::net::{TcpListener, TcpStream};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode};
+use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -133,6 +133,15 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         && !Path::new("/evaluator").exists()
         && !Path::new("/host-secret.txt").exists();
     let evaluator_environment_absent = env::var_os("AERB_EVALUATOR_SECRET").is_none();
+    let process_one_environment =
+        fs::read("/proc/1/environ").map_err(|error| error.to_string())?;
+    let evaluator_secret_absent_from_process_table =
+        !process_one_environment
+            .windows(b"AERB_EVALUATOR_SECRET".len())
+            .any(|window| window == b"AERB_EVALUATOR_SECRET")
+            && !process_one_environment
+                .windows(b"CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX".len())
+                .any(|window| window == b"CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX");
     let expected_env = [
         ("HOME", "/tmp"),
         ("PWD", "/candidate/input"),
@@ -185,7 +194,7 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         ("runtime read-only", runtime_write_blocked),
         ("candidate output writable", output_write_succeeded),
         ("evaluator mount absent", evaluator_mount_absent),
-        ("evaluator environment absent", evaluator_environment_absent),
+        ("evaluator environment absent", evaluator_environment_absent),\n        ("evaluator secret absent from process table", evaluator_secret_absent_from_process_table),
         ("environment sanitized", environment_matches),
         ("PID namespace isolated", pid_namespace_isolated),
         ("nested user namespaces disabled", nested_user_namespaces_disabled),
@@ -288,10 +297,8 @@ fn host_mode() -> Result<(), String> {
     )
     .map_err(|error| error.to_string())?;
 
-    let status = Command::new(&spec.program)
-        .args(&spec.args)
-        .env("AERB_EVALUATOR_SECRET", "NEVER_VISIBLE_TO_CANDIDATE")
-        .env("AERB_HOST_SECRET_PATH", &host_secret)
+    let status = spec
+        .process_command()
         .status()
         .map_err(|error| format!("sandbox launch failed: {error}"))?;
 
@@ -314,7 +321,7 @@ fn host_mode() -> Result<(), String> {
         "runtime_write_blocked=true",
         "output_write_succeeded=true",
         "evaluator_mount_absent=true",
-        "evaluator_environment_absent=true",
+        "evaluator_environment_absent=true",\n        "evaluator_secret_absent_from_process_table=true",
         "environment_matches=true",
         "pid_namespace_isolated=true",
         "nested_user_namespaces_disabled=true",
