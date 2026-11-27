@@ -75,7 +75,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -181,7 +182,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -287,7 +289,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -393,7 +396,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -466,7 +470,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -572,7 +577,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -678,7 +684,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -784,7 +791,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -916,7 +924,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1020,7 +1029,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1155,7 +1165,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1261,7 +1272,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1367,7 +1379,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1502,7 +1515,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1637,7 +1651,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1772,7 +1787,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1878,7 +1894,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -1984,7 +2001,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2084,7 +2102,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2190,7 +2209,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2296,7 +2316,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2431,7 +2452,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2566,7 +2588,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2698,7 +2721,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2830,7 +2854,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -2991,7 +3016,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -3062,7 +3088,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -3135,7 +3162,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220:incomplete",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     },
@@ -3206,7 +3234,8 @@
         "observer_coverage_receipt_reference": "synthetic-coverage:220",
         "observer_coverage_receipt_digest_sha256": "4a90c94e3d4c12f156cbd7e0e9d0f7e9c80eb6c12dad8f7d9bad9b2e6f408ca3",
         "observer_coverage_watermark_unix_ms": 220,
-        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42"
+        "evidence_view_digest_sha256": "2e78a72c1b2a90df34ba5b2d8c7b8d5b7aec9a4f0ba84b6fcd8153e7a293be42",
+        "evaluated_at_unix_ms": 220
       },
       "verifier_profile_id": "aero-temporal-replay-reference-v0.1"
     }
