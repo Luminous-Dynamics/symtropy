@@ -111,4 +111,27 @@ The research hypothesis to test—not assume—is that **regional productive cap
 
 That reframes local industrial policy from an expenditure quota into a portfolio of service-capable options, and reframes maritime optimization from isolated asset efficiency into whole-chain capability formation, operation and recovery.
 
+## 8. New construct: service option value of qualified capability
+
+Treat a qualified regional capability as an **option to preserve or restore a service**, not simply as locally sourced spend.
+
+For a candidate capability investment/qualification package (c), baseline capability portfolio (P_0), and a fixed set of demand/disruption scenarios (Omega), define the per-scenario marginal outcome vector:
+
+[
+\Delta \mathbf{Y}_c(\omega) =
+\mathbf{Y}(P_0 \cup c,\omega) -
+\mathbf{Y}(P_0,\omega)
+]
+
+where \(\mathbf{Y}\) separately contains receiver-accepted and on-time units, time to minimum service and full recovery, lifecycle cost, emissions, regional value added and capability retention. The result is a **vector-valued service option profile**, not a single scalar score.
+
+Rules:
+- The capability is available only from its demonstrated qualification/commissioning date and only within its evidenced material, labour, process, inspection, energy and logistics windows.
+- Compare the candidate with no-build, import, local-assembly, centralized, distributed and repair-first alternatives on identical demand and shock realizations.
+- Publish scenario-by-scenario \(\Delta\mathbf{Y}\), downside exposure and Pareto dominance. If credible probability distributions exist, additionally report expected value and CVaR; if they do not, do not invent probabilities—publish the complete stress-set profile and worst-case outcomes.
+- Include the cost and time to form the capability, idle/standby cost, workforce qualification and obsolescence. Do not count training enrolment, machine nameplate capacity or supplier registration as available capability.
+- Count capability persistence only while its evidence, qualifications, inputs and authority remain valid; expired or revoked evidence removes the option until requalified.
+
+This construct makes the central research question measurable: **what does one additional qualified regional capability buy in accepted service and recoverability, under which shocks, at what whole-life cost, and for whom?**
+
 A synthetic PASS validates only the frozen model and reference calculations. It does not prove actual regional industrial capability, economic additionality, employment impact, physical safety, port performance or causal impact.
