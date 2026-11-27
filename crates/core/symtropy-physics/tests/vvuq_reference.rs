@@ -212,6 +212,19 @@ fn obb_sat_3d_reference(
     true
 }
 
+fn transform_point_3d(
+    rotation: &Rotor<3>,
+    point: [f64; 3],
+    translation: [f64; 3],
+) -> [f64; 3] {
+    let rotated = rotation.rotate_vector(&SVector::from(point));
+    [
+        rotated[0] + translation[0],
+        rotated[1] + translation[1],
+        rotated[2] + translation[2],
+    ]
+}
+
 #[test]
 fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
     const CASES: usize = 4_096;
@@ -375,6 +388,117 @@ fn transformed_obb_3d_gjk_matches_independent_fifteen_axis_sat() {
     println!(
         "3D OBB seed: cases={CASES}, false_positives={false_positives}, false_negatives={false_negatives}, translation_only_disagreements={translation_only_disagreements}"
     );
+}
+
+#[test]
+fn transformed_obb_3d_classification_is_invariant_under_common_rigid_motion() {
+    const CASES: usize = 512;
+    const SEED: u64 = 0x3344_4d45_5441_4d4f;
+
+    let half_a = [1.0, 0.55, 0.3];
+    let half_b = [0.8, 0.45, 0.25];
+    let shape_a = HyperBox::<3>::new(half_a);
+    let shape_b = HyperBox::<3>::new(half_b);
+    let center_a = [0.0, 0.0, 0.0];
+    let mut state = SEED;
+
+    for _ in 0..CASES {
+        let rotation_a = rotor_3d(
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+        );
+        let rotation_b = rotor_3d(
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+        );
+        let center_b = [
+            sample_range(&mut state, -1.6, 1.6),
+            sample_range(&mut state, -0.9, 0.9),
+            sample_range(&mut state, -0.5, 0.5),
+        ];
+        let global_rotation = rotor_3d(
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+        );
+        let translation = [
+            sample_range(&mut state, -10.0, 10.0),
+            sample_range(&mut state, -10.0, 10.0),
+            sample_range(&mut state, -10.0, 10.0),
+        ];
+
+        let base_expected = obb_sat_3d_reference(
+            center_a,
+            half_a,
+            &rotation_a,
+            center_b,
+            half_b,
+            &rotation_b,
+        );
+        let base_observed = gjk::intersects_transformed(
+            &shape_a,
+            &Transform {
+                translation: Point::new(center_a),
+                rotation: rotation_a.clone(),
+            },
+            &shape_b,
+            &Transform {
+                translation: Point::new(center_b),
+                rotation: rotation_b.clone(),
+            },
+        )
+        .intersecting;
+
+        let moved_center_a =
+            transform_point_3d(&global_rotation, center_a, translation);
+        let moved_center_b =
+            transform_point_3d(&global_rotation, center_b, translation);
+        let moved_rotation_a = global_rotation.compose(&rotation_a);
+        let moved_rotation_b = global_rotation.compose(&rotation_b);
+
+        let moved_expected = obb_sat_3d_reference(
+            moved_center_a,
+            half_a,
+            &moved_rotation_a,
+            moved_center_b,
+            half_b,
+            &moved_rotation_b,
+        );
+        let moved_observed = gjk::intersects_transformed(
+            &shape_a,
+            &Transform {
+                translation: Point::new(moved_center_a),
+                rotation: moved_rotation_a,
+            },
+            &shape_b,
+            &Transform {
+                translation: Point::new(moved_center_b),
+                rotation: moved_rotation_b,
+            },
+        )
+        .intersecting;
+
+        assert_eq!(
+            moved_expected, base_expected,
+            "independent 3D SAT changed under common rigid motion"
+        );
+        assert_eq!(
+            moved_observed, base_observed,
+            "transformed 3D GJK changed under common rigid motion"
+        );
+        assert_eq!(
+            base_observed, base_expected,
+            "base 3D transformed GJK disagreed with independent SAT"
+        );
+        assert_eq!(
+            moved_observed, moved_expected,
+            "moved 3D transformed GJK disagreed with independent SAT"
+        );
+    }
+
+    println!("3D OBB metamorphic seed: common rigid-motion cases={CASES}, mismatches=0");
 }
 
 fn rotate_point(point: [f64; 2], angle: f64) -> [f64; 2] {
