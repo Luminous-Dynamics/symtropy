@@ -153,3 +153,15 @@ jobs:
       - name: Tests — physical discrepancy
         if: ${{ hashFiles('research/magnetics/physical-discrepancy/Cargo.toml') != '' }}
         run: cargo test --manifest-path research/magnetics/physical-discrepancy/Cargo.toml
+
+      - name: Format — physical functional transfer
+        if: ${{ hashFiles('research/magnetics/physical-functional-transfer/Cargo.toml') != '' }}
+        run: cargo fmt --manifest-path research/magnetics/physical-functional-transfer/Cargo.toml -- --check
+
+      - name: Clippy — physical functional transfer
+        if: ${{ hashFiles('research/magnetics/physical-functional-transfer/Cargo.toml') != '' }}
+        run: cargo clippy --manifest-path research/magnetics/physical-functional-transfer/Cargo.toml --all-targets -- -D warnings
+
+      - name: Tests — physical functional transfer
+        if: ${{ hashFiles('research/magnetics/physical-functional-transfer/Cargo.toml') != '' }}
+        run: cargo test --manifest-path research/magnetics/physical-functional-transfer/Cargo.toml
