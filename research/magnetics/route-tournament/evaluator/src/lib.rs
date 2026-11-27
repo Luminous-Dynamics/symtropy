@@ -65,6 +65,10 @@ pub struct MetricObservation {
     pub material_lot_id: String,
     pub build_run_id: String,
     pub as_built_geometry_digest: String,
+    pub geometry_inspection_digest: String,
+    pub process_genealogy_digest: String,
+    pub material_state_digest: String,
+    pub post_magnetization_digest: String,
     pub scope: CohortScope,
     pub value: f64,
     pub uncertainty_radius: f64,
@@ -118,7 +122,13 @@ pub enum Blocker {
     WrongMaterialLot,
     WrongBuildRun,
     WrongAsBuiltGeometry,
+    GeometryInspectionBindingMismatch,
+    ProcessGenealogyBindingMismatch,
+    MaterialStateBindingMismatch,
+    PostMagnetizationBindingMismatch,
     InspectionGeometryMismatch,
+    DuplicateCandidateId,
+    DuplicateSpecimen,
     WrongCohortScope,
     WrongUnit,
     WrongEvidenceRole,
@@ -254,6 +264,23 @@ pub fn evaluate_candidate(
         }
         if observation.as_built_geometry_digest != candidate.as_built_geometry_digest {
             blockers.push(Blocker::WrongAsBuiltGeometry);
+        }
+        if observation.geometry_inspection_digest != candidate.geometry_inspection_digest {
+            blockers.push(Blocker::GeometryInspectionBindingMismatch);
+        }
+        if observation.process_genealogy_digest != candidate.process_genealogy_digest {
+            blockers.push(Blocker::ProcessGenealogyBindingMismatch);
+        }
+        if observation.material_state_digest != candidate.material_state_digest {
+            blockers.push(Blocker::MaterialStateBindingMismatch);
+        }
+        if observation.post_magnetization_digest != candidate.post_magnetization_digest {
+            blockers.push(Blocker::PostMagnetizationBindingMismatch);
+        }
+        if observation.role == EvidenceRole::MaterialCharacterization
+            && observation.record_digest != candidate.material_state_digest
+        {
+            blockers.push(Blocker::MaterialStateBindingMismatch);
         }
         if observation.scope != cohort.scope {
             blockers.push(Blocker::WrongCohortScope);
@@ -408,10 +435,23 @@ pub fn run_tournament(
     candidates: &[RouteCandidate],
 ) -> TournamentResult {
     let cohort_blockers = validate_cohort(cohort);
-    let evaluations = candidates
+    let mut evaluations = candidates
         .iter()
         .map(|candidate| evaluate_candidate(cohort, candidate))
         .collect::<Vec<_>>();
+
+    let mut seen_ids = std::collections::BTreeSet::new();
+    let mut seen_specimens = std::collections::BTreeSet::new();
+    for (candidate, evaluation) in candidates.iter().zip(evaluations.iter_mut()) {
+        if !seen_ids.insert(candidate.candidate_id.as_str()) {
+            evaluation.disposition = Disposition::Indeterminate;
+            evaluation.blockers.push(Blocker::DuplicateCandidateId);
+        }
+        if !seen_specimens.insert(candidate.specimen_id.as_str()) {
+            evaluation.disposition = Disposition::Indeterminate;
+            evaluation.blockers.push(Blocker::DuplicateSpecimen);
+        }
+    }
 
     let qualified = evaluations
         .iter()
@@ -627,6 +667,9 @@ mod tests {
     }
 
     fn observation(
+        specimen_id: &str,
+        material_lot_id: &str,
+        build_run_id: &str,
         metric_id: &str,
         value: f64,
         uncertainty: f64,
@@ -636,13 +679,17 @@ mod tests {
     ) -> MetricObservation {
         let physical = requires_calibration(role);
         MetricObservation {
-            record_id: format!("OBS-{metric_id}"),
+            record_id: format!("OBS-{specimen_id}-{metric_id}"),
             record_digest: digest(suffix),
             metric_id: metric_id.to_string(),
-            specimen_id: "SPEC-001".to_string(),
-            material_lot_id: "LOT-001".to_string(),
-            build_run_id: "BUILD-001".to_string(),
+            specimen_id: specimen_id.to_string(),
+            material_lot_id: material_lot_id.to_string(),
+            build_run_id: build_run_id.to_string(),
             as_built_geometry_digest: digest('d'),
+            geometry_inspection_digest: digest('2'),
+            process_genealogy_digest: digest('3'),
+            material_state_digest: digest('4'),
+            post_magnetization_digest: digest('5'),
             scope: scope(),
             value,
             uncertainty_radius: uncertainty,
@@ -661,12 +708,15 @@ mod tests {
         remanence: f64,
         cost: f64,
     ) -> RouteCandidate {
+        let specimen_id = format!("SPEC-{id}");
+        let material_lot_id = format!("LOT-{id}");
+        let build_run_id = format!("BUILD-{id}");
         RouteCandidate {
             candidate_id: id.to_string(),
             route_family,
-            specimen_id: "SPEC-001".to_string(),
-            material_lot_id: "LOT-001".to_string(),
-            build_run_id: "BUILD-001".to_string(),
+            specimen_id: specimen_id.clone(),
+            material_lot_id: material_lot_id.clone(),
+            build_run_id: build_run_id.clone(),
             nominal_geometry_digest: digest('1'),
             as_built_geometry_digest: digest('d'),
             geometry_inspection_digest: digest('2'),
@@ -678,6 +728,9 @@ mod tests {
             method_scope_supported: true,
             observations: vec![
                 observation(
+                    &specimen_id,
+                    &material_lot_id,
+                    &build_run_id,
                     "field_error",
                     field_error,
                     0.5,
@@ -686,14 +739,20 @@ mod tests {
                     '6',
                 ),
                 observation(
+                    &specimen_id,
+                    &material_lot_id,
+                    &build_run_id,
                     "remanence",
                     remanence,
                     0.01,
                     "T",
                     EvidenceRole::MaterialCharacterization,
-                    '7',
+                    '4',
                 ),
                 observation(
+                    &specimen_id,
+                    &material_lot_id,
+                    &build_run_id,
                     "accepted_part_cost",
                     cost,
                     0.1,
@@ -846,6 +905,48 @@ mod tests {
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::WrongMaterialLot));
         assert!(result.blockers.contains(&Blocker::WrongBuildRun));
+    }
+
+    #[test]
+    fn process_genealogy_and_post_magnetization_must_bind_every_observation() {
+        let mut candidate = candidate("MEX-001", RouteFamily::Mex, 20.0, 0.34, 5.0);
+        candidate.observations[0].process_genealogy_digest = digest('f');
+        candidate.observations[1].post_magnetization_digest = digest('f');
+        let result = evaluate_candidate(&cohort(), &candidate);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::ProcessGenealogyBindingMismatch));
+        assert!(result
+            .blockers
+            .contains(&Blocker::PostMagnetizationBindingMismatch));
+    }
+
+    #[test]
+    fn duplicate_specimen_cannot_be_counted_as_two_route_candidates() {
+        let first = candidate("MEX-001", RouteFamily::Mex, 20.0, 0.34, 5.0);
+        let mut second = candidate("LPBF-001", RouteFamily::LpbfSlm, 18.0, 0.32, 7.0);
+        second.specimen_id = first.specimen_id.clone();
+        let result = run_tournament(&cohort(), &[first, second]);
+        assert!(result
+            .evaluations
+            .iter()
+            .all(|evaluation| evaluation.disposition == Disposition::Indeterminate));
+        assert!(result
+            .evaluations
+            .iter()
+            .any(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateSpecimen)));
+    }
+
+    #[test]
+    fn duplicate_candidate_ids_are_rejected() {
+        let first = candidate("SAME-ID", RouteFamily::Mex, 20.0, 0.34, 5.0);
+        let second = candidate("SAME-ID", RouteFamily::LpbfSlm, 18.0, 0.32, 7.0);
+        let result = run_tournament(&cohort(), &[first, second]);
+        assert!(result
+            .evaluations
+            .iter()
+            .all(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateCandidateId)));
     }
 
     #[test]
