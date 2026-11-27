@@ -16,7 +16,7 @@ All generated plans set `auto_execute=false` and preserve original source copies
 
 ## Exact v0.1 search
 
-Candidate set is capped at 16 actions. The reference implementation enumerates all non-empty subsets, enforces complete alert coverage, dependency closure, available prerequisites/approval authorities, action-count and four resource budgets, then returns the exact non-dominated portfolios.
+Candidate set is capped at 12 actions. The reference implementation enumerates all non-empty subsets, enforces complete alert coverage, dependency closure, available prerequisites/approval authorities, action-count and four resource budgets, then returns the exact non-dominated portfolios.
 
 Objectives minimized:
 1. cost upper bound;
@@ -53,3 +53,5 @@ The authoring environment has no Cargo, rustc or rustfmt; 22 Rust tests are auth
 - `../PRESERVATION_INTERVENTION_PORTFOLIO_001.md`: protocol, semantics and evidence boundary.
 - `../preservation_intervention_portfolio_cases_v0_1.schema.json`: frozen case schema.
 - `../fixtures/preservation_intervention_portfolio_cases_v0_1.json`: 19 synthetic known-answer/adversarial cases.
+
+The reference Pareto filter compares feasible subsets pairwise. The 12-action cap limits the worst-case frontier comparison space to about 4,095² ≈ 16.8 million pair checks. Raising the cap requires a more scalable exact skyline algorithm and matching property tests.
