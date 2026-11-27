@@ -64,6 +64,8 @@ The frozen corpus includes:
 - malformed dataset/model/calibration digests;
 - invalid confidence score/level and compute measurement state;
 - correlated covariance controls;
+- direct-regression positive controls with no explicit correspondences;
+- direct-regression low-visibility rejection and invalid support-mode controls;
 - duplicate samples and target identity leakage across splits;
 - deterministic receipt replay and independent Python parity.
 
