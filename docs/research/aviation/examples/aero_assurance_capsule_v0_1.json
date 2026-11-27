@@ -406,5 +406,12 @@
     "engineering_acceptance_granted": false,
     "execution_authority_granted": false,
     "certification_granted": false
+  },
+  "detached_integrity": {
+    "package_envelope_id": "package-envelope:aero-capsule-synthetic-001",
+    "detached_receipt_ref": "receipt:capsule-detached-package",
+    "detached_receipt_locator": "authorized-package://aero/capsules/synthetic-wing-panel-strength-001/integrity-envelope.json",
+    "digest_algorithm": "SHA-256",
+    "signature_verification_owner": "owner:mycelix-aerocommons"
   }
 }
