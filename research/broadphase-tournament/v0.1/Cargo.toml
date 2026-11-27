@@ -20,4 +20,8 @@ path = "src/main.rs"
 name = "contact-lease-benchmark"
 path = "src/bin/contact-lease-benchmark.rs"
 
+[[bin]]
+name = "shape-coverage-benchmark"
+path = "src/bin/shape-coverage-benchmark.rs"
+
 [workspace]
