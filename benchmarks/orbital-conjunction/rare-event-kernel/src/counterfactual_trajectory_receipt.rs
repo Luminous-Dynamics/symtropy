@@ -625,7 +625,7 @@ fn digest_shared_world(shared: &SharedExogenousWorldReceipt) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-fn digest_receipt_report(report: &CounterfactualTrajectoryReceiptReport) -> [u8; 32] {
+pub(crate) fn digest_receipt_report(report: &CounterfactualTrajectoryReceiptReport) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital.counterfactual-trajectory.report.v0.1\0");
     hasher.update(report.mission_risk_gate_digest);
