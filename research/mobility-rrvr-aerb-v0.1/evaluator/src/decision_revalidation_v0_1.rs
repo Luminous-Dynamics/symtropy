@@ -91,6 +91,7 @@ pub enum RecomputeReason {
         event_id: String,
         dependency_id: String,
         kind: ChangeKind,
+        resulting_revision_sha256: String,
     },
 }
 
@@ -373,6 +374,7 @@ pub fn revalidate_before_effect(
                     event_id: change.event_id.clone(),
                     dependency_id: dependency_id.to_owned(),
                     kind: change.kind,
+                    resulting_revision_sha256: change.resulting_revision_sha256.clone(),
                 });
             }
         }
