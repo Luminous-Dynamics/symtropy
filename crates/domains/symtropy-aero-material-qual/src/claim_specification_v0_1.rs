@@ -11,8 +11,7 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 pub const CLAIM_SPECIFICATION_SCHEMA_V0_1: &str = "AeroClaimSpecificationV0_1";
-pub const CLAIM_SPECIFICATION_CANONICALIZATION_V0_1: &str =
-    "rust-serde-json-struct-order-v1";
+pub const CLAIM_SPECIFICATION_CANONICALIZATION_V0_1: &str = "rust-serde-json-struct-order-v1";
 
 /// Closed unit vocabulary for the first scalar-claim profile.
 ///
@@ -285,21 +284,35 @@ impl ClaimSpecificationV0_1 {
             ("CLAIM_ID", self.claim_id.as_str()),
             ("SUBJECT_REF", self.subject_ref.as_str()),
             ("CONFIGURATION_REF", self.configuration_ref.as_str()),
-            ("OPERATING_ENVELOPE_REF", self.operating_envelope_ref.as_str()),
+            (
+                "OPERATING_ENVELOPE_REF",
+                self.operating_envelope_ref.as_str(),
+            ),
             ("INTENDED_USE_REF", self.intended_use_ref.as_str()),
             ("MEASURAND_ID", self.measurand.measurand_id.as_str()),
             ("POPULATION_REF", self.population.population_ref.as_str()),
-            ("SAMPLING_UNIT_REF", self.population.sampling_unit_ref.as_str()),
-            ("UNCERTAINTY_METHOD_REF", self.uncertainty.method_ref.as_str()),
+            (
+                "SAMPLING_UNIT_REF",
+                self.population.sampling_unit_ref.as_str(),
+            ),
+            (
+                "UNCERTAINTY_METHOD_REF",
+                self.uncertainty.method_ref.as_str(),
+            ),
             ("RATIONALE_REF", self.rationale_ref.as_str()),
-            ("VERIFICATION_METHOD_REF", self.verification_method_ref.as_str()),
+            (
+                "VERIFICATION_METHOD_REF",
+                self.verification_method_ref.as_str(),
+            ),
             (
                 "ACCEPTANCE_AUTHORITY_ROLE_REF",
                 self.acceptance_authority_role_ref.as_str(),
             ),
         ] {
             if !valid_identifier(value) {
-                reasons.insert(format!("CLAIM_SPECIFICATION_{code}_MISSING_OR_NONCANONICAL"));
+                reasons.insert(format!(
+                    "CLAIM_SPECIFICATION_{code}_MISSING_OR_NONCANONICAL"
+                ));
             }
         }
 
@@ -332,7 +345,9 @@ impl ClaimSpecificationV0_1 {
                 || !valid_identifier(&stratum.dimension_ref)
                 || !valid_identifier(&stratum.level_ref)
             {
-                reasons.insert("CLAIM_SPECIFICATION_STRATUM_IDENTITY_MISSING_OR_NONCANONICAL".to_owned());
+                reasons.insert(
+                    "CLAIM_SPECIFICATION_STRATUM_IDENTITY_MISSING_OR_NONCANONICAL".to_owned(),
+                );
             }
             if !stratum_ids.insert(stratum.stratum_id.as_str()) {
                 reasons.insert("CLAIM_SPECIFICATION_STRATUM_ID_DUPLICATE".to_owned());
@@ -349,22 +364,33 @@ impl ClaimSpecificationV0_1 {
             reasons.insert("CLAIM_SPECIFICATION_ASSUMPTION_ID_INVALID_OR_DUPLICATE".to_owned());
         }
         if !unique_identifiers(&self.exclusions) {
-            reasons.insert("CLAIM_SPECIFICATION_EXCLUSION_ID_INVALID_OR_DUPLICATE".to_owned());
+            reasons.insert(
+                "CLAIM_SPECIFICATION_EXCLUSION_ID_INVALID_OR_DUPLICATE".to_owned(),
+            );
         }
-        if self.limitations.is_empty() || self.limitations.iter().any(|item| !valid_description(item)) {
+        if self.limitations.is_empty()
+            || self.limitations.iter().any(|item| !valid_description(item))
+        {
             reasons.insert("CLAIM_SPECIFICATION_LIMITATIONS_MISSING_OR_INVALID".to_owned());
         }
 
         let population_confidence_required =
             self.population.quantifier == PopulationQuantifierV0_1::PopulationConfidenceBound;
-        match (population_confidence_required, self.population.confidence_level_ppm) {
+        match (
+            population_confidence_required,
+            self.population.confidence_level_ppm,
+        ) {
             (true, Some(value)) if (1..1_000_000).contains(&value) => {}
             (true, _) => {
-                reasons.insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING_OR_INVALID".to_owned());
+                reasons.insert(
+                    "CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING_OR_INVALID".to_owned(),
+                );
             }
             (false, None) => {}
             (false, Some(_)) => {
-                reasons.insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_UNEXPECTED".to_owned());
+                reasons.insert(
+                    "CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_UNEXPECTED".to_owned(),
+                );
             }
         }
 
@@ -379,11 +405,16 @@ impl ClaimSpecificationV0_1 {
         ) {
             (true, Some(value)) if (1..1_000_000).contains(&value) => {}
             (true, _) => {
-                reasons.insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING_OR_INVALID".to_owned());
+                reasons.insert(
+                    "CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING_OR_INVALID"
+                        .to_owned(),
+                );
             }
             (false, None) => {}
             (false, Some(_)) => {
-                reasons.insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_UNEXPECTED".to_owned());
+                reasons.insert(
+                    "CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_UNEXPECTED".to_owned(),
+                );
             }
         }
 
@@ -573,28 +604,39 @@ mod tests {
         let mut specification = valid_specification();
         specification.predicate.unit_code = UnitCodeV0_1::Pascal;
         let result = specification.assess();
-        assert_eq!(result.disposition, ClaimSpecificationDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_PREDICATE_UNIT_MISMATCH".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimSpecificationDispositionV0_1::Rejected
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_PREDICATE_UNIT_MISMATCH".to_owned())
+        );
     }
 
     #[test]
     fn rational_threshold_must_be_reduced_and_have_nonzero_denominator() {
         let mut zero_denominator = valid_specification();
         zero_denominator.predicate.threshold.denominator = 0;
-        assert!(zero_denominator.assess().reason_codes.contains(
-            &"CLAIM_SPECIFICATION_THRESHOLD_RATIONAL_NONCANONICAL".to_owned()
-        ));
+        assert!(
+            zero_denominator
+                .assess()
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_THRESHOLD_RATIONAL_NONCANONICAL".to_owned())
+        );
 
         let mut unreduced = valid_specification();
         unreduced.predicate.threshold = RationalV0_1 {
             numerator: 600,
             denominator: 2,
         };
-        assert!(unreduced.assess().reason_codes.contains(
-            &"CLAIM_SPECIFICATION_THRESHOLD_RATIONAL_NONCANONICAL".to_owned()
-        ));
+        assert!(
+            unreduced
+                .assess()
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_THRESHOLD_RATIONAL_NONCANONICAL".to_owned())
+        );
     }
 
     #[test]
@@ -603,34 +645,49 @@ mod tests {
         specification.population.required_strata.clear();
         specification.required_evidence_classes.clear();
         let result = specification.assess();
-        assert_eq!(result.disposition, ClaimSpecificationDispositionV0_1::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_REQUIRED_STRATA_EMPTY".to_owned()
-        ));
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_EVIDENCE_CLASSES_EMPTY".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimSpecificationDispositionV0_1::Incomplete
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_REQUIRED_STRATA_EMPTY".to_owned())
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_EVIDENCE_CLASSES_EMPTY".to_owned())
+        );
     }
 
     #[test]
     fn duplicate_stratum_id_is_rejected() {
         let mut specification = valid_specification();
-        specification.population.required_strata[1].stratum_id =
-            specification.population.required_strata[0].stratum_id.clone();
+        specification.population.required_strata[1].stratum_id = specification.population.required_strata[0]
+            .stratum_id
+            .clone();
         let result = specification.assess();
-        assert_eq!(result.disposition, ClaimSpecificationDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_STRATUM_ID_DUPLICATE".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimSpecificationDispositionV0_1::Rejected
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_STRATUM_ID_DUPLICATE".to_owned())
+        );
     }
 
     #[test]
     fn population_confidence_bound_requires_an_explicit_level() {
         let mut specification = valid_specification();
-        specification.population.quantifier =
-            PopulationQuantifierV0_1::PopulationConfidenceBound;
+        specification.population.quantifier = PopulationQuantifierV0_1::PopulationConfidenceBound;
         let result = specification.assess();
-        assert_eq!(result.disposition, ClaimSpecificationDispositionV0_1::Incomplete);
+        assert_eq!(
+            result.disposition,
+            ClaimSpecificationDispositionV0_1::Incomplete
+        );
         assert!(result.reason_codes.contains(
             &"CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING_OR_INVALID".to_owned()
         ));
@@ -653,9 +710,12 @@ mod tests {
         let mut specification = valid_specification();
         specification.validity.effective_until_unix_ms =
             specification.validity.effective_from_unix_ms;
-        assert!(specification.assess().reason_codes.contains(
-            &"CLAIM_SPECIFICATION_VALIDITY_INTERVAL_INVALID".to_owned()
-        ));
+        assert!(
+            specification
+                .assess()
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_VALIDITY_INTERVAL_INVALID".to_owned())
+        );
     }
 
     #[test]
@@ -677,7 +737,9 @@ mod tests {
         assert!(specification.verify_semantic_sha256(&baseline).is_ok());
         assert_eq!(
             specification.verify_semantic_sha256(&"0".repeat(64)),
-            Err(vec!["CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned()])
+            Err(vec![
+                "CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned()
+            ])
         );
 
         let mut changed_threshold = specification.clone();
@@ -689,10 +751,7 @@ mod tests {
 
         let mut changed_subject = specification;
         changed_subject.subject_ref.push_str("-different");
-        assert_ne!(
-            changed_subject.compute_semantic_sha256().unwrap(),
-            baseline
-        );
+        assert_ne!(changed_subject.compute_semantic_sha256().unwrap(), baseline);
     }
 
     #[test]
@@ -701,9 +760,14 @@ mod tests {
         specification.required_evidence_classes[1] =
             specification.required_evidence_classes[0].clone();
         let result = specification.assess();
-        assert_eq!(result.disposition, ClaimSpecificationDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_EVIDENCE_CLASS_ID_INVALID_OR_DUPLICATE".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimSpecificationDispositionV0_1::Rejected
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_EVIDENCE_CLASS_ID_INVALID_OR_DUPLICATE".to_owned())
+        );
     }
 }
