@@ -205,8 +205,37 @@
               "type": "integer"
             }
           }
+        },
+        "sensor_frame_ref": {
+          "$ref": "#/$defs/frame_ref"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "modality": {
+                "enum": [
+                  "video_frame",
+                  "audio_chunk",
+                  "rgbd_frame",
+                  "stereo_pair",
+                  "imu_interval",
+                  "lidar_scan"
+                ]
+              }
+            },
+            "required": [
+              "modality"
+            ]
+          },
+          "then": {
+            "required": [
+              "sensor_frame_ref"
+            ]
+          }
+        }
+      ]
     },
     "coordinate_frame": {
       "type": "object",
@@ -365,10 +394,6 @@
         "position_m": {
           "$ref": "#/$defs/vec3"
         },
-        "position_stddev_m": {
-          "type": "number",
-          "minimum": 0
-        },
         "geometry_digest": {
           "$ref": "#/$defs/sha256"
         },
@@ -410,7 +435,12 @@
           }
         }
       ],
-      "description": "position_m, when present, is a MetricPoint3 expressed in frame_ref; position_sigma_m is a per-axis marginal diagnostic, not a correlated 3D covariance."
+      "description": "position_m, when present, is a MetricPoint3 expressed in frame_ref; position_sigma_m is a per-axis marginal diagnostic, not a correlated 3D covariance.",
+      "dependentRequired": {
+        "position_m": [
+          "frame_ref"
+        ]
+      }
     },
     "relation_claim": {
       "type": "object",
@@ -421,7 +451,8 @@
         "predicate",
         "epistemic_origin",
         "claim_state",
-        "source_observation_refs"
+        "source_observation_refs",
+        "object_hypothesis_id"
       ],
       "properties": {
         "relation_claim_id": {
@@ -472,7 +503,8 @@
           "$ref": "#/$defs/id"
         },
         "source_observation_refs": {
-          "$ref": "#/$defs/source_refs"
+          "$ref": "#/$defs/source_refs",
+          "minItems": 1
         },
         "supersedes_claim_id": {
           "$ref": "#/$defs/id"
