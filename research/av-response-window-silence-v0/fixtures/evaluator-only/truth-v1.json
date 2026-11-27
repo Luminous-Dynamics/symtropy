@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "av-response-window-silence-v0",
+  "warning": "Evaluator-only expected decisions/windows. Public fixture is not a blind benchmark split.",
+  "episodes": [
+    {
+      "episode_id": "rw-001-dead-time",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "noise-1",
+          "expected_action": "silence"
+        },
+        {
+          "decision_id": "d2",
+          "trigger_event_id": "motion-1",
+          "expected_action": "silence"
+        },
+        {
+          "decision_id": "d3",
+          "trigger_event_id": "noise-2",
+          "expected_action": "silence"
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 0,
+          "end_tick": 100
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-002-urgent-hazard",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "hazard-1",
+          "expected_action": "respond",
+          "window_start_tick": 12,
+          "window_end_tick": 19
+        },
+        {
+          "decision_id": "d2",
+          "trigger_event_id": "hazard-clear",
+          "expected_action": "silence"
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 0,
+          "end_tick": 12
+        },
+        {
+          "start_tick": 19,
+          "end_tick": 60
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-003-duplicate-trigger",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "alarm-primary",
+          "expected_action": "respond",
+          "window_start_tick": 7,
+          "window_end_tick": 14
+        }
+      ],
+      "duplicate_event_ids": [
+        "alarm-duplicate",
+        "alarm-held"
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 14,
+          "end_tick": 50
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-004-ambiguous-clarify",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "ambiguous-request",
+          "expected_action": "clarify",
+          "window_start_tick": 8,
+          "window_end_tick": 16
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 0,
+          "end_tick": 8
+        },
+        {
+          "start_tick": 16,
+          "end_tick": 70
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-005-user-interruption",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "user-starts",
+          "expected_action": "yield",
+          "window_start_tick": 20,
+          "window_end_tick": 23,
+          "max_ack_latency_ticks": 2
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 23,
+          "end_tick": 60
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-006-backchannel",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "user-backchannel",
+          "expected_action": "silence"
+        }
+      ],
+      "forbidden_actions": [
+        {
+          "trigger_event_id": "user-backchannel",
+          "action_type": "yield"
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 18,
+          "end_tick": 40
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-007-latching-stop",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "explicit-stop",
+          "expected_action": "stop",
+          "window_start_tick": 15,
+          "window_end_tick": 18,
+          "max_ack_latency_ticks": 2
+        }
+      ],
+      "latching_stop": {
+        "trigger_event_id": "explicit-stop",
+        "turn_epoch": "epoch-rw007",
+        "after_tick": 15
+      },
+      "silence_windows": [
+        {
+          "start_tick": 18,
+          "end_tick": 80
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-008-superseded-response",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "new-evidence",
+          "expected_action": "cancel",
+          "window_start_tick": 20,
+          "window_end_tick": 24,
+          "target_action_id": "plan-old-response"
+        }
+      ],
+      "superseded_trigger_event_ids": [
+        "old-trigger"
+      ],
+      "superseded_at_tick": 20,
+      "silence_windows": [
+        {
+          "start_tick": 20,
+          "end_tick": 70
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-009-slow-down",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "slow-down",
+          "expected_action": "deescalate",
+          "window_start_tick": 15,
+          "window_end_tick": 22
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 22,
+          "end_tick": 60
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-010-background-load",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "urgent-cue",
+          "expected_action": "respond",
+          "window_start_tick": 33,
+          "window_end_tick": 40
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 0,
+          "end_tick": 33
+        },
+        {
+          "start_tick": 40,
+          "end_tick": 90
+        }
+      ],
+      "background_load_required": true
+    },
+    {
+      "episode_id": "rw-011-cross-modal-incomparable",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "audio-event",
+          "expected_action": "abstain",
+          "window_start_tick": 12,
+          "window_end_tick": 20
+        }
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 0,
+          "end_tick": 12
+        },
+        {
+          "start_tick": 20,
+          "end_tick": 80
+        }
+      ]
+    },
+    {
+      "episode_id": "rw-012-mixed-silence-then-trigger",
+      "decisions": [
+        {
+          "decision_id": "d1",
+          "trigger_event_id": "relevant-trigger",
+          "expected_action": "respond",
+          "window_start_tick": 98,
+          "window_end_tick": 108
+        }
+      ],
+      "duplicate_event_ids": [
+        "duplicate-trigger"
+      ],
+      "silence_windows": [
+        {
+          "start_tick": 0,
+          "end_tick": 98
+        },
+        {
+          "start_tick": 108,
+          "end_tick": 140
+        }
+      ]
+    }
+  ]
+}
