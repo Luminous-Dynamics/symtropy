@@ -1,0 +1,99 @@
+name: ROOM-TWIN-01 rendered spatial twin
+
+on:
+  push:
+    branches:
+      - research/spatial-twin-render-v0
+    paths:
+      - "crates/apps/symtropy-render-benchmark/**"
+      - "benchmarks/render/ROOM-TWIN-01*.json"
+      - "scripts/run-room-twin-pair.sh"
+      - ".github/workflows/room-twin-render.yml"
+  pull_request:
+    branches:
+      - feat/frozen-render-benchmark-scene
+    paths:
+      - "crates/apps/symtropy-render-benchmark/**"
+      - "benchmarks/render/ROOM-TWIN-01*.json"
+      - "scripts/run-room-twin-pair.sh"
+      - ".github/workflows/room-twin-render.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: room-twin-render-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  source-and-audit:
+    name: ROOM-TWIN source, unit and audit checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Assert exact head
+        run: test "$(git rev-parse HEAD)" = "${QUALIFIED_SHA}"
+
+      - name: Install renderer build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libudev-dev pkg-config
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Validate fixture JSON and shell syntax
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          fixture = json.loads(Path("benchmarks/render/ROOM-TWIN-01.json").read_text())
+          truth = json.loads(Path("benchmarks/render/ROOM-TWIN-01.truth.json").read_text())
+          assert fixture["fixture_id"] == truth["fixture_id"] == "ROOM-TWIN-01"
+          assert fixture["capture"]["schedule_secs"] == [1.5, 4.0, 7.0]
+          assert fixture["capture"]["shared_prefix_cutoff_secs"] == 4.0
+          assert fixture["capture"]["first_distinguishing_observation_secs"] == 7.0
+          assert truth["variant_a"]["target_relation"] != truth["variant_b"]["target_relation"]
+          assert truth["invariant"]["common_capture_times_secs"] == [1.5, 4.0, 7.0]
+          assert truth["visibility"].startswith("evaluator-only")
+          print("PASS: common fixture and evaluator truth crosswalk are internally consistent")
+          PY
+          bash -n scripts/run-room-twin-pair.sh
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run ROOM-TWIN scene tests
+        run: cargo test --locked -p symtropy-render-benchmark --bin room-twin
+
+      - name: Run decoded-pixel auditor tests
+        run: cargo test --locked -p symtropy-render-benchmark --bin room-twin-pair-audit
+
+      - name: Strict Clippy for benchmark crate
+        run: cargo clippy --locked -p symtropy-render-benchmark --all-targets -- -D warnings
+
+      - name: Check benchmark crate
+        run: cargo check --locked -p symtropy-render-benchmark --all-targets
+
+      - name: Claim ceiling
+        run: |
+          echo "CI validates source, unit logic, JSON contract and auditor compilation only."
+          echo "No GPU render, PNG capture, decoded-prefix equality, candidate replay, blind custody or spatial-model result is produced by this workflow."
