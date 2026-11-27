@@ -57,6 +57,8 @@ These standards are complementary comparators, not direct performance competitor
 
 The test-only Python reference oracle independently evaluates the positive fixture and all 25 mutations without calling the Rust library. CI also runs a deterministic seven-shape scale harness (100/1,000/10,000 records; fan-out 1/3/8 where depth permits) and uploads raw p50/p95/p99 and throughput measurements. No machine-speed threshold is asserted.
 
+Both Rust and the independent Python oracle consume the same frozen `mutation-base-v0.1.json` graph; this avoids testing different positive graphs in two implementations. The separate positive fixture is independently checked as well.
+
 The frozen mutation corpus now contains 25 machine-readable adversarial cases. The Rust test harness applies every mutation to the positive graph and checks its exact expected finding. The corpus is marked synthetic and not independently reviewed; the CI workflow validates both input and mutation-corpus schemas.
 
 The initial suite should test positive controls and mutations for:
