@@ -36,9 +36,9 @@ fn parse_modality(
 }
 
 fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedCase, Box<dyn Error>> {
-    if fields.len() != 50 {
+    if fields.len() != 51 {
         return Err(format!(
-            "line {line_number}: expected 50 comma-separated fields, found {}",
+            "line {line_number}: expected 51 comma-separated fields, found {}",
             fields.len()
         )
         .into());
