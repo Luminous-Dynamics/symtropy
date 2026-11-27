@@ -161,6 +161,18 @@ The research hypothesis to test—not assume—is that **regional productive cap
 
 That reframes local industrial policy from an expenditure quota into a portfolio of service-capable options, and reframes maritime optimization from isolated asset efficiency into whole-chain capability formation, operation and recovery.
 
+## Causal interpretation and evidence ladder
+
+The option-value vector is a **model counterfactual** until the intervention is identified from actual assignments and independently measured outcomes. Do not call modelled regional value, predicted jobs or simulated service recovery a causal industrial impact.
+
+Compose the canonical causal owners:
+- Symtropy #3152 for known-truth synthetic causal estimation and digital-twin intervention falsification.
+- Symtropy #5108 for maritime repair effect, maintenance recurrence and time-varying treatment.
+- Symtropy #5094 for independently measured physical restoration outcomes.
+- MCSC #7686 only for the joined capability-to-receiver-service estimand and its denominator.
+
+The detailed [causal evaluation protocol](causal-evaluation-protocol.md) freezes interference-aware estimands, cluster/network exposure, randomized and phased rollouts, target-trial emulation, falsification controls, and the paired-site limitations. In particular, Ngqura and Durban are evidence-acquisition environments; two non-randomized sites alone cannot identify a causal regional-development effect.
+
 ## 9. New construct: service option value of qualified capability
 
 Treat a qualified regional capability as an **option to preserve or restore a service**, not simply as locally sourced spend.
