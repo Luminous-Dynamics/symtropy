@@ -13,6 +13,7 @@
 
 use incremental_aabb_tree_reference::{Aabb, ProxyId, ProxyPair};
 use std::collections::BTreeSet;
+use symtropy_math::{Bivector, Point, Rotor};
 
 use super::{ProxyFrame, TournamentError, oracle_pairs};
 
@@ -137,8 +138,16 @@ struct Obb2 {
 
 impl Obb2 {
     fn axes(self) -> [[f64; 2]; 2] {
-        let (sin, cos) = self.angle.sin_cos();
-        [[cos, sin], [-sin, cos]]
+        let rotor = Rotor::<2>::from_plane_angle(
+            &Bivector::<2>::unit_plane(0, 1),
+            self.angle,
+        );
+        let axis_x = rotor.rotate_point(&Point::<2>::new([1.0, 0.0]));
+        let axis_y = rotor.rotate_point(&Point::<2>::new([0.0, 1.0]));
+        [
+            [axis_x.coord(0), axis_x.coord(1)],
+            [axis_y.coord(0), axis_y.coord(1)],
+        ]
     }
 
     fn world_aabb(self) -> Result<Aabb<2>, TournamentError> {
@@ -197,60 +206,38 @@ struct Obb3 {
     plane_angles_xy_yz_xz: [f64; 3],
 }
 
-fn multiply3(left: [[f64; 3]; 3], right: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
-    std::array::from_fn(|row| {
-        std::array::from_fn(|column| {
-            left[row][0] * right[0][column]
-                + left[row][1] * right[1][column]
-                + left[row][2] * right[2][column]
-        })
-    })
-}
-
 impl Obb3 {
-    /// Compose the same independent plane rotations used by #7622:
-    /// XY, then YZ, then XZ (Rotor::compose outer-to-inner order).
-    fn rotation(self) -> [[f64; 3]; 3] {
+    /// Construct the exact XY -> YZ -> XZ rotor composition used by #7622.
+    fn rotor(self) -> Rotor<3> {
         let [xy, yz, xz] = self.plane_angles_xy_yz_xz;
-        let (sin_xy, cos_xy) = xy.sin_cos();
-        let (sin_yz, cos_yz) = yz.sin_cos();
-        let (sin_xz, cos_xz) = xz.sin_cos();
-        let rotate_xy = [
-            [cos_xy, -sin_xy, 0.0],
-            [sin_xy, cos_xy, 0.0],
-            [0.0, 0.0, 1.0],
-        ];
-        let rotate_yz = [
-            [1.0, 0.0, 0.0],
-            [0.0, cos_yz, -sin_yz],
-            [0.0, sin_yz, cos_yz],
-        ];
-        let rotate_xz = [
-            [cos_xz, 0.0, -sin_xz],
-            [0.0, 1.0, 0.0],
-            [sin_xz, 0.0, cos_xz],
-        ];
-        multiply3(rotate_xz, multiply3(rotate_yz, rotate_xy))
+        let rotate_xy =
+            Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 1), xy);
+        let rotate_yz =
+            Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(1, 2), yz);
+        let rotate_xz =
+            Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), xz);
+        rotate_xz.compose(&rotate_yz.compose(&rotate_xy))
     }
 
-    /// World-space local axes, represented as the rotation matrix columns.
+    /// World-space local axes from the production Rotor implementation.
     fn axes(self) -> [[f64; 3]; 3] {
-        let rotation = self.rotation();
-        [
-            [rotation[0][0], rotation[1][0], rotation[2][0]],
-            [rotation[0][1], rotation[1][1], rotation[2][1]],
-            [rotation[0][2], rotation[1][2], rotation[2][2]],
-        ]
+        let rotor = self.rotor();
+        std::array::from_fn(|local_axis| {
+            let mut basis = [0.0; 3];
+            basis[local_axis] = 1.0;
+            let world = rotor.rotate_point(&Point::<3>::new(basis));
+            [world.coord(0), world.coord(1), world.coord(2)]
+        })
     }
 
     fn world_aabb(self) -> Result<Aabb<3>, TournamentError> {
-        let rotation = self.rotation();
+        let axes = self.axes();
         let mut radius = [0.0; 3];
         for world_axis in 0..3 {
             for local_axis in 0..3 {
                 let term = multiply_upper_nonnegative(
                     self.half[local_axis],
-                    rotation[world_axis][local_axis].abs(),
+                    axes[local_axis][world_axis].abs(),
                 )?;
                 radius[world_axis] = add_upper_nonnegative(radius[world_axis], term)?;
             }
