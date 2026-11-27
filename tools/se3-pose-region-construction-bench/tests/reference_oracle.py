@@ -49,34 +49,105 @@ def finite(values: list[float]) -> bool:
     return all(math.isfinite(value) for value in values)
 
 
+def interval_add(left: tuple[float, float], right: tuple[float, float]) -> tuple[float, float] | None:
+    lower = next_down(left[0] + right[0])
+    upper = next_up(left[1] + right[1])
+    return (lower, upper) if math.isfinite(lower) and math.isfinite(upper) and lower <= upper else None
+
+
+def interval_sub(left: tuple[float, float], right: tuple[float, float]) -> tuple[float, float] | None:
+    lower = next_down(left[0] - right[1])
+    upper = next_up(left[1] - right[0])
+    return (lower, upper) if math.isfinite(lower) and math.isfinite(upper) and lower <= upper else None
+
+
+def interval_mul(left: tuple[float, float], right: tuple[float, float]) -> tuple[float, float] | None:
+    if left == (0.0, 0.0) or right == (0.0, 0.0):
+        return (0.0, 0.0)
+    products = (
+        left[0] * right[0],
+        left[0] * right[1],
+        left[1] * right[0],
+        left[1] * right[1],
+    )
+    if not finite(list(products)):
+        return None
+    lower = next_down(min(products))
+    upper = next_up(max(products))
+    return (lower, upper) if math.isfinite(lower) and math.isfinite(upper) and lower <= upper else None
+
+
+def interval_square(value: tuple[float, float]) -> tuple[float, float] | None:
+    if value[0] <= 0.0 <= value[1]:
+        maximum = max(abs(value[0]), abs(value[1]))
+        upper = next_up(maximum * maximum)
+        return (0.0, upper) if math.isfinite(upper) else None
+    minimum = min(abs(value[0]), abs(value[1]))
+    maximum = max(abs(value[0]), abs(value[1]))
+    lower = max(0.0, next_down(minimum * minimum))
+    upper = next_up(maximum * maximum)
+    return (lower, upper) if math.isfinite(lower) and math.isfinite(upper) else None
+
+
+def interval_div_positive(numerator: tuple[float, float], denominator: tuple[float, float]) -> tuple[float, float] | None:
+    if denominator[0] <= 0.0:
+        return None
+    quotients = (
+        numerator[0] / denominator[0],
+        numerator[0] / denominator[1],
+        numerator[1] / denominator[0],
+        numerator[1] / denominator[1],
+    )
+    if not finite(list(quotients)):
+        return None
+    lower = next_down(min(quotients))
+    upper = next_up(max(quotients))
+    return (lower, upper) if math.isfinite(lower) and math.isfinite(upper) and lower <= upper else None
+
+
+def interval_sqrt_positive(value: tuple[float, float]) -> tuple[float, float] | None:
+    if value[0] <= 0.0 or value[1] <= 0.0:
+        return None
+    lower = next_down(math.sqrt(value[0]))
+    upper = next_up(math.sqrt(value[1]))
+    return (lower, upper) if lower > 0.0 and math.isfinite(lower) and math.isfinite(upper) else None
+
+
 def cholesky_spd(matrix: list[list[float]]) -> bool:
-    flat = [value for row in matrix for value in row]
-    if not finite(flat):
+    if not finite([value for row in matrix for value in row]):
         return False
     for row in range(6):
         for column in range(6):
-            left = matrix[row][column]
-            right = matrix[column][row]
-            pair_scale = max(abs(left), abs(right))
-            if abs(left - right) > 1.0e-12 * pair_scale:
+            if matrix[row][column] != matrix[column][row]:
                 return False
-    lower = [[0.0] * 6 for _ in range(6)]
+
+    zero = (0.0, 0.0)
+    lower = [[zero for _ in range(6)] for _ in range(6)]
     for row in range(6):
         for column in range(row + 1):
-            total = matrix[row][column]
-            for left, right in zip(lower[row][:column], lower[column][:column]):
-                total -= left * right
-            if row == column:
-                if not math.isfinite(total) or total <= 0.0:
+            residual = (matrix[row][column], matrix[row][column])
+            for index in range(column):
+                if row == column:
+                    product = interval_square(lower[row][index])
+                else:
+                    product = interval_mul(lower[row][index], lower[column][index])
+                if product is None:
                     return False
-                lower[row][column] = math.sqrt(total)
-            else:
-                pivot = lower[column][column]
-                if not math.isfinite(pivot) or pivot <= 0.0:
+                residual = interval_sub(residual, product)
+                if residual is None:
                     return False
-                lower[row][column] = total / pivot
-    return True
 
+            if row == column:
+                pivot = interval_sqrt_positive(residual)
+                if pivot is None:
+                    return False
+                lower[row][column] = pivot
+            else:
+                factor = interval_div_positive(residual, lower[column][column])
+                if factor is None:
+                    return False
+                lower[row][column] = factor
+    return True
 
 def make_case(row: dict[str, str]) -> dict[str, object]:
     tvar = float(row["translation_variance"])
