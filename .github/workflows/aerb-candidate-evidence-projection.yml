@@ -46,8 +46,9 @@ jobs:
             and all(.observations[]; .ingest_sequence <= .decision_cut_sequence)
             and all(.observations[]; .evidence_domain == "process_model" and .source.source_role == "model_oracle")
             and all(.observations[]; (.parent_evidence_ids | length == (unique | length)))
-            and all($observations[] as $row;
-              all($row.parent_evidence_ids[];
+            and all($observations[];
+              . as $row
+              | all($row.parent_evidence_ids[];
                 . as $parent_id
                 | any($snapshot.observations[]; .evidence_id == $parent_id and .ingest_sequence < $row.ingest_sequence)
               )
