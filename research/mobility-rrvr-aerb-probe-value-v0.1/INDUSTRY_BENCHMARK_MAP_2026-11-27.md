@@ -236,3 +236,65 @@ A result at one tier cannot be promoted to a higher tier without new evidence. P
 ## 11. Publication boundary
 
 AERB may claim a new benchmark axis only after a stable public protocol, independently reproducible evaluator, non-leaking blind split and matched external baseline comparison exist. Until then, describe the work as a proposed and partially implemented assurance benchmark. Do not claim SOTA, production safety, real-world calibration or physical effectiveness from schemas or synthetic examples.
+
+
+## 2.7 ActiveArena — active perception, memory and multi-round acquisition
+
+**Added to the comparison after the 2026-11-27 literature refresh.**
+
+ActiveArena (arXiv:2609.24124, 2026-09-21) is a direct active-perception comparator, not something AERB can ignore. It reports 35 tasks across five fine-grained categories, multi-round evidence acquisition and memory-based reasoning, with disjoint-scene / unseen-distractor / novel-background OOD protocols. It also reports eight real-world manipulation tasks and 640 trajectories; the paper's evaluated memory/planning configuration achieves a 55.6% average success rate on those eight tasks.
+
+**What AERB must not claim:** first active sensing, first multi-round evidence acquisition, or first active-perception/memory benchmark.
+
+**What AERB can add:** command/effect finality ambiguity, source-qualified evidence, open-world command-holder residuals, false Applied/NoEffect/closure scoring, and evaluator-recomputed non-actuating response plans. An ActiveArena observation can improve scene knowledge without proving whether a previously issued motion/dispense/release command has already produced its physical effect.
+
+Sources:
+- https://arxiv.org/abs/2609.24124
+- https://leeibo.github.io/ActiveArena/
+
+## 2.8 SaPaVe / ActiveManip-Bench — active-view execution
+
+SaPaVe is a CVPR 2026 Highlight. It jointly learns semantic camera movement and manipulation, introduces ActiveViewPose-200K (200,000 image-language-camera movement pairs) and ActiveManip-Bench, and reports 74.83% simulation success and 85.00% real-world success on its project page.
+
+This is a relevant comparator for view-dependent evidence acquisition and its coupling to manipulation. AERB should reuse or adapt active-view episodes when licensing and task mapping permit, but should score a separate question: did the observation qualify the next physical-effect decision, and did it preserve unresolved execution histories?
+
+Source: https://lmzpai.github.io/SaPaVe/
+
+## 2.9 Uncertainty-calibrated runtime gating under domain shift
+
+Ghaleb et al., *Uncertainty-Calibrated Safety Gating for Vision-Language-Action Manipulation Under Domain Shift* (Sensors 2026, 26(10), 3140; published 2026-05-15), evaluates a model-agnostic gate that chooses between learned policy execution, pause-and-reobserve, and a fallback planner. Its two Isaac Sim tasks cover lighting, texture, occlusion, sensor and combined shifts. The paper reports mean shifted success increasing from 57.5% to 77.2% and expected calibration error decreasing from 0.303 to 0.100 against an ungated VLA baseline. It also explicitly reports residual contacts during pause/fallback and notes that its contribution is an empirical reliability/intervention trade-off, not a universal terminal controller.
+
+**Required AERB baseline:** uncertainty-calibrated gating with pause/reobserve and fallback, compared on matched scenarios and equal evidence/resource access.
+
+**Potential AERB distinction:** the calibrated gate estimates the risk of future failure under distribution shift; AERB additionally models that the previous command may already have caused an effect, that acknowledgement may be absent, and that an incomplete command-holder scope may allow a late second effect. A risk score or fallback switch does not by itself establish NoEffect or close an effect-producing system boundary.
+
+Source:
+- https://www.mdpi.com/1424-8220/26/10/3140
+- DOI: https://doi.org/10.3390/s26103140
+
+## 2.10 Runtime Assurance / Simplex — architectural prior art, not novelty
+
+Runtime assurance (RTA), including Simplex-style architectures, is established safety-engineering prior art. NASA's public framework describes an advanced controller monitored by a trusted runtime monitor, with control handed to a trusted reversionary controller when a property is violated. The framework also makes monitor sampling rate and switch timing explicit verification concerns.
+
+AERB/RRVR should be described as **complementary to runtime assurance**, not as inventing it. The integration question is how the monitor obtains a trustworthy current execution/effect state and whether the reversionary/fallback controller itself is protected against duplicate, stale or late-arriving commands.
+
+Required baseline/ablation:
+- ordinary Simplex/RTA policy monitor and trusted fallback;
+- calibrated VLA runtime gate;
+- the same system with RRVR's durable intent, endpoint effect fencing, scope closure and independent evidence checks enabled.
+
+The RTA monitor and fallback remain responsible for safety properties and control invariants. AERB supplies a benchmark for ambiguity, evidence acquisition and execution-finality around the handover and subsequent action.
+
+Source: https://ntrs.nasa.gov/citations/20240007986
+
+## 2.11 Refined novelty/claim boundary
+
+The public landscape now clearly contains work on:
+- task-aware safety monitoring (SafeVLA-Bench);
+- active perception, viewpoint movement and memory (ActiveArena, SaPaVe);
+- calibrated runtime intervention under domain shift (uncertainty-calibrated safety gating);
+- trusted fallback/runtime assurance (Simplex/RTA);
+- fault diagnosis/recovery (VLA-FixBench, LIBERO-RECOVER, RoboRecover);
+- action-conditioned world-model fidelity (WorldOracle).
+
+Accordingly, AERB's defensible research claim must be narrower and experimentally testable: **a benchmark for independently evidenced physical-effect finality and adaptive, decision-valued reconciliation under open-world execution ambiguity, evaluated before the next potentially irreversible effect.** Its novelty must be established by a systematic comparison and blind matched experiments, not asserted from architecture diagrams alone.
