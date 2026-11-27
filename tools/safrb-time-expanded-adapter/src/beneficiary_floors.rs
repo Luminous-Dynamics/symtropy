@@ -339,12 +339,37 @@ fn reconstruct_expected_reduction(
         .canonical_bytes()
         .map_err(|error| format!("verifier rejected invalid base graph: {error}"))?;
 
+    let expected_node_count = base_graph
+        .nodes
+        .len()
+        .checked_add(2)
+        .ok_or_else(|| "verifier lower-bound node count overflowed usize".to_string())?;
+    let expected_edge_ceiling = base_graph
+        .edges
+        .len()
+        .checked_add(base_graph.nodes.len())
+        .and_then(|count| count.checked_add(1))
+        .ok_or_else(|| "verifier lower-bound edge count overflowed usize".to_string())?;
+    if expected_node_count > MAX_NODES || expected_edge_ceiling > MAX_EDGES {
+        return Err("verifier lower-bound reduction exceeds kernel graph limits".to_string());
+    }
+    if base_graph
+        .nodes
+        .iter()
+        .any(|node| node.id == AUX_SOURCE || node.id == AUX_SINK)
+    {
+        return Err("verifier detected reserved node identity collision".to_string());
+    }
+    if base_graph.edges.iter().any(|edge| edge.id == RETURN_EDGE) {
+        return Err("verifier detected reserved return edge collision".to_string());
+    }
+
     let mut node_balance = BTreeMap::new();
     for node in &base_graph.nodes {
         node_balance.insert(node.id.clone(), 0_i128);
     }
 
-    let mut edges = Vec::new();
+    let mut edges = Vec::with_capacity(expected_edge_ceiling);
     let mut return_capacity = 0_u64;
     for edge in &base_graph.edges {
         let lower = lower_by_edge.get(&edge.id).copied().unwrap_or(0);
@@ -384,28 +409,6 @@ fn reconstruct_expected_reduction(
                 .checked_add(edge.capacity)
                 .ok_or_else(|| "verifier source capacity bound overflowed".to_string())?;
         }
-    }
-
-    let expected_node_count = base_graph
-        .nodes
-        .len()
-        .checked_add(2)
-        .ok_or_else(|| "verifier lower-bound node count overflowed usize".to_string())?;
-    let expected_edge_ceiling = base_graph
-        .edges
-        .len()
-        .checked_add(base_graph.nodes.len())
-        .and_then(|count| count.checked_add(1))
-        .ok_or_else(|| "verifier lower-bound edge count overflowed usize".to_string())?;
-    if expected_node_count > MAX_NODES || expected_edge_ceiling > MAX_EDGES {
-        return Err("verifier lower-bound reduction exceeds kernel graph limits".to_string());
-    }
-
-    if node_balance.contains_key(AUX_SOURCE) || node_balance.contains_key(AUX_SINK) {
-        return Err("verifier detected reserved node identity collision".to_string());
-    }
-    if base_graph.edges.iter().any(|edge| edge.id == RETURN_EDGE) {
-        return Err("verifier detected reserved return edge collision".to_string());
     }
 
     edges.push(FlowEdge {
