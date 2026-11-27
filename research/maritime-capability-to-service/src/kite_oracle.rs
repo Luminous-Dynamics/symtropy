@@ -221,7 +221,9 @@ pub fn solve_r1_finite(
     let mut grouped: BTreeMap<InformationSetKey, Vec<&ScenarioDecision>> = BTreeMap::new();
 
     for decision in decisions {
-        if decision.scenario_id.trim().is_empty() || !scenario_ids.insert(decision.scenario_id.as_str()) {
+        if decision.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(decision.scenario_id.as_str())
+        {
             return Err("scenario IDs must be non-empty and unique per decision slice".to_owned());
         }
         if !is_sha256_digest(&decision.observable_state_digest) {
@@ -370,15 +372,13 @@ pub fn solve_r1_finite(
     let pareto_frontier = all_policies
         .iter()
         .filter(|candidate| {
-            !all_policies
-                .iter()
-                .any(|other| {
-                    other != *candidate
-                        && dominates(
-                            &other.adverse_envelope.bounds,
-                            &candidate.adverse_envelope.bounds,
-                        )
-                })
+            !all_policies.iter().any(|other| {
+                other != *candidate
+                    && dominates(
+                        &other.adverse_envelope.bounds,
+                        &candidate.adverse_envelope.bounds,
+                    )
+            })
         })
         .cloned()
         .collect();
@@ -417,7 +417,10 @@ fn enumerate_policies(
                 || !action.hard_constraints_passed
                 || action.outcome.protected_floor_breach_unit_hours > 0
             {
-                return Err("R1 enumeration selected a non-admissible or hard-constraint-violating action".to_owned());
+                return Err(
+                    "R1 enumeration selected a non-admissible or hard-constraint-violating action"
+                        .to_owned(),
+                );
             }
             scenario_outcomes.push((decision.scenario_id.as_str(), action.outcome.clone()));
         }
@@ -438,9 +441,7 @@ fn enumerate_policies(
     Ok(())
 }
 
-fn adverse_envelope(
-    outcomes: &[(&str, OutcomeVector)],
-) -> Result<AdverseEnvelope, String> {
+fn adverse_envelope(outcomes: &[(&str, OutcomeVector)]) -> Result<AdverseEnvelope, String> {
     let Some((first_scenario, first)) = outcomes.first() else {
         return Err("cannot calculate an empty adverse envelope".to_owned());
     };
@@ -501,13 +502,29 @@ fn adverse_envelope(
     for scenario in outcomes.iter().skip(1) {
         adverse_min!(receiver_accepted_units, ReceiverAcceptedUnits, scenario);
         adverse_min!(on_time_accepted_units, OnTimeAcceptedUnits, scenario);
-        adverse_max!(acceptance_time_unknown_units, AcceptanceTimeUnknownUnits, scenario);
+        adverse_max!(
+            acceptance_time_unknown_units,
+            AcceptanceTimeUnknownUnits,
+            scenario
+        );
         adverse_max!(unmet_units, UnmetUnits, scenario);
         adverse_max!(late_accepted_units, LateAcceptedUnits, scenario);
         adverse_max!(unresolved_units, UnresolvedUnits, scenario);
-        adverse_max!(protected_floor_breach_unit_hours, ProtectedFloorBreachUnitHours, scenario);
-        adverse_max!(service_deficit_unit_hours, ServiceDeficitUnitHours, scenario);
-        adverse_max!(time_to_minimum_viable_service, TimeToMinimumViableService, scenario);
+        adverse_max!(
+            protected_floor_breach_unit_hours,
+            ProtectedFloorBreachUnitHours,
+            scenario
+        );
+        adverse_max!(
+            service_deficit_unit_hours,
+            ServiceDeficitUnitHours,
+            scenario
+        );
+        adverse_max!(
+            time_to_minimum_viable_service,
+            TimeToMinimumViableService,
+            scenario
+        );
         adverse_max!(time_to_full_service, TimeToFullService, scenario);
         adverse_max!(recovery_cost_units, RecoveryCostUnits, scenario);
         adverse_max!(emissions_units, EmissionsUnits, scenario);
@@ -568,7 +585,7 @@ pub fn dominates(left: &OutcomeVector, right: &OutcomeVector) -> bool {
 mod tests {
     use super::*;
     use crate::kite::{
-        select_as_of, AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState,
+        AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState, select_as_of,
     };
 
     fn snapshot(vintage_id: &str, first_available: u64) -> AsOfSnapshot {
@@ -653,20 +670,45 @@ mod tests {
         let shared = snapshot("FEEDER-V1", 60);
         let result = solve_r1_finite(
             &[
-                decision("S1", shared.clone(), vec![action("LOCAL", 10, 20), action("IMPORT", 9, 10)]),
-                decision("S2", shared, vec![action("LOCAL", 8, 30), action("IMPORT", 9, 15)]),
+                decision(
+                    "S1",
+                    shared.clone(),
+                    vec![action("LOCAL", 10, 20), action("IMPORT", 9, 10)],
+                ),
+                decision(
+                    "S2",
+                    shared,
+                    vec![action("LOCAL", 8, 30), action("IMPORT", 9, 15)],
+                ),
             ],
             100,
-        ).expect("R1 result");
+        )
+        .expect("R1 result");
 
         assert_eq!(result.candidate_policy_count, 2);
         assert_eq!(result.pareto_frontier.len(), 1);
         assert_eq!(
-            result.pareto_frontier[0].choices.values().next().map(String::as_str),
+            result.pareto_frontier[0]
+                .choices
+                .values()
+                .next()
+                .map(String::as_str),
             Some("IMPORT")
         );
-        assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.receiver_accepted_units, 9);
-        assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.recovery_cost_units, 15);
+        assert_eq!(
+            result.pareto_frontier[0]
+                .adverse_envelope
+                .bounds
+                .receiver_accepted_units,
+            9
+        );
+        assert_eq!(
+            result.pareto_frontier[0]
+                .adverse_envelope
+                .bounds
+                .recovery_cost_units,
+            15
+        );
     }
 
     #[test]
@@ -687,15 +729,27 @@ mod tests {
     fn distinct_information_sets_can_select_different_actions() {
         let result = solve_r1_finite(
             &[
-                decision("S1", snapshot("FEEDER-V1", 60), vec![action("LOCAL", 10, 20), action("IMPORT", 7, 10)]),
-                decision("S2", snapshot("FEEDER-V2", 70), vec![action("LOCAL", 7, 10), action("IMPORT", 10, 20)]),
+                decision(
+                    "S1",
+                    snapshot("FEEDER-V1", 60),
+                    vec![action("LOCAL", 10, 20), action("IMPORT", 7, 10)],
+                ),
+                decision(
+                    "S2",
+                    snapshot("FEEDER-V2", 70),
+                    vec![action("LOCAL", 7, 10), action("IMPORT", 10, 20)],
+                ),
             ],
             100,
         ).expect("R1 result");
 
         assert_eq!(result.candidate_policy_count, 4);
         assert_eq!(result.pareto_frontier.len(), 1);
-        let chosen: BTreeSet<&str> = result.pareto_frontier[0].choices.values().map(String::as_str).collect();
+        let chosen: BTreeSet<&str> = result.pareto_frontier[0]
+            .choices
+            .values()
+            .map(String::as_str)
+            .collect();
         assert_eq!(chosen, BTreeSet::from(["LOCAL", "IMPORT"]));
     }
 
@@ -705,14 +759,26 @@ mod tests {
         blocked.admissibility = Gate::Indeterminate;
         let result = solve_r1_finite(
             &[
-                decision("S1", snapshot("FEEDER-V1", 60), vec![action("ABSTAIN", 0, 0), action("LOCAL", 10, 10)]),
-                decision("S2", snapshot("FEEDER-V1", 60), vec![action("ABSTAIN", 0, 0), blocked]),
+                decision(
+                    "S1",
+                    snapshot("FEEDER-V1", 60),
+                    vec![action("ABSTAIN", 0, 0), action("LOCAL", 10, 10)],
+                ),
+                decision(
+                    "S2",
+                    snapshot("FEEDER-V1", 60),
+                    vec![action("ABSTAIN", 0, 0), blocked],
+                ),
             ],
             100,
         ).expect("safe abstention remains");
         assert_eq!(result.candidate_policy_count, 1);
         assert_eq!(
-            result.pareto_frontier[0].choices.values().next().map(String::as_str),
+            result.pareto_frontier[0]
+                .choices
+                .values()
+                .next()
+                .map(String::as_str),
             Some("ABSTAIN")
         );
     }
@@ -732,7 +798,11 @@ mod tests {
         ).expect("abstention remains feasible");
         assert_eq!(result.candidate_policy_count, 1);
         assert_eq!(
-            result.pareto_frontier[0].choices.values().next().map(String::as_str),
+            result.pareto_frontier[0]
+                .choices
+                .values()
+                .next()
+                .map(String::as_str),
             Some("ABSTAIN")
         );
     }
@@ -762,11 +832,7 @@ mod tests {
         let mut incomplete = action("PARTIAL", 5, 5);
         incomplete.outcome.unmet_units = 4;
         let result = solve_r1_finite(
-            &[decision(
-                "S1",
-                snapshot("FEEDER-V1", 60),
-                vec![incomplete],
-            )],
+            &[decision("S1", snapshot("FEEDER-V1", 60), vec![incomplete])],
             100,
         );
         assert!(result.is_err());
@@ -776,7 +842,11 @@ mod tests {
     #[test]
     fn observable_payload_commitment_separates_same_ids_with_different_values() {
         let shared = snapshot("FEEDER-V1", 60);
-        let first = decision("S1", shared.clone(), vec![action("A", 10, 5), action("B", 9, 4)]);
+        let first = decision(
+            "S1",
+            shared.clone(),
+            vec![action("A", 10, 5), action("B", 9, 4)],
+        );
         let mut second = decision("S2", shared, vec![action("A", 9, 5), action("B", 10, 4)]);
         second.observable_state_digest = "b".repeat(64);
         let result = solve_r1_finite(&[first, second], 100).expect("distinct observations");
