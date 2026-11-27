@@ -223,6 +223,12 @@ fn validate_submission(
             return fail(format!("DUPLICATE_EXPLANATION_OBSERVATION: {observation_id}"));
         }
     }
+    let mut reason_codes = BTreeSet::new();
+    for reason_code in &submission.reason_codes {
+        if !nonempty(reason_code) || !reason_codes.insert(reason_code.as_str()) {
+            return fail("REASON_CODES_MUST_BE_NONEMPTY_AND_UNIQUE");
+        }
+    }
 
     let permitted_probes: BTreeMap<&str, &super::PermittedProbe> = episode
         .permitted_probes
@@ -484,8 +490,17 @@ fn walk_policy(
         if possible_support.is_empty() {
             return fail(format!("TERMINAL_WITH_EMPTY_SUPPORT: {node_id}"));
         }
-        if node.terminal_disposition.is_none() {
-            return fail(format!("TERMINAL_DISPOSITION_MISSING: {node_id}"));
+        let disposition = node
+            .terminal_disposition
+            .ok_or_else(|| CandidateV02Error(format!("TERMINAL_DISPOSITION_MISSING: {node_id}")))?;
+        if disposition == TerminalDisposition::RecommendFreshAttempt
+            && possible_support.iter().any(|world_id| {
+                world_id != "not_dispatched" && world_id != "dispatched_no_effect"
+            })
+        {
+            return fail(format!(
+                "FRESH_ATTEMPT_RECOMMENDED_WITH_NON_NO_EFFECT_SUPPORT: {node_id}"
+            ));
         }
         return Ok(());
     }
@@ -682,6 +697,24 @@ mod tests {
         let (episode, mut submission) = values();
         submission["counterfactual_policy"]["nodes"][5]["terminal_disposition"] =
             json!("authorize_dispatch");
+        assert!(evaluate_values(&episode, &submission).is_err());
+    }
+
+    #[test]
+    fn candidate_cannot_recommend_fresh_attempt_with_applied_or_open_world_support() {
+        let (episode, mut submission) = values();
+        submission["counterfactual_policy"]["nodes"][2]["terminal_disposition"] =
+            json!("recommend_fresh_attempt");
+        assert!(evaluate_values(&episode, &submission).is_err());
+    }
+
+    #[test]
+    fn duplicate_candidate_reason_codes_are_rejected() {
+        let (episode, mut submission) = values();
+        submission["reason_codes"] = json!([
+            "BLOCK_NEW_EFFECT_UNTIL_INDEPENDENT_FINALITY",
+            "BLOCK_NEW_EFFECT_UNTIL_INDEPENDENT_FINALITY"
+        ]);
         assert!(evaluate_values(&episode, &submission).is_err());
     }
 }
