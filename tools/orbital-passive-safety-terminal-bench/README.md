@@ -47,6 +47,8 @@ The first lane is restricted to the paper's first-order eccentric relative-motio
 
 Out-of-model force effects such as J2, drag, SRP, target maneuver/attitude changes, actuator input or unmodelled frame transitions remain OUT_OF_SCOPE or INDETERMINATE unless another validated enclosure covers them. The evaluator does not derive y_lower/y_upper, rho_y, validate positive definiteness of K, construct an orbital propagator, authenticate source bytes or prove that a bound provider is physically valid.
 
+Every per-case verdict also repeats the exact terminal scope, terminal epoch, bound provider ID/revision/source digest/state, and (where used) the period-witness ID and digest. The output is therefore bound to the evidence references that produced the disposition instead of emitting a detachable branch label.
+
 A passing synthetic case establishes only the declared interval-algebra contract. The receipt hard-codes claim_ready=false, source_bytes_authenticated=false, authority_granted=false, and physical_validation=NOT_ASSESSED.
 
 ## Frozen corpus and independent oracle
