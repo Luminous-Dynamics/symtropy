@@ -292,14 +292,26 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
     } else if blockers.iter().any(|blocker| {
         matches!(
             blocker,
+            Blocker::StageFeedstockMismatch
+                | Blocker::StageInputMassMismatch
+                | Blocker::InvalidMassMeasurementRecord
+                | Blocker::InvalidMassUncertainty
+        )
+    }) {
+        // A mass balance is not a physical failure result if its input
+        // measurement does not close to the identified source-lot record.
+        Disposition::Indeterminate
+    } else if blockers.contains(&Blocker::UnsupportedRouteForm) {
+        Disposition::NotEvaluable
+    } else if blockers.iter().any(|blocker| {
+        matches!(
+            blocker,
             Blocker::RouteNotEligible
                 | Blocker::MassBalanceUnaccountedInput
                 | Blocker::MassBalanceOutputExceedsInput
         )
     }) {
         Disposition::Fail
-    } else if blockers.contains(&Blocker::UnsupportedRouteForm) {
-        Disposition::NotEvaluable
     } else {
         Disposition::Indeterminate
     };
