@@ -281,6 +281,7 @@ pub fn build_candidate_sandbox_command(
         bubblewrap_args.push(OsString::from(item));
     }
     bubblewrap_args.push(runtime_root.as_os_str().to_owned());
+    let tmpfs_size = limits.tmpfs_bytes.to_string();
     for item in [
         "/runtime",
         "--proc",
@@ -288,7 +289,7 @@ pub fn build_candidate_sandbox_command(
         "--dev",
         "/dev",
         "--size",
-        &limits.tmpfs_bytes.to_string(),
+        tmpfs_size.as_str(),
         "--tmpfs",
         "/tmp",
         "--chdir",
