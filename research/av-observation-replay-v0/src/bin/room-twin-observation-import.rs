@@ -256,14 +256,14 @@ fn run() -> Result<(), Box<dyn Error>> {
         .as_array()
         .ok_or("camera profile lacks availability ticks")?;
     let mut transport_events = Vec::with_capacity(EXPECTED_CAPTURE_SECS.len());
-    for index in 0..EXPECTED_CAPTURE_SECS.len() {
-        let sequence = (index + 1) as u64;
+    for (index, availability_tick) in availability_ticks.iter().enumerate() {
+        let sequence = u64::try_from(index + 1)?;
         transport_events.push(TransportEventV1 {
             event_id: format!("room-twin-arrival-{sequence:04}"),
             sensor_id: sensor_id.clone(),
             source_sequence: sequence,
             clock_domain: clock_domain.clone(),
-            availability_tick: availability_ticks[index]
+            availability_tick: availability_tick
                 .as_u64()
                 .ok_or("availability tick is invalid")?,
             arrival_order: sequence,
