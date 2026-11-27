@@ -60,7 +60,13 @@ pub struct BundleInput {
     pub pose_csv_revision: String,
     pub camera_frame: String,
     pub world_frame: String,
+    pub lidar_coordinate_frame: String,
+    pub pose_semantics: String,
     pub quaternion_convention: String,
+    pub camera_calibration_revision: String,
+    pub camera_calibration_sha256: String,
+    pub lidar_to_camera_revision: String,
+    pub lidar_to_camera_sha256: String,
     pub pose_length_unit: String,
     pub depth_unit: String,
     pub lidar_unit: String,
@@ -84,6 +90,12 @@ pub struct BundleResult {
     pub split: String,
     pub capture_timestamp: String,
     pub pose_csv_revision: String,
+    pub camera_calibration_revision: String,
+    pub camera_calibration_sha256: String,
+    pub lidar_to_camera_revision: String,
+    pub lidar_to_camera_sha256: String,
+    pub lidar_coordinate_frame: String,
+    pub pose_semantics: String,
     pub disposition: BundleDisposition,
     pub modality_sha256: BTreeMap<String, String>,
     pub modality_paths: BTreeMap<String, String>,
@@ -181,6 +193,12 @@ fn result(
         split: input.split.clone(),
         capture_timestamp: input.capture_timestamp.clone(),
         pose_csv_revision: input.pose_csv_revision.clone(),
+        camera_calibration_revision: input.camera_calibration_revision.clone(),
+        camera_calibration_sha256: input.camera_calibration_sha256.clone(),
+        lidar_to_camera_revision: input.lidar_to_camera_revision.clone(),
+        lidar_to_camera_sha256: input.lidar_to_camera_sha256.clone(),
+        lidar_coordinate_frame: input.lidar_coordinate_frame.clone(),
+        pose_semantics: input.pose_semantics.clone(),
         disposition,
         modality_sha256,
         modality_paths,
@@ -239,7 +257,11 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         || input.corrected_pose_revision != SPACESENSE_REVISION
         || input.camera_frame != "FRD_X_FORWARD_Y_RIGHT_Z_DOWN"
         || input.world_frame != "AIRSIM_NED"
+        || input.lidar_coordinate_frame != "SENSOR_LOCAL_FRAME"
+        || input.pose_semantics != "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD"
         || input.quaternion_convention != "HAMILTON_WXYZ"
+        || !valid_sha256(&input.camera_calibration_sha256)
+        || !valid_sha256(&input.lidar_to_camera_sha256)
         || input.pose_length_unit != "metre"
         || input.depth_unit != "millimetre"
         || input.lidar_unit != "metre"
@@ -432,7 +454,13 @@ mod tests {
             pose_csv_revision: SPACESENSE_REVISION.to_owned(),
             camera_frame: "FRD_X_FORWARD_Y_RIGHT_Z_DOWN".to_owned(),
             world_frame: "AIRSIM_NED".to_owned(),
+            lidar_coordinate_frame: "SENSOR_LOCAL_FRAME".to_owned(),
+            pose_semantics: "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD".to_owned(),
             quaternion_convention: "HAMILTON_WXYZ".to_owned(),
+            camera_calibration_revision: "cam0-cal-r1".to_owned(),
+            camera_calibration_sha256: "b".repeat(64),
+            lidar_to_camera_revision: "lidar0-to-cam0-r1".to_owned(),
+            lidar_to_camera_sha256: "c".repeat(64),
             pose_length_unit: "metre".to_owned(),
             depth_unit: "millimetre".to_owned(),
             lidar_unit: "metre".to_owned(),
@@ -552,6 +580,34 @@ mod tests {
             record.timestamp = value.capture_timestamp.clone();
         }
         assert_eq!(evaluate(&value).disposition, BundleDisposition::Synchronized);
+    }
+
+    #[test]
+    fn lidar_frame_and_pose_semantics_are_explicit() {
+        let mut wrong_lidar_frame = input();
+        wrong_lidar_frame.lidar_coordinate_frame = "CAMERA_FRD".to_owned();
+        assert_eq!(
+            evaluate(&wrong_lidar_frame).disposition,
+            BundleDisposition::OutOfScope
+        );
+
+        let mut wrong_pose_semantics = input();
+        wrong_pose_semantics.pose_semantics = "CAMERA_TO_WORLD_ONLY".to_owned();
+        assert_eq!(
+            evaluate(&wrong_pose_semantics).disposition,
+            BundleDisposition::OutOfScope
+        );
+    }
+
+    #[test]
+    fn malformed_calibration_or_extrinsics_digest_is_out_of_scope() {
+        let mut camera = input();
+        camera.camera_calibration_sha256 = "bad".to_owned();
+        assert_eq!(evaluate(&camera).disposition, BundleDisposition::OutOfScope);
+
+        let mut extrinsics = input();
+        extrinsics.lidar_to_camera_sha256 = "bad".to_owned();
+        assert_eq!(evaluate(&extrinsics).disposition, BundleDisposition::OutOfScope);
     }
 
     #[test]
