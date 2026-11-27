@@ -734,8 +734,34 @@ mod tests {
             &[direct, helper, dependent],
         ).unwrap();
         assert!(result.pareto_frontier.iter().all(|plan| {
-            plan.action_ids != vec!["helper", "combined"]
+            plan.action_ids != vec!["combined", "helper"]
         }));
+    }
+
+    #[test]
+    fn candidate_cannot_claim_to_address_unknown_alert() {
+        let candidate = action("verify-fixity", &["not-in-policy"], 1, 1, 1, 1);
+        assert_eq!(
+            plan_portfolio(&policy(&["alert-fixity"]), &[candidate]),
+            Err(PortfolioContractError::UnknownAddressedAlert)
+        );
+    }
+
+    #[test]
+    fn empty_prerequisite_and_approval_ids_are_rejected() {
+        let mut no_evidence_id = action("verify-fixity", &["alert-fixity"], 1, 1, 1, 1);
+        no_evidence_id.prerequisite_evidence_ids = vec!["".into()];
+        assert_eq!(
+            plan_portfolio(&policy(&["alert-fixity"]), &[no_evidence_id]),
+            Err(PortfolioContractError::EmptyEvidenceId)
+        );
+
+        let mut no_approval_id = action("verify-fixity", &["alert-fixity"], 1, 1, 1, 1);
+        no_approval_id.required_approvals = vec!["".into()];
+        assert_eq!(
+            plan_portfolio(&policy(&["alert-fixity"]), &[no_approval_id]),
+            Err(PortfolioContractError::EmptyApprovalId)
+        );
     }
 
     #[test]
