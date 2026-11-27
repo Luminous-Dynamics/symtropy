@@ -354,6 +354,61 @@
         "aerospace-specific application scope; not a general magnetic-component qualification standard",
         "this programme does not claim conformity or certification"
       ]
+    },
+    {
+      "source_id": "ISOASTM-52959-2026",
+      "route_stratum": "lattice_structural_validation",
+      "standard_reference": "ISO/ASTM 52959:2026",
+      "url": "https://www.iso.org/standard/86116.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "preparation for axial-force compression testing of AM metallic lattice specimens"
+      },
+      "limitations": [
+        "does not validate magnetic, thermal, fatigue or whole-component performance",
+        "apply only when a lattice specimen is part of the design"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52966-2026",
+      "route_stratum": "deployed_repair_resource_capability",
+      "standard_reference": "ISO/ASTM 52966:2026",
+      "url": "https://www.iso.org/standard/89300.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "resource/process capability levels for temporary self-sufficient AM support systems, full part cycle"
+      },
+      "limitations": [
+        "not a generic factory production capability or component qualification standard",
+        "use only for relevant remote/deployed support scenarios"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52957-2026",
+      "route_stratum": "ceramic_am_design",
+      "standard_reference": "ISO/ASTM 52957:2026",
+      "url": "https://www.iso.org/standard/85662.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "AM ceramic part design freedom, strengths, applications and limitations"
+      },
+      "limitations": [
+        "design guidance only; not dielectric qualification or insulation acceptance",
+        "conditional relevance only for ceramic candidate subcomponents"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-AWI-52964",
+      "route_stratum": "lifecycle_assessment_watchlist",
+      "standard_reference": "ISO/ASTM AWI 52964",
+      "url": "https://www.iso.org/ics/25.030/x/",
+      "evidence_class": "standards_work_item_catalogue_entry",
+      "source_claims": {
+        "scope": "under-development work item for gate-to-gate AM process LCA and cradle-to-gate part LCA"
+      },
+      "limitations": [
+        "not published as of 2026-11-27; do not cite as a normative method"
+      ]
     }
   ]
 }
