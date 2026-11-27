@@ -1,0 +1,133 @@
+{
+  "schema": "AeroAssuranceSourceBindingV0_1",
+  "version": "0.1",
+  "status": "PROPOSED_NOT_INDEPENDENTLY_ADJUDICATED",
+  "authority_ceiling": "research_only_no_physical_qualification_certification_or_work_authorization",
+  "claim_specification": {
+    "specification_id": "spec:wing-panel-proof-load-r1",
+    "claim_id": "claim:wing-panel-proof-load",
+    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "canonicalization_profile": "canonical-json-profile-v1",
+    "assessment_disposition": "FORMALLY_WELL_SPECIFIED",
+    "acceptance_authority_role_ref": "role:independent-structures-reviewer"
+  },
+  "decision_context": {
+    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "claim_id": "claim:wing-panel-proof-load",
+    "subject_ref": "part:wing-panel-001",
+    "configuration_ref": "configuration:wing-r17",
+    "operating_envelope_ref": "envelope:transport-normal",
+    "acquisition_interval": {
+      "earliest_unix_ms": 1795514399900,
+      "latest_unix_ms": 1795514400100
+    },
+    "as_known_at_unix_ms": 1795516800000,
+    "source_scope_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidence_knowledge_cut_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "required_evidence_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "risk_classification_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_applicability_profile_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "trust_policy": {
+    "snapshot_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "effective_from_unix_ms": 1794000000000,
+    "effective_until_unix_ms": 1800000000000,
+    "receiver_first_seen_at_unix_ms": 1794000000000,
+    "policy_events": [
+      {
+        "event_ref": "policy-event:signer-rotation-01",
+        "event_type": "KEY_ROTATED",
+        "subject_ref": "key:producer-01",
+        "asserted_at_unix_ms": 1793990000000,
+        "effective_at_unix_ms": 1794000000000,
+        "receiver_first_seen_at_unix_ms": 1794000000000
+      }
+    ]
+  },
+  "owner_evidence_cut": {
+    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "owner_namespace": "mycelix:aerocommons",
+    "receiver_receipt_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "receiver_receipt_watermark_unix_ms": 1795516700000
+  },
+  "model_credibility_cut": {
+    "evidence_ref": "aeroweift:validation:wing-panel-001",
+    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_ref": "model:wing-panel-fem-r12",
+    "model_artifact_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "solver_configuration_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "validation_package_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "validation_protocol_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "applicability_profile_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "domain_coverage_status": "QUALIFIED_COMPLETE_FOR_SCOPE",
+    "split_integrity_status": "INTACT"
+  },
+  "observer_coverage": {
+    "profile_id": "basalt-coverage-v0.1",
+    "receipt_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "QUALIFIED_COMPLETE_FOR_SCOPE",
+    "scope_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "watermark_unix_ms": 1795516600000,
+    "covered_change_classes": [
+      "MODEL_UPDATE",
+      "CONFIGURATION_CHANGE",
+      "OWNER_EVIDENCE_REVOCATION"
+    ]
+  },
+  "obligations": [
+    {
+      "obligation_id": "identity",
+      "kind": "CLAIM_IDENTITY",
+      "requirement_source_ref": "claim-spec:/subject_ref+configuration_ref",
+      "mandatory": true,
+      "hard_gate": true,
+      "evidence_bindings": [
+        {
+          "evidence_ref": "receipt:inspection-01",
+          "owner_namespace": "mycelix:aerocommons",
+          "owner_record_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "subject_ref": "part:wing-panel-001",
+          "configuration_ref": "configuration:wing-r17",
+          "producer_ref": "producer:inspection-lab",
+          "producer_role_ref": "role:approved-inspection-provider",
+          "payload_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "issuer_asserted_at_unix_ms": 1795515000000,
+          "receiver_first_seen_at_unix_ms": 1795515100000,
+          "owner_receipt_ref": "receipt:owner-01",
+          "owner_receipt_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "lifecycle": "ACTIVE",
+          "freshness": "FRESH",
+          "dependency_coverage": "COMPLETE",
+          "admission_state": "ADMITTED",
+          "verification_state": "VERIFIED",
+          "verification_report_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "event_effective_interval": {
+            "earliest_unix_ms": 1795514000000,
+            "latest_unix_ms": 1795514000000
+          }
+        }
+      ]
+    },
+    {
+      "obligation_id": "integrity",
+      "kind": "EVIDENCE_INTEGRITY",
+      "requirement_source_ref": "claim-spec:/required_evidence_classes",
+      "mandatory": true,
+      "hard_gate": true,
+      "evidence_bindings": []
+    },
+    {
+      "obligation_id": "authority",
+      "kind": "PRODUCER_AUTHORITY",
+      "requirement_source_ref": "trust-policy:/roles",
+      "mandatory": true,
+      "hard_gate": true,
+      "evidence_bindings": []
+    }
+  ],
+  "case_partition": {
+    "root_cause_family_id": "synthetic:root-cause-001",
+    "partition": "VISIBLE_CHALLENGE",
+    "independence_unit": "INDEPENDENT_ENGINEERING_EPISODE_OR_ROOT_CAUSE_FAMILY"
+  }
+}
