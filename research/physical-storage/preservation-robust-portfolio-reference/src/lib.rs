@@ -24,7 +24,8 @@ pub enum ContractError {
     InvalidScenarioSetId, InvalidScenarioSetDigest, EmptyScenarioCatalog,
     InvalidScenarioId, DuplicateScenarioId, InvalidTargetId, InvalidCurrencyCode,
     InvalidAlertId, DuplicateAlertId, InvalidEvidenceId, DuplicateEvidenceId,
-    InvalidApprovalId, DuplicateApprovalId, TooManyCandidates, InvalidActionId,
+    DuplicatePrerequisiteEvidence, InvalidApprovalId, DuplicateApprovalId, DuplicateActionApproval,
+    TooManyCandidates, InvalidActionId,
     DuplicateActionId, CurrencyMismatch, EmptyRequiredApprovals, EmptyPostconditions,
     InvalidPostconditionId, DuplicatePostcondition, DuplicateCoverage, DuplicateDependency,
     UnknownAlert, UnknownDependency, SelfDependency, DuplicateScenarioBound,
@@ -156,7 +157,7 @@ fn valid_id(value: &str) -> bool {
     })
 }
 fn valid_hash(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit())
+    value.len() == 64 && value.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 fn valid_currency(value: &str) -> bool {
     value.len() == 3 && value.bytes().all(|b| b.is_ascii_uppercase())
@@ -216,8 +217,10 @@ fn validate(
         if action.addresses_alert_ids.iter().any(|id| !valid_id(id)) { return Err(ContractError::InvalidAlertId); }
         if duplicate(&action.addresses_alert_ids) { return Err(ContractError::DuplicateCoverage); }
         if action.prerequisite_evidence_ids.iter().any(|id| !valid_id(id)) { return Err(ContractError::InvalidEvidenceId); }
+        if duplicate(&action.prerequisite_evidence_ids) { return Err(ContractError::DuplicatePrerequisiteEvidence); }
         if action.required_approvals.is_empty() { return Err(ContractError::EmptyRequiredApprovals); }
         if action.required_approvals.iter().any(|id| !valid_id(id)) { return Err(ContractError::InvalidApprovalId); }
+        if duplicate(&action.required_approvals) { return Err(ContractError::DuplicateActionApproval); }
         if action.required_postcondition_evidence.is_empty() { return Err(ContractError::EmptyPostconditions); }
         if action.required_postcondition_evidence.iter().any(|id| !valid_id(id)) { return Err(ContractError::InvalidPostconditionId); }
         if duplicate(&action.required_postcondition_evidence) { return Err(ContractError::DuplicatePostcondition); }
