@@ -41,7 +41,8 @@ fn public_api_replays_a_valid_historical_evidence_vintage() {
         106,
         AuthorityState::Revoked,
     );
-    let snapshot = select_as_of(&[v1, v2], 100).expect("as-of snapshot");
+    let records = vec![v1, v2];
+    let snapshot = select_as_of(&records, 100).expect("as-of snapshot");
 
     assert_eq!(snapshot.selected["FEEDER"].vintage_id, "FEEDER-V1");
     assert_eq!(snapshot.selected["FEEDER"].admissible, Gate::Yes);
@@ -62,19 +63,9 @@ fn public_api_replays_a_valid_historical_evidence_vintage() {
         Gate::Yes
     );
 
-    let current = select_as_of(&[vintage_for_current()], 120).expect("current snapshot");
+    let current = select_as_of(&records, 120).expect("current snapshot");
+    assert_eq!(current.selected["FEEDER"].vintage_id, "FEEDER-V2");
     assert_eq!(current.selected["FEEDER"].admissible, Gate::No);
-}
-
-fn vintage_for_current() -> EvidenceVintage {
-    evidence(
-        "FEEDER",
-        "FEEDER-V1",
-        1,
-        None,
-        60,
-        AuthorityState::Revoked,
-    )
 }
 
 #[test]
