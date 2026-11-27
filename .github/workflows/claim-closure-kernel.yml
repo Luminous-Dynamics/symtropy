@@ -35,6 +35,14 @@ jobs:
         run: cargo test --manifest-path tools/claim-closure-kernel/Cargo.toml --all-targets
       - name: Compare independent Python reference oracle
         run: python tools/claim-closure-kernel/tests/reference_oracle.py
+      - name: Run deterministic scale benchmark
+        run: cargo run --manifest-path tools/claim-closure-kernel/Cargo.toml --bin scale_bench > "$RUNNER_TEMP/claim-closure-scale-benchmark.json"
+      - name: Upload scale benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: claim-closure-scale-benchmark
+          path: ${{ runner.temp }}/claim-closure-scale-benchmark.json
+          if-no-files-found: error
       - name: Check fixture schema and positive-control structure
         run: |
           python -m pip install --disable-pip-version-check jsonschema==4.26.0
