@@ -787,8 +787,28 @@ mod tests {
     fn risk_check(
         scenario_id: [u8; 32],
         portfolio_id: [u8; 32],
-        eligible: bool,
     ) -> PortfolioScenarioRiskCheck {
+        let mission_union_mass = match (scenario_id, portfolio_id) {
+            (_, id) if id == PORTFOLIO_A => ExactMass {
+                numerator: 3,
+                denominator: 4,
+            },
+            (_, id) if id == PORTFOLIO_C => ExactMass {
+                numerator: 1,
+                denominator: 4,
+            },
+            (SCENARIO_A, _) => ExactMass {
+                numerator: 3,
+                denominator: 4,
+            },
+            (SCENARIO_B, _) => ExactMass {
+                numerator: 1,
+                denominator: 1,
+            },
+            _ => unreachable!(),
+        };
+        let within_budget = u128::from(mission_union_mass.numerator) * 5
+            <= 4 * u128::from(mission_union_mass.denominator);
         PortfolioScenarioRiskCheck {
             scenario_id,
             portfolio_id,
@@ -808,33 +828,23 @@ mod tests {
             total_mass_ticks: 100,
             post_action_horizon_digest: [111; 32],
             risk_policy_digest: [112; 32],
-            mission_union_mass: if eligible {
-                ExactMass {
-                    numerator: 1,
-                    denominator: 100,
-                }
-            } else {
-                ExactMass {
-                    numerator: 2,
-                    denominator: 100,
-                }
-            },
+            mission_union_mass,
             mission_risk_budget: ExactMass {
-                numerator: 1,
-                denominator: 100,
+                numerator: 4,
+                denominator: 5,
             },
-            within_declared_finite_support_budget: eligible,
+            within_declared_finite_support_budget: within_budget,
         }
     }
 
     fn gate() -> ScenarioMissionRiskGateReport {
         let checks = vec![
-            risk_check(SCENARIO_A, PORTFOLIO_A, true),
-            risk_check(SCENARIO_A, PORTFOLIO_B, true),
-            risk_check(SCENARIO_A, PORTFOLIO_C, true),
-            risk_check(SCENARIO_B, PORTFOLIO_A, true),
-            risk_check(SCENARIO_B, PORTFOLIO_B, false),
-            risk_check(SCENARIO_B, PORTFOLIO_C, true),
+            risk_check(SCENARIO_A, PORTFOLIO_A),
+            risk_check(SCENARIO_A, PORTFOLIO_B),
+            risk_check(SCENARIO_A, PORTFOLIO_C),
+            risk_check(SCENARIO_B, PORTFOLIO_A),
+            risk_check(SCENARIO_B, PORTFOLIO_B),
+            risk_check(SCENARIO_B, PORTFOLIO_C),
         ];
         ScenarioMissionRiskGateReport {
             total_family_alpha: 0.05,
@@ -1147,8 +1157,8 @@ mod tests {
         for check in &mut hard_gate.scenario_portfolio_risk_checks {
             check.within_declared_finite_support_budget = false;
             check.mission_union_mass = ExactMass {
-                numerator: 2,
-                denominator: 100,
+                numerator: 1,
+                denominator: 1,
             };
         }
         hard_gate.eligible_portfolio_ids.clear();
