@@ -35,10 +35,7 @@ fn parse_i64(value: &str, field: &str) -> Result<i64, Box<dyn Error>> {
         .map_err(|error| format!("invalid {field}: {error}").into())
 }
 
-fn parse_row(
-    fields: &[&str],
-    line_number: usize,
-) -> Result<ParsedRow, Box<dyn Error>> {
+fn parse_row(fields: &[&str], line_number: usize) -> Result<ParsedRow, Box<dyn Error>> {
     if fields.len() != 28 {
         return Err(format!(
             "line {line_number}: expected 28 comma-separated fields, found {}",
