@@ -660,9 +660,7 @@ pub fn certify_physical_sensor_function(
 mod tests {
     use super::*;
     use magnetic_interval_ad::Interval;
-    use magnetic_physical_discrepancy::{
-        CellDiscrepancyInput, certify_physical_field_discrepancy,
-    };
+    use magnetic_physical_discrepancy::{CellDiscrepancyInput, certify_physical_field_discrepancy};
 
     const DIGEST: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     const DIGEST_B: &str = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
