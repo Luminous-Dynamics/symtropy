@@ -424,8 +424,8 @@ pub fn evaluate_manifest(inputs: &[BundleInput]) -> Vec<BundleResult> {
 #[cfg(test)]
 mod tests {
     use super::{
-        BundleDisposition, BundleInput, ModalityRecord, SPACESENSE_REVISION, evaluate,
-        evaluate_manifest,
+        BundleDisposition, BundleInput, ModalityRecord, SPACESENSE_POSE_CSV_RELEASE,
+        SPACESENSE_REVISION, evaluate, evaluate_manifest,
     };
 
     fn modality(name: &str, sensor: &str) -> ModalityRecord {
