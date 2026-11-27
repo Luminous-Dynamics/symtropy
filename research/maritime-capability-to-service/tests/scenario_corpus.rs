@@ -266,9 +266,15 @@ fn receipt_outcomes(receipt: &str) -> BTreeMap<String, ExpectedOutcome> {
                 fields[3].parse().expect("normal day is numeric"),
                 fields[4].parse().expect("disrupted day is numeric"),
                 fields[5].parse().expect("expected units are numeric"),
-                fields[6].parse().expect("inspection-qualified units are numeric"),
-                fields[7].parse().expect("receiver-accepted units are numeric"),
-                fields[8].parse().expect("on-time accepted units are numeric"),
+                fields[6]
+                    .parse()
+                    .expect("inspection-qualified units are numeric"),
+                fields[7]
+                    .parse()
+                    .expect("receiver-accepted units are numeric"),
+                fields[8]
+                    .parse()
+                    .expect("on-time accepted units are numeric"),
                 fields[9].to_owned(),
                 fields[10].to_owned(),
                 fields[11].to_owned(),
