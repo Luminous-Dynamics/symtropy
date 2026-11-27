@@ -426,9 +426,13 @@ impl NonAnticipativePolicyCampaign {
                 .get(scenario_id)
                 .copied()
                 .ok_or(NonAnticipativePolicyError::InvalidPolicyRiskContract)?;
-            let observed_mass_ticks = derived_world_ids
+            let scenario_worlds = derived_world_ids
                 .iter()
                 .filter(|identity| identity.scenario_id == *scenario_id)
+                .copied()
+                .collect::<Vec<_>>();
+            let observed_mass_ticks = scenario_worlds
+                .iter()
                 .try_fold(0_u128, |sum, identity| {
                     sum.checked_add(u128::from(
                         *atom_mass_ticks_by_world.get(identity)?,
@@ -437,6 +441,45 @@ impl NonAnticipativePolicyCampaign {
                 .ok_or(NonAnticipativePolicyError::PolicyRiskArithmeticFailure)?;
             if observed_mass_ticks != u128::from(expected_mass_ticks) {
                 return Err(NonAnticipativePolicyError::InvalidPolicyRiskContract);
+            }
+
+            // Independently reconstruct every eligible arm's static mission
+            // union from the receipt matrix. Do not treat the result digest as
+            // a substitute for this exact arithmetic check.
+            for portfolio_id in &trajectory_report.eligible_portfolio_ids {
+                let gate_check = gate
+                    .scenario_portfolio_risk_checks
+                    .iter()
+                    .find(|check| {
+                        check.scenario_id == *scenario_id
+                            && check.portfolio_id == *portfolio_id
+                    })
+                    .ok_or(NonAnticipativePolicyError::InvalidPolicyRiskContract)?;
+                if gate_check.total_mass_ticks != expected_mass_ticks {
+                    return Err(NonAnticipativePolicyError::InvalidPolicyRiskContract);
+                }
+                let contact_mass = scenario_worlds
+                    .iter()
+                    .try_fold(0_u128, |sum, identity| {
+                        let key = (*scenario_id, identity.atom_id, *portfolio_id);
+                        let mass = u128::from(*atom_mass_ticks_by_world.get(identity)?);
+                        let contact = *mission_union_contact_by_world_portfolio.get(&key)?;
+                        if contact {
+                            sum.checked_add(mass)
+                        } else {
+                            Some(sum)
+                        }
+                    })
+                    .ok_or(NonAnticipativePolicyError::PolicyRiskArithmeticFailure)?;
+                let left = contact_mass
+                    .checked_mul(u128::from(gate_check.mission_union_mass.denominator))
+                    .ok_or(NonAnticipativePolicyError::PolicyRiskArithmeticFailure)?;
+                let right = u128::from(gate_check.mission_union_mass.numerator)
+                    .checked_mul(u128::from(expected_mass_ticks))
+                    .ok_or(NonAnticipativePolicyError::PolicyRiskArithmeticFailure)?;
+                if left != right {
+                    return Err(NonAnticipativePolicyError::InvalidPolicyRiskContract);
+                }
             }
         }
 
