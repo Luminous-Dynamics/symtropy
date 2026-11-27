@@ -4,13 +4,13 @@
   "predictions": [
     {
       "episode_id": "episode-a-clean",
-      "input_bundle_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "input_bundle_sha256": "32713fd956718941459c1414ebc49559f43391d8ae3c86ce219df9acc9df634e",
       "disposition": "qualified",
       "detected_fault_families": []
     },
     {
       "episode_id": "episode-a-clock",
-      "input_bundle_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "input_bundle_sha256": "4ab678287a4efb933e26c6e4c13dd95286a9c4085268eff047b7114d517bb576",
       "disposition": "out_of_scope",
       "detected_fault_families": [
         "timing"
@@ -18,7 +18,7 @@
     },
     {
       "episode_id": "episode-a-extrinsics",
-      "input_bundle_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "input_bundle_sha256": "6daa6b14d6c1ea6b6bdf58081457bcf92db4a9d7b90e0abe2994d7817649e9d9",
       "disposition": "disagreement",
       "detected_fault_families": [
         "extrinsics"
@@ -26,7 +26,7 @@
     },
     {
       "episode_id": "episode-a-common",
-      "input_bundle_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "input_bundle_sha256": "8ed0386293335570d19acab77899f1f2a4b0db9bd58ac7afabe17f48f8562931",
       "disposition": "dependence_unknown",
       "detected_fault_families": [
         "common_cause"
@@ -34,7 +34,7 @@
     },
     {
       "episode_id": "episode-a-translation",
-      "input_bundle_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "input_bundle_sha256": "8783b3b3156d0cadd62a6cc5e6f40c622f7720f62b73115cfb2282567320064f",
       "disposition": "abstain",
       "detected_fault_families": [
         "translation"
@@ -42,7 +42,7 @@
     },
     {
       "episode_id": "episode-a-ood",
-      "input_bundle_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "input_bundle_sha256": "9b69c88444eb4145dee5cad3211605394b061d10af0bbdfe70df7ff767f518d5",
       "disposition": "abstain",
       "detected_fault_families": [
         "observability"
@@ -50,7 +50,7 @@
     },
     {
       "episode_id": "episode-a-integrity",
-      "input_bundle_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "input_bundle_sha256": "271f02f452c66ef5f8a0c8dce5b9b9e1997ddf172a3a68df2c3fb85ecb02a01d",
       "disposition": "missing_evidence",
       "detected_fault_families": [
         "integrity"
@@ -58,7 +58,7 @@
     },
     {
       "episode_id": "episode-a-interaction",
-      "input_bundle_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "input_bundle_sha256": "bf2325213564bf418ba7c6f8ad37ff19f393799b91d24858ae55e537e0cd76f8",
       "disposition": "dependence_unknown",
       "detected_fault_families": [
         "timing",
@@ -67,13 +67,13 @@
     },
     {
       "episode_id": "episode-b-clean",
-      "input_bundle_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "input_bundle_sha256": "b67543d0afe6d38d1c73672f9dd92b1ee11549a604aa7c0a04fc3c533edc0251",
       "disposition": "qualified",
       "detected_fault_families": []
     },
     {
       "episode_id": "episode-b-clock",
-      "input_bundle_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+      "input_bundle_sha256": "0dcc66de9dd85a4b833adf5a30ca05da00eb2aa16d2801695f99e9bcc9a52349",
       "disposition": "out_of_scope",
       "detected_fault_families": [
         "timing"
