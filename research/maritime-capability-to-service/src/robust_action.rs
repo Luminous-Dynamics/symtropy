@@ -4,9 +4,7 @@
 //! alpha allocation. This is a conservative resource gate, not a full berth,
 //! quay-crane, yard or port-call optimizer.
 
-use crate::conformal::{
-    ConformalInterval, CoverageClaim, DecisionGate,
-};
+use crate::conformal::{ConformalInterval, DecisionGate, validate_interval};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct JointRiskBudget {
@@ -104,26 +102,8 @@ fn indeterminate(
     }
 }
 
-fn expected_split_conformal_rank(sample_count: u64, alpha_ppm: u32) -> Option<u64> {
-    if sample_count == 0 || alpha_ppm == 0 || alpha_ppm >= 1_000_000 {
-        return None;
-    }
-    let numerator = (u128::from(sample_count) + 1)
-        .checked_mul(u128::from(1_000_000 - alpha_ppm))?;
-    u64::try_from(numerator.div_ceil(1_000_000)).ok()
-}
-
 fn interval_is_well_formed(interval: &ConformalInterval, expected_alpha_ppm: u32) -> bool {
-    interval.alpha_ppm == expected_alpha_ppm
-        && interval.coverage_claim
-            == CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
-        && interval.nominal_coverage_claim_ppm == Some(1_000_000 - expected_alpha_ppm)
-        && expected_split_conformal_rank(interval.sample_count, expected_alpha_ppm)
-            == Some(interval.quantile_rank_1based)
-        && interval.lower <= interval.point_prediction
-        && interval.point_prediction <= interval.upper
-        && interval.point_prediction.saturating_sub(interval.radius) == interval.lower
-        && interval.point_prediction.checked_add(interval.radius) == Some(interval.upper)
+    interval.alpha_ppm == expected_alpha_ppm && validate_interval(interval).is_ok()
 }
 
 /// Evaluate a single action against simultaneous uncertainty bounds.
@@ -323,8 +303,14 @@ mod tests {
             alpha_ppm,
             sample_count: 100,
             quantile_rank_1based: 91,
-            coverage_claim: CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability,
+            coverage_claim: crate::conformal::CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability,
             nominal_coverage_claim_ppm: Some(1_000_000 - alpha_ppm),
+            model_fit_cutoff: 10,
+            calibration_window_start: 11,
+            calibration_window_end: 40,
+            model_sha256: "a".repeat(64),
+            feature_schema_sha256: "b".repeat(64),
+            calibration_data_sha256: "c".repeat(64),
             decision_cutoff: cutoff,
         }
     }
