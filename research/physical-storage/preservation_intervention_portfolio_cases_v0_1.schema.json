@@ -121,7 +121,7 @@
           },
           "candidates": {
             "type": "array",
-            "maxItems": 17,
+            "maxItems": 13,
             "items": {
               "type": "object",
               "additionalProperties": false,
