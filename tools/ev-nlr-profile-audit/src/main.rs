@@ -39,6 +39,7 @@ struct Options {
     candidate_dir: Option<PathBuf>,
     output_path: Option<PathBuf>,
     source_revision: String,
+    source_archive_path: Option<PathBuf>,
     source_archive_sha256: Option<String>,
     candidate_evidence_class: String,
     candidate_id: String,
@@ -150,7 +151,7 @@ struct AuditReport {
     catalog_uri: String,
     source_repository_uri: String,
     source_code_revision: String,
-    source_archive_sha256_declared_by_caller: Option<String>,
+    source_archive_sha256_verified: Option<String>,
     reference_archive_content_sha256: String,
     reference_profile_count: usize,
     expected_profile_count: usize,
@@ -567,17 +568,39 @@ fn compare_archives(
     })
 }
 
+fn verify_source_archive(options: &Options) -> Result<Option<String>, String> {
+    match (
+        options.source_archive_path.as_deref(),
+        options.source_archive_sha256.as_deref(),
+    ) {
+        (Some(path), Some(expected)) => {
+            let bytes = fs::read(path).map_err(|error| {
+                format!("cannot read source archive {}: {error}", path.display())
+            })?;
+            let actual = sha256_hex(&bytes);
+            if !is_sha256(expected) || actual != expected {
+                return Err(format!(
+                    "source archive SHA-256 mismatch: expected {expected}, computed {actual}"
+                ));
+            }
+            Ok(Some(actual))
+        }
+        (None, None) => Ok(None),
+        (Some(_), None) => Err(
+            "--source-archive-path requires --source-archive-sha256".into(),
+        ),
+        (None, Some(_)) => Err(
+            "--source-archive-sha256 requires --source-archive-path so the hash can be verified"
+                .into(),
+        ),
+    }
+}
+
 fn audit(options: &Options) -> Result<AuditEnvelope, String> {
     if options.source_revision.trim().is_empty() {
         return Err("source revision must not be empty".into());
     }
-    if options
-        .source_archive_sha256
-        .as_deref()
-        .is_some_and(|value| !is_sha256(value))
-    {
-        return Err("--source-archive-sha256 must be 64 lowercase hexadecimal characters".into());
-    }
+    let source_archive_sha256_verified = verify_source_archive(options)?;
 
     let reference = audit_archive(&options.reference_dir)?;
     let candidate = match &options.candidate_dir {
@@ -603,7 +626,7 @@ fn audit(options: &Options) -> Result<AuditEnvelope, String> {
         catalog_uri: CATALOG_URI.into(),
         source_repository_uri: SOURCE_URI.into(),
         source_code_revision: options.source_revision.clone(),
-        source_archive_sha256_declared_by_caller: options.source_archive_sha256.clone(),
+        source_archive_sha256_verified,
         reference_archive_content_sha256: reference.archive_content_sha256,
         reference_profile_count: reference.profiles.len(),
         expected_profile_count: 81,
@@ -661,6 +684,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
     let mut candidate_dir = None;
     let mut output_path = None;
     let mut source_revision = SOURCE_REVISION.to_owned();
+    let mut source_archive_path = None;
     let mut source_archive_sha256 = None;
     let mut candidate_evidence_class = "estimate".to_owned();
     let mut candidate_id = "caller-supplied-candidate".to_owned();
@@ -669,7 +693,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
     while index < args.len() {
         let name = args[index].as_str();
         if name == "--help" || name == "-h" {
-            return Err("usage: ev-nlr-profile-audit --reference-dir PATH [--candidate-dir PATH] [--candidate-id ID] [--candidate-evidence-class estimate|simulated] [--source-revision SHA] [--source-archive-sha256 HEX] [--output PATH]".into());
+            return Err("usage: ev-nlr-profile-audit --reference-dir PATH [--candidate-dir PATH] [--candidate-id ID] [--candidate-evidence-class estimate|simulated] [--source-revision SHA] [--source-archive-path ZIP --source-archive-sha256 HEX] [--output PATH]".into());
         }
         let value = args
             .get(index + 1)
@@ -679,6 +703,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
             "--candidate-dir" => candidate_dir = Some(PathBuf::from(value)),
             "--output" => output_path = Some(PathBuf::from(value)),
             "--source-revision" => source_revision = value.clone(),
+            "--source-archive-path" => source_archive_path = Some(PathBuf::from(value)),
             "--source-archive-sha256" => source_archive_sha256 = Some(value.clone()),
             "--candidate-evidence-class" => candidate_evidence_class = value.clone(),
             "--candidate-id" => candidate_id = value.clone(),
@@ -698,6 +723,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
         candidate_dir,
         output_path,
         source_revision,
+        source_archive_path,
         source_archive_sha256,
         candidate_evidence_class,
         candidate_id,
@@ -788,6 +814,37 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn verifies_raw_source_archive_bytes_against_expected_sha256() {
+        let directory = temporary_directory("archive-pin");
+        let path = directory.join("source.zip");
+        let bytes = b"synthetic archive bytes";
+        fs::write(&path, bytes).expect("write source archive");
+        let digest = sha256_hex(bytes);
+
+        let mut options = Options {
+            reference_dir: directory.clone(),
+            candidate_dir: None,
+            output_path: None,
+            source_revision: SOURCE_REVISION.into(),
+            source_archive_path: Some(path.clone()),
+            source_archive_sha256: Some(digest.clone()),
+            candidate_evidence_class: "estimate".into(),
+            candidate_id: "test".into(),
+        };
+        assert_eq!(
+            verify_source_archive(&options).expect("valid archive pin"),
+            Some(digest)
+        );
+
+        options.source_archive_sha256 = Some("00".repeat(32));
+        assert!(verify_source_archive(&options).is_err());
+        options.source_archive_path = None;
+        assert!(verify_source_archive(&options).is_err());
+
+        fs::remove_dir_all(directory).expect("remove archive pin fixture");
     }
 
     #[test]
