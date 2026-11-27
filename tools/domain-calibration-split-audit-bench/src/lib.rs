@@ -345,7 +345,6 @@ mod tests {
         assert!(receipt.translation_lineage_unqualified.is_empty());
     }
 
-
     #[test]
     fn translated_output_digest_reuse_across_partitions_fails() {
         let mut rows = clean_rows();
