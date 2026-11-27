@@ -25,10 +25,13 @@ const SINK_NODE: &str = "safrb-temporal/sink";
 pub struct TemporalNode {
     pub node_id: String,
     /// Maximum inventory allowed to remain at the end of each period.
+    /// This v0.1 profile holds the limit constant throughout the horizon.
     pub storage_capacity: u64,
     /// Aggregate per-period capacity for all outbound transfer departures.
+    /// This v0.1 profile holds the limit constant throughout the horizon.
     pub handling_capacity: u64,
     /// Aggregate per-period capacity for beneficiary/service withdrawals.
+    /// This v0.1 profile holds the limit constant throughout the horizon.
     pub service_issue_capacity: u64,
     /// Stock physically present at the opening boundary of period zero.
     pub opening_inventory: u64,
@@ -69,6 +72,10 @@ pub struct TemporalProfile {
     pub commodity_ref: String,
     pub capacity_unit_ref: String,
     pub quantity_boundary_ref: String,
+    /// Immutable reference defining period zero, period duration and calendar.
+    /// The compiler binds this reference into the graph digest but does not
+    /// dereference or authenticate it.
+    pub period_timebase_ref: String,
     /// The final modeled period. Periods are the inclusive range 0..=horizon.
     pub horizon_last_period: u64,
     pub nodes: Vec<TemporalNode>,
@@ -130,6 +137,24 @@ fn metadata_ref(kind: &str, id: &str) -> String {
     format!("{TEMPORAL_PROFILE_SCHEMA}/{kind}/{id}")
 }
 
+fn bound_quantity_boundary(profile: &TemporalProfile) -> String {
+    let boundary = &profile.quantity_boundary_ref;
+    let schema = &profile.schema_version;
+    let case_id = &profile.case_id;
+    let timebase = &profile.period_timebase_ref;
+    format!(
+        "{}:{}|{}:{}|{}:{}|{}:{}",
+        boundary.len(),
+        boundary,
+        schema.len(),
+        schema,
+        case_id.len(),
+        case_id,
+        timebase.len(),
+        timebase
+    )
+}
+
 /// Compile the explicit period-start temporal profile to a graph-bound model.
 ///
 /// Semantics:
@@ -149,6 +174,7 @@ pub fn compile_temporal_profile(profile: &TemporalProfile) -> Result<FlowGraph, 
     require_nonempty(&profile.commodity_ref, "commodity_ref")?;
     require_nonempty(&profile.capacity_unit_ref, "capacity_unit_ref")?;
     require_nonempty(&profile.quantity_boundary_ref, "quantity_boundary_ref")?;
+    require_nonempty(&profile.period_timebase_ref, "period_timebase_ref")?;
     if profile.schema_version != TEMPORAL_PROFILE_SCHEMA {
         return Err(format!(
             "unsupported temporal profile schema: {}",
@@ -416,10 +442,7 @@ pub fn compile_temporal_profile(profile: &TemporalProfile) -> Result<FlowGraph, 
     Ok(FlowGraph {
         commodity_ref: profile.commodity_ref.clone(),
         capacity_unit_ref: profile.capacity_unit_ref.clone(),
-        quantity_boundary_ref: format!(
-            "{}::{TEMPORAL_PROFILE_SCHEMA}",
-            profile.quantity_boundary_ref
-        ),
+        quantity_boundary_ref: bound_quantity_boundary(profile),
         nodes: graph_nodes,
         edges: graph_edges,
         source: SOURCE_NODE.to_string(),
@@ -459,6 +482,7 @@ mod tests {
             commodity_ref: "diesel".to_string(),
             capacity_unit_ref: "litre".to_string(),
             quantity_boundary_ref: "deliverable-fuel-at-beneficiary-boundary".to_string(),
+            period_timebase_ref: "synthetic:period-zero-and-one-period".to_string(),
             horizon_last_period,
             nodes,
             receipts,
