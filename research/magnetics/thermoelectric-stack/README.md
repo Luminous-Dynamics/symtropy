@@ -34,3 +34,7 @@ See `MAG_AM_THERMOELECTRICAL_STACK_BENCHMARK_2026-11-27.md`, `benchmark-plan.tom
 ## Machine-checked incumbent applicability
 
 The benchmark records an applicability decision for every conventional family (water-jacket, high-performance conventional cooling, direct oil, multi-nozzle oil jet, hairpin oil spray, slot-embedded and hollow-conductor). Applicable families must appear in the required comparator set. Excluded families require a rationale, supporting evidence IDs and a decision digest. The evaluator checks completeness and internal consistency; it does not authenticate the evidence issuer or decide whether an exclusion is technically correct. Synthetic exclusions in the known-answer fixture are placeholders only.
+
+## Frozen-scope evidence binding
+
+The scope is frozen with a canonical SHA-256 digest over deterministic canonical JSON of all scope fields other than the digest itself. The digest is repeated in M4 component-acceptance receipts and every physical observation. Trial-level scope fields must also match exactly. The evaluator checks digest equality; digest generation, issuer authentication and source-record authenticity remain external responsibilities and are not claimed by this prototype.
