@@ -809,10 +809,10 @@ mod tests {
             .expect("compare identical profiles");
         assert_eq!(report.profile_count, 81);
         assert_eq!(report.interval_count, 7_776);
-        assert_eq!(report.mean_absolute_error_kw, 0.0);
-        assert_eq!(report.root_mean_squared_error_kw, 0.0);
-        assert_eq!(report.mean_bias_kw, 0.0);
-        assert_eq!(report.total_energy_absolute_error_kwh, 0.0);
+        assert!(report.mean_absolute_error_kw.abs() < 1e-12);
+        assert!(report.root_mean_squared_error_kw.abs() < 1e-12);
+        assert!(report.mean_bias_kw.abs() < 1e-12);
+        assert!(report.total_energy_absolute_error_kwh.abs() < 1e-12);
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
@@ -848,6 +848,29 @@ mod tests {
         fs::remove_file(path).expect("remove invalid profile");
         assert!(audit_archive(&directory).is_err());
         fs::remove_dir_all(directory).expect("remove fixture directory");
+    }
+
+    #[test]
+    fn rejects_negative_and_non_finite_power_values() {
+        let negative_dir = temporary_directory("negative-power");
+        write_fixture_archive(&negative_dir, 0.0);
+        let key = expected_keys().into_iter().next().expect("expected profile key");
+        let path = negative_dir.join(key.file_name());
+        let source = fs::read_to_string(&path).expect("read negative fixture");
+        let changed = source.replacen("8.000000", "-1.000000", 1);
+        fs::write(&path, changed).expect("write negative fixture");
+        assert!(audit_archive(&negative_dir).is_err());
+        fs::remove_dir_all(negative_dir).expect("remove negative fixture");
+
+        let non_finite_dir = temporary_directory("non-finite-power");
+        write_fixture_archive(&non_finite_dir, 0.0);
+        let key = expected_keys().into_iter().next().expect("expected profile key");
+        let path = non_finite_dir.join(key.file_name());
+        let source = fs::read_to_string(&path).expect("read non-finite fixture");
+        let changed = source.replacen("8.000000", "NaN", 1);
+        fs::write(&path, changed).expect("write non-finite fixture");
+        assert!(audit_archive(&non_finite_dir).is_err());
+        fs::remove_dir_all(non_finite_dir).expect("remove non-finite fixture");
     }
 
     #[test]
