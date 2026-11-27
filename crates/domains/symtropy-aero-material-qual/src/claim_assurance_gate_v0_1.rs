@@ -859,6 +859,10 @@ mod tests {
     use crate::decision_context_v0_1::DecisionContextV0_1;
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::effectivity_interval_v0_1::EffectivityRelation;
+    use crate::model_credibility_cut_v0_1::{
+        ModelCredibilityCutV0_1, ModelDomainCoverageStatus,
+        MetricStratumStatus, SplitIntegrityStatus,
+    };
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::owner_evidence_cut_v0_1::{
         OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
@@ -927,11 +931,52 @@ mod tests {
         }
     }
 
+    fn context_template(evidence_refs: &[String]) -> DecisionContextV0_1 {
+        DecisionContextV0_1 {
+            claim_id: "claim-wing-panel-001".to_owned(),
+            subject_ref: "part:wing-panel-001".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
+            operating_envelope_ref: "envelope:transport-normal".to_owned(),
+            acquisition_time_earliest_unix_ms: 1_795_514_399_900,
+            acquisition_time_latest_unix_ms: 1_795_514_400_100,
+            as_known_at_unix_ms: 1_795_516_800_000,
+            source_scope_manifest_sha256: "a".repeat(64),
+            evidence_knowledge_cut_sha256: "b".repeat(64),
+            trust_policy_sha256: "c".repeat(64),
+            claim_specification_sha256: "d".repeat(64),
+            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(
+                evidence_refs,
+            )
+            .expect("evidence manifest serializes"),
+            risk_classification_sha256: "e".repeat(64),
+            model_applicability_profile_sha256: "f".repeat(64),
+        }
+    }
+
+    fn model_cut_for_context(
+        context: &DecisionContextV0_1,
+    ) -> ModelCredibilityCutV0_1 {
+        let mut model = crate::model_credibility_cut_v0_1::tests::fixture();
+        model.claim_id = context.claim_id.clone();
+        model.configuration_ref = context.configuration_ref.clone();
+        model.operating_envelope_ref = context.operating_envelope_ref.clone();
+        model.applicability_profile_sha256 =
+            context.model_applicability_profile_sha256.clone();
+        model.risk_classification_sha256 =
+            context.risk_classification_sha256.clone();
+        model
+    }
+
     fn owner_cut_for_refs(
         evidence_refs: &[String],
         trust_policy_sha256: &str,
     ) -> OwnerEvidenceCutV0_1 {
-        OwnerEvidenceCutV0_1 {
+        let model = model_cut_for_context(&context_template(evidence_refs));
+        let mut refs = evidence_refs.to_vec();
+        if !refs.iter().any(|item| item == &model.evidence_ref) {
+            refs.push(model.evidence_ref.clone());
+        }
+        let mut cut = OwnerEvidenceCutV0_1 {
             schema: "AeroOwnerEvidenceCutV0_1".to_owned(),
             owner_namespace: "mycelix:aerocommons".to_owned(),
             component_packet_id: "packet:coupon-001-r1".to_owned(),
@@ -940,10 +985,7 @@ mod tests {
             component_packet_sha256: "2".repeat(64),
             component_packet_byte_length: 4096,
             artifact_payloads_verified: true,
-            evidence_records: evidence_refs
-                .iter()
-                .map(|reference| owner_record(reference))
-                .collect(),
+            evidence_records: refs.iter().map(|reference| owner_record(reference)).collect(),
             basalt_run_id: "basalt:run-001".to_owned(),
             basalt_report_version: 1,
             basalt_timeline_input_sha256: "3".repeat(64),
@@ -957,47 +999,31 @@ mod tests {
             observer_coverage_receipt_sha256: "7".repeat(64),
             observer_coverage_status: OwnerObserverCoverageStatus::QualifiedCompleteForScope,
             observer_coverage_watermark_unix_ms: 1_795_516_600_000,
-        }
+        };
+        let model_record = cut
+            .evidence_records
+            .iter_mut()
+            .find(|record| record.evidence_ref == model.evidence_ref)
+            .expect("model evidence reference is included in owner cut");
+        model_record.record_sha256 = model.compute_sha256().expect("model cut serializes");
+        cut
     }
 
     fn decision_context_for_refs(evidence_refs: &[String]) -> DecisionContextV0_1 {
         let owner_cut = owner_cut_for_refs(evidence_refs, &"c".repeat(64));
-        DecisionContextV0_1 {
-            claim_id: "claim-wing-panel-001".to_owned(),
-            subject_ref: "part:wing-panel-001".to_owned(),
-            configuration_ref: "configuration:wing-r17".to_owned(),
-            operating_envelope_ref: "envelope:transport-normal".to_owned(),
-            acquisition_time_earliest_unix_ms: 1_795_514_399_900,
-            acquisition_time_latest_unix_ms: 1_795_514_400_100,
-            as_known_at_unix_ms: 1_795_516_800_000,
-            source_scope_manifest_sha256: "a".repeat(64),
-            evidence_knowledge_cut_sha256: owner_cut
-                .compute_sha256()
-                .expect("owner evidence cut serializes"),
-            trust_policy_sha256: "c".repeat(64),
-            claim_specification_sha256: "d".repeat(64),
-            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(
-                evidence_refs,
-            )
-            .expect("evidence manifest serializes"),
-            risk_classification_sha256: "e".repeat(64),
-            model_applicability_profile_sha256: "f".repeat(64),
-        }
+        let mut context = context_template(evidence_refs);
+        context.evidence_knowledge_cut_sha256 =
+            owner_cut.compute_sha256().expect("owner evidence cut serializes");
+        context
     }
 
     fn owner_cut_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> OwnerEvidenceCutV0_1 {
-        let refs = evidence
-            .iter()
-            .map(|item| item.evidence_ref.clone())
-            .collect::<Vec<_>>();
+        let refs = evidence.iter().map(|item| item.evidence_ref.clone()).collect::<Vec<_>>();
         owner_cut_for_refs(&refs, &"c".repeat(64))
     }
 
     fn context_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> DecisionContextV0_1 {
-        let refs = evidence
-            .iter()
-            .map(|item| item.evidence_ref.clone())
-            .collect::<Vec<_>>();
+        let refs = evidence.iter().map(|item| item.evidence_ref.clone()).collect::<Vec<_>>();
         decision_context_for_refs(&refs)
     }
 
