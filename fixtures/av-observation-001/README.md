@@ -193,3 +193,8 @@ The external comparison crosswalk now includes OVO-S, VideoZeroBench, FPS-Bench,
 ## World-manifest binding work
 
 [AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) now owns binding the eight identifiability pairs to versioned WorldManifestV1 records and evaluator-only twin-world crosswalks. It composes #1595, #6183, #6201, #6859, #7693 and #6754. This is the next manifest/audit increment; no indoor camera renderer or rendered twin-world media is claimed to exist yet.
+
+
+## Observability quotient hypothesis
+
+The protocol now separates **observational equivalence** (what worlds can be distinguished from the sensor prefix) from **decision equivalence** (what distinctions change the action for one declared DecisionNeed). It proposes a query-relative quotient state: stop resolving map details when all admissible worlds imply the same action within a worst-case regret bound, but retain source-linked residuals so a later query can reopen them. This composes existing #7558/#7577 decision evaluation and #6675 acquisition; it does not add a second map store or scheduler. See section 22 of the protocol.
