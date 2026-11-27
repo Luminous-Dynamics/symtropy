@@ -843,16 +843,22 @@ mod tests {
             .compute_semantic_sha256()
             .expect("semantic spec fixture");
 
-        let mut context: DecisionContextV0_1 = serde_json::from_str(include_str!(
-            "../../../../docs/research/aviation/examples/aero_decision_context_v0_1.json"
-        ))
-        .expect("decision context fixture");
-        context.claim_id = specification.claim_id.clone();
-        context.subject_ref = specification.subject_ref.clone();
-        context.configuration_ref = specification.configuration_ref.clone();
-        context.operating_envelope_ref = specification.operating_envelope_ref.clone();
-        context.claim_specification_sha256 = semantic_sha256.clone();
-        context.model_applicability_profile_sha256 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned();
+        let mut context = DecisionContextV0_1 {
+            claim_id: specification.claim_id.clone(),
+            subject_ref: specification.subject_ref.clone(),
+            configuration_ref: specification.configuration_ref.clone(),
+            operating_envelope_ref: specification.operating_envelope_ref.clone(),
+            acquisition_time_earliest_unix_ms: 1_795_514_399_900,
+            acquisition_time_latest_unix_ms: 1_795_514_400_100,
+            as_known_at_unix_ms: 1_795_516_800_000,
+            source_scope_manifest_sha256: "a".repeat(64),
+            evidence_knowledge_cut_sha256: "0".repeat(64),
+            trust_policy_sha256: "c".repeat(64),
+            claim_specification_sha256: semantic_sha256.clone(),
+            required_evidence_manifest_sha256: "0".repeat(64),
+            risk_classification_sha256: "b".repeat(64),
+            model_applicability_profile_sha256: "a".repeat(64),
+        };
 
         let mut model_cut: ModelCredibilityCutV0_1 = serde_json::from_str(include_str!(
             "../../../../docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json"
@@ -868,6 +874,9 @@ mod tests {
                 stratum_ref: "load_case:limit-load".to_owned(),
             },
         ];
+        context.model_applicability_profile_sha256 =
+            model_cut.applicability_profile_sha256.clone();
+        context.risk_classification_sha256 = model_cut.risk_classification_sha256.clone();
         model_cut.metric_stratum_reports = model_cut
             .required_metric_strata
             .iter()
