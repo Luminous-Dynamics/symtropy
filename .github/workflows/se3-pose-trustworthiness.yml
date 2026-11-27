@@ -76,6 +76,8 @@ jobs:
           assert cases["ST045"]["disposition"] == "OUT_OF_SCOPE"
           assert rust["summary"]["risk_coverage"]
           assert rust["summary"]["accepted_pose_coverage_fraction"] is not None
+          assert rust["summary"]["accepted_gaussian_nll_mean"] is not None
+          assert cases["ST001"]["gaussian_negative_log_likelihood"] == "5.513631199228"
           assert rust["summary"]["accepted_covariance_logdet_median"] is not None
           assert rust["summary"]["accepted_95_region_log_volume_median"] is not None
           print("45 SE3 trust cases: exact Rust/Python receipt equality")
