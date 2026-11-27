@@ -68,9 +68,7 @@ impl McfResidualInstance {
                 .iter()
                 .map(|&supply| i128::from(supply)),
         );
-        if self.arc_count as usize != self.arcs.len()
-            || self.lower_bounds.len() != self.arcs.len()
-        {
+        if self.arc_count as usize != self.arcs.len() || self.lower_bounds.len() != self.arcs.len() {
             return Err(McfTransformError::new(
                 "residual arc and lower-bound vectors do not match declared arc count",
             ));
@@ -112,9 +110,9 @@ impl McfResidualInstance {
                         "lower-bound cost multiplication overflow on arc {ordinal}"
                     ))
                 })?;
-            expected_offset = expected_offset.checked_add(contribution).ok_or_else(|| {
-                McfTransformError::new("lower-bound cost offset overflowed i128")
-            })?;
+            expected_offset = expected_offset
+                .checked_add(contribution)
+                .ok_or_else(|| McfTransformError::new("lower-bound cost offset overflowed i128"))?;
         }
         if expected_offset != self.lower_bound_cost_offset {
             return Err(McfTransformError::new(
@@ -145,7 +143,11 @@ impl McfTransformError {
 
 impl fmt::Display for McfTransformError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(formatter, "DIMACS MCF lower-bound transform: {}", self.message)
+        write!(
+            formatter,
+            "DIMACS MCF lower-bound transform: {}",
+            self.message
+        )
     }
 }
 
@@ -201,7 +203,12 @@ pub fn remove_lower_bounds(
         expected_supply_len,
         "adjusted node supply vector",
     )?;
-    adjusted_supplies.extend(instance.node_supplies.iter().map(|&supply| i128::from(supply)));
+    adjusted_supplies.extend(
+        instance
+            .node_supplies
+            .iter()
+            .map(|&supply| i128::from(supply)),
+    );
 
     let mut lower_bounds = Vec::new();
     reserve_exact(
@@ -238,19 +245,19 @@ pub fn remove_lower_bounds(
                 arc.ordinal, instance.node_count
             )));
         }
-        if arc.lower_bound < 0
-            || arc.upper_bound < 0
-            || arc.upper_bound < arc.lower_bound
-        {
+        if arc.lower_bound < 0 || arc.upper_bound < 0 || arc.upper_bound < arc.lower_bound {
             return Err(McfTransformError::new(format!(
                 "arc {} has invalid bounds [{}, {}]",
                 arc.ordinal, arc.lower_bound, arc.upper_bound
             )));
         }
 
-        let capacity = arc.upper_bound.checked_sub(arc.lower_bound).ok_or_else(|| {
-            McfTransformError::new(format!("residual capacity overflow on arc {}", arc.ordinal))
-        })?;
+        let capacity = arc
+            .upper_bound
+            .checked_sub(arc.lower_bound)
+            .ok_or_else(|| {
+                McfTransformError::new(format!("residual capacity overflow on arc {}", arc.ordinal))
+            })?;
         let lower = i128::from(arc.lower_bound);
         let tail = arc.tail as usize;
         let head = arc.head as usize;
@@ -375,9 +382,9 @@ pub fn reconstruct_objective(
                     arc.ordinal
                 ))
             })?;
-        objective = objective.checked_add(contribution).ok_or_else(|| {
-            McfTransformError::new("reconstructed objective overflowed i128")
-        })?;
+        objective = objective
+            .checked_add(contribution)
+            .ok_or_else(|| McfTransformError::new("reconstructed objective overflowed i128"))?;
     }
     Ok(objective)
 }
@@ -389,10 +396,9 @@ mod tests {
 
     #[test]
     fn lower_bounds_shift_supply_and_preserve_residual_capacity_and_cost() {
-        let instance = parse_dimacs_mcf(
-            "p min 3 2\nn 1 5\nn 2 -1\nn 3 -4\na 1 2 2 5 7\na 2 3 1 4 -3",
-        )
-        .unwrap();
+        let instance =
+            parse_dimacs_mcf("p min 3 2\nn 1 5\nn 2 -1\nn 3 -4\na 1 2 2 5 7\na 2 3 1 4 -3")
+                .unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
         assert_eq!(residual.adjusted_supplies, vec![0, 3, 0, -3]);
         assert_eq!(residual.arcs[0].capacity, 3);
@@ -400,7 +406,10 @@ mod tests {
         assert_eq!(residual.lower_bounds, vec![2, 1]);
         assert_eq!(residual.lower_bound_cost_offset, 11);
         assert!(residual.is_supply_balanced());
-        assert_eq!(restore_original_flows(&residual, &[3, 3]).unwrap(), vec![5, 4]);
+        assert_eq!(
+            restore_original_flows(&residual, &[3, 3]).unwrap(),
+            vec![5, 4]
+        );
         assert_eq!(reconstruct_objective(&residual, &[3, 3]).unwrap(), 23);
     }
 
@@ -412,8 +421,7 @@ mod tests {
         .unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
         let residual_flows = [3_i64, 3_i64];
-        let original_flows =
-            restore_original_flows(&residual, &residual_flows).unwrap();
+        let original_flows = restore_original_flows(&residual, &residual_flows).unwrap();
 
         let mut original_balance = vec![0_i128; 4];
         let mut residual_balance = vec![0_i128; 4];
@@ -427,28 +435,43 @@ mod tests {
         }
         assert_eq!(
             original_balance,
-            instance.node_supplies.iter().map(|&x| i128::from(x)).collect::<Vec<_>>()
+            instance
+                .node_supplies
+                .iter()
+                .map(|&x| i128::from(x))
+                .collect::<Vec<_>>()
         );
         assert_eq!(residual_balance, residual.adjusted_supplies);
     }
 
     #[test]
     fn parallel_arc_identity_and_costs_survive_lower_bound_elimination() {
-        let instance = parse_dimacs_mcf(
-            "p min 2 3\nn 1 6\nn 2 -6\na 1 2 1 3 5\na 1 2 2 4 -2\na 1 2 0 1 9",
-        )
-        .unwrap();
+        let instance =
+            parse_dimacs_mcf("p min 2 3\nn 1 6\nn 2 -6\na 1 2 1 3 5\na 1 2 2 4 -2\na 1 2 0 1 9")
+                .unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
         assert_eq!(
-            residual.arcs.iter().map(|arc| arc.ordinal).collect::<Vec<_>>(),
+            residual
+                .arcs
+                .iter()
+                .map(|arc| arc.ordinal)
+                .collect::<Vec<_>>(),
             vec![1, 2, 3]
         );
         assert_eq!(
-            residual.arcs.iter().map(|arc| arc.capacity).collect::<Vec<_>>(),
+            residual
+                .arcs
+                .iter()
+                .map(|arc| arc.capacity)
+                .collect::<Vec<_>>(),
             vec![2, 2, 1]
         );
         assert_eq!(
-            residual.arcs.iter().map(|arc| arc.unit_cost).collect::<Vec<_>>(),
+            residual
+                .arcs
+                .iter()
+                .map(|arc| arc.unit_cost)
+                .collect::<Vec<_>>(),
             vec![5, -2, 9]
         );
         assert_eq!(residual.lower_bound_cost_offset, 1);
@@ -456,8 +479,7 @@ mod tests {
 
     #[test]
     fn zero_lower_bounds_leave_supplies_and_objective_offset_unchanged() {
-        let instance =
-            parse_dimacs_mcf("p min 2 1\nn 1 3\nn 2 -3\na 1 2 0 3 12").unwrap();
+        let instance = parse_dimacs_mcf("p min 2 1\nn 1 3\nn 2 -3\na 1 2 0 3 12").unwrap();
         let residual = remove_lower_bounds(&instance).unwrap();
         assert_eq!(residual.adjusted_supplies, vec![0, 3, -3]);
         assert_eq!(residual.arcs[0].capacity, 3);
