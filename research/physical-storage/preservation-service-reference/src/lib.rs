@@ -764,10 +764,16 @@ mod tests {
     }
 
     #[test]
-    fn missing_energy_measurement_is_incomplete() {
+    fn missing_energy_measurement_requires_honest_abstention() {
         let mut receipt = passing_receipt();
         receipt.energy_meter_status = EvidenceStatus::Incomplete;
         receipt.energy_millijoules = None;
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
+
+        receipt.candidate_claimed_full_success = false;
         assert_eq!(
             score(&contract(), &receipt).unwrap().disposition,
             ServiceDisposition::Incomplete
