@@ -30,6 +30,13 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
+      - name: Emit rustfmt source for review
+        run: rustfmt --edition 2024 --emit stdout research/physical-storage/preservation-watch-reference/src/lib.rs > "$RUNNER_TEMP/formatted.rs"
+      - name: Upload rustfmt source
+        uses: actions/upload-artifact@v4
+        with:
+          name: rustfmt-preservation-watch-intervention-001
+          path: ${{ runner.temp }}/formatted.rs
       - name: Check formatting
         run: cargo fmt --manifest-path "$MANIFEST" -- --check
       - name: Run strict Clippy
