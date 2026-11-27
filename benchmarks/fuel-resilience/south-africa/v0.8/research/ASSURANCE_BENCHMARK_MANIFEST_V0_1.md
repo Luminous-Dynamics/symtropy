@@ -31,6 +31,21 @@ Supported lanes:
 - `service_outcomes`: beneficiary floors and usable-service disposition.
 - `interop`: vendor-neutral source/receipt fidelity and read-only behavior.
 
+## Non-anticipativity and recourse comparison
+
+Treat scenario-specific full recourse and a non-anticipative policy as different model classes. A full-recourse evaluation may choose a different allocation after each scenario is observed. A here-and-now or staged policy must choose identical actions for scenario histories that are still observationally indistinguishable.
+
+For every non-anticipative-policy case, freeze and digest:
+- the scenario tree and every leaf/path;
+- the observation/revelation schedule and each information-set partition;
+- each decision stage and whether it is binding before or after an observation;
+- the action variables committed at each information set;
+- pathwise resource budgets and shared-resource dependencies.
+
+Required comparator classes for small, exact cases: exhaustive policy enumeration; deterministic-equivalent MILP with explicit non-anticipativity equalities; full-recourse scenario-specific oracle as an information relaxation; and a clairvoyant per-leaf bound for diagnostics only. For larger cases add matched progressive-hedging/scenario-decomposition, stochastic dual dynamic programming or integer extensions where their assumptions hold, rolling-horizon MPC, and decision-focused learning. Never compare algorithms under different recourse assumptions as though they optimize the same problem.
+
+Key metrics: here-and-now feasibility, full-recourse feasibility, exact policy gap, worst-leaf regret, non-anticipativity violations, pathwise budget violations, information-set/tree size, solver gap/node count, policy inference latency, training and solve compute, and independent-verification overhead. Keep probability-weighted objectives separate and use them only when scenario probabilities are authoritative.
+
 ## Execution rules
 
 - Freeze corpus and manifest before measuring. Hash raw inputs and canonical model separately.
