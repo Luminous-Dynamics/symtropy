@@ -269,6 +269,18 @@ Aspirational efficiency improvements (for example fewer physical measurements) r
 6. Rathfelder et al. (2025), recycled NdFeB powder extrusion moulding, DOI [10.1038/s41598-025-19111-6](https://doi.org/10.1038/s41598-025-19111-6). Near-net-shape adjacent route, not a matched LPBF/MEX comparator.
 7. IEC 60404-5:2015 and IEC 60404-18:2025. Standards define particular hard-magnet property methods; they do not remove the need to report specimen, homogeneity assumptions and uncertainty.
 
+## 12A. Current data, process-monitoring and imperfection standards
+
+The following 2025–2026 additions strengthen the digital thread and process-evidence crosswalk. Their scope must be respected; none replaces magnetic-property, dielectric, thermal, mechanical or component acceptance methods.
+
+- **ISO/ASTM 52951:2026 — AM part data packages:** defines parameters/models for a part data package across design-to-acceptance communication. Its technical basis is PBF-LB/M, while generalized workflow requirements may relate to other AM processes. Use it to organize traceable part evidence, not as a qualification test method.
+- **ISO/ASTM 52953:2025 — process-monitoring and QC data registration:** addresses registration and storage of multimodal monitoring/NDT data. Its stated scope is metallic PBF-LB; its text excludes data cleansing, sensor calibration and image processing. Do not treat registration as proof of sensor validity or defect acceptance.
+- **ISO/ASTM 52948:2026 — metallic PBF imperfection classification:** classifies imperfections for PBF-LB/PBF-EB and discusses probable causes. It does not supply acceptance criteria or a dimensional scale; application-specific acceptance remains separate.
+- **ISO/ASTM TR 52958:2026 — coaxial photodiode monitoring:** addresses in-situ coaxial photodiode monitoring for lack-of-fusion flaw detection in PBF-LB. It is one monitoring modality and does not establish complete process monitoring, NDT coverage or magnetic-property acceptance.
+- **ISO/ASTM 52941:2026 — aerospace PBF-LB/M machine-system reliability tests:** aerospace-specific machine performance/reliability scope. Apply only where the application/contract calls for it; it is not a general magnetic component qualification standard.
+
+These documents should be referenced in evidence packages with edition, applicable scope, data owner, method and limitations. This programme makes no declaration of conformity or certification.
+
 ## 13. Safety and authority
 
 This protocol creates no machine-control or physical test authority. Powder handling, laser processing, magnetization, energized-field experiments, destructive exposure, mechanical testing and thermal testing require a suitably qualified facility, risk assessment, calibrated instrumentation, approved procedures and independent authorization. No product-release, standards-conformity or safety claim follows from a software benchmark.
