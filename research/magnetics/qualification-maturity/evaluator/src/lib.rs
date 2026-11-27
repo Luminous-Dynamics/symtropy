@@ -340,7 +340,10 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         .filter(|receipt| {
             receipt.class == EvidenceClass::PhysicalMeasurement
                 && receipt.component_id.as_deref() == Some(candidate.component_id.as_str())
-                && receipt.geometry_digest.as_ref().is_some_and(|digest| valid_sha256(digest.as_str()))
+                && receipt
+                    .geometry_digest
+                    .as_ref()
+                    .is_some_and(|digest| valid_sha256(digest.as_str()))
                 && method_evidence_complete(receipt)
         })
         .collect::<Vec<_>>();
@@ -349,7 +352,10 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         .filter(|receipt| {
             receipt.class == EvidenceClass::PhysicalMeasurement
                 && receipt.component_id.as_deref() == Some(candidate.component_id.as_str())
-                && receipt.conditions_digest.as_ref().is_some_and(|digest| valid_sha256(digest.as_str()))
+                && receipt
+                    .conditions_digest
+                    .as_ref()
+                    .is_some_and(|digest| valid_sha256(digest.as_str()))
                 && method_evidence_complete(receipt)
         })
         .collect::<Vec<_>>();
@@ -897,7 +903,10 @@ fn method_evidence_complete(receipt: &EvidenceReceipt) -> bool {
             .uncertainty_digest
             .as_ref()
             .is_some_and(|digest| valid_sha256(digest.as_str()))
-        && receipt.conditions_digest.as_ref().is_some_and(|digest| valid_sha256(digest.as_str()))
+        && receipt
+            .conditions_digest
+            .as_ref()
+            .is_some_and(|digest| valid_sha256(digest.as_str()))
 }
 
 fn is_physical_kind(kind: EvidenceKind) -> bool {
