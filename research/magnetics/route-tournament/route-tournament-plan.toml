@@ -122,3 +122,19 @@ unit_tests_executed = false
 exact_head_ci_pass = false
 evaluator_semantics = ["exact_cohort_scope", "as_built_evidence_closure", "admissible_evidence_roles", "interval_hard_limits", "robust_interval_pareto"]
 no_scalar_score = true
+
+
+[implementation]
+issue = 7770
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+fixture_schema = "evaluator/route-tournament-fixture-v0.1.schema.json"
+synthetic_fixture = "evaluator/fixtures/synthetic-route-tournament-v0.1.json"
+workflow = ".github/workflows/magnetic-route-tournament.yml"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 22
+unit_tests_executed = false
+exact_head_ci_pass = false
+evaluator_semantics = ["exact_cohort_scope", "as_built_evidence_closure", "calibrated_geometry_inspection", "admissible_evidence_roles", "interval_hard_limits", "robust_interval_pareto"]
+no_scalar_score = true
