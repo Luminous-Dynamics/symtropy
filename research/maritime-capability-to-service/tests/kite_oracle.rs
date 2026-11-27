@@ -2,7 +2,7 @@ use maritime_capability_to_service::kite::{
     select_as_of, AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState,
 };
 use maritime_capability_to_service::kite_oracle::{
-    solve_r1_finite, ActionOutcome, DecisionContext, OutcomeVector, ScenarioDecision,
+    ActionOutcome, DecisionContext, OutcomeVector, ScenarioDecision, solve_r1_finite,
 };
 use maritime_capability_to_service::kite::Gate;
 
@@ -16,7 +16,10 @@ fn context() -> DecisionContext {
     }
 }
 
-fn snapshot(vintage_id: &str, first_available_at: u64) -> maritime_capability_to_service::kite::AsOfSnapshot {
+fn snapshot(
+    vintage_id: &str,
+    first_available_at: u64,
+) -> maritime_capability_to_service::kite::AsOfSnapshot {
     let evidence = EvidenceVintage {
         logical_id: "GRID-FEEDER".to_owned(),
         vintage_id: vintage_id.to_owned(),
@@ -67,7 +70,11 @@ fn action(id: &str, accepted: u64, cost: u64) -> ActionOutcome {
     }
 }
 
-fn decision(id: &str, as_of: maritime_capability_to_service::kite::AsOfSnapshot, actions: Vec<ActionOutcome>) -> ScenarioDecision {
+fn decision(
+    id: &str,
+    as_of: maritime_capability_to_service::kite::AsOfSnapshot,
+    actions: Vec<ActionOutcome>,
+) -> ScenarioDecision {
     let digest_seed = as_of
         .selected
         .values()
@@ -88,40 +95,61 @@ fn public_r1_api_enforces_non_anticipativity_for_identical_information() {
     let shared = snapshot("GRID-V1", 60);
     let result = solve_r1_finite(
         &[
-            decision("SCENARIO-A", shared.clone(), vec![
-                action("LOCAL", 10, 20),
-                action("IMPORT", 9, 10),
-            ]),
-            decision("SCENARIO-B", shared, vec![
-                action("LOCAL", 8, 30),
-                action("IMPORT", 9, 15),
-            ]),
+            decision(
+                "SCENARIO-A",
+                shared.clone(),
+                vec![action("LOCAL", 10, 20), action("IMPORT", 9, 10)],
+            ),
+            decision(
+                "SCENARIO-B",
+                shared,
+                vec![action("LOCAL", 8, 30), action("IMPORT", 9, 15)],
+            ),
         ],
         16,
-    ).expect("R1 finite solve");
+    )
+    .expect("R1 finite solve");
 
     assert_eq!(result.candidate_policy_count, 2);
     assert_eq!(result.pareto_frontier.len(), 1);
     assert_eq!(
-        result.pareto_frontier[0].choices.values().next().map(String::as_str),
+        result.pareto_frontier[0]
+            .choices
+            .values()
+            .next()
+            .map(String::as_str),
         Some("IMPORT")
     );
-    assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.receiver_accepted_units, 9);
-    assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.recovery_cost_units, 15);
+    assert_eq!(
+        result.pareto_frontier[0]
+            .adverse_envelope
+            .bounds
+            .receiver_accepted_units,
+        9
+    );
+    assert_eq!(
+        result.pareto_frontier[0]
+            .adverse_envelope
+            .bounds
+            .recovery_cost_units,
+        15
+    );
 }
 
 #[test]
 fn later_observable_histories_may_choose_different_actions() {
     let result = solve_r1_finite(
         &[
-            decision("SCENARIO-A", snapshot("GRID-V1", 60), vec![
-                action("LOCAL", 10, 20),
-                action("IMPORT", 7, 10),
-            ]),
-            decision("SCENARIO-B", snapshot("GRID-V2", 70), vec![
-                action("LOCAL", 7, 10),
-                action("IMPORT", 10, 20),
-            ]),
+            decision(
+                "SCENARIO-A",
+                snapshot("GRID-V1", 60),
+                vec![action("LOCAL", 10, 20), action("IMPORT", 7, 10)],
+            ),
+            decision(
+                "SCENARIO-B",
+                snapshot("GRID-V2", 70),
+                vec![action("LOCAL", 7, 10), action("IMPORT", 10, 20)],
+            ),
         ],
         16,
     ).expect("R1 finite solve");
@@ -133,7 +161,10 @@ fn later_observable_histories_may_choose_different_actions() {
         .values()
         .map(String::as_str)
         .collect();
-    assert_eq!(selected, std::collections::BTreeSet::from(["LOCAL", "IMPORT"]));
+    assert_eq!(
+        selected,
+        std::collections::BTreeSet::from(["LOCAL", "IMPORT"])
+    );
 }
 
 #[test]
