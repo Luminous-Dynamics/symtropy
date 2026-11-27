@@ -430,10 +430,6 @@ fn exact_f64(left: f64, right: f64) -> bool {
     left.to_bits() == right.to_bits()
 }
 
-fn valid_sha256(value: &str) -> bool {
-    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
 /// Join an independent centre observation with interval-AD-derived
 /// whole-cell XYZ derivative evidence.
 ///
@@ -1579,9 +1575,7 @@ mod tests {
                     EvidenceRole::AdaptiveExploration,
                 )
                 .expect_err("all scope identities are binding keys"),
-                EvidenceBindingError::SpatialCertification(
-                    CertificationError::InvalidIdentity
-                ),
+                EvidenceBindingError::DerivativeScopeMismatch { field },
                 "mismatch field: {field}"
             );
         }
@@ -1636,12 +1630,13 @@ mod tests {
         assert!(matches!(
             plan_refinement(
                 &evidence,
+                0,
+                1,
                 RefinementPolicy {
                     minimum_child_width_m: [0.001; 3],
                     maximum_depth: 4,
                     maximum_leaf_count: 16,
                 },
-                1,
             ),
             Err(CertificationError::ProtectedEvidenceRole)
         ));
