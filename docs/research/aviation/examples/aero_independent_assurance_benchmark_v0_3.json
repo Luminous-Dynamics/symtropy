@@ -239,7 +239,11 @@
     "multi_agent_llm",
     "aero_without_temporal_replay",
     "aero_without_observer_coverage",
-    "full_aero"
+    "full_aero",
+    "structured_assurance_case_tool",
+    "plm_digital_thread_workflow",
+    "owner_native_vvuq_workflow",
+    "hierarchical_validation_measurement_workflow"
   ],
   "release_gates": [
     "R0_structural",
