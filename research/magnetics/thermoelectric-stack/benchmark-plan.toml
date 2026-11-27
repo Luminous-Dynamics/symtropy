@@ -26,6 +26,10 @@ application_dependent_required_families = [
   "ConventionalHollowConductorCooling",
 ]
 rule = "include every incumbent family applicable to the frozen application; these are not all universally mandatory"
+applicability_decisions_required_for_every_family = true
+non_applicable_requires_rationale_and_supporting_evidence = true
+applicability_decision_digest_required = true
+application_scope_owner_must_preregister_before_comparison = true
 minimum_optimization_evaluations = 100
 minimum_independent_restarts = 3
 frozen_before_comparison = true
