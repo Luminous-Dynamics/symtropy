@@ -60,7 +60,9 @@ pub struct TemporalService {
     pub service_id: String,
     pub node_id: String,
     pub period: u64,
-    pub required_quantity: u64,
+    /// Maximum amount this service may receive in the modeled period.
+    /// This is a request/ceiling, not a mandatory minimum-delivery constraint.
+    pub requested_quantity: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -437,7 +439,7 @@ pub fn compile_temporal_profile(profile: &TemporalProfile) -> Result<FlowGraph, 
             edge_id.clone(),
             issue_node_id(&service.node_id, service.period),
             SINK_NODE,
-            service.required_quantity,
+            service.requested_quantity,
             Some(metadata_ref("service", &edge_id)),
         ));
     }
@@ -543,7 +545,7 @@ mod tests {
                 service_id: "depot-service".to_string(),
                 node_id: "beneficiary-depot".to_string(),
                 period: 1,
-                required_quantity: 1_000,
+                requested_quantity: 1_000,
             }],
         );
 
@@ -579,7 +581,7 @@ mod tests {
                 service_id: "depot-demand".to_string(),
                 node_id: "depot".to_string(),
                 period: 2,
-                required_quantity: 700,
+                requested_quantity: 700,
             }],
         );
 
@@ -613,7 +615,7 @@ mod tests {
                 service_id: "depot-service".to_string(),
                 node_id: "depot".to_string(),
                 period: 1,
-                required_quantity: 1_000,
+                requested_quantity: 1_000,
             }],
         );
 
@@ -659,13 +661,13 @@ mod tests {
                     service_id: "service-a".to_string(),
                     node_id: "depot-a".to_string(),
                     period: 1,
-                    required_quantity: 500,
+                    requested_quantity: 500,
                 },
                 TemporalService {
                     service_id: "service-b".to_string(),
                     node_id: "depot-b".to_string(),
                     period: 1,
-                    required_quantity: 500,
+                    requested_quantity: 500,
                 },
             ],
         );
@@ -705,7 +707,7 @@ mod tests {
                 service_id: "too-early".to_string(),
                 node_id: "destination".to_string(),
                 period: 1,
-                required_quantity: 100,
+                requested_quantity: 100,
             }],
         );
 
@@ -717,7 +719,7 @@ mod tests {
             service_id: "on-time".to_string(),
             node_id: "destination".to_string(),
             period: 2,
-            required_quantity: 100,
+            requested_quantity: 100,
         });
         let on_time_result = verified_result(&available);
         assert_eq!(on_time_result.max_flow, 100);
@@ -823,7 +825,7 @@ mod tests {
                 service_id: "service".to_string(),
                 node_id: "yard".to_string(),
                 period: 0,
-                required_quantity: 10,
+                requested_quantity: 10,
             }],
         );
         let original_bytes = compile_temporal_profile(&original)
@@ -864,7 +866,7 @@ mod tests {
                 service_id: "service".to_string(),
                 node_id: "yard".to_string(),
                 period: 0,
-                required_quantity: 10,
+                requested_quantity: 10,
             }],
         );
         let bundle = verified_bundle(&model);
@@ -892,7 +894,7 @@ mod tests {
                 service_id: "service".to_string(),
                 node_id: "yard".to_string(),
                 period: 0,
-                required_quantity: 10,
+                requested_quantity: 10,
             }],
         );
         let bundle = verified_bundle(&model);
