@@ -891,9 +891,7 @@ pub fn evaluate_binding_case(case: &Value) -> BindingReport {
                                 field_str(event, "event_type"),
                                 Some("corrected" | "superseded")
                             ) {
-                                reasons.insert(
-                                    "CALIBRATION_CHANGE_PENDING_DISPOSITION".to_owned(),
-                                );
+                                reasons.insert("CALIBRATION_CHANGE_PENDING_DISPOSITION".to_owned());
                             }
                         } else {
                             non_applicable_event_ids.insert(event_id.to_owned());
