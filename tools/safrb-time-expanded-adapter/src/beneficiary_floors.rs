@@ -30,6 +30,15 @@ const RETURN_METADATA: &str = "safrb-beneficiary-floor-feasibility-v0.1/return";
 const SUPER_SOURCE_PREFIX: &str = "__safrb-floor-feasibility/ss/";
 const SUPER_SINK_PREFIX: &str = "__safrb-floor-feasibility/tt/";
 
+// Independent verifier constants: do not reuse producer-generated identifiers
+// when reconstructing the expected lower-bound circulation.
+const VERIFY_AUX_SOURCE: &str = "__safrb-floor-feasibility/super-source-v0.1";
+const VERIFY_AUX_SINK: &str = "__safrb-floor-feasibility/super-sink-v0.1";
+const VERIFY_RETURN_EDGE: &str = "__safrb-floor-feasibility/return-v0.1";
+const VERIFY_RETURN_METADATA: &str = "safrb-beneficiary-floor-feasibility-v0.1/return";
+const VERIFY_SUPER_SOURCE_PREFIX: &str = "__safrb-floor-feasibility/ss/";
+const VERIFY_SUPER_SINK_PREFIX: &str = "__safrb-floor-feasibility/tt/";
+
 pub const FLOOR_CLAIM_CEILING: &str = "Synthetic joint feasibility of the declared beneficiary minimum floors in the supplied temporal single-commodity graph only; no priority optimization, source authentication, legal authority, physical qualification, dispatch authorization or actual service claim.";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -360,11 +369,11 @@ fn reconstruct_expected_reduction(
     if base_graph
         .nodes
         .iter()
-        .any(|node| node.id == AUX_SOURCE || node.id == AUX_SINK)
+        .any(|node| node.id == VERIFY_AUX_SOURCE || node.id == VERIFY_AUX_SINK)
     {
         return Err("verifier detected reserved node identity collision".to_string());
     }
-    if base_graph.edges.iter().any(|edge| edge.id == RETURN_EDGE) {
+    if base_graph.edges.iter().any(|edge| edge.id == VERIFY_RETURN_EDGE) {
         return Err("verifier detected reserved return edge collision".to_string());
     }
 
@@ -419,11 +428,11 @@ fn reconstruct_expected_reduction(
     }
 
     edges.push(FlowEdge {
-        id: RETURN_EDGE.to_string(),
+        id: VERIFY_RETURN_EDGE.to_string(),
         from: base_graph.sink.clone(),
         to: base_graph.source.clone(),
         capacity: return_capacity,
-        metadata_ref: Some(RETURN_METADATA.to_string()),
+        metadata_ref: Some(VERIFY_RETURN_METADATA.to_string()),
     });
 
     let mut nodes = base_graph
@@ -431,8 +440,8 @@ fn reconstruct_expected_reduction(
         .iter()
         .map(|node| FlowNode::new(node.id.clone()))
         .collect::<Vec<_>>();
-    nodes.push(FlowNode::new(AUX_SOURCE));
-    nodes.push(FlowNode::new(AUX_SINK));
+    nodes.push(FlowNode::new(VERIFY_AUX_SOURCE));
+    nodes.push(FlowNode::new(VERIFY_AUX_SINK));
 
     let mut demand = 0_u64;
     let mut positive_sum = 0_i128;
@@ -449,8 +458,8 @@ fn reconstruct_expected_reduction(
                     .checked_add(amount)
                     .ok_or_else(|| "verifier required flow overflowed".to_string())?;
                 edges.push(FlowEdge {
-                    id: format!("{SUPER_SOURCE_PREFIX}{}{node_id}", node_id.len()),
-                    from: AUX_SOURCE.to_string(),
+                    id: format!("{VERIFY_SUPER_SOURCE_PREFIX}{}{node_id}", node_id.len()),
+                    from: VERIFY_AUX_SOURCE.to_string(),
                     to: node_id.clone(),
                     capacity: amount,
                     metadata_ref: Some(format!(
@@ -468,11 +477,11 @@ fn reconstruct_expected_reduction(
                     .checked_add(amount_i128)
                     .ok_or_else(|| "verifier negative balance sum overflowed".to_string())?;
                 edges.push(FlowEdge {
-                    id: format!("{SUPER_SINK_PREFIX}{}{node_id}", node_id.len()),
+                    id: format!("{VERIFY_SUPER_SINK_PREFIX}{}{node_id}", node_id.len()),
                     from: node_id.clone(),
-                    to: AUX_SINK.to_string(),
+                    to: VERIFY_AUX_SINK.to_string(),
                     capacity: amount,
-                    metadata_ref: Some(format!("{FLOOR_FEASIBILITY_SCHEMA}/super-sink/{node_id}")),
+                    metadata_ref: Some(format!("safrb-beneficiary-floor-feasibility-v0.1/super-sink/{node_id}")),
                 });
             }
             std::cmp::Ordering::Equal => {}
@@ -491,8 +500,8 @@ fn reconstruct_expected_reduction(
         ),
         nodes,
         edges,
-        source: AUX_SOURCE.to_string(),
-        sink: AUX_SINK.to_string(),
+        source: VERIFY_AUX_SOURCE.to_string(),
+        sink: VERIFY_AUX_SINK.to_string(),
     };
     graph
         .canonical_bytes()
@@ -715,6 +724,10 @@ pub fn evaluate_beneficiary_floor_input(
     evaluate_beneficiary_floors(&input.profile, &input.floors)
 }
 
+fn verifier_service_edge_id(service_id: &str) -> String {
+    format!("service/{}/{service_id}", service_id.len())
+}
+
 fn verifier_reconstruct_floor_bounds(
     profile: &TemporalProfile,
     base_graph: &FlowGraph,
@@ -777,7 +790,7 @@ fn verifier_reconstruct_floor_bounds(
             ));
         }
 
-        let edge_id = service_edge_id(&obligation.service_id);
+        let edge_id = verifier_verifier_service_edge_id(&obligation.service_id);
         let edge = graph_edges.get(edge_id.as_str()).ok_or_else(|| {
             format!("verifier base graph omitted service edge {edge_id}")
         })?;
@@ -969,7 +982,7 @@ fn verifier_check_original_allocation(
         .result
         .edge_flows
         .iter()
-        .find(|flow| flow.id == RETURN_EDGE)
+.find(|flow| flow.id == VERIFY_RETURN_EDGE)
         .ok_or_else(|| "verifier auxiliary witness omitted return edge".to_string())?
         .flow;
     let source_total = u64::try_from(source_net)
@@ -993,7 +1006,7 @@ fn verifier_check_original_allocation(
                 obligation.service_id
             )
         })?;
-        let edge_id = service_edge_id(&obligation.service_id);
+        let edge_id = verifier_verifier_service_edge_id(&obligation.service_id);
         let allocated = flow_by_id
             .get(edge_id.as_str())
             .ok_or_else(|| format!("verifier allocation omitted {edge_id}"))?
@@ -1500,6 +1513,92 @@ mod tests {
             verify_beneficiary_floor_report(&model, &floors, &forged)
                 .unwrap_err()
                 .contains("allocation does not match")
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_mutated_auxiliary_graph_and_flow_certificate() {
+        let model = profile(15, 10, 10);
+        let floors = vec![
+            BeneficiaryFloor {
+                service_id: "service-a".to_string(),
+                minimum_required_quantity: 5,
+            },
+            BeneficiaryFloor {
+                service_id: "service-b".to_string(),
+                minimum_required_quantity: 5,
+            },
+        ];
+        let report = evaluate_beneficiary_floors(&model, &floors).unwrap();
+
+        let mut changed_graph = report.clone();
+        let edge = changed_graph
+            .feasibility_certificate
+            .graph
+            .edges
+            .iter_mut()
+            .find(|edge| edge.id.starts_with(SUPER_SOURCE_PREFIX))
+            .unwrap();
+        edge.capacity = edge.capacity.saturating_sub(1);
+        assert!(
+            verify_beneficiary_floor_report(&model, &floors, &changed_graph)
+                .unwrap_err()
+                .contains("reconstructed lower-bound reduction")
+        );
+
+        let mut changed_witness = report;
+        changed_witness.feasibility_certificate.result.max_flow = 0;
+        assert!(
+            verify_beneficiary_floor_report(&model, &floors, &changed_witness)
+                .unwrap_err()
+                .contains("lower-bound feasibility certificate invalid")
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_base_graph_capacity_mutation_even_with_rehashed_graph() {
+        let model = profile(15, 10, 10);
+        let floors = vec![
+            BeneficiaryFloor {
+                service_id: "service-a".to_string(),
+                minimum_required_quantity: 5,
+            },
+            BeneficiaryFloor {
+                service_id: "service-b".to_string(),
+                minimum_required_quantity: 5,
+            },
+        ];
+        let mut report = evaluate_beneficiary_floors(&model, &floors).unwrap();
+        let route_edge = source_edge_id("transfer", "route-a");
+        report
+            .base_graph
+            .edges
+            .iter_mut()
+            .find(|edge| edge.id == route_edge)
+            .unwrap()
+            .capacity -= 1;
+        report.base_graph_sha256 = canonical_graph_digest(&report.base_graph).unwrap();
+
+        assert!(
+            verify_beneficiary_floor_report(&model, &floors, &report)
+                .unwrap_err()
+                .contains("base temporal graph failed independent verification")
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_tampered_required_flow_summary() {
+        let model = profile(15, 10, 10);
+        let floors = vec![BeneficiaryFloor {
+            service_id: "service-a".to_string(),
+            minimum_required_quantity: 5,
+        }];
+        let mut report = evaluate_beneficiary_floors(&model, &floors).unwrap();
+        report.required_auxiliary_flow += 1;
+        assert!(
+            verify_beneficiary_floor_report(&model, &floors, &report)
+                .unwrap_err()
+                .contains("auxiliary flow totals do not match")
         );
     }
 
