@@ -141,6 +141,7 @@ fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
         deadline_day: 10,
         horizon_day: 20,
         expected_units: 100,
+        inspection_qualified_units: 70,
         receiver_accepted_units: 60,
         on_time_accepted_units: 60,
         unresolved_units: 40,
@@ -160,6 +161,7 @@ fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
         deadline_day: candidate.deadline_day,
         horizon_day: candidate.horizon_day,
         expected_units: candidate.expected_units,
+        inspection_qualified_units: 100,
         receiver_accepted_units: 100,
         on_time_accepted_units: 100,
         unresolved_units: 0,
@@ -173,6 +175,8 @@ fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
 
     let regret = compare_recovery_regret(&candidate, &clairvoyant_bound).unwrap();
     assert_eq!(regret.unmet_units_at_deadline_delta, 40);
+    assert_eq!(regret.inspection_qualified_units_delta, -30);
+    assert_eq!(regret.receiver_accepted_units_delta, -40);
     assert_eq!(regret.late_accepted_units_delta, 0);
     assert_eq!(regret.unresolved_units_delta, 40);
     assert_eq!(regret.service_deficit_unit_hours_delta, 250);
