@@ -654,6 +654,10 @@ mod tests {
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
+    use crate::owner_evidence_cut_v0_1::{
+        OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
+        OwnerEvidenceLifecycle, OwnerEvidenceRecordV0_1, OwnerObserverCoverageStatus,
+    };
     use crate::vector_watermark_v0_1::{CutAssessment, CutStatus};
 
     fn coverage(status: CoverageStatus) -> CoverageAssessment {
@@ -701,7 +705,57 @@ mod tests {
         }
     }
 
+    fn owner_record(evidence_ref: &str) -> OwnerEvidenceRecordV0_1 {
+        OwnerEvidenceRecordV0_1 {
+            evidence_ref: evidence_ref.to_owned(),
+            record_sha256: "1".repeat(64),
+            subject_ref: "instrument:caliper-01".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
+            lifecycle: OwnerEvidenceLifecycle::Active,
+            predecessor_ref: None,
+            freshness: OwnerEvidenceFreshness::Fresh,
+            dependency_coverage: OwnerDependencyCoverage::Complete,
+            unresolved_inputs: vec![],
+            requires_reverification: false,
+            eligible_under_declared_coverage: true,
+        }
+    }
+
+    fn owner_cut_for_refs(
+        evidence_refs: &[String],
+        trust_policy_sha256: &str,
+    ) -> OwnerEvidenceCutV0_1 {
+        OwnerEvidenceCutV0_1 {
+            schema: "AeroOwnerEvidenceCutV0_1".to_owned(),
+            owner_namespace: "mycelix:aerocommons".to_owned(),
+            component_packet_id: "packet:coupon-001-r1".to_owned(),
+            physical_unit_ref: "part:wing-panel-001".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
+            component_packet_sha256: "2".repeat(64),
+            component_packet_byte_length: 4096,
+            artifact_payloads_verified: true,
+            evidence_records: evidence_refs
+                .iter()
+                .map(|reference| owner_record(reference))
+                .collect(),
+            basalt_run_id: "basalt:run-001".to_owned(),
+            basalt_report_version: 1,
+            basalt_timeline_input_sha256: "3".repeat(64),
+            basalt_final_state_sha256: "4".repeat(64),
+            basalt_report_sha256: "5".repeat(64),
+            basalt_confirmatory_eligible: true,
+            receiver_receipt_manifest_sha256: "6".repeat(64),
+            receiver_receipt_watermark_unix_ms: 1_795_516_700_000,
+            trust_policy_sha256: trust_policy_sha256.to_owned(),
+            observer_coverage_profile_id: "basalt-coverage-v0.1".to_owned(),
+            observer_coverage_receipt_sha256: "7".repeat(64),
+            observer_coverage_status: OwnerObserverCoverageStatus::QualifiedCompleteForScope,
+            observer_coverage_watermark_unix_ms: 1_795_516_600_000,
+        }
+    }
+
     fn decision_context_for_refs(evidence_refs: &[String]) -> DecisionContextV0_1 {
+        let owner_cut = owner_cut_for_refs(evidence_refs, &"c".repeat(64));
         DecisionContextV0_1 {
             claim_id: "claim-wing-panel-001".to_owned(),
             subject_ref: "part:wing-panel-001".to_owned(),
@@ -711,7 +765,9 @@ mod tests {
             acquisition_time_latest_unix_ms: 1_795_514_400_100,
             as_known_at_unix_ms: 1_795_516_800_000,
             source_scope_manifest_sha256: "a".repeat(64),
-            evidence_knowledge_cut_sha256: "b".repeat(64),
+            evidence_knowledge_cut_sha256: owner_cut
+                .compute_sha256()
+                .expect("owner evidence cut serializes"),
             trust_policy_sha256: "c".repeat(64),
             claim_specification_sha256: "d".repeat(64),
             required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(
@@ -721,6 +777,14 @@ mod tests {
             risk_classification_sha256: "e".repeat(64),
             model_applicability_profile_sha256: "f".repeat(64),
         }
+    }
+
+    fn owner_cut_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> OwnerEvidenceCutV0_1 {
+        let refs = evidence
+            .iter()
+            .map(|item| item.evidence_ref.clone())
+            .collect::<Vec<_>>();
+        owner_cut_for_refs(&refs, &"c".repeat(64))
     }
 
     fn context_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> DecisionContextV0_1 {
@@ -805,6 +869,7 @@ mod tests {
         evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
             decision_context: &decision_context,
+            owner_evidence_cut: &owner_cut_for_evidence(evidence),
             bindings: component_bindings,
             coverage: &coverage,
             causal_cut: &cut,
@@ -1207,6 +1272,7 @@ mod tests {
         let result = evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
             decision_context: &context,
+            owner_evidence_cut: &owner_cut_for_evidence(&evidence),
             bindings: &bindings,
             coverage: &coverage_result,
             causal_cut: &cut_result,
@@ -1232,6 +1298,7 @@ mod tests {
         let result = evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
             decision_context: &context,
+            owner_evidence_cut: &owner_cut_for_evidence(&evidence),
             bindings: &bindings,
             coverage: &coverage_result,
             causal_cut: &cut_result,
