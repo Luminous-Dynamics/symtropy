@@ -1,0 +1,84 @@
+{
+  "schema_id": "AERO_MODEL_EVIDENCE_ATTESTATION_V0_1",
+  "schema_version": "0.1",
+  "attestation_ref": "aero-attestation:synthetic:model-report-001",
+  "evidence_ref": "evidence:synthetic:aeroweift-model-report-001",
+  "claim_context": {
+    "claim_id": "claim:synthetic:wing-r17-static-strength",
+    "physical_unit_ref": "unit:synthetic:wing-r17-serial-001",
+    "configuration_ref": "configuration:synthetic:wing-r17-rev-c",
+    "operating_envelope_ref": "envelope:synthetic:wing-r17-static-1",
+    "model_ref": "model:synthetic:wing-static-v1",
+    "model_artifact_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "solver_configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "applicability_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "risk_classification_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "decision_context_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "model_credibility_cut_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "artifact": {
+    "artifact_ref": "artifact:synthetic:aeroweift:model-report-001",
+    "role": "aeroweift_model_credibility_report",
+    "media_type": "application/json",
+    "byte_length": 4096,
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "integrity": {
+    "status": "verified",
+    "verifier_id": "mycelix:synthetic:artifact-byte-verifier",
+    "verifier_build_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "verifier_profile_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "verification_receipt": {
+      "receipt_ref": "receipt:synthetic:bytes-001",
+      "receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  },
+  "producer_authority": {
+    "status": "verified",
+    "producer_id": "producer:synthetic:aeroweift",
+    "producer_role_ref": "role:synthetic:model-report-issuer",
+    "authority_scope_ref": "authority:synthetic:aero-model-reports",
+    "signing_key_ref": "key:synthetic:signer-001",
+    "trust_policy_ref": "policy:synthetic:historical-owner-trust",
+    "trust_policy_sha256": "abababababababababababababababababababababababababababababababab",
+    "verification_receipt": {
+      "receipt_ref": "receipt:synthetic:producer-authority-001",
+      "receipt_sha256": "bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc"
+    }
+  },
+  "semantic_validation": {
+    "status": "passed",
+    "verifier_id": "aeroweift:synthetic:model-report-adapter",
+    "verifier_build_sha256": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "validation_profile_sha256": "dededededededededededededededededededededededededededededededede",
+    "validation_report_sha256": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+    "verification_receipt": {
+      "receipt_ref": "receipt:synthetic:semantic-validation-001",
+      "receipt_sha256": "f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0"
+    }
+  },
+  "applicability": {
+    "status": "in_scope",
+    "applicability_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "scope_report_sha256": "abababababababababababababababababababababababababababababababab",
+    "verification_receipt": {
+      "receipt_ref": "receipt:synthetic:applicability-001",
+      "receipt_sha256": "bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+    }
+  },
+  "receiver_time": {
+    "status": "verified",
+    "first_seen_earliest_unix_ms": 1795777200000,
+    "first_seen_latest_unix_ms": 1795777200500,
+    "verification_receipt": {
+      "receipt_ref": "receipt:synthetic:receiver-first-seen-001",
+      "receipt_sha256": "cecececececececececececececececececececececececececececececececec"
+    }
+  },
+  "owner_receipt": {
+    "owner_system": "mycelix_aerocommons",
+    "owner_receipt_ref": "receipt:synthetic:owner-packet-001",
+    "owner_receipt_sha256": "dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf",
+    "owner_packet_ref": "packet:synthetic:component-001"
+  }
+}
