@@ -168,6 +168,7 @@ pub enum Blocker {
     MissingRequiredBaselineFamilies,
     NoConventionalPmBaseline,
     MissingRequiredBaseline,
+    NoCandidateArchitecture,
     ReluctanceOnlyCannotBeSoleBaseline,
     DuplicateArchitectureId,
     DuplicateComponentId,
@@ -239,6 +240,7 @@ pub fn evaluate_architectures(
     let global_blockers = validate_spec(spec, trials);
     trials
         .iter()
+        .filter(|trial| trial.role == ArchitectureRole::Candidate)
         .map(|trial| evaluate_candidate(spec, trials, trial, &global_blockers))
         .collect()
 }
@@ -319,6 +321,12 @@ fn validate_spec(spec: &BenchmarkSpec, trials: &[ArchitectureTrial]) -> Vec<Bloc
 
     let mut architecture_ids = BTreeSet::new();
     let mut component_ids = BTreeSet::new();
+    if !trials
+        .iter()
+        .any(|trial| trial.role == ArchitectureRole::Candidate)
+    {
+        blockers.push(Blocker::NoCandidateArchitecture);
+    }
     for trial in trials {
         if !architecture_ids.insert(trial.architecture_id.as_str()) {
             blockers.push(Blocker::DuplicateArchitectureId);
@@ -515,6 +523,7 @@ fn evaluate_candidate(
                 | Blocker::MissingRequiredBaseline
                 | Blocker::MissingRequiredBaselineFamilies
                 | Blocker::NoConventionalPmBaseline
+                | Blocker::NoCandidateArchitecture
                 | Blocker::InvalidMetricSet
                 | Blocker::DuplicateArchitectureId
                 | Blocker::DuplicateComponentId
@@ -990,12 +999,12 @@ mod tests {
     #[test]
     fn benefit_interval_overlap_is_not_counted_as_architecture_improvement() {
         let mut trials = known_answer_trials();
-        trials[0].observations[5].value = 0.60;
-        trials[0].observations[5].uncertainty_radius = 0.02;
+        trials[0].observations[5].value = 0.80;
+        trials[0].observations[5].uncertainty_radius = 0.30;
         trials[0].observations[6].value = 0.18;
         trials[0].observations[6].uncertainty_radius = 0.02;
         trials[0].observations[7].value = 1020.0;
-        trials[0].observations[7].uncertainty_radius = 30.0;
+        trials[0].observations[7].uncertainty_radius = 100.0;
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
@@ -1064,7 +1073,8 @@ mod tests {
     #[test]
     fn overlapping_mandatory_metric_intervals_may_be_noninferior_with_margin() {
         let mut trials = known_answer_trials();
-        trials[0].observations[0].uncertainty_radius = 0.4;
+        trials[0].observations[0].value = 14.8;
+        trials[0].observations[0].uncertainty_radius = 0.2;
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
@@ -1085,6 +1095,13 @@ mod tests {
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::NotComparable);
         assert!(candidate.blockers.contains(&Blocker::WrongArchitectureRole));
+    }
+
+    #[test]
+    fn no_candidate_trial_returns_no_architecture_decisions() {
+        let mut trials = known_answer_trials();
+        trials.retain(|trial| trial.role != ArchitectureRole::Candidate);
+        assert!(evaluate_architectures(&spec(), &trials).is_empty());
     }
 
     #[test]
