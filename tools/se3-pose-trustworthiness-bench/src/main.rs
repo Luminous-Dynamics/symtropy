@@ -147,7 +147,7 @@ fn render_result(result: &PoseResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"sample_id\":\"{}\",\"target_id\":\"{}\",\"split\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"dataset_sha256\":\"{}\",\"model_revision\":\"{}\",\"model_sha256\":\"{}\",\"calibration_revision\":\"{}\",\"calibration_sha256\":\"{}\",\"sensor_mode\":\"{}\",\"support_mode\":\"{}\",\"frame_convention\":\"{}\",\"tangent_convention\":\"{}\",\"decision\":\"{}\",\"decision_reason\":\"{}\",\"disposition\":\"{}\",\"translation_error_m\":{},\"rotation_error_rad\":{},\"mahalanobis_squared\":{},\"covariance_log_determinant\":{},\"prediction_region_log_volume_95\":{},\"coverage_50\":{},\"coverage_80\":{},\"coverage_90\":{},\"coverage_95\":{},\"coverage_99\":{},\"confidence_score_ppm\":{},\"accepted_by_model\":{},\"observability_policy_violation\":{},\"false_confident_95\":{},\"benchmark_admissible\":{},\"visible_fraction\":\"{:.12}\",\"correspondence_count\":{},\"geometry_condition\":\"{:.12}\",\"ood_flag\":{},\"symmetry_ambiguous\":{},\"latency_us\":{},\"energy_uj\":{},\"reason_codes\":[{}],\"source_bytes_authenticated\":{},\"physical_calibration_validated\":{},\"maneuver_authority_granted\":{}}}",
+        "{{\"case_id\":\"{}\",\"sample_id\":\"{}\",\"target_id\":\"{}\",\"split\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"dataset_sha256\":\"{}\",\"model_revision\":\"{}\",\"model_sha256\":\"{}\",\"calibration_revision\":\"{}\",\"calibration_sha256\":\"{}\",\"sensor_mode\":\"{}\",\"support_mode\":\"{}\",\"frame_convention\":\"{}\",\"tangent_convention\":\"{}\",\"decision\":\"{}\",\"decision_reason\":\"{}\",\"disposition\":\"{}\",\"translation_error_m\":{},\"rotation_error_rad\":{},\"mahalanobis_squared\":{},\"gaussian_negative_log_likelihood\":{},\"covariance_log_determinant\":{},\"prediction_region_log_volume_95\":{},\"coverage_50\":{},\"coverage_80\":{},\"coverage_90\":{},\"coverage_95\":{},\"coverage_99\":{},\"confidence_score_ppm\":{},\"accepted_by_model\":{},\"observability_policy_violation\":{},\"false_confident_95\":{},\"benchmark_admissible\":{},\"visible_fraction\":\"{:.12}\",\"correspondence_count\":{},\"geometry_condition\":\"{:.12}\",\"ood_flag\":{},\"symmetry_ambiguous\":{},\"latency_us\":{},\"energy_uj\":{},\"reason_codes\":[{}],\"source_bytes_authenticated\":{},\"physical_calibration_validated\":{},\"maneuver_authority_granted\":{}}}",
         json_escape(&result.case_id),
         json_escape(&result.sample_id),
         json_escape(&result.target_id),
@@ -169,6 +169,7 @@ fn render_result(result: &PoseResult) -> String {
         optional_decimal(result.translation_error_m),
         optional_decimal(result.rotation_error_rad),
         optional_decimal(result.mahalanobis_squared),
+        optional_decimal(result.gaussian_negative_log_likelihood),
         optional_decimal(result.covariance_log_determinant),
         optional_decimal(result.prediction_region_log_volume_95),
         optional_bool(result.coverage_50),
@@ -212,7 +213,7 @@ fn render_summary(summary: &EvaluationSummary) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"valid_count\":{},\"accepted_count\":{},\"accepted_pose_coverage_fraction\":{},\"abstained_count\":{},\"invalid_count\":{},\"accepted_false_confident_95_count\":{},\"accepted_coverage_50\":{},\"accepted_coverage_80\":{},\"accepted_coverage_90\":{},\"accepted_coverage_95\":{},\"accepted_coverage_99\":{},\"accepted_translation_p95_m\":{},\"accepted_rotation_p95_rad\":{},\"accepted_covariance_logdet_median\":{},\"accepted_95_region_log_volume_median\":{},\"risk_coverage\":[{}]}}",
+        "{{\"valid_count\":{},\"accepted_count\":{},\"accepted_pose_coverage_fraction\":{},\"abstained_count\":{},\"invalid_count\":{},\"accepted_false_confident_95_count\":{},\"accepted_coverage_50\":{},\"accepted_coverage_80\":{},\"accepted_coverage_90\":{},\"accepted_coverage_95\":{},\"accepted_coverage_99\":{},\"accepted_translation_p95_m\":{},\"accepted_rotation_p95_rad\":{},\"accepted_gaussian_nll_mean\":{},\"accepted_covariance_logdet_median\":{},\"accepted_95_region_log_volume_median\":{},\"risk_coverage\":[{}]}}",
         summary.valid_count,
         summary.accepted_count,
         summary.accepted_pose_coverage_fraction.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
@@ -226,6 +227,7 @@ fn render_summary(summary: &EvaluationSummary) -> String {
         summary.accepted_coverage_99.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         summary.accepted_translation_p95_m.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         summary.accepted_rotation_p95_rad.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
+        summary.accepted_gaussian_nll_mean.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         summary.accepted_covariance_logdet_median.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         summary.accepted_95_region_log_volume_median.map_or_else(|| "null".to_owned(), |value| format!("\"{value:.12}\"")),
         risk,
