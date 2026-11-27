@@ -1,0 +1,5 @@
+version = 4
+
+[[package]]
+name = "se3-pose-region-construction-bench"
+version = "0.1.0"
