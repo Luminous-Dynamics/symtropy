@@ -1,0 +1,121 @@
+{
+  "schema_version": "engineering-claim-closure-v0.1",
+  "claim": {
+    "claim_id": "claim:wing-panel-001",
+    "subject_ref": "part:wing-001",
+    "configuration_ref": "configuration:r17",
+    "scope_ref": "scope:hot-static",
+    "acquisition_start_unix_ms": 100,
+    "acquisition_end_unix_ms": 120,
+    "knowledge_cut_unix_ms": 160,
+    "evaluated_at_unix_ms": 180,
+    "requirements": [
+      {
+        "evidence_ref": "evidence:measurement",
+        "expected_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role": "measurement",
+        "uncertainty_budget_ref": "uncertainty:evidence:measurement",
+        "uncertainty_budget_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ]
+  },
+  "evidence_records": [
+    {
+      "evidence_ref": "evidence:measurement",
+      "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "role": "measurement",
+      "subject_ref": "part:wing-001",
+      "configuration_ref": "configuration:r17",
+      "scope_ref": "scope:hot-static",
+      "recorded_at_unix_ms": 150,
+      "effective_from_unix_ms": 90,
+      "effective_until_exclusive_unix_ms": 130,
+      "producer_authority": {
+        "identity_ref": "producer:evidence:measurement",
+        "status": "verified",
+        "as_of_unix_ms": 150,
+        "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "trust_snapshot": {
+        "policy_ref": "policy:engineering-v1",
+        "status": "verified",
+        "as_of_unix_ms": 150,
+        "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "uncertainty_budget": {
+        "budget_ref": "uncertainty:evidence:measurement",
+        "digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "resolved": true
+      },
+      "dependencies": [
+        {
+          "evidence_ref": "evidence:calibration",
+          "expected_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    },
+    {
+      "evidence_ref": "evidence:calibration",
+      "record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "role": "calibration",
+      "subject_ref": "instrument:load-cell-01",
+      "configuration_ref": "configuration:calibration-v3",
+      "scope_ref": "scope:force-range-100kn",
+      "recorded_at_unix_ms": 110,
+      "effective_from_unix_ms": 90,
+      "effective_until_exclusive_unix_ms": 130,
+      "producer_authority": {
+        "identity_ref": "producer:evidence:calibration",
+        "status": "verified",
+        "as_of_unix_ms": 110,
+        "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "trust_snapshot": {
+        "policy_ref": "policy:engineering-v1",
+        "status": "verified",
+        "as_of_unix_ms": 110,
+        "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "uncertainty_budget": {
+        "budget_ref": "uncertainty:evidence:calibration",
+        "digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "resolved": true
+      },
+      "dependencies": [
+        {
+          "evidence_ref": "evidence:reference",
+          "expected_record_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ]
+    },
+    {
+      "evidence_ref": "evidence:reference",
+      "record_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "role": "reference_standard",
+      "subject_ref": "standard:force-100kn",
+      "configuration_ref": "configuration:reference-v2",
+      "scope_ref": "scope:force-range-100kn",
+      "recorded_at_unix_ms": 90,
+      "effective_from_unix_ms": 90,
+      "effective_until_exclusive_unix_ms": 130,
+      "producer_authority": {
+        "identity_ref": "producer:evidence:reference",
+        "status": "verified",
+        "as_of_unix_ms": 90,
+        "record_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "trust_snapshot": {
+        "policy_ref": "policy:engineering-v1",
+        "status": "verified",
+        "as_of_unix_ms": 90,
+        "policy_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "uncertainty_budget": {
+        "budget_ref": "uncertainty:evidence:reference",
+        "digest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "resolved": true
+      },
+      "dependencies": []
+    }
+  ]
+}
