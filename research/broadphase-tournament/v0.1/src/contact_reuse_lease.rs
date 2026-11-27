@@ -7,12 +7,13 @@
 //! input refreshes the manifold or retires the contact; it never silently
 //! extends a lease.
 //!
-//! The transform adapter must compute the relative transform in one frozen,
-//! canonical order. The largest point-rotation angle is the maximum principal
-//! rotation angle (not an arbitrary matrix norm). Feature margins and gap
-//! intervals must come from an independent geometry witness with outward-
-//! rounded bounds. This module checks the supplied witness; it does not prove
-//! the geometry provider's construction.
+//! The transform adapter must compute the difference between the current and
+//! cached relative rotation matrices in one frozen, canonical order. The
+//! Frobenius norm upper-bounds the spectral norm, so radius times that value
+//! conservatively bounds displacement of every cached anchor. Feature margins
+//! and gap intervals must come from an independent geometry witness with
+//! outward-rounded bounds. This module checks supplied witnesses; it does not
+//! prove their provenance.
 
 use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
 
@@ -20,8 +21,8 @@ use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
 pub struct RelativeMotionEnvelope<const D: usize> {
     /// Translation change of the canonical relative transform.
     pub relative_translation_delta: [f64; D],
-    /// Maximum point-rotation angle of the relative rotation, radians in [0, pi].
-    pub max_point_rotation_angle_rad: f64,
+    /// Entry-wise difference between current and cached relative rotation matrices.
+    pub relative_rotation_delta: [[f64; D]; D],
     /// Conservative maximum radius of the cached contact geometry from the
     /// relative transform's rotation reference point.
     pub maximum_lever_arm_radius: f64,
@@ -140,7 +141,7 @@ fn multiply_upper(left: f64, right: f64) -> Result<f64, ContactLeaseError> {
     }
 }
 
-/// Conservative norm upper bound for a finite translation vector.
+/// Conservative Euclidean norm upper bound for a finite vector.
 fn norm_upper<const D: usize>(value: &[f64; D]) -> Result<f64, ContactLeaseError> {
     let mut squared_sum = 0.0_f64;
     for component in value {
@@ -159,23 +160,46 @@ fn norm_upper<const D: usize>(value: &[f64; D]) -> Result<f64, ContactLeaseError
     }
 }
 
+/// Frobenius norm upper bound for the relative rotation-matrix delta.
+///
+/// For any point vector x, ||DeltaR * x||_2 <= ||DeltaR||_F * ||x||_2.
+/// Each product and sum is rounded upward; a non-finite matrix entry fails closed.
+fn frobenius_norm_upper<const D: usize>(
+    matrix: &[[f64; D]; D],
+) -> Result<f64, ContactLeaseError> {
+    let mut squared_sum = 0.0_f64;
+    for row in matrix {
+        for entry in row {
+            if !entry.is_finite() {
+                return Err(ContactLeaseError::InvalidRelativeMotion);
+            }
+            let square = multiply_upper(entry.abs(), entry.abs())?;
+            squared_sum = add_upper(squared_sum, square)?;
+        }
+    }
+    let norm = squared_sum.sqrt();
+    let upper = norm.next_up();
+    if upper.is_finite() {
+        Ok(upper)
+    } else {
+        Err(ContactLeaseError::ArithmeticOverflow)
+    }
+}
+
 impl<const D: usize> RelativeMotionEnvelope<D> {
-    /// Bound maximum movement of any point in the cached contact geometry:
-    ///
-    /// 
     /// Bound maximum point displacement of the cached contact geometry:
-    /// |relative translation| + radius * maximum rotation angle + allowance.
     ///
-    /// The rotation term is conservative because sin(x) <= x for x >= 0.
-    /// The adapter must supply the largest point-rotation angle of the
-    /// canonical relative rotation, in [0, pi].
+    /// norm(delta_translation) + radius * ||delta_rotation||_F + allowance.
+    ///
+    /// The Frobenius norm upper-bounds the spectral norm, so this holds for
+    /// any supplied matrix delta and does not require extracting principal
+    /// rotation angles. The transform adapter must provide an outward-rounded
+    /// delta between the current and last-fresh relative rotation matrices.
     pub fn displacement_upper_bound(&self) -> Result<MotionBound, ContactLeaseError> {
         if !(2..=4).contains(&D) {
             return Err(ContactLeaseError::UnsupportedDimension);
         }
-        if !self.max_point_rotation_angle_rad.is_finite()
-            || !(0.0..=std::f64::consts::PI).contains(&self.max_point_rotation_angle_rad)
-            || !self.maximum_lever_arm_radius.is_finite()
+        if !self.maximum_lever_arm_radius.is_finite()
             || self.maximum_lever_arm_radius < 0.0
             || !self.rounding_allowance.is_finite()
             || self.rounding_allowance < 0.0
@@ -184,10 +208,9 @@ impl<const D: usize> RelativeMotionEnvelope<D> {
         }
 
         let translation_upper = norm_upper(&self.relative_translation_delta)?;
-        let rotation_displacement_upper = multiply_upper(
-            self.maximum_lever_arm_radius,
-            self.max_point_rotation_angle_rad,
-        )?;
+        let rotation_matrix_delta_upper = frobenius_norm_upper(&self.relative_rotation_delta)?;
+        let rotation_displacement_upper =
+            multiply_upper(self.maximum_lever_arm_radius, rotation_matrix_delta_upper)?;
         let combined = add_upper(translation_upper, rotation_displacement_upper)?;
         let total_displacement_upper = add_upper(combined, self.rounding_allowance)?;
 
@@ -338,9 +361,18 @@ mod tests {
         angle: f64,
         radius: f64,
     ) -> RelativeMotionEnvelope<D> {
+        let mut relative_rotation_delta = [[0.0; D]; D];
+        if D >= 2 {
+            let cosine_delta = angle.cos() - 1.0;
+            let sine = angle.sin();
+            relative_rotation_delta[0][0] = cosine_delta;
+            relative_rotation_delta[0][1] = -sine;
+            relative_rotation_delta[1][0] = sine;
+            relative_rotation_delta[1][1] = cosine_delta;
+        }
         RelativeMotionEnvelope {
             relative_translation_delta: translation,
-            max_point_rotation_angle_rad: angle,
+            relative_rotation_delta,
             maximum_lever_arm_radius: radius,
             rounding_allowance: 1.0e-12,
         }
@@ -566,10 +598,20 @@ mod tests {
     }
 
     #[test]
-    fn invalid_rotation_angle_fails_closed() {
+    fn nonfinite_rotation_matrix_delta_fails_closed() {
         let witness = lease();
+        let invalid_motion = RelativeMotionEnvelope {
+            relative_translation_delta: [0.0; 3],
+            relative_rotation_delta: [
+                [f64::NAN, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0],
+            ],
+            maximum_lever_arm_radius: 1.0,
+            rounding_allowance: 1.0e-12,
+        };
         assert_eq!(
-            evaluate(&witness, &motion([0.0; 3], 4.0, 1.0)),
+            evaluate(&witness, &invalid_motion),
             Err(ContactLeaseError::InvalidRelativeMotion)
         );
     }
