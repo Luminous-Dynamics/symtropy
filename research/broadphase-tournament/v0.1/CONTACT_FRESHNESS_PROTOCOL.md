@@ -270,11 +270,11 @@ The receipt must explicitly derive contact-created, contact-retained and contact
 
 ## 9. Relative-motion geometric lease prototype
 
-The research crate now exports `contact_reuse_lease`, an initial executable admission predicate for #6865. It consumes a canonical relative-transform translation delta, an upper bound on maximum point-rotation angle, maximum contact-geometry lever arm, generation and shape revisions, stable feature identity and feature-margin lower bound, normal-variation upper bound, and updated signed-gap interval.
+The research crate now exports `contact_reuse_lease`, an initial executable admission predicate for #6865. It consumes a canonical relative-translation delta, entrywise outward upper bounds for the absolute difference between current and last-fresh relative rotation matrices, maximum contact-geometry lever arm, generation and shape revisions, stable feature identity and feature-margin lower bound, normal-variation upper bound, and updated signed-gap interval.
 
 The conservative displacement bound is:
 
-`norm_upper(delta_t_rel) + R_rel * theta_max + rounding_allowance`
+`norm_upper(delta_t_rel) + R_rel * frobenius_norm_upper(delta_R_rel) + rounding_allowance`
 
 using (2sin(	heta/2) le 	heta), conservative for the admitted angle interval ([0,pi]). Arithmetic operations are rounded upward with `next_up`; overflow or non-finite input fails closed.
 
@@ -283,6 +283,8 @@ Reuse is admitted only when the pair identity, proxy generations, shape revision
 
 
 The current feature identity must be compared against the cached feature identity on every lease evaluation. A missing cached/current feature witness returns `UnsupportedGeometry`; a mismatch returns `RefreshRequired(FeatureIdentityChanged)`. The predicate also rejects unsupported dimensions outside 2D–4D. Tests cover support-feature change, missing current identity, 2D/4D input, and cumulative motion measured from the last fresh manifold rather than rebased per recycled frame.
+
+The motion-bound fixture now evaluates the relative rotation-matrix delta directly rather than asking the caller for a principal angle. Its 4D test includes two independent rotation planes, ensuring both planes contribute to the Frobenius upper bound.
 
 ### Evidence boundary
 
@@ -313,14 +315,14 @@ It emits 27 rows (nine witness/outcome classes × 2D/3D/4D) with requested check
 
 ### Qualification tests and targets
 
-The lease prototype has 23 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
+The lease prototype has 25 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
 
 ## 10. Current authored test inventory
 
 At the current research branch state, the authored test counts are:
 - contact freshness producer and commit barrier: 33 tests;
 - independent lifecycle/receipt verifier: 31 tests;
-- relative-motion geometric lease predicate: 23 tests;
+- relative-motion geometric lease predicate: 25 tests;
 - callback event identity and delivery receipt verifier: 16 tests.
 
 These counts describe source annotations only. They are not evidence that the tests have compiled or run. Exact-head Rust formatting, tests, strict Clippy and scale-campaign results must be read from the current GitHub Actions run before any pass claim.
