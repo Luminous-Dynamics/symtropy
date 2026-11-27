@@ -176,3 +176,8 @@ A passing fixture is evidence of this model's arithmetic and declared topology o
 ## South African empirical source admission
 
 The source audit in [south-african-empirical-source-audit-v0.1.md](south-african-empirical-source-audit-v0.1.md) is tracked in [MCSC-SA-EMPIRICAL-EVIDENCE-001 #7836](https://github.com/Luminous-Dynamics/symtropy/issues/7836). It separates PRSA WEGO, Transnet annual activity and UNCTAD international aggregates from event-level operational evidence. It also records concrete KITE admission blockers found in the candidate Open AIS Historical Dataset pipeline. No South African event-level replay corpus is claimed yet.
+
+
+### South African per-port AIS leads (27 Nov 2026)
+
+The source audit now distinguishes three separate candidate movement sources: Voydar's Durban/ZADUR per-port page/API (section-specific source/licence metadata), IMF PortWatch-derived Ngqura estimates (explicitly modelled and not official statistics), and the Dues live AIS board (whose free feed explicitly omits Algoa Bay/Ngqura). The full 2026-10 Voydar monthly CC BY CSV could not be fetched in this audit, so South African membership of that separate 681-row file remains UNKNOWN. None of these sources supplies a verified KITE historical first-availability ledger.
