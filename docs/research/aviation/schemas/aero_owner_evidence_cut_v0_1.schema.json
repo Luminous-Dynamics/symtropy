@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-owner-evidence-cut-v0.1.schema.json",
+  "title": "AERO Owner Evidence Cut v0.1",
+  "description": "Typed commitment to owner-native AeroCommons packet/evidence records and BASALT freshness/observer outputs. Digests commit to declarations; they do not authenticate the referenced bytes or issuers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "owner_namespace",
+    "component_packet_id",
+    "physical_unit_ref",
+    "configuration_ref",
+    "component_packet_sha256",
+    "component_packet_byte_length",
+    "artifact_payloads_verified",
+    "evidence_records",
+    "basalt_run_id",
+    "basalt_report_version",
+    "basalt_timeline_input_sha256",
+    "basalt_final_state_sha256",
+    "basalt_report_sha256",
+    "basalt_confirmatory_eligible",
+    "receiver_receipt_manifest_sha256",
+    "receiver_receipt_watermark_unix_ms",
+    "trust_policy_sha256",
+    "observer_coverage_profile_id",
+    "observer_coverage_receipt_sha256",
+    "observer_coverage_status",
+    "observer_coverage_watermark_unix_ms"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroOwnerEvidenceCutV0_1"
+    },
+    "owner_namespace": {
+      "$ref": "#/$defs/identifier"
+    },
+    "component_packet_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "physical_unit_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "configuration_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "component_packet_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "component_packet_byte_length": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "artifact_payloads_verified": {
+      "type": "boolean",
+      "description": "Owner verifier disposition only; AERO consumes but does not independently fetch or authenticate payloads."
+    },
+    "evidence_records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceRecord"
+      }
+    },
+    "basalt_run_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "basalt_report_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "basalt_timeline_input_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "basalt_final_state_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "basalt_report_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "basalt_confirmatory_eligible": {
+      "type": "boolean",
+      "description": "Must remain false until BASALT's independent runner-coverage/authentication gate says otherwise."
+    },
+    "receiver_receipt_manifest_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "receiver_receipt_watermark_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "trust_policy_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "observer_coverage_profile_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "observer_coverage_receipt_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "observer_coverage_status": {
+      "enum": [
+        "qualified_complete_for_scope",
+        "incomplete",
+        "unverified",
+        "out_of_scope"
+      ]
+    },
+    "observer_coverage_watermark_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[!-~]+$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "record_sha256",
+        "subject_ref",
+        "configuration_ref",
+        "lifecycle",
+        "predecessor_ref",
+        "freshness",
+        "dependency_coverage",
+        "unresolved_inputs",
+        "requires_reverification",
+        "eligible_under_declared_coverage"
+      ],
+      "properties": {
+        "evidence_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "record_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "subject_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "configuration_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "lifecycle": {
+          "enum": [
+            "active",
+            "superseded",
+            "disputed",
+            "revoked",
+            "withdrawn"
+          ]
+        },
+        "predecessor_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/identifier"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "freshness": {
+          "enum": [
+            "fresh",
+            "stale_direct",
+            "stale_transitive"
+          ]
+        },
+        "dependency_coverage": {
+          "enum": [
+            "complete",
+            "incomplete"
+          ]
+        },
+        "unresolved_inputs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "requires_reverification": {
+          "type": "boolean"
+        },
+        "eligible_under_declared_coverage": {
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "lifecycle": {
+                "const": "superseded"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "predecessor_ref": {
+                "$ref": "#/$defs/identifier"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dependency_coverage": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "unresolved_inputs": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "dependency_coverage": {
+                "const": "incomplete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "unresolved_inputs": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
