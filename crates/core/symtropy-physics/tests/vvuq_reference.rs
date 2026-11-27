@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-or-later
+// SPDX-License-Identifier: Apache-2.0 OR MIT
 //! Small analytical and independent-reference VVUQ seed for `symtropy-physics`.
 //!
 //! The suite is intentionally narrower than the engine's public API:
