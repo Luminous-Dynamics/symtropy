@@ -123,7 +123,10 @@ impl DecisionContextV0_1 {
             ("CLAIM_ID", self.claim_id.as_str()),
             ("SUBJECT_REF", self.subject_ref.as_str()),
             ("CONFIGURATION_REF", self.configuration_ref.as_str()),
-            ("OPERATING_ENVELOPE_REF", self.operating_envelope_ref.as_str()),
+            (
+                "OPERATING_ENVELOPE_REF",
+                self.operating_envelope_ref.as_str(),
+            ),
         ] {
             if !valid_identifier(value) {
                 errors.push(format!("DECISION_CONTEXT_{field}_INVALID"));
@@ -137,12 +140,27 @@ impl DecisionContextV0_1 {
         }
         for (field, value) in [
             ("SOURCE_SCOPE", self.source_scope_manifest_sha256.as_str()),
-            ("EVIDENCE_KNOWLEDGE_CUT", self.evidence_knowledge_cut_sha256.as_str()),
+            (
+                "EVIDENCE_KNOWLEDGE_CUT",
+                self.evidence_knowledge_cut_sha256.as_str(),
+            ),
             ("TRUST_POLICY", self.trust_policy_sha256.as_str()),
-            ("CLAIM_SPECIFICATION", self.claim_specification_sha256.as_str()),
-            ("REQUIRED_EVIDENCE_MANIFEST", self.required_evidence_manifest_sha256.as_str()),
-            ("RISK_CLASSIFICATION", self.risk_classification_sha256.as_str()),
-            ("MODEL_APPLICABILITY_PROFILE", self.model_applicability_profile_sha256.as_str()),
+            (
+                "CLAIM_SPECIFICATION",
+                self.claim_specification_sha256.as_str(),
+            ),
+            (
+                "REQUIRED_EVIDENCE_MANIFEST",
+                self.required_evidence_manifest_sha256.as_str(),
+            ),
+            (
+                "RISK_CLASSIFICATION",
+                self.risk_classification_sha256.as_str(),
+            ),
+            (
+                "MODEL_APPLICABILITY_PROFILE",
+                self.model_applicability_profile_sha256.as_str(),
+            ),
         ] {
             if !valid_sha256(value) {
                 errors.push(format!("DECISION_CONTEXT_{field}_DIGEST_INVALID"));
@@ -203,8 +221,8 @@ mod tests {
             evidence_knowledge_cut_sha256: "b".repeat(64),
             trust_policy_sha256: "c".repeat(64),
             claim_specification_sha256: "d".repeat(64),
-            required_evidence_manifest_sha256:
-                compute_required_evidence_manifest_sha256(refs).expect("manifest serializes"),
+            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(refs)
+                .expect("manifest serializes"),
             risk_classification_sha256: "e".repeat(64),
             model_applicability_profile_sha256: "f".repeat(64),
         }
@@ -230,7 +248,10 @@ mod tests {
     #[test]
     fn identical_typed_contexts_have_identical_commitments() {
         let refs = vec!["receipt:inspection-01".to_owned()];
-        assert_eq!(context(&refs).compute_sha256(), context(&refs).compute_sha256());
+        assert_eq!(
+            context(&refs).compute_sha256(),
+            context(&refs).compute_sha256()
+        );
     }
 
     #[test]
@@ -311,8 +332,7 @@ mod tests {
     fn reversed_or_future_acquisition_interval_is_rejected() {
         let refs = vec!["receipt:inspection-01".to_owned()];
         let mut reversed = context(&refs);
-        reversed.acquisition_time_earliest_unix_ms =
-            reversed.acquisition_time_latest_unix_ms + 1;
+        reversed.acquisition_time_earliest_unix_ms = reversed.acquisition_time_latest_unix_ms + 1;
         assert!(
             reversed
                 .validation_errors()
@@ -343,8 +363,8 @@ mod tests {
     #[test]
     fn empty_required_manifest_is_deterministic_but_does_not_create_reviewable_evidence() {
         let empty: Vec<String> = Vec::new();
-        let commitment = compute_required_evidence_manifest_sha256(&empty)
-            .expect("empty manifest serializes");
+        let commitment =
+            compute_required_evidence_manifest_sha256(&empty).expect("empty manifest serializes");
         assert_eq!(commitment.len(), 64);
         let valid_context = context(&empty);
         assert!(valid_context.compute_sha256().is_ok());
