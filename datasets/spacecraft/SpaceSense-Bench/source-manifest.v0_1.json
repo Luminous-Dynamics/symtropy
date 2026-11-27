@@ -1,0 +1,108 @@
+{
+  "schema": "luminous.spacecraft-dataset-manifest.v0.1",
+  "dataset": {
+    "id": "SpaceSense-Bench",
+    "paper": {
+      "arxiv": "2603.09320",
+      "url": "https://arxiv.org/abs/2603.09320",
+      "published": "2026-03-10",
+      "title": "SpaceSense-Bench: A Large-Scale Multi-Modal Benchmark for Spacecraft Perception and Pose Estimation"
+    },
+    "dataset_url": "https://huggingface.co/datasets/Alvin16/SpaceSense-Bench",
+    "observed_dataset_revision": "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e",
+    "license": {
+      "spdx": "CC-BY-NC-4.0",
+      "commercial_use_permitted": false,
+      "redistribution_requires_license_review": true
+    },
+    "counts": {
+      "spacecraft_models_total": 136,
+      "train_models": 117,
+      "validation_models": 5,
+      "test_models": 14,
+      "estimated_rows": 360706,
+      "dataset_card_size_bytes": 73900000000,
+      "dataset_card_size_display": "73.9 GB"
+    },
+    "modalities": [
+      "RGB",
+      "depth",
+      "semantic_segmentation",
+      "LiDAR",
+      "6DoF_pose"
+    ],
+    "annotations": [
+      "7_class_part_semantics",
+      "pose_ground_truth",
+      "depth",
+      "LiDAR_point_cloud"
+    ],
+    "split_design": {
+      "train_validation_spacecraft_disjoint": true,
+      "test_spacecraft_disjoint": true,
+      "test_rule": "Every tenth satellite index: seq 00, 10, 20, ..., 130",
+      "validation_rule": "seq 131-135, reserved for validation/future test use",
+      "train_rule": "Remaining spacecraft, excluding validation and test"
+    },
+    "correction_history": {
+      "pose_ground_truth_regenerated": true,
+      "correction_date": "2026-05-19",
+      "reason": "Frame-timing misalignment between pose_ground_truth.csv and rendered sensor data",
+      "scope": "pose_ground_truth.csv for all 136 spacecraft",
+      "raw_archives_reuploaded_with_corrected_pose_csv": true,
+      "rgb_depth_segmentation_lidar_changed": false,
+      "benchmark_requires_corrected_pose_csv": true
+    },
+    "coordinate_system": {
+      "camera_frame": "X-forward, Y-right, Z-down (FRD, right-handed)",
+      "world_frame": "AirSim NED",
+      "quaternion": "Hamilton WXYZ",
+      "position_unit": "metre",
+      "position_precision_decimal_places": 6,
+      "depth_format": "int32 millimetres in NPZ",
+      "lidar_unit": "metre",
+      "lidar_frame": "SensorLocalFrame",
+      "timestamp_format": "YYYYMMDDHHMMSSmmm"
+    },
+    "sensor": {
+      "rgb_resolution_px": [1024, 1024],
+      "camera_fov_deg": 50,
+      "lidar_channels": 256,
+      "lidar_range_m": 300,
+      "lidar_vertical_fov_deg": [-20, 20],
+      "lidar_horizontal_fov_deg": [-20, 20],
+      "camera_mounting_offset_m": 1,
+      "camera_mounting_offset_reference": "One metre in front of the service spacecraft body origin"
+    },
+    "semantic_classes": [
+      "background",
+      "main_body",
+      "solar_panel",
+      "dish_antenna",
+      "omni_antenna",
+      "payload",
+      "thruster",
+      "adapter_ring"
+    ]
+  },
+  "reproducibility": {
+    "dataset_archives_downloaded": false,
+    "corrected_pose_csv_bytes_downloaded": false,
+    "raw_file_sha256": {},
+    "raw_file_byte_counts": {},
+    "archive_hashes_verified": false,
+    "source_authentication": "NOT_PERFORMED"
+  },
+  "known_limitations": [
+    "High-fidelity simulation is not physical on-orbit truth",
+    "Current dataset license is CC BY-NC 4.0; commercial use is not permitted",
+    "Pose ground-truth CSV had a frame/timing correction on 2026-05-19; old versions must not be used",
+    "The dataset must be evaluated with the declared NED/FRD/Hamilton-WXYZ conventions, not SDKP Blender/OpenCV assumptions"
+  ],
+  "claim_boundary": {
+    "pose_labels_are_physical_orbit_truth": false,
+    "hardware_in_the_loop_validation_performed": false,
+    "on_orbit_validation_performed": false,
+    "source_bytes_authenticated": false
+  }
+}
