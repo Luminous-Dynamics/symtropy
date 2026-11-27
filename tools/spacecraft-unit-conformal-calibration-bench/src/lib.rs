@@ -315,15 +315,15 @@ fn validate_manifest(rows: &[Observation]) -> Result<UnitKind, String> {
         }
 
         let identity = (row.unit_kind, row.unit_id.as_str());
-        if let Some(previous) = unit_partitions.insert(identity, row.partition) {
-            if previous != row.partition {
-                return Err(format!(
-                    "independent unit {} appears in both {} and {}",
-                    row.unit_id,
-                    previous.as_str(),
-                    row.partition.as_str()
-                ));
-            }
+        if let Some(previous) = unit_partitions.insert(identity, row.partition)
+            && previous != row.partition
+        {
+            return Err(format!(
+                "independent unit {} appears in both {} and {}",
+                row.unit_id,
+                previous.as_str(),
+                row.partition.as_str()
+            ));
         }
     }
 
@@ -377,7 +377,7 @@ fn ppm_from_probability(value: f64, lower: bool) -> Option<u32> {
         return None;
     }
     let scaled = value * 1_000_000.0;
-    if !scaled.is_finite() || scaled < 0.0 || scaled > 1_000_000.0 {
+    if !scaled.is_finite() || !(0.0..=1_000_000.0).contains(&scaled) {
         return None;
     }
     let rounded = if lower { scaled.floor() } else { scaled.ceil() };
@@ -669,11 +669,9 @@ mod tests {
         sample: &str,
         unit: &str,
         split: Partition,
-        _frame: u32,
         budget: u32,
         status: ObservationStatus,
         score: Option<u64>,
-        domain: &str,
     ) -> Observation {
         Observation {
             sample_id: sample.to_owned(),
@@ -683,7 +681,7 @@ mod tests {
             unit_kind: UnitKind::Sequence,
             unit_id: unit.to_owned(),
             partition: split,
-            domain_id: domain.to_owned(),
+            domain_id: "LIGHTBOX".to_owned(),
             condition_id: "COND-1".to_owned(),
             crop_stratum: "FULL".to_owned(),
             modality: "RGB".to_owned(),
@@ -708,11 +706,9 @@ mod tests {
                     &format!("cal-{unit_index}-{frame}"),
                     &format!("cal-seq-{unit_index}"),
                     Partition::Calibration,
-                    frame,
                     frame_budget,
                     ObservationStatus::Scored,
                     Some(score),
-                    "LIGHTBOX",
                 ));
             }
         }
@@ -723,11 +719,9 @@ mod tests {
                     &format!("test-{unit_index}-{frame}"),
                     &format!("test-seq-{unit_index}"),
                     Partition::Test,
-                    frame,
                     frame_budget,
                     ObservationStatus::Scored,
                     Some(score),
-                    "LIGHTBOX",
                 ));
             }
         }
