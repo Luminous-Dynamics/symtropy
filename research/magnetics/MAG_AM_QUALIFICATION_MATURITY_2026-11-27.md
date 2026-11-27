@@ -46,3 +46,12 @@ Target: zero false maturity promotions, deterministic receipts and 100% auditabl
 ## Claim ceiling
 
 The software's result is a structured evidence-maturity disposition only. It is not an engineering approval, accredited laboratory decision, certification, production release or route ranking.
+
+
+##  Additional exact joins
+
+- M2 measurands include remanence (Br) and intrinsic coercivity (Hcj) where applicable to the declared permanent-magnet material and method.
+- M3 joins process, microstructure and property evidence to the same specimen, lot and build; the controlled characterization includes phase, texture/orientation and porosity/defect state.
+- M2–M4 physical measurement methods require a laboratory method-scope receipt matching both the measurement's scope ID and laboratory ID, referencing ISO/IEC 17025:2017. This is a declared scope record, not independent registry verification or a claim of accredited status.
+- M5 site-quality evidence binds to a production-site ID; PBF-LB IQ/OQ/PQ evidence binds to the exact machine ID; variability analysis binds to the same cohort summary used for replication counts.
+- With no qualifying conceptual or physical evidence, the output is `Unestablished`; it is not silently promoted to M1.
