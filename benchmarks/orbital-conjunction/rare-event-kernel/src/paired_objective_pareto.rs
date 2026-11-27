@@ -2038,6 +2038,7 @@ mod tests {
                             portfolio_id,
                             shared_exogenous_receipt_digest: shared_digest,
                             maneuver_plan_digest: [130 + portfolio_id[0]; 32],
+                            maneuver_execution_noise_digest: [131 + portfolio_id[0]; 32],
                             post_action_initial_state_digest: [140 + portfolio_id[0]; 32],
                             scenario_physics_configuration_digest: contract
                                 .scenario_physics_configuration_digest,
