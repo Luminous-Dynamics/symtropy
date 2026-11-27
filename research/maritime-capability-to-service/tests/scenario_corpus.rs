@@ -280,7 +280,7 @@ fn receipt_outcomes(receipt: &str) -> BTreeMap<String, ExpectedOutcome> {
 }
 
 #[test]
-fn twenty_six_frozen_scenarios_match_the_separate_reference_or_reject() {
+fn thirty_frozen_scenarios_match_the_separate_reference_or_reject() {
     let mut count = 0usize;
     for line in CORPUS.lines().map(str::trim) {
         if line.is_empty() || line.starts_with('#') {
@@ -318,6 +318,10 @@ fn twenty_six_frozen_scenarios_match_the_separate_reference_or_reject() {
                 result.unwrap_err().contains("exceed inspection-qualified"),
                 "scenario {id} must reject receiver over-acceptance"
             ),
+            "ERROR_RECEIVER_STATUS" => assert!(
+                result.unwrap_err().contains("without receiver acceptance"),
+                "scenario {id} must reject accepted units from an UNKNOWN/REJECTED receiver"
+            ),
             "PASS" => {
                 let receipt = result.unwrap_or_else(|error| {
                     panic!("scenario {id} rejected: {error}");
@@ -345,7 +349,7 @@ fn twenty_six_frozen_scenarios_match_the_separate_reference_or_reject() {
         }
         count += 1;
     }
-    assert_eq!(count, 26);
+    assert_eq!(count, 30);
 }
 
 #[test]
