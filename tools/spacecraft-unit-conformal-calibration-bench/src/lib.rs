@@ -131,33 +131,6 @@ impl ScopeKey {
         }
     }
 
-    pub fn domain_id(&self) -> &str {
-        &self.domain_id
-    }
-
-    pub fn condition_id(&self) -> &str {
-        &self.condition_id
-    }
-
-    pub fn crop_stratum(&self) -> &str {
-        &self.crop_stratum
-    }
-
-    pub fn modality(&self) -> &str {
-        &self.modality
-    }
-
-    pub fn ood_group(&self) -> &str {
-        &self.ood_group
-    }
-
-    pub fn calibration_revision(&self) -> &str {
-        &self.calibration_revision
-    }
-
-    pub const fn unit_frame_budget(&self) -> u32 {
-        self.unit_frame_budget
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
