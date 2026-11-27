@@ -10,3 +10,5 @@ description = "Fail-closed end-to-end preservation service receipt scorer"
 path = "src/lib.rs"
 
 [dependencies]
+
+[workspace]
