@@ -565,7 +565,7 @@ mod tests {
     fn zero_lever_arm_has_no_rotation_displacement() {
         let motion = motion([0.0; 3], std::f64::consts::PI, 0.0);
         let bound = motion.displacement_upper_bound().expect("bound");
-        assert!(bound.rotation_displacement_upper > 0.0 || bound.rotation_displacement_upper == 0.0);
+        assert!(bound.rotation_displacement_upper < 1.0e-300);
         assert!(bound.total_displacement_upper < 1.0e-9);
     }
 
@@ -583,7 +583,11 @@ mod tests {
                 disposition: ContactLeaseDisposition::RefreshRequired(
                     ContactLeaseRefreshReason::GapIntervalStraddlesContactBoundary
                 ),
-                motion_bound: Some(motion([0.0; 3], 0.0, 1.0).displacement_upper_bound().expect("bound")),
+                motion_bound: Some(
+                    motion([0.0; 3], 0.0, 1.0)
+                        .displacement_upper_bound()
+                        .expect("bound"),
+                ),
             }
         );
     }
