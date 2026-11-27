@@ -497,16 +497,16 @@ impl ScenarioRobustParetoFrontier {
             return Err(ScenarioRobustParetoError::NumericalFailure);
         }
 
-        let frozen_input_digest = digest_frozen_inputs(
+        let frozen_input_digest = digest_frozen_inputs(FrozenParetoDigestInputs {
             objective_family_alpha,
             cell_alpha,
-            &scenario_ids,
-            &original_portfolio_ids,
-            &eligible_portfolio_ids,
-            &ineligible_portfolio_ids,
-            &objective_specs,
-            &risk_checks,
-        );
+            scenario_ids: &scenario_ids,
+            original_portfolio_ids: &original_portfolio_ids,
+            eligible_portfolio_ids: &eligible_portfolio_ids,
+            ineligible_portfolio_ids: &ineligible_portfolio_ids,
+            objective_specs: &objective_specs,
+            risk_checks: &risk_checks,
+        });
         Ok(Self {
             objective_family_alpha,
             cell_alpha,
@@ -751,7 +751,7 @@ fn dominance_witness(
     let mut all_no_worse = true;
     let mut any_strict = false;
     let mut witnesses = Vec::with_capacity(specs.len());
-    for spec in specs {
+    for spec in objective_specs {
         let better = envelopes
             .iter()
             .find(|row| row.portfolio_id == dominating_id && row.objective_id == spec.objective_id)
@@ -795,25 +795,37 @@ fn dominance_witness(
     }
 }
 
-fn digest_frozen_inputs(
-    family_alpha: f64,
+struct FrozenParetoDigestInputs<'a> {
+    objective_family_alpha: f64,
     cell_alpha: f64,
-    scenarios: &[[u8; 32]],
-    original_portfolios: &[[u8; 32]],
-    eligible_portfolios: &[[u8; 32]],
-    ineligible_portfolios: &[[u8; 32]],
-    specs: &[RobustParetoObjectiveSpec],
-    risk_checks: &BTreeMap<([u8; 32], [u8; 32]), PortfolioScenarioRiskCheck>,
-) -> [u8; 32] {
+    scenario_ids: &'a [[u8; 32]],
+    original_portfolio_ids: &'a [[u8; 32]],
+    eligible_portfolio_ids: &'a [[u8; 32]],
+    ineligible_portfolio_ids: &'a [[u8; 32]],
+    objective_specs: &'a [RobustParetoObjectiveSpec],
+    risk_checks: &'a BTreeMap<([u8; 32], [u8; 32]), PortfolioScenarioRiskCheck>,
+}
+
+fn digest_frozen_inputs(inputs: FrozenParetoDigestInputs<'_>) -> [u8; 32] {
+    let FrozenParetoDigestInputs {
+        objective_family_alpha,
+        cell_alpha,
+        scenario_ids,
+        original_portfolio_ids,
+        eligible_portfolio_ids,
+        ineligible_portfolio_ids,
+        objective_specs,
+        risk_checks,
+    } = inputs;
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital.scenario-robust-pareto.frozen.v0.1\0");
-    hasher.update(family_alpha.to_bits().to_be_bytes());
+    hasher.update(objective_family_alpha.to_bits().to_be_bytes());
     hasher.update(cell_alpha.to_bits().to_be_bytes());
-    hash_ids(&mut hasher, scenarios);
-    hash_ids(&mut hasher, original_portfolios);
-    hash_ids(&mut hasher, eligible_portfolios);
-    hash_ids(&mut hasher, ineligible_portfolios);
-    hasher.update((specs.len() as u64).to_be_bytes());
+    hash_ids(&mut hasher, scenario_ids);
+    hash_ids(&mut hasher, original_portfolio_ids);
+    hash_ids(&mut hasher, eligible_portfolio_ids);
+    hash_ids(&mut hasher, ineligible_portfolio_ids);
+    hasher.update((objective_specs.len() as u64).to_be_bytes());
     for spec in specs {
         hasher.update(spec.objective_id);
         hasher.update(spec.unit_id);
