@@ -7,8 +7,8 @@
 //! Jacobian supremum bounds. It does not derive or authenticate those bounds.
 
 use magnetic_interval_ad::{
-    certify_expression_centered, map_spatial_derivative_suprema, Interval, IntervalAdError,
-    IntervalDual, ParameterDomain, SpatialMappingError, ValidatedDerivativeEnclosure,
+    certify_expression_centered, map_spatial_derivative_suprema, Interval, IntervalDual,
+    ParameterDomain, SpatialMappingError, ValidatedDerivativeEnclosure,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -200,7 +200,7 @@ fn validate_finite_intervals(
 /// The records must describe the exact residual components Bx, By and Bz,
 /// in that order, over the same physical cell. The adapter verifies parameter
 /// identity/order, metre units, field units, cell bounds and model/solver/
-—scope metadata, then copies their derivative absolute suprema into the 3x3
+scope metadata, then copies their derivative absolute suprema into the 3x3
 /// residual-Jacobian matrix. It does not infer or authenticate the semantics
 /// of the supplied expressions; the expected expression IDs are explicit
 /// caller inputs and become part of the resulting certificate.
@@ -219,11 +219,10 @@ pub fn bind_interval_ad_residual_jacobian(
         return Err(DiscrepancyError::InvalidIdentity);
     }
 
-    let mut mapped_records: [Option<magnetic_interval_ad::SpatialDerivativeSupremumEvidence>; 3] =
-        std::array::from_fn(|_| None);
+    let mut mapped_records = Vec::with_capacity(3);
 
-    for component in 0..3 {
-        let record = records[component];
+    for (component, record) in records.iter().enumerate() {
+        let record = *record;
         if record.expression_id != expected_expression_ids[component] {
             return Err(DiscrepancyError::IntervalAdScopeMismatch {
                 component,
@@ -245,86 +244,38 @@ pub fn bind_interval_ad_residual_jacobian(
         )
         .map_err(|error| DiscrepancyError::IntervalAdMapping { component, error })?;
 
-        if mapped.axis_bounds_m != input.cell_bounds_m {
+        let scope_matches = [
+            (mapped.axis_bounds_m == input.cell_bounds_m, "cell_bounds_m"),
+            (mapped.coordinate_frame_id == input.coordinate_frame_id, "coordinate_frame_id"),
+            (mapped.operating_condition_id == input.operating_condition_id, "operating_condition_id"),
+            (mapped.model_set_id == input.model_set_id, "model_set_id"),
+            (mapped.solver_run_id == input.solver_run_id, "solver_run_id"),
+            (mapped.geometry_sha256 == input.geometry_sha256, "geometry_sha256"),
+            (mapped.material_sha256 == input.material_sha256, "material_sha256"),
+            (mapped.source_revision == input.residual_jacobian_source_revision, "source_revision"),
+            (mapped.implementation_id == input.residual_jacobian_implementation_id, "implementation_id"),
+            (mapped.artifact_sha256 == input.residual_jacobian_artifact_sha256, "artifact_sha256"),
+            (mapped.environment_sha256 == input.residual_jacobian_environment_sha256, "environment_sha256"),
+        ];
+        if let Some((_, field)) = scope_matches.iter().find(|(matches, _)| !matches) {
             return Err(DiscrepancyError::IntervalAdScopeMismatch {
                 component,
-                field: "cell_bounds_m",
-            });
-        }
-        if mapped.coordinate_frame_id != input.coordinate_frame_id {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "coordinate_frame_id",
-            });
-        }
-        if mapped.operating_condition_id != input.operating_condition_id {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "operating_condition_id",
-            });
-        }
-        if mapped.model_set_id != input.model_set_id {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "model_set_id",
-            });
-        }
-        if mapped.solver_run_id != input.solver_run_id {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "solver_run_id",
-            });
-        }
-        if mapped.geometry_sha256 != input.geometry_sha256 {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "geometry_sha256",
-            });
-        }
-        if mapped.material_sha256 != input.material_sha256 {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "material_sha256",
-            });
-        }
-        if mapped.source_revision != input.residual_jacobian_source_revision {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "source_revision",
-            });
-        }
-        if mapped.implementation_id != input.residual_jacobian_implementation_id {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "implementation_id",
-            });
-        }
-        if mapped.artifact_sha256 != input.residual_jacobian_artifact_sha256 {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "artifact_sha256",
-            });
-        }
-        if mapped.environment_sha256 != input.residual_jacobian_environment_sha256 {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field: "environment_sha256",
+                field,
             });
         }
 
-        for previous in 0..component {
-            if records[previous].record_id == record.record_id
-                || records[previous].expression_id == record.expression_id
+        for previous in records.iter().take(component) {
+            if previous.record_id == record.record_id
+                || previous.expression_id == record.expression_id
             {
                 return Err(DiscrepancyError::DuplicateIntervalAdComponentIdentity {
                     component,
                 });
             }
         }
-        mapped_records[component] = Some(mapped);
+        mapped_records.push(mapped);
     }
 
-    let mapped_records = mapped_records.map(|record| record.expect("all components were mapped"));
     input.residual_jacobian_component_record_ids =
         std::array::from_fn(|index| records[index].record_id.clone());
     input.residual_jacobian_component_expression_ids =
@@ -356,6 +307,12 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
         input.model_implementation_id.as_str(),
         input.model_set_id.as_str(),
         input.residual_jacobian_record_id.as_str(),
+        input.residual_jacobian_component_record_ids[0].as_str(),
+        input.residual_jacobian_component_record_ids[1].as_str(),
+        input.residual_jacobian_component_record_ids[2].as_str(),
+        input.residual_jacobian_component_expression_ids[0].as_str(),
+        input.residual_jacobian_component_expression_ids[1].as_str(),
+        input.residual_jacobian_component_expression_ids[2].as_str(),
         input.residual_jacobian_source_revision.as_str(),
         input.residual_jacobian_implementation_id.as_str(),
         input.residual_jacobian_cell_id.as_str(),
