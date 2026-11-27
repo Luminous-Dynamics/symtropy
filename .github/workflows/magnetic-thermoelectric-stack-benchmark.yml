@@ -1,0 +1,44 @@
+name: Magnetic Thermo-Electrical Stack Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "research/magnetics/thermoelectric-stack/**"
+      - "research/magnetics/MAG_AM_THERMOELECTRICAL_STACK_BENCHMARK_2026-11-27.md"
+      - ".github/workflows/magnetic-thermoelectric-stack-benchmark.yml"
+  push:
+    branches:
+      - "research/magnetic-thermoelectric-stack-benchmark-v0.1"
+    paths:
+      - "research/magnetics/thermoelectric-stack/**"
+      - "research/magnetics/MAG_AM_THERMOELECTRICAL_STACK_BENCHMARK_2026-11-27.md"
+      - ".github/workflows/magnetic-thermoelectric-stack-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: thermo-electrical stack (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check formatting
+        working-directory: research/magnetics/thermoelectric-stack/evaluator
+        run: cargo fmt --all -- --check
+      - name: Run strict Clippy
+        working-directory: research/magnetics/thermoelectric-stack/evaluator
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run evaluator tests
+        working-directory: research/magnetics/thermoelectric-stack/evaluator
+        run: cargo test --all-targets
