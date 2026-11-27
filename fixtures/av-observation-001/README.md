@@ -142,7 +142,7 @@ The [geometric-validation matrix](./scenario-matrix-geometric-validation-v0.tsv)
 
 ## Spatial identifiability and observability fixtures
 
-The [identifiability matrix](./scenario-matrix-identifiability-v0.tsv) adds 16 metadata-only cases in 8 paired controls/mutations. It tests observationally indistinguishable worlds, delayed disambiguation, global SE(3) gauge equivalence, late metric-scale anchoring, physical-instance identity ambiguity, ego/object-motion decomposition, symmetric topology and coverage-qualified absence.
+The [identifiability matrix](./scenario-matrix-identifiability-v0.tsv) adds 18 metadata-only cases in 9 paired controls/mutations. It tests observationally indistinguishable worlds, delayed disambiguation, global SE(3) gauge equivalence, late metric-scale anchoring, physical-instance identity ambiguity, ego/object-motion decomposition, symmetric topology, coverage-qualified absence and a decision-invariant map update.
 
 This is deliberately different from ordinary map accuracy: before a distinguishing observation, preserving multiple source-consistent hypotheses is correct; after a distinguishing observation becomes available, failing to revise is incorrect. Paired worlds with byte-identical candidate prefixes must produce the same candidate belief semantics even when evaluator truth differs. Global coordinate-gauge changes must not alter relative-geometry scores.
 
@@ -192,7 +192,7 @@ The external comparison crosswalk now includes OVO-S, VideoZeroBench, FPS-Bench,
 
 ## World-manifest binding work
 
-[AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) now owns binding the eight identifiability pairs to versioned WorldManifestV1 records and evaluator-only twin-world crosswalks. It composes #1595, #6183, #6201, #6859, #7693 and #6754. This is the next manifest/audit increment; no indoor camera renderer or rendered twin-world media is claimed to exist yet.
+[AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) now owns binding the nine identifiability pairs to versioned WorldManifestV1 records and evaluator-only twin-world crosswalks. It composes #1595, #6183, #6201, #6859, #7693 and #6754. This is the next manifest/audit increment; no indoor camera renderer or rendered twin-world media is claimed to exist yet.
 
 
 ## Observability quotient hypothesis
