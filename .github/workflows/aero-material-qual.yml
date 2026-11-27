@@ -1095,18 +1095,20 @@ jobs:
               raise SystemExit("binding fixture required evidence references must be unique")
           if binding["model_report_evidence_ref"] not in binding["required_evidence_refs"]:
               raise SystemExit("model report receipt must be included in the required evidence manifest")
+          if binding["receiver_first_seen_receipt_ref"] not in binding["required_evidence_refs"]:
+              raise SystemExit("receiver-first-seen receipt must be included in the required evidence manifest")
           corpus = json.loads(pairs[1][1].read_text())
           cases = corpus["cases"]
           ids = [case["case_id"] for case in cases]
-          if len(cases) != 25 or len(ids) != len(set(ids)):
-              raise SystemExit("metric-binding challenge seed must contain exactly 25 unique cases")
+          if len(cases) != 27 or len(ids) != len(set(ids)):
+              raise SystemExit("metric-binding challenge seed must contain exactly 27 unique cases")
           if corpus["oracle_status"] != "NOT_INDEPENDENTLY_REVIEWED" or corpus["execution_status"] != "NOT_EXECUTED":
               raise SystemExit("metric-binding challenge seed must remain unreviewed and unexecuted")
           if not any(case["case_class"] == "positive_control" for case in cases):
               raise SystemExit("challenge corpus must include a positive control; reject-all is invalid")
-          if any(case["case_class"] != "positive_control" and case["expected_disposition"] == "SEMANTICS_BOUND" for case in cases):
+          if any(case["case_class"] in ("single_fault", "coupled_fault") and case["expected_disposition"] == "SEMANTICS_BOUND" for case in cases):
               raise SystemExit("fault-bearing challenge cases cannot expect a positive semantics binding")
-          print("AERO claim-to-model metric binding schemas/examples passed; 25-case seed remains unreviewed and unexecuted.")
+          print("AERO claim-to-model metric binding schemas/examples passed; 27-case seed remains unreviewed and unexecuted.")
           PY
 
       - name: Run evaluator tests
