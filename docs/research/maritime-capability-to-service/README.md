@@ -15,7 +15,7 @@ It composes, but does not replace:
 - Symtropy #3683: conserved expected-service denominator and receiver acceptance.
 - Symtropy #2048 / #4294: work-package, repair and lifecycle semantics.
 
-This artifact is a synthetic counterfactual composition reference, not a second supplier graph, production scheduler, optimizer, cargo ledger or physical model.
+This artifact is a synthetic counterfactual composition reference, not a second supplier graph, production scheduler, optimizer, cargo ledger or physical model. Each OPTION carries a configuration revision and must have exactly one INSPECTION and one RECEIVER_ACCEPTANCE record using that same revision. INSPECTION PASS can qualify a partial quantity; FAIL/UNKNOWN qualifies zero. RECEIVER_ACCEPTANCE ACCEPTED can accept no more than the inspection-qualified quantity; REJECTED/UNKNOWN accepts zero. Only receiver-accepted units that also meet the service deadline count as on-time accepted service.
 
 The external comparator, reproduction and acceptance protocol is maintained in [benchmark-matrix.md](benchmark-matrix.md). The distinction between synthetic counterfactual, observed operational difference and identified causal effect is defined in [causal-evaluation-protocol.md](causal-evaluation-protocol.md), composing Symtropy #3152 and #5108 rather than duplicating their estimators. Symtropy #4204 remains the owner of public ship-block dataset admission and faithful reproduction; this benchmark consumes its outputs only after those source checks pass.
 
@@ -23,9 +23,9 @@ The external comparator, reproduction and acceptance protocol is maintained in [
 
 File: `fixtures/mcsc-counterfactual-tiny-v0.tsv`
 
-All values are synthetic benchmark units. The service unit is an abstract cargo unit; it is not a container, TEU, tonne or real shipment. Each portfolio selects one fully qualified alternative for one critical maintenance work package. The selected output passes its declared one-day inspection, one-day commissioning and one-day receiver handoff unless the corresponding explicit negative-control case is introduced in a future corpus version.
+All values are synthetic benchmark units. The service unit is an abstract cargo unit; it is not a container, TEU, tonne or real shipment. Each portfolio selects one fully qualified alternative for one critical maintenance work package. The base case has a passing inspection and a receiver-accepted 10-unit output at the declared configuration revision. The separate inspection and receiver records are deliberate: passing inspection is not proof of delivery or receiver acceptance.
 
-The service obligation is 10 expected units with a receiver deadline at day 10. The denominator remains 10 for every portfolio, including late and unknown outcomes.
+The service obligation is 10 expected units with a receiver deadline at day 10. The denominator remains 10 for every portfolio, including late, partial, rejected and unknown outcomes.
 
 ### Dependency topology
 
@@ -53,13 +53,13 @@ On-time accepted service is the full expected-unit quantity when `receiver_day <
 
 ## Expected results
 
-| Portfolio | No-shock receiver day | GRID-A outage receiver day | On-time units under GRID-A outage |
-|---|---:|---:|---:|
-| LOCAL-A | 8 | 14 | 0 / 10 |
-| LOCAL-B | 9 | 15 | 0 / 10 |
-| LOCAL-C | 10 | 10 | 10 / 10 |
-| IMPORT | 13 | 13 | 0 / 10 |
-| EXISTING | 23 | 23 | 0 / 10 |
+| Portfolio | No-shock receiver day | GRID-A outage receiver day | Inspection-qualified | Receiver-accepted | On-time accepted |
+|---|---:|---:|---:|---:|---:|
+| LOCAL-A | 8 | 14 | 10/10 | 10/10 | 0/10 |
+| LOCAL-B | 9 | 15 | 10/10 | 10/10 | 0/10 |
+| LOCAL-C | 10 | 10 | 10/10 | 10/10 | 10/10 |
+| IMPORT | 13 | 13 | 10/10 | 10/10 | 0/10 |
+| EXISTING | 23 | 23 | 10/10 | 10/10 | 0/10 |
 
 The result is intentionally not a universal claim that regional production beats imports. It demonstrates a narrow structural point: LOCAL-A and LOCAL-B are not independent against the declared GRID-A shock; LOCAL-C preserves the service deadline in this frozen case despite its higher synthetic cost than IMPORT and lower synthetic regional value than LOCAL-A/LOCAL-B.
 
@@ -90,22 +90,22 @@ cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo
 
 The Rust reference parses the frozen service obligation, dependency inventory, day-zero shocks, alternatives, configuration revisions and inspection dispositions. Every option must have exactly one inspection record bound to its configuration revision. `PASS` may accept a partial quantity up to the expected denominator; `FAIL` and `UNKNOWN` must carry zero accepted units. The receipt separately reports expected units, receiver-accepted units and on-time accepted units. Failed/unknown inspection, revision mismatch, missing/duplicate inspection evidence, unknown/duplicate dependencies, unsupported shock timing, accepted-quantity overflow and receiver-day overflow fail closed.
 
-Twelve Rust unit tests and three integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial acceptance, failed/unknown inspection, revision mismatch, missing/duplicate inspection records, quantity and receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. One integration oracle independently reconstructs the base receipt; a second independently adjudicates the 22-case corpus, including two common-cause shocks, partial inspection acceptance, rejected/unknown inspection and revision mismatch. The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
+Seventeen Rust unit tests and three integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. One integration oracle independently reconstructs both evidence stages and the base receipt; a second independently adjudicates the 26-case corpus, including common-cause shocks, resource availability changes, deadline boundaries, partial receiver acceptance, inspection failure/unknown, receiver rejection/unknown and revision/quantity mismatch. The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
 
-**Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The present v0.2 extension adds explicit inspection/revision binding and a 22-case adversarial corpus; it has not yet completed its own exact-head qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
+**Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The present v0.3 extension separates inspection qualification from receiver acceptance and adds a 26-case adversarial corpus; it has not yet completed its own exact-head qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
 
 ## What this fixture does not establish
 
 It does not establish actual supplier independence, actual regional capacity, physical production quality, class/statutory compliance, a real grid outage distribution, cost competitiveness, emissions performance, job creation, causal economic impact, a South African port capacity fact or a real receiver delivery.
 
-The result is conditional on the exact declared synthetic dependency topology and timing rule. An incomplete dependency inventory must yield UNKNOWN/INDETERMINATE in a future cross-stack adapter, not an inferred independent path.
+The result is conditional on the exact declared synthetic dependency topology, inspection records, receiver-acceptance records and timing rule. An incomplete dependency inventory must yield UNKNOWN/INDETERMINATE in a future cross-stack adapter, not an inferred independent path.
 
 ## Next qualification steps
 
-1. Complete exact-head qualification of v0.2; address every failure without weakening gates.
-2. Extend the inspection/acceptance record to actual source IDs, timestamped inspection observations and authority/rights provenance from Mycelix's owner-native artifacts.
+1. Complete exact-head qualification of v0.3; address every failure without weakening gates.
+2. Extend both evidence records to actual source IDs, timestamped observations, custody/dispatch/handoff provenance and participant authority from Mycelix's owner-native artifacts.
 3. Add transitive dependency closure, stale/revoked source evidence, unknown dependency remainder, inspection measurement uncertainty, partial dispatch/receipt and cancellation/rework states.
-4. Extend beyond the current 22 cases to at least 30 frozen cases and held-out facility/shock families.
+4. Extend beyond the current 26 cases to at least 30 frozen cases and held-out facility/shock families.
 4. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 5. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
 
