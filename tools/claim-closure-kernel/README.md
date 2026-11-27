@@ -55,6 +55,8 @@ These standards are complementary comparators, not direct performance competitor
 
 ## Benchmark design
 
+The frozen mutation corpus now contains 25 machine-readable adversarial cases. The Rust test harness applies every mutation to the positive graph and checks its exact expected finding. The corpus is marked synthetic and not independently reviewed; the CI workflow validates both input and mutation-corpus schemas.
+
 The initial suite should test positive controls and mutations for:
 1. missing required evidence and missing transitive ancestors;
 2. record-digest substitution and wrong dependency digests;
@@ -67,7 +69,7 @@ The initial suite should test positive controls and mutations for:
 9. input permutation and deterministic replay;
 10. report tampering and resource-limit exhaustion.
 
-The plan records target metrics, not achieved results. The first acceptance target is zero false-closures on the frozen adversarial suite and zero false-blocks on valid positive controls. Scale cases cover 100, 1,000 and 10,000 evidence records with varying graph fan-out and depth. Report p50/p95/p99 latency, peak memory and throughput; compare only matched input graphs.
+The current crate contains 34 authored Rust tests, including the 25-case mutation corpus. CI must execute them before test completion is claimed. The plan records target metrics, not achieved results. The first acceptance target is zero false-closures on the frozen adversarial suite and zero false-blocks on valid positive controls. Scale cases cover 100, 1,000 and 10,000 evidence records with varying graph fan-out and depth. Report p50/p95/p99 latency, peak memory and throughput; compare only matched input graphs.
 
 ## Running
 
