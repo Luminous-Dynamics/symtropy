@@ -39,11 +39,14 @@
     },
     "candidate":{
       "type":"object",
-      "required":["candidate_id","scope","component_id","production_site_id","pbf_lb_equipment_qualification_required","replication_policy"],
+      "required":["candidate_id","scope","component_id","qualification_specimen_id","qualification_material_lot_id","qualification_build_id","production_site_id","pbf_lb_equipment_qualification_required","replication_policy"],
       "properties":{
         "candidate_id":{"type":"string","minLength":1},
         "scope":{"$ref":"#/$defs/scope"},
         "component_id":{"type":"string","minLength":1},
+        "qualification_specimen_id":{"type":"string","minLength":1},
+        "qualification_material_lot_id":{"type":"string","minLength":1},
+        "qualification_build_id":{"type":"string","minLength":1},
         "production_site_id":{"type":"string","minLength":1},
         "equipment_id":{"type":"string","minLength":1},
         "pbf_lb_equipment_qualification_required":{"type":"boolean"},
