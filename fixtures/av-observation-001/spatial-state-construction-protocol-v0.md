@@ -491,7 +491,20 @@ A chosen action a is robustly decision-sufficient over the retained world set W_
 
 This is a worst-case regret gate over the evaluator-defined admissible worlds, not a claim that the candidate has reconstructed one unique map.
 
-### 22.3 The quotient-state representation
+### 22.3 The two-by-two observability/decision regime
+
+The two equivalence relations produce four experimentally distinct regimes:
+
+| What the current prefix identifies | Effect on current DecisionNeed | Correct behavior |
+|---|---|---|
+| Worlds remain observationally indistinguishable | All admissible worlds imply the same action | Preserve structural ambiguity; stop unnecessary acquisition; do not claim a unique map |
+| Worlds remain observationally indistinguishable | Admissible worlds imply different action classes | Do not claim decision sufficiency; seek a legal discriminating observation or abstain |
+| A new observation distinguishes the worlds | The action class remains unchanged | Revise the newly identified map detail, but preserve the decision; do not credit the observation as decision improvement |
+| A new observation distinguishes the worlds | The action class changes | Revise the relevant map and decision partition, cite the new evidence and invalidate the old sufficiency receipt |
+
+The third regime is now explicit in the identifiability matrix as pair-probe-decision-invariance-01: an observation can improve map identifiability without improving the current decision. This guards against optimizing a spatial system to maximize map detail or information gain when the extra detail has no current decision value.
+
+### 22.4 The quotient-state representation
 
 The candidate state should preserve:
 1. source-grounded constraints and competing spatial/entity alternatives consistent with O_0:t;
@@ -503,12 +516,13 @@ The current query may stop acquiring when every retained admissible world lies i
 
 This composes existing #7558/#7577 decision evaluation, #6675 sequential acquisition and MACE #13284 memory cost-regret. It does not add a second scheduler, posterior engine, map store or evaluator.
 
-### 22.4 Falsifiable metrics
+### 22.5 Falsifiable metrics
 
 Report separately:
 - **Observational false-split:** candidate distinguishes worlds whose sensor-observation distributions are equivalent within the registered margin.
 - **Observational false-merge:** candidate fails to distinguish worlds after a permitted observation makes their observation distributions separable.
 - **Decision-partition agreement:** candidate's query-relative partition matches the evaluator's hidden partition.
+- **Decision-invariant map update:** after an observation resolves a map distinction without changing the action class, the map claim is revised while the selected action and decision certificate remain valid.
 - **Worst-case decision regret:** maximum loss regret across all admissible world hypotheses.
 - **False unique-map claim:** candidate reports a unique structural fact while an observationally equivalent alternative remains admissible.
 - **Residual completeness / reopenability:** later DecisionNeed or evidence can recover the relevant source-linked alternatives without fabricating observations.
