@@ -362,15 +362,7 @@ fn equality_deadlines_and_large_denominators_remain_exact() {
     let strict_receipt = receipt_outcomes(&run_audit(&strict).unwrap());
     assert_eq!(strict_receipt["LOCAL-A"].5, 0);
 
-    let large = scenario_input(
-        "LARGE",
-        "GRID-A:6",
-        "MILL-01:4",
-        15,
-        1_000,
-        "NONE",
-        "NONE",
-    );
+    let large = scenario_input("LARGE", "GRID-A:6", "MILL-01:4", 15, 1_000, "NONE", "NONE");
     let large_receipt = receipt_outcomes(&run_audit(&large).unwrap());
     assert_eq!(large_receipt["LOCAL-B"].2, 1_000);
     assert_eq!(large_receipt["LOCAL-B"].3, 10);
