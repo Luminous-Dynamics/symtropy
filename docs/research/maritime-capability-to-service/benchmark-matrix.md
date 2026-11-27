@@ -141,7 +141,7 @@ Historical replays may use only information available at the decision cutoff. La
 5. Freeze a matched scenario family and human-adjudicated acceptance outcomes.
 6. Only after that, compare candidate policies offline. No connection request, dispatch, shore-power switching, water treatment, cargo allocation or procurement authority is created by this benchmark.
 
-The output is a site evidence-readiness report: admitted, missing, stale, disputed, rights-restricted and not-applicable evidence by service chain. It is not a ranking of Ngqura/Coega vs Durban, and it must not infer physical grid capacity from pre-feasibility or nameplate figures.
+The output is a site evidence-readiness report: admitted, missing, stale, disputed, rights-restricted and not-applicable evidence by service chain. It is not a ranking of Ngqura/Coega vs Durban, and it must not infer physical grid capacity from pre-feasibility or nameplate figures. The 2025 CSIR/GIZ load-connection and shore-power reports are admitted only as source-qualified historical estimates; their paired-site values and absence markers are frozen in `south-african-port-energy-evidence-v0.tsv`. They provide initial stress-case ranges, not evidence of a current firm connection allocation or metered demand.
 
 ## 6. End-to-end service and productive capability
 
