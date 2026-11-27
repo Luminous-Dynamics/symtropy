@@ -8,8 +8,9 @@
 //! provenance-bound cosine threshold.
 
 use magnetic_interval_ad::{
-    Interval, IntervalAdError, IntervalDual, ParameterDomain, ValidatedDerivativeEnclosure,
-    certify_expression_centered,
+    Interval, IntervalAdError, IntervalDual, ParameterDomain, SpatialDerivativeSupremumEvidence,
+    SpatialMappingError, ValidatedDerivativeEnclosure, certify_expression_centered,
+    map_spatial_derivative_suprema,
 };
 
 pub const PHASE_MARGIN_EXPRESSION_ID: &str = "normalized-phasor-cosine-margin-v0.1";
@@ -23,6 +24,26 @@ pub struct PhasorPhaseMarginCertificate {
     pub shortest_arc_contract: String,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PhasorComponents<const N: usize> {
+    pub measured_x: IntervalDual<N>,
+    pub measured_y: IntervalDual<N>,
+    pub reference_x: IntervalDual<N>,
+    pub reference_y: IntervalDual<N>,
+    pub minimum_cosine: IntervalDual<N>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialPhasorPhaseMarginCertificate {
+    pub derivative_enclosure: ValidatedDerivativeEnclosure<3>,
+    pub spatial_derivative_evidence: SpatialDerivativeSupremumEvidence,
+    pub measured_norm_squared_enclosure: Interval,
+    pub reference_norm_squared_enclosure: Interval,
+    pub minimum_cosine_enclosure: Interval,
+    pub metric_id: String,
+    pub shortest_arc_contract: String,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhaseMarginError {
     WrongExpressionIdentity,
@@ -31,6 +52,10 @@ pub enum PhaseMarginError {
     InvalidThresholdCosineDomain,
     MeasuredMagnitudeMayBeZero,
     ReferenceMagnitudeMayBeZero,
+    InvalidSpatialParameterOrder { axis: usize },
+    InvalidSpatialParameterUnit { axis: usize },
+    InvalidSpatialOutputUnit,
+    SpatialMapping(SpatialMappingError),
     IntervalAd(IntervalAdError),
 }
 
@@ -85,6 +110,20 @@ fn validate_domain(domain: &ParameterDomain<5>) -> Result<(), PhaseMarginError> 
     Ok(())
 }
 
+fn normalized_phasor_margin<const N: usize>(
+    components: PhasorComponents<N>,
+) -> Result<IntervalDual<N>, IntervalAdError> {
+    let measured_norm_squared = components.measured_x.square() + components.measured_y.square();
+    let reference_norm_squared = components.reference_x.square() + components.reference_y.square();
+    let magnitude_product = measured_norm_squared * reference_norm_squared;
+    let magnitude = magnitude_product.sqrt()?;
+    let dot_product =
+        components.measured_x * components.reference_x
+            + components.measured_y * components.reference_y;
+    let normalized_similarity = dot_product / magnitude;
+    Ok(normalized_similarity - components.minimum_cosine)
+}
+
 fn phase_similarity_expression(
     [
         measured_x,
@@ -94,13 +133,13 @@ fn phase_similarity_expression(
         minimum_cosine,
     ]: [IntervalDual<5>; 5],
 ) -> Result<IntervalDual<5>, IntervalAdError> {
-    let measured_norm_squared = measured_x.square() + measured_y.square();
-    let reference_norm_squared = reference_x.square() + reference_y.square();
-    let magnitude_product = measured_norm_squared * reference_norm_squared;
-    let magnitude = magnitude_product.sqrt()?;
-    let dot_product = measured_x * reference_x + measured_y * reference_y;
-    let normalized_similarity = dot_product / magnitude;
-    Ok(normalized_similarity - minimum_cosine)
+    normalized_phasor_margin(PhasorComponents {
+        measured_x,
+        measured_y,
+        reference_x,
+        reference_y,
+        minimum_cosine,
+    })
 }
 
 /// Certify the shortest-arc phase tolerance using a branch-cut-free scalar
@@ -131,6 +170,88 @@ pub fn certify_phasor_phase_margin(
         metric_id: "normalized-phasor-dot-product".to_owned(),
         shortest_arc_contract: "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi"
             .to_owned(),
+    })
+}
+
+/// Certify a spatially varying branch-free phase margin and map its
+/// whole-cell XYZ derivative suprema to the spatial-certification contract.
+///
+/// The evaluator maps spatial coordinate duals [x, y, z] to measured/reference
+/// phasor components and a supplied cosine threshold. The returned derivative
+/// record can populate the spatial certifier's derivative bounds, but it does
+/// not create the independent centre-sample margin observation.
+pub fn certify_spatial_phasor_phase_margin<F>(
+    domain: &ParameterDomain<3>,
+    evaluate: F,
+) -> Result<SpatialPhasorPhaseMarginCertificate, PhaseMarginError>
+where
+    F: Fn([IntervalDual<3>; 3]) -> Result<PhasorComponents<3>, IntervalAdError>,
+{
+    if domain.expression_id != PHASE_MARGIN_EXPRESSION_ID {
+        return Err(PhaseMarginError::WrongExpressionIdentity);
+    }
+    if domain.output_unit != "dimensionless" {
+        return Err(PhaseMarginError::InvalidSpatialOutputUnit);
+    }
+
+    let expected_axes = ["x", "y", "z"];
+    for (axis, expected_axis) in expected_axes.iter().enumerate() {
+        if domain.parameter_ids[axis] != *expected_axis {
+            return Err(PhaseMarginError::InvalidSpatialParameterOrder { axis });
+        }
+        if domain.parameter_units[axis] != "metre" {
+            return Err(PhaseMarginError::InvalidSpatialParameterUnit { axis });
+        }
+    }
+
+    let measured_norm = certify_expression_centered(domain, |variables| {
+        let components = evaluate(variables)?;
+        Ok(components.measured_x.square() + components.measured_y.square())
+    })?;
+    if measured_norm.value_enclosure.lower() <= 0.0 {
+        return Err(PhaseMarginError::MeasuredMagnitudeMayBeZero);
+    }
+
+    let reference_norm = certify_expression_centered(domain, |variables| {
+        let components = evaluate(variables)?;
+        Ok(components.reference_x.square() + components.reference_y.square())
+    })?;
+    if reference_norm.value_enclosure.lower() <= 0.0 {
+        return Err(PhaseMarginError::ReferenceMagnitudeMayBeZero);
+    }
+
+    let threshold = certify_expression_centered(domain, |variables| {
+        let components = evaluate(variables)?;
+        Ok(components.minimum_cosine)
+    })?;
+    if threshold.value_enclosure.lower() <= -1.0
+        || threshold.value_enclosure.upper() > 1.0
+    {
+        return Err(PhaseMarginError::InvalidThresholdCosineDomain);
+    }
+
+    let derivative_enclosure = certify_expression_centered(domain, |variables| {
+        normalized_phasor_margin(evaluate(variables)?)
+    })?;
+
+    let spatial_derivative_evidence = map_spatial_derivative_suprema(
+        &derivative_enclosure,
+        &domain.cell_id,
+        &domain.requirement_id,
+        ["x", "y", "z"],
+        "metre",
+    )
+    .map_err(PhaseMarginError::SpatialMapping)?;
+
+    Ok(SpatialPhasorPhaseMarginCertificate {
+        derivative_enclosure,
+        spatial_derivative_evidence,
+        measured_norm_squared_enclosure: measured_norm.value_enclosure,
+        reference_norm_squared_enclosure: reference_norm.value_enclosure,
+        minimum_cosine_enclosure: threshold.value_enclosure,
+        metric_id: "normalized-phasor-dot-product".to_owned(),
+        shortest_arc_contract:
+            "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi".to_owned(),
     })
 }
 
