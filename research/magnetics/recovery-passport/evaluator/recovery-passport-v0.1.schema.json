@@ -115,10 +115,12 @@
     },
     "downstream": {
       "type": "object",
-      "required": ["recovered_output_id", "new_material_lot_id", "manufacturing_genealogy", "as_built_acceptance_receipt", "downstream_disposition"],
+      "required": ["recovered_output_id", "new_material_lot_id", "material_consumption_record", "consumed_mass_mg", "manufacturing_genealogy", "as_built_acceptance_receipt", "downstream_disposition"],
       "properties": {
         "recovered_output_id": { "type": "string", "minLength": 1 },
         "new_material_lot_id": { "type": "string", "minLength": 1 },
+        "material_consumption_record": { "$ref": "#/$defs/record" },
+        "consumed_mass_mg": { "type": "integer", "minimum": 1 },
         "manufacturing_genealogy": { "$ref": "#/$defs/record" },
         "as_built_acceptance_receipt": { "$ref": "#/$defs/record" },
         "downstream_disposition": { "enum": ["Qualified", "Fail", "Indeterminate", "NotEvaluable"] }
