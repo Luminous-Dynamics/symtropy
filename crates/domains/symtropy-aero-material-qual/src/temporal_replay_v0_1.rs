@@ -992,10 +992,18 @@ mod tests {
             .find(|case| case["case_id"] == "backdated-event-received-after-snapshot")
             .unwrap()
             .clone();
-        assert_eq!(
-            evaluate_temporal_replay_case(&case, TemporalQueryMode::AsKnownAt),
-            evaluate_temporal_replay_case(&case, TemporalQueryMode::RecomputedWithCurrentTrust)
-        );
+        let as_known = evaluate_temporal_replay_case(&case, TemporalQueryMode::AsKnownAt);
+        let trust_only =
+            evaluate_temporal_replay_case(&case, TemporalQueryMode::RecomputedWithCurrentTrust);
+
+        // The query-mode label changes; the historical evidence cut and its
+        // substantive interpretation must not.
+        assert_eq!(as_known.disposition, trust_only.disposition);
+        assert_eq!(as_known.reason_codes, trust_only.reason_codes);
+        assert_eq!(as_known.applied_event_ids, trust_only.applied_event_ids);
+        assert_eq!(as_known.excluded_event_ids, trust_only.excluded_event_ids);
+        assert_eq!(as_known.mode, "as_known_at");
+        assert_eq!(trust_only.mode, "recomputed_with_current_trust");
     }
 
     #[test]
