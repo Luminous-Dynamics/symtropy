@@ -1,0 +1,94 @@
+name: Forestry Robotics Mission Contract
+
+on:
+  push:
+    branches: ["feat/forestry-robotics-safety-contract-v0-1"]
+    paths:
+      - "docs/tech/FORESTRY_ROBOTICS_PLATFORM_V0_1.md"
+      - "docs/tech/forest-robotics-corpus-v0.1.json"
+      - "tools/forest-robotics-contract/**"
+      - ".github/workflows/forestry-robotics-contract.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/tech/FORESTRY_ROBOTICS_PLATFORM_V0_1.md"
+      - "docs/tech/forest-robotics-corpus-v0.1.json"
+      - "tools/forest-robotics-contract/**"
+      - ".github/workflows/forestry-robotics-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: forestry-robotics-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mission-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/forest-robotics-contract/Cargo.toml -- --check
+      - name: Test mission decision contract
+        run: cargo test --manifest-path tools/forest-robotics-contract/Cargo.toml
+      - name: Validate exact-head synthetic corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          cargo run --quiet --manifest-path tools/forest-robotics-contract/Cargo.toml -- \
+            docs/tech/forest-robotics-corpus-v0.1.json --source-commit "$source_commit" > forest-robotics-receipt.json
+          jq -e '
+            .result == "validated"
+            and .scenario_count == 11
+            and .eligible_for_simulation_only_count == 1
+            and .blocked_fail_closed_count == 9
+            and .rejected_out_of_scope_count == 1
+            and ([.scenarios[].scenario_id] == [
+              "SCOUT_SURVEY_READY",
+              "SURVEY_STALE_TELEMETRY",
+              "OBSTACLE_SENSOR_UNKNOWN",
+              "SAFETY_PROFILE_EXPIRED",
+              "SITE_PERMISSION_UNKNOWN",
+              "SLOPE_AND_SPEED_OVER_LIMIT",
+              "EMERGENCY_STOP_ENGAGED",
+              "BATTERY_BELOW_RESERVE",
+              "LOCALIZATION_ERROR_OVER_LIMIT",
+              "AUTONOMOUS_MODE_REQUIRES_REVIEW",
+              "CUT_OR_FELL_OUT_OF_SCOPE"
+            ])
+            and ([.scenarios[].decision] == [
+              "eligible_for_simulation_only",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "blocked_fail_closed",
+              "rejected_out_of_scope"
+            ])
+            and (.corpus_sha256 | test("^[0-9a-f]{64}$"))
+            and (.source_commit | test("^[0-9a-f]{40}$"))
+          ' forest-robotics-receipt.json
+      - name: Upload deterministic mission receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: forestry-robotics-mission-contract-receipt
+          path: forest-robotics-receipt.json
+          if-no-files-found: error
+          retention-days: 90
