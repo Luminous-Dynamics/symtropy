@@ -103,6 +103,10 @@ pub struct OwnerEvidenceCutV0_1 {
     pub owner_namespace: String,
     /// Stable component build packet identity.
     pub component_packet_id: String,
+    /// Physical unit identity bound by the component packet.
+    pub physical_unit_ref: String,
+    /// Exact configuration identity bound by the component packet.
+    pub configuration_ref: String,
     /// Digest and byte length of the exact packet bytes.
     pub component_packet_sha256: String,
     pub component_packet_byte_length: u64,
@@ -137,6 +141,8 @@ struct OwnerEvidenceCutEnvelope<'a> {
     canonicalization_profile: &'static str,
     owner_namespace: &'a str,
     component_packet_id: &'a str,
+    physical_unit_ref: &'a str,
+    configuration_ref: &'a str,
     component_packet_sha256: &'a str,
     component_packet_byte_length: u64,
     artifact_payloads_verified: bool,
@@ -166,6 +172,8 @@ impl OwnerEvidenceCutV0_1 {
         for (field, value) in [
             ("OWNER_NAMESPACE", self.owner_namespace.as_str()),
             ("COMPONENT_PACKET_ID", self.component_packet_id.as_str()),
+            ("PHYSICAL_UNIT", self.physical_unit_ref.as_str()),
+            ("CONFIGURATION", self.configuration_ref.as_str()),
             ("BASALT_RUN_ID", self.basalt_run_id.as_str()),
             ("OBSERVER_COVERAGE_PROFILE", self.observer_coverage_profile_id.as_str()),
         ] {
@@ -274,6 +282,8 @@ impl OwnerEvidenceCutV0_1 {
             canonicalization_profile: "rust-serde-json-struct-order-v1",
             owner_namespace: &self.owner_namespace,
             component_packet_id: &self.component_packet_id,
+            physical_unit_ref: &self.physical_unit_ref,
+            configuration_ref: &self.configuration_ref,
             component_packet_sha256: &self.component_packet_sha256,
             component_packet_byte_length: self.component_packet_byte_length,
             artifact_payloads_verified: self.artifact_payloads_verified,
@@ -397,6 +407,8 @@ mod tests {
             schema: "AeroOwnerEvidenceCutV0_1".to_owned(),
             owner_namespace: "mycelix:aerocommons".to_owned(),
             component_packet_id: "packet:coupon-001-r1".to_owned(),
+            physical_unit_ref: "part:wing-panel-001".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
             component_packet_sha256: "2".repeat(64),
             component_packet_byte_length: 4096,
             artifact_payloads_verified: true,
@@ -411,12 +423,12 @@ mod tests {
             basalt_report_sha256: "5".repeat(64),
             basalt_confirmatory_eligible: true,
             receiver_receipt_manifest_sha256: "6".repeat(64),
-            receiver_receipt_watermark_unix_ms: 1_795_516_700,
+            receiver_receipt_watermark_unix_ms: 1_795_516_700_000,
             trust_policy_sha256: "c".repeat(64),
             observer_coverage_profile_id: "basalt-coverage-v0.1".to_owned(),
             observer_coverage_receipt_sha256: "7".repeat(64),
             observer_coverage_status: OwnerObserverCoverageStatus::QualifiedCompleteForScope,
-            observer_coverage_watermark_unix_ms: 1_795_516_600,
+            observer_coverage_watermark_unix_ms: 1_795_516_600_000,
         }
     }
 
