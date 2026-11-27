@@ -222,7 +222,9 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
     }
     let bytes = fs::read(&resolved)
         .map_err(|error| format!("cannot read bundle {}: {error}", resolved.display()))?;
-    if bytes.len() as u64 > MAX_INPUT_BYTES {
+    let byte_count = u64::try_from(bytes.len())
+        .map_err(|_| format!("episode {} bundle length exceeds u64", episode.episode_id))?;
+    if byte_count > MAX_INPUT_BYTES {
         return Err(format!("episode {} bundle grew beyond the byte limit", episode.episode_id));
     }
     let actual = format!("{:x}", Sha256::digest(&bytes));
@@ -239,21 +241,22 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
     let text = std::str::from_utf8(&bytes)
         .map_err(|error| format!("episode {} bundle is not UTF-8: {error}", episode.episode_id))?;
     let mut lines = text.lines();
+    let expected_episode = format!("episode={}", episode.episode_id);
+    let expected_metadata = format!(
+        "frame_budget={};expected_frame_count={};first_sequence={};horizon_us={}",
+        episode.frame_budget,
+        episode.expected_frame_count,
+        episode.first_sequence,
+        episode.horizon_us
+    );
     if lines.next() != Some("CFI_SPACE_SYNTHETIC_NON_IMAGE_PAYLOAD_V1")
-        || lines.next() != Some(format!("episode={}", episode.episode_id).as_str())
-        || lines.next()
-            != Some(
-                format!(
-                    "frame_budget={};expected_frame_count={};first_sequence={};horizon_us={}",
-                    episode.frame_budget,
-                    episode.expected_frame_count,
-                    episode.first_sequence,
-                    episode.horizon_us
-                )
-                .as_str(),
-            )
+        || lines.next() != Some(expected_episode.as_str())
+        || lines.next() != Some(expected_metadata.as_str())
     {
-        return Err(format!("episode {} bundle header does not match manifest", episode.episode_id));
+        return Err(format!(
+            "episode {} bundle header does not match manifest",
+            episode.episode_id
+        ));
     }
 
     for (index, frame) in episode.frames.iter().enumerate() {
