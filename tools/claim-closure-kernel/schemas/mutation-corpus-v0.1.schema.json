@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symtropy.luminousdynamics.io/schemas/engineering-claim-closure-mutation-corpus-v0.1.schema.json",
+  "title": "Engineering Claim Closure Mutation Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "synthetic_only",
+    "oracle_review_status",
+    "execution_status",
+    "mutation_count",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": { "const": "engineering-claim-closure-mutation-corpus-v0.1" },
+    "synthetic_only": { "const": true },
+    "oracle_review_status": { "type": "string", "enum": ["NOT_INDEPENDENTLY_REVIEWED", "INDEPENDENTLY_REVIEWED"] },
+    "execution_status": { "type": "string", "enum": ["AUTHORED_NOT_YET_EXECUTED", "EXECUTED_AT_RECORDED_SOURCE_SHA"] },
+    "mutation_count": { "type": "integer", "minimum": 1 },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/case" }
+    }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "operation", "target", "value", "expected_finding_code"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "operation": { "type": "string", "enum": ["set", "append"] },
+        "target": { "type": "string", "minLength": 1, "pattern": "^/" },
+        "value": {},
+        "expected_finding_code": { "type": "string", "minLength": 1, "pattern": "^[A-Z0-9_]+$" }
+      }
+    }
+  }
+}
