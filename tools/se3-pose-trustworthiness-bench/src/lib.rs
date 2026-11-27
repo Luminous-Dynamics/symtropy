@@ -97,6 +97,7 @@ pub struct PoseInput {
     pub calibration_revision: String,
     pub calibration_sha256: String,
     pub sensor_mode: String,
+    pub support_mode: String,
     pub frame_convention: String,
     pub quaternion_order: String,
     pub tangent_convention: String,
@@ -138,6 +139,7 @@ pub struct PoseResult {
     pub calibration_revision: String,
     pub calibration_sha256: String,
     pub sensor_mode: String,
+    pub support_mode: String,
     pub frame_convention: String,
     pub tangent_convention: String,
     pub decision_reason: String,
@@ -263,7 +265,15 @@ fn normalized_quaternion(q: [f64; 4]) -> Option<[f64; 4]> {
 
 fn rotation_log(q: [f64; 4]) -> [f64; 3] {
     let mut canonical = q;
-    if canonical[3] < 0.0 {
+    let negate = if canonical[3] != 0.0 {
+        canonical[3] < 0.0
+    } else {
+        canonical[..3]
+            .iter()
+            .find(|value| value.abs() > 1.0e-15)
+            .is_some_and(|value| *value < 0.0)
+    };
+    if negate {
         for value in &mut canonical {
             *value = -*value;
         }
@@ -383,6 +393,7 @@ fn base_result(
         calibration_revision: input.calibration_revision.clone(),
         calibration_sha256: input.calibration_sha256.clone(),
         sensor_mode: input.sensor_mode.clone(),
+        support_mode: input.support_mode.clone(),
         frame_convention: input.frame_convention.clone(),
         tangent_convention: input.tangent_convention.clone(),
         decision_reason: input.abstain_reason.clone(),
@@ -459,6 +470,10 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
 
     if input.dataset_id != "SYNTHETIC-SE3-TRUST-v0.1"
         || input.sensor_mode != "RGB"
+        || !matches!(
+            input.support_mode.as_str(),
+            "KEYPOINT_PNP" | "DENSE_PNP" | "EVENT_KEYPOINT_PNP" | "DIRECT_REGRESSION"
+        )
         || input.frame_convention != "WORLD_RIGHT_HANDED_METRES"
         || input.quaternion_order != "XYZW"
         || input.tangent_convention != COVARIANCE_ORDER
@@ -475,7 +490,10 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
             input.ground_truth_translation_m[2],
         ])
         || !(0.0..=1.0).contains(&input.visible_fraction)
-        || input.geometry_condition <= 0.0
+        || (input.support_mode != "DIRECT_REGRESSION"
+            && input.geometry_condition <= 0.0)
+        || (input.support_mode == "DIRECT_REGRESSION"
+            && input.geometry_condition < 0.0)
     {
         return base_result(
             input,
@@ -569,11 +587,16 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
             .expect("the fixed 95% chi-square quantile is present")
             .ln();
 
+    let requires_correspondence_geometry = matches!(
+        input.support_mode.as_str(),
+        "KEYPOINT_PNP" | "DENSE_PNP" | "EVENT_KEYPOINT_PNP"
+    );
     let observability_violation = input.ood_flag
         || input.symmetry_ambiguous
         || input.visible_fraction < MIN_VISIBLE_FRACTION
-        || input.correspondence_count < MIN_CORRESPONDENCES
-        || input.geometry_condition > MAX_GEOMETRY_CONDITION;
+        || (requires_correspondence_geometry
+            && (input.correspondence_count < MIN_CORRESPONDENCES
+                || input.geometry_condition > MAX_GEOMETRY_CONDITION));
     let false_confident = input.decision == PoseDecision::Accept
         && (!cov95 || observability_violation);
     let admissible = input.decision == PoseDecision::Accept && !false_confident;
@@ -792,6 +815,7 @@ mod tests {
             calibration_revision: "cal-r1".to_owned(),
             calibration_sha256: "c".repeat(64),
             sensor_mode: "RGB".to_owned(),
+            support_mode: "KEYPOINT_PNP".to_owned(),
             frame_convention: "WORLD_RIGHT_HANDED_METRES".to_owned(),
             quaternion_order: "XYZW".to_owned(),
             tangent_convention: super::COVARIANCE_ORDER.to_owned(),
@@ -882,6 +906,32 @@ mod tests {
         assert!(result.false_confident_95);
         assert!(!result.benchmark_admissible);
         assert!(!result.maneuver_authority_granted);
+    }
+
+    #[test]
+    fn direct_regression_does_not_require_pnp_correspondences() {
+        let mut value = input();
+        value.support_mode = "DIRECT_REGRESSION".to_owned();
+        value.correspondence_count = 0;
+        value.geometry_condition = 0.0;
+        let result = evaluate(&value);
+        assert!(result.benchmark_admissible);
+        assert!(!result.observability_policy_violation);
+    }
+
+    #[test]
+    fn dense_and_keypoint_pnp_require_observable_correspondence_support() {
+        let mut value = input();
+        value.support_mode = "DENSE_PNP".to_owned();
+        value.correspondence_count = 5;
+        assert!(evaluate(&value).observability_policy_violation);
+    }
+
+    #[test]
+    fn pi_rotation_log_is_sign_canonical_for_q_and_negative_q() {
+        let positive = super::rotation_log([1.0, 0.0, 0.0, 0.0]);
+        let negative = super::rotation_log([-1.0, 0.0, 0.0, -0.0]);
+        assert_eq!(positive, negative);
     }
 
     #[test]
