@@ -148,11 +148,15 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
     let own_pid_namespace = current_pid_namespace()?;
     let pid_namespace_isolated = own_pid_namespace != host_pid_namespace;
 
-    let proc_status = fs::read_to_string("/proc/self/status").map_err(|error| error.to_string())?;
-    let seccomp_filter_active = proc_status.lines().any(|line| {
-        line.strip_prefix("Seccomp:")
-            .is_some_and(|value| value.trim() == "2")
-    });
+    // Bubblewrap's --disable-userns configures user.max_user_namespaces
+    // in the sandbox. --assert-userns-disabled makes setup fail if this
+    // protection cannot be established; the canary verifies the visible limit.
+    let user_namespace_limit = fs::read_to_string("/proc/sys/user/max_user_namespaces")
+        .map_err(|error| error.to_string())?
+        .trim()
+        .parse::<u64>()
+        .map_err(|error| error.to_string())?;
+    let nested_user_namespaces_disabled = user_namespace_limit == 1;
 
     let limits = fs::read_to_string("/proc/self/limits").map_err(|error| error.to_string())?;
     let resource_limits_active = limit_soft_is_bounded(&limits, "Max address space", 1_073_741_824)
@@ -170,7 +174,7 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
     .is_err();
 
     let report = format!(
-        "candidate_input_read={visible}\ninput_write_blocked={input_write_blocked}\nruntime_write_blocked={runtime_write_blocked}\noutput_write_succeeded={output_write_succeeded}\nevaluator_mount_absent={evaluator_mount_absent}\nevaluator_environment_absent={evaluator_environment_absent}\nenvironment_matches={environment_matches}\npid_namespace_isolated={pid_namespace_isolated}\nseccomp_filter_active={seccomp_filter_active}\nresource_limits_active={resource_limits_active}\nnetwork_blocked={network_blocked}\n"
+        "candidate_input_read={visible}\ninput_write_blocked={input_write_blocked}\nruntime_write_blocked={runtime_write_blocked}\noutput_write_succeeded={output_write_succeeded}\nevaluator_mount_absent={evaluator_mount_absent}\nevaluator_environment_absent={evaluator_environment_absent}\nenvironment_matches={environment_matches}\npid_namespace_isolated={pid_namespace_isolated}\nnested_user_namespaces_disabled={nested_user_namespaces_disabled}\nresource_limits_active={resource_limits_active}\nnetwork_blocked={network_blocked}\n"
     );
     fs::write("/candidate/output/canary-report.txt", report.as_bytes())
         .map_err(|error| error.to_string())?;
@@ -184,7 +188,7 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         ("evaluator environment absent", evaluator_environment_absent),
         ("environment sanitized", environment_matches),
         ("PID namespace isolated", pid_namespace_isolated),
-        ("seccomp filter active", seccomp_filter_active),
+        ("nested user namespaces disabled", nested_user_namespaces_disabled),
         ("resource limits active", resource_limits_active),
         ("host loopback unreachable", network_blocked),
     ];
@@ -313,7 +317,7 @@ fn host_mode() -> Result<(), String> {
         "evaluator_environment_absent=true",
         "environment_matches=true",
         "pid_namespace_isolated=true",
-        "seccomp_filter_active=true",
+        "nested_user_namespaces_disabled=true",
         "resource_limits_active=true",
         "network_blocked=true",
     ] {
