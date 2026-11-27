@@ -180,7 +180,12 @@ fn validate_candidate_argument(argument: &OsString) -> Result<(), SandboxError> 
     for (index, byte) in value.bytes().enumerate() {
         if byte == b'/' && index > 0 {
             let prefix = &value[..index];
-            if !prefix.contains('/') && prefix.starts_with('-') {
+            if !prefix.contains('/')
+                && prefix.starts_with('-')
+                && !prefix.contains('=')
+                && !prefix.contains(':')
+                && !prefix.contains(',')
+            {
                 let embedded_path = Path::new(&value[index..]);
                 if !is_allowed_sandbox_absolute(embedded_path) {
                     return Err(SandboxError::InvalidCandidateArgument);
