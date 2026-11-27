@@ -16,7 +16,7 @@
       "mutation": "Remove the acceptance-authority role reference.",
       "expected_disposition": "INCOMPLETE",
       "expected_reason_codes": [
-        "CLAIM_SPECIFICATION_ACCEPTANCE_AUTHORITY_ROLE_REF_MISSING_OR_NONCANONICAL"
+        "CLAIM_SPECIFICATION_ACCEPTANCE_AUTHORITY_ROLE_REF_MISSING"
       ],
       "case_class": "single_fault"
     },
@@ -61,7 +61,7 @@
       "mutation": "Select population_confidence_bound but omit the confidence level.",
       "expected_disposition": "INCOMPLETE",
       "expected_reason_codes": [
-        "CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING_OR_INVALID"
+        "CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING"
       ],
       "case_class": "single_fault"
     },
@@ -70,7 +70,7 @@
       "mutation": "Select a statistical upper confidence bound but omit the confidence level.",
       "expected_disposition": "INCOMPLETE",
       "expected_reason_codes": [
-        "CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING_OR_INVALID"
+        "CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING"
       ],
       "case_class": "single_fault"
     },
