@@ -122,6 +122,8 @@ def base_result(
         "exact_total_numerator": None,
         "exact_total_denominator": None,
         "m_upper_scaled_per_s2": None,
+        "m_scale": 1_000_000,
+        "m_unit": "s^-2",
         "radial_slack_mm": None,
         "perturbation_inventory_id": row["perturbation_inventory_id"],
         "perturbation_inventory_complete": row["perturbation_inventory_complete"] == "true",
