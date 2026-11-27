@@ -442,6 +442,71 @@ mod tests {
     }
 
     #[test]
+    fn shore_power_and_yard_upper_bounds_are_independently_enforced() {
+        let mut caps = capacities();
+        caps.shore_power_kw_available = 109;
+        let power_result = assess_joint_robust_action(
+            budget(20_000, 100_000),
+            &intervals(20_000, 50),
+            caps,
+        )
+        .expect("power constraint result");
+        assert_eq!(power_result.gate, DecisionGate::Infeasible);
+        assert!(power_result.constraints.iter().any(|check| {
+            check.constraint == "shore_power_kw"
+                && check.gate == DecisionGate::Infeasible
+        }));
+
+        let mut caps = capacities();
+        caps.yard_slots_available = 21;
+        let yard_result = assess_joint_robust_action(
+            budget(20_000, 100_000),
+            &intervals(20_000, 50),
+            caps,
+        )
+        .expect("yard constraint result");
+        assert_eq!(yard_result.gate, DecisionGate::Infeasible);
+        assert!(yard_result.constraints.iter().any(|check| {
+            check.constraint == "yard_slots"
+                && check.gate == DecisionGate::Infeasible
+        }));
+    }
+
+    #[test]
+    fn malformed_calibration_provenance_never_passes_joint_gate() {
+        let mut bad_digest = intervals(20_000, 50);
+        bad_digest
+            .arrival
+            .as_mut()
+            .expect("arrival")
+            .calibration_data_sha256 = "not-a-digest".to_owned();
+        assert_eq!(
+            assess_joint_robust_action(
+                budget(20_000, 100_000),
+                &bad_digest,
+                capacities()
+            )
+            .expect("digest gate")
+            .gate,
+            DecisionGate::Indeterminate
+        );
+
+        let mut bad_window = intervals(20_000, 50);
+        let handling = bad_window.handling_duration.as_mut().expect("handling");
+        handling.calibration_window_start = handling.model_fit_cutoff;
+        assert_eq!(
+            assess_joint_robust_action(
+                budget(20_000, 100_000),
+                &bad_window,
+                capacities()
+            )
+            .expect("window gate")
+            .gate,
+            DecisionGate::Indeterminate
+        );
+    }
+
+    #[test]
     fn invalid_risk_budget_or_berth_window_is_rejected() {
         let invalid_budget = budget(0, 100_000);
         assert!(
