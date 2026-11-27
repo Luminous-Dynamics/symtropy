@@ -2,8 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Component, Path};
 use std::{env, fs, process};
+
+use sha2::{Digest, Sha256};
 
 const MAX_INPUT_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_EPISODES: usize = 100_000;
@@ -21,6 +23,7 @@ struct CandidateManifest {
 #[serde(deny_unknown_fields)]
 struct CandidateEpisode {
     episode_id: String,
+    input_bundle_path: String,
     input_bundle_sha256: String,
     frame_budget: usize,
     expected_frame_count: usize,
@@ -181,7 +184,58 @@ fn require_nonempty(value: &str, field: &str) -> Result<(), String> {
     }
 }
 
-fn validate_candidate_manifest(manifest: &CandidateManifest) -> Result<(), String> {
+fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result<(), String> {
+    let relative = Path::new(&episode.input_bundle_path);
+    if relative.as_os_str().is_empty()
+        || relative.is_absolute()
+        || relative.components().any(|part| !matches!(part, Component::Normal(_)))
+    {
+        return Err(format!(
+            "episode {} has an unsafe input_bundle_path",
+            episode.episode_id
+        ));
+    }
+
+    let root = fs::canonicalize(bundle_root)
+        .map_err(|error| format!("cannot resolve bundle root {}: {error}", bundle_root.display()))?;
+    let resolved = fs::canonicalize(root.join(relative)).map_err(|error| {
+        format!(
+            "cannot resolve bundle for episode {} at {}: {error}",
+            episode.episode_id,
+            relative.display()
+        )
+    })?;
+    if !resolved.starts_with(&root) {
+        return Err(format!(
+            "episode {} bundle path escapes the declared root",
+            episode.episode_id
+        ));
+    }
+
+    let metadata = fs::metadata(&resolved)
+        .map_err(|error| format!("cannot stat bundle {}: {error}", resolved.display()))?;
+    if !metadata.is_file() || metadata.len() > MAX_INPUT_BYTES {
+        return Err(format!(
+            "episode {} bundle is not a regular file or exceeds {} bytes",
+            episode.episode_id, MAX_INPUT_BYTES
+        ));
+    }
+    let bytes = fs::read(&resolved)
+        .map_err(|error| format!("cannot read bundle {}: {error}", resolved.display()))?;
+    let actual = format!("{:x}", Sha256::digest(&bytes));
+    if actual != episode.input_bundle_sha256 {
+        return Err(format!(
+            "episode {} source bundle SHA-256 mismatch: expected {}, observed {}",
+            episode.episode_id, episode.input_bundle_sha256, actual
+        ));
+    }
+    Ok(())
+}
+
+fn validate_candidate_manifest(
+    manifest: &CandidateManifest,
+    bundle_root: &Path,
+) -> Result<(), String> {
     if manifest.schema_version != 1 {
         return Err(format!(
             "unsupported candidate manifest schema_version {}",
@@ -208,6 +262,10 @@ fn validate_candidate_manifest(manifest: &CandidateManifest) -> Result<(), Strin
                 episode.episode_id
             ));
         }
+        if episode.input_bundle_path.trim().is_empty() {
+            return Err(format!("episode {} has empty input_bundle_path", episode.episode_id));
+        }
+        verify_input_bundle(bundle_root, episode)?;
         if episode.frame_budget == 0
             || episode.expected_frame_count == 0
             || episode.expected_frame_count > episode.frame_budget
@@ -432,8 +490,9 @@ fn validate_and_score(
     manifest: &CandidateManifest,
     ledger: &EvaluatorLedger,
     predictions: &PredictionFile,
+    bundle_root: &Path,
 ) -> Result<Score, String> {
-    validate_candidate_manifest(manifest)?;
+    validate_candidate_manifest(manifest, bundle_root)?;
     validate_ledger(ledger)?;
 
     if predictions.schema_version != 1 {
@@ -650,12 +709,13 @@ fn run() -> Result<(), String> {
     let mut ledger_path = None;
     let mut predictions_path = None;
     let mut expected_unsafe = None;
+    let mut bundle_root = None;
 
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
         if flag == "--help" || flag == "-h" {
             println!(
-                "cfi-space-bench --manifest FILE --ledger FILE --predictions FILE --expect-unsafe N"
+                "cfi-space-bench --manifest FILE --ledger FILE --predictions FILE --expect-unsafe N --bundle-root DIR"
             );
             return Ok(());
         }
@@ -673,6 +733,7 @@ fn run() -> Result<(), String> {
                         .map_err(|error| format!("invalid --expect-unsafe value: {error}"))?,
                 )
             }
+            "--bundle-root" => bundle_root = Some(value),
             _ => return Err(format!("unknown argument {flag}")),
         }
     }
@@ -681,11 +742,17 @@ fn run() -> Result<(), String> {
     let ledger_path = ledger_path.ok_or_else(|| "missing --ledger".to_string())?;
     let predictions_path = predictions_path.ok_or_else(|| "missing --predictions".to_string())?;
     let expected_unsafe = expected_unsafe.ok_or_else(|| "missing --expect-unsafe".to_string())?;
+    let bundle_root = bundle_root.ok_or_else(|| "missing --bundle-root".to_string())?;
 
     let manifest: CandidateManifest = read_json(Path::new(&manifest_path))?;
     let ledger: EvaluatorLedger = read_json(Path::new(&ledger_path))?;
     let predictions: PredictionFile = read_json(Path::new(&predictions_path))?;
-    let score = validate_and_score(&manifest, &ledger, &predictions)?;
+    let score = validate_and_score(
+        &manifest,
+        &ledger,
+        &predictions,
+        Path::new(&bundle_root),
+    )?;
 
     println!(
         "{}",
@@ -712,6 +779,7 @@ fn main() {
 mod tests {
     use super::*;
 
+    const REPO_ROOT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
     const MANIFEST: &str = include_str!(
         "../../../research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json"
     );
@@ -734,7 +802,7 @@ mod tests {
         let manifest: CandidateManifest = parse(MANIFEST);
         let ledger: EvaluatorLedger = parse(LEDGER);
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
-        let score = validate_and_score(&manifest, &ledger, &predictions).unwrap();
+        let score = validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
 
         assert_eq!(score.episodes, 10);
         assert_eq!(score.independent_units, 2);
@@ -752,7 +820,7 @@ mod tests {
         let manifest: CandidateManifest = parse(MANIFEST);
         let ledger: EvaluatorLedger = parse(LEDGER);
         let predictions: PredictionFile = parse(UNSAFE_PREDICTIONS);
-        let score = validate_and_score(&manifest, &ledger, &predictions).unwrap();
+        let score = validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
 
         assert_eq!(score.unsafe_accepts, 1);
         assert_eq!(score.false_abstentions, 0);
@@ -766,7 +834,7 @@ mod tests {
         let ledger: EvaluatorLedger = parse(LEDGER);
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions).is_err());
+        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
     }
 
     #[test]
@@ -776,7 +844,7 @@ mod tests {
         ledger.episodes[1].split = Split::Calibration;
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions).is_err());
+        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
     }
 
     #[test]
@@ -786,7 +854,7 @@ mod tests {
         let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
         predictions.predictions[0].input_bundle_sha256 = "f".repeat(64);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions).is_err());
+        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
     }
 
     #[test]
@@ -796,6 +864,6 @@ mod tests {
         let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
         predictions.predictions[1].episode_id = predictions.predictions[0].episode_id.clone();
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions).is_err());
+        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
     }
 }
