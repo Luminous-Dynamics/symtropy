@@ -377,7 +377,17 @@ mod tests {
 
     #[test]
     fn one_segment_covers_the_complete_horizon() {
-        let h = horizon(vec![segment(SegmentSpec { id: "s1", start: 0, end: 10, start_event: "begin", end_event: "end", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 })]);
+        let h = horizon(vec![segment(SegmentSpec {
+            id: "s1",
+            start: 0,
+            end: 10,
+            start_event: "begin",
+            end_event: "end",
+            boundary: BoundaryKind::HorizonStart,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        })]);
         assert_eq!(
             evaluate(&h).disposition,
             HorizonDisposition::CompleteConditionalClear
@@ -387,8 +397,28 @@ mod tests {
     #[test]
     fn two_segments_compose_across_a_smooth_join() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join-1", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join-1", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join-1",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join-1",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -399,8 +429,28 @@ mod tests {
     #[test]
     fn impulsive_velocity_change_resets_the_segment_bound() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "burn-1", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "burn-1", end_event: "end", boundary: BoundaryKind::ImpulsiveVelocityChange, q_start: [2_000_000, 0, 0], q_end: [3_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "burn-1",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "burn-1",
+                end_event: "end",
+                boundary: BoundaryKind::ImpulsiveVelocityChange,
+                q_start: [2_000_000, 0, 0],
+                q_end: [3_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -411,8 +461,28 @@ mod tests {
     #[test]
     fn one_nanosecond_gap_is_incomplete() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 4, start_event: "begin", end_event: "gap-left", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "gap-right", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 4,
+                start_event: "begin",
+                end_event: "gap-left",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "gap-right",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -423,8 +493,28 @@ mod tests {
     #[test]
     fn one_nanosecond_overlap_is_incomplete() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 6, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 6,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -434,8 +524,28 @@ mod tests {
 
     #[test]
     fn first_and_last_horizon_coverage_are_required() {
-        let missing_start = horizon(vec![segment(SegmentSpec { id: "s1", start: 1, end: 10, start_event: "begin", end_event: "end", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 })]);
-        let missing_end = horizon(vec![segment(SegmentSpec { id: "s1", start: 0, end: 9, start_event: "begin", end_event: "end", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 })]);
+        let missing_start = horizon(vec![segment(SegmentSpec {
+            id: "s1",
+            start: 1,
+            end: 10,
+            start_event: "begin",
+            end_event: "end",
+            boundary: BoundaryKind::HorizonStart,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        })]);
+        let missing_end = horizon(vec![segment(SegmentSpec {
+            id: "s1",
+            start: 0,
+            end: 9,
+            start_event: "begin",
+            end_event: "end",
+            boundary: BoundaryKind::HorizonStart,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        })]);
         assert_eq!(
             evaluate(&missing_start).disposition,
             HorizonDisposition::IncompleteCoverage
@@ -449,8 +559,28 @@ mod tests {
     #[test]
     fn seam_event_identity_must_match() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "left-event", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "right-event", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "left-event",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "right-event",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -461,8 +591,28 @@ mod tests {
     #[test]
     fn disjoint_endpoint_uncertainty_balls_reject_the_seam() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 10 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_021, 0, 0], q_end: [2_000_021, 0, 0], endpoint_error: 10 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 10,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_021, 0, 0],
+                q_end: [2_000_021, 0, 0],
+                endpoint_error: 10,
+            }),
         ]);
         assert_eq!(evaluate(&h).disposition, HorizonDisposition::SeamIncoherent);
     }
@@ -470,8 +620,28 @@ mod tests {
     #[test]
     fn touching_closed_uncertainty_balls_are_consistent() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 5 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_010, 0, 0], q_end: [2_000_010, 0, 0], endpoint_error: 5 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 5,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_010, 0, 0],
+                q_end: [2_000_010, 0, 0],
+                endpoint_error: 5,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -481,10 +651,30 @@ mod tests {
 
     #[test]
     fn scope_cannot_change_between_segments() {
-        let mut second = segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 });
+        let mut second = segment(SegmentSpec {
+            id: "s2",
+            start: 5,
+            end: 10,
+            start_event: "join",
+            end_event: "end",
+            boundary: BoundaryKind::SmoothJoin,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        });
         second.scope.frame_revision = "frame-r2".to_owned();
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
             second,
         ]);
         assert_eq!(evaluate(&h).disposition, HorizonDisposition::ScopeMismatch);
@@ -493,8 +683,28 @@ mod tests {
     #[test]
     fn unsupported_discontinuity_is_not_a_supported_join() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "jump", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "jump", end_event: "end", boundary: BoundaryKind::UnsupportedDiscontinuity, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "jump",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "jump",
+                end_event: "end",
+                boundary: BoundaryKind::UnsupportedDiscontinuity,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -505,16 +715,56 @@ mod tests {
     #[test]
     fn a_single_not_proven_segment_blocks_the_whole_horizon() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [-2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [-2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(evaluate(&h).disposition, HorizonDisposition::NotProven);
     }
 
     #[test]
     fn duplicate_segment_ids_are_rejected() {
-        let first = segment(SegmentSpec { id: "same", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 });
-        let second = segment(SegmentSpec { id: "same", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 });
+        let first = segment(SegmentSpec {
+            id: "same",
+            start: 0,
+            end: 5,
+            start_event: "begin",
+            end_event: "join",
+            boundary: BoundaryKind::HorizonStart,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        });
+        let second = segment(SegmentSpec {
+            id: "same",
+            start: 5,
+            end: 10,
+            start_event: "join",
+            end_event: "end",
+            boundary: BoundaryKind::SmoothJoin,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        });
         assert_eq!(
             evaluate(&horizon(vec![first, second])).disposition,
             HorizonDisposition::InvalidInput
@@ -524,9 +774,39 @@ mod tests {
     #[test]
     fn repeated_interior_event_identity_is_rejected() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 3, start_event: "begin", end_event: "same-event", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 3, end: 7, start_event: "same-event", end_event: "same-event", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s3", start: 7, end: 10, start_event: "same-event", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 3,
+                start_event: "begin",
+                end_event: "same-event",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 3,
+                end: 7,
+                start_event: "same-event",
+                end_event: "same-event",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s3",
+                start: 7,
+                end: 10,
+                start_event: "same-event",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -536,7 +816,17 @@ mod tests {
 
     #[test]
     fn duration_must_match_the_segment_time_interval() {
-        let mut s = segment(SegmentSpec { id: "s1", start: 0, end: 10, start_event: "begin", end_event: "end", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 });
+        let mut s = segment(SegmentSpec {
+            id: "s1",
+            start: 0,
+            end: 10,
+            start_event: "begin",
+            end_event: "end",
+            boundary: BoundaryKind::HorizonStart,
+            q_start: [2_000_000, 0, 0],
+            q_end: [2_000_000, 0, 0],
+            endpoint_error: 0,
+        });
         s.motion.duration_ns = 9;
         assert_eq!(
             evaluate(&horizon(vec![s])).disposition,
@@ -555,8 +845,28 @@ mod tests {
     #[test]
     fn nonchronological_segments_are_not_reordered_silently() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::HorizonStart, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::SmoothJoin, q_start: [2_000_000, 0, 0], q_end: [2_000_000, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join",
+                end_event: "end",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [2_000_000, 0, 0],
+                q_end: [2_000_000, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(
             evaluate(&h).disposition,
@@ -567,8 +877,28 @@ mod tests {
     #[test]
     fn overflowing_seam_distance_abstains() {
         let h = horizon(vec![
-            segment(SegmentSpec { id: "s1", start: 0, end: 5, start_event: "begin", end_event: "join", boundary: BoundaryKind::HorizonStart, q_start: [i64::MIN, 0, 0], q_end: [i64::MIN, 0, 0], endpoint_error: 0 }),
-            segment(SegmentSpec { id: "s2", start: 5, end: 10, start_event: "join", end_event: "end", boundary: BoundaryKind::SmoothJoin, q_start: [i64::MAX, 0, 0], q_end: [i64::MAX, 0, 0], endpoint_error: 0 }),
+            segment(SegmentSpec {
+                id: "s1",
+                start: 0,
+                end: 5,
+                start_event: "begin",
+                end_event: "join",
+                boundary: BoundaryKind::HorizonStart,
+                q_start: [i64::MIN, 0, 0],
+                q_end: [i64::MIN, 0, 0],
+                endpoint_error: 0,
+            }),
+            segment(SegmentSpec {
+                id: "s2",
+                start: 5,
+                end: 10,
+                start_event: "join",
+                end_event: "end",
+                boundary: BoundaryKind::SmoothJoin,
+                q_start: [i64::MAX, 0, 0],
+                q_end: [i64::MAX, 0, 0],
+                endpoint_error: 0,
+            }),
         ]);
         assert_eq!(evaluate(&h).disposition, HorizonDisposition::Overflow);
     }
