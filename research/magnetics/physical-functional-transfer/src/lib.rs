@@ -39,7 +39,7 @@ pub struct BoundedSensorTransfer {
     /// Whole-cell residual envelope for effects not represented by the
     /// bounded affine transfer (e.g. declared nonlinearity/hysteresis).
     pub response_residual: [Interval; 2],
-    pub evidence_role: EvidenceRole,
+    pub calibration_evidence_role: EvidenceRole,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -61,6 +61,7 @@ pub struct FunctionalRequirements {
     pub minimum_amplitude_sha256: String,
     /// Squared magnitude threshold in output_unit squared.
     pub minimum_amplitude_squared: Interval,
+    pub reference_evidence_role: EvidenceRole,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -105,7 +106,9 @@ pub struct PhysicalFunctionalCertificate {
     pub reference_record_id: String,
     pub reference_sha256: String,
     pub rotor_state_id: String,
-    pub evidence_role: EvidenceRole,
+    pub physical_evidence_role: EvidenceRole,
+    pub calibration_evidence_role: EvidenceRole,
+    pub reference_evidence_role: EvidenceRole,
     pub arithmetic_contract: String,
 }
 
@@ -120,7 +123,7 @@ pub enum FunctionalTransferError {
     InvalidAmplitudeThreshold,
     ReferencePhasorMayBeZero,
     RequirementIdentityCollision,
-    EvidenceRoleMismatch,
+    CalibrationMustUseCalibrationEvidence,
     NonFiniteDerivedInterval,
 }
 
@@ -208,6 +211,13 @@ fn validate_inputs(
         requirements.maximum_error_cosine_record_id.as_str(),
         requirements.amplitude_requirement_id.as_str(),
         requirements.minimum_amplitude_record_id.as_str(),
+        physical.field_unit.as_str(),
+        physical.arithmetic_contract.as_str(),
+        transfer.input_field_unit.as_str(),
+        transfer.output_unit.as_str(),
+        transfer.coefficient_unit.as_str(),
+        transfer.offset_unit.as_str(),
+        transfer.residual_unit.as_str(),
     ];
     if identities.iter().any(|value| !nonempty(value)) {
         return Err(FunctionalTransferError::InvalidIdentity);
@@ -277,10 +287,17 @@ fn validate_inputs(
         }
     }
 
-    if physical.evidence_role != transfer.evidence_role {
-        return Err(FunctionalTransferError::EvidenceRoleMismatch);
+    if transfer.calibration_evidence_role != EvidenceRole::Calibration {
+        return Err(FunctionalTransferError::CalibrationMustUseCalibrationEvidence);
     }
 
+    for bounds in physical.cell_bounds_m {
+        if !valid_interval(bounds) || bounds.lower() >= bounds.upper() {
+            return Err(FunctionalTransferError::InvalidInterval {
+                field: "cell_bounds_m",
+            });
+        }
+    }
     if transfer.output_unit != "dimensionless"
         || transfer.coefficient_unit != format!("dimensionless/{}", physical.field_unit)
         || transfer.offset_unit != transfer.output_unit
@@ -363,7 +380,7 @@ pub fn certify_physical_sensor_function(
 
     let field = physical.physical_field_over_cell_t;
     let mut measured_phasor = [Interval::ZERO; 2];
-    for channel in 0..2 {
+    for (channel, measured_component) in measured_phasor.iter_mut().enumerate() {
         let mut value = transfer.offset[channel] + transfer.response_residual[channel];
         for (axis, component) in field.iter().enumerate() {
             value = value + transfer.gain[channel][axis] * *component;
@@ -371,7 +388,7 @@ pub fn certify_physical_sensor_function(
         if !value.is_finite() {
             return Err(FunctionalTransferError::NonFiniteDerivedInterval);
         }
-        measured_phasor[channel] = value;
+        *measured_component = value;
     }
 
     let measured_norm_squared =
@@ -433,7 +450,9 @@ pub fn certify_physical_sensor_function(
         reference_record_id: requirements.reference_record_id.clone(),
         reference_sha256: requirements.reference_sha256.clone(),
         rotor_state_id: requirements.rotor_state_id.clone(),
-        evidence_role: physical.evidence_role,
+        physical_evidence_role: physical.evidence_role,
+        calibration_evidence_role: transfer.calibration_evidence_role,
+        reference_evidence_role: requirements.reference_evidence_role,
         arithmetic_contract: "magnetic-interval-ad outward-expanded binary64 interval operations".to_owned(),
     })
 }
@@ -542,7 +561,7 @@ mod tests {
             ],
             offset: [iv(0.0, 0.0); 2],
             response_residual: [iv(0.0, 0.0); 2],
-            evidence_role: EvidenceRole::PostSelectionQualification,
+            calibration_evidence_role: EvidenceRole::Calibration,
         }
     }
 
@@ -561,6 +580,7 @@ mod tests {
             minimum_amplitude_record_id: "amplitude-limit-record-1".to_owned(),
             minimum_amplitude_sha256: DIGEST.to_owned(),
             minimum_amplitude_squared: iv(0.25, 0.25),
+            reference_evidence_role: EvidenceRole::PostSelectionQualification,
         }
     }
 
@@ -682,13 +702,27 @@ mod tests {
     }
 
     #[test]
-    fn evidence_roles_must_match() {
+    fn frozen_calibration_can_score_blind_holdout_without_role_collapse() {
+        let mut physical = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
+        physical.evidence_role = EvidenceRole::BlindHoldout;
+        let mut req = requirements();
+        req.reference_evidence_role = EvidenceRole::BlindHoldout;
+        let result = certify_physical_sensor_function(&physical, &transfer(), &req)
+            .expect("frozen calibration may score a sealed holdout");
+        assert_eq!(result.physical_evidence_role, EvidenceRole::BlindHoldout);
+        assert_eq!(result.calibration_evidence_role, EvidenceRole::Calibration);
+        assert_eq!(result.reference_evidence_role, EvidenceRole::BlindHoldout);
+        assert_eq!(result.combined_status, CombinedStatus::Safe);
+    }
+
+    #[test]
+    fn adaptive_exploration_cannot_be_used_as_sensor_calibration() {
         let physical = physical([iv(1.0, 1.0), iv(0.0, 0.0), iv(0.0, 0.0)]);
         let mut sensor = transfer();
-        sensor.evidence_role = EvidenceRole::BlindHoldout;
+        sensor.calibration_evidence_role = EvidenceRole::AdaptiveExploration;
         assert_eq!(
             certify_physical_sensor_function(&physical, &sensor, &requirements()),
-            Err(FunctionalTransferError::EvidenceRoleMismatch)
+            Err(FunctionalTransferError::CalibrationMustUseCalibrationEvidence)
         );
     }
 
