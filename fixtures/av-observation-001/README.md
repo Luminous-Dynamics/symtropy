@@ -259,3 +259,8 @@ The world-pair binding workflow fetches the pinned base source-matrix branch his
 ### Evidence-gated readiness promotion
 
 The binding schema requires stage-specific receipts: manifest validation before manifest binding; candidate-input/transcript and shared-contract digests plus an audit receipt before prefix commitment; a causal replay receipt before rendered-replay verification; and rights, split-integrity, custody and frozen candidate/model identities before blind readiness. The CI job includes five invalid-promotion negative controls. The registry itself remains all-unbound until real source artifacts exist.
+
+
+### Statistical prefix-equivalence evidence
+
+A prefix may be marked `byte_exact` only after exact decoded-byte/transcript checks. A stochastic `distributionally_equivalent` claim requires a separate preregistered equivalence-evidence record with justified lower/upper margins, alpha/confidence, power target, independent scene/session clusters, replicate/paired-seed design, sample-size plan, raw-result receipt, analysis-code receipt and multiplicity rule. The exact-head workflow rejects missing or internally inconsistent records. All current pairs keep `equivalence_evidence: null` because they are unbound.
