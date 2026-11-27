@@ -87,5 +87,70 @@
   "required_baseline_families": [
     "ConventionalWindingCooling"
   ],
-  "trials": []
+  "trials": [],
+  "baseline_applicability": [
+    {
+      "family": "ConventionalWindingCooling",
+      "applicable": true,
+      "rationale": "Synthetic conventional reference for evaluator semantics",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-1"
+      ],
+      "decision_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "family": "ConventionalHighPerformanceCooling",
+      "applicable": false,
+      "rationale": "Synthetic known-answer exclusion; replace with application-specific evidence",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-2"
+      ],
+      "decision_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    {
+      "family": "ConventionalDirectOilCooling",
+      "applicable": false,
+      "rationale": "Synthetic known-answer exclusion; replace with application-specific evidence",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-3"
+      ],
+      "decision_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "family": "ConventionalMultiNozzleOilJetCooling",
+      "applicable": false,
+      "rationale": "Synthetic known-answer exclusion; replace with application-specific evidence",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-4"
+      ],
+      "decision_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    {
+      "family": "ConventionalHairpinOilSprayCooling",
+      "applicable": false,
+      "rationale": "Synthetic known-answer exclusion; replace with application-specific evidence",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-5"
+      ],
+      "decision_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    {
+      "family": "ConventionalSlotEmbeddedCooling",
+      "applicable": false,
+      "rationale": "Synthetic known-answer exclusion; replace with application-specific evidence",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-6"
+      ],
+      "decision_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+    },
+    {
+      "family": "ConventionalHollowConductorCooling",
+      "applicable": false,
+      "rationale": "Synthetic known-answer exclusion; replace with application-specific evidence",
+      "supporting_evidence_ids": [
+        "SYNTHETIC-BASELINE-DECISION-7"
+      ],
+      "decision_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  ]
 }
