@@ -297,3 +297,27 @@ Symtropy #1589's CoordinateFrameV1 / FrameTransformV1 static transform uses p_pa
 The projection now carries a sensor frame reference per spatial observation, typed capture support and known-at ClockDomainId/tick values, projection creation time, parent projection digests and #621 clock-transform digests. These lineage fields prevent implicit clock comparisons or treating old map state as new independent evidence.
 
 See [spatial-state-projection-validation-v0.md](./spatial-state-projection-validation-v0.md) and [directed pose transform vectors](./spatial-state-projection-v0.transform-vectors.json). The validator checklist remains a specification, not a running Rust validator.
+
+
+## 18. Method-level baselines: keep perception, reconstruction and SLAM roles distinct
+
+Benchmark datasets do not establish method comparability by themselves. Use distinct method roles:
+
+- **ORB-SLAM3:** classical feature-based visual, visual-inertial and multi-map SLAM; supports monocular, stereo and RGB-D camera modes. It is a strong complete-system baseline for tracking, relocalization, map reuse and multi-session map merging. Use its reported EuRoC/TUM results as paper anchors only, then reproduce locally under identical alignment and modality. https://doi.org/10.1109/TRO.2021.3075644
+- **MASt3R-SLAM (CVPR 2025):** learned dense monocular SLAM built around a two-view 3D reconstruction/matching prior, pointmap matching, camera tracking/fusion, graph construction, loop closure and global optimization. The paper reports 15 FPS and state-of-the-art results across its evaluated benchmarks with known calibration. Its own discussion identifies pinhole training/lens-distortion degradation and full-resolution decoder throughput as limitations. Compare it only on a matched monocular input stream/calibration and with the same runtime/hardware budget. https://openaccess.thecvf.com/content/CVPR2025/html/Murai_MASt3R-SLAM_Real-Time_Dense_SLAM_with_3D_Reconstruction_Priors_CVPR_2025_paper.html
+- **DINOv3:** frozen dense visual-feature arm, not a SLAM baseline. Use it against Patch-HDC and hybrid DINOv3+HDC through the same downstream geometry/association pipeline. Meta reports 7B-scale backbones trained on 1.7B images and high-resolution dense features useful for downstream vision tasks; that does not by itself qualify metric pose, scale, topology or loop closure. https://ai.meta.com/research/dinov3/
+- **LongSpace:** long-video spatial-memory method with sequential chunks, early 3D structural cues and layer-aware memory. Reproduce on its room-tour benchmark and do not label it causal SLAM. https://aclanthology.org/2026.emnlp-main.227/
+
+### Matched method ladder
+
+1. ORB-SLAM3 in supported camera/IMU modes.
+2. MASt3R-SLAM on the identical monocular stream and calibration envelope.
+3. DINOv3 frozen features with the common geometry/association backend.
+4. Patch-HDC features with exactly the same geometry/association backend.
+5. DINOv3/HDC hybrid with the common downstream backend.
+6. Constraint-carrying map state and DecisionNeed-aware active acquisition.
+7. Lesions: no map, no geometry, no persistence, no loop closure, no active acquisition.
+
+Keep off-the-shelf and adapted/trained variants separate. Pin repository commit, weights digest, preprocessing, resolution, camera model, calibration, hardware, precision and runtime. Match causal prefix, frames, IMU access, inference budget and downstream evaluator. The 15 FPS reported for MASt3R-SLAM is a paper result, not a target until hardware/input parity is reproduced.
+
+The intended contribution is not to replace mature SLAM or a strong geometric VLM with HDC. It is to test whether explicit provenance, joint pose/map dependence, topological constraints, reopenable alternatives and task-aware sensing improve the end-to-end state/decision frontier when paired with the strongest appropriate perceptual/geometry specialists.
