@@ -2065,15 +2065,44 @@ mod tests {
         let receipt_campaign =
             CounterfactualTrajectoryReceiptCampaign::new(&gate, trajectory_contracts(&supports))
                 .unwrap();
+        let receipt_atoms = trajectory_atoms(&supports, &gate);
+        let mut objective_atoms = fuel_only_atoms();
+        for atom in &mut objective_atoms {
+            for outcome in &mut atom.outcomes {
+                outcome.source_trajectory_digest = receipt_atoms
+                    .iter()
+                    .find(|receipt_atom| {
+                        receipt_atom.shared_world.scenario_id == atom.scenario_id
+                            && receipt_atom.shared_world.atom_id == atom.atom_id
+                    })
+                    .unwrap()
+                    .portfolio_trajectories
+                    .iter()
+                    .find(|receipt| receipt.portfolio_id == outcome.portfolio_id)
+                    .unwrap()
+                    .propagated_trajectory_digest;
+            }
+        }
         let report = process
             .evaluate_with_trajectory_receipts(
-                &fuel_only_atoms(),
+                &objective_atoms,
                 &receipt_campaign,
-                trajectory_atoms(&supports, &gate),
+                receipt_atoms.clone(),
             )
             .unwrap();
         assert!(report.trajectory_receipt_digest.is_some());
         assert!(!report.authority_granted);
+
+        let mut bad_objective_atoms = objective_atoms.clone();
+        bad_objective_atoms[0].outcomes[0].source_trajectory_digest = [198; 32];
+        assert_eq!(
+            process.evaluate_with_trajectory_receipts(
+                &bad_objective_atoms,
+                &receipt_campaign,
+                receipt_atoms.clone(),
+            ),
+            Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch)
+        );
 
         let mut mismatched_supports = supports;
         mismatched_supports[0].scenario_physics_configuration_digest = [199; 32];
@@ -2087,9 +2116,9 @@ mod tests {
         );
         assert_eq!(
             mismatched.evaluate_with_trajectory_receipts(
-                &fuel_only_atoms(),
+                &objective_atoms,
                 &receipt_campaign,
-                trajectory_atoms(&standard_supports(), &gate),
+                receipt_atoms,
             ),
             Err(PairedObjectiveParetoError::TrajectoryReceiptMismatch)
         );
