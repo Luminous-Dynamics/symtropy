@@ -88,7 +88,11 @@ pub struct RouteCandidate {
     pub build_run_id: String,
     pub nominal_geometry_digest: String,
     pub as_built_geometry_digest: String,
+    pub geometry_inspection_record_id: String,
     pub geometry_inspection_digest: String,
+    pub geometry_inspection_method_id: String,
+    pub geometry_inspection_calibration_digest: String,
+    pub geometry_inspection_reference_chain_id: String,
     pub inspected_geometry_digest: String,
     pub process_genealogy_digest: String,
     pub material_state_digest: String,
@@ -127,6 +131,9 @@ pub enum Blocker {
     MaterialStateBindingMismatch,
     PostMagnetizationBindingMismatch,
     InspectionGeometryMismatch,
+    MissingGeometryInspectionMethod,
+    MissingGeometryInspectionCalibration,
+    MissingGeometryInspectionReference,
     DuplicateCandidateId,
     DuplicateSpecimen,
     WrongCohortScope,
@@ -226,6 +233,17 @@ pub fn evaluate_candidate(
         }
     }
 
+    if candidate.geometry_inspection_record_id.trim().is_empty()
+        || candidate.geometry_inspection_method_id.trim().is_empty()
+    {
+        blockers.push(Blocker::MissingGeometryInspectionMethod);
+    }
+    if !valid_sha256(&candidate.geometry_inspection_calibration_digest) {
+        blockers.push(Blocker::MissingGeometryInspectionCalibration);
+    }
+    if candidate.geometry_inspection_reference_chain_id.trim().is_empty() {
+        blockers.push(Blocker::MissingGeometryInspectionReference);
+    }
     if candidate.inspected_geometry_digest != candidate.as_built_geometry_digest {
         blockers.push(Blocker::InspectionGeometryMismatch);
     }
@@ -730,7 +748,11 @@ mod tests {
             build_run_id: build_run_id.clone(),
             nominal_geometry_digest: digest('1'),
             as_built_geometry_digest: digest('d'),
+            geometry_inspection_record_id: format!("GEOM-{id}"),
             geometry_inspection_digest: digest('2'),
+            geometry_inspection_method_id: "CMM-INSPECTION-v1".to_string(),
+            geometry_inspection_calibration_digest: digest('e'),
+            geometry_inspection_reference_chain_id: "CMM-REFERENCE-001".to_string(),
             inspected_geometry_digest: digest('d'),
             process_genealogy_digest: digest('3'),
             material_state_digest: digest('4'),
@@ -896,6 +918,21 @@ mod tests {
         let wide = run_tournament(&cohort(), &[first, second]);
         assert!(narrow.dominated_candidate_ids.contains(&"MEX-001".to_string()));
         assert!(!wide.dominated_candidate_ids.contains(&"MEX-001".to_string()));
+    }
+
+    #[test]
+    fn geometry_inspection_requires_method_and_reference_evidence() {
+        let mut candidate = candidate("MEX-001", RouteFamily::Mex, 20.0, 0.34, 5.0);
+        candidate.geometry_inspection_calibration_digest.clear();
+        candidate.geometry_inspection_reference_chain_id.clear();
+        let result = evaluate_candidate(&cohort(), &candidate);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::MissingGeometryInspectionCalibration));
+        assert!(result
+            .blockers
+            .contains(&Blocker::MissingGeometryInspectionReference));
     }
 
     #[test]
