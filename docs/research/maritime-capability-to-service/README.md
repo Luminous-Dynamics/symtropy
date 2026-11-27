@@ -181,3 +181,8 @@ The source audit in [south-african-empirical-source-audit-v0.1.md](south-african
 ### South African per-port AIS leads (27 Nov 2026)
 
 The source audit now distinguishes three separate candidate movement sources: Voydar's Durban/ZADUR per-port page/API (section-specific source/licence metadata), IMF PortWatch-derived Ngqura estimates (explicitly modelled and not official statistics), and the Dues live AIS board (whose free feed explicitly omits Algoa Bay/Ngqura). The full 2026-10 Voydar monthly CC BY CSV could not be fetched in this audit, so South African membership of that separate 681-row file remains UNKNOWN. None of these sources supplies a verified KITE historical first-availability ledger.
+
+
+### Frozen South African terminal snapshot
+
+The BUSA/SAaff Cargo Movement Update #306 projection is frozen at [busa-cargo-movement-update-306-snapshot-v0.tsv](fixtures/busa-cargo-movement-update-306-snapshot-v0.tsv). It preserves eight MarineTraffic AIS-derived anchorage/berth averages and seven TPT-derived weekly TEU aggregate rows separately, including the 1 Nov report date versus 3 Nov dwell-table update marker. The Rust integration test `tests/busa_terminal_snapshot.rs` checks row counts, metric classes, exact weekly totals and the 14,347 vs 14,346 rounded daily-average discrepancy. This is aggregate conformance only, not KITE event replay.
