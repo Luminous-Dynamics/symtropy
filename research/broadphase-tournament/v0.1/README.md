@@ -102,3 +102,7 @@ Run `cargo run --release --manifest-path research/broadphase-tournament/v0.1/Car
 ## Callback event receipt prototype
 
 The exported `callback_event_receipt` module defines stable per-step callback event IDs bound to world revision, pair generations, manifold revision, event kind and ordinal, with response-policy and response-state bindings. Its independent verifier detects omitted, duplicate, unexpected and tampered event receipts, and reports delivered/pending/failed separately. This is research-only; it does not yet invoke the live callback interface, derive expected events from solver results, or provide a durable idempotent outbox. See [issue #7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718).
+
+## OBB shape-contact coverage
+
+The exported `shape_coverage` module uses the same frozen 2D/3D OBB geometry corpora as PR #7622, computes conservative world AABBs with outward rounding at every extent operation, and verifies `ExactOBBContacts ⊆ AabbOraclePairs`. Run `cargo run --release --manifest-path research/broadphase-tournament/v0.1/Cargo.toml --bin shape-coverage-benchmark -- 4096` to emit 2D/3D recall and candidate-amplification rows. CI requires 4,096 pairs per dimension, zero missed contacts and 100% recall. This is shape-to-AABB oracle composition; same-frame timed backend and full PhysicsWorld integration remain follow-on work.
