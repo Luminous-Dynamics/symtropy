@@ -379,9 +379,7 @@ pub fn evaluate_manifest(inputs: &[BundleInput]) -> Vec<BundleResult> {
 
     let split_leaks: BTreeSet<&str> = spacecraft_splits
         .iter()
-        .filter_map(|(spacecraft, splits)| {
-            (splits.len() > 1).then_some(*spacecraft)
-        })
+        .filter_map(|(spacecraft, splits)| (splits.len() > 1).then_some(*spacecraft))
         .collect();
 
     inputs
@@ -500,7 +498,10 @@ mod tests {
     fn lidar_timestamp_is_exact_in_v0_1() {
         let mut value = input();
         value.lidar.timestamp = "20260120165126243".to_owned();
-        assert_eq!(evaluate(&value).disposition, BundleDisposition::Unsynchronized);
+        assert_eq!(
+            evaluate(&value).disposition,
+            BundleDisposition::Unsynchronized
+        );
     }
 
     #[test]
