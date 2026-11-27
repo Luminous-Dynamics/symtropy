@@ -60,10 +60,10 @@ The unit suite builds deterministic temporary archives containing all 81 profile
 ## Run
 
     cargo fmt --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all -- --check
-    cargo test --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets
-    cargo clippy --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets -- -D warnings
+    cargo test --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets --locked
+    cargo clippy --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets --locked -- -D warnings
 
-    cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml -- \
+    cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --locked -- \
       --reference-dir /path/to/extracted/nlr/15min-profiles \
       --source-revision 61530df51f6cd7d64f014ebbf8714cef24c8ca70 \
       --source-archive-sha256 VERIFIED_ZIP_SHA256 \
