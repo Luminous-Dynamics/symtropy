@@ -328,14 +328,21 @@ pub fn evaluate_assurance_state_case_v0_1(
             }
 
             if obligation.authority == AuthorityStateV0_1::Unknown
-                || matches!(
-                    obligation.verification,
-                    VerificationStateV0_1::Unverified | VerificationStateV0_1::NotRun
-                )
+                || obligation.verification == VerificationStateV0_1::Unverified
+                || (obligation.verification == VerificationStateV0_1::NotRun
+                    && !obligation.evidence_refs.is_empty())
             {
                 unverified = true;
                 blocks = true;
                 local_reasons.insert("MANDATORY_TRUST_OR_VERIFICATION_UNVERIFIED".to_owned());
+            }
+
+            if obligation.verification == VerificationStateV0_1::NotRun
+                && obligation.evidence_refs.is_empty()
+            {
+                incomplete = true;
+                blocks = true;
+                local_reasons.insert("MANDATORY_EVIDENCE_NOT_RECEIVED".to_owned());
             }
 
             if obligation.verification == VerificationStateV0_1::Failed && !obligation.hard_gate {
@@ -668,5 +675,92 @@ mod tests {
             item.mandatory = false;
         }
         assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn unrun_verification_with_absent_evidence_is_incomplete() {
+        let mut case = positive_case();
+        let item = &mut case.obligations[2];
+        item.proposition_evidence = Evidence::Neither;
+        item.verification = Verification::NotRun;
+        item.evidence_refs.clear();
+        assert_eq!(disposition(&case), Disposition::Incomplete);
+    }
+
+    #[test]
+    fn unrun_verification_with_present_but_unverified_evidence_is_unverified() {
+        let mut case = positive_case();
+        let item = &mut case.obligations[2];
+        item.proposition_evidence = Evidence::Neither;
+        item.verification = Verification::NotRun;
+        assert_eq!(disposition(&case), Disposition::Unverified);
+    }
+
+    #[test]
+    fn published_synthetic_vectors_deserialize_and_match_the_proposed_projection() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../../docs/research/aviation/examples/aero_assurance_state_vectors_v0_1.json"
+        ))
+        .expect("published state-vector fixture is valid JSON");
+        assert_eq!(
+            fixture["schema"].as_str(),
+            Some("AeroAssuranceStateVectorV0_1")
+        );
+        let cases = fixture["cases"]
+            .as_array()
+            .expect("state-vector fixture contains cases");
+        assert_eq!(cases.len(), 10);
+
+        for value in cases {
+            let mut value = value.clone();
+            let expected_disposition = value
+                .as_object_mut()
+                .expect("case is an object")
+                .remove("expected_disposition")
+                .and_then(|value| value.as_str().map(str::to_owned))
+                .expect("expected disposition is present");
+            let expected_blockers = value
+                .as_object_mut()
+                .expect("case is an object")
+                .remove("expected_blocking_obligation_ids")
+                .and_then(|value| value.as_array().cloned())
+                .expect("expected blockers are present")
+                .into_iter()
+                .filter_map(|value| value.as_str().map(str::to_owned))
+                .collect::<Vec<_>>();
+            let expected_reasons = value
+                .as_object_mut()
+                .expect("case is an object")
+                .remove("expected_reason_codes")
+                .and_then(|value| value.as_array().cloned())
+                .expect("expected reasons are present")
+                .into_iter()
+                .filter_map(|value| value.as_str().map(str::to_owned))
+                .collect::<Vec<_>>();
+            let case: Case = serde_json::from_value(value)
+                .expect("synthetic vector matches the Rust contract");
+            let assessment = evaluate_assurance_state_case_v0_1(&case);
+
+            assert_eq!(
+                assessment.disposition.as_str(),
+                expected_disposition,
+                "case {}",
+                case.case_id
+            );
+            let actual_blockers = assessment
+                .blocking_obligations
+                .iter()
+                .map(|item| item.obligation_id.clone())
+                .collect::<Vec<_>>();
+            assert_eq!(actual_blockers, expected_blockers, "case {}", case.case_id);
+            for expected_reason in expected_reasons {
+                assert!(
+                    assessment.reason_codes.contains(&expected_reason),
+                    "case {} missing reason {}",
+                    case.case_id,
+                    expected_reason
+                );
+            }
+        }
     }
 }
