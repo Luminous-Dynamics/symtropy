@@ -8,7 +8,9 @@
 //! qualify clocks, create a ledger, or establish measurement/physical truth.
 //! Its strongest positive output is ACCEPTED_FOR_BINDING_ONLY.
 
-use crate::effectivity_interval_v0_1::{EffectivityRelation, TimeInterval, compare_effectivity_intervals};
+use crate::effectivity_interval_v0_1::{
+    EffectivityRelation, TimeInterval, compare_effectivity_intervals,
+};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -481,10 +483,7 @@ fn correction_cycles(events: &[Value]) -> BTreeSet<String> {
     cycles
 }
 
-pub fn evaluate_temporal_replay_case(
-    case: &Value,
-    mode: TemporalQueryMode,
-) -> ReplayDisposition {
+pub fn evaluate_temporal_replay_case(case: &Value, mode: TemporalQueryMode) -> ReplayDisposition {
     let mut findings = Findings::default();
     let Some((evidence_snapshot, trust_snapshot)) = selected_snapshots(case, mode) else {
         findings.reject = true;
@@ -533,10 +532,9 @@ pub fn evaluate_temporal_replay_case(
 
     let mut namespaces_by_id = BTreeMap::<String, BTreeSet<String>>::new();
     for event in &visible {
-        if let (Some(id), Some(namespace)) = (
-            string(event, "event_id"),
-            string(event, "source_namespace"),
-        ) {
+        if let (Some(id), Some(namespace)) =
+            (string(event, "event_id"), string(event, "source_namespace"))
+        {
             namespaces_by_id
                 .entry(id.to_owned())
                 .or_default()
@@ -573,9 +571,7 @@ pub fn evaluate_temporal_replay_case(
     }
     let mut issuer_excluded = BTreeSet::new();
     for event in &visible {
-        if string(event, "issuer_identity_id")
-            .is_some_and(|issuer| bad_issuers.contains(issuer))
-        {
+        if string(event, "issuer_identity_id").is_some_and(|issuer| bad_issuers.contains(issuer)) {
             issuer_excluded.insert(source_key(event));
             findings.exclude(&identity_label(event, &colliding_ids));
         }
@@ -617,9 +613,8 @@ pub fn evaluate_temporal_replay_case(
             findings.abstain = true;
             findings.reason("CORRECTION_CYCLE");
             findings.exclude(&identity_label(event, &colliding_ids));
-            suppressed_certificates.insert(
-                string(event, "certificate_id").unwrap_or("").to_owned(),
-            );
+            suppressed_certificates
+                .insert(string(event, "certificate_id").unwrap_or("").to_owned());
         }
     }
 
@@ -631,8 +626,7 @@ pub fn evaluate_temporal_replay_case(
     // Corrections are never interpreted as a generic latest-row replacement.
     for event in &events {
         let event_type = string(event, "event_type").unwrap_or("");
-        if !matches!(event_type, "corrected" | "superseded")
-            || cycles.contains(&source_key(event))
+        if !matches!(event_type, "corrected" | "superseded") || cycles.contains(&source_key(event))
         {
             continue;
         }
@@ -648,9 +642,8 @@ pub fn evaluate_temporal_replay_case(
                     findings.exclude(&identity_label(target, &colliding_ids));
                     findings.exclude(&identity);
                     suppressed_certificates.insert(certificate.to_owned());
-                    suppressed_certificates.insert(
-                        string(target, "certificate_id").unwrap_or("").to_owned(),
-                    );
+                    suppressed_certificates
+                        .insert(string(target, "certificate_id").unwrap_or("").to_owned());
                     continue;
                 }
                 let correction_recorded = unsigned(event, "issuer_recorded_at_unix_ms");
@@ -838,7 +831,10 @@ mod tests {
             .iter()
             .map(|value| value.as_str().unwrap().to_owned())
             .collect::<Vec<_>>();
-        assert_eq!(actual.reason_codes, expected_reasons, "{case_id}: reason codes");
+        assert_eq!(
+            actual.reason_codes, expected_reasons,
+            "{case_id}: reason codes"
+        );
 
         let expected_applied = expected["applied_event_ids"]
             .as_array()
@@ -847,8 +843,7 @@ mod tests {
             .map(|value| value.as_str().unwrap().to_owned())
             .collect::<Vec<_>>();
         assert_eq!(
-            actual.applied_event_ids,
-            expected_applied,
+            actual.applied_event_ids, expected_applied,
             "{case_id}: applied event IDs"
         );
 
@@ -859,8 +854,7 @@ mod tests {
             .map(|value| value.as_str().unwrap().to_owned())
             .collect::<Vec<_>>();
         assert_eq!(
-            actual.excluded_event_ids,
-            expected_excluded,
+            actual.excluded_event_ids, expected_excluded,
             "{case_id}: excluded event IDs"
         );
     }
@@ -868,10 +862,7 @@ mod tests {
     #[test]
     fn all_frozen_cases_match_all_three_query_modes() {
         let corpus = corpus();
-        assert_eq!(
-            corpus["oracle_review_status"],
-            "NOT_INDEPENDENTLY_REVIEWED"
-        );
+        assert_eq!(corpus["oracle_review_status"], "NOT_INDEPENDENTLY_REVIEWED");
         let cases = corpus["cases"].as_array().unwrap();
         assert_eq!(cases.len(), 29);
 
@@ -886,11 +877,7 @@ mod tests {
             .into_iter()
             .enumerate()
             {
-                assert_matches(
-                    &actual[index],
-                    &case["expected"][mode.as_str()],
-                    case_id,
-                );
+                assert_matches(&actual[index], &case["expected"][mode.as_str()], case_id);
             }
         }
     }
@@ -921,10 +908,7 @@ mod tests {
             .clone();
         assert_eq!(
             evaluate_temporal_replay_case(&case, TemporalQueryMode::AsKnownAt),
-            evaluate_temporal_replay_case(
-                &case,
-                TemporalQueryMode::RecomputedWithCurrentTrust
-            )
+            evaluate_temporal_replay_case(&case, TemporalQueryMode::RecomputedWithCurrentTrust)
         );
     }
 
@@ -942,10 +926,7 @@ mod tests {
             "ACCEPTED_FOR_BINDING_ONLY"
         );
         assert_eq!(
-            evaluate_temporal_replay_case(
-                &case,
-                TemporalQueryMode::RecomputedWithCurrentTrust
-            )
+            evaluate_temporal_replay_case(&case, TemporalQueryMode::RecomputedWithCurrentTrust)
             .disposition,
             "TRUST_UNRESOLVED"
         );
@@ -987,7 +968,9 @@ mod tests {
             .as_array()
             .unwrap()
             .iter()
-            .find(|case| case["case_id"] == "same-local-id-in-distinct-source-namespaces-is-not-a-collision")
+            .find(|case| {
+                case["case_id"] == "same-local-id-in-distinct-source-namespaces-is-not-a-collision"
+            })
             .unwrap()
             .clone();
         let baseline = evaluate_temporal_replay_case_all_modes(&case);
