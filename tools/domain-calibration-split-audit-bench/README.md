@@ -16,7 +16,7 @@ The selected `split_group_id` must exactly match the corresponding ID field. The
 
 The auditor also rejects:
 - duplicate sample IDs;
-- frame SHA-256 or source-image SHA-256 values reused across partitions;
+- frame SHA-256, source-image SHA-256 or translated-output SHA-256 values reused across partitions;
 - missing TRAIN/CALIBRATION/TEST partitions;
 - translation metadata without a declared translated-image lineage;
 - translated samples without translator, translated-image and geometry/label-audit digests;
@@ -51,6 +51,7 @@ The independent Python challenger implements the manifest checks separately, ver
 - `split-leakage-v0_1.tsv`: cross-partition sequence, frame-digest and image-digest leakage.
 - `pending-translation-v0_1.tsv`: translation lineage exists but geometric-label audit is pending.
 - `duplicate-sample-v0_1.tsv`: duplicate sample identity.
+- `translated-output-leakage-v0_1.tsv`: translated image digest reused across partitions despite unique input images.
 
 Rust unit tests also cover each identity mode, malformed group metadata, incomplete partitions, invalid translation lineage, and empty manifests.
 
