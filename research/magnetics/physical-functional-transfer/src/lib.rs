@@ -7,7 +7,10 @@
 //! calibration or prove that an external transfer envelope is physically valid.
 
 use magnetic_interval_ad::Interval;
-use magnetic_physical_discrepancy::{EvidenceRole, PhysicalFieldDiscrepancyCertificate};
+use magnetic_physical_discrepancy::{
+    CellDiscrepancyInput, EvidenceRole, PhysicalFieldDiscrepancyCertificate,
+    certify_physical_field_discrepancy,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BoundedSensorTransfer {
@@ -669,25 +672,30 @@ mod tests {
     }
 
     fn physical(field: [Interval; 3]) -> PhysicalFieldDiscrepancyCertificate {
-        PhysicalFieldDiscrepancyCertificate {
+        // Build the fixture through the upstream owner so outward-rounded
+        // centre residuals and whole-cell enclosures remain internally valid.
+        let input = CellDiscrepancyInput {
             domain_id: "domain-1".to_owned(),
             cell_id: "cell-1".to_owned(),
             cell_bounds_m: [iv(-0.01, 0.01), iv(-0.01, 0.01), iv(-0.01, 0.01)],
             centre_position_m: [0.0; 3],
-            measured_field_at_centre_t: field,
-            model_field_at_centre_t: field,
-            centre_residual_t: [iv(0.0, 0.0); 3],
-            residual_variation_radius_t: [0.0; 3],
-            residual_field_over_cell_t: [iv(0.0, 0.0); 3],
-            model_field_over_cell_t: field,
-            physical_field_over_cell_t: field,
             centre_measurement_id: "probe-map-1".to_owned(),
             centre_measurement_sha256: DIGEST.to_owned(),
+            measured_field_at_centre_t: field,
             measurement_uncertainty_record_id: "measurement-uncertainty-1".to_owned(),
             probe_calibration_id: "probe-cal-1".to_owned(),
             registration_record_id: "registration-1".to_owned(),
             background_control_record_id: "background-1".to_owned(),
             temperature_record_id: "temperature-23c".to_owned(),
+            model_run_id: "model-run-1".to_owned(),
+            model_source_revision: "model-source-1".to_owned(),
+            model_implementation_id: "model-impl-1".to_owned(),
+            model_artifact_sha256: DIGEST.to_owned(),
+            model_environment_sha256: DIGEST_B.to_owned(),
+            model_set_id: "model-set-1".to_owned(),
+            model_input_sha256: DIGEST.to_owned(),
+            model_field_at_centre_t: field,
+            model_field_over_cell_t: field,
             residual_jacobian_record_id: "residual-jacobian-1".to_owned(),
             residual_jacobian_component_record_ids: [
                 "rx-1".to_owned(),
@@ -710,13 +718,6 @@ mod tests {
             residual_jacobian_environment_sha256: DIGEST_B.to_owned(),
             residual_jacobian_cell_id: "cell-1".to_owned(),
             residual_jacobian_abs_supremum_t_per_m: [[0.0; 3]; 3],
-            model_run_id: "model-run-1".to_owned(),
-            model_source_revision: "model-source-1".to_owned(),
-            model_implementation_id: "model-impl-1".to_owned(),
-            model_artifact_sha256: DIGEST.to_owned(),
-            model_environment_sha256: DIGEST_B.to_owned(),
-            model_set_id: "model-set-1".to_owned(),
-            model_input_sha256: DIGEST.to_owned(),
             coordinate_frame_id: "sensor-frame-1".to_owned(),
             operating_condition_id: "angle-0-temp-23c".to_owned(),
             geometry_sha256: DIGEST_B.to_owned(),
@@ -724,10 +725,10 @@ mod tests {
             requirement_id: "physical-field-envelope-1".to_owned(),
             solver_run_id: "solver-run-1".to_owned(),
             field_unit: "tesla".to_owned(),
-            residual_jacobian_unit: "tesla/metre".to_owned(),
-            arithmetic_contract: "outward-rounded-binary64".to_owned(),
             evidence_role: EvidenceRole::PostSelectionQualification,
-        }
+        };
+        certify_physical_field_discrepancy(&input)
+            .expect("upstream owner produces a scope-consistent fixture certificate")
     }
 
     fn transfer() -> BoundedSensorTransfer {
