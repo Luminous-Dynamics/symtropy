@@ -16,6 +16,7 @@ pub mod decision_context_v0_1;
 pub mod effectivity_interval_v0_1;
 pub mod evidence_binding_v0_2;
 pub mod evidence_gap_packet_v0_1;
+pub mod model_credibility_cut_v0_1;
 pub mod observer_coverage_v0_1;
 pub mod owner_evidence_cut_v0_1;
 pub mod vector_watermark_v0_1;

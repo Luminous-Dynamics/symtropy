@@ -1,0 +1,121 @@
+{
+  "schema": "AeroModelCredibilityCutV0_1",
+  "evidence_ref": "aeroweift:validation:wing-panel-001",
+  "claim_id": "claim-wing-panel-001",
+  "model_ref": "model:aeroweift-wing-structural-v4",
+  "model_artifact_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+  "solver_configuration_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+  "configuration_ref": "configuration:wing-r17",
+  "operating_envelope_ref": "envelope:transport-normal",
+  "applicability_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "risk_classification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "validation_package_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "validation_protocol_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "calibration_manifest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "development_manifest_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "confirmatory_manifest_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "independent_reference_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "package_status": "structurally_complete",
+  "split_integrity_status": "disjoint_by_independent_unit",
+  "independent_reference_status": "qualified",
+  "domain_coverage_status": "covered",
+  "required_modalities": [
+    "analytic_reference",
+    "software_in_loop",
+    "calibrated_component_bench"
+  ],
+  "modality_evidence": [
+    {
+      "modality": "analytic_reference",
+      "evidence_ref": "aeroweift:modality:analytic_reference",
+      "report_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "scope_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "status": "qualified_for_declared_purpose"
+    },
+    {
+      "modality": "software_in_loop",
+      "evidence_ref": "aeroweift:modality:software_in_loop",
+      "report_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "scope_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "status": "qualified_for_declared_purpose"
+    },
+    {
+      "modality": "calibrated_component_bench",
+      "evidence_ref": "aeroweift:modality:calibrated_component_bench",
+      "report_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "scope_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "status": "qualified_for_declared_purpose"
+    }
+  ],
+  "required_uncertainty_components": [
+    "observation_noise",
+    "measurement_uncertainty",
+    "parameter_uncertainty",
+    "structural_model_discrepancy",
+    "environmental_uncertainty"
+  ],
+  "uncertainty_components": [
+    {
+      "component": "observation_noise",
+      "method_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "report_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "status": "characterized"
+    },
+    {
+      "component": "measurement_uncertainty",
+      "method_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "report_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "status": "characterized"
+    },
+    {
+      "component": "parameter_uncertainty",
+      "method_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "report_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "status": "characterized"
+    },
+    {
+      "component": "structural_model_discrepancy",
+      "method_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "report_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "status": "characterized"
+    },
+    {
+      "component": "environmental_uncertainty",
+      "method_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "report_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "status": "characterized"
+    }
+  ],
+  "required_metric_strata": [
+    {
+      "metric_id": "prediction_interval_coverage",
+      "stratum_ref": "material:aluminium"
+    },
+    {
+      "metric_id": "out_of_domain_recall",
+      "stratum_ref": "environment:temperature-extremes"
+    }
+  ],
+  "metric_stratum_reports": [
+    {
+      "metric_id": "prediction_interval_coverage",
+      "stratum_ref": "material:aluminium",
+      "population_manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "report_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "uncertainty_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "sample_count": 100,
+      "adverse_count": 2,
+      "status": "within_declared_profile"
+    },
+    {
+      "metric_id": "out_of_domain_recall",
+      "stratum_ref": "environment:temperature-extremes",
+      "population_manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "report_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "uncertainty_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "sample_count": 100,
+      "adverse_count": 2,
+      "status": "within_declared_profile"
+    }
+  ]
+}

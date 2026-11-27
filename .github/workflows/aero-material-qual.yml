@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -33,11 +33,14 @@ on:
       - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
       - "docs/research/aviation/AERO_OWNER_EVIDENCE_CUT_V0_1.md"
+      - "docs/research/aviation/AERO_MODEL_CREDIBILITY_CUT_V0_1.md"
+      - "docs/research/aviation/schemas/aero_model_credibility_cut_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -71,6 +74,9 @@ on:
       - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
       - "docs/research/aviation/AERO_OWNER_EVIDENCE_CUT_V0_1.md"
+      - "docs/research/aviation/AERO_MODEL_CREDIBILITY_CUT_V0_1.md"
+      - "docs/research/aviation/schemas/aero_model_credibility_cut_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
@@ -309,6 +315,81 @@ jobs:
           if owner_digest != expected_owner_digest or context["evidence_knowledge_cut_sha256"] != owner_digest:
               raise SystemExit("owner evidence cut digest vector or decision-context binding mismatch")
           print("Owner evidence cut schema, identity joins and independent SHA-256 vector passed.")
+          PY
+
+      - name: Validate model credibility cut schema and digest vector
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_model_credibility_cut_v0_1.schema.json").read_text())
+          cut = json.loads((root / "docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(cut), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(f"model credibility cut schema validation failed ({len(errors)} errors)")
+
+          modality_order = [
+              "synthetic_known_truth", "analytic_reference", "software_in_loop",
+              "hardware_in_loop", "calibrated_component_bench", "controlled_flight_test",
+              "shadow_mode_field_replay",
+          ]
+          uncertainty_order = [
+              "observation_noise", "measurement_uncertainty", "parameter_uncertainty",
+              "structural_model_discrepancy", "environmental_uncertainty",
+          ]
+          modality_rank = {value: index for index, value in enumerate(modality_order)}
+          uncertainty_rank = {value: index for index, value in enumerate(uncertainty_order)}
+          envelope = {
+              "schema": "AeroModelCredibilityCutV0_1",
+              "canonicalization_profile": "rust-serde-json-struct-order-v1",
+              "evidence_ref": cut["evidence_ref"],
+              "claim_id": cut["claim_id"],
+              "model_ref": cut["model_ref"],
+              "model_artifact_sha256": cut["model_artifact_sha256"],
+              "solver_configuration_sha256": cut["solver_configuration_sha256"],
+              "configuration_ref": cut["configuration_ref"],
+              "operating_envelope_ref": cut["operating_envelope_ref"],
+              "applicability_profile_sha256": cut["applicability_profile_sha256"],
+              "risk_classification_sha256": cut["risk_classification_sha256"],
+              "validation_package_sha256": cut["validation_package_sha256"],
+              "validation_protocol_sha256": cut["validation_protocol_sha256"],
+              "calibration_manifest_sha256": cut["calibration_manifest_sha256"],
+              "development_manifest_sha256": cut["development_manifest_sha256"],
+              "confirmatory_manifest_sha256": cut["confirmatory_manifest_sha256"],
+              "independent_reference_manifest_sha256": cut["independent_reference_manifest_sha256"],
+              "package_status": cut["package_status"],
+              "split_integrity_status": cut["split_integrity_status"],
+              "independent_reference_status": cut["independent_reference_status"],
+              "domain_coverage_status": cut["domain_coverage_status"],
+              "required_modalities": sorted(cut["required_modalities"], key=modality_rank.get),
+              "modality_evidence": sorted(cut["modality_evidence"], key=lambda item: (modality_rank[item["modality"]], item["evidence_ref"])),
+              "required_uncertainty_components": sorted(cut["required_uncertainty_components"], key=uncertainty_rank.get),
+              "uncertainty_components": sorted(cut["uncertainty_components"], key=lambda item: uncertainty_rank[item["component"]]),
+              "required_metric_strata": sorted(cut["required_metric_strata"], key=lambda item: (item["metric_id"], item["stratum_ref"])),
+              "metric_stratum_reports": sorted(cut["metric_stratum_reports"], key=lambda item: (item["metric_id"], item["stratum_ref"])),
+          }
+          payload = json.dumps(envelope, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+          actual = hashlib.sha256(payload).hexdigest()
+          expected = "970cae8ea26f237e528952ec458049e97d8992a7f7f055c89c415fd3814ccf2e"
+          if actual != expected:
+              raise SystemExit(f"model credibility digest vector mismatch: {actual}")
+
+          required_pairs = {(item["metric_id"], item["stratum_ref"]) for item in cut["required_metric_strata"]}
+          report_pairs = {(item["metric_id"], item["stratum_ref"]) for item in cut["metric_stratum_reports"]}
+          if len(report_pairs) != len(cut["metric_stratum_reports"]) or not required_pairs.issubset(report_pairs):
+              raise SystemExit("required metric/stratum evidence is missing or duplicated")
+          for report in cut["metric_stratum_reports"]:
+              if report["adverse_count"] > report["sample_count"] or report["sample_count"] == 0:
+                  raise SystemExit("invalid metric denominator or adverse count")
+          print("Model credibility schema, per-stratum completeness and independent SHA-256 vector passed.")
           PY
 
       - name: Validate temporal replay corpus schema and frozen vectors

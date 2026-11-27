@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-model-credibility-cut-v0.1.schema.json",
+  "title": "AERO Model Credibility Cut v0.1",
+  "description": "Claim-scoped commitment to AeroWeft model applicability and validation evidence. It carries owner reports; it does not compute VVUQ metrics or establish physical validity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "evidence_ref",
+    "claim_id",
+    "model_ref",
+    "model_artifact_sha256",
+    "solver_configuration_sha256",
+    "configuration_ref",
+    "operating_envelope_ref",
+    "applicability_profile_sha256",
+    "risk_classification_sha256",
+    "validation_package_sha256",
+    "validation_protocol_sha256",
+    "calibration_manifest_sha256",
+    "development_manifest_sha256",
+    "confirmatory_manifest_sha256",
+    "independent_reference_manifest_sha256",
+    "package_status",
+    "split_integrity_status",
+    "independent_reference_status",
+    "domain_coverage_status",
+    "required_modalities",
+    "modality_evidence",
+    "required_uncertainty_components",
+    "uncertainty_components",
+    "required_metric_strata",
+    "metric_stratum_reports"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroModelCredibilityCutV0_1"
+    },
+    "evidence_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "claim_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "model_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "model_artifact_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "solver_configuration_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "configuration_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "operating_envelope_ref": {
+      "$ref": "#/$defs/identifier"
+    },
+    "applicability_profile_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "risk_classification_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_package_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "validation_protocol_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "calibration_manifest_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "development_manifest_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "confirmatory_manifest_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "independent_reference_manifest_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "package_status": {
+      "enum": [
+        "structurally_complete",
+        "incomplete",
+        "rejected"
+      ]
+    },
+    "split_integrity_status": {
+      "enum": [
+        "disjoint_by_independent_unit",
+        "leakage_detected",
+        "unverified"
+      ]
+    },
+    "independent_reference_status": {
+      "enum": [
+        "qualified",
+        "unverified",
+        "absent"
+      ]
+    },
+    "domain_coverage_status": {
+      "enum": [
+        "covered",
+        "not_covered",
+        "indeterminate",
+        "unverified"
+      ]
+    },
+    "required_modalities": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/modality"
+      }
+    },
+    "modality_evidence": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/modalityEvidence"
+      }
+    },
+    "required_uncertainty_components": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/uncertaintyComponent"
+      }
+    },
+    "uncertainty_components": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/uncertaintyEvidence"
+      }
+    },
+    "required_metric_strata": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/metricStratum"
+      }
+    },
+    "metric_stratum_reports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/metricStratumReport"
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[!-~]+$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "modality": {
+      "enum": [
+        "synthetic_known_truth",
+        "analytic_reference",
+        "software_in_loop",
+        "hardware_in_loop",
+        "calibrated_component_bench",
+        "controlled_flight_test",
+        "shadow_mode_field_replay"
+      ]
+    },
+    "modalityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modality",
+        "evidence_ref",
+        "report_sha256",
+        "scope_manifest_sha256",
+        "status"
+      ],
+      "properties": {
+        "modality": {
+          "$ref": "#/$defs/modality"
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "report_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "scope_manifest_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "status": {
+          "enum": [
+            "qualified_for_declared_purpose",
+            "unqualified",
+            "not_available"
+          ]
+        }
+      }
+    },
+    "uncertaintyComponent": {
+      "enum": [
+        "observation_noise",
+        "measurement_uncertainty",
+        "parameter_uncertainty",
+        "structural_model_discrepancy",
+        "environmental_uncertainty"
+      ]
+    },
+    "uncertaintyEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component",
+        "method_profile_sha256",
+        "report_sha256",
+        "status"
+      ],
+      "properties": {
+        "component": {
+          "$ref": "#/$defs/uncertaintyComponent"
+        },
+        "method_profile_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "report_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "status": {
+          "enum": [
+            "characterized",
+            "uncharacterized",
+            "unverified"
+          ]
+        }
+      }
+    },
+    "metricStratum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "stratum_ref"
+      ],
+      "properties": {
+        "metric_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "stratum_ref": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "metricStratumReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "metric_id",
+        "stratum_ref",
+        "population_manifest_sha256",
+        "report_sha256",
+        "uncertainty_report_sha256",
+        "sample_count",
+        "adverse_count",
+        "status"
+      ],
+      "properties": {
+        "metric_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "stratum_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "population_manifest_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "report_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_report_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "adverse_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "enum": [
+            "within_declared_profile",
+            "outside_declared_profile",
+            "indeterminate",
+            "unverified"
+          ]
+        }
+      }
+    }
+  }
+}
