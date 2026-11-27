@@ -24,7 +24,7 @@
       "probe_id": "read_endpoint_journal",
       "outcomes": [
         {
-          "outcome_id": "journal_no_effect",
+          "outcome_id": "journal_no_effect_complete",
           "possible_world_support_ids": [
             "not_dispatched",
             "dispatched_no_effect",
@@ -32,7 +32,7 @@
           ]
         },
         {
-          "outcome_id": "journal_applied_once",
+          "outcome_id": "journal_applied_once_complete",
           "possible_world_support_ids": [
             "applied_once_ack_lost",
             "open_world_residual"
@@ -48,7 +48,7 @@
           ]
         },
         {
-          "outcome_id": "journal_holder_unresolved",
+          "outcome_id": "journal_incomplete_or_holder_unresolved",
           "possible_world_support_ids": [
             "unresolved_command_holder",
             "open_world_residual"
@@ -100,11 +100,11 @@
         "probe_id": "read_endpoint_journal",
         "outcome_branches": [
           {
-            "outcome_id": "journal_no_effect",
+            "outcome_id": "journal_no_effect_complete",
             "next_node_id": "n1"
           },
           {
-            "outcome_id": "journal_applied_once",
+            "outcome_id": "journal_applied_once_complete",
             "next_node_id": "n2"
           },
           {
@@ -112,7 +112,7 @@
             "next_node_id": "n3"
           },
           {
-            "outcome_id": "journal_holder_unresolved",
+            "outcome_id": "journal_incomplete_or_holder_unresolved",
             "next_node_id": "n4"
           }
         ]
