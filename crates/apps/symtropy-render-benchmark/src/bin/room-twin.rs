@@ -74,7 +74,7 @@ fn camera_rail() -> CameraRail {
         waypoints: vec![
             CameraWaypoint {
                 at_secs: 0.0,
-                transform: corridor_view.clone(),
+                transform: corridor_view,
             },
             CameraWaypoint {
                 at_secs: 4.5,
@@ -101,7 +101,7 @@ fn camera_pose_at(rail: &CameraRail, elapsed_secs: f32) -> Transform {
         return Transform::IDENTITY;
     };
     if elapsed_secs <= first.at_secs {
-        return first.transform.clone();
+        return first.transform;
     }
 
     for pair in rail.waypoints.windows(2) {
@@ -128,7 +128,6 @@ fn camera_pose_at(rail: &CameraRail, elapsed_secs: f32) -> Transform {
         .last()
         .expect("non-empty rail")
         .transform
-        .clone()
 }
 
 fn main() {
@@ -332,8 +331,7 @@ fn setup_scene(
         .waypoints
         .first()
         .expect("camera rail has an initial pose")
-        .transform
-        .clone();
+        .transform;
     commands.spawn((Camera3d::default(), initial, TwinCamera));
 }
 
@@ -344,7 +342,7 @@ fn move_camera_on_rail(
 ) {
     let pose = camera_pose_at(&rail, time.elapsed_secs());
     for mut transform in &mut cameras {
-        *transform = pose.clone();
+        *transform = pose;
     }
 }
 
