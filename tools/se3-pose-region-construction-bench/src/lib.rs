@@ -166,8 +166,7 @@ fn covariance_is_spd(matrix: &[f64; 36]) -> bool {
         for column in 0..6 {
             let left = matrix[row * 6 + column];
             let right = matrix[column * 6 + row];
-            let pair_scale = left.abs().max(right.abs());
-            if (left - right).abs() > 1.0e-12 * pair_scale {
+            if left != right {
                 return false;
             }
         }
@@ -895,6 +894,18 @@ mod tests {
         singular.covariance_row_major[0] = 0.0;
         assert_eq!(
             evaluate(&singular).disposition,
+            Disposition::InvalidCovariance
+        );
+    }
+
+
+    #[test]
+    fn even_small_covariance_asymmetry_is_rejected() {
+        let mut value = input();
+        value.covariance_row_major[1] = 1.0e-18;
+        value.covariance_row_major[6] = 1.0e-18 * (1.0 + 5.0e-13);
+        assert_eq!(
+            evaluate(&value).disposition,
             Disposition::InvalidCovariance
         );
     }
