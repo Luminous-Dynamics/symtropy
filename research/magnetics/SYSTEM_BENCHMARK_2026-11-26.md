@@ -137,15 +137,19 @@ Those numbers are proposed engineering targets. They are not measured performanc
 
 ### D. Magnetic absolute encoder system
 
-Only if the programme elects to build an absolute-angle product, use the current RLS AksIM-4 HIPERFACE DSL MCD06 variants as the primary magnetic absolute challenge: MC053 (53 mm ring, published system accuracy ±0.006°) and MC080 (80 mm ring, published system accuracy ±0.004°). Match the exact ring, installation, readhead count, self-calibration procedure and thermal protocol. A first parity target is ≤ ±0.004° system accuracy on the MC080-matched challenge; the stretch target is ≤ ±0.003°. For the MC053-sized build, target ≤ ±0.005° against its published ±0.006° system figure. These are research targets, not achieved results. System accuracy and typical/actual installed accuracy are different observables and must be measured/reported separately; do not silently treat the vendor system figure as an installed-field result.
+Only if the programme elects to build an absolute-angle product, use the RLS AksIM-4 HDSL MCD06 portfolio variants as the primary magnetic challenge: MC053 (53 mm ring, published system accuracy ±0.006°) and MC080 (80 mm ring, published system accuracy ±0.004°). Freeze the exact MCD06 PDF revision and part number because one individual product-detail view still renders legacy MCD05 data. Match ring, installation, readhead count, self-calibration procedure and thermal protocol. Target parity at ≤ ±0.004° system accuracy on MC080; competitive stretch ≤ ±0.003°. For MC053, target ≤ ±0.006° parity and ≤ ±0.005° stretch. These are research targets, not achieved results. System accuracy, calibrated installed accuracy and uncalibrated installed accuracy are different observables and must be measured/reported separately; never call a vendor system-accuracy figure an installed-field result.
 
-Report resolution, system accuracy, calibrated and uncalibrated installed accuracy, repeatability, hysteresis, installed eccentricity/runout sensitivity, temperature drift, speed, bandwidth, external-field susceptibility, calibration burden, power, BOM and serviceability separately. Compare optical RESOLUTE as a metrology reference, not as a direct like-for-like magnetic product.
+Use HEIDENHAIN KCI 120 Dplus as an inductive dual-encoder comparator: its product page publishes positioning accuracy down to ±40 arcsec (≈±0.0111°) and 1,048,576 positions/rev, with multiturn and functional-safety-capable application integration. Keep its positioning-accuracy definition separate from RLS system accuracy.
+
+Use Renishaw RESOLUTE ETR as an optical metrology reference, not a direct magnetic competitor. Add the Renishaw REXA30 as a high-accuracy optical ceiling: dual-readhead total installed accuracy ±2 arcsec at ≤57 mm, ±1.5 arcsec at 75 mm and ±1 arcsec at ≥100 mm. These are not like-for-like cost/environment targets, but they provide an external angular-truth benchmark. Report resolution, system accuracy, installed accuracy, repeatability, hysteresis, runout sensitivity, temperature drift, speed, bandwidth, external-field susceptibility, calibration burden, power, BOM and serviceability separately.
 
 ### E. Active metrology
 
 Compare uniform grid, seeded random, field-variance, cross-solver disagreement, sensitivity-only, decision-directed lower-bound planner and a full-map oracle. Freeze the blind holdout before adaptive sampling.
 
 Report measurements and acquisition seconds to stabilize the pass/fail decision, worst blind-holdout functional error, false accepts/rejects, missed risk regions, probe re-registration and calibration overhead. Initial target: at least 2× fewer adaptive observations than the uniform-grid baseline at the same blind-holdout decision error, with zero blind-data leakage. This is an empirical benchmark target, not an assumed benefit.
+
+A traceability chain has to identify the measurand, result and uncertainty, and each calibration reference; traceability alone does not establish that the uncertainty is fit for purpose. See NIST's metrological traceability policy: https://www.nist.gov/metrology/metrological-traceability.
 
 ## 4. Qualification ladder
 
@@ -189,7 +193,8 @@ The new software research layers are separate and conditional:
 - [#7536](https://github.com/Luminous-Dynamics/symtropy/issues/7536) / [#7635](https://github.com/Luminous-Dynamics/symtropy/pull/7635): qualify directional gradients against independent references and central-difference plateaus.
 - [#7653](https://github.com/Luminous-Dynamics/symtropy/issues/7653) / [#7655](https://github.com/Luminous-Dynamics/symtropy/pull/7655): interval forward-mode AD, currently limited to algebraic/rational expressions and square root, producing cell-wide derivative enclosures under a declared binary64 outward-expansion model.
 - [#7639](https://github.com/Luminous-Dynamics/symtropy/issues/7639) / [#7642](https://github.com/Luminous-Dynamics/symtropy/pull/7642): continuous-domain functional-margin certification, conditional on valid component-wise derivative supremum bounds over each cell.
-- [#7658](https://github.com/Luminous-Dynamics/symtropy/issues/7658) / [#7660](https://github.com/Luminous-Dynamics/symtropy/pull/7660): interval branch-and-bound for a single scalar objective and robust margin. v0.1 keeps one unsplit nuisance box and is stacked on interval AD.
+- [#7658](https://github.com/Luminous-Dynamics/symtropy/issues/7658) / [#7671](https://github.com/Luminous-Dynamics/symtropy/pull/7671): interval branch-and-bound for a single scalar objective and robust margin. v0.1 keeps one unsplit nuisance box and is stacked on interval AD.
+- [#7667](https://github.com/Luminous-Dynamics/symtropy/issues/7667) / [#7672](https://github.com/Luminous-Dynamics/symtropy/pull/7672): measurement-informed, cell-wide physical model-discrepancy envelopes, conditional on a valid residual-Jacobian supremum and traceable centre measurement.
 
 These are research implementations, not verified product capabilities or SOTA results. The global-search branch is intentionally stacked; current CI filters PR runs to `main`, so #7660 does not yet receive a standalone PR-triggered matrix run. Do not report absent checks as queued or passed.
 
