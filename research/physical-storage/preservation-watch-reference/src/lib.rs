@@ -163,6 +163,7 @@ pub enum WatchContractError {
     UnexpectedRemediationReceipt,
 }
 
+// An unverified Healthy report is evaluated as Unknown below; invalid provenance blocks.
 fn is_sha256_hex(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
