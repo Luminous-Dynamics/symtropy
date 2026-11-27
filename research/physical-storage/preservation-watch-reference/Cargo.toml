@@ -10,3 +10,5 @@ description = "Fail-closed OAIS-inspired preservation watch and intervention pro
 path = "src/lib.rs"
 
 [dependencies]
+
+[workspace]
