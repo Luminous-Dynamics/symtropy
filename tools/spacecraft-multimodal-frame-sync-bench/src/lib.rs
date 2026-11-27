@@ -102,8 +102,15 @@ fn valid_sha256(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
+fn divisible(value: u32, divisor: u32) -> bool {
+    value
+        .checked_div(divisor)
+        .and_then(|quotient| quotient.checked_mul(divisor))
+        == Some(value)
+}
+
 fn leap_year(year: u32) -> bool {
-    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    divisible(year, 4) && (!divisible(year, 100) || divisible(year, 400))
 }
 
 fn valid_timestamp(value: &str) -> bool {
@@ -214,6 +221,14 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
             input,
             BundleDisposition::InvalidInput,
             "BUNDLE_IDENTITY_MISSING",
+        );
+    }
+
+    if !matches!(input.split.as_str(), "train" | "validation" | "test") {
+        return result(
+            input,
+            BundleDisposition::InvalidInput,
+            "UNKNOWN_SPLIT",
         );
     }
 
