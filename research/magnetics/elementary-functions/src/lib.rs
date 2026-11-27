@@ -27,37 +27,25 @@ fn interval(lower: f64, upper: f64) -> Result<DecoratedInterval<f64>, String> {
     DecoratedInterval::new(lower, upper).map_err(|error| format!("{error:?}"))
 }
 
-pub fn enclose_sin(
-    lower: f64,
-    upper: f64,
-) -> Result<ElementaryEnclosure<f64>, String> {
+pub fn enclose_sin(lower: f64, upper: f64) -> Result<ElementaryEnclosure<f64>, String> {
     interval(lower, upper)?
         .sin()
         .map_err(|error| format!("{error:?}"))
 }
 
-pub fn enclose_cos(
-    lower: f64,
-    upper: f64,
-) -> Result<ElementaryEnclosure<f64>, String> {
+pub fn enclose_cos(lower: f64, upper: f64) -> Result<ElementaryEnclosure<f64>, String> {
     interval(lower, upper)?
         .cos()
         .map_err(|error| format!("{error:?}"))
 }
 
-pub fn enclose_tan(
-    lower: f64,
-    upper: f64,
-) -> Result<ElementaryEnclosure<f64>, String> {
+pub fn enclose_tan(lower: f64, upper: f64) -> Result<ElementaryEnclosure<f64>, String> {
     interval(lower, upper)?
         .tan()
         .map_err(|error| format!("{error:?}"))
 }
 
-pub fn enclose_asin(
-    lower: f64,
-    upper: f64,
-) -> Result<ElementaryEnclosure<f64>, String> {
+pub fn enclose_asin(lower: f64, upper: f64) -> Result<ElementaryEnclosure<f64>, String> {
     interval(lower, upper)?
         .asin()
         .map_err(|error| format!("{error:?}"))
@@ -103,8 +91,7 @@ mod tests {
 
     #[test]
     fn atan2_negative_axis_crossing_keeps_both_angle_pieces() {
-        let enclosure =
-            enclose_atan2(-0.1, 0.1, -2.0, -1.0).expect("box avoids atan2 origin");
+        let enclosure = enclose_atan2(-0.1, 0.1, -2.0, -1.0).expect("box avoids atan2 origin");
         assert_eq!(enclosure.status(), EnclosureStatus::Defined);
         assert_eq!(enclosure.pieces().len(), 2);
         assert!(enclosure.contains(3.1));
@@ -113,15 +100,12 @@ mod tests {
 
     #[test]
     fn atan2_origin_containing_box_is_not_labelled_fully_defined() {
-        let enclosure =
-            enclose_atan2(-1.0, 1.0, -1.0, 1.0).expect("bounded atan2 input box");
+        let enclosure = enclose_atan2(-1.0, 1.0, -1.0, 1.0).expect("bounded atan2 input box");
         assert_ne!(enclosure.status(), EnclosureStatus::Defined);
-        assert!(
-            matches!(
-                enclosure.status(),
-                EnclosureStatus::PartiallyDefined | EnclosureStatus::Inconclusive
-            )
-        );
+        assert!(matches!(
+            enclosure.status(),
+            EnclosureStatus::PartiallyDefined | EnclosureStatus::Inconclusive
+        ));
     }
 
     #[test]
