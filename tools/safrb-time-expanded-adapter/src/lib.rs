@@ -642,10 +642,10 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
             }
             if nodes
                 .get(&gate.from)
-                .map_or(true, |n| n.kind != "resource_input")
+                .is_none_or(|n| n.kind != "resource_input")
                 || nodes
                     .get(&gate.to)
-                    .map_or(true, |n| n.kind != "resource_output")
+                    .is_none_or(|n| n.kind != "resource_output")
             {
                 return Err(err(
                     &path,
