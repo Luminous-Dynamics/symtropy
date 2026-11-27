@@ -42,7 +42,7 @@ fn independent_disposition(case: &Value) -> &'static str {
     let mut reject = text_at(case, "subject_time_effectivity") == Some("INVALID_INTERVAL");
     let mut out_of_scope = false;
     let mut late_knowledge = false;
-    let mut not_effective = text_at(case, "subject_time_effectivity")
+    let not_effective = text_at(case, "subject_time_effectivity")
         == Some("DEFINITELY_NOT_YET_EFFECTIVE");
     let mut unverified = false;
     let mut incomplete = text_at(case, "subject_time_effectivity") == Some("BOUNDARY_AMBIGUOUS");
