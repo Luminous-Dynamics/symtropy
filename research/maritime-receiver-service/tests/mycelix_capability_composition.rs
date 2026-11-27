@@ -44,8 +44,16 @@ fn owner_plans(receipt: &str) -> BTreeMap<String, OwnerPlan> {
                 };
                 assert!(plans.insert(f[1].to_owned(), plan).is_none());
             }
-            "SELECTED" => plans.get_mut(f[1]).expect("plan exists").selected.push(f[2].to_owned()),
-            "BLOCK" => plans.get_mut(f[1]).expect("plan exists").blockers.push(f[2].to_owned()),
+            "SELECTED" => plans
+                .get_mut(f[1])
+                .expect("plan exists")
+                .selected
+                .push(f[2].to_owned()),
+            "BLOCK" => plans
+                .get_mut(f[1])
+                .expect("plan exists")
+                .blockers
+                .push(f[2].to_owned()),
             _ => {}
         }
     }
