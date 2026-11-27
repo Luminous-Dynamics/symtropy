@@ -44,12 +44,6 @@
       }
     ]
   },
-  "owner_evidence_cut": {
-    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "owner_namespace": "mycelix:aerocommons",
-    "receiver_receipt_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "receiver_receipt_watermark_unix_ms": 1795516800000
-  },
   "model_credibility_cut": {
     "evidence_ref": "aeroweift:validation:wing-panel-001",
     "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -129,5 +123,14 @@
     "root_cause_family_id": "synthetic:root-cause-001",
     "partition": "VISIBLE_CHALLENGE",
     "independence_unit": "INDEPENDENT_ENGINEERING_EPISODE_OR_ROOT_CAUSE_FAMILY"
-  }
+  },
+  "owner_evidence_cuts": [
+    {
+      "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "owner_namespace": "mycelix:aerocommons",
+      "receiver_receipt_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "receiver_receipt_watermark_unix_ms": 1795516800000
+    }
+  ],
+  "replay_mode": "HISTORICAL_AS_KNOWN"
 }
