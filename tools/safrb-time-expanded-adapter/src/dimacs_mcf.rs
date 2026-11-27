@@ -7,10 +7,15 @@
 //! validates syntax, integer domains, graph references, counts and resource
 //! budgets, but does not solve the MCF instance or decide its feasibility.
 
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
 
 pub const DIMACS_MCF_FORMAT_VERSION: &str = "dimacs-mcf-v1";
+pub const DIMACS_MCF_IMPORT_RECEIPT_SCHEMA: &str = "dimacs-mcf-import-receipt-v0.1";
+pub const DIMACS_MCF_PARSER_VERSION: &str = "luminous-dimacs-mcf-import-v0.1";
+pub const DIMACS_MCF_IMPORT_CLAIM_CEILING: &str =
+    "DIMACS MCF syntax, raw-file identity and canonical imported-network identity only; no instance feasibility, solver optimality, external source authority, physical model validity or service claim.";
 pub const DIMACS_MAX_NODES_AND_ARCS: u32 = i32::MAX as u32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,6 +36,40 @@ impl Default for ImportLimits {
             max_working_bytes: 536_870_912,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DimacsMcfImportLimitsReceipt {
+    pub max_nodes: u32,
+    pub max_arcs: u32,
+    pub max_input_bytes: u64,
+    pub max_working_bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DimacsMcfImportReceipt {
+    pub schema_version: String,
+    pub parser_version: String,
+    pub format_version: String,
+    pub raw_sha256: String,
+    pub canonical_sha256: String,
+    pub node_count: u32,
+    pub declared_arc_count: u32,
+    pub nonzero_supply_record_count: u32,
+    pub raw_input_bytes: u64,
+    pub estimated_primary_allocation_bytes: u64,
+    pub limits: DimacsMcfImportLimitsReceipt,
+    /// Decimal string because the exact i128 aggregate can exceed JSON's
+    /// interoperable signed 64-bit integer range.
+    pub total_supply_decimal: String,
+    pub supply_total_is_zero: bool,
+    pub negative_cost_arc_count: u32,
+    pub negative_lower_bound_arc_count: u32,
+    pub negative_upper_bound_arc_count: u32,
+    pub nonzero_lower_bound_arc_count: u32,
+    pub claim_ceiling: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,6 +136,8 @@ pub struct DimacsMcfInstance {
     pub nonzero_supply_record_count: u32,
     pub raw_input_bytes: usize,
     pub estimated_primary_allocation_bytes: u64,
+    /// Exact parser admission ceilings used for this import.
+    pub limits: ImportLimits,
     pub raw_sha256: String,
     /// Canonical semantic digest excludes comments, whitespace, node-supply
     /// record order and arc record order. Parallel arc tuples remain separate
@@ -121,6 +162,35 @@ impl DimacsMcfInstance {
 
     pub fn has_nonzero_lower_bounds(&self) -> bool {
         self.arcs.iter().any(|arc| arc.lower_bound != 0)
+    }
+
+    /// Create a portable receipt for the exact raw artifact and imported network.
+    pub fn import_receipt(&self) -> DimacsMcfImportReceipt {
+        DimacsMcfImportReceipt {
+            schema_version: DIMACS_MCF_IMPORT_RECEIPT_SCHEMA.to_string(),
+            parser_version: DIMACS_MCF_PARSER_VERSION.to_string(),
+            format_version: self.format_version.clone(),
+            raw_sha256: self.raw_sha256.clone(),
+            canonical_sha256: self.canonical_sha256.clone(),
+            node_count: self.node_count,
+            declared_arc_count: self.declared_arc_count,
+            nonzero_supply_record_count: self.nonzero_supply_record_count,
+            raw_input_bytes: self.raw_input_bytes as u64,
+            estimated_primary_allocation_bytes: self.estimated_primary_allocation_bytes,
+            limits: DimacsMcfImportLimitsReceipt {
+                max_nodes: self.limits.max_nodes,
+                max_arcs: self.limits.max_arcs,
+                max_input_bytes: self.limits.max_input_bytes as u64,
+                max_working_bytes: self.limits.max_working_bytes,
+            },
+            total_supply_decimal: self.total_supply.to_string(),
+            supply_total_is_zero: self.supply_total_is_zero,
+            negative_cost_arc_count: self.arcs.iter().filter(|arc| arc.unit_cost < 0).count() as u32,
+            negative_lower_bound_arc_count: self.arcs.iter().filter(|arc| arc.lower_bound < 0).count() as u32,
+            negative_upper_bound_arc_count: self.arcs.iter().filter(|arc| arc.upper_bound < 0).count() as u32,
+            nonzero_lower_bound_arc_count: self.arcs.iter().filter(|arc| arc.lower_bound != 0).count() as u32,
+            claim_ceiling: DIMACS_MCF_IMPORT_CLAIM_CEILING.to_string(),
+        }
     }
 
     pub fn canonical_digest(&self) -> String {
@@ -248,6 +318,51 @@ fn preflight(
     }
 
     Ok(estimate)
+}
+
+
+/// Reparse the exact raw input with the recorded admission limits and compare
+/// every import-summary field. This validates receipt/input correspondence;
+/// it is not an independent MCF solver or an independent parser implementation.
+pub fn verify_dimacs_mcf_import_receipt(
+    input: &[u8],
+    receipt: &DimacsMcfImportReceipt,
+) -> Result<(), DimacsMcfParseError> {
+    if receipt.schema_version != DIMACS_MCF_IMPORT_RECEIPT_SCHEMA {
+        return Err(DimacsMcfParseError::new(
+            0,
+            "unsupported DIMACS MCF import receipt schema",
+        ));
+    }
+    if receipt.parser_version != DIMACS_MCF_PARSER_VERSION {
+        return Err(DimacsMcfParseError::new(
+            0,
+            "DIMACS MCF parser version mismatch",
+        ));
+    }
+    if receipt.claim_ceiling != DIMACS_MCF_IMPORT_CLAIM_CEILING {
+        return Err(DimacsMcfParseError::new(
+            0,
+            "DIMACS MCF import claim ceiling mismatch",
+        ));
+    }
+    let max_input_bytes = usize::try_from(receipt.limits.max_input_bytes).map_err(|_| {
+        DimacsMcfParseError::new(0, "recorded input-byte limit does not fit usize")
+    })?;
+    let limits = ImportLimits {
+        max_nodes: receipt.limits.max_nodes,
+        max_arcs: receipt.limits.max_arcs,
+        max_input_bytes,
+        max_working_bytes: receipt.limits.max_working_bytes,
+    };
+    let parsed = parse_dimacs_mcf(input, limits)?;
+    if parsed.import_receipt() != *receipt {
+        return Err(DimacsMcfParseError::new(
+            0,
+            "DIMACS MCF import receipt does not match the exact raw input",
+        ));
+    }
+    Ok(())
 }
 
 /// Parse one DIMACS minimum-cost-flow instance.
@@ -511,6 +626,7 @@ pub fn parse_dimacs_mcf(
         nonzero_supply_record_count: supply_records,
         raw_input_bytes: input.len(),
         estimated_primary_allocation_bytes: estimated_allocation,
+        limits,
         raw_sha256,
         canonical_sha256: String::new(),
         total_supply,
@@ -692,6 +808,49 @@ mod tests {
         )
         .unwrap_err();
         assert!(bytes.message.contains("input byte length"));
+    }
+
+    #[test]
+    fn portable_import_receipt_round_trips_and_rejects_unknown_fields() {
+        let instance = parse(VALID_PARALLEL).unwrap();
+        let receipt = instance.import_receipt();
+        let bytes = serde_json::to_vec(&receipt).unwrap();
+        let decoded: DimacsMcfImportReceipt = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(decoded, receipt);
+        verify_dimacs_mcf_import_receipt(VALID_PARALLEL.as_bytes(), &decoded).unwrap();
+
+        let mut unknown = serde_json::to_value(&receipt).unwrap();
+        unknown["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<DimacsMcfImportReceipt>(unknown).is_err());
+    }
+
+    #[test]
+    fn import_receipt_binds_raw_bytes_and_canonical_model_separately() {
+        let original = parse(VALID_PARALLEL).unwrap().import_receipt();
+        let with_comment = format!("c added provenance comment\n{VALID_PARALLEL}");
+        let parsed_with_comment = parse(&with_comment).unwrap();
+        let comment_receipt = parsed_with_comment.import_receipt();
+        assert_ne!(original.raw_sha256, comment_receipt.raw_sha256);
+        assert_eq!(original.canonical_sha256, comment_receipt.canonical_sha256);
+        assert!(
+            verify_dimacs_mcf_import_receipt(with_comment.as_bytes(), &original)
+                .unwrap_err()
+                .message
+                .contains("does not match")
+        );
+    }
+
+    #[test]
+    fn published_import_receipt_schema_is_valid_and_versioned() {
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/dimacs-mcf-import-receipt-v0.1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            schema["properties"]["schema_version"]["const"],
+            DIMACS_MCF_IMPORT_RECEIPT_SCHEMA
+        );
+        assert_eq!(schema["additionalProperties"], false);
     }
 
     #[test]
