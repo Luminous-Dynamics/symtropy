@@ -1327,10 +1327,14 @@ mod tests {
     #[test]
     fn graph_depth_limit_fails_closed_without_unbounded_recursion() {
         let mut input = sample_input();
+        let chain_len = MAX_GRAPH_DEPTH + 3;
         input.claim.requirements[0].evidence_ref = "evidence:chain-0".to_owned();
         input.claim.requirements[0].expected_record_sha256 = digest('a');
-        let mut chain = Vec::new();
-        for index in 0..=MAX_GRAPH_DEPTH + 2 {
+        input.claim.requirements[0].role = "chain".to_owned();
+        input.claim.requirements[0].uncertainty_budget_ref =
+            "uncertainty:evidence:chain-0".to_owned();
+        let mut chain = Vec::with_capacity(chain_len);
+        for index in 0..chain_len {
             let character = char::from_u32('a' as u32 + (index % 20) as u32).unwrap();
             let mut record = evidence_record(
                 &format!("evidence:chain-{index}"),
@@ -1341,7 +1345,7 @@ mod tests {
                 "scope:hot-static",
                 100,
             );
-            if index < MAX_GRAPH_DEPTH + 2 {
+            if index + 1 < chain_len {
                 let next_character =
                     char::from_u32('a' as u32 + ((index + 1) % 20) as u32).unwrap();
                 record.dependencies.push(DependencyBinding {
@@ -1351,8 +1355,10 @@ mod tests {
             }
             chain.push(record);
         }
+        assert_eq!(chain.len(), chain_len);
         input.evidence_records = chain;
         let report = evaluate(&input).unwrap();
+        assert_eq!(report.reached_evidence_refs.len(), MAX_GRAPH_DEPTH + 1);
         assert!(has_code(&report, "DEPENDENCY_GRAPH_DEPTH_LIMIT_EXCEEDED"));
     }
 
