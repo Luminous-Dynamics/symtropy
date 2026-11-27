@@ -332,7 +332,6 @@ fn preflight(
     Ok(estimate)
 }
 
-
 /// Reparse the exact raw input with the recorded admission limits and compare
 /// every import-summary field. This validates receipt/input correspondence;
 /// it is not an independent MCF solver or an independent parser implementation.
