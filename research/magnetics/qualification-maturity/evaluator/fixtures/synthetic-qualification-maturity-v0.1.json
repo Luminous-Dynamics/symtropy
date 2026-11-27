@@ -1,0 +1,33 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-QUALIFICATION-MATURITY-001",
+  "claim_ceiling": "Every receipt in this fixture is synthetic. The expected M5 label is only a known-answer test of graph semantics and is not process qualification, standard conformity or evidence of route performance.",
+  "candidate": {
+    "candidate_id": "CANDIDATE-001",
+    "scope": {
+      "application_id": "ENCODER-80MM-001",
+      "route_family": "MEX",
+      "route_revision": "MEX-v1",
+      "material_family": "NdFeB",
+      "product_form": "polymer-bonded",
+      "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "component_id": "COMP-001",
+    "pbf_lb_equipment_qualification_required": false,
+    "replication_policy": {
+      "minimum_independent_builds": 3,
+      "minimum_distinct_material_lots": 2,
+      "policy_id": "REPLICATION-v1",
+      "policy_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  "receipts": [],
+  "expected": {
+    "derived_level": "M1",
+    "supported_levels": [
+      "M1"
+    ]
+  }
+}
