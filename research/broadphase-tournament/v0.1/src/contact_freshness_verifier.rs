@@ -1559,4 +1559,64 @@ mod tests {
         assert_eq!(report.warm_start_reuses, 0);
     }
 
+
+    #[test]
+    fn receipt_replay_accepts_response_policy_reset_without_geometry_refresh() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
+        receipt.current_global.contact_response_policy_sha256 = [46; 32];
+
+        let mut delta = PairDeltaFrame::default();
+        delta.revalidated.push(pair);
+        receipt.producer_plan = super::super::contact_freshness::plan_contact_lifecycle(
+            &delta,
+            &receipt.previous_contact_stamps,
+            receipt.current_global,
+            &receipt.current_endpoints,
+        )
+        .expect("response policy change requests a warm-start refresh");
+
+        let previous = receipt.previous_contact_stamps[&pair].clone();
+        let committed = previous
+            .commit_transition(
+                receipt.current_global,
+                endpoint(1),
+                endpoint(2),
+                false,
+                true,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [47; 32],
+                    ..payload()
+                },
+            )
+            .expect("response-policy warm-start reset completed");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+
+        let report = verify_contact_lifecycle_receipt(&receipt)
+            .expect("response policy replay verifies");
+        assert_eq!(report.revalidated_pairs, 1);
+        assert_eq!(report.geometry_reuses, 1);
+        assert_eq!(report.warm_start_reuses, 0);
+    }
+
+    #[test]
+    fn receipt_replay_rejects_omitted_response_policy_revalidation() {
+        let (mut receipt, _, _) = receipt_fixture(false);
+        receipt.current_global.contact_response_policy_sha256 = [48; 32];
+        receipt.producer_plan.actions.clear();
+        assert!(matches!(
+            verify_contact_lifecycle_receipt(&receipt),
+            Err(ContactLifecycleReceiptVerificationError::Plan(
+                ContactLifecycleVerificationError::ActionCountMismatch {
+                    expected: 1,
+                    actual: 0,
+                }
+            ))
+        ));
+    }
+
+
 }
