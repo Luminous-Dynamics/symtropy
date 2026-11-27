@@ -40,7 +40,7 @@ ac_winding_loss = { unit = "W", direction = "minimize", hard_max_required = true
 dielectric_margin = { unit = "ratio", direction = "maximize", hard_min_required = true }
 coolant_pressure_drop = { unit = "kPa", direction = "minimize", hard_max_required = true }
 pump_input_power = { unit = "W", direction = "minimize", hard_max_required = true }
-leak_rate = { unit = "mL_per_hour", direction = "minimize", hard_max_required = true }
+leak_rate = { unit = "mL/h", direction = "minimize", hard_max_required = true }
 thermal_cycle_survival = { unit = "cycles", direction = "maximize", hard_min_required = true }
 
 [benefit_metrics]
