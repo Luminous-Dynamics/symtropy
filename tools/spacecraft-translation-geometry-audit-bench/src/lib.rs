@@ -300,10 +300,10 @@ fn component_count(mask: &[bool], width: usize, height: usize) -> u32 {
             let x = current % width;
             let y = current / width;
             let neighbors = [
-                (x > 0).then_some(current - usize::from(x > 0)),
-                (x + 1 < width).then_some(current + 1),
-                (y > 0).then_some(current - width),
-                (y + 1 < height).then_some(current + width),
+                if x > 0 { Some(current - 1) } else { None },
+                if x + 1 < width { Some(current + 1) } else { None },
+                if y > 0 { Some(current - width) } else { None },
+                if y + 1 < height { Some(current + width) } else { None },
             ];
             for neighbor in neighbors.into_iter().flatten() {
                 if mask[neighbor] && !visited[neighbor] {
@@ -418,6 +418,9 @@ fn validate_frame(frame: &FrameAnnotations) -> Result<(), String> {
     if frame.landmarks.is_empty() || frame.masks.is_empty() {
         return Err("every frame requires at least one landmark and one mask".to_owned());
     }
+    if metadata.unit_kind != metadata.scope.unit_kind {
+        return Err("frame unit_kind differs from scope unit_kind".to_owned());
+    }
 
     let mut landmark_ids = BTreeSet::new();
     for landmark in &frame.landmarks {
@@ -429,6 +432,9 @@ fn validate_frame(frame: &FrameAnnotations) -> Result<(), String> {
     for mask in &frame.masks {
         if !valid_text(&mask.region_id) || !mask_ids.insert(mask.region_id.as_str()) {
             return Err("empty or duplicate mask identity".to_owned());
+        }
+        if mask.iou_floor_bps < metadata.scope.default_mask_iou_floor_bps {
+            return Err("per-region IoU floor is below the declared scope floor".to_owned());
         }
     }
     Ok(())
@@ -656,6 +662,8 @@ pub fn audit_manifest(frames: &[FrameAnnotations]) -> Result<AuditReceipt, Strin
         let mut unit_reasons = BTreeSet::new();
         if temporal.is_some_and(|value| value > temporal_limit) {
             unit_reasons.insert("TEMPORAL_MOTION_RESIDUAL_EXCEEDED".to_owned());
+        } else if unit_frames[0].metadata.scope.unit_frame_budget > 1 && temporal.is_none() {
+            unit_reasons.insert("NO_VISIBLE_LANDMARK_TRAJECTORY_FOR_TEMPORAL_AUDIT".to_owned());
         }
         if frame_scores.iter().any(|score| score.disposition != "PASS_GEOMETRY_PRESERVATION") {
             unit_reasons.insert("ONE_OR_MORE_FRAMES_FAILED_GEOMETRY_PRESERVATION".to_owned());
@@ -713,7 +721,7 @@ pub fn audit_manifest(frames: &[FrameAnnotations]) -> Result<AuditReceipt, Strin
 #[cfg(test)]
 mod tests {
     use super::{
-        AuditReceipt, CropState, FrameAnnotations, FrameMetadata, LandmarkPair, MaskPair,
+        CropState, FrameAnnotations, FrameMetadata, LandmarkPair, MaskPair,
         ScopeKey, UnitKind, Visibility, audit_manifest,
     };
 
@@ -815,10 +823,6 @@ mod tests {
         ]
     }
 
-    fn first_result(receipt: AuditReceipt) -> AuditReceipt {
-        receipt
-    }
-
     #[test]
     fn photometric_only_positive_control_passes_all_frames_and_sequence() {
         let receipt = audit_manifest(&clean_unit("SEQ-001")).expect("valid annotation manifest");
@@ -862,8 +866,7 @@ mod tests {
     fn mask_iou_below_floor_blocks_frame() {
         let mut frames = clean_unit("SEQ-005");
         frames[1].masks[1].translated_mask_hex = {
-            let mut bits = vec![0_u8; 256];
-            bits.iter_mut().take(256).for_each(|value| *value = 0);
+            let bits = vec![0_u8; 256];
             bits.iter().map(|nibble| char::from_digit(u32::from(*nibble), 16).unwrap()).collect()
         };
         let receipt = audit_manifest(&frames).expect("well-formed mask annotations");
@@ -874,7 +877,7 @@ mod tests {
     fn topology_change_blocks_even_when_iou_might_be_high() {
         let mut frames = clean_unit("SEQ-006");
         let mut split = mask_32x32().into_bytes();
-        split[8 * 32 / 4 + 8 / 4] = b'0';
+        split[0] = b'1';
         frames[1].masks[0].translated_mask_hex = String::from_utf8(split).unwrap();
         let receipt = audit_manifest(&frames).expect("valid mask encoding");
         let mask = receipt.results[0].frames[1]
