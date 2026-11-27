@@ -18,6 +18,9 @@ generic_material_label_proves_route_eligibility = false
 [mass_balance]
 unit = "mg"
 input_output_intervals_required = true
+source_lot_mass_requires_digest_record = true
+stage_input_mass_requires_digest_record = true
+source_stage_intervals_must_overlap = true
 unknown_loss_may_be_counted_as_recovered = false
 mass_balance_may_be_forced_closed_by_normalization = false
 elemental_balance_requires_method_scoped_assay = true
