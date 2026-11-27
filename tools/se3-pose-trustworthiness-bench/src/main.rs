@@ -1,5 +1,5 @@
 use se3_pose_trustworthiness_bench::{
-    ComputeState, EvaluationDisposition, EvaluationSummary, PoseDecision, PoseInput, PoseResult,
+    ComputeState, EvaluationSummary, PoseDecision, PoseInput, PoseResult,
     RECEIPT_SCHEMA, evaluate_manifest, summarize,
 };
 use std::collections::BTreeSet;
