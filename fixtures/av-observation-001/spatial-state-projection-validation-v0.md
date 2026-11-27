@@ -169,3 +169,17 @@ The checked-in [transform vector file](./spatial-state-projection-v0.transform-v
 - six negative adapter/lineage cases.
 
 The vector file is a test fixture specification. No Rust adapter test has run yet. The validation work should implement an independent reference transform, not merely call the same conversion function for both expected and actual values.
+
+
+## 8. Digest algorithm identity
+
+Symthaea #498/#520 distinguish the upstream admitted content digest from the derived spatial-statement/projection digest, and allow source digest algorithms to be explicit. A 64-character lowercase hexadecimal string does not identify its algorithm.
+
+The projection therefore uses:
+- **ContentDigest** objects with explicit algorithm (sha256 or blake3) and 64 lowercase hex value for raw source artifacts and calibration-state references.
+- SHA-256 64-lowercase-hex for this schema's canonical projection/evidence-prefix/producer-revision/parent-projection digest fields, matching the declared Symtropy #1587 wire convention.
+- Clock-transform digests follow their resolved #621 digest identity; the runtime resolver must not infer algorithm from length and must normalize only through an explicit typed adapter if a SHA-256-only field is retained.
+
+The validator must recompute each digest over the exact source representation agreed by its owner. The artifact digest is not the spatial projection digest; a source payload interpreted with a different pose/frame/clock/calibration/profile yields a different spatial statement.
+
+Do not silently convert BLAKE3 to SHA-256 and discard the upstream digest. If a downstream manifest requires SHA-256, preserve both source identity and derived artifact identity with an explicit derivation record.
