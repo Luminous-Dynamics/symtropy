@@ -163,12 +163,16 @@ fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
 
     let timely_hybrid = plans
         .iter()
-        .find(|(id, plan)| plan.feasible
-            && id.contains("A-LOCAL@REGIONAL")
-            && id.contains("B-IMPORT@IMPORTED"))
+        .find(|(id, plan)| {
+            plan.feasible
+                && id.contains("A-LOCAL@REGIONAL")
+                && id.contains("B-IMPORT@IMPORTED")
+        })
         .map(|(id, _)| id)
         .expect("timely hybrid exists");
-    let timely = report.cohorts.iter()
+    let timely = report
+        .cohorts
+        .iter()
         .find(|cohort| &cohort.cohort_id == timely_hybrid)
         .expect("timely hybrid has a service result");
     assert_eq!(timely.on_time_quantity, 10);
