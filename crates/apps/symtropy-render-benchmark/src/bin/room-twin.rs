@@ -26,13 +26,18 @@ enum WorldVariant {
 
 impl WorldVariant {
     fn from_env() -> Result<Self, String> {
-        match env::var("SYMTROPY_ROOM_TWIN_VARIANT").as_deref() {
-            Ok("A") => Ok(Self::AOpen),
-            Ok("B") => Ok(Self::BClosed),
-            Ok(other) => Err(format!(
-                "SYMTROPY_ROOM_TWIN_VARIANT must be A or B, got {other:?}"
-            )),
-            Err(_) => Err("SYMTROPY_ROOM_TWIN_VARIANT must be set to A or B".to_owned()),
+        let value = env::var("SYMTROPY_ROOM_TWIN_VARIANT")
+            .map_err(|_| "SYMTROPY_ROOM_TWIN_VARIANT must be set to A or B".to_owned())?;
+        Self::from_value(&value).ok_or_else(|| {
+            format!("SYMTROPY_ROOM_TWIN_VARIANT must be A or B, got {value:?}")
+        })
+    }
+
+    fn from_value(value: &str) -> Option<Self> {
+        match value {
+            "A" => Some(Self::AOpen),
+            "B" => Some(Self::BClosed),
+            _ => None,
         }
     }
 
@@ -63,6 +68,8 @@ struct CameraRail {
 fn camera_rail() -> CameraRail {
     let corridor_view =
         Transform::from_xyz(0.0, 1.65, -7.0).looking_at(Vec3::new(0.0, 1.65, 8.0), Vec3::Y);
+    let corridor_hold =
+        Transform::from_xyz(0.0, 1.65, -7.0).looking_at(Vec3::new(0.0, 1.65, 8.0), Vec3::Y);
     let corridor_exit =
         Transform::from_xyz(0.0, 1.65, 2.0).looking_at(Vec3::new(0.0, 1.65, 8.0), Vec3::Y);
     let inner_room =
@@ -74,7 +81,7 @@ fn camera_rail() -> CameraRail {
         waypoints: vec![
             CameraWaypoint {
                 at_secs: 0.0,
-                transform: corridor_view,
+                transform: corridor_hold,
             },
             CameraWaypoint {
                 at_secs: 4.5,
@@ -101,7 +108,11 @@ fn camera_pose_at(rail: &CameraRail, elapsed_secs: f32) -> Transform {
         return Transform::IDENTITY;
     };
     if elapsed_secs <= first.at_secs {
-        return first.transform;
+        return Transform {
+            translation: first.transform.translation,
+            rotation: first.transform.rotation,
+            scale: first.transform.scale,
+        };
     }
 
     for pair in rail.waypoints.windows(2) {
@@ -124,10 +135,12 @@ fn camera_pose_at(rail: &CameraRail, elapsed_secs: f32) -> Transform {
         }
     }
 
-    rail.waypoints
-        .last()
-        .expect("non-empty rail")
-        .transform
+    let last = rail.waypoints.last().expect("non-empty rail");
+    Transform {
+        translation: last.transform.translation,
+        rotation: last.transform.rotation,
+        scale: last.transform.scale,
+    }
 }
 
 fn main() {
@@ -327,11 +340,12 @@ fn setup_scene(
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.72, -0.62, 0.0)),
     ));
 
-    let initial = camera_rail()
-        .waypoints
-        .first()
-        .expect("camera rail has an initial pose")
-        .transform;
+    let first_pose = &camera_rail().waypoints[0].transform;
+    let initial = Transform {
+        translation: first_pose.translation,
+        rotation: first_pose.rotation,
+        scale: first_pose.scale,
+    };
     commands.spawn((Camera3d::default(), initial, TwinCamera));
 }
 
@@ -342,7 +356,11 @@ fn move_camera_on_rail(
 ) {
     let pose = camera_pose_at(&rail, time.elapsed_secs());
     for mut transform in &mut cameras {
-        *transform = pose;
+        *transform = Transform {
+            translation: pose.translation,
+            rotation: pose.rotation,
+            scale: pose.scale,
+        };
     }
 }
 
