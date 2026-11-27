@@ -10,9 +10,7 @@ use crate::beneficiary_floors::{
     BeneficiaryFloor, BeneficiaryFloorReport, FLOOR_FEASIBILITY_SCHEMA,
     verify_beneficiary_floor_report,
 };
-use crate::temporal_profile::{
-    TEMPORAL_PROFILE_SCHEMA, TemporalProfile, TemporalService, TemporalTransfer,
-};
+use crate::temporal_profile::{TEMPORAL_PROFILE_SCHEMA, TemporalProfile};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use single_commodity_flow_kernel::{CutEdge, FlowCertificateBundle, FlowEdge};
@@ -127,9 +125,8 @@ fn service_edge_id(service_id: &str) -> String {
 }
 
 fn metadata_kind(edge: &FlowEdge, kind: &str) -> bool {
-    edge.metadata_ref.as_deref().is_some_and(|metadata| {
-        metadata.starts_with(&format!("{TEMPORAL_PROFILE_SCHEMA}/{kind}/"))
-    })
+    edge.metadata_ref.as_deref()
+        == Some(format!("{TEMPORAL_PROFILE_SCHEMA}/{kind}/{}", edge.id).as_str())
 }
 
 fn auxiliary_graph_digest(bundle: &FlowCertificateBundle) -> Result<String, String> {
@@ -142,6 +139,7 @@ fn auxiliary_graph_digest(bundle: &FlowCertificateBundle) -> Result<String, Stri
 
 fn base_edge_attribution(
     profile: &TemporalProfile,
+    floors: &[BeneficiaryFloor],
     base_edge: &FlowEdge,
 ) -> Result<EdgeAttribution, String> {
     let service_by_edge = profile
@@ -157,6 +155,14 @@ fn base_edge_attribution(
                 base_edge.id
             ));
         }
+        let floor = floors
+            .iter()
+            .find(|floor| floor.service_id == service.service_id)
+            .ok_or_else(|| format!("base service edge {} has no declared floor", base_edge.id))?;
+        let residual_capacity = base_edge
+            .capacity
+            .checked_sub(floor.minimum_required_quantity)
+            .ok_or_else(|| format!("base service edge {} has floor above request", base_edge.id))?;
         return Ok(EdgeAttribution {
             family: FloorCutConstraintFamily::BeneficiaryRequestCeilingResidual,
             original_edge_id: Some(base_edge.id.clone()),
@@ -308,15 +314,15 @@ fn node_for_balance_edge(
     let declared_node = metadata
         .strip_prefix(metadata_prefix)
         .ok_or_else(|| format!("balance edge {} has wrong metadata prefix", edge.id))?;
+    let period_count = profile
+        .horizon_last_period
+        .checked_add(1)
+        .ok_or_else(|| "temporal horizon overflows while attributing balance edge".to_string())?;
     let matches = profile
         .nodes
         .iter()
         .flat_map(|physical| {
             let mut ids = Vec::new();
-            let period_count = profile
-        .horizon_last_period
-        .checked_add(1)
-        .ok_or_else(|| "temporal horizon overflows while attributing balance edge".to_string())?;
             for period in 0..period_count {
                 ids.push(state_node_id(&physical.node_id, period));
                 ids.push(handling_node_id(&physical.node_id, period));
@@ -355,6 +361,7 @@ fn balance_node_services(profile: &TemporalProfile, node_id: &str) -> Vec<String
 
 fn attribute_cut_edge(
     profile: &TemporalProfile,
+    floors: &[BeneficiaryFloor],
     base_graph: &single_commodity_flow_kernel::FlowGraph,
     edge: &CutEdge,
 ) -> Result<SemanticCutEdge, String> {
@@ -363,14 +370,35 @@ fn attribute_cut_edge(
         .iter()
         .find(|base_edge| base_edge.id == edge.id)
     {
-        let value = base_edge_attribution(profile, base_edge)?;
+        let value = base_edge_attribution(profile, floors, base_edge)?;
+        let expected_capacity = if value.family
+            == FloorCutConstraintFamily::BeneficiaryRequestCeilingResidual
+        {
+            base_edge
+                .capacity
+                .checked_sub(
+                    floors
+                        .iter()
+                        .find(|floor| {
+                            value.related_service_ids.first()
+                                == Some(&floor.service_id)
+                        })
+                        .ok_or_else(|| {
+                            format!("service cut edge {} has no matching floor", edge.id)
+                        })?
+                        .minimum_required_quantity,
+                )
+                .ok_or_else(|| format!("service cut edge {} has invalid lower bound", edge.id))?
+        } else {
+            base_edge.capacity
+        };
         if edge.from != base_edge.from
             || edge.to != base_edge.to
-            || edge.capacity != base_edge.capacity
+            || edge.capacity != expected_capacity
             || edge.metadata_ref != base_edge.metadata_ref
         {
             return Err(format!(
-                "cut edge {} does not match its original graph edge",
+                "cut edge {} does not match its original graph edge and lower-bound residual",
                 edge.id
             ));
         }
