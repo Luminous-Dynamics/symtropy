@@ -7,6 +7,7 @@ on:
       - research/safrb-time-expanded-adapter-v0
       - research/safrb-temporal-semantics-v0
       - research/dimacs-mcf-input-v0
+      - research/dimacs-mcf-certificate-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
