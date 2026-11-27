@@ -1,4 +1,5 @@
 CFI_SPACE_SYNTHETIC_NON_IMAGE_PAYLOAD_V1
 episode=episode-a-extrinsics
-frame=0;sequence=0;timestamp_us=1000000;payload=frame-zero
-frame=1;sequence=1;timestamp_us=1033333;payload=frame-one
+frame_budget=2;expected_frame_count=2;first_sequence=0;horizon_us=50000
+frame=0;frame_id=episode-a-extrinsics-frame-0;sequence=0;timestamp_us=1000000;modalities=rgb,event;payload=frame-zero
+frame=1;frame_id=episode-a-extrinsics-frame-1;sequence=1;timestamp_us=1033333;modalities=rgb,event;payload=frame-one
