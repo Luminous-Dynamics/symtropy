@@ -1196,6 +1196,14 @@ mod tests {
     }
 
     #[test]
+    fn obligation_must_reference_the_declared_beneficiary_service_node() {
+        let mut input = scenario();
+        input["service_obligations"][0]["node_id"] =
+            Value::String("missing-beneficiary-service-node".into());
+        assert!(evaluate_scenario(&input).is_err());
+    }
+
+    #[test]
     fn unlisted_beneficiary_service_nodes_are_rejected() {
         let mut input = scenario();
         input["nodes"].as_array_mut().unwrap().push(serde_json::json!({
