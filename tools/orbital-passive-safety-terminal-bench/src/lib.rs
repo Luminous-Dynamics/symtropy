@@ -154,7 +154,10 @@ fn result(
         bounds_provider_revision: case.bounds.provider_revision.clone(),
         bounds_receipt_sha256: case.bounds.receipt_sha256.clone(),
         bounds_state: case.bounds.state,
-        period_witness_id: case.period_witness.as_ref().map(|witness| witness.horizon_id.clone()),
+        period_witness_id: case
+            .period_witness
+            .as_ref()
+            .map(|witness| witness.horizon_id.clone()),
         period_witness_receipt_sha256: case
             .period_witness
             .as_ref()
@@ -661,16 +664,25 @@ mod tests {
         assert_eq!(result.scope, value.scope);
         assert_eq!(result.terminal_epoch_tai_ns, value.terminal_epoch_tai_ns);
         assert_eq!(result.bounds_provider_id, value.bounds.provider_id);
-        assert_eq!(result.bounds_provider_revision, value.bounds.provider_revision);
+        assert_eq!(
+            result.bounds_provider_revision,
+            value.bounds.provider_revision
+        );
         assert_eq!(result.bounds_receipt_sha256, value.bounds.receipt_sha256);
         assert_eq!(result.bounds_state, value.bounds.state);
         assert_eq!(
             result.period_witness_id.as_deref(),
-            value.period_witness.as_ref().map(|witness| witness.horizon_id.as_str())
+            value
+                .period_witness
+                .as_ref()
+                .map(|witness| witness.horizon_id.as_str())
         );
         assert_eq!(
             result.period_witness_receipt_sha256.as_deref(),
-            value.period_witness.as_ref().map(|witness| witness.receipt_sha256.as_str())
+            value
+                .period_witness
+                .as_ref()
+                .map(|witness| witness.receipt_sha256.as_str())
         );
     }
 }
