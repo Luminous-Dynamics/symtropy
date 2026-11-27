@@ -1,0 +1,16 @@
+[package]
+name = "magnetic-phasor-margin"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Branch-cut-free interval phase acceptance margins for magnetic encoders"
+
+[dependencies]
+magnetic-interval-ad = { path = "../interval-ad" }
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
