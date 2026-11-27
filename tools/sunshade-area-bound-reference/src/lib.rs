@@ -317,6 +317,107 @@ mod tests {
         assert!(evaluate_projected_mask_area_bound(invalid).is_err());
     }
 
+    fn independent_circle_overlap_area(first_radius: f64, second_radius: f64, separation: f64) -> f64 {
+        if separation >= first_radius + second_radius {
+            return 0.0;
+        }
+        if separation <= (first_radius - second_radius).abs() {
+            return std::f64::consts::PI * first_radius.min(second_radius).powi(2);
+        }
+
+        let first_cosine = ((separation.powi(2) + first_radius.powi(2)
+            - second_radius.powi(2))
+            / (2.0 * separation * first_radius))
+            .clamp(-1.0, 1.0);
+        let second_cosine = ((separation.powi(2) + second_radius.powi(2)
+            - first_radius.powi(2))
+            / (2.0 * separation * second_radius))
+            .clamp(-1.0, 1.0);
+        let radicand = (-separation + first_radius + second_radius)
+            * (separation + first_radius - second_radius)
+            * (separation - first_radius + second_radius)
+            * (separation + first_radius + second_radius);
+
+        first_radius.powi(2) * first_cosine.acos()
+            + second_radius.powi(2) * second_cosine.acos()
+            - 0.5 * radicand.max(0.0).sqrt()
+    }
+
+    fn integrate_disk_blockage_simpson(
+        projected_sun_radius: f64,
+        mask_radius: f64,
+        alpha: f64,
+        target_radius: f64,
+        intervals: usize,
+    ) -> f64 {
+        assert!(intervals > 0 && intervals % 2 == 0);
+        let step = target_radius / intervals as f64;
+        let sun_area = std::f64::consts::PI * projected_sun_radius.powi(2);
+        let mut weighted_sum = 0.0;
+
+        for index in 0..=intervals {
+            let target_radius_at_point = index as f64 * step;
+            let shade_plane_separation = alpha * target_radius_at_point;
+            let overlap = independent_circle_overlap_area(
+                projected_sun_radius,
+                mask_radius,
+                shade_plane_separation,
+            );
+            let blocked_fraction = overlap / sun_area;
+            let radial_integrand =
+                2.0 * std::f64::consts::PI * target_radius_at_point * blocked_fraction;
+            let weight = if index == 0 || index == intervals {
+                1.0
+            } else if index & 1 == 0 {
+                2.0
+            } else {
+                4.0
+            };
+            weighted_sum += weight * radial_integrand;
+        }
+
+        weighted_sum * step / 3.0
+    }
+
+    #[test]
+    fn independent_radial_quadrature_recovers_full_plane_integral_identity() {
+        let alpha: f64 = 0.75;
+        let projected_sun_radius: f64 = 0.2;
+        let mask_radius: f64 = 0.1;
+        let support_radius = (projected_sun_radius + mask_radius) / alpha;
+        let numerical_integral = integrate_disk_blockage_simpson(
+            projected_sun_radius,
+            mask_radius,
+            alpha,
+            support_radius,
+            20_000,
+        );
+        let exact_integral =
+            std::f64::consts::PI * mask_radius.powi(2) / alpha.powi(2);
+
+        close(numerical_integral, exact_integral, 1.0e-10);
+    }
+
+    #[test]
+    fn finite_target_quadrature_produces_a_valid_area_lower_bound() {
+        let alpha: f64 = 0.75;
+        let projected_sun_radius: f64 = 0.2;
+        let mask_radius: f64 = 0.1;
+        let finite_target_radius = 0.15;
+        let integrated_blockage = integrate_disk_blockage_simpson(
+            projected_sun_radius,
+            mask_radius,
+            alpha,
+            finite_target_radius,
+            20_000,
+        );
+        let projected_area_lower_bound = alpha.powi(2) * integrated_blockage;
+        let actual_mask_union_area = std::f64::consts::PI * mask_radius.powi(2);
+
+        assert!(projected_area_lower_bound > 0.0);
+        assert!(projected_area_lower_bound <= actual_mask_union_area * (1.0 + 1.0e-10));
+    }
+
     #[test]
     fn unrepresentable_bound_is_rejected() {
         let estimate = evaluate_projected_mask_area_bound(AreaBoundInput {
