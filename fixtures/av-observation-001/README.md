@@ -242,3 +242,11 @@ The protocol now includes a MemAct crosswalk and a seventh metadata-only matrix,
 MemAct's prepared release reports 20,000 main QA turns plus 2,000 separate Timing questions, Current/Memory/Action lanes, and up to three camera actions; Action QA is simulation-only. Its memory records link timestamped summaries to original frames and permit bounded historical RGB retrieval; action observations are not automatically persisted. The protocol separates never-observed, in-context, retained/retrievable, evicted, reacquired and invalid/unknown evidence states.
 
 Rights are mixed: original MemAct code Apache-2.0, original annotation contributions CC BY 4.0, but upstream recordings, meshes, GLBs, textures/HDRIs and derived material keep their original rights. No blanket commercial training permission is inferred. The HF card's technical validator is not a rerun of paper scores, and its native inference backend does not reproduce the paper's compact cross-call KV cache or latency; keep release validation, exact paper reproduction and independent reimplementation distinct. See https://huggingface.co/datasets/vfishc/memact and https://arxiv.org/abs/2610.17640.
+
+
+
+ 
+## Statistical observability equivalence
+
+The spatial protocol now separates deterministic exact-byte prefix equality from stochastic sensor-distribution equivalence. For stochastic observations, non-significance is not proof of equivalence: declare the feature/statistic, raw-unit margin, independent scene/session unit, power and multiplicity in advance; use TOST for scalar estimates or a preregistered bounded-distance test for distributions; cluster uncertainty at scene/session/episode level. The #7772 world-pair schema now requires this evidence before a pair can claim `distributionally_equivalent`. No existing world pair is bound or statistically qualified.
+
