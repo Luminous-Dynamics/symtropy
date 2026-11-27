@@ -85,10 +85,10 @@ The system is open-world. Missing records, unavailable observers and empty impac
 
 The full state vector is normative. A primary label is derived using the following fixed presentation precedence; all component states and all applicable reason codes remain visible:
 
-1. **REJECTED** — verified counterevidence establishes a mandatory hard-gate failure, a required identity/integrity mismatch, or an explicit authority denial under the selected policy snapshot. A `BOTH` conflict alone is not enough to claim the proposition is false.
+1. **REJECTED** — verified counterevidence establishes a mandatory hard-gate failure, a required identity/integrity mismatch, a trusted verifier returns `FAILED` for a mandatory hard gate, or an authenticated policy snapshot explicitly denies required producer authority. A `BOTH` conflict alone is not enough to claim the proposition is false.
 2. **OUT_OF_SCOPE** — the claim's declared context of use is affirmatively outside the applicable domain.
 3. **NOT_KNOWN_AT_SNAPSHOT** — evidence necessary to evaluate the claim was first received after the selected as-known cutoff.
-4. **UNVERIFIED** — required payload, producer authority, owner receipt, verifier or other trust predicate cannot be established.
+4. **UNVERIFIED** — required payload, producer authority, owner receipt or verifier result cannot be trusted or has not been run. A completed, trusted negative verification is a failure finding, not merely an absence of verification.
 5. **INCOMPLETE** — one or more mandatory obligations remain `NEITHER`, conflicting, uncollected, or dependent on incomplete/unknown observer coverage; or a material defeater remains unresolved.
 6. **REVIEWABLE_FOR_INDEPENDENT_DECISION** — every mandatory obligation is supported, in scope, authorized where required, known at the cutoff, verified, and free of unresolved material defeaters; relevant observers are complete.
 
@@ -138,7 +138,7 @@ derive_disposition(vector):
     preserve every obligation result and reason code
 
     if any mandatory hard gate has verified REFUTED_ONLY evidence
-       or a required authority predicate is explicitly DENIED:
+       or a required authority predicate is explicitly DENIED under a verified policy snapshot:
         return REJECTED
 
     if claim context is affirmatively outside its declared domain:
@@ -148,7 +148,7 @@ derive_disposition(vector):
         return NOT_KNOWN_AT_SNAPSHOT
 
     if a required trust / payload / authority predicate is UNVERIFIED
-       or its verifier FAILED:
+       or its verifier is UNVERIFIED / NOT_RUN:
         return UNVERIFIED
 
     if any mandatory proposition is NEITHER or BOTH
