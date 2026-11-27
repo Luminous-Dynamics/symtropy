@@ -12,20 +12,23 @@
 
 use crate::temporal_profile::{TemporalProfile, compile_temporal_profile};
 use crate::temporal_verify::verify_temporal_certificate;
+use serde::{Deserialize, Serialize};
 use single_commodity_flow_kernel::FlowCertificateBundle;
 use std::collections::BTreeSet;
 
 pub const SCENARIO_SET_CLAIM_CEILING: &str =
     "Maximum aggregate requested delivery within each supplied coherent synthetic scenario only; no scenario-set completeness, evidence authority, probability, beneficiary-floor guarantee, physical qualification, dispatch authority or actual service claim.";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoherentScenario {
     /// Identifier for one complete, internally coherent operating condition.
     pub scenario_id: String,
     pub profile: TemporalProfile,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoherentScenarioOutcome {
     pub scenario_id: String,
     pub case_id: String,
@@ -36,7 +39,8 @@ pub struct CoherentScenarioOutcome {
     pub certificate: FlowCertificateBundle,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoherentScenarioSetReport {
     pub scenario_set_id: String,
     /// Sorted by scenario_id, independent of input ordering.
@@ -47,7 +51,7 @@ pub struct CoherentScenarioSetReport {
     /// Maximum of the per-scenario aggregate maximum requested deliveries.
     /// This is not evidence that the maximum capacity components co-occur.
     pub maximum_scenario_maximum: u64,
-    pub claim_ceiling: &'static str,
+    pub claim_ceiling: String,
 }
 
 fn require_nonempty(value: &str, label: &str) -> Result<(), String> {
@@ -151,7 +155,7 @@ pub fn evaluate_coherent_scenario_set(
         outcomes,
         minimum_scenario_maximum,
         maximum_scenario_maximum,
-        claim_ceiling: SCENARIO_SET_CLAIM_CEILING,
+        claim_ceiling: SCENARIO_SET_CLAIM_CEILING.to_string(),
     })
 }
 
