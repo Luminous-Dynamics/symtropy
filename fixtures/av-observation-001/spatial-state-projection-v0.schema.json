@@ -161,7 +161,7 @@
           ]
         },
         "artifact_digest": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/content_digest"
         },
         "capture_support": {
           "type": "object",
@@ -349,7 +349,7 @@
           ]
         },
         "calibration_state_digest": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/content_digest"
         }
       }
     },
@@ -395,7 +395,7 @@
           "$ref": "#/$defs/vec3"
         },
         "geometry_digest": {
-          "$ref": "#/$defs/sha256"
+          "$ref": "#/$defs/content_digest"
         },
         "source_observation_refs": {
           "$ref": "#/$defs/source_refs"
@@ -630,6 +630,26 @@
       "maxItems": 4,
       "items": {
         "type": "number"
+      }
+    },
+    "content_digest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "sha256",
+            "blake3"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     }
   }
