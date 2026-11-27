@@ -89,6 +89,7 @@ The verifier reconstructs the auxiliary graph from the original temporal graph a
 ### Portable contracts
 
 - `schemas/beneficiary-floor-feasibility-input-v0.1.schema.json` defines the temporal profile plus mandatory-floor request envelope.
+- `schemas/temporal-profile-v0.1.schema.json` defines the strict temporal profile input used by both scenario and floor requests.
 - `schemas/beneficiary-floor-feasibility-v0.1.schema.json` defines the report, exact base graph, auxiliary certificate and optional allocation.
 - Rust types use strict Serde serialization/deserialization and reject unknown fields.
 - Tests cover joint feasibility, jointly impossible floors despite individual route possibility, request-ceiling violations, unknown/duplicate services, changed floors, forged allocations, strict JSON round-trip and schema-document parsing. A 250-seed bounded multi-beneficiary corpus checks the reduction against an independent physical-quantity oracle built from per-beneficiary route/issue/request limits and shared supply/handling limits; every result is then checked by the separate report verifier.
