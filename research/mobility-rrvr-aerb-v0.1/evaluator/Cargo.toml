@@ -10,6 +10,7 @@ description = "Evaluator-side AERB contract checker and post-run scorer"
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.150"
 sha2 = "=0.10.9"
+getrandom = "=0.4.3"
 
 [lib]
 path = "src/lib.rs"
