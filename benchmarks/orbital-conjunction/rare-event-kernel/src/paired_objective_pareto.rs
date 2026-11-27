@@ -899,6 +899,7 @@ fn validate_and_digest_gate(
         hasher.update(check.risk_envelope_digest);
         hasher.update(check.post_action_horizon_digest);
         hasher.update(check.risk_policy_digest);
+        hasher.update(check.total_mass_ticks.to_be_bytes());
         hash_mass(&mut hasher, check.mission_union_mass);
         hash_mass(&mut hasher, check.mission_risk_budget);
         hasher.update([u8::from(check.within_declared_finite_support_budget)]);
