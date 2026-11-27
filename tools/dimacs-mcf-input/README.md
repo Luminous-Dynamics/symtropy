@@ -64,6 +64,47 @@ assert!(instance.is_supply_balanced());
 
 The original arc ordinal and exact endpoints, bounds and costs are retained. The source line is diagnostic metadata and is not part of semantic arc equality or the serialized representation. Reparse and compare to test semantic round trips.
 
+## Independent primal/dual optimality certificates
+
+The certificate module verifies an original-space min-cost-flow witness without calling a solver. A certificate carries:
+
+- the exact certificate schema version;
+- SHA-256 of the canonical DIMACS instance;
+- one flow record per original arc, including its one-based ordinal;
+- one i128 node potential per vertex, with the zero sentinel at index zero;
+- the exact i128 objective value.
+
+The verifier checks graph binding, arc identity/order, lower and upper bounds, node conservation under the positive-supply convention, exact objective reconstruction, and dual reduced-cost conditions. For each arc u -> v with unit cost c and node potentials pi:
+
+reduced_cost(u -> v) = c + pi[u] - pi[v].
+
+Every available forward residual arc (flow < upper) and reverse residual arc (flow > lower) must have nonnegative reduced cost. Together with primal feasibility, this rules out negative-cost residual cycles and proves global optimality for the admitted single-commodity linear network instance.
+
+The certificate is checked in original DIMACS arc space. The exact original lower/upper bounds and per-arc costs remain visible, and a changed parallel-arc order changes the canonical digest. The verifier does not trust a solver status string or compare two solvers' objective values as a substitute for a proof.
+
+Example:
+
+~~~rust
+use dimacs_mcf_input::{
+    canonical_instance_sha256, verify_mcf_optimality,
+    McfArcFlow, McfOptimalityCertificate,
+    MCF_OPTIMALITY_CERTIFICATE_SCHEMA,
+};
+
+let certificate = McfOptimalityCertificate {
+    schema_version: MCF_OPTIMALITY_CERTIFICATE_SCHEMA.to_string(),
+    graph_digest: canonical_instance_sha256(&instance)?,
+    arc_flows: vec![
+        McfArcFlow { ordinal: 1, flow: 3 },
+    ],
+    node_potentials: vec![0, 0, 7],
+    objective_cost: 21,
+};
+verify_mcf_optimality(&instance, &certificate)?;
+~~~
+
+The verifier is an independent check, not a certificate generator or MCF optimizer. Solver adapters still need to obtain primal flows and dual potentials, serialize them with the instance digest, and compare objective tuples only when objectives are mathematically identical. It also does not turn multi-commodity, integer scheduling, nonlinear or process-coupled models into a single-commodity MCF problem.
+
 ## Deliberate boundaries
 
 This module does not:
