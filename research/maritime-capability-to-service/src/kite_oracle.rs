@@ -21,6 +21,7 @@ pub struct DecisionContext {
 pub struct OutcomeVector {
     pub receiver_accepted_units: u64,
     pub on_time_accepted_units: u64,
+    pub acceptance_time_unknown_units: u64,
     pub unmet_units: u64,
     pub late_accepted_units: u64,
     pub unresolved_units: u64,
@@ -36,6 +37,34 @@ pub struct OutcomeVector {
     pub decision_latency_ms: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum OutcomeDimension {
+    ReceiverAcceptedUnits,
+    OnTimeAcceptedUnits,
+    AcceptanceTimeUnknownUnits,
+    UnmetUnits,
+    LateAcceptedUnits,
+    UnresolvedUnits,
+    ProtectedFloorBreachUnitHours,
+    ServiceDeficitUnitHours,
+    TimeToMinimumViableService,
+    TimeToFullService,
+    RecoveryCostUnits,
+    EmissionsUnits,
+    RequalificationActions,
+    ReplanningInvocations,
+    PlanChurn,
+    DecisionLatencyMs,
+}
+
+/// Component-wise adverse bounds with the scenario witnessing each dimension.
+/// This is not necessarily a realizable joint scenario outcome.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdverseEnvelope {
+    pub bounds: OutcomeVector,
+    pub worst_scenario_by_dimension: BTreeMap<OutcomeDimension, String>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActionOutcome {
     pub action_id: String,
@@ -49,6 +78,9 @@ pub struct ScenarioDecision {
     pub scenario_id: String,
     pub decision_epoch: u64,
     pub context: DecisionContext,
+    /// SHA-256 of the canonical complete observable evidence state at this cutoff.
+    /// The caller must include payload commitments, rights, authority and freshness dispositions.
+    pub observable_state_digest: String,
     pub as_of: AsOfSnapshot,
     pub actions: Vec<ActionOutcome>,
 }
@@ -63,7 +95,7 @@ pub struct InformationSetKey {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct R1Policy {
     pub choices: BTreeMap<InformationSetKey, String>,
-    pub worst_case: OutcomeVector,
+    pub adverse_envelope: AdverseEnvelope,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,18 +109,21 @@ struct InformationGroup {
     common_actions: Vec<String>,
 }
 
-/// Return a deterministic information-set key from selected and currently
-/// visible evidence. Withheld records that were not yet available are excluded;
-/// records already visible but not ingested/validated remain part of the
-/// information state with their non-admissible disposition.
-///
-/// This is a grouping key, not a cryptographic evidence digest. Owner adapters
-/// must bind immutable source/vintage identities and byte digests separately.
+/// Return a deterministic information-set key from a KITE as-of snapshot and
+/// the caller-supplied SHA-256 commitment to the complete canonical observable
+/// state. The commitment must include evidence payload/value digests, rights,
+/// authority, freshness and all admissibility-relevant dispositions. This
+/// module validates its encoding and binds it into the key; the owner adapter
+/// remains responsible for computing and authenticating the committed bundle.
 pub fn information_set_key(
     decision_epoch: u64,
     snapshot: &AsOfSnapshot,
+    observable_state_digest: &str,
 ) -> InformationSetKey {
-    let mut signature = format!("cutoff={}", snapshot.decision_cutoff);
+    let mut signature = format!(
+        "cutoff={}|observable_state_sha256={observable_state_digest}",
+        snapshot.decision_cutoff
+    );
     for (logical_id, evidence) in &snapshot.selected {
         append_signature_entry(
             &mut signature,
@@ -124,6 +159,13 @@ pub fn information_set_key(
         decision_cutoff: snapshot.decision_cutoff,
         signature,
     }
+}
+
+fn is_sha256_digest(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn append_signature_entry(
@@ -182,6 +224,12 @@ pub fn solve_r1_finite(
         if decision.scenario_id.trim().is_empty() || !scenario_ids.insert(decision.scenario_id.as_str()) {
             return Err("scenario IDs must be non-empty and unique per decision slice".to_owned());
         }
+        if !is_sha256_digest(&decision.observable_state_digest) {
+            return Err(format!(
+                "{}: observable_state_digest must be 64 lowercase hexadecimal SHA-256 characters",
+                decision.scenario_id
+            ));
+        }
         if decision.context != *expected_context {
             return Err(format!(
                 "{}: scenario context differs from the frozen service obligation",
@@ -210,6 +258,7 @@ pub fn solve_r1_finite(
             let classified_acceptances = outcome
                 .on_time_accepted_units
                 .checked_add(outcome.late_accepted_units)
+                .and_then(|units| units.checked_add(outcome.acceptance_time_unknown_units))
                 .ok_or_else(|| "accepted-unit classification overflow".to_owned())?;
             let classified_service = outcome
                 .receiver_accepted_units
@@ -238,7 +287,11 @@ pub fn solve_r1_finite(
             }
         }
 
-        let key = information_set_key(decision.decision_epoch, &decision.as_of);
+        let key = information_set_key(
+            decision.decision_epoch,
+            &decision.as_of,
+            &decision.observable_state_digest,
+        );
         grouped.entry(key).or_default().push(decision);
     }
 
@@ -319,7 +372,13 @@ pub fn solve_r1_finite(
         .filter(|candidate| {
             !all_policies
                 .iter()
-                .any(|other| other != *candidate && dominates(&other.worst_case, &candidate.worst_case))
+                .any(|other| {
+                    other != *candidate
+                        && dominates(
+                            &other.adverse_envelope.bounds,
+                            &candidate.adverse_envelope.bounds,
+                        )
+                })
         })
         .cloned()
         .collect();
@@ -338,9 +397,14 @@ fn enumerate_policies(
     output: &mut Vec<R1Policy>,
 ) -> Result<(), String> {
     if index == groups.len() {
-        let mut scenario_outcomes = Vec::with_capacity(all_decisions.len());
+        let mut scenario_outcomes: Vec<(&str, OutcomeVector)> =
+            Vec::with_capacity(all_decisions.len());
         for decision in all_decisions {
-            let key = information_set_key(decision.decision_epoch, &decision.as_of);
+            let key = information_set_key(
+                decision.decision_epoch,
+                &decision.as_of,
+                &decision.observable_state_digest,
+            );
             let action_id = choices
                 .get(&key)
                 .ok_or_else(|| "R1 policy omitted an information-set action".to_owned())?;
@@ -355,12 +419,12 @@ fn enumerate_policies(
             {
                 return Err("R1 enumeration selected a non-admissible or hard-constraint-violating action".to_owned());
             }
-            scenario_outcomes.push(action.outcome.clone());
+            scenario_outcomes.push((decision.scenario_id.as_str(), action.outcome.clone()));
         }
 
         output.push(R1Policy {
             choices: choices.clone(),
-            worst_case: worst_case_vector(&scenario_outcomes)?,
+            adverse_envelope: adverse_envelope(&scenario_outcomes)?,
         });
         return Ok(());
     }
@@ -374,34 +438,89 @@ fn enumerate_policies(
     Ok(())
 }
 
-fn worst_case_vector(outcomes: &[OutcomeVector]) -> Result<OutcomeVector, String> {
-    let Some(first) = outcomes.first() else {
-        return Err("cannot calculate an empty worst-case envelope".to_owned());
+fn adverse_envelope(
+    outcomes: &[(&str, OutcomeVector)],
+) -> Result<AdverseEnvelope, String> {
+    let Some((first_scenario, first)) = outcomes.first() else {
+        return Err("cannot calculate an empty adverse envelope".to_owned());
     };
-    let mut worst = first.clone();
-
-    for outcome in outcomes.iter().skip(1) {
-        worst.receiver_accepted_units = worst.receiver_accepted_units.min(outcome.receiver_accepted_units);
-        worst.on_time_accepted_units = worst.on_time_accepted_units.min(outcome.on_time_accepted_units);
-        worst.unmet_units = worst.unmet_units.max(outcome.unmet_units);
-        worst.late_accepted_units = worst.late_accepted_units.max(outcome.late_accepted_units);
-        worst.unresolved_units = worst.unresolved_units.max(outcome.unresolved_units);
-        worst.protected_floor_breach_unit_hours = worst
-            .protected_floor_breach_unit_hours
-            .max(outcome.protected_floor_breach_unit_hours);
-        worst.service_deficit_unit_hours = worst.service_deficit_unit_hours.max(outcome.service_deficit_unit_hours);
-        worst.time_to_minimum_viable_service = worst
-            .time_to_minimum_viable_service
-            .max(outcome.time_to_minimum_viable_service);
-        worst.time_to_full_service = worst.time_to_full_service.max(outcome.time_to_full_service);
-        worst.recovery_cost_units = worst.recovery_cost_units.max(outcome.recovery_cost_units);
-        worst.emissions_units = worst.emissions_units.max(outcome.emissions_units);
-        worst.requalification_actions = worst.requalification_actions.max(outcome.requalification_actions);
-        worst.replanning_invocations = worst.replanning_invocations.max(outcome.replanning_invocations);
-        worst.plan_churn = worst.plan_churn.max(outcome.plan_churn);
-        worst.decision_latency_ms = worst.decision_latency_ms.max(outcome.decision_latency_ms);
+    let mut bounds = first.clone();
+    let mut witnesses = BTreeMap::new();
+    for dimension in [
+        OutcomeDimension::ReceiverAcceptedUnits,
+        OutcomeDimension::OnTimeAcceptedUnits,
+        OutcomeDimension::AcceptanceTimeUnknownUnits,
+        OutcomeDimension::UnmetUnits,
+        OutcomeDimension::LateAcceptedUnits,
+        OutcomeDimension::UnresolvedUnits,
+        OutcomeDimension::ProtectedFloorBreachUnitHours,
+        OutcomeDimension::ServiceDeficitUnitHours,
+        OutcomeDimension::TimeToMinimumViableService,
+        OutcomeDimension::TimeToFullService,
+        OutcomeDimension::RecoveryCostUnits,
+        OutcomeDimension::EmissionsUnits,
+        OutcomeDimension::RequalificationActions,
+        OutcomeDimension::ReplanningInvocations,
+        OutcomeDimension::PlanChurn,
+        OutcomeDimension::DecisionLatencyMs,
+    ] {
+        witnesses.insert(dimension, (*first_scenario).to_owned());
     }
-    Ok(worst)
+
+    macro_rules! adverse_min {
+        ($field:ident, $dimension:ident, $scenario:expr) => {{
+            let current_witness = witnesses
+                .get(&OutcomeDimension::$dimension)
+                .map(String::as_str)
+                .unwrap_or(first_scenario);
+            if $scenario.1.$field < bounds.$field
+                || ($scenario.1.$field == bounds.$field && $scenario.0 < current_witness)
+            {
+                bounds.$field = $scenario.1.$field;
+                witnesses.insert(OutcomeDimension::$dimension, $scenario.0.to_owned());
+            }
+        }};
+    }
+    macro_rules! adverse_max {
+        ($field:ident, $dimension:ident, $scenario:expr) => {{
+            let current_witness = witnesses
+                .get(&OutcomeDimension::$dimension)
+                .map(String::as_str)
+                .unwrap_or(first_scenario);
+            if $scenario.1.$field > bounds.$field
+                || ($scenario.1.$field == bounds.$field && $scenario.0 < current_witness)
+            {
+                bounds.$field = $scenario.1.$field;
+                witnesses.insert(OutcomeDimension::$dimension, $scenario.0.to_owned());
+            }
+        }};
+    }
+
+    // Lexicographic scenario-ID tie breaking makes witness selection invariant
+    // to input ordering when two scenarios share the same adverse value.
+    for scenario in outcomes.iter().skip(1) {
+        adverse_min!(receiver_accepted_units, ReceiverAcceptedUnits, scenario);
+        adverse_min!(on_time_accepted_units, OnTimeAcceptedUnits, scenario);
+        adverse_max!(acceptance_time_unknown_units, AcceptanceTimeUnknownUnits, scenario);
+        adverse_max!(unmet_units, UnmetUnits, scenario);
+        adverse_max!(late_accepted_units, LateAcceptedUnits, scenario);
+        adverse_max!(unresolved_units, UnresolvedUnits, scenario);
+        adverse_max!(protected_floor_breach_unit_hours, ProtectedFloorBreachUnitHours, scenario);
+        adverse_max!(service_deficit_unit_hours, ServiceDeficitUnitHours, scenario);
+        adverse_max!(time_to_minimum_viable_service, TimeToMinimumViableService, scenario);
+        adverse_max!(time_to_full_service, TimeToFullService, scenario);
+        adverse_max!(recovery_cost_units, RecoveryCostUnits, scenario);
+        adverse_max!(emissions_units, EmissionsUnits, scenario);
+        adverse_max!(requalification_actions, RequalificationActions, scenario);
+        adverse_max!(replanning_invocations, ReplanningInvocations, scenario);
+        adverse_max!(plan_churn, PlanChurn, scenario);
+        adverse_max!(decision_latency_ms, DecisionLatencyMs, scenario);
+    }
+
+    Ok(AdverseEnvelope {
+        bounds,
+        worst_scenario_by_dimension: witnesses,
+    })
 }
 
 /// True when left is no worse on every predeclared dimension and strictly
@@ -410,6 +529,7 @@ fn worst_case_vector(outcomes: &[OutcomeVector]) -> Result<OutcomeVector, String
 pub fn dominates(left: &OutcomeVector, right: &OutcomeVector) -> bool {
     let no_worse = left.receiver_accepted_units >= right.receiver_accepted_units
         && left.on_time_accepted_units >= right.on_time_accepted_units
+        && left.acceptance_time_unknown_units <= right.acceptance_time_unknown_units
         && left.unmet_units <= right.unmet_units
         && left.late_accepted_units <= right.late_accepted_units
         && left.unresolved_units <= right.unresolved_units
@@ -426,6 +546,7 @@ pub fn dominates(left: &OutcomeVector, right: &OutcomeVector) -> bool {
 
     let strictly_better = left.receiver_accepted_units > right.receiver_accepted_units
         || left.on_time_accepted_units > right.on_time_accepted_units
+        || left.acceptance_time_unknown_units < right.acceptance_time_unknown_units
         || left.unmet_units < right.unmet_units
         || left.late_accepted_units < right.late_accepted_units
         || left.unresolved_units < right.unresolved_units
@@ -485,6 +606,7 @@ mod tests {
         OutcomeVector {
             receiver_accepted_units: accepted,
             on_time_accepted_units: accepted,
+            acceptance_time_unknown_units: 0,
             unmet_units: 10 - accepted,
             late_accepted_units: 0,
             unresolved_units: 0,
@@ -511,10 +633,16 @@ mod tests {
     }
 
     fn decision(id: &str, snap: AsOfSnapshot, actions: Vec<ActionOutcome>) -> ScenarioDecision {
+        let digest_seed = snap
+            .selected
+            .values()
+            .map(|item| item.vintage_id.bytes().map(u64::from).sum::<u64>())
+            .sum::<u64>();
         ScenarioDecision {
             scenario_id: id.to_owned(),
             decision_epoch: 1,
             context: context(),
+            observable_state_digest: format!("{digest_seed:064x}"),
             as_of: snap,
             actions,
         }
@@ -537,8 +665,8 @@ mod tests {
             result.pareto_frontier[0].choices.values().next().map(String::as_str),
             Some("IMPORT")
         );
-        assert_eq!(result.pareto_frontier[0].worst_case.receiver_accepted_units, 9);
-        assert_eq!(result.pareto_frontier[0].worst_case.recovery_cost_units, 15);
+        assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.receiver_accepted_units, 9);
+        assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.recovery_cost_units, 15);
     }
 
     #[test]
@@ -643,6 +771,36 @@ mod tests {
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("frozen outcome contract"));
+    }
+
+    #[test]
+    fn observable_payload_commitment_separates_same_ids_with_different_values() {
+        let shared = snapshot("FEEDER-V1", 60);
+        let first = decision("S1", shared.clone(), vec![action("A", 10, 5), action("B", 9, 4)]);
+        let mut second = decision("S2", shared, vec![action("A", 9, 5), action("B", 10, 4)]);
+        second.observable_state_digest = "b".repeat(64);
+        let result = solve_r1_finite(&[first, second], 100).expect("distinct observations");
+        assert_eq!(result.candidate_policy_count, 4);
+    }
+
+    #[test]
+    fn malformed_observation_commitment_is_rejected() {
+        let mut item = decision("S1", snapshot("FEEDER-V1", 60), vec![action("A", 10, 5)]);
+        item.observable_state_digest = "not-a-digest".to_owned();
+        assert!(solve_r1_finite(&[item], 100).is_err());
+    }
+
+    #[test]
+    fn accepted_units_require_explicit_timing_classification() {
+        let mut item = action("PARTIAL-TIME", 5, 5);
+        item.outcome.on_time_accepted_units = 4;
+        item.outcome.late_accepted_units = 0;
+        item.outcome.acceptance_time_unknown_units = 0;
+        let result = solve_r1_finite(
+            &[decision("S1", snapshot("FEEDER-V1", 60), vec![item])],
+            100,
+        );
+        assert!(result.is_err());
     }
 
     #[test]
