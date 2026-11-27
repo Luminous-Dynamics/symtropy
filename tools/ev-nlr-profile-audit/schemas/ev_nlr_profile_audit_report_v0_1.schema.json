@@ -4,115 +4,324 @@
   "title": "EV NLR 15-minute depot profile audit report v0.1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["report", "report_sha256"],
+  "required": [
+    "report",
+    "report_sha256"
+  ],
   "properties": {
-    "report_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "report": { "$ref": "#/$defs/report" }
+    "report_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "report": {
+      "$ref": "#/$defs/report"
+    }
   },
   "$defs": {
     "profile_key": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["fleet_id", "fleet_size", "strategy", "profile_kind"],
+      "required": [
+        "fleet_id",
+        "fleet_size",
+        "strategy",
+        "profile_kind"
+      ],
       "properties": {
-        "fleet_id": { "enum": ["fleet1-beverage-delivery", "fleet2-warehouse-delivery", "fleet3-food-delivery"] },
-        "fleet_size": { "enum": [10, 50, 100] },
-        "strategy": { "enum": ["immediate", "delayed", "min_power"] },
-        "profile_kind": { "enum": ["avg-prof", "min-prof", "peak-prof"] }
+        "fleet_id": {
+          "enum": [
+            "fleet1-beverage-delivery",
+            "fleet2-warehouse-delivery",
+            "fleet3-food-delivery"
+          ]
+        },
+        "fleet_size": {
+          "enum": [
+            10,
+            50,
+            100
+          ]
+        },
+        "strategy": {
+          "enum": [
+            "immediate",
+            "delayed",
+            "min_power"
+          ]
+        },
+        "profile_kind": {
+          "enum": [
+            "avg-prof",
+            "min-prof",
+            "peak-prof"
+          ]
+        }
       }
     },
     "profile_summary": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "key", "file_name", "csv_sha256", "interval_count",
-        "minimum_power_kw", "mean_power_kw", "peak_power_kw", "daily_energy_kwh"
+        "key",
+        "file_name",
+        "csv_sha256",
+        "interval_count",
+        "minimum_power_kw",
+        "mean_power_kw",
+        "peak_power_kw",
+        "daily_energy_kwh"
       ],
       "properties": {
-        "key": { "$ref": "#/$defs/profile_key" },
-        "file_name": { "type": "string", "minLength": 1 },
-        "csv_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "interval_count": { "const": 96 },
-        "minimum_power_kw": { "type": "number", "minimum": 0 },
-        "mean_power_kw": { "type": "number", "minimum": 0 },
-        "peak_power_kw": { "type": "number", "minimum": 0 },
-        "daily_energy_kwh": { "type": "number", "minimum": 0 }
+        "key": {
+          "$ref": "#/$defs/profile_key"
+        },
+        "file_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "csv_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "interval_count": {
+          "const": 96
+        },
+        "minimum_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mean_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peak_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "daily_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     },
     "ordering_audit": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "fleet_id", "fleet_size", "strategy", "average_peak_kw",
-        "minimum_peak_kw", "maximum_peak_kw", "average_peak_not_above_maximum_profile"
+        "fleet_id",
+        "fleet_size",
+        "strategy",
+        "average_peak_kw",
+        "minimum_peak_kw",
+        "maximum_peak_kw",
+        "average_peak_not_above_maximum_profile"
       ],
       "properties": {
-        "fleet_id": { "enum": ["fleet1-beverage-delivery", "fleet2-warehouse-delivery", "fleet3-food-delivery"] },
-        "fleet_size": { "enum": [10, 50, 100] },
-        "strategy": { "enum": ["immediate", "delayed", "min_power"] },
-        "average_peak_kw": { "type": "number", "minimum": 0 },
-        "minimum_peak_kw": { "type": "number", "minimum": 0 },
-        "maximum_peak_kw": { "type": "number", "minimum": 0 },
-        "average_peak_not_above_maximum_profile": { "const": true }
+        "fleet_id": {
+          "enum": [
+            "fleet1-beverage-delivery",
+            "fleet2-warehouse-delivery",
+            "fleet3-food-delivery"
+          ]
+        },
+        "fleet_size": {
+          "enum": [
+            10,
+            50,
+            100
+          ]
+        },
+        "strategy": {
+          "enum": [
+            "immediate",
+            "delayed",
+            "min_power"
+          ]
+        },
+        "average_peak_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_peak_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_peak_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "average_peak_not_above_maximum_profile": {
+          "const": true
+        }
       }
     },
     "profile_comparison": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "key", "interval_count", "candidate_csv_sha256", "mean_absolute_error_kw",
-        "root_mean_squared_error_kw", "p95_absolute_error_kw", "mean_bias_kw",
-        "reference_daily_energy_kwh", "candidate_daily_energy_kwh",
-        "daily_energy_absolute_error_kwh", "daily_energy_relative_error_percent",
-        "reference_peak_kw", "candidate_peak_kw", "peak_absolute_error_kw"
+        "key",
+        "interval_count",
+        "candidate_csv_sha256",
+        "mean_absolute_error_kw",
+        "root_mean_squared_error_kw",
+        "p95_absolute_error_kw",
+        "mean_bias_kw",
+        "reference_daily_energy_kwh",
+        "candidate_daily_energy_kwh",
+        "daily_energy_absolute_error_kwh",
+        "daily_energy_relative_error_percent",
+        "reference_peak_kw",
+        "candidate_peak_kw",
+        "peak_absolute_error_kw"
       ],
       "properties": {
-        "key": { "$ref": "#/$defs/profile_key" },
-        "interval_count": { "const": 96 },
-        "candidate_csv_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "mean_absolute_error_kw": { "type": "number", "minimum": 0 },
-        "root_mean_squared_error_kw": { "type": "number", "minimum": 0 },
-        "p95_absolute_error_kw": { "type": "number", "minimum": 0 },
-        "mean_bias_kw": { "type": "number" },
-        "reference_daily_energy_kwh": { "type": "number", "minimum": 0 },
-        "candidate_daily_energy_kwh": { "type": "number", "minimum": 0 },
-        "daily_energy_absolute_error_kwh": { "type": "number", "minimum": 0 },
-        "daily_energy_relative_error_percent": { "type": "number", "minimum": 0 },
-        "reference_peak_kw": { "type": "number", "minimum": 0 },
-        "candidate_peak_kw": { "type": "number", "minimum": 0 },
-        "peak_absolute_error_kw": { "type": "number", "minimum": 0 }
+        "key": {
+          "$ref": "#/$defs/profile_key"
+        },
+        "interval_count": {
+          "const": 96
+        },
+        "candidate_csv_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "mean_absolute_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "root_mean_squared_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95_absolute_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mean_bias_kw": {
+          "type": "number"
+        },
+        "reference_daily_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "candidate_daily_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "daily_energy_absolute_error_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "daily_energy_relative_error_percent": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reference_peak_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "candidate_peak_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peak_absolute_error_kw": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     },
     "candidate_comparison": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "candidate_id", "candidate_evidence_class_declared_by_caller",
-        "profile_count", "interval_count", "mean_absolute_error_kw",
-        "root_mean_squared_error_kw", "p95_absolute_error_kw", "mean_bias_kw",
-        "total_reference_energy_kwh", "total_candidate_energy_kwh",
-        "total_energy_absolute_error_kwh", "total_energy_relative_error_percent",
-        "maximum_profile_peak_absolute_error_kw", "profile_comparisons"
+        "candidate_id",
+        "candidate_evidence_class_declared_by_caller",
+        "profile_count",
+        "interval_count",
+        "mean_absolute_error_kw",
+        "root_mean_squared_error_kw",
+        "p95_absolute_error_kw",
+        "mean_bias_kw",
+        "total_reference_energy_kwh",
+        "total_candidate_energy_kwh",
+        "maximum_profile_peak_absolute_error_kw",
+        "profile_comparisons",
+        "aggregate_energy_bias_kwh",
+        "aggregate_energy_absolute_error_kwh",
+        "aggregate_energy_relative_error_percent",
+        "sum_profile_daily_energy_absolute_error_kwh",
+        "sum_profile_daily_energy_relative_error_percent"
       ],
       "properties": {
-        "candidate_id": { "type": "string", "minLength": 1 },
-        "candidate_evidence_class_declared_by_caller": { "enum": ["estimate", "simulated"] },
-        "profile_count": { "const": 81 },
-        "interval_count": { "const": 7776 },
-        "mean_absolute_error_kw": { "type": "number", "minimum": 0 },
-        "root_mean_squared_error_kw": { "type": "number", "minimum": 0 },
-        "p95_absolute_error_kw": { "type": "number", "minimum": 0 },
-        "mean_bias_kw": { "type": "number" },
-        "total_reference_energy_kwh": { "type": "number", "minimum": 0 },
-        "total_candidate_energy_kwh": { "type": "number", "minimum": 0 },
-        "total_energy_absolute_error_kwh": { "type": "number", "minimum": 0 },
-        "total_energy_relative_error_percent": { "type": "number", "minimum": 0 },
-        "maximum_profile_peak_absolute_error_kw": { "type": "number", "minimum": 0 },
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_evidence_class_declared_by_caller": {
+          "enum": [
+            "estimate",
+            "simulated"
+          ]
+        },
+        "profile_count": {
+          "const": 81
+        },
+        "interval_count": {
+          "const": 7776
+        },
+        "mean_absolute_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "root_mean_squared_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "p95_absolute_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mean_bias_kw": {
+          "type": "number"
+        },
+        "total_reference_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "total_candidate_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_profile_peak_absolute_error_kw": {
+          "type": "number",
+          "minimum": 0
+        },
         "profile_comparisons": {
           "type": "array",
           "minItems": 81,
           "maxItems": 81,
-          "items": { "$ref": "#/$defs/profile_comparison" }
+          "items": {
+            "$ref": "#/$defs/profile_comparison"
+          }
+        },
+        "aggregate_energy_bias_kwh": {
+          "type": "number"
+        },
+        "aggregate_energy_absolute_error_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "aggregate_energy_relative_error_percent": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sum_profile_daily_energy_absolute_error_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sum_profile_daily_energy_relative_error_percent": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
@@ -120,62 +329,163 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "schema_version", "tool", "dataset_id", "dataset_doi", "catalog_uri",
-        "source_repository_uri", "source_code_revision", "source_archive_sha256_declared_by_caller",
-        "reference_archive_content_sha256", "reference_profile_count",
-        "expected_profile_count", "expected_intervals_per_profile",
-        "expected_interval_minutes", "reference_total_interval_count",
-        "fleets", "fleet_sizes", "charging_strategies", "profile_kinds",
-        "ordering_audits", "reference_profiles", "candidate_comparison",
-        "provenance_warning", "claim_ceiling"
+        "schema_version",
+        "tool",
+        "dataset_id",
+        "dataset_doi",
+        "catalog_uri",
+        "source_repository_uri",
+        "source_code_revision",
+        "source_archive_sha256_declared_by_caller",
+        "reference_archive_content_sha256",
+        "reference_profile_count",
+        "expected_profile_count",
+        "expected_intervals_per_profile",
+        "expected_interval_minutes",
+        "reference_total_interval_count",
+        "fleets",
+        "fleet_sizes",
+        "charging_strategies",
+        "profile_kinds",
+        "ordering_audits",
+        "reference_profiles",
+        "candidate_comparison",
+        "provenance_warning",
+        "claim_ceiling"
       ],
       "properties": {
-        "schema_version": { "const": "ev-nlr-profile-audit/v0.1" },
-        "tool": { "const": "ev-nlr-profile-audit" },
-        "dataset_id": { "const": "NLR-DATA-CATALOG-162" },
-        "dataset_doi": { "const": "10.7799/1787031" },
-        "catalog_uri": { "type": "string", "format": "uri" },
-        "source_repository_uri": { "type": "string", "format": "uri" },
-        "source_code_revision": { "type": "string", "minLength": 7 },
-        "source_archive_sha256_declared_by_caller": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
-        "reference_archive_content_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-        "reference_profile_count": { "const": 81 },
-        "expected_profile_count": { "const": 81 },
-        "expected_intervals_per_profile": { "const": 96 },
-        "expected_interval_minutes": { "const": 15 },
-        "reference_total_interval_count": { "const": 7776 },
+        "schema_version": {
+          "const": "ev-nlr-profile-audit/v0.1"
+        },
+        "tool": {
+          "const": "ev-nlr-profile-audit"
+        },
+        "dataset_id": {
+          "const": "NLR-DATA-CATALOG-162"
+        },
+        "dataset_doi": {
+          "const": "10.7799/1787031"
+        },
+        "catalog_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_repository_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_code_revision": {
+          "type": "string",
+          "minLength": 7
+        },
+        "source_archive_sha256_declared_by_caller": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reference_archive_content_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reference_profile_count": {
+          "const": 81
+        },
+        "expected_profile_count": {
+          "const": 81
+        },
+        "expected_intervals_per_profile": {
+          "const": 96
+        },
+        "expected_interval_minutes": {
+          "const": 15
+        },
+        "reference_total_interval_count": {
+          "const": 7776
+        },
         "fleets": {
-          "type": "array", "minItems": 3, "maxItems": 3,
-          "items": { "enum": ["fleet1-beverage-delivery", "fleet2-warehouse-delivery", "fleet3-food-delivery"] }
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "fleet1-beverage-delivery",
+              "fleet2-warehouse-delivery",
+              "fleet3-food-delivery"
+            ]
+          }
         },
         "fleet_sizes": {
-          "type": "array", "minItems": 3, "maxItems": 3,
-          "items": { "enum": [10, 50, 100] }
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              10,
+              50,
+              100
+            ]
+          }
         },
         "charging_strategies": {
-          "type": "array", "minItems": 3, "maxItems": 3,
-          "items": { "enum": ["immediate", "delayed", "min_power"] }
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "immediate",
+              "delayed",
+              "min_power"
+            ]
+          }
         },
         "profile_kinds": {
-          "type": "array", "minItems": 3, "maxItems": 3,
-          "items": { "enum": ["avg-prof", "min-prof", "peak-prof"] }
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "avg-prof",
+              "min-prof",
+              "peak-prof"
+            ]
+          }
         },
         "ordering_audits": {
-          "type": "array", "minItems": 27, "maxItems": 27,
-          "items": { "$ref": "#/$defs/ordering_audit" }
+          "type": "array",
+          "minItems": 27,
+          "maxItems": 27,
+          "items": {
+            "$ref": "#/$defs/ordering_audit"
+          }
         },
         "reference_profiles": {
-          "type": "array", "minItems": 81, "maxItems": 81,
-          "items": { "$ref": "#/$defs/profile_summary" }
+          "type": "array",
+          "minItems": 81,
+          "maxItems": 81,
+          "items": {
+            "$ref": "#/$defs/profile_summary"
+          }
         },
         "candidate_comparison": {
           "oneOf": [
-            { "$ref": "#/$defs/candidate_comparison" },
-            { "type": "null" }
+            {
+              "$ref": "#/$defs/candidate_comparison"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "provenance_warning": { "type": "string", "minLength": 1 },
-        "claim_ceiling": { "type": "string", "minLength": 1 }
+        "provenance_warning": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   }
