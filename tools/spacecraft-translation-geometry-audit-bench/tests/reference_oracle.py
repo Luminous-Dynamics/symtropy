@@ -106,7 +106,7 @@ def score_mask(row: dict[str, str], width: int, height: int) -> dict[str, object
     source_components = component_count(source, width, height)
     translated_components = component_count(translated, width, height)
     return {
-        "region_id": row["record_id"],
+        "region_id": row["region_id"],
         "intersection_pixels": intersection,
         "union_pixels": union,
         "iou_bps": iou,
