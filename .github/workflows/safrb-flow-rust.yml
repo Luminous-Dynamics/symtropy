@@ -14,6 +14,7 @@ on:
       - "tools/wpt-exact-service-oracle/**"
       - "tools/safrb-time-expanded-adapter/**"
       - "tools/dimacs-mcf-input/**"
+      - "tools/dimacs-mcf-input/**"
       - ".github/workflows/safrb-flow-rust.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
