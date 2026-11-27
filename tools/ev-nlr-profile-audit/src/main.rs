@@ -11,16 +11,14 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::ExitCode,
     sync::atomic::{AtomicU64, Ordering},
 };
 
 const SOURCE_REVISION: &str = "61530df51f6cd7d64f014ebbf8714cef24c8ca70";
-const SOURCE_URI: &str =
-    "https://github.com/NatLabRockies/hdev-depot-charging-2021";
+const SOURCE_URI: &str = "https://github.com/NatLabRockies/hdev-depot-charging-2021";
 const CATALOG_URI: &str = "https://data.nlr.gov/submissions/162";
 const DATASET_DOI: &str = "10.7799/1787031";
 const EXPECTED_INTERVALS: usize = 96;
@@ -66,10 +64,7 @@ impl ProfileKey {
     }
 
     fn label(&self) -> String {
-        format!(
-            "{}/{}/{}",
-            self.fleet_id, self.fleet_size, self.strategy
-        )
+        format!("{}/{}/{}", self.fleet_id, self.fleet_size, self.strategy)
     }
 }
 
@@ -225,9 +220,9 @@ fn expected_timestamp(index: usize) -> String {
 }
 
 fn parse_nonnegative_power(text: &str, file_name: &str, row: usize) -> Result<f64, String> {
-    let value = text.parse::<f64>().map_err(|_| {
-        format!("{file_name}: row {row}: avg_power_kw is not numeric")
-    })?;
+    let value = text
+        .parse::<f64>()
+        .map_err(|_| format!("{file_name}: row {row}: avg_power_kw is not numeric"))?;
     if !value.is_finite() || value < 0.0 {
         return Err(format!(
             "{file_name}: row {row}: avg_power_kw must be finite and non-negative"
@@ -262,9 +257,8 @@ fn read_profile(directory: &Path, key: &ProfileKey) -> Result<ProfileData, Strin
     let mut values_kw = Vec::with_capacity(EXPECTED_INTERVALS);
     for (index, record) in reader.records().enumerate() {
         let row = index + 2;
-        let record = record.map_err(|error| {
-            format!("{file_name}: row {row}: malformed CSV record: {error}")
-        })?;
+        let record = record
+            .map_err(|error| format!("{file_name}: row {row}: malformed CSV record: {error}"))?;
         if record.len() != 2 {
             return Err(format!("{file_name}: row {row}: expected two columns"));
         }
@@ -343,7 +337,10 @@ fn audit_archive(directory: &Path) -> Result<AuditedArchive, String> {
     for key in expected_keys() {
         let profile = read_profile(directory, &key)?;
         if profiles.insert(key.clone(), profile).is_some() {
-            return Err(format!("duplicate expected profile key: {}", key.file_name()));
+            return Err(format!(
+                "duplicate expected profile key: {}",
+                key.file_name()
+            ));
         }
     }
 
@@ -461,7 +458,10 @@ fn compare_archives(
             .get(key)
             .ok_or_else(|| format!("candidate missing profile {}", key.file_name()))?;
         if reference_profile.values_kw.len() != candidate_profile.values_kw.len() {
-            return Err(format!("profile interval count differs for {}", key.file_name()));
+            return Err(format!(
+                "profile interval count differs for {}",
+                key.file_name()
+            ));
         }
 
         let mut errors = Vec::with_capacity(EXPECTED_INTERVALS);
@@ -499,8 +499,7 @@ fn compare_archives(
                 key.file_name()
             ));
         };
-        let peak_absolute_error =
-            (candidate_profile.peak_kw - reference_profile.peak_kw).abs();
+        let peak_absolute_error = (candidate_profile.peak_kw - reference_profile.peak_kw).abs();
 
         reference_energy_sum += reference_profile.energy_kwh;
         candidate_energy_sum += candidate_profile.energy_kwh;
@@ -557,9 +556,7 @@ fn compare_archives(
     })
 }
 
-fn audit(
-    options: &Options,
-) -> Result<AuditEnvelope, String> {
+fn audit(options: &Options) -> Result<AuditEnvelope, String> {
     if options.source_revision.trim().is_empty() {
         return Err("source revision must not be empty".into());
     }
@@ -686,8 +683,7 @@ fn parse_options(args: &[String]) -> Result<Options, String> {
         return Err("--candidate-id must not be empty".into());
     }
     Ok(Options {
-        reference_dir: reference_dir
-            .ok_or_else(|| "--reference-dir is required".to_owned())?,
+        reference_dir: reference_dir.ok_or_else(|| "--reference-dir is required".to_owned())?,
         candidate_dir,
         output_path,
         source_revision,
@@ -772,11 +768,7 @@ mod tests {
                                 + kind_index as f64 * 1.0
                                 + index as f64 * 0.01
                                 + additive_shift_kw;
-                            content.push_str(&format!(
-                                "{},{}\n",
-                                expected_timestamp(index),
-                                base
-                            ));
+                            content.push_str(&format!("{},{}\n", expected_timestamp(index), base));
                         }
                         fs::write(path, content).expect("write profile fixture");
                     }
@@ -839,7 +831,10 @@ mod tests {
     fn rejects_timestamp_grid_drift_and_missing_profiles() {
         let directory = temporary_directory("invalid-grid");
         write_fixture_archive(&directory, 0.0);
-        let key = expected_keys().into_iter().next().expect("expected profile key");
+        let key = expected_keys()
+            .into_iter()
+            .next()
+            .expect("expected profile key");
         let path = directory.join(key.file_name());
         let source = fs::read_to_string(&path).expect("read test CSV");
         let changed = source.replacen("00:00:00,", "00:01:00,", 1);
@@ -865,7 +860,10 @@ mod tests {
 
     #[test]
     fn rejects_negative_and_non_finite_power_values() {
-        let key = expected_keys().into_iter().next().expect("expected profile key");
+        let key = expected_keys()
+            .into_iter()
+            .next()
+            .expect("expected profile key");
 
         let negative_dir = temporary_directory("negative-power");
         write_fixture_archive(&negative_dir, 0.0);
@@ -890,16 +888,19 @@ mod tests {
         fs::remove_file(candidate_dir.join(key.file_name())).expect("remove candidate profile");
         let reference = audit_archive(&reference_dir).expect("reference fixture");
         assert!(audit_archive(&candidate_dir).is_err());
-        assert!(compare_archives(
-            &reference,
-            &AuditedArchive {
-                profiles: BTreeMap::new(),
-                profile_summaries: Vec::new(),
-                archive_content_sha256: String::new(),
-            },
-            "missing",
-            "estimate",
-        ).is_err());
+        assert!(
+            compare_archives(
+                &reference,
+                &AuditedArchive {
+                    profiles: BTreeMap::new(),
+                    profile_summaries: Vec::new(),
+                    archive_content_sha256: String::new(),
+                },
+                "missing",
+                "estimate",
+            )
+            .is_err()
+        );
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
@@ -917,11 +918,7 @@ mod tests {
         let path = directory.join(key.file_name());
         let mut content = String::from("time,avg_power_kw\n");
         for index in 0..EXPECTED_INTERVALS {
-            content.push_str(&format!(
-                "{},{}\n",
-                expected_timestamp(index),
-                1.0
-            ));
+            content.push_str(&format!("{},{}\n", expected_timestamp(index), 1.0));
         }
         fs::write(path, content).expect("rewrite peak profile");
         assert!(audit_archive(&directory).is_err());
