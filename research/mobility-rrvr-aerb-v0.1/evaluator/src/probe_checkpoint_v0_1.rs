@@ -111,6 +111,8 @@ pub struct SupportUpdateReceipt {
     pub evidence_artifact_sha256: String,
     pub oracle_profile_sha256: String,
     pub derivation_receipt_sha256: String,
+    pub derivation_complete: bool,
+    pub open_world_scope_closure_receipt_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -120,6 +122,7 @@ pub struct DecisionSufficiencyReceipt {
     pub support_sha256: String,
     pub oracle_profile_sha256: String,
     pub receipt_sha256: String,
+    pub oracle_complete: bool,
     /// Supplied by the existing sequential robust-policy oracle.
     pub all_supported_worlds_share_terminal_recommendation: bool,
     /// True only when no remaining probe strictly improves the oracle's
@@ -137,6 +140,7 @@ pub struct PhysicalPathReceipt {
     pub physical_plan_sha256: String,
     pub path_profile_sha256: String,
     pub receipt_sha256: String,
+    pub full_trajectory_covered: bool,
     pub required_duration_ns: u64,
     /// None is explicitly unknown, never an unbounded safe horizon.
     pub safe_horizon_ns: Option<u64>,
@@ -386,6 +390,19 @@ fn validate_support_update(
     validate_digest(&receipt.oracle_profile_sha256, "support_oracle_profile")?;
     validate_digest(&receipt.derivation_receipt_sha256, "support_derivation")?;
 
+    if !receipt.derivation_complete {
+        return Err(CheckpointError::InvalidSupportReceipt("derivation coverage incomplete"));
+    }
+    if before.iter().any(|world| world == super::OPEN_WORLD_RESIDUAL)
+        && !after.iter().any(|world| world == super::OPEN_WORLD_RESIDUAL)
+    {
+        let closure = receipt.open_world_scope_closure_receipt_sha256.as_deref()
+            .ok_or(CheckpointError::InvalidSupportReceipt("open-world residual removal requires scope-closure receipt"))?;
+        validate_digest(closure, "open_world_scope_closure")?;
+        if evidence_disposition != PartialEvidenceDisposition::AdmittedForDeclaredScope {
+            return Err(CheckpointError::InvalidSupportReceipt("open-world residual cannot be removed by partial scope"));
+        }
+    }
     if receipt.base_support_sha256 != possible_world_support_sha256(&before)?
         || receipt.resulting_support_sha256 != possible_world_support_sha256(&after)?
         || receipt.evidence_artifact_sha256 != evidence.artifact_sha256
@@ -416,7 +433,8 @@ fn validate_decision_sufficiency(
         return Err(CheckpointError::InvalidDecisionReceipt("support digest mismatch"));
     }
     Ok(
-        receipt.all_supported_worlds_share_terminal_recommendation
+        receipt.oracle_complete
+            && receipt.all_supported_worlds_share_terminal_recommendation
             && receipt.no_remaining_probe_strictly_reduces_worst_case_loss,
     )
 }
@@ -436,6 +454,7 @@ fn path_is_qualified(
             && receipt.checkpoint_sequence == checkpoint_sequence
             && receipt.physical_plan_sha256 == expected_physical_plan_sha256
             && receipt.qualification == SafetyQualification::Qualified
+            && receipt.full_trajectory_covered
             && receipt.safe_horizon_ns.is_some_and(|horizon| horizon >= receipt.required_duration_ns)
             && receipt.required_duration_ns > 0
             && valid_sha256(&receipt.path_profile_sha256)
@@ -654,6 +673,7 @@ mod tests {
             physical_plan_sha256: digest('0'),
             path_profile_sha256: digest('e'),
             receipt_sha256: String::new(),
+            full_trajectory_covered: true,
             required_duration_ns,
             safe_horizon_ns,
             qualification,
@@ -702,6 +722,7 @@ mod tests {
             support_sha256: possible_world_support_sha256(support).expect("support digest"),
             oracle_profile_sha256: digest('1'),
             receipt_sha256: String::new(),
+            oracle_complete: true,
             all_supported_worlds_share_terminal_recommendation: true,
             no_remaining_probe_strictly_reduces_worst_case_loss: true,
         };
@@ -717,6 +738,8 @@ mod tests {
             evidence_artifact_sha256: evidence.artifact_sha256.clone(),
             oracle_profile_sha256: digest('3'),
             derivation_receipt_sha256: String::new(),
+            derivation_complete: true,
+            open_world_scope_closure_receipt_sha256: None,
         };
         receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("support receipt commitment");
         receipt
@@ -998,7 +1021,7 @@ mod tests {
     fn decision_receipt_for_another_support_set_is_rejected() {
         let mut input = checkpoint();
         input.decision_sufficiency_receipt = Some(decision_receipt(
-            &vec!["different-world".to_owned()],
+            &["different-world".to_owned()],
             1,
         ));
         assert_eq!(
