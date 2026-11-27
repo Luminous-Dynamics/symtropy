@@ -352,12 +352,22 @@ impl PairedObjectiveParetoCampaign {
         let mut ineligible_portfolio_ids = gate.ineligible_portfolio_ids.clone();
         eligible_portfolio_ids.sort_unstable();
         ineligible_portfolio_ids.sort_unstable();
-        let eligible_set = eligible_portfolio_ids.iter().copied().collect::<BTreeSet<_>>();
-        let ineligible_set = ineligible_portfolio_ids.iter().copied().collect::<BTreeSet<_>>();
+        let eligible_set = eligible_portfolio_ids
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let ineligible_set = ineligible_portfolio_ids
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
         if eligible_portfolio_ids.iter().any(is_zero)
             || ineligible_portfolio_ids.iter().any(is_zero)
-            || eligible_portfolio_ids.windows(2).any(|pair| pair[0] == pair[1])
-            || ineligible_portfolio_ids.windows(2).any(|pair| pair[0] == pair[1])
+            || eligible_portfolio_ids
+                .windows(2)
+                .any(|pair| pair[0] == pair[1])
+            || ineligible_portfolio_ids
+                .windows(2)
+                .any(|pair| pair[0] == pair[1])
             || !eligible_set.is_disjoint(&ineligible_set)
             || eligible_portfolio_ids.len() > MAX_PORTFOLIOS
         {
@@ -392,7 +402,9 @@ impl PairedObjectiveParetoCampaign {
             if bound.lower_ticks > bound.upper_ticks {
                 return Err(PairedObjectiveParetoError::InvalidObjectiveBound);
             }
-            if eligible_portfolio_ids.binary_search(&bound.portfolio_id).is_err()
+            if eligible_portfolio_ids
+                .binary_search(&bound.portfolio_id)
+                .is_err()
                 || objective_specs
                     .binary_search_by_key(&bound.objective_id, |spec| spec.objective_id)
                     .is_err()
@@ -481,10 +493,7 @@ impl PairedObjectiveParetoCampaign {
             })
             .collect::<BTreeMap<_, _>>();
 
-        let mut rows = BTreeMap::<
-            ([u8; 32], [u8; 32]),
-            BTreeMap<([u8; 32], [u8; 32]), i32>,
-        >::new();
+        let mut rows = BTreeMap::<([u8; 32], [u8; 32]), BTreeMap<([u8; 32], [u8; 32]), i32>>::new();
         let expected_cells_per_atom = self
             .eligible_portfolio_ids
             .len()
@@ -525,11 +534,16 @@ impl PairedObjectiveParetoCampaign {
                     .objective_bounds
                     .get(&(outcome.portfolio_id, outcome.objective_id))
                     .ok_or(PairedObjectiveParetoError::IncompleteObjectiveBoundMatrix)?;
-                if outcome.value_ticks < bound.lower_ticks || outcome.value_ticks > bound.upper_ticks {
+                if outcome.value_ticks < bound.lower_ticks
+                    || outcome.value_ticks > bound.upper_ticks
+                {
                     return Err(PairedObjectiveParetoError::ObjectiveOutcomeOutsideBound);
                 }
                 if outcomes
-                    .insert((outcome.portfolio_id, outcome.objective_id), outcome.value_ticks)
+                    .insert(
+                        (outcome.portfolio_id, outcome.objective_id),
+                        outcome.value_ticks,
+                    )
                     .is_some()
                 {
                     return Err(PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix);
@@ -575,28 +589,26 @@ impl PairedObjectiveParetoCampaign {
 
         let mut pairwise_contrasts = Vec::new();
         for support in &self.scenario_supports {
-            for (left_index, left_portfolio_id) in
-                self.eligible_portfolio_ids.iter().enumerate()
-            {
-                for right_portfolio_id in self
-                    .eligible_portfolio_ids
-                    .iter()
-                    .skip(left_index + 1)
-                {
+            for (left_index, left_portfolio_id) in self.eligible_portfolio_ids.iter().enumerate() {
+                for right_portfolio_id in self.eligible_portfolio_ids.iter().skip(left_index + 1) {
                     for spec in &self.objective_specs {
                         let mut pair_atoms = Vec::with_capacity(support.atom_ids.len());
                         for atom_id in &support.atom_ids {
-                            let outcomes = rows
-                                .get(&(support.scenario_id, *atom_id))
-                                .ok_or(PairedObjectiveParetoError::IncompleteScenarioAtomEvidence)?;
+                            let outcomes = rows.get(&(support.scenario_id, *atom_id)).ok_or(
+                                PairedObjectiveParetoError::IncompleteScenarioAtomEvidence,
+                            )?;
                             let left_value = outcomes
                                 .get(&(*left_portfolio_id, spec.objective_id))
                                 .copied()
-                                .ok_or(PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix)?;
+                                .ok_or(
+                                    PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix,
+                                )?;
                             let right_value = outcomes
                                 .get(&(*right_portfolio_id, spec.objective_id))
                                 .copied()
-                                .ok_or(PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix)?;
+                                .ok_or(
+                                    PairedObjectiveParetoError::IncompleteObjectiveOutcomeMatrix,
+                                )?;
                             pair_atoms.push(PairedCounterfactualAtom {
                                 atom_id: *atom_id,
                                 baseline_consequence_ticks: left_value,
@@ -604,10 +616,11 @@ impl PairedObjectiveParetoCampaign {
                             });
                         }
 
-                        let exact = compare_paired_counterfactual_support(&pair_atoms)
-                            .map_err(|_: PairedCounterfactualError| {
+                        let exact = compare_paired_counterfactual_support(&pair_atoms).map_err(
+                            |_: PairedCounterfactualError| {
                                 PairedObjectiveParetoError::ArithmeticFailure
-                            })?;
+                            },
+                        )?;
                         let left_bound = self
                             .objective_bounds
                             .get(&(*left_portfolio_id, spec.objective_id))
@@ -739,12 +752,8 @@ impl PairedObjectiveParetoCampaign {
                     }
                 };
                 let (no_worse, strictly_better) = match spec.direction {
-                    PairedObjectiveDirection::Minimize => {
-                        (mean.numerator <= 0, mean.numerator < 0)
-                    }
-                    PairedObjectiveDirection::Maximize => {
-                        (mean.numerator >= 0, mean.numerator > 0)
-                    }
+                    PairedObjectiveDirection::Minimize => (mean.numerator <= 0, mean.numerator < 0),
+                    PairedObjectiveDirection::Maximize => (mean.numerator >= 0, mean.numerator > 0),
                 };
                 all_no_worse &= no_worse;
                 any_strict |= strictly_better;
@@ -992,10 +1001,7 @@ fn digest_report(report: &PairedObjectiveParetoReport) -> [u8; 32] {
             hasher.update([direction_byte(objective.direction)]);
             for scenario in &objective.scenario_witnesses {
                 hasher.update(scenario.scenario_id);
-                hash_signed(
-                    &mut hasher,
-                    scenario.mean_dominating_minus_dominated_ticks,
-                );
+                hash_signed(&mut hasher, scenario.mean_dominating_minus_dominated_ticks);
                 hasher.update([u8::from(scenario.no_worse)]);
                 hasher.update([u8::from(scenario.strictly_better)]);
             }
@@ -1290,8 +1296,14 @@ mod tests {
         // Marginal worst-case envelopes overlap: max(A) = 104 while min(C) = 2.
         assert!(104 > 2);
         assert_eq!(report.dominance_witnesses.len(), 1);
-        assert_eq!(report.dominance_witnesses[0].dominating_portfolio_id, PORTFOLIO_A);
-        assert_eq!(report.dominance_witnesses[0].dominated_portfolio_id, PORTFOLIO_C);
+        assert_eq!(
+            report.dominance_witnesses[0].dominating_portfolio_id,
+            PORTFOLIO_A
+        );
+        assert_eq!(
+            report.dominance_witnesses[0].dominated_portfolio_id,
+            PORTFOLIO_C
+        );
         assert_eq!(report.pareto_frontier_portfolio_ids, vec![PORTFOLIO_A]);
         assert!(!report.authority_granted);
     }
@@ -1347,8 +1359,7 @@ mod tests {
         for (index, row) in rows.iter_mut().enumerate() {
             if index < 4 {
                 for outcome in &mut row.outcomes {
-                    if outcome.portfolio_id == PORTFOLIO_C
-                        && outcome.objective_id == OBJECTIVE_FUEL
+                    if outcome.portfolio_id == PORTFOLIO_C && outcome.objective_id == OBJECTIVE_FUEL
                     {
                         outcome.value_ticks = [4, 3, 2, 1][index];
                     }
@@ -1559,7 +1570,8 @@ mod tests {
             (PORTFOLIO_B, vec![SCENARIO_A, SCENARIO_B]),
             (PORTFOLIO_C, vec![SCENARIO_A, SCENARIO_B]),
         ]);
-        gate.minimax_regret_undominated_eligible_portfolio_ids.clear();
+        gate.minimax_regret_undominated_eligible_portfolio_ids
+            .clear();
 
         let process = PairedObjectiveParetoCampaign::new(
             &gate,
@@ -1571,11 +1583,14 @@ mod tests {
         let atoms = standard_supports()
             .into_iter()
             .flat_map(|support| {
-                support.atom_ids.into_iter().map(move |atom_id| PairedObjectiveAtom {
-                    scenario_id: support.scenario_id,
-                    atom_id,
-                    outcomes: Vec::new(),
-                })
+                support
+                    .atom_ids
+                    .into_iter()
+                    .map(move |atom_id| PairedObjectiveAtom {
+                        scenario_id: support.scenario_id,
+                        atom_id,
+                        outcomes: Vec::new(),
+                    })
             })
             .collect::<Vec<_>>();
         let report = process.evaluate(&atoms).unwrap();
@@ -1605,8 +1620,16 @@ mod tests {
                 for outcome in &mut atom.outcomes {
                     if outcome.objective_id == OBJECTIVE_FUEL {
                         outcome.value_ticks = outcome.value_ticks.clamp(
-                            if outcome.portfolio_id == PORTFOLIO_A { 2 } else { 3 },
-                            if outcome.portfolio_id == PORTFOLIO_A { 8 } else { 9 },
+                            if outcome.portfolio_id == PORTFOLIO_A {
+                                2
+                            } else {
+                                3
+                            },
+                            if outcome.portfolio_id == PORTFOLIO_A {
+                                8
+                            } else {
+                                9
+                            },
                         );
                     }
                 }
@@ -1614,10 +1637,15 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let report = process.evaluate(&rows).unwrap();
-        assert_eq!(report.pairwise_contrasts[0].declared_difference_lower_ticks, -7);
-        assert_eq!(report.pairwise_contrasts[0].declared_difference_upper_ticks, 5);
+        assert_eq!(
+            report.pairwise_contrasts[0].declared_difference_lower_ticks,
+            -7
+        );
+        assert_eq!(
+            report.pairwise_contrasts[0].declared_difference_upper_ticks,
+            5
+        );
     }
-
 
     fn all_eligible_gate_report() -> ScenarioMissionRiskGateReport {
         let mut gate = gate_report();
@@ -1647,8 +1675,7 @@ mod tests {
         let mut dominated = BTreeSet::new();
         for (left_index, left_id) in portfolio_ids.iter().enumerate() {
             for right_id in portfolio_ids.iter().skip(left_index + 1) {
-                for (dominating_id, dominated_id) in
-                    [(*left_id, *right_id), (*right_id, *left_id)]
+                for (dominating_id, dominated_id) in [(*left_id, *right_id), (*right_id, *left_id)]
                 {
                     let mut all_no_worse = true;
                     let mut any_strict = false;
@@ -1657,9 +1684,8 @@ mod tests {
                             let mut sum_dominating = 0_i128;
                             let mut sum_dominated = 0_i128;
                             let mut count = 0_i128;
-                            for atom in atoms.iter().filter(|atom| {
-                                atom.scenario_id == *scenario_id
-                            }) {
+                            for atom in atoms.iter().filter(|atom| atom.scenario_id == *scenario_id)
+                            {
                                 let dominating_value = atom
                                     .outcomes
                                     .iter()
@@ -1725,9 +1751,13 @@ mod tests {
             bound(PORTFOLIO_B, OBJECTIVE_SERVICE, 0, 100),
             bound(PORTFOLIO_C, OBJECTIVE_SERVICE, 0, 100),
         ];
-        let process =
-            PairedObjectiveParetoCampaign::new(&gate, supports.clone(), objective_specs.clone(), bounds)
-                .unwrap();
+        let process = PairedObjectiveParetoCampaign::new(
+            &gate,
+            supports.clone(),
+            objective_specs.clone(),
+            bounds,
+        )
+        .unwrap();
         let scenario_ids = supports
             .iter()
             .map(|support| support.scenario_id)
@@ -1764,7 +1794,10 @@ mod tests {
                 &objective_specs,
             );
             let actual = process.evaluate(&atoms).unwrap();
-            assert_eq!(actual.pareto_frontier_portfolio_ids, expected, "seed {seed}");
+            assert_eq!(
+                actual.pareto_frontier_portfolio_ids, expected,
+                "seed {seed}"
+            );
         }
     }
 
@@ -1784,8 +1817,7 @@ mod tests {
                 .outcomes
                 .iter()
                 .find(|outcome| {
-                    outcome.portfolio_id == PORTFOLIO_A
-                        && outcome.objective_id == OBJECTIVE_FUEL
+                    outcome.portfolio_id == PORTFOLIO_A && outcome.objective_id == OBJECTIVE_FUEL
                 })
                 .unwrap()
                 .value_ticks;
