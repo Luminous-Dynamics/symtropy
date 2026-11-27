@@ -155,6 +155,41 @@ def solve_fixed_flow_mcf(
     }
 
 
+def verify_flow(
+    nodes: Sequence[Node],
+    arcs: Sequence[Arc],
+    source: Node,
+    sink: Node,
+    expected_total: int,
+    flow: Mapping[str, int],
+    lower_bounds: Mapping[str, int],
+) -> None:
+    """Independently check arc bounds, frozen lower bounds and conservation."""
+    expected_ids = {str(arc["id"]) for arc in arcs}
+    if set(flow) != expected_ids:
+        raise AssertionError("flow witness does not cover every original arc")
+
+    balance = {node: 0 for node in nodes}  # outflow minus inflow
+    for arc in arcs:
+        edge_id = str(arc["id"])
+        amount = int(flow[edge_id])
+        capacity = int(arc["capacity"])
+        lower = int(lower_bounds.get(edge_id, 0))
+        if amount < lower or amount > capacity:
+            raise AssertionError(f"arc bounds violated for {edge_id}")
+        balance[str(arc["tail"])] += amount
+        balance[str(arc["head"])] -= amount
+
+    if balance[source] != expected_total or balance[sink] != -expected_total:
+        raise AssertionError("source/sink flow value does not match the fixed total")
+    if any(
+        balance[node] != 0
+        for node in nodes
+        if node not in (source, sink)
+    ):
+        raise AssertionError("flow conservation failed at an intermediate node")
+
+
 def sequential_lexicographic_mcf(
     nodes: Sequence[Node],
     arcs: Sequence[Arc],
@@ -189,6 +224,9 @@ def sequential_lexicographic_mcf(
             {service_edge: -1},
             implementation,
         )
+        verify_flow(
+            nodes, arcs, source, sink, maximum_flow, tier_flow, frozen
+        )
         frozen[service_edge] = tier_flow[service_edge]
 
     route_costs = {
@@ -206,6 +244,9 @@ def sequential_lexicographic_mcf(
         route_costs,
         implementation,
     )
+    verify_flow(nodes, arcs, source, sink, maximum_flow, final_flow, frozen)
+    if any(final_flow[edge_id] != amount for edge_id, amount in frozen.items()):
+        raise AssertionError("a supposedly frozen priority tier changed in the final pass")
 
     service_totals = tuple(final_flow[edge_id] for edge_id in service_edges)
     total_cost = sum(
