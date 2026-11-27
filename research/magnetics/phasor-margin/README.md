@@ -64,6 +64,17 @@ The analytic test suite covers:
 - invalid threshold-cosine domains are rejected;
 - whole-box derivative enclosures remain finite for a non-singular box.
 
+## Independent minimum-amplitude reserve
+
+The spatial API now supports two separate requirements over the same exact XYZ cell:
+
+- phase: normalized phasor dot product minus the supplied minimum cosine;
+- amplitude: measured phasor norm squared minus the supplied minimum amplitude squared.
+
+The amplitude threshold must be a finite, nonnegative squared magnitude. The amplitude margin has its own expression identity, requirement ID, value enclosure and XYZ derivative-supremum record. The joint `certify_spatial_phasor_requirements` API verifies that both requirements share the same cell bounds, axes, frame, operating condition, model/solver, geometry/material and build provenance, while preserving their distinct requirement IDs.
+
+The two margins are not collapsed into one score. A phase pass cannot hide a low-amplitude signal; an amplitude pass cannot establish phase accuracy. Downstream spatial certification must still bind each derivative record to its own independently observed centre-margin interval and uncertainty. Neither whole-cell expression enclosure is relabelled as a centre sample.
+
 ## Claim ceiling
 
 This is a coordinate reformulation and interval arithmetic reference, not a novel trigonometric theorem. It certifies only the supplied phasor components and threshold-cosine interval. It does not validate quadrature calibration, magnetic sensor response, physical field, amplitude reserve, model discrepancy, or installed encoder accuracy. Physical measurement and discrepancy evidence remain separate.
