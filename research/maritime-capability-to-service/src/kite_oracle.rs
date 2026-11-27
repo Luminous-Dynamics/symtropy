@@ -220,7 +220,7 @@ pub fn solve_r1_finite(
                 || classified_acceptances > outcome.receiver_accepted_units
                 || outcome.unmet_units > expected_context.expected_units
                 || outcome.unresolved_units > expected_context.expected_units
-                || classified_service > expected_context.expected_units
+                || classified_service != expected_context.expected_units
                 || outcome.time_to_minimum_viable_service > outcome.time_to_full_service
             {
                 return Err(format!(
