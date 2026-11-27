@@ -173,8 +173,8 @@ pub fn certify_phasor_phase_margin(
         measured_norm_squared_enclosure: measured_norm_squared,
         reference_norm_squared_enclosure: reference_norm_squared,
         metric_id: "normalized-phasor-dot-product".to_owned(),
-        shortest_arc_contract:
-            "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi".to_owned(),
+        shortest_arc_contract: "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi"
+            .to_owned(),
     })
 }
 
@@ -259,8 +259,8 @@ where
         reference_norm_squared_enclosure: reference_norm.value_enclosure,
         minimum_cosine_enclosure: threshold.value_enclosure,
         metric_id: "normalized-phasor-dot-product".to_owned(),
-        shortest_arc_contract:
-            "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi".to_owned(),
+        shortest_arc_contract: "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi"
+            .to_owned(),
     })
 }
 
