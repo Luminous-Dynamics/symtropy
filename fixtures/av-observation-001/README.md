@@ -242,3 +242,20 @@ The protocol now includes a MemAct crosswalk and a seventh metadata-only matrix,
 MemAct's prepared release reports 20,000 main QA turns plus 2,000 separate Timing questions, Current/Memory/Action lanes, and up to three camera actions; Action QA is simulation-only. Its memory records link timestamped summaries to original frames and permit bounded historical RGB retrieval; action observations are not automatically persisted. The protocol separates never-observed, in-context, retained/retrievable, evicted, reacquired and invalid/unknown evidence states.
 
 Rights are mixed: original MemAct code Apache-2.0, original annotation contributions CC BY 4.0, but upstream recordings, meshes, GLBs, textures/HDRIs and derived material keep their original rights. No blanket commercial training permission is inferred. The HF card's technical validator is not a rerun of paper scores, and its native inference backend does not reproduce the paper's compact cross-call KV cache or latency; keep release validation, exact paper reproduction and independent reimplementation distinct. See https://huggingface.co/datasets/vfishc/memact and https://arxiv.org/abs/2610.17640.
+
+
+## Evaluator-side world-pair binding registry
+
+The child implementation [AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) has a stacked draft contribution adding:
+
+- [world-pair binding schema](./observability-world-pair-binding-v0.schema.json), a strict Draft 2020-12 evaluator-side envelope referencing existing WorldManifestV1 and AV observation replay artifacts;
+- [nine-pair registry](./observability-world-pair-binding-v0.registry.json), containing nine identifiability pairs with two world slots each;
+- [binding audit protocol](./observability-world-pair-binding-audit-v0.md), defining manifest, candidate-prefix equivalence, first-distinguishing-observation and readiness gates.
+
+All nine pairs remain explicitly **unbound**. Manifest, truth-crosswalk, candidate-prefix and replay digests are null; null is not a wildcard or pass. Exact artifacts from #1587/#1589 and #6201 must be bound before prefix equality can be tested from candidate-visible bytes/transcripts.
+
+The world-pair binding workflow fetches the pinned base source-matrix branch history before resolving the recorded source commit. A shallow candidate-head checkout alone is insufficient to prove that the pinned commit exists in the local object database.
+
+### Evidence-gated readiness promotion
+
+The binding schema requires stage-specific receipts: manifest validation before manifest binding; candidate-input/transcript and shared-contract digests plus an audit receipt before prefix commitment; a causal replay receipt before rendered-replay verification; and rights, split-integrity, custody and frozen candidate/model identities before blind readiness. The CI job includes five invalid-promotion negative controls. The registry itself remains all-unbound until real source artifacts exist.
