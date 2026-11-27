@@ -11,7 +11,7 @@ The typed decision context already binds a digest for the evidence-knowledge cut
 
 `OwnerEvidenceCutV0_1` is the typed payload behind `DecisionContextV0_1.evidence_knowledge_cut_sha256`. The claim gate recomputes the digest, compares the cut to the context, checks the packet physical-unit/configuration identity and trust-policy identity, and verifies that every mandatory evidence reference is represented in the cut with current owner-declared lifecycle/freshness/coverage.
 
-The cut is deliberately **not** a second ledger or a cryptographic authority. It contains references and owner-declared verifier outcomes. It cannot fetch or authenticate the referenced bytes.
+The cut is deliberately **not** a second ledger or a cryptographic authority. It contains references and owner-declared verifier outcomes. It cannot fetch or authenticate the referenced bytes. The composite claim result also carries owner packet ID/digest, BASALT run ID/report version/report digest/final-state digest, artifact verification and confirmatory flags, receipt-manifest digest/watermark, trust-policy digest and observer-coverage profile/receipt/status. A reviewer can navigate the exact upstream report lineage without unpacking the owner-cut hash.
 
 ## 2. Exact owner inputs
 
