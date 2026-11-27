@@ -1816,8 +1816,9 @@ mod tests {
     #[test]
     fn model_cut_with_confirmatory_split_leakage_rejects_claim_review() {
         let evidence = all_admitted();
+        let mut context = context_for_evidence(&evidence);
         let mut owner_cut = owner_cut_for_evidence(&evidence);
-        let mut model_cut = model_cut_for_context(&context_for_evidence(&evidence));
+        let mut model_cut = model_cut_for_context(&context);
         model_cut.split_integrity_status = SplitIntegrityStatus::LeakageDetected;
         let model_record = owner_cut
             .evidence_records
@@ -1825,16 +1826,35 @@ mod tests {
             .find(|record| record.evidence_ref == model_cut.evidence_ref)
             .unwrap();
         model_record.record_sha256 = model_cut.compute_sha256().unwrap();
-        let result = evaluate_with_owner_cut(
-            CoverageStatus::QualifiedCompleteForScope,
-            CutStatus::Closed,
+        context.evidence_knowledge_cut_sha256 = owner_cut.compute_sha256().unwrap();
+        let digest = context_digest(&context);
+        let mut bound_evidence = evidence.clone();
+        for item in &mut bound_evidence {
+            item.decision_context_sha256 = digest.clone();
+        }
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
             EffectivityRelation::DefinitelyEffective,
-            &evidence,
-            &owner_cut,
+            &context,
         );
-        // The helper constructs the canonical model cut; the mutation is tested
-        // directly through the model adapter below in its own module.
-        assert_ne!(result.status, ClaimGateStatus::ReviewableForIndependentDecision);
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            owner_evidence_cut: &owner_cut,
+            model_credibility_cut: &model_cut,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &bound_evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(
+            &"MODEL_CONFIRMATORY_SPLIT_LEAKAGE".to_owned()
+        ));
     }
 
     #[test]
