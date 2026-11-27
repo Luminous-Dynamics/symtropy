@@ -298,3 +298,31 @@ The public landscape now clearly contains work on:
 - action-conditioned world-model fidelity (WorldOracle).
 
 Accordingly, AERB's defensible research claim must be narrower and experimentally testable: **a benchmark for independently evidenced physical-effect finality and adaptive, decision-valued reconciliation under open-world execution ambiguity, evaluated before the next potentially irreversible effect.** Its novelty must be established by a systematic comparison and blind matched experiments, not asserted from architecture diagrams alone.
+
+
+## 2.12 RRVR temporal closure — command-path quiescence is not a sensing outcome
+
+RRVR's own temporal-closure track (#7433 / draft PR #7435) provides the relevant assurance boundary. It tests whether old commands can still arrive after a system claims its command path is quiescent. It models admission closure, in-flight closure, downstream enqueue closure, terminal endpoint fencing and evidence freshness across the exact command-holding graph.
+
+This is distinct from AERB's physical-effect question:
+- temporal closure asks whether a prior command can still execute in the future through the declared path;
+- effect observation asks whether the command already produced its physical effect;
+- neither a closed command path nor an empty queue proves NoEffect.
+
+AERB's candidate should consume a qualified, exact-scope temporal-closure receipt from the existing owner, retaining Unknown/Hold and `open_world_residual` whenever the graph is incomplete, an edge is unbounded/unqueryable, a clock is invalid or a receipt is stale. AERB must not implement a second command-holder graph or late-arrival proof engine.
+
+The first #7435 focused workflow reached its expected hash-check step and failed because two recorded Git blob pins were stale; JSON/schema checks had passed, while TLC, rustfmt, Rust tests and Clippy were skipped. The two fixture pins were corrected on the latest branch head; a new run is queued, not yet qualified.
+
+Sources:
+- https://github.com/Luminous-Dynamics/symtropy/issues/7433
+- https://github.com/Luminous-Dynamics/symtropy/pull/7435
+- https://github.com/Luminous-Dynamics/symtropy/issues/6817
+- https://github.com/Luminous-Dynamics/symtropy/pull/6866
+
+## 2.13 Evidence capsules — candidate observations must contain decision-relevant content
+
+The existing RRVR Evidence Capsules v0.1 package (#7515) already has typed source-bound evidence payloads for physical effect findings, endpoint fence receipts, forwarding-edge closure receipts and holder inventories. Its validator was exact-head qualified on Rust 1.96 (11 tests, format and strict Clippy) for software semantics only.
+
+AERB v0.1's candidate-visible Observation currently exposes identity, role, quality, event/acquisition times, ingest sequence, artifact digest and an `observation_kind` string, but no typed observation result. A digest is a commitment to bytes, not the measurement or receipt itself. An observer cannot genuinely revise its possible-history support if it cannot inspect the admitted result.
+
+The v0.2 follow-on [#7728](https://github.com/Luminous-Dynamics/symtropy/issues/7728) therefore requires a source-qualified, decision-cut-bounded materialized payload projection that reuses #7515, with safe read-only host mediation for larger raw artifacts. The candidate must see what the qualified source actually returned, while evaluator truth, actual support partitions, priors and loss tables remain hidden.
