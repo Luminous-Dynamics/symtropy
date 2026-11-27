@@ -28,7 +28,7 @@ The first Rust slice is exported from `src/contact_freshness.rs`:
 - `GlobalContactRevisions`: world and collision-policy revisions; SHA-256 digests for narrowphase and solver configuration.
 - `ContactFreshnessStamp`: canonical pair plus the exact endpoint/global tuple under which a manifold was last produced.
 - `ContactReuseDecision`: independent `geometry`, `warm_start`, `pair_eligibility_recheck_required` and `solver_activation_required` outputs.
-- `plan_contact_lifecycle`: translates canonical, disjoint pair-event streams into deterministic `Added`, `Removed` and `Revalidated` contact actions. New and revalidated pairs require current endpoint revision records; a revalidated pair without a stamp requires a full contact build; an added pair with an orphaned prior stamp is rejected; a stamped revalidation with no typed revision reason is rejected as unexplained.
+- `plan_contact_lifecycle`: translates canonical, disjoint pair-event streams into deterministic `Added`, `Removed` and `Revalidated` contact actions. New and revalidated pairs require current endpoint revision records; a revalidated pair without a stamp requires a full contact build; an added pair with an orphaned prior stamp is rejected; a stamped revalidation with no typed revision reason is rejected as unexplained. New pairs also request a collision-eligibility recheck because this AABB-only layer does not prove the engine's filter policy.
 - `ContactFreshnessError` / `ContactLifecycleError`: identity mismatch, noncanonical or conflicting events, missing endpoint data and monotonic-revision violations. Regressions fail closed.
 
 The stamp must be written by the contact-producing side only after a successful narrowphase/contact update. The broadphase may request revalidation; it must not certify that its own contact is fresh.
@@ -163,7 +163,7 @@ The intended contribution is not a new generic AABB tree or a claim that pair ca
 
 ## 7. Current evidence boundary
 
-Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, and 22 authored unit tests for the principal mutation and event classes.
+Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
 
 Not yet implemented or established: live world mutation journal integration; cryptographic receipt serialization; independent verifier/replay; real contact-manager or solver integration; matched external-engine runs; Rust formatting, tests, Clippy or release timings on this exact branch head.
 
