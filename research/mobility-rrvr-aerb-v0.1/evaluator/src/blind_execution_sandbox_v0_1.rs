@@ -77,6 +77,12 @@ impl SandboxCommand {
         let mut command = std::process::Command::new(&self.program);
         command.args(&self.args);
         command.env_clear();
+        command.stdin(std::process::Stdio::null());
+        // Candidate-controlled stdout/stderr are not allowed to flow into the
+        // evaluator log channel. Campaign output must use the designated,
+        // quota-controlled candidate output artifact path.
+        command.stdout(std::process::Stdio::null());
+        command.stderr(std::process::Stdio::null());
         command
     }
 }
