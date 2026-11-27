@@ -110,8 +110,8 @@ pub fn evaluate_sunshade(input: SunshadeInput) -> Result<SunshadeEstimate, &'sta
     Ok(SunshadeEstimate {
         earth_projected_area_m2,
         equivalent_target_plane_attenuation_area_m2,
-        equivalent_target_plane_attenuation_area_km2:
-            equivalent_target_plane_attenuation_area_m2 / 1.0e6,
+        equivalent_target_plane_attenuation_area_km2: equivalent_target_plane_attenuation_area_m2
+            / 1.0e6,
         equivalent_area_mass_proxy_kg,
         locally_sourced_mass_proxy_kg,
         earth_supplied_mass_proxy_kg,
