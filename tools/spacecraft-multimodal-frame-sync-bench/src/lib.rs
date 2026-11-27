@@ -476,9 +476,9 @@ mod tests {
             pose_length_unit: "metre".to_owned(),
             depth_unit: "millimetre".to_owned(),
             lidar_unit: "metre".to_owned(),
-            rgb: modality("image", "cam0"),
+            rgb: modality("rgb", "cam0"),
             depth: modality("depth", "cam0"),
-            segmentation: modality("seg", "cam0"),
+            segmentation: modality("segmentation", "cam0"),
             lidar: modality("lidar", "lidar0"),
             pose: modality("pose", "pose_ground_truth"),
         }
