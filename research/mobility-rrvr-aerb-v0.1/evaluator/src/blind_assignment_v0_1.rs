@@ -13,6 +13,9 @@
 //! evaluator-only custody and must not expose the reveal before evaluation.
 
 use std::collections::BTreeSet;
+
+#[cfg(test)]
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
