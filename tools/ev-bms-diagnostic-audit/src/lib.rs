@@ -413,9 +413,7 @@ fn validate_event(event: &Event) -> Vec<String> {
                     .as_deref()
                     .is_none_or(|value| !is_digest(value)) =>
         {
-            errors.push(
-                "authority decision requires an authority reference and digest".to_owned(),
-            );
+            errors.push("authority decision requires an authority reference and digest".to_owned());
         }
         "approved" | "denied" => {}
         _ => {}
