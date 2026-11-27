@@ -233,19 +233,55 @@ fn validate_paired_spatial_domains(
 ) -> Result<(), PhaseMarginError> {
     let matched = [
         (phase.cell_id == amplitude.cell_id, "cell_id"),
-        (phase.parameter_ids == amplitude.parameter_ids, "parameter_ids"),
-        (phase.parameter_units == amplitude.parameter_units, "parameter_units"),
-        (phase.parameter_bounds == amplitude.parameter_bounds, "parameter_bounds"),
-        (phase.coordinate_frame_id == amplitude.coordinate_frame_id, "coordinate_frame_id"),
-        (phase.operating_condition_id == amplitude.operating_condition_id, "operating_condition_id"),
+        (
+            phase.parameter_ids == amplitude.parameter_ids,
+            "parameter_ids",
+        ),
+        (
+            phase.parameter_units == amplitude.parameter_units,
+            "parameter_units",
+        ),
+        (
+            phase.parameter_bounds == amplitude.parameter_bounds,
+            "parameter_bounds",
+        ),
+        (
+            phase.coordinate_frame_id == amplitude.coordinate_frame_id,
+            "coordinate_frame_id",
+        ),
+        (
+            phase.operating_condition_id == amplitude.operating_condition_id,
+            "operating_condition_id",
+        ),
         (phase.model_set_id == amplitude.model_set_id, "model_set_id"),
-        (phase.solver_run_id == amplitude.solver_run_id, "solver_run_id"),
-        (phase.geometry_sha256 == amplitude.geometry_sha256, "geometry_sha256"),
-        (phase.material_sha256 == amplitude.material_sha256, "material_sha256"),
-        (phase.source_revision == amplitude.source_revision, "source_revision"),
-        (phase.implementation_id == amplitude.implementation_id, "implementation_id"),
-        (phase.artifact_sha256 == amplitude.artifact_sha256, "artifact_sha256"),
-        (phase.environment_sha256 == amplitude.environment_sha256, "environment_sha256"),
+        (
+            phase.solver_run_id == amplitude.solver_run_id,
+            "solver_run_id",
+        ),
+        (
+            phase.geometry_sha256 == amplitude.geometry_sha256,
+            "geometry_sha256",
+        ),
+        (
+            phase.material_sha256 == amplitude.material_sha256,
+            "material_sha256",
+        ),
+        (
+            phase.source_revision == amplitude.source_revision,
+            "source_revision",
+        ),
+        (
+            phase.implementation_id == amplitude.implementation_id,
+            "implementation_id",
+        ),
+        (
+            phase.artifact_sha256 == amplitude.artifact_sha256,
+            "artifact_sha256",
+        ),
+        (
+            phase.environment_sha256 == amplitude.environment_sha256,
+            "environment_sha256",
+        ),
     ];
     for (is_match, field) in matched {
         if !is_match {
@@ -324,10 +360,8 @@ where
     F: Fn([IntervalDual<3>; 3]) -> Result<PhasorComponents<3>, IntervalAdError>,
 {
     validate_paired_spatial_domains(phase_domain, amplitude_domain)?;
-    let phase_margin =
-        certify_spatial_phasor_phase_margin(phase_domain, &evaluate)?;
-    let amplitude_margin =
-        certify_spatial_phasor_amplitude_margin(amplitude_domain, &evaluate)?;
+    let phase_margin = certify_spatial_phasor_phase_margin(phase_domain, &evaluate)?;
+    let amplitude_margin = certify_spatial_phasor_amplitude_margin(amplitude_domain, &evaluate)?;
     Ok(SpatialPhasorRequirementsCertificate {
         phase_margin,
         amplitude_margin,
@@ -784,15 +818,11 @@ mod tests {
         let scope = spatial_amplitude_domain();
         let excessive_reserve = |variables| {
             let mut components = spatial_phasors(variables)?;
-            components.minimum_amplitude_squared =
-                IntervalDual::constant(point(1.21));
+            components.minimum_amplitude_squared = IntervalDual::constant(point(1.21));
             Ok(components)
         };
-        let certificate = certify_spatial_phasor_amplitude_margin(
-            &scope,
-            excessive_reserve,
-        )
-        .expect("a failing amplitude margin remains a valid enclosure");
+        let certificate = certify_spatial_phasor_amplitude_margin(&scope, excessive_reserve)
+            .expect("a failing amplitude margin remains a valid enclosure");
         assert!(certificate.derivative_enclosure.value_enclosure.upper() < 0.0);
     }
 
@@ -801,8 +831,7 @@ mod tests {
         let scope = spatial_amplitude_domain();
         let invalid_threshold = |variables| {
             let mut components = spatial_phasors(variables)?;
-            components.minimum_amplitude_squared =
-                IntervalDual::constant(point(-0.01));
+            components.minimum_amplitude_squared = IntervalDual::constant(point(-0.01));
             Ok(components)
         };
         assert_eq!(
@@ -816,18 +845,21 @@ mod tests {
     fn joint_phase_and_amplitude_requirements_keep_distinct_ids() {
         let phase_scope = spatial_domain();
         let amplitude_scope = spatial_amplitude_domain();
-        let certificate = certify_spatial_phasor_requirements(
-            &phase_scope,
-            &amplitude_scope,
-            spatial_phasors,
-        )
-        .expect("both requirements share the same physical cell");
+        let certificate =
+            certify_spatial_phasor_requirements(&phase_scope, &amplitude_scope, spatial_phasors)
+                .expect("both requirements share the same physical cell");
         assert_eq!(
-            certificate.phase_margin.spatial_derivative_evidence.requirement_id,
+            certificate
+                .phase_margin
+                .spatial_derivative_evidence
+                .requirement_id,
             phase_scope.requirement_id
         );
         assert_eq!(
-            certificate.amplitude_margin.spatial_derivative_evidence.requirement_id,
+            certificate
+                .amplitude_margin
+                .spatial_derivative_evidence
+                .requirement_id,
             amplitude_scope.requirement_id
         );
         assert_ne!(
@@ -842,12 +874,8 @@ mod tests {
         let mut amplitude_scope = spatial_amplitude_domain();
         amplitude_scope.parameter_bounds[0] = interval(-0.2, 0.2);
         assert_eq!(
-            certify_spatial_phasor_requirements(
-                &phase_scope,
-                &amplitude_scope,
-                spatial_phasors,
-            )
-            .expect_err("requirements must describe exactly the same XYZ cell"),
+            certify_spatial_phasor_requirements(&phase_scope, &amplitude_scope, spatial_phasors,)
+                .expect_err("requirements must describe exactly the same XYZ cell"),
             PhaseMarginError::SpatialScopeMismatch {
                 field: "parameter_bounds"
             }
