@@ -1,0 +1,4 @@
+sample_id	target_id	session_id	sequence_id	unit_kind	unit_id	split	domain_id	condition_id	crop_stratum	modality	ood_group	calibration_revision	unit_frame_budget	status	score_q32_32
+cal-1-0	TANGO	session-cal-short	cal-short	SEQUENCE	cal-short	CALIBRATION	LIGHTBOX	COND-1	FULL	RGB	IN_DOMAIN	cal-r1	2	SCORED	100
+test-1-0	TANGO	session-test-full	test-full	SEQUENCE	test-full	TEST	LIGHTBOX	COND-1	FULL	RGB	IN_DOMAIN	cal-r1	2	SCORED	100
+test-1-1	TANGO	session-test-full	test-full	SEQUENCE	test-full	TEST	LIGHTBOX	COND-1	FULL	RGB	IN_DOMAIN	cal-r1	2	SCORED	100
