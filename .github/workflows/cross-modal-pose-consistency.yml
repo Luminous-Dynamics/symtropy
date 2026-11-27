@@ -46,7 +46,7 @@ jobs:
           rust = json.loads(Path("/tmp/cross-modal-rust.json").read_text())
           oracle = json.loads(Path("/tmp/cross-modal-python.json").read_text())
           assert rust == oracle, "Rust/Python complete receipt mismatch"
-          assert rust["pair_count"] == 12
+          assert rust["pair_count"] == 13
           assert rust["independence_proven"] is False
           assert rust["physical_truth_established"] is False
           assert rust["deterministic_safety_bound"] is False
@@ -58,6 +58,7 @@ jobs:
               "shared_training_target": "DEPENDENCE_UNKNOWN",
               "common_mode_bias": "DEPENDENCE_UNKNOWN",
               "conflict": "DISAGREEMENT",
+              "orientation_conflict": "DISAGREEMENT",
               "antipodal_quaternion": "CANDIDATE_CONSISTENT",
               "stale_timestamp": "OUT_OF_SCOPE",
               "frame_identity_mismatch": "OUT_OF_SCOPE",
