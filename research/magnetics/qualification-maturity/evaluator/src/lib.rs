@@ -70,6 +70,10 @@ pub struct Candidate {
     pub candidate_id: String,
     pub scope: CandidateScope,
     pub component_id: String,
+    /// Exact physical coupon used to anchor M2/M3 evidence.
+    pub qualification_specimen_id: String,
+    pub qualification_material_lot_id: String,
+    pub qualification_build_id: String,
     pub production_site_id: String,
     pub equipment_id: Option<String>,
     pub pbf_lb_equipment_qualification_required: bool,
@@ -572,6 +576,9 @@ fn validate_candidate(candidate: &Candidate) -> Vec<Blocker> {
         || candidate.scope.route_revision.trim().is_empty()
         || candidate.scope.material_family.trim().is_empty()
         || candidate.scope.product_form.trim().is_empty()
+        || candidate.qualification_specimen_id.trim().is_empty()
+        || candidate.qualification_material_lot_id.trim().is_empty()
+        || candidate.qualification_build_id.trim().is_empty()
     {
         blockers.push(Blocker::MissingCandidateIdentity);
     }
@@ -611,6 +618,26 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
         blockers.push(Blocker::InvalidEvidenceDigest);
     }
     if receipt.scope != candidate.scope {
+        blockers.push(Blocker::ScopeMismatch);
+    }
+    // M2/M3 evidence must refer to the declared anchor coupon, not merely to
+    // a specimen that happens to share the candidate's broad material family.
+    if matches!(
+        receipt.kind,
+        EvidenceKind::MaterialPropertyMeasurement | EvidenceKind::MicrostructureCharacterization
+    ) && (receipt.specimen_id.as_deref()
+        != Some(candidate.qualification_specimen_id.as_str())
+        || receipt.material_lot_id.as_deref()
+            != Some(candidate.qualification_material_lot_id.as_str())
+        || receipt.build_id.as_deref() != Some(candidate.qualification_build_id.as_str()))
+    {
+        blockers.push(Blocker::ScopeMismatch);
+    }
+    if receipt.kind == EvidenceKind::ProcessRecord
+        && (receipt.material_lot_id.as_deref()
+            != Some(candidate.qualification_material_lot_id.as_str())
+            || receipt.build_id.as_deref() != Some(candidate.qualification_build_id.as_str()))
+    {
         blockers.push(Blocker::ScopeMismatch);
     }
     if is_physical_kind(receipt.kind) && receipt.class != EvidenceClass::PhysicalMeasurement {
@@ -1155,6 +1182,9 @@ mod tests {
             candidate_id: "CANDIDATE-001".to_string(),
             scope: scope(),
             component_id: "COMP-001".to_string(),
+            qualification_specimen_id: "SPEC-001".to_string(),
+            qualification_material_lot_id: "LOT-001".to_string(),
+            qualification_build_id: "BUILD-001".to_string(),
             production_site_id: "SITE-001".to_string(),
             equipment_id: None,
             pbf_lb_equipment_qualification_required: false,
@@ -1273,6 +1303,7 @@ mod tests {
             EvidenceClass::ExternalAttestation,
         ));
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-MICRO-001".to_string());
+        receipts.last_mut().unwrap().laboratory_id = Some("LAB-001".to_string());
         receipts[4].method_scope_id = Some("SCOPE-MICRO-001".to_string());
         let mut link = receipt(
             "PSPP-001",
@@ -1305,6 +1336,19 @@ mod tests {
             EvidenceKind::ComponentAcceptance,
             EvidenceClass::ProductionRecord,
         ));
+        for (id, method_scope_id) in [
+            ("LAB-GEOMETRY-001", "SCOPE-GEOMETRY-001"),
+            ("LAB-FUNCTION-001", "SCOPE-FUNCTION-001"),
+        ] {
+            let mut lab_scope = receipt(
+                id,
+                EvidenceKind::LaboratoryMethodScope,
+                EvidenceClass::ExternalAttestation,
+            );
+            lab_scope.method_scope_id = Some(method_scope_id.to_string());
+            lab_scope.laboratory_id = Some("LAB-001".to_string());
+            receipts.push(lab_scope);
+        }
         receipts.last_mut().unwrap().linked_evidence_ids =
             vec!["FUNCTION-001".to_string(), "GEOMETRY-001".to_string()];
         receipts
@@ -1642,7 +1686,10 @@ mod tests {
     #[test]
     fn m5_without_lab_method_scope_stays_at_m4() {
         let mut receipts = m5_receipts();
-        receipts.retain(|r| r.kind != EvidenceKind::LaboratoryMethodScope);
+        receipts.retain(|r| {
+            !(r.kind == EvidenceKind::LaboratoryMethodScope
+                && r.method_scope_id.as_deref() == Some("SCOPE-DURABILITY-001"))
+        });
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, M4);
     }
