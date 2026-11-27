@@ -1380,9 +1380,13 @@ mod tests {
         }
         let report = process.evaluate(&rows).unwrap();
         assert_eq!(report.pairwise_contrasts.len(), 2);
-        assert_ne!(
+        assert_eq!(
             report.pairwise_contrasts[0].pairing_effect,
-            PairingEffect::ZeroIndependentVariance
+            PairingEffect::VarianceInflation
+        );
+        assert_eq!(
+            report.pairwise_contrasts[1].pairing_effect,
+            PairingEffect::VarianceReduction
         );
     }
 
@@ -1546,6 +1550,18 @@ mod tests {
                 standard_bounds(),
             ),
             Err(PairedObjectiveParetoError::InvalidScenarioUniverse)
+        );
+
+        let mut supports = standard_supports();
+        supports[1].scenario_model_manifest_digest = [99; 32];
+        assert_eq!(
+            PairedObjectiveParetoCampaign::new(
+                &gate_report(),
+                supports,
+                specs(),
+                standard_bounds(),
+            ),
+            Err(PairedObjectiveParetoError::ScenarioModelBindingMismatch)
         );
     }
 
