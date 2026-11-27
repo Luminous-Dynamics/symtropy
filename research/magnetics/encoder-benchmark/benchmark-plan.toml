@@ -109,3 +109,52 @@ test_fixture_drawings_frozen = false
 test_sequence_preregistered = false
 blind_holdout_partition_frozen = false
 hardware_specimens_received = false
+
+[solver_comparator]
+magpylib_version = "0.15.0"
+magpylib_release_date = "2026-11-25"
+magpylib_kernel_reference_arm = true
+magpylib_autodiff_arm = true
+analytic_point_dipole_arm = true
+analytic_finite_cuboid_arm = true
+independent_fem_arm = true
+sealed_measured_field_map_arm = true
+solver_metrics_separate_from_encoder_accuracy = true
+
+[optical_metrology_ceiling]
+manufacturer = "Renishaw"
+family = "RESOLUTE"
+ring_52mm_typical_installed_accuracy_arcsec = 12.7
+ring_200mm_typical_installed_accuracy_arcsec = 4.3
+ring_550mm_typical_installed_accuracy_arcsec = 1.9
+is_like_for_like_80mm_magnetic_comparator = false
+resolution_below_noise_floor_warning = true
+rexa30_two_head_reference_candidate = true
+reference_instrument_and_calibration_frozen = false
+
+[incremental_hall_comparator]
+manufacturer = "Texas Instruments"
+part = "TMAG5111"
+channels = 2
+bandwidth_hz = 40000
+typical_operate_point_variants_mt = [1.4, 3.0]
+is_absolute_angle_encoder = false
+benchmark_scope = ["quadrature_edge_integrity", "speed_direction", "dropout", "threshold_margin"]
+
+[metrology_uncertainty]
+include_test_encoder_resolution = true
+include_reference_resolution = true
+include_reference_calibration = true
+include_reference_interpolation_error = true
+include_alignment_and_eccentricity = true
+include_repeatability = true
+type_a_and_type_b_components_separate = true
+euramet_guide_23_method_reference = true
+
+[external_comparator_gates]
+exact_mcd06_ordering_code_received = false
+exact_mcd06_datasheet_digest_frozen = false
+renishaw_reference_configuration_frozen = false
+tmag5111_exact_frontend_and_magnet_geometry_frozen = false
+magpylib_015_artifact_digest_frozen = false
+independent_fem_solver_and_material_model_frozen = false
