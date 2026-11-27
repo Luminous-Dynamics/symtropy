@@ -7,7 +7,7 @@
 //! The verifier checks primal bounds/conservation and nonnegative reduced cost
 //! on every available forward/reverse residual arc. It does not call a solver.
 
-use crate::{McfInstance, McfParseError};
+use crate::McfInstance;
 use sha2::{Digest, Sha256};
 use std::fmt;
 
@@ -371,7 +371,7 @@ mod tests {
     #[test]
     fn verifies_mandatory_lower_bound_and_objective_offset_in_original_space() {
         let instance = parse_dimacs_mcf("p min 2 1\nn 1 2\nn 2 -2\na 1 2 2 5 -3").unwrap();
-        let cert = certificate(&instance, &[2], &[0, 0, 0], -6);
+        let cert = certificate(&instance, &[2], &[0, 3, 0], -6);
         verify_mcf_optimality(&instance, &cert).unwrap();
     }
 
