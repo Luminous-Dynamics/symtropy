@@ -139,6 +139,9 @@ Do not combine these into one scalar. Publish separate Pareto frontiers and all 
 - **LongSpace-Bench:** room-tour spatial memory and explicit 3D structural cue comparator; do not conflate its chunked method with causal streaming: https://aclanthology.org/2026.emnlp-main.227/
 - **4DMemoryBench:** very long multi-history video memory (approx. 887–900 h, 5,214 QA, 97.98 h max temporal extent). Its evaluated models use Gemini 3.1 Pro as a separate media observer; reproduce this observer/harness condition explicitly: https://arxiv.org/abs/2610.32332
 - **EgoMemReason:** week-long entity/event/behavior memory, 500 queries, best reported 39.6%; use as long-horizon memory, not map-only score: https://arxiv.org/abs/2605.09874
+- **EgoWitness / EgoClue:** recent instance-level egocentric memory benchmark with human-verified questions over long recordings, persistent landmarks and movable-object identities. Its tool-using observer/controller scores must remain a separate episodic identity/memory lane—not be pooled with OVO-S or metric SLAM. The paper is a recent preprint; verify benchmark access, licensing, exact evaluation harness and observer-model dependencies before adoption: https://arxiv.org/abs/2611.25849
+- **LaMAria:** egocentric city-scale visual-inertial SLAM with surveyed control points, long sequences, dynamic scenes, low-light and moving-platform tracks. Use the native LaMAria metrics and data splits rather than converting its sparse-control-point score into TUM/EuRoC ATE: https://lamaria.inf.ethz.ch/ and https://openaccess.thecvf.com/content/ICCV2025/papers/Krishnan_Benchmarking_Egocentric_Visual-Inertial_SLAM_at_City_Scale_ICCV_2025_paper.pdf
+- **CROSS multi-session benchmark:** stored-map localization, cold-start relocalization and mapping across sessions under environment change. Use its fixed T1/T2/T3 tasks and compare only under the exact sensor/odometry mode and session protocol: https://jiaming.im/CROSS/leaderboard/ and https://jiaming.im/CROSS/docs/
 - **DCASE 2026 Task 3:** spatial acoustic image reconstruction; keep audio-only and audiovisual metrics distinct: https://dcase.community/challenge2026/task-semantic-acoustic-imaging-for-sound-event-localization-and-detection-from-spatial-audio-and-audiovisual-scenes
 
 ## 8. Owners and non-duplication
@@ -224,12 +227,16 @@ OVO-S native streaming question accuracy is not geometric SLAM qualification. Pa
 | EuRoC MAV | Stereo-inertial VIO/SLAM | trajectory/pose error, scale consistency, camera–IMU timing and extrinsics | Stereo images 2×20 FPS, IMU 200 Hz, Vicon/Leica ground truth and calibration; Vicon/Leica are distinct GT sources, and the dataset documents synchronization limitations. |
 | KITTI Odometry | Monocular/stereo visual odometry; separate LiDAR/multimodal tracks | official subsequence translation error (%) and rotation error (deg/m) | sequences 00–10 provide training GT; 11–21 are hidden test; compare only within the same input modality/method class. The server notes a restore of backup state dated 7 August 2026, so resubmission/history must be checked. |
 | OpenLORIS-Scene | Lifelong and multi-session SLAM | repeated-trajectory consistency, relocalization, map-change handling, drift and false map updates | multiple trajectories per scene with day/night/human-change; office GT is motion capture, other scenes use offline LiDAR-SLAM GT. GT independence/provenance differs by scene. |
+| LaMAria | Egocentric city-scale visual-inertial SLAM | native survey-control-point 2D score, CP@1m, pseudo-GT R@5m, sequence/failure coverage; retain paper-defined evaluation | 63 test sequences across short/medium/long, low-light and moving-platform strata; long recordings and kilometer-scale trajectories. Control points are sparse indirect pose annotations, not dense 6-DoF ground truth. Some controlled short-sequence pseudo-GT uses the Aria SLAM API; stratify those cases and never treat that output as independent ground truth. |
+| CROSS multi-session benchmark | Stored-map localization, cold-start relocalization and cross-session mapping | T1 path-normalized ATE; T2 stored-map localization recall; T3 10-second cold-start relocalization success at the benchmark's indoor/outdoor radii | Published reference reports 93% T3, 93% T2 and 0.35% T1 for its stereo+odometry reference configuration. Odometry provenance differs by dataset; aggregate scores are not camera-only or modality-neutral. The benchmark's failed/under-covered trials and per-dataset results must remain visible. |
 
 Primary dataset/evaluation sources:
 - TUM RGB-D benchmark paper and data: https://cvg.cit.tum.de/_media/spezial/bib/sturm12iros.pdf and https://vision.in.tum.de/data/datasets/rgbd-dataset
 - EuRoC MAV: https://projects.asl.ethz.ch/datasets/euroc-mav/
 - KITTI odometry: https://www.cvlibs.net/datasets/kitti/eval_odometry.php
 - OpenLORIS-Scene: https://lifelong-robotic-vision.github.io/dataset/scene
+- LaMAria benchmark and code: https://lamaria.inf.ethz.ch/ and https://github.com/cvg/lamaria
+- CROSS benchmark, protocol and sensor/odometry modes: https://jiaming.im/CROSS/leaderboard/ and https://jiaming.im/CROSS/docs/
 
 ### Metric discipline
 
@@ -239,7 +246,9 @@ Primary dataset/evaluation sources:
 - Report pose-graph cycle residuals, loop-closure precision/recall, map/landmark reprojection or point-cloud errors only where the emitted representation and calibration support them.
 - Report uncertainty coverage, drift by distance/time, tracking-loss recovery, and OpenLORIS long-term map-change quality separately.
 - Include modality, frame/IMU rate, calibration, runtime, memory and hardware budget for every run.
-- Do not pool TUM, EuRoC, KITTI and OpenLORIS into one leaderboard scalar.
+- Do not pool TUM, EuRoC, KITTI, OpenLORIS, LaMAria and CROSS into one leaderboard scalar. LaMAria's sparse surveyed control-point scoring and CROSS's session-level T1/T2/T3 tasks are different measurement contracts, not alternate ATE columns.
+- For LaMAria, report native 2D control-point score, CP@1m, pseudo-GT R@5m, track/failure rate and stratum results. Identify which pseudo-GT cohorts derive from Aria SLAM API output; do not count those as independent survey truth.
+- For CROSS, pin the benchmark commit, dataset revisions, session pairings, sensor mode, odometry source and 10-second initialization rule. Report all failed/under-covered trials and per-dataset results; the headline 93% scores are specific to the benchmark's stereo+odometry configuration and its mixed odometry provenance.
 
 ### Matched controls
 
@@ -250,6 +259,8 @@ Run RGB-only, RGB-D, stereo and stereo+IMU arms only where the dataset supports 
 - OVO-S remains the semantic/allocentric question benchmark.
 - TUM/EuRoC/KITTI form metric geometry/trajectory validation lanes.
 - OpenLORIS tests lifelong map maintenance.
+- LaMAria tests egocentric city-scale VI-SLAM under long trajectories, low light, moving platforms and calibration change; it adds a materially different sensor/motion regime from EuRoC.
+- CROSS adds a focused multi-session stored-map/relocalization track. Its explicit competing-pose retention and motion-verified loop-closure behavior are directly relevant method comparators, but the headline results only apply to its stated sensor/odometry configuration.
 - Symtropy #6184 supplies controlled hidden-world counterfactuals that expose false adjacency, wrong transforms, false loop closure and DecisionNeed-specific state errors.
 - Symthaea VIS-012 #13855 owns the candidate spatial-state protocol and adapter; existing Vision Mind and HDC/dense comparison owners retain their subsystems.
 
@@ -307,6 +318,7 @@ Benchmark datasets do not establish method comparability by themselves. Use dist
 - **MASt3R-SLAM (CVPR 2025):** learned dense monocular SLAM built around a two-view 3D reconstruction/matching prior, pointmap matching, camera tracking/fusion, graph construction, loop closure and global optimization. The paper reports 15 FPS and state-of-the-art results across its evaluated benchmarks with known calibration. Its own discussion identifies pinhole training/lens-distortion degradation and full-resolution decoder throughput as limitations. Compare it only on a matched monocular input stream/calibration and with the same runtime/hardware budget. https://openaccess.thecvf.com/content/CVPR2025/html/Murai_MASt3R-SLAM_Real-Time_Dense_SLAM_with_3D_Reconstruction_Priors_CVPR_2025_paper.html
 - **DINOv3:** frozen dense visual-feature arm, not a SLAM baseline. Use it against Patch-HDC and hybrid DINOv3+HDC through the same downstream geometry/association pipeline. Meta reports 7B-scale backbones trained on 1.7B images and high-resolution dense features useful for downstream vision tasks; that does not by itself qualify metric pose, scale, topology or loop closure. https://ai.meta.com/research/dinov3/
 - **LongSpace:** long-video spatial-memory method with sequential chunks, early 3D structural cues and layer-aware memory. Reproduce on its room-tour benchmark and do not label it causal SLAM. https://aclanthology.org/2026.emnlp-main.227/
+- **CROSS:** a complete multi-session visual SLAM/relocalization system and benchmark comparator. Its documented design retains competing pose hypotheses until evidence separates them and validates loop closures, directly testing the "delay irreversible identity/pose commitment" principle. Compare the same sensor mode and odometry source; its official reference configuration is stereo plus odometry, not a monocular-only baseline. The code is MIT-licensed, but the learned VGGT-Omega / Depth Anything 3 weights are marked for non-commercial research; the RGB-D PnP modes avoid those weights. Do not make a commercial stack depend on restricted weights without a separate rights review. https://jiaming.im/CROSS/docs/
 
 ### Matched method ladder
 
@@ -333,7 +345,9 @@ All values below are prospective engineering gates, not Symthaea results. Each b
 | KITTI stereo odometry | SOFT2 0.53% translation / 0.0009 deg/m rotation | <0.50% / <0.00085 deg/m on official hidden-test protocol | further gain with same stereo inputs, fixed parameter set and official evaluator; no training-split score described as leaderboard result |
 | TUM RGB-D / EuRoC | ORB-SLAM3 + strongest reproduced compatible dense/visual-inertial baseline | >=10% paired ATE and RPE reduction at matched compute | preserve gain on held-out sequence families with calibrated uncertainty and no tracking-loss/failure regression |
 | OpenLORIS lifelong SLAM | ORB-SLAM3 + strongest compatible lifelong baseline; GT provenance stratified | >=10% lower long-term drift or false structural-map updates with non-inferior relocalization | hold across scene change, day/night and sessions; keep OptiTrack vs offline LiDAR-SLAM GT sources separate |
-| Long-horizon memory | 4DMemoryBench / EgoMemReason / LongSpace native protocols | >=5 absolute points above the strongest reproduced compatible baseline at matched observer/harness/input budget | sustain gain across horizon and multi-history strata; report memory and observer costs |
+| LaMAria egocentric VI-SLAM | strongest reproduced causal visual-inertial baselines under each native sensor mode; Aria API as a separately labelled system reference | reproduce native control-point metrics first; then target >=10% paired improvement on preregistered long/low-light/moving-platform strata without full-set regression | preserve CP@1m and failure coverage across held-out environments; report any Aria-derived pseudo-GT cohort separately |
+| CROSS multi-session map/relocalization | CROSS and strongest reproduced same-input baseline under identical camera/odometry mode | reproduce official T1/T2/T3 on the same sessions; then target >=3 percentage-point T2/T3 gain or >=10% lower T1 path-normalized error with non-inferior failure coverage | gains must hold on held-out session pairs and per-dataset strata; no cross-modal or cross-odometry leaderboard claim |
+| Long-horizon memory | 4DMemoryBench / EgoMemReason / EgoWitness / LongSpace native protocols | >=5 absolute points above the strongest reproduced compatible baseline at matched observer/harness/input budget | sustain gain across horizon and multi-history strata; report memory and observer costs; keep instance identity distinct from map geometry |
 | Decision/constraint correctness | Symtropy known-answer pairs + #7577 independent evaluator | zero false-sufficient claims, false-safe decisions, false adjacency and false loop closure on deterministic controls | positive paired regret reduction on held-out cases with non-inferior coverage/abstention and exact oracle agreement |
 | Efficiency | strongest matched-quality baseline | >=20% lower all-in measured cost at a preregistered non-inferiority margin | better quality–latency–memory–energy frontier with p50/p95/p99, hardware, model/tool calls and power reported |
 
