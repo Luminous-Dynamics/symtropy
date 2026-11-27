@@ -491,4 +491,35 @@ mod tests {
         }
         assert!(counts.values().any(|count| *count != 2));
     }
+
+
+    #[test]
+    fn campaign_identity_tamper_invalidates_the_reveal() {
+        let mut entropy = CounterEntropy { calls: 0 };
+        let mut campaign = generate_blind_campaign_with_entropy(4, &mut entropy)
+            .expect("test campaign generation");
+        campaign.candidate_manifest.campaign_id = format!("camp_{}", "a".repeat(32));
+        assert_eq!(
+            verify_post_run_reveal(
+                &campaign.candidate_manifest,
+                &campaign.evaluator_manifest,
+            ),
+            Err(BlindGenerationError::RevealMismatch("campaign_id"))
+        );
+    }
+
+    #[test]
+    fn reveal_salt_tamper_invalidates_the_campaign_commitment() {
+        let mut entropy = CounterEntropy { calls: 0 };
+        let mut campaign = generate_blind_campaign_with_entropy(4, &mut entropy)
+            .expect("test campaign generation");
+        campaign.evaluator_manifest.manifest_salt_hex = "f".repeat(64);
+        assert_eq!(
+            verify_post_run_reveal(
+                &campaign.candidate_manifest,
+                &campaign.evaluator_manifest,
+            ),
+            Err(BlindGenerationError::RevealMismatch("campaign_commitment"))
+        );
+    }
 }
