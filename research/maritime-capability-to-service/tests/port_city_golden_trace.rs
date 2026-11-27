@@ -1,11 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-const OWNER_JSON: &str = include_str!(
-    "../../../docs/research/maritime-capability-to-service/fixtures/mycelix-port-city-service-equivalence-v0.1.json"
-);
-const PROJECTION: &str = include_str!(
-    "../../../docs/research/maritime-capability-to-service/fixtures/port-city-service-equivalence-projection-v0.1.tsv"
-);
+const OWNER_JSON: &str = include_str!(concat!(
+    "../../../docs/research/maritime-capability-to-service/fixtures/",
+    "mycelix-port-city-service-equivalence-v0.1.json"
+));
+const PROJECTION: &str = include_str!(concat!(
+    "../../../docs/research/maritime-capability-to-service/fixtures/",
+    "port-city-service-equivalence-projection-v0.1.tsv"
+));
 
 #[derive(Debug)]
 struct Policy {
