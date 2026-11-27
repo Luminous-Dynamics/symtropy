@@ -197,14 +197,16 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
                 "INVALID_INPUT",
                 "MODALITY_PATH_IS_NOT_A_SAFE_RELATIVE_PATH",
             )
-        if any(
-            expected not in path_components
-            for expected in (
-                row["spacecraft_id"],
-                row["trajectory_id"],
-                expected_path_component,
-                row["capture_timestamp"],
-            )
+        expected_path_sequence = [
+            row["spacecraft_id"],
+            row["trajectory_id"],
+            expected_path_component,
+            row["capture_timestamp"],
+        ]
+        if not any(
+            path_components[index : index + len(expected_path_sequence)]
+            == expected_path_sequence
+            for index in range(len(path_components) - len(expected_path_sequence) + 1)
         ):
             return result_base(
                 row,
