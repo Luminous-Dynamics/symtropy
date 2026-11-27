@@ -43,6 +43,8 @@ on:
       - "docs/research/aviation/AERO_MODEL_EVIDENCE_ARTIFACT_ASSURANCE_V0_1.md"
       - "docs/research/aviation/schemas/aero_model_evidence_attestation_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
+      - "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1"]
@@ -86,6 +88,11 @@ on:
       - "docs/research/aviation/examples/aero_model_credibility_cut_v0_1.json"
       - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
+      - "docs/research/aviation/AERO_MODEL_EVIDENCE_ARTIFACT_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/schemas/aero_model_evidence_attestation_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_attestation_v0_1.json"
+      - "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -875,6 +882,45 @@ jobs:
                   raise SystemExit(f"hostile control unexpectedly validated: {label}")
 
           print("Model-evidence attestation Draft 2020-12 schema, synthetic positive and four hostile controls passed.")
+          PY
+
+      - name: Validate AERO model-evidence challenge seed corpus
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_model_evidence_challenge_corpus_v0_1.schema.json").read_text())
+          corpus = json.loads((root / "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json").read_text())
+          if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+              raise SystemExit("challenge corpus schema must declare Draft 2020-12")
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(corpus), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
+              raise SystemExit(f"challenge corpus failed schema validation ({len(errors)} errors)")
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(cases) != 24 or len(ids) != len(set(ids)):
+              raise SystemExit("AERO challenge corpus must contain exactly 24 unique case IDs")
+          if corpus["oracle_review_status"] != "NOT_INDEPENDENTLY_REVIEWED" or corpus["execution_status"] != "NOT_EXECUTED":
+              raise SystemExit("proposed challenge seed must not be represented as independently reviewed or executed")
+          by_id = {case["case_id"]: case for case in cases}
+          if by_id["late-revocation-preserves-as-known-history"].get("expected_by_temporal_mode") != {
+              "AS_KNOWN_AT": "ELIGIBLE_FOR_AERO_COMPOSITION",
+              "RECOMPUTED_WITH_CURRENT_TRUST": "REJECTED",
+              "RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST": "REJECTED",
+          }:
+              raise SystemExit("three-axis late-revocation control has incorrect or incomplete mode dispositions")
+          for case in cases:
+              if case["case_type"] in ("single_fault", "coupled_fault") and case["proposed_disposition"] == "ELIGIBLE_FOR_AERO_COMPOSITION":
+                  raise SystemExit(f"{case['case_id']}: fault-bearing case cannot propose a positive disposition")
+          print("AERO challenge seed schema and 24-case census passed; oracle review and execution remain NOT DONE.")
           PY
 
       - name: Run evaluator tests
