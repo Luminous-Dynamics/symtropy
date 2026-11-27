@@ -26,6 +26,11 @@
           "generation": 0
         },
         "tick": 4160000000
+      },
+      "sensor_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
       }
     },
     {
@@ -49,6 +54,11 @@
           "generation": 0
         },
         "tick": 5760000000
+      },
+      "sensor_frame_ref": {
+        "namespace": "candidate:episode-0007",
+        "local_id": "camera-frame-0",
+        "generation": 0
       }
     }
   ],
