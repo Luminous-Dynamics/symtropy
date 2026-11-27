@@ -649,6 +649,30 @@ mod tests {
         .unwrap();
         assert_eq!(input_schema["properties"]["floors"]["type"], "array");
         assert_eq!(
+            input_schema["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == "recourse_assumption"),
+            true
+        );
+        assert_eq!(
+            input_schema["properties"]["recourse_assumption"]["const"],
+            "scenario_observed_before_allocation"
+        );
+        assert_eq!(
+            report_schema["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == "recourse_assumption"),
+            true
+        );
+        assert_eq!(
+            report_schema["properties"]["recourse_assumption"]["const"],
+            "scenario_observed_before_allocation"
+        );
+        assert_eq!(
             report_schema["properties"]["schema_version"]["const"],
             ROBUST_FLOOR_SCENARIO_SCHEMA
         );
@@ -656,6 +680,75 @@ mod tests {
             report_schema["properties"]["disposition"]["enum"][0],
             "GuaranteedAcrossSuppliedScenarios"
         );
+    }
+
+    fn next_small(state: &mut u64, bound: u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (*state >> 32) % bound
+    }
+
+    #[test]
+    fn seeded_scenario_sets_match_independent_physical_robustness_oracle() {
+        // Each scenario has two 10 L routes, 20 L of supply, 15 L issue
+        // capacity per beneficiary and floors of 5 L each. Therefore the
+        // physical feasibility oracle is exact and simple: shared origin
+        // handling must support at least the 10 L total mandatory floor.
+        // This oracle does not call the temporal graph compiler or floor
+        // circulation reduction.
+        for seed in 0..250_u64 {
+            let mut rng = 0x05AF_B202_6D15_CA11_u64 ^ seed;
+            let scenario_count = 2 + next_small(&mut rng, 3) as usize;
+            let mut scenarios = Vec::with_capacity(scenario_count);
+            let mut feasible_count = 0_usize;
+
+            for index in 0..scenario_count {
+                let handling = next_small(&mut rng, 21);
+                let is_feasible = handling >= 10;
+                feasible_count += usize::from(is_feasible);
+                scenarios.push(FloorScenario {
+                    scenario_id: format!("mode-{seed}-{index}"),
+                    profile: profile(&format!("case-{seed}-{index}"), handling),
+                });
+            }
+
+            let request = RobustFloorScenarioInput {
+                scenario_set_id: format!("seeded-robust-floor-set-{seed}"),
+                recourse_assumption:
+                    ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation,
+                scenarios,
+                floors: vec![
+                    BeneficiaryFloor {
+                        service_id: "service-a".to_string(),
+                        minimum_required_quantity: 5,
+                    },
+                    BeneficiaryFloor {
+                        service_id: "service-b".to_string(),
+                        minimum_required_quantity: 5,
+                    },
+                ],
+            };
+
+            let expected = if feasible_count == scenario_count {
+                RobustFloorDisposition::GuaranteedAcrossSuppliedScenarios
+            } else if feasible_count > 0 {
+                RobustFloorDisposition::PossibleInAtLeastOneSuppliedScenario
+            } else {
+                RobustFloorDisposition::NotFeasibleInAnySuppliedScenario
+            };
+
+            let report = evaluate_robust_floor_scenarios(&request).unwrap();
+            assert_eq!(
+                report.disposition, expected,
+                "seed {seed}: physical scenario-set oracle mismatch"
+            );
+            assert_eq!(
+                report.guaranteed_scenario_count, feasible_count,
+                "seed {seed}: feasible-scenario count mismatch"
+            );
+            verify_robust_floor_scenario_report(&request, &report).unwrap();
+        }
     }
 
     #[test]
