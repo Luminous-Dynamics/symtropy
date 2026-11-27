@@ -72,6 +72,20 @@
             "items": {
               "type": "string"
             }
+          },
+          "expected_impact_outcome": {
+            "enum": [
+              "NO_REQUALIFICATION_REQUIRED",
+              "REQUALIFICATION_REQUIRED",
+              "UNKNOWN_IMPACT"
+            ]
+          },
+          "replay_mode": {
+            "enum": [
+              "HISTORICAL_AS_KNOWN",
+              "CURRENT_POLICY_COUNTERFACTUAL",
+              "CURRENT_AS_KNOWN"
+            ]
           }
         }
       }
