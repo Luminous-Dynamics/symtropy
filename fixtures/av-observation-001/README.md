@@ -219,3 +219,17 @@ THUD++ data: [paper](https://www.nature.com/articles/s41597-026-07993-8) · [cod
 The spatial protocol now adopts a mandatory failure/coverage scorecard. Conditional ATE/RPE on successful trajectories must be reported beside the complete attempt denominator, sequence coverage, tracking loss, timeouts, crashes, abstentions and unsupported cases. It also defines risk–coverage and preregistered utility reporting so failed runs cannot disappear from a mean. This is informed by the [CROSS leaderboard's explicit rule](https://jiaming.im/CROSS/leaderboard/): tracking failures below 80% frame coverage, crashes and timeouts are excluded from mean ATE and leave rows unranked. Our comparisons must retain those failures rather than repeat that censoring as a single headline metric.
 
 The work composes existing [NAV-TRANSITION-001 #6434](https://github.com/Luminous-Dynamics/symtropy/issues/6434) for continuity across observability-regime changes and [NAV-ACTIVE-ACQUISITION-RELIABILITY-001 #7080](https://github.com/Luminous-Dynamics/symtropy/issues/7080) for acquisition success/failure/unknown-outcome branches. No new navigation controller or generic reliability engine is proposed.
+
+
+
+
+## ActSpace-Bench: memory-matched real-scene exploration
+
+The protocol now crosswalks [ActSpace-Bench](https://arxiv.org/abs/2611.31215), a November 23, 2026 preprint with 994 questions / 234 episodes / 72 real-scanned scenes. Its active, same-budget random-walk and oracle-route references separate purposeful evidence gathering from reasoning. The paper's RW-8 matched-memory ablation exposes a large context-eviction effect that is hidden when the active agent is compared only to a full-memory RW-40 route.
+
+Added [scenario-matrix-actspace-v0.tsv](./scenario-matrix-actspace-v0.tsv): four pairs / eight metadata-only cases for evidence retention after eviction, frame-axis equivariance, masked-evidence abstention and linked perspective/metric constraints. The protocol records the paper's baseline scores, answerability decomposition, memory-matched tournament and rights boundaries for ARKitScenes / ScanNet++.
+
+ActSpace is now the primary real-scene active-exploration reproduction target; ESI-Bench remains the complementary embodied manipulation/locomotion simulator benchmark, and THUD++ remains the dynamic RGB-D / crowd benchmark. These native results are not pooled.
+
+**Rights:** the ActSpace paper itself does not establish a commercial license for its derived assets. Original ARKitScenes / ScanNet++ terms govern scene media and scans. Do not download or use restricted content for commercial model training until the applicable terms and author permissions are confirmed.
+
