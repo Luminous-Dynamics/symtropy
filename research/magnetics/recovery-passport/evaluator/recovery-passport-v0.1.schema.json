@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/magnetics/recovery-passport/evaluator/recovery-passport-v0.1.schema.json",
+  "title": "Magnetic recovery passport v0.1",
+  "description": "Structural schema for evidence-bound recovery passports. It is not a physical-process procedure or LCA result.",
+  "type": "object",
+  "required": ["schema_version", "program_id", "fixture_class", "claim_ceiling", "passport", "expected"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "program_id": { "const": "MAG-REPM-RECOVERY-PASSPORT-001" },
+    "fixture_class": { "const": "synthetic_semantic_control" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "passport": { "$ref": "#/$defs/passport" },
+    "expected": {
+      "type": "object",
+      "required": ["disposition", "mass_balance_status", "recovered_magnet_feedstock_mg", "recovered_elemental_product_mg", "qualified_closed_loop_product_ids"],
+      "properties": {
+        "disposition": { "enum": ["Qualified", "Fail", "Indeterminate", "NotEvaluable"] },
+        "mass_balance_status": { "enum": ["ExactNumericClosure", "ConsistentWithinUncertainty", "UnaccountedInputMass", "OutputExceedsInput", "Unresolved"] },
+        "recovered_magnet_feedstock_mg": { "type": "integer", "minimum": 0 },
+        "recovered_elemental_product_mg": { "type": "integer", "minimum": 0 },
+        "qualified_closed_loop_product_ids": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "record": {
+      "type": "object",
+      "required": ["record_id", "digest"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "mass": {
+      "type": "object",
+      "required": ["value_mg", "uncertainty_mg"],
+      "properties": {
+        "value_mg": { "type": "integer", "minimum": 0 },
+        "uncertainty_mg": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "feedstock": {
+      "type": "object",
+      "required": ["component_id", "specimen_id", "lot_id", "magnet_family", "feedstock_form", "grade_or_composition_record", "provenance_record", "manufacturing_genealogy", "process_history_digest", "modification_history_digest"],
+      "properties": {
+        "component_id": { "type": "string", "minLength": 1 },
+        "specimen_id": { "type": "string", "minLength": 1 },
+        "lot_id": { "type": "string", "minLength": 1 },
+        "magnet_family": { "enum": ["NdFeB", "SmCo", "SmFeN", "Ferrite", "Unknown"] },
+        "feedstock_form": { "enum": ["PolymerBondedMagnet", "SinteredMagnet", "MagnetPowder", "HybridAssembly", "Unknown"] },
+        "grade_or_composition_record": { "$ref": "#/$defs/record" },
+        "provenance_record": { "$ref": "#/$defs/record" },
+        "manufacturing_genealogy": { "$ref": "#/$defs/record" },
+        "process_history_digest": { "$ref": "#/$defs/digest" },
+        "modification_history_digest": { "$ref": "#/$defs/digest" },
+        "service_history_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "eligibility": {
+      "type": "object",
+      "required": ["receipt", "feedstock_lot_id", "magnet_family", "feedstock_form", "route", "eligibility", "scope_basis_digest"],
+      "properties": {
+        "receipt": { "$ref": "#/$defs/record" },
+        "feedstock_lot_id": { "type": "string", "minLength": 1 },
+        "magnet_family": { "enum": ["NdFeB", "SmCo", "SmFeN", "Ferrite", "Unknown"] },
+        "feedstock_form": { "enum": ["PolymerBondedMagnet", "SinteredMagnet", "MagnetPowder", "HybridAssembly", "Unknown"] },
+        "route": { "enum": ["PolymerHydrolysis", "HydrogenShortLoop", "MechanicalLiberation", "Hydrometallurgy", "Pyrometallurgy", "Electrochemical", "Other"] },
+        "eligibility": { "enum": ["Qualified", "Fail", "Indeterminate", "NotEvaluable"] },
+        "scope_basis_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "required": ["output_id", "record", "form", "mass"],
+      "properties": {
+        "output_id": { "type": "string", "minLength": 1 },
+        "record": { "$ref": "#/$defs/record" },
+        "form": { "enum": ["MagnetFeedstock", "RemanufacturableAlloy", "ElementalProduct", "NonMagneticFraction", "Residue"] },
+        "mass": { "$ref": "#/$defs/mass" },
+        "composition_record": { "$ref": "#/$defs/record" },
+        "quality_record": { "$ref": "#/$defs/record" },
+        "magnetic_characterization_record": { "$ref": "#/$defs/record" },
+        "waste_classification_record": { "$ref": "#/$defs/record" },
+        "disposition_record": { "$ref": "#/$defs/record" }
+      },
+      "additionalProperties": false
+    },
+    "stage": {
+      "type": "object",
+      "required": ["stage_id", "stage_record", "feedstock_lot_id", "route", "method_id", "input_mass", "outputs", "closure_tolerance_mg"],
+      "properties": {
+        "stage_id": { "type": "string", "minLength": 1 },
+        "stage_record": { "$ref": "#/$defs/record" },
+        "feedstock_lot_id": { "type": "string", "minLength": 1 },
+        "route": { "enum": ["PolymerHydrolysis", "HydrogenShortLoop", "MechanicalLiberation", "Hydrometallurgy", "Pyrometallurgy", "Electrochemical", "Other"] },
+        "method_id": { "type": "string", "minLength": 1 },
+        "input_mass": { "$ref": "#/$defs/mass" },
+        "outputs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/output" } },
+        "closure_tolerance_mg": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "downstream": {
+      "type": "object",
+      "required": ["recovered_output_id", "new_material_lot_id", "manufacturing_genealogy", "as_built_acceptance_receipt", "downstream_disposition"],
+      "properties": {
+        "recovered_output_id": { "type": "string", "minLength": 1 },
+        "new_material_lot_id": { "type": "string", "minLength": 1 },
+        "manufacturing_genealogy": { "$ref": "#/$defs/record" },
+        "as_built_acceptance_receipt": { "$ref": "#/$defs/record" },
+        "downstream_disposition": { "enum": ["Qualified", "Fail", "Indeterminate", "NotEvaluable"] }
+      },
+      "additionalProperties": false
+    },
+    "passport": {
+      "type": "object",
+      "required": ["passport_id", "feedstock", "route_eligibility", "stage"],
+      "properties": {
+        "passport_id": { "type": "string", "minLength": 1 },
+        "feedstock": { "$ref": "#/$defs/feedstock" },
+        "route_eligibility": { "$ref": "#/$defs/eligibility" },
+        "stage": { "$ref": "#/$defs/stage" },
+        "downstream_use": { "$ref": "#/$defs/downstream" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
