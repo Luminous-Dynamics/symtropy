@@ -536,8 +536,7 @@ where
             &compliance_margin,
             &policy.compliance_expression_id,
         )? && incumbent.as_ref().is_none_or(|existing| {
-            candidate.worst_case_objective_upper_bound
-                < existing.worst_case_objective_upper_bound
+            candidate.worst_case_objective_upper_bound < existing.worst_case_objective_upper_bound
         }) {
             incumbent = Some(candidate);
         }
