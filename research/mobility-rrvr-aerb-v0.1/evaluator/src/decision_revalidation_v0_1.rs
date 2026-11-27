@@ -920,4 +920,74 @@ mod tests {
             }
         );
     }
+
+
+    #[test]
+    fn relevant_change_receipt_and_new_revision_are_carried_to_recompute_result() {
+        let receipt = receipt();
+        let mut event = change(
+            "effect-observation-revised",
+            21,
+            31,
+            ChangeKind::Superseded,
+            &["effect-observation"],
+        );
+        event.resulting_revision_sha256 = digest('8');
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[event],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::RecomputeRequired {
+                reasons: vec![RecomputeReason::DependencyChanged {
+                    event_id: "effect-observation-revised".to_owned(),
+                    dependency_id: "effect-observation".to_owned(),
+                    kind: ChangeKind::Superseded,
+                    resulting_revision_sha256: digest('8'),
+                }],
+            }
+        );
+    }
+
+    #[test]
+    fn nonsemantic_change_order_permutation_preserves_revalidation_result() {
+        let receipt = receipt();
+        let first = change(
+            "effect-update",
+            21,
+            31,
+            ChangeKind::Updated,
+            &["effect-observation"],
+        );
+        let second = change(
+            "endpoint-revocation",
+            21,
+            31,
+            ChangeKind::Revoked,
+            &["endpoint-profile"],
+        );
+        let forward = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[first.clone(), second.clone()],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        let reverse = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[second, first],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(forward, reverse);
+        assert!(matches!(
+            forward,
+            DecisionRevalidation::RecomputeRequired { ref reasons } if reasons.len() == 2
+        ));
+    }
 }
