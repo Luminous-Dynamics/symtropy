@@ -47,6 +47,9 @@ pub struct FunctionalRequirements {
     pub rotor_state_id: String,
     pub reference_record_id: String,
     pub reference_sha256: String,
+    pub reference_instrument_id: String,
+    pub reference_calibration_id: String,
+    pub reference_calibration_sha256: String,
     pub reference_operating_condition_id: String,
     /// Independently traceable mechanical reference phasor, not the candidate
     /// sensor's own output or a calibration fit from the evaluated trace.
@@ -105,6 +108,9 @@ pub struct PhysicalFunctionalCertificate {
     pub transfer_environment_sha256: String,
     pub reference_record_id: String,
     pub reference_sha256: String,
+    pub reference_instrument_id: String,
+    pub reference_calibration_id: String,
+    pub reference_calibration_sha256: String,
     pub rotor_state_id: String,
     pub physical_evidence_role: EvidenceRole,
     pub calibration_evidence_role: EvidenceRole,
@@ -149,6 +155,15 @@ fn valid_interval(value: Interval) -> bool {
 
 fn same_float(left: f64, right: f64) -> bool {
     left.to_bits() == right.to_bits()
+}
+
+fn midpoint(lower: f64, upper: f64) -> Option<f64> {
+    let value = if lower.is_sign_negative() == upper.is_sign_negative() {
+        lower + (upper - lower) * 0.5
+    } else {
+        lower * 0.5 + upper * 0.5
+    };
+    (value.is_finite() && value >= lower && value <= upper).then_some(value)
 }
 
 fn same_box(left: [Interval; 3], right: [Interval; 3]) -> bool {
@@ -219,6 +234,8 @@ fn validate_inputs(
         transfer.transfer_source_revision.as_str(),
         requirements.rotor_state_id.as_str(),
         requirements.reference_record_id.as_str(),
+        requirements.reference_instrument_id.as_str(),
+        requirements.reference_calibration_id.as_str(),
         requirements.reference_operating_condition_id.as_str(),
         requirements.phase_requirement_id.as_str(),
         requirements.maximum_error_cosine_record_id.as_str(),
@@ -254,6 +271,10 @@ fn validate_inputs(
         (&transfer.transfer_artifact_sha256, "transfer_artifact_sha256"),
         (&transfer.transfer_environment_sha256, "transfer_environment_sha256"),
         (&requirements.reference_sha256, "reference_sha256"),
+        (
+            &requirements.reference_calibration_sha256,
+            "reference_calibration_sha256",
+        ),
         (
             &requirements.maximum_error_cosine_sha256,
             "maximum_error_cosine_sha256",
@@ -364,10 +385,11 @@ fn validate_inputs(
                 field: "cell_bounds_m",
             });
         }
-        if !physical.centre_position_m[axis].is_finite()
-            || physical.centre_position_m[axis] < bounds.lower()
-            || physical.centre_position_m[axis] > bounds.upper()
-        {
+        let expected_centre = midpoint(bounds.lower(), bounds.upper());
+        if expected_centre.is_none_or(|expected| {
+            !physical.centre_position_m[axis].is_finite()
+                || !same_float(physical.centre_position_m[axis], expected)
+        }) {
             return Err(FunctionalTransferError::InvalidInterval {
                 field: "physical_centre_position",
             });
@@ -524,6 +546,9 @@ pub fn certify_physical_sensor_function(
         transfer_environment_sha256: transfer.transfer_environment_sha256.clone(),
         reference_record_id: requirements.reference_record_id.clone(),
         reference_sha256: requirements.reference_sha256.clone(),
+        reference_instrument_id: requirements.reference_instrument_id.clone(),
+        reference_calibration_id: requirements.reference_calibration_id.clone(),
+        reference_calibration_sha256: requirements.reference_calibration_sha256.clone(),
         rotor_state_id: requirements.rotor_state_id.clone(),
         physical_evidence_role: physical.evidence_role,
         calibration_evidence_role: transfer.calibration_evidence_role,
@@ -645,6 +670,9 @@ mod tests {
             rotor_state_id: "rotor-angle-0".to_owned(),
             reference_record_id: "reference-encoder-sample-001".to_owned(),
             reference_sha256: DIGEST.to_owned(),
+            reference_instrument_id: "reference-angle-instrument-001".to_owned(),
+            reference_calibration_id: "reference-angle-calibration-001".to_owned(),
+            reference_calibration_sha256: DIGEST_B.to_owned(),
             reference_operating_condition_id: "angle-0-temp-23c".to_owned(),
             reference_phasor: [iv(1.0, 1.0), iv(0.0, 0.0)],
             phase_requirement_id: "phase-tolerance-v1".to_owned(),
