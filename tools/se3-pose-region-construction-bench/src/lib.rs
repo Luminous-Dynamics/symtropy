@@ -173,9 +173,7 @@ impl Interval {
     }
 
     fn finite(self) -> bool {
-        self.lower.is_finite()
-            && self.upper.is_finite()
-            && self.lower <= self.upper
+        self.lower.is_finite() && self.upper.is_finite() && self.lower <= self.upper
     }
 }
 
@@ -196,9 +194,7 @@ fn interval_sub(left: Interval, right: Interval) -> Option<Interval> {
 }
 
 fn interval_mul(left: Interval, right: Interval) -> Option<Interval> {
-    if (left.lower == 0.0 && left.upper == 0.0)
-        || (right.lower == 0.0 && right.upper == 0.0)
-    {
+    if (left.lower == 0.0 && left.upper == 0.0) || (right.lower == 0.0 && right.upper == 0.0) {
         return Some(Interval::point(0.0));
     }
     let products = [
@@ -211,10 +207,7 @@ fn interval_mul(left: Interval, right: Interval) -> Option<Interval> {
         return None;
     }
     let minimum = products.iter().copied().fold(f64::INFINITY, f64::min);
-    let maximum = products
-        .iter()
-        .copied()
-        .fold(f64::NEG_INFINITY, f64::max);
+    let maximum = products.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let result = Interval {
         lower: next_down(minimum),
         upper: next_up(maximum),
@@ -226,10 +219,7 @@ fn interval_square(value: Interval) -> Option<Interval> {
     if value.lower <= 0.0 && value.upper >= 0.0 {
         let maximum = value.lower.abs().max(value.upper.abs());
         let upper = next_up(maximum * maximum);
-        return upper.is_finite().then_some(Interval {
-            lower: 0.0,
-            upper,
-        });
+        return upper.is_finite().then_some(Interval { lower: 0.0, upper });
     }
     let minimum = value.lower.abs().min(value.upper.abs());
     let maximum = value.lower.abs().max(value.upper.abs());
@@ -252,10 +242,7 @@ fn interval_div_positive(numerator: Interval, denominator: Interval) -> Option<I
         return None;
     }
     let minimum = quotients.iter().copied().fold(f64::INFINITY, f64::min);
-    let maximum = quotients
-        .iter()
-        .copied()
-        .fold(f64::NEG_INFINITY, f64::max);
+    let maximum = quotients.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let result = Interval {
         lower: next_down(minimum),
         upper: next_up(maximum),
@@ -1026,7 +1013,6 @@ mod tests {
             Disposition::InvalidCovariance
         );
     }
-
 
     #[test]
     fn interval_cholesky_rejects_near_singular_indefinite_covariance() {
