@@ -100,7 +100,7 @@
       "case_id": "non-overlapping-effective-interval",
       "operation": "set",
       "target": "/evidence_records/1/effective_from_unix_ms",
-      "value": 140,
+      "value": 125,
       "expected_finding_code": "EVIDENCE_NOT_EFFECTIVE_DURING_CLAIM_INTERVAL"
     },
     {
