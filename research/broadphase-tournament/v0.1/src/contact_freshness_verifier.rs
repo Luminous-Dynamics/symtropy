@@ -11,9 +11,8 @@
 
 use super::contact_freshness::{
     ContactFreshnessError, ContactFreshnessStamp, ContactLifecycleAction,
-    ContactLifecycleActionKind, ContactLifecycleError, ContactLifecyclePlan,
-    ContactReuseDecision, EndpointRevisions, FreshnessReason, GlobalContactRevisions,
-    ReuseDisposition, RevisionDomain,
+    ContactLifecycleActionKind, ContactLifecycleError, ContactLifecyclePlan, ContactReuseDecision,
+    EndpointRevisions, FreshnessReason, GlobalContactRevisions, ReuseDisposition, RevisionDomain,
 };
 use super::PairDeltaFrame;
 use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
@@ -35,13 +34,8 @@ pub struct ContactLifecycleVerificationReport {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ContactLifecycleVerificationError {
     Input(ContactLifecycleError),
-    ActionCountMismatch {
-        expected: usize,
-        actual: usize,
-    },
-    ActionMismatch {
-        index: usize,
-    },
+    ActionCountMismatch { expected: usize, actual: usize },
+    ActionMismatch { index: usize },
 }
 
 impl From<ContactLifecycleError> for ContactLifecycleVerificationError {
@@ -118,9 +112,7 @@ pub fn verify_contact_lifecycle_plan(
             Some(stamp) => {
                 let audited = independently_assess(stamp, current_global, current_endpoints)?;
                 if audited.reasons.is_empty() {
-                    return Err(
-                        ContactLifecycleError::UnexplainedRevalidation(*pair).into()
-                    );
+                    return Err(ContactLifecycleError::UnexplainedRevalidation(*pair).into());
                 }
                 audited
             }
@@ -229,10 +221,24 @@ fn independently_assess(
     let mut eligibility_recheck = false;
     let mut activate_solver = false;
 
-    audit_endpoint(stamp.left, left, &mut reasons, &mut geometry,
-        &mut warm_start, &mut eligibility_recheck, &mut activate_solver)?;
-    audit_endpoint(stamp.right, right, &mut reasons, &mut geometry,
-        &mut warm_start, &mut eligibility_recheck, &mut activate_solver)?;
+    audit_endpoint(
+        stamp.left,
+        left,
+        &mut reasons,
+        &mut geometry,
+        &mut warm_start,
+        &mut eligibility_recheck,
+        &mut activate_solver,
+    )?;
+    audit_endpoint(
+        stamp.right,
+        right,
+        &mut reasons,
+        &mut geometry,
+        &mut warm_start,
+        &mut eligibility_recheck,
+        &mut activate_solver,
+    )?;
 
     if global.collision_policy != stamp.global.collision_policy {
         reasons.insert(FreshnessReason::CollisionPolicyChanged);
@@ -249,9 +255,7 @@ fn independently_assess(
     }
 
     if !reasons.is_empty() && global.world == stamp.global.world {
-        return Err(
-            ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation.into()
-        );
+        return Err(ContactFreshnessError::WorldRevisionDidNotAdvanceForMutation.into());
     }
     if geometry == ReuseDisposition::RefreshRequired {
         warm_start = ReuseDisposition::RefreshRequired;
@@ -381,15 +385,10 @@ fn audit_monotonic(
     domain: RevisionDomain,
 ) -> Result<(), ContactLifecycleVerificationError> {
     if current < previous {
-        return Err(ContactFreshnessError::EndpointRevisionRegressed {
-            proxy,
-            domain,
-        }
-        .into());
+        return Err(ContactFreshnessError::EndpointRevisionRegressed { proxy, domain }.into());
     }
     Ok(())
 }
-
 
 /// Complete immutable transition input for one world step.
 ///
@@ -486,9 +485,7 @@ pub fn verify_contact_lifecycle_receipt(
 
     for (key, stamp) in &receipt.previous_contact_stamps {
         if !previous.contains(key) {
-            return Err(
-                ContactLifecycleReceiptError::UnexpectedPriorContactStamp(*key).into()
-            );
+            return Err(ContactLifecycleReceiptError::UnexpectedPriorContactStamp(*key).into());
         }
         if stamp.pair != *key {
             return Err(ContactLifecycleReceiptError::PriorContactStampMismatch(*key).into());
@@ -504,9 +501,7 @@ pub fn verify_contact_lifecycle_receipt(
             || stamp.global.solver_config_sha256 != receipt.previous_global.solver_config_sha256
             || stamp.global.world > receipt.previous_global.world
         {
-            return Err(
-                ContactLifecycleReceiptError::PriorContactStampGlobalMismatch(*key).into()
-            );
+            return Err(ContactLifecycleReceiptError::PriorContactStampGlobalMismatch(*key).into());
         }
     }
 
@@ -605,20 +600,42 @@ fn audit_endpoint_revision_monotonicity(
         return Err(ContactLifecycleReceiptError::EndpointMapKeyMismatch(current.proxy).into());
     }
     for (old, new, domain) in [
-        (previous.generation, current.generation, RevisionDomain::Generation),
-        (previous.transform, current.transform, RevisionDomain::Transform),
+        (
+            previous.generation,
+            current.generation,
+            RevisionDomain::Generation,
+        ),
+        (
+            previous.transform,
+            current.transform,
+            RevisionDomain::Transform,
+        ),
         (previous.shape, current.shape, RevisionDomain::Shape),
-        (previous.eligibility, current.eligibility, RevisionDomain::Eligibility),
-        (previous.motion_class, current.motion_class, RevisionDomain::MotionClass),
-        (previous.material, current.material, RevisionDomain::Material),
-        (previous.wake_epoch, current.wake_epoch, RevisionDomain::WakeEpoch),
+        (
+            previous.eligibility,
+            current.eligibility,
+            RevisionDomain::Eligibility,
+        ),
+        (
+            previous.motion_class,
+            current.motion_class,
+            RevisionDomain::MotionClass,
+        ),
+        (
+            previous.material,
+            current.material,
+            RevisionDomain::Material,
+        ),
+        (
+            previous.wake_epoch,
+            current.wake_epoch,
+            RevisionDomain::WakeEpoch,
+        ),
     ] {
         // Within a generation, all revision domains are monotonic. Once the
         // generation changes, the old counter values are a different identity
         // lifetime and are intentionally not compared.
-        if domain != RevisionDomain::Generation
-            && previous.generation != current.generation
-        {
+        if domain != RevisionDomain::Generation && previous.generation != current.generation {
             continue;
         }
         if new < old {
@@ -700,10 +717,9 @@ mod tests {
         let endpoints = BTreeMap::from([(ProxyId(1), awake), (ProxyId(2), endpoint(2))]);
         let plan = make_plan(&delta, &stamps, next_global(), &endpoints);
 
-        let report = verify_contact_lifecycle_plan(
-            &delta, &stamps, next_global(), &endpoints, &plan,
-        )
-        .expect("independent verifier accepts valid wake-only transition");
+        let report =
+            verify_contact_lifecycle_plan(&delta, &stamps, next_global(), &endpoints, &plan)
+                .expect("independent verifier accepts valid wake-only transition");
 
         assert_eq!(report.revalidated_pairs, 1);
         assert_eq!(report.geometry_reuses, 1);
@@ -721,12 +737,19 @@ mod tests {
         awake.wake_epoch += 1;
         let endpoints = BTreeMap::from([(ProxyId(1), awake), (ProxyId(2), endpoint(2))]);
         let mut plan = make_plan(&delta, &stamps, next_global(), &endpoints);
-        plan.actions[0].decision.as_mut().expect("decision").geometry =
-            ReuseDisposition::RefreshRequired;
+        plan.actions[0]
+            .decision
+            .as_mut()
+            .expect("decision")
+            .geometry = ReuseDisposition::RefreshRequired;
 
         assert_eq!(
             verify_contact_lifecycle_plan(
-                &delta, &stamps, next_global(), &endpoints, &plan,
+                &delta,
+                &stamps,
+                next_global(),
+                &endpoints,
+                &plan,
             ),
             Err(ContactLifecycleVerificationError::ActionMismatch { index: 0 })
         );
@@ -750,7 +773,11 @@ mod tests {
 
         assert_eq!(
             verify_contact_lifecycle_plan(
-                &delta, &stamps, next_global(), &endpoints, &plan,
+                &delta,
+                &stamps,
+                next_global(),
+                &endpoints,
+                &plan,
             ),
             Err(ContactLifecycleVerificationError::ActionMismatch { index: 0 })
         );
@@ -766,7 +793,11 @@ mod tests {
 
         assert_eq!(
             verify_contact_lifecycle_plan(
-                &delta, &BTreeMap::new(), global(), &endpoints, &plan,
+                &delta,
+                &BTreeMap::new(),
+                global(),
+                &endpoints,
+                &plan,
             ),
             Err(ContactLifecycleVerificationError::ActionCountMismatch {
                 expected: 1,
@@ -782,11 +813,19 @@ mod tests {
         delta.added.push(pair);
         let endpoints = BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
         let mut plan = make_plan(&delta, &BTreeMap::new(), global(), &endpoints);
-        plan.actions[0].decision.as_mut().expect("decision").geometry = ReuseDisposition::Reusable;
+        plan.actions[0]
+            .decision
+            .as_mut()
+            .expect("decision")
+            .geometry = ReuseDisposition::Reusable;
 
         assert_eq!(
             verify_contact_lifecycle_plan(
-                &delta, &BTreeMap::new(), global(), &endpoints, &plan,
+                &delta,
+                &BTreeMap::new(),
+                global(),
+                &endpoints,
+                &plan,
             ),
             Err(ContactLifecycleVerificationError::ActionMismatch { index: 0 })
         );
@@ -804,7 +843,11 @@ mod tests {
 
         assert_eq!(
             verify_contact_lifecycle_plan(
-                &delta, &stamps, older, &endpoints, &ContactLifecyclePlan::default(),
+                &delta,
+                &stamps,
+                older,
+                &endpoints,
+                &ContactLifecyclePlan::default(),
             ),
             Err(ContactLifecycleVerificationError::Input(
                 ContactLifecycleError::Freshness(ContactFreshnessError::WorldRevisionRegressed)
@@ -814,18 +857,23 @@ mod tests {
 
     fn receipt_fixture(
         wake_only: bool,
-    ) -> (ContactLifecycleReceipt, PairDeltaFrame, BTreeMap<ProxyPair, ContactFreshnessStamp>) {
+    ) -> (
+        ContactLifecycleReceipt,
+        PairDeltaFrame,
+        BTreeMap<ProxyPair, ContactFreshnessStamp>,
+    ) {
         let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
         let previous_global = global();
         let mut current_global = global();
         current_global.world += 1;
-        let previous_endpoints = BTreeMap::from([
-            (ProxyId(1), endpoint(1)),
-            (ProxyId(2), endpoint(2)),
-        ]);
+        let previous_endpoints =
+            BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
         let mut current_endpoints = previous_endpoints.clone();
         if wake_only {
-            current_endpoints.get_mut(&ProxyId(1)).expect("left").wake_epoch += 1;
+            current_endpoints
+                .get_mut(&ProxyId(1))
+                .expect("left")
+                .wake_epoch += 1;
         }
         let stamps = BTreeMap::from([(pair, stamp())]);
         let mut delta = PairDeltaFrame::default();
@@ -858,8 +906,8 @@ mod tests {
     #[test]
     fn receipt_replay_derives_wake_only_revalidation() {
         let (receipt, _, _) = receipt_fixture(true);
-        let report = verify_contact_lifecycle_receipt(&receipt)
-            .expect("replay verifies wake-only pair");
+        let report =
+            verify_contact_lifecycle_receipt(&receipt).expect("replay verifies wake-only pair");
         assert_eq!(report.revalidated_pairs, 1);
         assert_eq!(report.geometry_reuses, 1);
         assert_eq!(report.warm_start_reuses, 1);
@@ -896,7 +944,11 @@ mod tests {
     #[test]
     fn receipt_replay_rejects_prior_stamp_that_does_not_match_snapshot() {
         let (mut receipt, _, _) = receipt_fixture(false);
-        receipt.previous_endpoints.get_mut(&ProxyId(1)).expect("left").transform += 1;
+        receipt
+            .previous_endpoints
+            .get_mut(&ProxyId(1))
+            .expect("left")
+            .transform += 1;
         assert_eq!(
             verify_contact_lifecycle_receipt(&receipt),
             Err(ContactLifecycleReceiptVerificationError::Receipt(
@@ -926,20 +978,15 @@ mod tests {
         let previous_global = global();
         let mut current_global = global();
         current_global.world += 1;
-        let previous_endpoints = BTreeMap::from([
-            (ProxyId(1), endpoint(1)),
-            (ProxyId(2), endpoint(2)),
-        ]);
-        let current_endpoints = BTreeMap::from([
-            (ProxyId(2), endpoint(2)),
-            (ProxyId(3), endpoint(3)),
-        ]);
-        let stamps = BTreeMap::from([(old_pair, ContactFreshnessStamp::new(
+        let previous_endpoints =
+            BTreeMap::from([(ProxyId(1), endpoint(1)), (ProxyId(2), endpoint(2))]);
+        let current_endpoints =
+            BTreeMap::from([(ProxyId(2), endpoint(2)), (ProxyId(3), endpoint(3))]);
+        let stamps = BTreeMap::from([(
             old_pair,
-            previous_global,
-            endpoint(1),
-            endpoint(2),
-        ).expect("old stamp"))]);
+            ContactFreshnessStamp::new(old_pair, previous_global, endpoint(1), endpoint(2))
+                .expect("old stamp"),
+        )]);
         let mut delta = PairDeltaFrame::default();
         delta.added.push(new_pair);
         delta.removed.push(old_pair);
@@ -960,8 +1007,8 @@ mod tests {
             previous_contact_stamps: stamps,
             producer_plan: plan,
         };
-        let report = verify_contact_lifecycle_receipt(&receipt)
-            .expect("replay exact set differences");
+        let report =
+            verify_contact_lifecycle_receipt(&receipt).expect("replay exact set differences");
         assert_eq!(report.added_pairs, 1);
         assert_eq!(report.removed_pairs, 1);
         assert_eq!(report.full_contact_builds, 1);
