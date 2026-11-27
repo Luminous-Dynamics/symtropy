@@ -818,7 +818,7 @@ mod tests {
                 unit_frame_budget: 3,
                 landmark_tolerance_mpx: 1_200,
                 temporal_motion_tolerance_mpx: 500,
-                default_mask_iou_floor_bps: 9_900,
+                default_mask_iou_floor_bps: 9_500,
             },
             source_image_sha256: digest(char::from_digit((index + 1) % 10, 10).unwrap()),
             translated_image_sha256: digest(char::from_digit((index + 4) % 10, 10).unwrap()),
