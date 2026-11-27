@@ -212,3 +212,21 @@ The research crosswalk adds [ESI-Bench](https://esi-bench.github.io/) as the act
 Opened [DYN-MAP-PERSISTENCE-001 #7787](https://github.com/Luminous-Dynamics/symtropy/issues/7787) to qualify persistent structure versus transient indoor occupancy. It composes #1595, #6183, #6201, #7693 and #6754 and uses THUD++ as an external dynamic-scene reference. The first target is to separate temporary people/carts/occlusion from lasting structural changes, report 5/10/15-pedestrian strata independently, and score map revisions and tracking coverage without pooling real-world, synthetic and Unity-emulator results.
 
 THUD++ data: [paper](https://www.nature.com/articles/s41597-026-07993-8) · [code](https://github.com/jackyzengl/THUD-plus-plus) · [dataset DOI](https://doi.org/10.5281/zenodo.18459791).
+
+
+## Evaluator-side world-pair binding registry
+
+The child implementation [AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) has a stacked draft contribution adding:
+
+- [world-pair binding schema](./observability-world-pair-binding-v0.schema.json), a strict Draft 2020-12 evaluator-side envelope referencing existing WorldManifestV1 and AV observation replay artifacts;
+- [nine-pair registry](./observability-world-pair-binding-v0.registry.json), containing nine identifiability pairs with two world slots each;
+- [binding audit protocol](./observability-world-pair-binding-audit-v0.md), defining manifest, candidate-prefix equivalence, first-distinguishing-observation and readiness gates.
+
+All nine pairs remain explicitly **unbound**. Manifest, truth-crosswalk, candidate-prefix and replay digests are null; null is not a wildcard or pass. Exact artifacts from #1587/#1589 and #6201 must be bound before prefix equality can be tested from candidate-visible bytes/transcripts.
+
+The world-pair binding workflow fetches the pinned base source-matrix branch history before resolving the recorded source commit. A shallow candidate-head checkout alone is insufficient to prove that the pinned commit exists in the local object database.
+
+### Evidence-gated readiness promotion
+
+The binding schema requires stage-specific receipts: manifest validation before manifest binding; candidate-input/transcript and shared-contract digests plus an audit receipt before prefix commitment; a causal replay receipt before rendered-replay verification; and rights, split-integrity, custody and frozen candidate/model identities before blind readiness. The CI job includes five invalid-promotion negative controls. The registry itself remains all-unbound until real source artifacts exist.
+
