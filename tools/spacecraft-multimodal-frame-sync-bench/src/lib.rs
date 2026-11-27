@@ -334,9 +334,9 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         let path_components: Vec<&str> = record.path.split('/').collect();
         if record.path.starts_with('/')
             || record.path.contains('\\')
-            || path_components.iter().any(|component| {
-                component.is_empty() || *component == "." || *component == ".."
-            })
+            || path_components
+                .iter()
+                .any(|component| component.is_empty() || *component == "." || *component == "..")
         {
             return result(
                 input,
@@ -652,7 +652,10 @@ mod tests {
         ] {
             record.frame_id.clear();
         }
-        assert_eq!(evaluate(&frame).disposition, BundleDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&frame).disposition,
+            BundleDisposition::InvalidInput
+        );
 
         let mut camera_revision = input();
         camera_revision.camera_calibration_revision.clear();
@@ -676,16 +679,17 @@ mod tests {
         assert_eq!(evaluate(&value).disposition, BundleDisposition::OutOfScope);
 
         let mut traversal = input();
-        traversal.rgb.path =
-            "raw/../ACE/approach_front/rgb/20260120165126242".to_owned();
-        assert_eq!(evaluate(&traversal).disposition, BundleDisposition::InvalidInput);
+        traversal.rgb.path = "raw/../ACE/approach_front/rgb/20260120165126242".to_owned();
+        assert_eq!(
+            evaluate(&traversal).disposition,
+            BundleDisposition::InvalidInput
+        );
     }
 
     #[test]
     fn modality_path_identity_components_must_be_in_order() {
         let mut value = input();
-        value.rgb.path =
-            "raw/ACE/rgb/approach_front/20260120165126242".to_owned();
+        value.rgb.path = "raw/ACE/rgb/approach_front/20260120165126242".to_owned();
         assert_eq!(evaluate(&value).disposition, BundleDisposition::OutOfScope);
     }
 
@@ -693,7 +697,10 @@ mod tests {
     fn malformed_calibration_or_extrinsics_digest_is_invalid_input() {
         let mut camera = input();
         camera.camera_calibration_sha256 = "bad".to_owned();
-        assert_eq!(evaluate(&camera).disposition, BundleDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&camera).disposition,
+            BundleDisposition::InvalidInput
+        );
 
         let mut extrinsics = input();
         extrinsics.lidar_to_camera_sha256 = "bad".to_owned();
