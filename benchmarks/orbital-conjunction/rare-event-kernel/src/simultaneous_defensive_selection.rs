@@ -739,9 +739,13 @@ mod tests {
 
     #[test]
     fn family_alpha_is_split_over_all_pairwise_contrasts() {
-        let process =
-            SimultaneousDefensivePortfolioSelection::new(0.06, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
-                .unwrap();
+        let process = SimultaneousDefensivePortfolioSelection::new(
+            0.06,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            proposal_three_modes(),
+        )
+        .unwrap();
         let report = process.report().unwrap();
 
         assert_eq!(report.portfolio_count, 3);
@@ -758,9 +762,13 @@ mod tests {
 
     #[test]
     fn one_shared_draw_updates_every_pair_and_evaluates_density_once() {
-        let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
-                .unwrap();
+        let mut process = SimultaneousDefensivePortfolioSelection::new(
+            0.05,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            proposal_three_modes(),
+        )
+        .unwrap();
         let receipt = process
             .observe(&draw(1, 1, &[(30, 12), (10, 2), (20, 7)]))
             .unwrap();
@@ -791,9 +799,13 @@ mod tests {
 
     #[test]
     fn shared_draw_ledger_rejects_duplicate_ids_and_duplicate_indices() {
-        let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
-                .unwrap();
+        let mut process = SimultaneousDefensivePortfolioSelection::new(
+            0.05,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            proposal_three_modes(),
+        )
+        .unwrap();
         process
             .observe(&draw(1, 9, &[(10, 1), (20, 2), (30, 3)]))
             .unwrap();
@@ -811,9 +823,13 @@ mod tests {
 
     #[test]
     fn missing_duplicate_and_out_of_bound_portfolio_rows_are_rejected_transactionally() {
-        let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
-                .unwrap();
+        let mut process = SimultaneousDefensivePortfolioSelection::new(
+            0.05,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            proposal_three_modes(),
+        )
+        .unwrap();
 
         assert_eq!(
             process.observe(&draw(1, 1, &[(10, 1), (20, 2)])),
@@ -868,16 +884,26 @@ mod tests {
         )
         .unwrap();
         assert_eq!(
-            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), restricted).unwrap_err(),
+            SimultaneousDefensivePortfolioSelection::new(
+                0.05,
+                CONSEQUENCE_UNIT_ID,
+                bounds(),
+                restricted
+            )
+            .unwrap_err(),
             SimultaneousDefensiveSelectionError::IncompleteProposalPortfolioCoverage
         );
     }
 
     #[test]
     fn separated_best_portfolio_is_reported_only_after_all_pairs_are_resolved() {
-        let mut process =
-            SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, bounds(), proposal_three_modes())
-                .unwrap();
+        let mut process = SimultaneousDefensivePortfolioSelection::new(
+            0.05,
+            CONSEQUENCE_UNIT_ID,
+            bounds(),
+            proposal_three_modes(),
+        )
+        .unwrap();
         for index in 1..=2_000 {
             process
                 .observe(&draw(index, index, &[(10, 0), (20, 10), (30, 20)]))
@@ -925,7 +951,13 @@ mod tests {
             ],
         )
         .unwrap();
-        let process = SimultaneousDefensivePortfolioSelection::new(0.05, CONSEQUENCE_UNIT_ID, fixed, proposal).unwrap();
+        let process = SimultaneousDefensivePortfolioSelection::new(
+            0.05,
+            CONSEQUENCE_UNIT_ID,
+            fixed,
+            proposal,
+        )
+        .unwrap();
         let report = process.report().unwrap();
         assert_eq!(
             report.pairwise_intervals[0].lower_expected_difference_ticks,
