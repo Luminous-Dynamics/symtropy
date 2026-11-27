@@ -1204,6 +1204,12 @@ mod tests {
                 true,
                 false,
                 false,
+                ContactPayloadRevisions {
+                    manifold_revision: 1,
+                    manifold_digest_sha256: [21; 32],
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32],
+                },
             )
             .expect("warm-start reset committed under new solver config");
         receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
@@ -1282,6 +1288,12 @@ mod tests {
                 true,
                 false,
                 false,
+                ContactPayloadRevisions {
+                    manifold_revision: 2,
+                    manifold_digest_sha256: [24; 32],
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32],
+                },
             )
             .expect("producer completed required work");
         receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
