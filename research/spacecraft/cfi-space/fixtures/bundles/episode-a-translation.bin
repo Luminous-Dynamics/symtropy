@@ -1,0 +1,4 @@
+CFI_SPACE_SYNTHETIC_NON_IMAGE_PAYLOAD_V1
+episode=episode-a-translation
+frame=0;sequence=0;timestamp_us=1000000;payload=frame-zero
+frame=1;sequence=1;timestamp_us=1033333;payload=frame-one
