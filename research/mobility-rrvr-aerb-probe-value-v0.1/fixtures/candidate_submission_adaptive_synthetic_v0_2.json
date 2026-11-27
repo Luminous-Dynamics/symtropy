@@ -1,0 +1,177 @@
+{
+  "schema_version": "0.2",
+  "benchmark": "AERB",
+  "episode_id": "aerb-synthetic-0001",
+  "candidate_snapshot_sha256": "4ae21c204ec9b5f8b9e6f701c3f6305be7464162715ff27bde5e10f4aa83efc7",
+  "decision_need_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "decision_contract_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "probe_catalogue_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "model_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+  "observer_profile_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+  "actuation_guard": "block_new_effect",
+  "initial_possible_world_support_ids": [
+    "not_dispatched",
+    "dispatched_no_effect",
+    "applied_once_ack_lost",
+    "partial_effect",
+    "duplicate_effect",
+    "stale_authority_effect",
+    "unresolved_command_holder",
+    "open_world_residual"
+  ],
+  "candidate_predicted_probe_models": [
+    {
+      "probe_id": "read_endpoint_journal",
+      "outcomes": [
+        {
+          "outcome_id": "journal_no_effect",
+          "possible_world_support_ids": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "journal_applied_once",
+          "possible_world_support_ids": [
+            "applied_once_ack_lost",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "journal_partial_duplicate_or_stale",
+          "possible_world_support_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "journal_holder_unresolved",
+          "possible_world_support_ids": [
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ]
+    },
+    {
+      "probe_id": "reconcile_effect_and_scope",
+      "outcomes": [
+        {
+          "outcome_id": "complete_no_effect",
+          "possible_world_support_ids": [
+            "not_dispatched",
+            "dispatched_no_effect"
+          ]
+        },
+        {
+          "outcome_id": "complete_applied_once",
+          "possible_world_support_ids": [
+            "applied_once_ack_lost"
+          ]
+        },
+        {
+          "outcome_id": "partial_duplicate_or_stale",
+          "possible_world_support_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect"
+          ]
+        },
+        {
+          "outcome_id": "scope_incomplete_or_unmodelled",
+          "possible_world_support_ids": [
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ]
+    }
+  ],
+  "counterfactual_policy": {
+    "root_node_id": "n0",
+    "nodes": [
+      {
+        "node_id": "n0",
+        "node_type": "probe",
+        "counterfactual_only": true,
+        "probe_id": "read_endpoint_journal",
+        "outcome_branches": [
+          {
+            "outcome_id": "journal_no_effect",
+            "next_node_id": "n1"
+          },
+          {
+            "outcome_id": "journal_applied_once",
+            "next_node_id": "n2"
+          },
+          {
+            "outcome_id": "journal_partial_duplicate_or_stale",
+            "next_node_id": "n3"
+          },
+          {
+            "outcome_id": "journal_holder_unresolved",
+            "next_node_id": "n4"
+          }
+        ]
+      },
+      {
+        "node_id": "n1",
+        "node_type": "probe",
+        "counterfactual_only": true,
+        "probe_id": "reconcile_effect_and_scope",
+        "outcome_branches": [
+          {
+            "outcome_id": "complete_no_effect",
+            "next_node_id": "n5"
+          },
+          {
+            "outcome_id": "scope_incomplete_or_unmodelled",
+            "next_node_id": "n8"
+          }
+        ]
+      },
+      {
+        "node_id": "n2",
+        "node_type": "terminal",
+        "counterfactual_only": true,
+        "terminal_disposition": "hold_reconcile"
+      },
+      {
+        "node_id": "n3",
+        "node_type": "terminal",
+        "counterfactual_only": true,
+        "terminal_disposition": "hold_reconcile"
+      },
+      {
+        "node_id": "n4",
+        "node_type": "terminal",
+        "counterfactual_only": true,
+        "terminal_disposition": "hold_reconcile"
+      },
+      {
+        "node_id": "n5",
+        "node_type": "terminal",
+        "counterfactual_only": true,
+        "terminal_disposition": "recommend_fresh_attempt"
+      },
+      {
+        "node_id": "n8",
+        "node_type": "terminal",
+        "counterfactual_only": true,
+        "terminal_disposition": "hold_reconcile"
+      }
+    ]
+  },
+  "reason_codes": [
+    "SYNTHETIC_ADAPTIVE_POLICY_FIXTURE",
+    "BLOCK_NEW_EFFECT_UNTIL_INDEPENDENT_FINALITY",
+    "SCOPE_RECONCILIATION_ONLY_WHEN_DECISION_RELEVANT"
+  ],
+  "explanation_observation_ids": [
+    "obs-001",
+    "obs-002"
+  ]
+}
