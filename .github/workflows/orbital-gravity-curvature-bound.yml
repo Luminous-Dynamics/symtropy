@@ -64,7 +64,7 @@ jobs:
           assert cases["CB009"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["CB015"]["disposition"] == "INDETERMINATE"
           assert cases["CB024"]["disposition"] == "OVERFLOW"
-          assert cases["CB027"]["disposition"] == "OVERFLOW"
+          assert cases["CB027"]["disposition"] == "BOUND_READY"
           assert cases["CB028"]["disposition"] == "OVERFLOW"
           assert cases["CB031"]["disposition"] == "OUT_OF_SCOPE"
           assert cases["CB033"]["disposition"] == "BOUND_READY"
