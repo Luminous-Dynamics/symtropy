@@ -373,7 +373,11 @@ fn reconstruct_expected_reduction(
     {
         return Err("verifier detected reserved node identity collision".to_string());
     }
-    if base_graph.edges.iter().any(|edge| edge.id == VERIFY_RETURN_EDGE) {
+    if base_graph
+        .edges
+        .iter()
+        .any(|edge| edge.id == VERIFY_RETURN_EDGE)
+    {
         return Err("verifier detected reserved return edge collision".to_string());
     }
 
@@ -481,7 +485,9 @@ fn reconstruct_expected_reduction(
                     from: node_id.clone(),
                     to: VERIFY_AUX_SINK.to_string(),
                     capacity: amount,
-                    metadata_ref: Some(format!("safrb-beneficiary-floor-feasibility-v0.1/super-sink/{node_id}")),
+                    metadata_ref: Some(format!(
+                        "safrb-beneficiary-floor-feasibility-v0.1/super-sink/{node_id}"
+                    )),
                 });
             }
             std::cmp::Ordering::Equal => {}
@@ -742,7 +748,10 @@ fn verifier_reconstruct_floor_bounds(
 
     let mut services = BTreeMap::new();
     for service in &profile.services {
-        if services.insert(service.service_id.as_str(), service).is_some() {
+        if services
+            .insert(service.service_id.as_str(), service)
+            .is_some()
+        {
             return Err(format!(
                 "verifier detected duplicate temporal service {}",
                 service.service_id
@@ -791,9 +800,9 @@ fn verifier_reconstruct_floor_bounds(
         }
 
         let edge_id = verifier_service_edge_id(&obligation.service_id);
-        let edge = graph_edges.get(edge_id.as_str()).ok_or_else(|| {
-            format!("verifier base graph omitted service edge {edge_id}")
-        })?;
+        let edge = graph_edges
+            .get(edge_id.as_str())
+            .ok_or_else(|| format!("verifier base graph omitted service edge {edge_id}"))?;
         let expected_tail = format!(
             "safrb-temporal/issue/{}/{}/{}",
             service.node_id.len(),
@@ -927,9 +936,9 @@ fn verifier_check_original_allocation(
         .map(|node| (node.id.as_str(), 0_i128))
         .collect::<BTreeMap<_, _>>();
     for edge in &base_graph.edges {
-        let flow = flow_by_id.get(edge.id.as_str()).ok_or_else(|| {
-            format!("verifier recovered flow omitted base edge {}", edge.id)
-        })?;
+        let flow = flow_by_id
+            .get(edge.id.as_str())
+            .ok_or_else(|| format!("verifier recovered flow omitted base edge {}", edge.id))?;
         if flow.from != edge.from
             || flow.to != edge.to
             || flow.capacity != edge.capacity
@@ -971,7 +980,10 @@ fn verifier_check_original_allocation(
         return Err("verifier source/sink balance does not reconcile".to_string());
     }
     for (node_id, net) in &balance {
-        if *node_id != base_graph.source.as_str() && *node_id != base_graph.sink.as_str() && *net != 0 {
+        if *node_id != base_graph.source.as_str()
+            && *node_id != base_graph.sink.as_str()
+            && *net != 0
+        {
             return Err(format!(
                 "verifier original allocation violates conservation at {node_id}"
             ));
@@ -982,7 +994,7 @@ fn verifier_check_original_allocation(
         .result
         .edge_flows
         .iter()
-.find(|flow| flow.id == VERIFY_RETURN_EDGE)
+        .find(|flow| flow.id == VERIFY_RETURN_EDGE)
         .ok_or_else(|| "verifier auxiliary witness omitted return edge".to_string())?
         .flow;
     let source_total = u64::try_from(source_net)
@@ -1000,12 +1012,14 @@ fn verifier_check_original_allocation(
 
     let mut allocations = Vec::with_capacity(obligations.len());
     for obligation in obligations {
-        let service = services.get(obligation.service_id.as_str()).ok_or_else(|| {
-            format!(
-                "verifier allocation references unknown service {}",
-                obligation.service_id
-            )
-        })?;
+        let service = services
+            .get(obligation.service_id.as_str())
+            .ok_or_else(|| {
+                format!(
+                    "verifier allocation references unknown service {}",
+                    obligation.service_id
+                )
+            })?;
         let edge_id = verifier_service_edge_id(&obligation.service_id);
         let allocated = flow_by_id
             .get(edge_id.as_str())
@@ -1404,9 +1418,11 @@ mod tests {
         let report = evaluate_beneficiary_floors(&model, &floors).unwrap();
         assert!(report.floors_jointly_feasible);
         let allocations = report.beneficiary_allocations.as_ref().unwrap();
-        assert!(allocations.iter().all(|item| {
-            item.allocated_quantity >= item.minimum_required_quantity
-        }));
+        assert!(
+            allocations
+                .iter()
+                .all(|item| { item.allocated_quantity >= item.minimum_required_quantity })
+        );
         assert_eq!(
             allocations.iter().map(|item| item.allocated_quantity).sum::<u64>(),
             15
@@ -1521,10 +1537,7 @@ mod tests {
             quantity_boundary_ref: "beneficiary-deliverable-litres".to_string(),
             period_timebase_ref: "synthetic:daily-periods".to_string(),
             horizon_last_period: 1,
-            nodes: vec![
-                node("origin-yard", 0, 1, 0),
-                node("beneficiary-a", 0, 0, 1),
-            ],
+            nodes: vec![node("origin-yard", 0, 1, 0), node("beneficiary-a", 0, 0, 1)],
             receipts: vec![
                 TemporalReceipt {
                     receipt_id: "receipt-max".to_string(),
