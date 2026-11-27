@@ -28,8 +28,8 @@ universal_weighted_score = false
 hard_limits_are_noncompensatory = true
 
 [interval_rules]
-maximizing_noninferiority = "candidate_lower >= baseline_lower - margin"
-minimizing_noninferiority = "candidate_upper <= baseline_upper + margin"
+maximizing_noninferiority = "candidate_lower >= baseline_upper - margin"
+minimizing_noninferiority = "candidate_upper <= baseline_lower + margin"
 maximizing_benefit = "candidate_lower > baseline_upper"
 minimizing_benefit = "candidate_upper < baseline_lower"
 overlap_is_proven_benefit = false
@@ -48,6 +48,20 @@ fixture = "evaluator/fixtures/synthetic-architecture-benchmark-v0.1.json"
 workflow = ".github/workflows/magnetic-architecture-benchmark.yml"
 language = "Rust 2024"
 dependencies = []
-unit_tests_authored = 15
+unit_tests_authored = 18
 unit_tests_executed = false
 exact_head_ci_pass = false
+
+
+[decision_classes]
+noninferiority_failure = "InferiorToBaseline"
+baseline_hard_failure = "Indeterminate"
+candidate_hard_failure = "Fail"
+missing_or_unqualified_component_evidence = "Indeterminate"
+no_candidate_trial_returns_empty_decisions = true
+only_candidate_architectures_receive_candidate_decisions = true
+
+[robust_baseline_semantics]
+maximize_noninferiority_compares_candidate_lower_to_baseline_upper = true
+minimize_noninferiority_compares_candidate_upper_to_baseline_lower = true
+baseline_must_itself_pass_declared_hard_limits = true
