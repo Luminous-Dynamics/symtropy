@@ -71,6 +71,23 @@ The temporal tests cover cross-dock throughput above end-of-period storage, carr
 
 The Rust exact-head workflow is `.github/workflows/safrb-flow-rust.yml`. It pins the repository Rust toolchain and checks exact checkout, formatting, Clippy, Rust tests, and independent portable certificate conformance. A green run qualifies only the exact commit recorded by that run; later commits require fresh receipts. Repository tests do not establish evidence authenticity, legal access, physical asset qualification, dispatch authority, or actual beneficiary service.
 
+## Coherent capacity scenarios v0.1
+
+The separate `coherent_scenarios` module evaluates each supplied operating scenario as a complete temporal profile. It compiles and solves each case independently, retains one graph-bound certificate per scenario, checks each receipt with the independent temporal verifier, and reports the minimum/maximum of the **per-scenario aggregate maximum requested delivery**.
+
+It deliberately does not create an optimistic network by combining per-resource maxima from different scenarios. The adversarial fixture has two mutually exclusive route modes: each coherent mode supports 10 L, while a component-wise splice of both route maxima supports 15 L through the shared 15 L handling gate. The 15 L result is an outer mathematical relaxation and is not reported as a coherent scenario result.
+
+The report is deterministic under scenario input reordering and is independently reverified against the supplied scenario profiles. Its range is descriptive only; it is not a mandatory-beneficiary-floor allocation, robust guarantee, probability estimate, evidence-authority assertion or proof that the scenario set is complete. Those limits are explicit in the report claim ceiling.
+
+### Portable contracts
+
+- `schemas/temporal-profile-v0.1.schema.json` defines the temporal model input with strict unknown-field rejection.
+- `schemas/coherent-scenario-input-v0.1.schema.json` defines the explicit scenario-set input.
+- `schemas/coherent-scenario-report-v0.1.schema.json` defines the result envelope and reuses the shared flow-kernel certificate schema.
+- Rust models derive strict Serde serialization/deserialization; tests check round trips, unknown-property rejection and schema-document JSON parsing.
+
+Schema validity is not certificate validation. Consumers still need to verify each embedded flow bundle and the domain-level temporal receipt, and they must separately authenticate evidence authority, scenario completeness and common-cause relations.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
