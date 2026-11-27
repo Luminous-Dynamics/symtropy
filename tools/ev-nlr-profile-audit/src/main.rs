@@ -532,14 +532,18 @@ fn compare_archives(
     } else if aggregate_energy_absolute_error == 0.0 {
         0.0
     } else {
-        return Err("non-zero aggregate candidate energy against zero total reference energy".into());
+        return Err(
+            "non-zero aggregate candidate energy against zero total reference energy".into(),
+        );
     };
     let sum_profile_energy_relative_error = if reference_energy_sum > 0.0 {
         energy_absolute_error_sum / reference_energy_sum * 100.0
     } else if energy_absolute_error_sum == 0.0 {
         0.0
     } else {
-        return Err("non-zero profile-level energy error against zero total reference energy".into());
+        return Err(
+            "non-zero profile-level energy error against zero total reference energy".into(),
+        );
     };
 
     Ok(ComparisonSummary {
@@ -919,9 +923,7 @@ mod tests {
             .expect("compare opposite profile biases");
         assert!(report.aggregate_energy_bias_kwh.abs() < 1e-9);
         assert!(report.aggregate_energy_absolute_error_kwh < 1e-9);
-        assert!(
-            (report.sum_profile_daily_energy_absolute_error_kwh - 24.0).abs() < 1e-9
-        );
+        assert!((report.sum_profile_daily_energy_absolute_error_kwh - 24.0).abs() < 1e-9);
 
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
