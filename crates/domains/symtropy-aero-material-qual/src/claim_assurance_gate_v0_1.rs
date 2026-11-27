@@ -886,6 +886,42 @@ mod tests {
         })
     }
 
+    fn evaluate_with_owner_cut(
+        coverage_status: CoverageStatus,
+        cut_status: CutStatus,
+        effectivity: EffectivityRelation,
+        evidence: &[RequiredEvidenceAdmission],
+        owner_cut: &OwnerEvidenceCutV0_1,
+    ) -> super::ClaimAssuranceAssessment {
+        let mut decision_context = context_for_evidence(evidence);
+        decision_context.evidence_knowledge_cut_sha256 = owner_cut
+            .compute_sha256()
+            .expect("owner evidence cut serializes");
+        let digest = context_digest(&decision_context);
+        let mut bound_evidence = evidence.to_vec();
+        for item in &mut bound_evidence {
+            item.decision_context_sha256 = digest.clone();
+        }
+        let coverage_result = coverage(coverage_status);
+        let cut_result = cut(cut_status);
+        let component_bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            effectivity,
+            &decision_context,
+        );
+        evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &decision_context,
+            owner_evidence_cut: owner_cut,
+            bindings: &component_bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity,
+            required_evidence: &bound_evidence,
+        })
+    }
+
     fn evaluate(
         coverage_status: CoverageStatus,
         cut_status: CutStatus,
@@ -1353,6 +1389,175 @@ mod tests {
                 .reason_codes
                 .contains(&"EVENT_NOT_YET_EFFECTIVE_AT_ACQUISITION".to_owned())
         );
+    }
+
+    #[test]
+    fn owner_cut_without_confirmatory_eligibility_cannot_be_reviewable() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.basalt_confirmatory_eligible = false;
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Unverified);
+        assert!(result.reason_codes.contains(
+            &"BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned()
+        ));
+    }
+
+    #[test]
+    fn unverified_owner_artifact_payloads_cannot_be_promoted() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.artifact_payloads_verified = false;
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Unverified);
+        assert!(result.reason_codes.contains(
+            &"MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned()
+        ));
+    }
+
+    #[test]
+    fn stale_or_incomplete_required_owner_evidence_blocks_reviewability() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.evidence_records[0].freshness = OwnerEvidenceFreshness::StaleTransitive;
+        owner_cut.evidence_records[0].dependency_coverage = OwnerDependencyCoverage::Incomplete;
+        owner_cut.evidence_records[0].unresolved_inputs = vec!["toolchain:rust".to_owned()];
+        owner_cut.evidence_records[0].requires_reverification = true;
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Incomplete);
+        assert!(result.reason_codes.contains(
+            &"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned()
+        ));
+        assert!(result.reason_codes.contains(
+            &"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()
+        ));
+        assert!(result.reason_codes.contains(
+            &"BASALT_EVIDENCE_REVERIFICATION_REQUIRED:receipt:inspection-01".to_owned()
+        ));
+    }
+
+    #[test]
+    fn non_active_owner_lifecycle_cannot_be_promoted_to_reviewable() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.evidence_records[0].lifecycle = OwnerEvidenceLifecycle::Disputed;
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Unverified);
+        assert!(result.reason_codes.contains(
+            &"AEROCOMMONS_EVIDENCE_LIFECYCLE_NOT_ACTIVE:receipt:inspection-01".to_owned()
+        ));
+    }
+
+    #[test]
+    fn owner_cut_must_include_every_required_evidence_reference() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut
+            .evidence_records
+            .retain(|record| record.evidence_ref != "receipt:inspection-01");
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Incomplete);
+        assert!(result.reason_codes.contains(
+            &"OWNER_EVIDENCE_REFERENCE_NOT_IN_CUT:receipt:inspection-01".to_owned()
+        ));
+    }
+
+    #[test]
+    fn owner_packet_unit_and_configuration_must_match_decision_context() {
+        let evidence = all_admitted();
+        let mut wrong_subject = owner_cut_for_evidence(&evidence);
+        wrong_subject.physical_unit_ref = "part:other-wing".to_owned();
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &wrong_subject,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(
+            &"OWNER_CUT_PHYSICAL_UNIT_MISMATCH".to_owned()
+        ));
+
+        let mut wrong_configuration = owner_cut_for_evidence(&evidence);
+        wrong_configuration.configuration_ref = "configuration:wing-r18".to_owned();
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &wrong_configuration,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(
+            &"OWNER_CUT_CONFIGURATION_MISMATCH".to_owned()
+        ));
+    }
+
+    #[test]
+    fn owner_trust_policy_must_match_the_context() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.trust_policy_sha256 = "9".repeat(64);
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(
+            &"OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned()
+        ));
+    }
+
+    #[test]
+    fn owner_receipt_watermark_after_context_snapshot_is_rejected() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        owner_cut.receiver_receipt_watermark_unix_ms = 1_795_516_900_000;
+        let result = evaluate_with_owner_cut(
+            CoverageStatus::QualifiedCompleteForScope,
+            CutStatus::Closed,
+            EffectivityRelation::DefinitelyEffective,
+            &evidence,
+            &owner_cut,
+        );
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(
+            &"OWNER_CUT_RECEIPT_WATERMARK_AFTER_CONTEXT_SNAPSHOT".to_owned()
+        ));
     }
 
     #[test]
