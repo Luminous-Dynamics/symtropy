@@ -16,6 +16,7 @@ use std::time::Instant;
 pub mod contact_freshness;
 pub mod contact_freshness_verifier;
 pub mod contact_reuse_lease;
+pub mod callback_event_receipt;
 
 mod indexed_pair_cache;
 use indexed_pair_cache::IndexedPairDeltaCache;
