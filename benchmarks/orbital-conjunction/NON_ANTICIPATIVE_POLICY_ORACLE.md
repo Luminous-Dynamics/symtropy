@@ -8,7 +8,7 @@ A static portfolio answers: which fixed manoeuvre is feasible and Pareto-efficie
 
 A belief-space policy asks a stronger question: should the system wait for more tracking information, and how should its action change after the information is actually observed?
 
-The policy must be a function of observable history:
+The policy must be a function of observable history. The decision-schedule digest binds the availability indices to the declared absolute-time/time-scale semantics; an integer epoch alone is not a physical timestamp:
 
 \[
 \pi(h_t)\rightarrow a_t.
@@ -35,7 +35,7 @@ The current Rust verifier covers one frozen decision epoch after a declared obse
 3. A complete measurement inventory for every scenario/world row, including measurements arriving after the decision epoch.
 4. A frozen policy implementation identity and a finite table mapping canonical observable-history digests to eligible portfolio IDs.
 
-The verifier checks the trajectory-receipt report digest, revalidates the hard-risk gate, reconstructs the exact scenario/world/eligible-portfolio trajectory key universe, and rejects omissions or substitutions. Each selected policy action is linked to the exact propagated trajectory digest for that scenario/world/portfolio.
+The verifier freezes both a logical decision-epoch index and a nonzero decision-schedule digest. That digest must identify the mapping from logical epochs to absolute instants, time scale and delivery cut-offs. The verifier checks the trajectory-receipt report digest, revalidates the hard-risk gate, reconstructs the exact scenario/world/eligible-portfolio trajectory key universe, and rejects omissions or substitutions. Each selected policy action is linked to the exact propagated trajectory digest for that scenario/world/portfolio.
 
 This makes the policy map non-anticipative over the supplied finite observation corpus: policy keys contain only sensor/channel identity, sample sequence, availability epoch, measurement-value digest and declared quality digest. Hidden scenario/world IDs, source receipt digests and future observations are excluded from the policy key. Those identities remain in the audit report.
 
