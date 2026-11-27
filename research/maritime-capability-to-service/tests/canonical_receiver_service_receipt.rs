@@ -26,15 +26,12 @@ struct Cohort {
     disposition: String,
 }
 
-fn parse_receipt(
-    input: &str,
-) -> Result<
-    (
-        BTreeMap<String, (usize, usize)>,
-        BTreeMap<(String, String, String), Cohort>,
-    ),
-    String,
-> {
+type CaseSummary = BTreeMap<String, (usize, usize)>;
+type CohortKey = (String, String, String);
+type CohortMap = BTreeMap<CohortKey, Cohort>;
+type ParsedReceipt = (CaseSummary, CohortMap);
+
+fn parse_receipt(input: &str) -> Result<ParsedReceipt, String> {
     let mut lines = input.lines();
     if lines.next() != Some("RECEIVER_SERVICE_RECEIPT\t0.1") {
         return Err("unsupported receiver-service receipt header".to_owned());
