@@ -143,21 +143,21 @@ impl fmt::Display for McfParseError {
 impl std::error::Error for McfParseError {}
 
 fn parse_u32(token: &str, label: &str, line: usize) -> Result<u32, McfParseError> {
-    token.parse::<u32>().map_err(|_| {
-        McfParseError::at(line, format!("{label} must be an unsigned 32-bit integer"))
-    })
+    token
+        .parse::<u32>()
+        .map_err(|_| McfParseError::at(line, format!("{label} must be an unsigned 32-bit integer")))
 }
 
 fn parse_i64(token: &str, label: &str, line: usize) -> Result<i64, McfParseError> {
-    token.parse::<i64>().map_err(|_| {
-        McfParseError::at(line, format!("{label} must be a signed 64-bit integer"))
-    })
+    token
+        .parse::<i64>()
+        .map_err(|_| McfParseError::at(line, format!("{label} must be a signed 64-bit integer")))
 }
 
 fn parse_i32(token: &str, label: &str, line: usize) -> Result<i32, McfParseError> {
-    token.parse::<i32>().map_err(|_| {
-        McfParseError::at(line, format!("{label} must be a signed 32-bit integer"))
-    })
+    token
+        .parse::<i32>()
+        .map_err(|_| McfParseError::at(line, format!("{label} must be a signed 32-bit integer")))
 }
 
 /// Parse a DIMACS minimum-cost-flow instance using conservative default limits.
@@ -218,10 +218,7 @@ pub fn parse_dimacs_mcf_with_limits(
         match record {
             "p" => {
                 if header.is_some() {
-                    return Err(McfParseError::at(
-                        line_number,
-                        "duplicate problem header",
-                    ));
+                    return Err(McfParseError::at(line_number, "duplicate problem header"));
                 }
                 let problem_type = fields
                     .next()
@@ -277,12 +274,14 @@ pub fn parse_dimacs_mcf_with_limits(
                     .ok_or_else(|| {
                         McfParseError::at(line_number, "node supply vector size overflow")
                     })?;
-                node_supplies.try_reserve_exact(supply_len).map_err(|error| {
-                    McfParseError::at(
-                        line_number,
-                        format!("cannot reserve bounded node supply vector: {error}"),
-                    )
-                })?;
+                node_supplies
+                    .try_reserve_exact(supply_len)
+                    .map_err(|error| {
+                        McfParseError::at(
+                            line_number,
+                            format!("cannot reserve bounded node supply vector: {error}"),
+                        )
+                    })?;
                 node_supplies.resize(supply_len, 0);
 
                 let arc_capacity = usize::try_from(arc_count).map_err(|_| {
@@ -421,8 +420,8 @@ pub fn parse_dimacs_mcf_with_limits(
         }
     }
 
-    let (node_count, arc_count) = header
-        .ok_or_else(|| McfParseError::global("missing problem header p min n m"))?;
+    let (node_count, arc_count) =
+        header.ok_or_else(|| McfParseError::global("missing problem header p min n m"))?;
     if arcs.len() != arc_count as usize {
         return Err(McfParseError::global(format!(
             "declared {arc_count} arcs but parsed {}",
@@ -469,17 +468,25 @@ a 1 2 1 2 -1";
 
     #[test]
     fn parallel_arcs_are_preserved_with_distinct_ordinals_and_costs() {
-        let instance = parse_dimacs_mcf(
-            "p min 2 3\nn 1 7\nn 2 -7\na 1 2 0 3 1\na 1 2 1 4 -9\na 1 2 0 2 7",
-        )
-        .unwrap();
+        let instance =
+            parse_dimacs_mcf("p min 2 3\nn 1 7\nn 2 -7\na 1 2 0 3 1\na 1 2 1 4 -9\na 1 2 0 2 7")
+                .unwrap();
         assert_eq!(instance.arcs.len(), 3);
         assert_eq!(instance.arcs[0].ordinal, 1);
         assert_eq!(instance.arcs[1].ordinal, 2);
         assert_eq!(instance.arcs[2].ordinal, 3);
-        assert!(instance.arcs.iter().all(|arc| (arc.tail, arc.head) == (1, 2)));
+        assert!(
+            instance
+                .arcs
+                .iter()
+                .all(|arc| (arc.tail, arc.head) == (1, 2))
+        );
         assert_eq!(
-            instance.arcs.iter().map(|arc| arc.unit_cost).collect::<Vec<_>>(),
+            instance
+                .arcs
+                .iter()
+                .map(|arc| arc.unit_cost)
+                .collect::<Vec<_>>(),
             vec![1, -9, 7]
         );
     }
@@ -510,7 +517,9 @@ a 1 2 1 2 -1";
 
     #[test]
     fn comments_blank_lines_crlf_and_missing_final_newline_are_supported() {
-        let instance = parse_dimacs_mcf("c header\r\n\r\np min 2 1\r\nn 1 1\r\nn 2 -1\r\na 1 2 0 1 0").unwrap();
+        let instance =
+            parse_dimacs_mcf("c header\r\n\r\np min 2 1\r\nn 1 1\r\nn 2 -1\r\na 1 2 0 1 0")
+                .unwrap();
         assert_eq!(instance.arcs.len(), 1);
         assert!(instance.is_supply_balanced());
     }
