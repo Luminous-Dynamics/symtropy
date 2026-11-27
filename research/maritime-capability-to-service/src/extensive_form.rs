@@ -1048,6 +1048,61 @@ mod tests {
     }
 
     #[test]
+    fn cumulative_integer_overflow_is_rejected() {
+        let path = path(
+            "OVERFLOW",
+            vec![
+                stage(
+                    1,
+                    10,
+                    &"a".repeat(64),
+                    vec![alternative("A", 0, 0, u64::MAX, resources(0, 0, 0))],
+                ),
+                stage(
+                    2,
+                    20,
+                    &"b".repeat(64),
+                    vec![alternative("B", 10, 0, 1, resources(0, 0, 0))],
+                ),
+            ],
+        );
+        assert!(
+            solve_extensive_form_r1(&[path], 1)
+                .unwrap_err()
+                .contains("cumulative recovery cost overflow")
+        );
+    }
+
+    #[test]
+    fn information_set_without_a_common_feasible_action_fails_closed() {
+        let mut unavailable = alternative("LOCAL", 10, 0, 1, resources(1, 1, 1));
+        unavailable.admissibility = Gate::Indeterminate;
+        let first = path(
+            "S1",
+            vec![stage(
+                1,
+                10,
+                &"a".repeat(64),
+                vec![alternative("LOCAL", 10, 0, 1, resources(1, 1, 1))],
+            )],
+        );
+        let second = path(
+            "S2",
+            vec![stage(
+                1,
+                10,
+                &"a".repeat(64),
+                vec![unavailable],
+            )],
+        );
+        assert!(
+            solve_extensive_form_r1(&[first, second], 10)
+                .unwrap_err()
+                .contains("no common feasible action")
+        );
+    }
+
+    #[test]
     fn scenario_order_does_not_change_extensive_form_result() {
         let first = path(
             "A",
