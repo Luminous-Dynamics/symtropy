@@ -522,6 +522,6 @@ mod tests {
     fn integer_square_root_handles_u128_max() {
         let value = u128::MAX;
         let result = super::floor_sqrt(value);
-        assert_eq!(result, u64::MAX);
+        assert_eq!(result, u128::from(u64::MAX));
     }
 }
