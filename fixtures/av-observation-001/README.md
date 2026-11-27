@@ -4,7 +4,7 @@
 **Parent:** https://github.com/Luminous-Dynamics/symtropy/issues/6183  
 **Scenario owner:** #1595  
 **Acoustic source/receiver model:** #1594  
-**Split-validity guard:** #5053  
+**Split-validity / blind custody:** #6754 AV-specific adapter; #5053 is water-service-specific and supplies fail-closed design principles only  
 **Symthaea consumer benchmark:** https://github.com/Luminous-Dynamics/symthaea/issues/12837
 
 ## Purpose
@@ -36,7 +36,7 @@ The public case matrix is a test specification, not a protected secret. A run cl
 
 ## Split policy
 
-The case matrix freezes scenario family and paired-control identity. A future dataset split must keep parent scenario, seed ancestry, source-event identity, world/profile version and nuisance-factor family disjoint as required by the declared generalization claim. Do not split crops, chunks, frames or adjacent clips from one source trial across confirmatory partitions. Use #5053 for the validity gate; missing provenance is indeterminate, not valid by default.
+The case matrix freezes scenario family and paired-control identity. A future dataset split must keep parent scenario, seed ancestry, source-event identity, world/profile version and nuisance-factor family disjoint as required by the declared generalization claim. Do not split crops, chunks, frames or adjacent clips from one source trial across confirmatory partitions. Use #6754's AV-specific split/custody adapter for the validity gate; it may reuse #5053's fail-closed rules through an explicit AV manifest adapter. Missing provenance is indeterminate, not valid by default.
 
 ## TSV format
 
@@ -103,7 +103,7 @@ The extension is a scenario specification only. It adds no renderer, spatial map
 - Symthaea #12837 owns consumer-side streaming audiovisual evaluation.
 - Symthaea #3934 / #9075 / #10644 / #9177 and MACE #13284 own their respective world-state, bitemporal, retrieval and memory-regret subsystems.
 
-The new cases are not a sealed benchmark and do not prove physical spatial understanding. Before any model comparison, bind them to versioned #1595 world manifests, ensure evaluator truth remains outside the candidate process, pass #5053 split checks, and use declared spatial geometry/pose contracts. Any benchmark claim must report per-family denominators, false-loop/false-adjacency rates, evidence-span lineage, decision regret, latency and measured resource cost.
+The new cases are not a sealed benchmark and do not prove physical spatial understanding. Before any model comparison, bind them to versioned #1595 world manifests, ensure evaluator truth remains outside the candidate process, pass #6754's AV-specific split/custody checks (not the water-specific #5053 executable), and use declared spatial geometry/pose contracts. Any benchmark claim must report per-family denominators, false-loop/false-adjacency rates, evidence-span lineage, decision regret, latency and measured resource cost.
 
 ### Structural sanity check
 
