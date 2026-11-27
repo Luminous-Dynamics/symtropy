@@ -491,25 +491,18 @@ mod tests {
             }
 
             let report =
-                evaluate_coherent_scenario_set(&format!("seeded-set-{seed}"), &scenarios)
-                    .unwrap();
-            verify_coherent_scenario_set(
-                &format!("seeded-set-{seed}"),
-                &scenarios,
-                &report,
-            )
-            .unwrap();
+                evaluate_coherent_scenario_set(&format!("seeded-set-{seed}"), &scenarios).unwrap();
+            verify_coherent_scenario_set(&format!("seeded-set-{seed}"), &scenarios, &report)
+                .unwrap();
 
             let expected_min = *expected_maxima.iter().min().unwrap();
             let expected_max = *expected_maxima.iter().max().unwrap();
             assert_eq!(
-                report.minimum_scenario_maximum,
-                expected_min,
+                report.minimum_scenario_maximum, expected_min,
                 "seed {seed}: minimum scenario maximum"
             );
             assert_eq!(
-                report.maximum_scenario_maximum,
-                expected_max,
+                report.maximum_scenario_maximum, expected_max,
                 "seed {seed}: maximum scenario maximum"
             );
             assert_eq!(report.outcomes.len(), scenario_count);
