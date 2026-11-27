@@ -964,9 +964,11 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::NotComparable);
-        assert!(candidate
-            .blockers
-            .contains(&Blocker::NoConventionalPmBaseline));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::NoConventionalPmBaseline)
+        );
     }
 
     #[test]
@@ -1023,11 +1025,7 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(
-            candidate
-                .blockers
-                .contains(&Blocker::UnresolvedHardLimit)
-        );
+        assert!(candidate.blockers.contains(&Blocker::UnresolvedHardLimit));
     }
 
     #[test]
@@ -1123,12 +1121,16 @@ mod tests {
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
         assert_eq!(candidate.decision, Decision::Indeterminate);
-        assert!(candidate
-            .blockers
-            .contains(&Blocker::InsufficientBaselineOptimizationBudget));
-        assert!(candidate
-            .blockers
-            .contains(&Blocker::UnfrozenBaselineOptimization));
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::InsufficientBaselineOptimizationBudget)
+        );
+        assert!(
+            candidate
+                .blockers
+                .contains(&Blocker::UnfrozenBaselineOptimization)
+        );
     }
 
     #[test]
@@ -1174,10 +1176,12 @@ mod tests {
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
             .expect("candidate");
-        assert!(candidate
-            .baseline_comparisons
-            .iter()
-            .all(|comparison| comparison.mandatory_metrics_non_inferior));
+        assert!(
+            candidate
+                .baseline_comparisons
+                .iter()
+                .all(|comparison| comparison.mandatory_metrics_non_inferior)
+        );
     }
 
     #[test]
