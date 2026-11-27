@@ -72,6 +72,8 @@ jobs:
           assert cases["CB001"]["bound_ready"] is True
           assert cases["CB026"]["disposition"] == "BOUND_READY"
           assert cases["CB026"]["bound_ready"] is True
+          assert cases["CB027"]["disposition"] == "BOUND_READY"
+          assert cases["CB027"]["bound_ready"] is True
           assert cases["CB030"]["disposition"] == "BOUND_READY"
           assert cases["CB030"]["bound_ready"] is True
           print("36 curvature cases: exact Rust/Python receipt equality with overflow-safe decomposition")
