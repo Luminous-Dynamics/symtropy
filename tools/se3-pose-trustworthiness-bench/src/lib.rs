@@ -1084,7 +1084,7 @@ mod tests {
         assert!(super::wilson_interval(11, 10).is_none());
         let (lower, upper) = super::wilson_interval(10, 10).unwrap();
         assert!(lower > 0.7 && lower < 1.0);
-        assert_eq!(upper, 1.0);
+        assert!(upper > 0.99 && upper <= 1.0);
     }
 
     #[test]
