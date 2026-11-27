@@ -32,6 +32,8 @@ jobs:
         run: cargo fmt --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml -- --check
       - name: Run diagnostic evidence and mutation tests
         run: cargo test --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml
+      - name: Run warnings-denied Clippy
+        run: cargo clippy --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --all-targets -- -D warnings
 
       - name: Audit metadata-only benchmark dataset manifests
         run: |
