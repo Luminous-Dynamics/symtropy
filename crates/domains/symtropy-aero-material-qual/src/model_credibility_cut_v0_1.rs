@@ -547,7 +547,7 @@ impl ModelCredibilityCutV0_1 {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::{
         IndependentReferenceStatus, MetricStratumReportV0_1, MetricStratumStatus,
         ModelCredibilityCutV0_1, ModelDomainCoverageStatus, ModelPackageStatus,
