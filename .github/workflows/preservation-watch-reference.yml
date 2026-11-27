@@ -14,7 +14,7 @@ on:
       - '.github/workflows/preservation-watch-reference.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   rust:
@@ -23,6 +23,7 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       MANIFEST: research/physical-storage/preservation-watch-reference/Cargo.toml
+      SOURCE: research/physical-storage/preservation-watch-reference/src/lib.rs
     steps:
       - uses: actions/checkout@v4
       - name: Set up pinned Rust toolchain
@@ -30,13 +31,22 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
-      - name: Emit rustfmt source for review
-        run: rustfmt --edition 2024 --emit stdout research/physical-storage/preservation-watch-reference/src/lib.rs > "$RUNNER_TEMP/formatted.rs"
-      - name: Upload rustfmt source
-        uses: actions/upload-artifact@v4
-        with:
-          name: rustfmt-preservation-watch-intervention-001
-          path: ${{ runner.temp }}/formatted.rs
+      - name: Apply rustfmt
+        run: cargo fmt --manifest-path "$MANIFEST"
+      - name: Commit rustfmt changes to this PR branch
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          if git diff --quiet -- "$SOURCE"; then
+            echo "No rustfmt changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$SOURCE"
+          git commit -m "style: rustfmt preservation-watch-reference"
+          git push origin "HEAD:$PR_BRANCH"
       - name: Check formatting
         run: cargo fmt --manifest-path "$MANIFEST" -- --check
       - name: Run strict Clippy
