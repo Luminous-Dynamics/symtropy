@@ -42,7 +42,7 @@ def f64(row: dict[str, str], name: str) -> float:
 
 
 def vec(row: dict[str, str], prefix: str, count: int) -> list[float]:
-    return [f64(row, f"{prefix}_{axis}") for axis in (("x", "y", "z", "w") if count == 4 else ("x", "y", "z"))]
+    return [f64(row, f"{prefix}{axis}") for axis in (("x", "y", "z", "w") if count == 4 else ("x", "y", "z"))]
 
 
 def finite(values: list[float]) -> bool:
