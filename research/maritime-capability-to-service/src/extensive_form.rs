@@ -912,16 +912,28 @@ mod tests {
         assert!(!result.pareto_frontier.is_empty());
         for policy in &result.pareto_frontier {
             assert_eq!(policy.choices.len(), 3);
-            let first_stage_key = policy
-                .choices
-                .keys()
-                .find(|key| key.decision_epoch == 1)
-                .expect("first-stage info set");
             assert_eq!(
-                policy.choices.get(first_stage_key).map(String::as_str),
-                Some(policy.choices.get(first_stage_key).expect("action").as_str())
+                policy
+                    .choices
+                    .keys()
+                    .filter(|key| key.decision_epoch == 1)
+                    .count(),
+                1,
+                "identical initial observations must share one policy choice"
             );
         }
+        assert!(
+            result.pareto_frontier.iter().any(|policy| {
+                let later: Vec<&str> = policy
+                    .choices
+                    .iter()
+                    .filter(|(key, _)| key.decision_epoch == 2)
+                    .map(|(_, action)| action.as_str())
+                    .collect();
+                later.len() == 2 && later[0] != later[1]
+            }),
+            "the extensive-form frontier must include a policy that adapts after observed divergence"
+        );
     }
 
     #[test]
@@ -966,7 +978,7 @@ mod tests {
                     2,
                     20,
                     &"b".repeat(64),
-                    vec![alternative("B", 5, 1, 1, resources(1, 1, 1))],
+                    vec![alternative("B", 5, 0, 1, resources(1, 1, 1))],
                 ),
             ],
         );
