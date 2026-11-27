@@ -527,7 +527,7 @@ fn verify_original_allocation(
     let mut node_balance = base_graph
         .nodes
         .iter()
-        .map(|node| (node.id.as_str(), 0_i128))
+        .map(|node| (node.id.clone(), 0_i128))
         .collect::<BTreeMap<_, _>>();
 
     for edge_flow in flows {
@@ -544,39 +544,39 @@ fn verify_original_allocation(
         }
 
         let from = node_balance
-            .get(edge_flow.from.as_str())
+            .get(&edge_flow.from)
             .copied()
             .ok_or_else(|| format!("allocation references unknown node {}", edge_flow.from))?;
         let to = node_balance
-            .get(edge_flow.to.as_str())
+            .get(&edge_flow.to)
             .copied()
             .ok_or_else(|| format!("allocation references unknown node {}", edge_flow.to))?;
         node_balance.insert(
-            edge_flow.from.as_str(),
+            edge_flow.from.clone(),
             from.checked_add(i128::from(edge_flow.flow))
                 .ok_or_else(|| "original flow source balance overflowed".to_string())?,
         );
         node_balance.insert(
-            edge_flow.to.as_str(),
+            edge_flow.to.clone(),
             to.checked_sub(i128::from(edge_flow.flow))
                 .ok_or_else(|| "original flow destination balance overflowed".to_string())?,
         );
     }
 
     let source_balance = node_balance
-        .get(base_graph.source.as_str())
+        .get(&base_graph.source)
         .copied()
         .ok_or_else(|| "base graph source missing from allocation".to_string())?;
     let sink_balance = node_balance
-        .get(base_graph.sink.as_str())
+        .get(&base_graph.sink)
         .copied()
         .ok_or_else(|| "base graph sink missing from allocation".to_string())?;
     if source_balance < 0 || sink_balance != -source_balance {
         return Err("original allocation source/sink balances do not reconcile".to_string());
     }
     for (node_id, balance) in &node_balance {
-        if *node_id != base_graph.source.as_str()
-            && *node_id != base_graph.sink.as_str()
+        if node_id != &base_graph.source
+            && node_id != &base_graph.sink
             && *balance != 0
         {
             return Err(format!("original allocation violates conservation at {node_id}"));
