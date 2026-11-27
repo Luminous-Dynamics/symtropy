@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   format-owned-branch:
-    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/aerb-blind-execution-sandbox-v0-1'
+    if: github.actor == 'Tristan-Stoltz-ERC' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/aerb-blind-execution-sandbox-v0-1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
