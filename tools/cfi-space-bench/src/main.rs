@@ -915,6 +915,30 @@ mod tests {
     }
 
     #[test]
+    fn source_bundle_frame_identity_mismatch_is_rejected() {
+        let mut manifest: CandidateManifest = parse(MANIFEST);
+        manifest.episodes[0].frames[0].frame_id = "substituted-frame".to_string();
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn source_bundle_horizon_metadata_mismatch_is_rejected() {
+        let mut manifest: CandidateManifest = parse(MANIFEST);
+        manifest.episodes[0].horizon_us += 1;
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
     fn input_bundle_digest_substitution_is_rejected() {
         let mut manifest: CandidateManifest = parse(MANIFEST);
         manifest.episodes[0].input_bundle_sha256 = "f".repeat(64);
