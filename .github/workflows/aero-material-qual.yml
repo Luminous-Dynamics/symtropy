@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -32,9 +32,12 @@ on:
       - "docs/research/aviation/AERO_DECISION_CONTEXT_ENVELOPE_V0_1.md"
       - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
+      - "docs/research/aviation/AERO_OWNER_EVIDENCE_CUT_V0_1.md"
+      - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -67,6 +70,9 @@ on:
       - "docs/research/aviation/AERO_DECISION_CONTEXT_ENVELOPE_V0_1.md"
       - "docs/research/aviation/schemas/aero_decision_context_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_decision_context_v0_1.json"
+      - "docs/research/aviation/AERO_OWNER_EVIDENCE_CUT_V0_1.md"
+      - "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -227,13 +233,82 @@ jobs:
           }
           context_bytes = json.dumps(envelope, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
           context_digest = hashlib.sha256(context_bytes).hexdigest()
-          if context_digest != "b413084d0f543cc90a15e14cdff3fa92e6cf934b9e57773182017dfa2001768e":
+          if context_digest != "018dca27c7f9cddb276d11698a27de5e1162a02edebdf5711b4fc7c9dbda0b3a":
               raise SystemExit("decision-context canonical digest vector mismatch")
           if context["acquisition_time_earliest_unix_ms"] > context["acquisition_time_latest_unix_ms"]:
               raise SystemExit("decision-context acquisition interval is reversed")
           if context["acquisition_time_latest_unix_ms"] > context["as_known_at_unix_ms"]:
               raise SystemExit("decision-context acquisition is later than its as-known snapshot")
           print("Decision-context schema and independent manifest/context SHA-256 vectors passed.")
+          PY
+
+      - name: Validate owner evidence cut and independent digest vector
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          schema = json.loads((root / "docs/research/aviation/schemas/aero_owner_evidence_cut_v0_1.schema.json").read_text())
+          owner = json.loads((root / "docs/research/aviation/examples/aero_owner_evidence_cut_v0_1.json").read_text())
+          context = json.loads((root / "docs/research/aviation/examples/aero_decision_context_v0_1.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(owner), key=lambda error: list(error.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(f"owner evidence cut schema validation failed ({len(errors)} errors)")
+
+          references = [record["evidence_ref"] for record in owner["evidence_records"]]
+          if len(references) != len(set(references)):
+              raise SystemExit("owner evidence references must be unique")
+          if sorted(references) != sorted(context["required_evidence_refs"]):
+              raise SystemExit("owner evidence refs and claim required-evidence manifest refs differ")
+          if owner["physical_unit_ref"] != context["subject_ref"]:
+              raise SystemExit("owner physical unit and decision-context subject differ")
+          if owner["configuration_ref"] != context["configuration_ref"]:
+              raise SystemExit("owner packet configuration and decision-context configuration differ")
+          if owner["trust_policy_sha256"] != context["trust_policy_sha256"]:
+              raise SystemExit("owner trust policy and decision-context trust policy differ")
+          if owner["observer_coverage_watermark_unix_ms"] > owner["receiver_receipt_watermark_unix_ms"]:
+              raise SystemExit("observer coverage watermark exceeds receiver receipt watermark")
+          if owner["receiver_receipt_watermark_unix_ms"] > context["as_known_at_unix_ms"]:
+              raise SystemExit("receiver receipt watermark exceeds decision-context snapshot")
+
+          envelope = {
+              "schema": "AeroOwnerEvidenceCutV0_1",
+              "canonicalization_profile": "rust-serde-json-struct-order-v1",
+              "owner_namespace": owner["owner_namespace"],
+              "component_packet_id": owner["component_packet_id"],
+              "physical_unit_ref": owner["physical_unit_ref"],
+              "configuration_ref": owner["configuration_ref"],
+              "component_packet_sha256": owner["component_packet_sha256"],
+              "component_packet_byte_length": owner["component_packet_byte_length"],
+              "artifact_payloads_verified": owner["artifact_payloads_verified"],
+              "evidence_records": sorted(owner["evidence_records"], key=lambda record: record["evidence_ref"]),
+              "basalt_run_id": owner["basalt_run_id"],
+              "basalt_report_version": owner["basalt_report_version"],
+              "basalt_timeline_input_sha256": owner["basalt_timeline_input_sha256"],
+              "basalt_final_state_sha256": owner["basalt_final_state_sha256"],
+              "basalt_report_sha256": owner["basalt_report_sha256"],
+              "basalt_confirmatory_eligible": owner["basalt_confirmatory_eligible"],
+              "receiver_receipt_manifest_sha256": owner["receiver_receipt_manifest_sha256"],
+              "receiver_receipt_watermark_unix_ms": owner["receiver_receipt_watermark_unix_ms"],
+              "trust_policy_sha256": owner["trust_policy_sha256"],
+              "observer_coverage_profile_id": owner["observer_coverage_profile_id"],
+              "observer_coverage_receipt_sha256": owner["observer_coverage_receipt_sha256"],
+              "observer_coverage_status": owner["observer_coverage_status"],
+              "observer_coverage_watermark_unix_ms": owner["observer_coverage_watermark_unix_ms"],
+          }
+          owner_bytes = json.dumps(envelope, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+          owner_digest = hashlib.sha256(owner_bytes).hexdigest()
+          expected_owner_digest = "da95f7ba160dc5883cea7ab6828cbf3abd84246a0aaf596121a846377e735ec8"
+          if owner_digest != expected_owner_digest or context["evidence_knowledge_cut_sha256"] != owner_digest:
+              raise SystemExit("owner evidence cut digest vector or decision-context binding mismatch")
+          print("Owner evidence cut schema, identity joins and independent SHA-256 vector passed.")
           PY
 
       - name: Validate temporal replay corpus schema and frozen vectors
