@@ -561,9 +561,7 @@ pub fn verify_contact_lifecycle_receipt(
 
     for (pair, stamp) in &receipt.post_contact_stamps {
         if !current.contains(pair) {
-            return Err(
-                ContactLifecycleReceiptError::UnexpectedPostContactStamp(*pair).into()
-            );
+            return Err(ContactLifecycleReceiptError::UnexpectedPostContactStamp(*pair).into());
         }
         let left = receipt.current_endpoints.get(&pair.0).copied();
         let right = receipt.current_endpoints.get(&pair.1).copied();
@@ -573,13 +571,10 @@ pub fn verify_contact_lifecycle_receipt(
             || stamp.global.collision_policy != receipt.current_global.collision_policy
             || stamp.global.narrowphase_config_sha256
                 != receipt.current_global.narrowphase_config_sha256
-            || stamp.global.solver_config_sha256
-                != receipt.current_global.solver_config_sha256
+            || stamp.global.solver_config_sha256 != receipt.current_global.solver_config_sha256
             || stamp.global.world > receipt.current_global.world
         {
-            return Err(
-                ContactLifecycleReceiptError::PostContactStampMismatch(*pair).into()
-            );
+            return Err(ContactLifecycleReceiptError::PostContactStampMismatch(*pair).into());
         }
     }
 
@@ -590,21 +585,26 @@ pub fn verify_contact_lifecycle_receipt(
         let Some(stamp) = receipt.previous_contact_stamps.get(pair) else {
             continue;
         };
-        let left = receipt.current_endpoints.get(&pair.0).copied()
+        let left = receipt
+            .current_endpoints
+            .get(&pair.0)
+            .copied()
             .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.0))?;
-        let right = receipt.current_endpoints.get(&pair.1).copied()
+        let right = receipt
+            .current_endpoints
+            .get(&pair.1)
+            .copied()
             .ok_or(ContactLifecycleError::MissingEndpointRevision(pair.1))?;
-        let decision = independently_assess(stamp, receipt.current_global, &BTreeMap::from([
-            (pair.0, left),
-            (pair.1, right),
-        ]))?;
+        let decision = independently_assess(
+            stamp,
+            receipt.current_global,
+            &BTreeMap::from([(pair.0, left), (pair.1, right)]),
+        )?;
         if decision.geometry == ReuseDisposition::Reusable
             && !decision.pair_eligibility_recheck_required
             && !receipt.post_contact_stamps.contains_key(pair)
         {
-            return Err(
-                ContactLifecycleReceiptError::MissingCommittedContactStamp(*pair).into()
-            );
+            return Err(ContactLifecycleReceiptError::MissingCommittedContactStamp(*pair).into());
         }
     }
 
@@ -806,13 +806,7 @@ mod tests {
             .geometry = ReuseDisposition::RefreshRequired;
 
         assert_eq!(
-            verify_contact_lifecycle_plan(
-                &delta,
-                &stamps,
-                next_global(),
-                &endpoints,
-                &plan,
-            ),
+            verify_contact_lifecycle_plan(&delta, &stamps, next_global(), &endpoints, &plan,),
             Err(ContactLifecycleVerificationError::ActionMismatch { index: 0 })
         );
     }
@@ -961,7 +955,15 @@ mod tests {
                 post_contact_stamps: if wake_only {
                     let awake = current_endpoints.get(&ProxyId(1)).copied().expect("awake");
                     let committed = stamps[&pair]
-                        .commit_transition(current_global, awake, endpoint(2), false, false, false, true)
+                        .commit_transition(
+                    current_global,
+                    awake,
+                    endpoint(2),
+                    false,
+                    false,
+                    false,
+                    true,
+                )
                         .expect("wake transition committed");
                     BTreeMap::from([(pair, committed)])
                 } else {
@@ -1086,9 +1088,8 @@ mod tests {
         assert_eq!(report.full_contact_builds, 1);
     }
 
-
     #[test]
-    fn receipt_replay_rejects_uncommitted_wake_contact_stamp() {
+    fn receipt_replay_rejects_uncommitted_wake_contact_stamp {
         let (mut receipt, _, _) = receipt_fixture(true);
         receipt.post_contact_stamps.clear();
         assert_eq!(
@@ -1146,5 +1147,4 @@ mod tests {
             ))
         );
     }
-
 }
