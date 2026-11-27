@@ -164,9 +164,7 @@ fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
     let timely_hybrid = plans
         .iter()
         .find(|(id, plan)| {
-            plan.feasible
-                && id.contains("A-LOCAL@REGIONAL")
-                && id.contains("B-IMPORT@IMPORTED")
+            plan.feasible && id.contains("A-LOCAL@REGIONAL") && id.contains("B-IMPORT@IMPORTED")
         })
         .map(|(id, _)| id)
         .expect("timely hybrid exists");
