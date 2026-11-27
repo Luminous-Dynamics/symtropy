@@ -52,8 +52,8 @@ jobs:
           rust = json.loads(Path("/tmp/pose-rust.json").read_text())
           oracle = json.loads(Path("/tmp/pose-python.json").read_text())
           assert rust == oracle
-          assert rust["case_count"] == 41
-          assert rust["expected_disposition_matches"] == 41
+          assert rust["case_count"] == 42
+          assert rust["expected_disposition_matches"] == 42
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["claim_ready"] is False
           assert rust["source_bytes_authenticated"] is False
@@ -66,7 +66,8 @@ jobs:
           assert cases["PV021"]["disposition"] == "ANNOTATION_INCOMPLETE"
           assert cases["PV038"]["disposition"] == "DUPLICATE_SPLIT_SAMPLE"
           assert cases["PV040"]["disposition"] == "DUPLICATE_KEYPOINT"
-          print("41 pose annotation cases: exact Rust/Python receipt equality")
+          assert cases["PV042"]["disposition"] == "INVALID_INPUT"
+          print("42 pose annotation cases: exact Rust/Python receipt equality")
           PY
       - name: Retain exact-head evidence
         if: success()
