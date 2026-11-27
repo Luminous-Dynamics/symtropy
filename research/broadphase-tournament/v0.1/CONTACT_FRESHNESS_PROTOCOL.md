@@ -248,6 +248,14 @@ The current model tracks global response-policy and per-endpoint response-state 
 
 The next event-identity and replayable-delivery increment is tracked in [#7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718). Event identity must be per world step and bind endpoint generations, contact/manifold identity, event kind and a deterministic ordinal. Continuous contacts on different steps must remain distinct legitimate events. For delivery across process failure, prefer an idempotent sink/outbox; exactly-once cannot be claimed without a receiver-side transaction. Callback evaluation counts and emitted event counts must be recorded separately.
 
+### 8.3 Stable callback event identities and receipt replay
+
+The research crate now exports `callback_event_receipt`. `CallbackEventId` binds each emitted event to world revision, canonical pair, endpoint generations, manifold revision, event kind, and a deterministic per-pair/per-step ordinal. `CallbackEventSnapshot` additionally binds the global response-policy digest, both endpoint response-state revisions, and a payload SHA-256 field.
+
+`verify_callback_event_receipts` compares a supplied ordered delivery receipt stream against an independently supplied expected event set. It rejects noncanonical/duplicate/omitted/unexpected event identities, wrong world revisions, missing digest fields, and payload/response-state mismatches. It reports delivered, pending and failed outcomes separately; failed or pending is never reported as delivered.
+
+The module has 10 authored tests. It does not invoke PhysicsCallback, derive the expected event set from solver impulses, hash actual callback payload bytes, or provide a durable outbox. Exactly-once delivery across process failure is not claimed. A production adapter should use an idempotent receiver/outbox; without a receiver-side transaction the honest contract is at-least-once delivery with stable deduplication identity. The remaining integration is tracked in [#7718](https://github.com/Luminous-Dynamics/symtropy/issues/7718).
+
 ### 8.2 Candidate topology is not exact contact topology
 
 The present AABB receipt prototype uses the broadphase candidate relation as its pair relation. That is suitable for candidate-to-contact work obligations, but it does not distinguish an exact narrowphase contact from a conservative false-positive candidate. Therefore the absence of a post-contact stamp after a geometry refresh is not by itself proof that narrowphase ran and found no contact.
@@ -312,6 +320,7 @@ The lease prototype has 23 authored tests. The next acceptance corpus must add c
 At the current research branch state, the authored test counts are:
 - contact freshness producer and commit barrier: 33 tests;
 - independent lifecycle/receipt verifier: 31 tests;
-- relative-motion geometric lease predicate: 19 tests.
+- relative-motion geometric lease predicate: 23 tests;
+- callback event identity and delivery receipt verifier: 10 tests.
 
 These counts describe source annotations only. They are not evidence that the tests have compiled or run. Exact-head Rust formatting, tests, strict Clippy and scale-campaign results must be read from the current GitHub Actions run before any pass claim.
