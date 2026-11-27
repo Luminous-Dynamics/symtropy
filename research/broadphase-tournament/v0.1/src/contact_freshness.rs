@@ -359,8 +359,8 @@ impl ContactFreshnessStamp {
             return Err(ContactFreshnessError::ContactPayloadDigestMissing);
         }
 
-        let generation_changed = left.generation != self.left.generation
-            || right.generation != self.right.generation;
+        let generation_changed =
+            left.generation != self.left.generation || right.generation != self.right.generation;
         if !generation_changed {
             if decision.geometry == ReuseDisposition::RefreshRequired {
                 if payload.manifold_revision <= self.payload.manifold_revision {
@@ -959,11 +959,33 @@ mod tests {
         material.material += 1;
         let next = next_global();
         assert_eq!(
-            stamp.commit_transition(next, endpoint(1), material, false, false, false, false, payload(),),
+            stamp.commit_transition(
+                next,
+                endpoint(1),
+                material,
+                false,
+                false,
+                false,
+                false,
+                payload(),
+            ),
             Err(ContactFreshnessError::WarmStartResetNotCommitted)
         );
         let committed = stamp
-            .commit_transition(next, endpoint(1), material, false, true, false, false, ContactPayloadRevisions { warm_start_revision: 2, warm_start_digest_sha256: [23; 32], ..payload() })
+            .commit_transition(
+                next,
+                endpoint(1),
+                material,
+                false,
+                true,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32],
+                    ..payload()
+                },
+            )
             .expect("warm-start reset completed");
         let next_step = GlobalContactRevisions {
             world: next.world + 1,
@@ -984,11 +1006,29 @@ mod tests {
         awake.wake_epoch += 1;
         let next = next_global();
         assert_eq!(
-            stamp.commit_transition(next, awake, endpoint(2), false, false, false, false, payload(),),
+            stamp.commit_transition(
+                next,
+                awake,
+                endpoint(2),
+                false,
+                false,
+                false,
+                false,
+                payload(),
+            ),
             Err(ContactFreshnessError::SolverActivationNotCommitted)
         );
         let committed = stamp
-            .commit_transition(next, awake, endpoint(2), false, false, false, true, payload())
+            .commit_transition(
+                next,
+                awake,
+                endpoint(2),
+                false,
+                false,
+                false,
+                true,
+                payload(),
+            )
             .expect("solver island has been reactivated");
         let next_step = GlobalContactRevisions {
             world: next.world + 1,
@@ -1008,7 +1048,21 @@ mod tests {
         let mut moved = endpoint(1);
         moved.transform += 1;
         assert_eq!(
-            stamp.commit_transition(next_global(), moved, endpoint(2), true, false, false, false, ContactPayloadRevisions { manifold_revision: 2, manifold_digest_sha256: [24; 32], warm_start_revision: 2, warm_start_digest_sha256: [23; 32] },),
+            stamp.commit_transition(
+                next_global(),
+                moved,
+                endpoint(2),
+                true,
+                false,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    manifold_revision: 2,
+                    manifold_digest_sha256: [24; 32],
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32]
+                },
+            ),
             Err(ContactFreshnessError::WarmStartResetNotCommitted)
         );
     }
@@ -1021,12 +1075,40 @@ mod tests {
         let mut next = next_global();
         next.collision_policy += 1;
         assert_eq!(
-            stamp.commit_transition(next, filtered, endpoint(2), true, true, false, false, ContactPayloadRevisions { manifold_revision: 2, manifold_digest_sha256: [24; 32], warm_start_revision: 2, warm_start_digest_sha256: [23; 32] },),
+            stamp.commit_transition(
+                next,
+                filtered,
+                endpoint(2),
+                true,
+                true,
+                false,
+                false,
+                ContactPayloadRevisions {
+                    manifold_revision: 2,
+                    manifold_digest_sha256: [24; 32],
+                    warm_start_revision: 2,
+                    warm_start_digest_sha256: [23; 32]
+                },
+            ),
             Err(ContactFreshnessError::PairEligibilityRecheckNotCommitted)
         );
         assert!(
             stamp
-                .commit_transition(next, filtered, endpoint(2), true, true, true, false, ContactPayloadRevisions { manifold_revision: 2, manifold_digest_sha256: [24; 32], warm_start_revision: 2, warm_start_digest_sha256: [23; 32] },)
+                .commit_transition(
+                    next,
+                    filtered,
+                    endpoint(2),
+                    true,
+                    true,
+                    true,
+                    false,
+                    ContactPayloadRevisions {
+                        manifold_revision: 2,
+                        manifold_digest_sha256: [24; 32],
+                        warm_start_revision: 2,
+                        warm_start_digest_sha256: [23; 32]
+                    },
+                )
                 .is_ok()
         );
     }
