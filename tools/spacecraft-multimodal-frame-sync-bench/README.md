@@ -14,7 +14,7 @@ A Rust-first metadata preflight for synchronized RGB, depth, semantic segmentati
 - Pose translation: metres; depth: millimetres; LiDAR: metres in SensorLocalFrame.
 - Timestamp: YYYYMMDDHHMMSSmmm.
 
-The correction requires the regenerated pose CSVs. A syntactically valid but pre-correction pose record is OUT_OF_SCOPE.
+The source manifest pins the dataset-card commit separately from the pose-CSV correction identifier `pose-ground-truth-regenerated-2026-05-19`. A syntactically valid but pre-correction pose record is OUT_OF_SCOPE. The actual corrected archive/file digest remains unverified until the archive is acquired; the correction identifier is not a substitute for a file hash.
 
 ## Contract
 
