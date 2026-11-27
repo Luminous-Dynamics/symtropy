@@ -343,7 +343,8 @@
             "world_b_candidate_input_sha256",
             "world_a_transcript_sha256",
             "world_b_transcript_sha256",
-            "first_distinguishing_observation"
+            "first_distinguishing_observation",
+            "equivalence_evidence"
           ],
           "properties": {
             "relation": {
@@ -431,6 +432,132 @@
                   "minLength": 1
                 }
               }
+            },
+            "equivalence_evidence": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "method",
+                    "statistic_id",
+                    "equivalence_margin_lower",
+                    "equivalence_margin_upper",
+                    "alpha",
+                    "confidence_level",
+                    "power_target",
+                    "independent_unit",
+                    "independent_cluster_count",
+                    "required_cluster_count",
+                    "replicates_per_cluster",
+                    "paired_design",
+                    "seed_schedule_sha256",
+                    "preregistration_plan",
+                    "sample_size_plan",
+                    "raw_results",
+                    "analysis_implementation",
+                    "margin_justification",
+                    "multiplicity_family",
+                    "multiplicity_method"
+                  ],
+                  "properties": {
+                    "method": {
+                      "enum": [
+                        "scalar_tost",
+                        "energy_distance_upper_bound",
+                        "mmd_upper_bound",
+                        "wasserstein_upper_bound",
+                        "preregistered_permutation_margin"
+                      ]
+                    },
+                    "statistic_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "equivalence_margin_lower": {
+                      "type": "number"
+                    },
+                    "equivalence_margin_upper": {
+                      "type": "number"
+                    },
+                    "alpha": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 0.1
+                    },
+                    "confidence_level": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1
+                    },
+                    "power_target": {
+                      "type": "number",
+                      "minimum": 0.9,
+                      "maximum": 1
+                    },
+                    "independent_unit": {
+                      "enum": [
+                        "scene",
+                        "episode",
+                        "recording_session",
+                        "sensor_run",
+                        "calibration_block"
+                      ]
+                    },
+                    "independent_cluster_count": {
+                      "type": "integer",
+                      "minimum": 2
+                    },
+                    "required_cluster_count": {
+                      "type": "integer",
+                      "minimum": 2
+                    },
+                    "replicates_per_cluster": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "paired_design": {
+                      "type": "boolean"
+                    },
+                    "seed_schedule_sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "preregistration_plan": {
+                      "$ref": "#/$defs/artifact"
+                    },
+                    "sample_size_plan": {
+                      "$ref": "#/$defs/artifact"
+                    },
+                    "raw_results": {
+                      "$ref": "#/$defs/artifact"
+                    },
+                    "analysis_implementation": {
+                      "$ref": "#/$defs/artifact"
+                    },
+                    "margin_justification": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "multiplicity_family": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "multiplicity_method": {
+                      "enum": [
+                        "none_single_primary",
+                        "holm",
+                        "bonferroni",
+                        "hierarchical_predeclared",
+                        "max_statistic"
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -782,7 +909,47 @@
                   "world_b_transcript_sha256": {
                     "type": "string"
                   }
-                }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "relation": {
+                          "const": "distributionally_equivalent"
+                        }
+                      },
+                      "required": [
+                        "relation"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "equivalence_evidence": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "relation": {
+                          "const": "byte_exact"
+                        }
+                      },
+                      "required": [
+                        "relation"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "equivalence_evidence": {
+                          "type": "null"
+                        }
+                      }
+                    }
+                  }
+                ]
               },
               "shared_candidate_contract": {
                 "properties": {
