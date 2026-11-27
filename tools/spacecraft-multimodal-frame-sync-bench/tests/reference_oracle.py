@@ -78,6 +78,12 @@ def result_base(
         "split": row["split"],
         "capture_timestamp": row["capture_timestamp"],
         "pose_csv_revision": row["pose_csv_revision"],
+        "camera_calibration_revision": row["camera_calibration_revision"],
+        "camera_calibration_sha256": row["camera_calibration_sha256"],
+        "lidar_to_camera_revision": row["lidar_to_camera_revision"],
+        "lidar_to_camera_sha256": row["lidar_to_camera_sha256"],
+        "lidar_coordinate_frame": row["lidar_coordinate_frame"],
+        "pose_semantics": row["pose_semantics"],
         "disposition": disposition,
         "modality_sha256": sha_map,
         "modality_paths": path_map,
@@ -103,6 +109,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         "capture_timestamp",
         "corrected_pose_revision",
         "pose_csv_revision",
+        "camera_calibration_revision",
+        "lidar_to_camera_revision",
     )
     if any(not valid_text(row[field]) for field in required):
         return result_base(row, "INVALID_INPUT", "BUNDLE_IDENTITY_MISSING")
@@ -118,7 +126,11 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         or row["corrected_pose_revision"] != SPACESENSE_REVISION
         or row["camera_frame"] != "FRD_X_FORWARD_Y_RIGHT_Z_DOWN"
         or row["world_frame"] != "AIRSIM_NED"
+        or row["lidar_coordinate_frame"] != "SENSOR_LOCAL_FRAME"
+        or row["pose_semantics"] != "TARGET_IN_CAMERA_AND_CAMERA_POSE_IN_WORLD"
         or row["quaternion_convention"] != "HAMILTON_WXYZ"
+        or not valid_sha(row["camera_calibration_sha256"])
+        or not valid_sha(row["lidar_to_camera_sha256"])
         or row["pose_length_unit"] != "metre"
         or row["depth_unit"] != "millimetre"
         or row["lidar_unit"] != "metre"
