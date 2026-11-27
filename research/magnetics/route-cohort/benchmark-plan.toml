@@ -1,0 +1,63 @@
+schema_version = "0.1"
+program_id = "MAG-AM-ROUTE-COHORT-001"
+revision = "0.1-draft"
+status = "synthetic_accounting_reference"
+date = "2026-11-27"
+issue = 7774
+parents = [7368, 7770, 7745, 2933, 3972]
+
+[cohort_identity]
+required = ["application_id", "target_function_digest", "measurement_setup_digest", "acceptance_policy_digest", "route_family", "route_revision", "machine_tool_revision", "process_recipe_digest", "feedstock_family", "material_grade", "build_id", "material_lot_id", "specimen_id"]
+all_initiated_specimens_declared_by_build = true
+all_builds_declared_even_without_completed_parts = true
+missing_specimen_record_stays_in_denominator = true
+duplicate_or_orphan_ids_invalidate_cohort = true
+
+[outcomes]
+values = ["QUALIFIED", "FAIL", "INDETERMINATE", "NOT_EVALUABLE", "MISSING"]
+rework_is_separate_from_first_pass = true
+scrap_is_separate_from_qualification = true
+unresolved_or_missing_is_never_pass = true
+
+[rates]
+observed_first_pass_acceptance = "initial_qualified / initiated_specimens"
+confirmed_failure = "first_pass_fail / initiated_specimens"
+unresolved = "(indeterminate + not_evaluable + missing) / initiated_specimens"
+inspection_coverage = "inspected / initiated_specimens"
+build_completion = "completed_builds / initiated_builds"
+rework_recovery = "recovered_after_rework / reworked_specimens"
+final_accepted_fraction = "final_qualified_not_scrapped / initiated_specimens"
+rates_keep_exact_numerators_denominators = true
+
+[replication]
+specimen_is_not_build_replication = true
+build_is_not_material_lot = true
+minimum_builds_and_lots_are_preregistered = true
+below_policy_status = "GENERALIZATION_UNAVAILABLE"
+inferential_yield_emitted = false
+met_replication_policy_is_not_population_inference = true
+
+[cost]
+source = "digest_bound_campaign_cost_receipt"
+includes_failed_build_and_rework_cost = true
+accepted_part_cost = "campaign_total_cost / final_non_scrapped_qualified_parts"
+successful_specimen_average_used = false
+
+[implementation]
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+fixture_schema = "evaluator/cohort-fixture-v0.1.schema.json"
+synthetic_fixture = "evaluator/fixtures/synthetic-route-cohort-v0.1.json"
+workflow = ".github/workflows/magnetic-route-cohort.yml"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 19
+unit_tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_cohort_is_physical_yield = false
+specimen_count_is_independent_build_count = false
+rework_success_counts_as_first_pass = false
+descriptive_fraction_is_production_yield = false
+inferential_yield_claim_available = false
