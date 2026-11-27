@@ -86,7 +86,10 @@ def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict
                 f"input bundle path escapes declared root for {eid}")
         require(resolved.is_file() and resolved.stat().st_size <= MAX_INPUT_BYTES,
                 f"input bundle is not a regular file or exceeds byte limit for {eid}")
-        actual_digest = hashlib.sha256(resolved.read_bytes()).hexdigest()
+        bundle_bytes = resolved.read_bytes()
+        require(len(bundle_bytes) <= MAX_INPUT_BYTES,
+                f"input bundle exceeds byte limit after read for {eid}")
+        actual_digest = hashlib.sha256(bundle_bytes).hexdigest()
         require(actual_digest == episode["input_bundle_sha256"],
                 f"source bundle SHA-256 mismatch for {eid}")
         require(HEX64.fullmatch(episode["input_bundle_sha256"]) is not None,
@@ -133,6 +136,31 @@ def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict
         require(first_ts is not None and previous_ts is not None,
                 f"no timestamps in {eid}")
         require(previous_ts - first_ts <= horizon, f"horizon exceeded in {eid}")
+
+        try:
+            bundle_lines = bundle_bytes.decode("utf-8").splitlines()
+        except UnicodeDecodeError as error:
+            raise ValueError(f"source bundle is not UTF-8 for {eid}: {error}") from error
+        require(len(bundle_lines) == 3 + len(frames),
+                f"source bundle record count mismatch for {eid}")
+        expected_header = [
+            "CFI_SPACE_SYNTHETIC_NON_IMAGE_PAYLOAD_V1",
+            f"episode={eid}",
+            f"frame_budget={budget};expected_frame_count={expected};"
+            f"first_sequence={first};horizon_us={horizon}",
+        ]
+        require(bundle_lines[:3] == expected_header,
+                f"source bundle header does not match manifest for {eid}")
+        for offset, frame in enumerate(frames):
+            modalities_text = ",".join(frame["modalities"])
+            prefix = (
+                f"frame={offset};frame_id={frame['frame_id']};"
+                f"sequence={frame['sequence']};timestamp_us={frame['timestamp_us']};"
+                f"modalities={modalities_text};payload="
+            )
+            row = bundle_lines[3 + offset]
+            require(row.startswith(prefix) and len(row) > len(prefix),
+                    f"source bundle frame metadata/payload mismatch for {eid} frame {offset}")
         by_id[eid] = episode
     return by_id
 
