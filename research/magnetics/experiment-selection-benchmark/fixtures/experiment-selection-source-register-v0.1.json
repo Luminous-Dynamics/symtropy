@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-EXPERIMENT-SELECTION-BENCH-001",
+  "claim_ceiling": "Methodology sources only; none demonstrates magnetic-route active-learning savings in this repository.",
+  "sources": [
+    {
+      "id": "NAIR-FOPPA-ACTIVE-LEARNING-2026",
+      "doi": "10.1039/D6DD00081A",
+      "publication_date": "2026-05-25",
+      "type": "perspective",
+      "claims": [
+        "active learning workflows contain implicit design choices and hidden bias",
+        "human/domain knowledge baselines should be considered",
+        "diversity, representativeness, physical validity and feasibility matter",
+        "uncertainty sampling can chase noisy or physically irrelevant regions",
+        "no single metric universally captures active-learning quality"
+      ],
+      "limits": [
+        "materials science methodology review, not magnetic route performance evidence"
+      ]
+    },
+    {
+      "id": "CAO-BGOLEARN-2026",
+      "doi": "10.1038/s41524-026-02226-3",
+      "publication_date": "2026-07-14",
+      "type": "method_paper",
+      "claims": [
+        "supports GP, RF and gradient boosting surrogates",
+        "supports EI, UCB, PI and expected hypervolume improvement",
+        "benchmark uses shared 20-point LHS seed, batch size 3, 50 multi-objective iterations, 30 random seeds",
+        "reports 40-60% reduction in experimental effort on its case studies"
+      ],
+      "limits": [
+        "reported result is not transferable to magnetic route tasks without matched experiments",
+        "methodical baseline only, not a magnetic process result"
+      ]
+    },
+    {
+      "id": "FODOR-MOEM-2026",
+      "doi": "10.1002/adem.71259",
+      "type": "qualification_maturity_perspective",
+      "claims": [
+        "AM electromagnetic materials evidence is often M2-M3",
+        "higher levels require component validation, reproducibility and durability"
+      ],
+      "limits": [
+        "research framework, not a formal standard"
+      ]
+    }
+  ]
+}
