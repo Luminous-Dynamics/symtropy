@@ -1,0 +1,39 @@
+name: sunshade-finite-source-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/sunshade-finite-source-reference.yml"
+      - "tools/sunshade-finite-source-reference/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/sunshade-finite-source-reference.yml"
+      - "tools/sunshade-finite-source-reference/**"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: finite-source circular shade geometry
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/sunshade-finite-source-reference/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/sunshade-finite-source-reference/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/sunshade-finite-source-reference/Cargo.toml --all-targets -- -D warnings
