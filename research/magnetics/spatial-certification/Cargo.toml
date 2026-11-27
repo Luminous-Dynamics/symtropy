@@ -1,0 +1,16 @@
+[package]
+name = "magnetic-spatial-certification"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Continuous-domain interval certification for magnetic functional margins"
+
+[dependencies]
+magnetic-interval-ad = { path = "../interval-ad" }
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
