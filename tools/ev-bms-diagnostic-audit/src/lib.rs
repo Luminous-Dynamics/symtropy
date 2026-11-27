@@ -1,3 +1,4 @@
+pub mod generated_reference;
 pub mod dataset_manifest;
 
 use jsonschema::{Validator, draft202012};
