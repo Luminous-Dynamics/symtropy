@@ -429,7 +429,23 @@
         },
         "acquired_at_unix_ms": {
           "$ref": "#/$defs/unixMs"
+        },
+        "acquisition_time_earliest_unix_ms": {
+          "$ref": "#/$defs/unixMs",
+          "description": "Optional hard lower bound for acquisition time; must be supplied with the latest bound and contain acquired_at_unix_ms. Omit both bounds for exact-point semantics."
+        },
+        "acquisition_time_latest_unix_ms": {
+          "$ref": "#/$defs/unixMs",
+          "description": "Optional hard upper bound for acquisition time; must be supplied with the earliest bound and contain acquired_at_unix_ms. Omit both bounds for exact-point semantics."
         }
+      },
+      "dependentRequired": {
+        "acquisition_time_earliest_unix_ms": [
+          "acquisition_time_latest_unix_ms"
+        ],
+        "acquisition_time_latest_unix_ms": [
+          "acquisition_time_earliest_unix_ms"
+        ]
       }
     },
     "calibrationCertificate": {
@@ -517,6 +533,14 @@
         },
         "recorded_at_unix_ms": {
           "$ref": "#/$defs/unixMs"
+        },
+        "effective_time_earliest_unix_ms": {
+          "$ref": "#/$defs/unixMs",
+          "description": "Optional hard lower bound for event effective time; must be supplied with the latest bound and contain effective_at_unix_ms. Omit both bounds for exact-point semantics."
+        },
+        "effective_time_latest_unix_ms": {
+          "$ref": "#/$defs/unixMs",
+          "description": "Optional hard upper bound for event effective time; must be supplied with the earliest bound and contain effective_at_unix_ms. Omit both bounds for exact-point semantics."
         }
       },
       "allOf": [
@@ -540,7 +564,15 @@
             ]
           }
         }
-      ]
+      ],
+      "dependentRequired": {
+        "effective_time_earliest_unix_ms": [
+          "effective_time_latest_unix_ms"
+        ],
+        "effective_time_latest_unix_ms": [
+          "effective_time_earliest_unix_ms"
+        ]
+      }
     },
     "unixMs": {
       "type": "integer",

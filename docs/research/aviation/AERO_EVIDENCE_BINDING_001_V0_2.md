@@ -65,6 +65,49 @@ Thus acquisition exactly at valid_from_unix_ms is inside the interval; acquisiti
 
 The evaluator requires the certificate instrument to match the campaign instrument and the certificate method revision to match the campaign protocol revision.
 
+#### 2.3.1 Hard-bounded acquisition and event effectivity (additive v0.2 extension)
+
+The profile now permits two optional fields on an observation:
+
+- `acquisition_time_earliest_unix_ms`
+- `acquisition_time_latest_unix_ms`
+
+and two optional fields on a calibration event:
+
+- `effective_time_earliest_unix_ms`
+- `effective_time_latest_unix_ms`
+
+Each pair is all-or-nothing. Both endpoints must be valid unsigned integer UTC epoch milliseconds, ordered, and must contain the required nominal point field (`acquired_at_unix_ms` or `effective_at_unix_ms`). One endpoint alone, reversed bounds, an invalid type, or a nominal point outside the declared interval blocks the affected measurement. Existing records with neither optional field retain backward-compatible exact-point semantics: the nominal timestamp is interpreted as a degenerate interval [t,t].
+
+These bounds are **hard enclosures under the declared source/method assumptions**. A 95% confidence interval, standard uncertainty or empirical quantile is not automatically a hard bound. Such probabilistic/measurement uncertainty must retain its own method, coverage level, assumptions and provenance rather than being silently promoted to deterministic chronology.
+
+For the certificate validity interval [V_start,V_end), positive binding requires the entire acquisition interval [A_earliest,A_latest] to lie within it:
+
+`A_earliest >= V_start` and `A_latest < V_end`.
+
+If the acquisition interval is wholly before or wholly after certificate validity, the observation is outside the interval. If it crosses either boundary, the result is `CALIBRATION_VALIDITY_BOUNDARY_AMBIGUOUS` and blocks; the evaluator must not select the favorable endpoint.
+
+Calibration event effectivity is compared twice:
+1. against the evaluation snapshot T, represented as [T,T], to decide whether an event is definitely effective, definitely future, or ambiguous at that snapshot;
+2. against the acquisition interval, to decide whether the event applies to that physical observation.
+
+An event whose effective-time interval is definitely later than every possible acquisition time is not applied to that historical observation, even if it is known by a later evaluation snapshot; the event ID is preserved in the measurement disposition's `non_applicable_event_ids` rather than silently dropped. An event definitely future at the evaluation snapshot is retained there as well. If the event is marked `retroactive=true` while its effective-time interval is definitely later than acquisition, the contradictory assertion blocks rather than allowing the flag to override chronology. For `corrected`/`superseded` events in this contradictory case, preserve both `CALIBRATION_RETROACTIVE_FLAG_CONTRADICTS_EFFECTIVITY` and `CALIBRATION_CHANGE_PENDING_DISPOSITION`; an unresolved correction target additionally preserves the event-history blocker. The evaluator must not trade one of these independent obligations for another. An overlap between event effective time and acquisition time blocks as ambiguous. An event whose effective-time interval overlaps the evaluation snapshot also blocks as ambiguous. This prevents a later revocation from being silently treated as retroactive merely because the report is generated later. An explicit owner-authorized retroactive event still requires the applicable authority/effectivity evidence; the local interval comparator does not decide whether retroactivity is legally or technically valid.
+
+`recorded_at_unix_ms` remains the issuer/source assertion used by this synthetic profile. It is not receiver-first-seen evidence, a trusted timestamp token, or proof that an event was in fact received by the selected evaluator. The three-axis replay and owner-native receipt work remains tracked in [#7455](https://github.com/Luminous-Dynamics/symtropy/issues/7455).
+
+The interval comparator is owned by `effectivity_interval_v0_1.rs` and is now consumed directly by the v0.2 specimen/calibration evaluator. The interval primitive is not a second clock, receipt ledger or event store. The positive disposition ceiling remains `METROLOGY_BINDING_CONSISTENT_ONLY`, never physical qualification.
+
+#### 2.3.2 Output and disposition semantics
+
+Each measurement disposition separates blocking reasons from events that were observed in the supplied event history but do not apply to the subject-time acquisition:
+
+- `reasons` contains blocking/qualification reasons. An ambiguous boundary or contradictory retroactivity claim appears here and prevents a positive binding disposition.
+- `non_applicable_event_ids` is a sorted, deterministic list of event identities that are present in the selected source-recorded snapshot but are definitely future at that snapshot or definitely later than the observation's full acquisition interval. These events are not applied to the historical observation, but are not silently discarded.
+- `source_recorded_after_snapshot_event_ids` is a separate sorted list of event identities present in the later supplied extract whose issuer/source-reported `recorded_at_unix_ms` exceeds the selected evaluation snapshot. These events do not affect the earlier AS-KNOWN source-recorded view, but their later presence is preserved as a requalification diagnostic rather than silently hidden.
+- The two fields answer different questions: `non_applicable_event_ids` means "included in the source-recorded cutoff but not applicable to this subject-time state"; `source_recorded_after_snapshot_event_ids` means "excluded by the source-recorded cutoff." Neither means receiver-first-seen, authenticated receipt, or complete event history. The latter requires owner-native receiver timestamps, evidence watermarks and trust-policy snapshots, which remain separate.
+
+A non-applicable event does not, by itself, change `METROLOGY_BINDING_CONSISTENT_ONLY` to a blocked state. It is a chronology fact, not a positive finding about the calibration. A missing event source, incomplete event history or ambiguous effective-time interval must remain separately represented as unresolved; callers must not infer event-history completeness from an empty `non_applicable_event_ids` list.
+
 ### 2.4 Append-only calibration events
 
 The calibration_events collection preserves revoked, suspended, corrected and superseded events, with:
@@ -75,7 +118,7 @@ The calibration_events collection preserves revoked, suspended, corrected and su
 - explicit retroactive boolean;
 - for corrected / superseded, a corrects_event_id reference.
 
-Events use a bitemporal query rule: effective_at_unix_ms states when the event claims to apply; recorded_at_unix_ms states when the event claims to have entered the record; evaluated_at_unix_ms is the requested knowledge snapshot. An event is considered only when both its effective and recorded timestamps are at or before that snapshot. A late-arriving event therefore does not silently rewrite an earlier as-of report, but a later evaluation that includes it must reconsider affected observations, including retroactive revocation. Corrections must point to a strictly earlier-recorded event for the same certificate; competing corrections to the same event are treated as contradictory history and block. These timestamps are declared metadata in this evaluator, not trusted clock attestations, proof of custody, or proof of when an external authority actually received the event.
+Events use a bitemporal query rule: effective_at_unix_ms (or its optional hard-bounds pair) states when the event claims to apply; recorded_at_unix_ms states when the event claims to have entered the record; evaluated_at_unix_ms is the requested knowledge snapshot. A point event is interpreted as [t,t]. With event-effective hard bounds, the upper bound must be no later than the snapshot for the event to be definitely effective; a lower bound later than the snapshot means the event is definitely future; an interval crossing the snapshot blocks as ambiguous. The event must also be definitely effective for the entire acquisition interval before it is applied to that observation. A definitely later event is not applied to an earlier acquisition; overlapping effective/acquisition bounds block. A late-arriving event therefore does not silently rewrite an earlier as-of report, but a later evaluation that includes it must reconsider affected observations, including owner-authorized retroactive events whose asserted effective interval precedes the acquisition interval. Corrections must point to a strictly earlier-recorded event for the same certificate; competing corrections to the same event are treated as contradictory history and block. These timestamps are declared metadata in this evaluator, not trusted clock attestations, proof of custody, or proof of when an external authority actually received the event.
 
 This is intentionally conservative: the evaluator does not decide whether a revoked certificate invalidates every earlier physical result. It preserves the event and abstains until the responsible metrology/engineering authority establishes the applicable disposition.
 
@@ -107,9 +150,18 @@ This is a narrow binding result. It is not measurement truth, uncertainty suffic
 - certificate revoked after acquisition but before evaluation;
 - duplicate certificate IDs and replayed event IDs;
 - missing correction target and competing corrections to one event;
-- deterministic output under record-order permutations.
+- deterministic output under record-order permutations;
+- backward-compatible exact-point acquisition and event-effective timestamps;
+- hard acquisition bounds wholly inside, outside or crossing the certificate's half-open validity boundary;
+- acquisition intervals that are future or ambiguous at the requested evaluation snapshot;
+- event-effective hard bounds definitely before, after or overlapping acquisition time;
+- event-effective bounds definitely future or ambiguous at the evaluation snapshot;
+- exhaustive small-domain cross-product of 10 valid event intervals × 10 valid acquisition intervals (100 orderings), checked against an independently written closed-form interval oracle;
+- non-applicable post-acquisition event IDs preserved without retroactively invalidating historical binding;
+- contradictory `retroactive=true` flags rejected when the asserted effective interval is definitely later than acquisition;
+- incomplete, reversed, wrong-typed or nominal-point-outside-bounds pairs rejected.
 
-The 31-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. The expanded chronology cases cover as-of evaluation-time handling, retroactive revocation, cross-certificate correction rejection, duplicate event identity, strict correction chronology, invalid intervals and unknown references/events. The evaluator also tests calibration-event permutation invariance with a non-empty competing-correction history. This is synthetic software testing only; expected dispositions remain NOT_INDEPENDENTLY_REVIEWED and are not a physical or metrology oracle. Independent review and a rights-cleared external corpus remain required before any external performance claim.
+The 31-case frozen mutation corpus is executed by the Rust tests with exact violation and blocker sets. Additional hard-bound integration tests cover point-degenerate backward compatibility, certificate and evaluation boundaries, interval effectivity at both subject and snapshot time, chronology/retroactivity contradictions, incomplete pairs and non-applicable event retention. The expanded chronology cases also cover as-of evaluation-time handling, retroactive revocation, cross-certificate correction rejection, duplicate event identity, strict correction chronology, invalid intervals and unknown references/events. The evaluator also tests calibration-event permutation invariance with a non-empty competing-correction history. These synthetic tests are not an independently authored semantic oracle, are not a physical or metrology oracle, and do not validate source clock bounds. Independent review and a rights-cleared external corpus remain required before any external performance claim.
 
 ## 4. Paradigm shifts beyond a better optimizer
 
@@ -178,6 +230,29 @@ Use frozen input datasets, versioned interfaces, published scoring code and inde
 
 NASA Aviary is a real conceptual aircraft sizing, mission analysis and gradient-based optimization baseline; it is not a high-fidelity structural solver. The NASA/AIAA aeroelastic benchmark exists specifically because design variables, baselines, objectives and constraints must be consistent for meaningful method comparisons. NIST CM4QC Phase II is developing aviation additive-manufacturing pathfinder work with AM-Bench; its programme must not be misrepresented as an existing public composite-laminate allowable database.
 
+### 5.1 Temporal-boundary benchmark
+
+The new interval-aware evaluator must be compared against the same exact-point baseline and the same frozen event stream. Use five arms:
+
+1. **Latest-row negative control:** discard event history and use the latest available record.
+2. **Scalar bitemporal baseline:** use nominal `acquired_at`, `effective_at`, `recorded_at` and evaluation time only.
+3. **Optimistic interval negative control:** select the favorable interval endpoint when effective/acquisition bounds overlap.
+4. **Hard-bound interval evaluator:** require universal ordering; overlap abstains; retain non-applicable event identity.
+5. **Owner-evidence target:** interval evaluator plus independently authenticated event receipts, receiver-first-seen watermarks, trusted timestamp evidence and pinned trust-policy snapshots. This is a future integration target, not implemented here.
+
+Freeze identical raw event bytes, source identity, observation subject, nominal points, clock-bound method, bounds and evaluation snapshots for each arm. Blind the confirmatory cases and obtain expected dispositions from an independent chronology oracle before running the implementations.
+
+Report:
+- **False historical application:** number of events whose earliest effective time is later than the latest possible acquisition, but which are applied to that acquisition. Target: 0.
+- **Ambiguous-boundary escape:** number of acquisition/certificate or event/acquisition/snapshot overlaps accepted as unambiguous. Target: 0.
+- **Future-knowledge leakage:** number of events with recorded/receiver-first-seen evidence after the selected as-known cutoff that affect the earlier report. Target: 0; this needs receiver-native receipts for the full claim.
+- **Legacy exact-point parity:** fraction of old v0.2 point-only cases whose outputs remain identical. Target: 100%.
+- **Non-applicable-event retention:** fraction of definitely future or post-acquisition events that remain addressable in the report without being applied to subject-time state. Target: 100%.
+- **Oracle agreement and abstention quality:** exact dispositions and abstention/rejection rates per fault family; do not optimize only for low abstention.
+- **Runtime cost:** p50/p95/p99, allocations, memory and throughput by events × observations × certificates, with the same machine, toolchain and input digests.
+
+The optimistic-endpoint arm is intentionally unsafe and exists to quantify the failure prevented by universal interval ordering; it is not a production competitor. The latest-row arm measures the specific loss of historical event semantics. The owner-evidence arm is required before AERO can claim knowledge-time authenticity; a source's own `recorded_at` field cannot stand in for receiver first-seen proof.
+
 ## 6. Prospective benchmark targets
 
 These are research targets, not current results, certification criteria or regulatory limits.
@@ -187,8 +262,8 @@ These are research targets, not current results, certification criteria or regul
 | Bounded semantic corpus | 100% exact agreement with independently authored expected dispositions before external claims |
 | False acceptance | Zero false passes on the bounded adversarial controls, including wrong-lot and out-of-interval calibration |
 | Identity closure | 100% of specimens linked to independent source and intended-configuration assertions, or explicit abstention |
-| Metrology binding | 100% of admitted observations carry unambiguous UTC acquisition time and matching in-interval instrument/method certificate |
-| Change-event integrity | No replayed IDs or contradictory correction histories accepted |
+| Metrology binding | 100% of admitted observations have acquisition intervals wholly within the certificate validity interval; ambiguous boundaries abstain, and legacy point-only outputs remain exactly unchanged |
+| Change-event integrity | No replayed IDs or contradictory correction histories accepted; 0 definitely post-acquisition events applied to an earlier subject-time claim |
 | Determinism | Identical reports for semantically equivalent record-order permutations |
 | Applicability | No promotion outside the validated material/process/environment/configuration domain |
 | Uncertainty | For nominal 95% intervals, assess 93–97% empirical coverage only on adequately sized, independent physical holdouts; report interval width and subgroup coverage as well |
@@ -220,7 +295,9 @@ Score missed impacted claims, false invalidations, stale evidence accepted, unre
 - [NIST IR 8536](https://csrc.nist.gov/pubs/ir/8536/final) is the finalized manufacturing traceability meta-framework (September 2026), emphasizing interoperability and selective disclosure.
 - [ISO 23952:2020 QIF](https://www.iso.org/standard/77461.html) was confirmed current in June 2026; it is a quality-information exchange model, not measurement truth.
 - [ISO 10303-242:2025 AP242](https://www.iso.org/standard/84300.html) is the current published edition for managed model-based 3D engineering product data.
-- [FAA AC 20-107B](https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.information/documentNumber/20-107B) remains active and is an acceptable, non-exclusive means of showing compliance for applicable composite aircraft structures; it is guidance, not itself certification.
+- [FAA AC 20-107B](https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.information/documentNumber/20-107B) remains active and is an acceptable, non-exclusive means of showing compliance for applicable composite aircraft structures; it is guidance, not itself certification.- **Established aerospace QMS:** SAE lists [AS9100D](https://saemobilus.sae.org/standards/as9100d-quality-management-systems-requirements-aviation-space-defense-organizations) as revised 8 December 2025. It is the IAQG aviation/space/defense QMS standard; the [IAQG 9104 certification scheme](https://iaqg.org/certification/) uses accredited third-party certification bodies, oversight and the OASIS status database. AERO should integrate as a claim/evidence assurance layer inside existing quality and configuration workflows, not claim to replace QMS requirements, audit or certification.
+- **Separate emerging standards family:** [Aerospace Federation AF 9100:2026](https://af.org/standards/af-9100/) and [AF ASTRA-100:2026](https://af.org/astra/) are independently published, voluntary standards unless adopted by a contract, programme or authorized arrangement, according to their publisher. The public evidence reviewed here does not establish equivalence or participation in the IAQG 9104/ICOP/OASIS certification scheme. Treat them as an emerging voluntary comparator, not as an established replacement for IAQG/SAE standards or applicable law.
+
 - [CMH-17](https://www.cmh17.org/HOME/FAQ) revisions differ by material family and volume. Select the applicable volume/revision rather than claiming a universal handbook baseline.
 
 ### Current external benchmark and standards notes (reviewed 25 November 2026)
