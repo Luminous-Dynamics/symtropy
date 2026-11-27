@@ -66,7 +66,10 @@ fn twenty_synthetic_scenarios_are_unique_and_have_explicit_claim_ceilings() {
         assert!(!row.expected.is_empty());
         *families.entry(row.family.clone()).or_default() += 1;
     }
-    assert!(families.len() >= 8, "scenario families are insufficiently diverse");
+    assert!(
+        families.len() >= 8,
+        "scenario families are insufficiently diverse"
+    );
 }
 
 #[test]
