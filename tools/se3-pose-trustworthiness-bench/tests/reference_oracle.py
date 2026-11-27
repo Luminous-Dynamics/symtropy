@@ -244,8 +244,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     ):
         return base_result(row, "OUT_OF_SCOPE", "FRAME_UNIT_OR_SENSOR_CONVENTION_UNSUPPORTED")
 
-    pred_t = vec(row, "pred", 3)
-    gt_t = vec(row, "gt", 3)
+    pred_t = vec(row, "pred_t", 3)
+    gt_t = vec(row, "gt_t", 3)
     visible = float(row["visible_fraction"])
     condition = float(row["geometry_condition"])
     if (
