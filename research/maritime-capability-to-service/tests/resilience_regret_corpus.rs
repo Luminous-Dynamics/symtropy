@@ -78,7 +78,11 @@ fn common_cause_identity_is_preserved_across_distinct_services_and_scenarios() {
         .count();
     let workforce_users = rows
         .iter()
-        .filter(|row| row.dependencies.iter().any(|dependency| dependency == "SKILL:WELDER-POOL-01"))
+        .filter(|row| {
+            row.dependencies
+                .iter()
+                .any(|dependency| dependency == "SKILL:WELDER-POOL-01")
+        })
         .count();
 
     assert!(mill_users >= 2, "shared mill root must recur across events");
