@@ -72,3 +72,10 @@ A maximizing benefit improves only when candidate lower bound exceeds comparator
 ## Claim boundary
 
 The v0.1 evaluator checks exact scope, baseline optimization evidence, M4 physical acceptance, hard constraints, interval non-inferiority and interval benefit separation. It does not run an EM/thermal/mechanical solver, validate a physical motor, qualify a manufacturer, or certify standards conformity.
+
+
+## Conservative baseline admission and outcomes
+
+Every required conventional comparator must itself pass the exact hard application limits. A conventional reference that fails the frozen duty, thermal, demagnetization or retention requirements cannot be used as a weak strawman; its presence makes the candidate comparison indeterminate.
+
+The evaluator reports `InferiorToBaseline` when the candidate violates any mandatory non-inferiority margin, separately from `Indeterminate` (evidence/scope uncertainty) and `Fail` (candidate definitely violates an absolute hard limit).
