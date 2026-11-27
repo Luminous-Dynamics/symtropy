@@ -8,7 +8,7 @@
 //! exactly-once delivery across a process boundary.
 
 use incremental_aabb_tree_reference::{ProxyId, ProxyPair};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Semantic class of an externally visible physics callback event.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -44,6 +44,14 @@ pub struct CallbackEventId {
     pub kind: CallbackEventKind,
     /// Deterministic ordinal for multiple same-kind events on one subject/tick.
     pub ordinal: u32,
+}
+
+/// Current endpoint state used to bind callback event identities.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CallbackEndpointState {
+    pub generation: u64,
+    pub response_state: u64,
+    pub actuator_revision: u64,
 }
 
 /// Immutable event payload identity plus the response state under which it ran.
@@ -85,6 +93,11 @@ pub enum CallbackEventVerificationError {
     NonCanonicalPair(ProxyPair),
     SubjectKindMismatch(CallbackEventId),
     WrongWorldRevision(CallbackEventId),
+    ResponsePolicyDigestMismatch(CallbackEventId),
+    MissingEndpointState(ProxyId),
+    EndpointGenerationMismatch(ProxyId),
+    EndpointResponseStateMismatch(ProxyId),
+    ActuatorRevisionMismatch(ProxyId),
     MissingResponsePolicyDigest(CallbackEventId),
     MissingPayloadDigest(CallbackEventId),
     DuplicateExpectedEvent(CallbackEventId),
@@ -103,6 +116,8 @@ pub enum CallbackEventVerificationError {
 /// not counted as delivered; callers must not treat them as success.
 pub fn verify_callback_event_receipts(
     current_world_revision: u64,
+    current_response_policy_sha256: [u8; 32],
+    current_endpoints: &BTreeMap<ProxyId, CallbackEndpointState>,
     expected: &[CallbackEventSnapshot],
     supplied: &[CallbackEventReceipt],
 ) -> Result<CallbackEventVerificationReport, CallbackEventVerificationError> {
@@ -110,7 +125,7 @@ pub fn verify_callback_event_receipts(
     let mut previous_expected = None;
 
     for snapshot in expected {
-        validate_snapshot(snapshot, current_world_revision)?;
+        validate_snapshot(snapshot, current_world_revision, current_response_policy_sha256, current_endpoints)?;
         if previous_expected.is_some_and(|previous| previous >= snapshot.id) {
             if !expected_ids.insert(snapshot.id) {
                 return Err(CallbackEventVerificationError::DuplicateExpectedEvent(snapshot.id));
@@ -131,7 +146,7 @@ pub fn verify_callback_event_receipts(
     };
 
     for receipt in supplied {
-        validate_snapshot(&receipt.snapshot, current_world_revision)?;
+        validate_snapshot(&receipt.snapshot, current_world_revision, current_response_policy_sha256, current_endpoints)?;
         let id = receipt.snapshot.id;
         if previous_supplied.is_some_and(|previous| previous >= id) {
             if !supplied_ids.insert(id) {
@@ -180,11 +195,17 @@ pub fn verify_callback_event_receipts(
 fn validate_snapshot(
     snapshot: &CallbackEventSnapshot,
     current_world_revision: u64,
+    current_response_policy_sha256: [u8; 32],
+    current_endpoints: &BTreeMap<ProxyId, CallbackEndpointState>,
 ) -> Result<(), CallbackEventVerificationError> {
     let id = snapshot.id;
     match (id.subject, id.kind) {
         (
-            CallbackEventSubject::Pair { pair, .. },
+            CallbackEventSubject::Pair {
+                pair,
+                generations,
+                ..
+            },
             CallbackEventKind::Collision
             | CallbackEventKind::Trauma
             | CallbackEventKind::Dissipation,
@@ -192,8 +213,50 @@ fn validate_snapshot(
             if pair.0 >= pair.1 {
                 return Err(CallbackEventVerificationError::NonCanonicalPair(pair));
             }
+            let left = current_endpoints
+                .get(&pair.0)
+                .ok_or(CallbackEventVerificationError::MissingEndpointState(pair.0))?;
+            let right = current_endpoints
+                .get(&pair.1)
+                .ok_or(CallbackEventVerificationError::MissingEndpointState(pair.1))?;
+            if generations != [left.generation, right.generation] {
+                let proxy = if generations[0] != left.generation {
+                    pair.0
+                } else {
+                    pair.1
+                };
+                return Err(CallbackEventVerificationError::EndpointGenerationMismatch(proxy));
+            }
+            if snapshot.endpoint_response_state != [left.response_state, right.response_state] {
+                let proxy = if snapshot.endpoint_response_state[0] != left.response_state {
+                    pair.0
+                } else {
+                    pair.1
+                };
+                return Err(CallbackEventVerificationError::EndpointResponseStateMismatch(proxy));
+            }
         }
-        (CallbackEventSubject::Body { .. }, CallbackEventKind::Work) => {}
+        (
+            CallbackEventSubject::Body {
+                proxy,
+                generation,
+                actuator_revision,
+            },
+            CallbackEventKind::Work,
+        ) => {
+            let endpoint = current_endpoints
+                .get(&proxy)
+                .ok_or(CallbackEventVerificationError::MissingEndpointState(proxy))?;
+            if generation != endpoint.generation {
+                return Err(CallbackEventVerificationError::EndpointGenerationMismatch(proxy));
+            }
+            if actuator_revision != endpoint.actuator_revision {
+                return Err(CallbackEventVerificationError::ActuatorRevisionMismatch(proxy));
+            }
+            if snapshot.endpoint_response_state != [endpoint.response_state, 0] {
+                return Err(CallbackEventVerificationError::EndpointResponseStateMismatch(proxy));
+            }
+        }
         _ => return Err(CallbackEventVerificationError::SubjectKindMismatch(id)),
     }
     if id.world_revision != current_world_revision {
@@ -201,6 +264,9 @@ fn validate_snapshot(
     }
     if snapshot.response_policy_sha256.iter().all(|byte| *byte == 0) {
         return Err(CallbackEventVerificationError::MissingResponsePolicyDigest(id));
+    }
+    if snapshot.response_policy_sha256 != current_response_policy_sha256 {
+        return Err(CallbackEventVerificationError::ResponsePolicyDigestMismatch(id));
     }
     if snapshot.payload_sha256.iter().all(|byte| *byte == 0) {
         return Err(CallbackEventVerificationError::MissingPayloadDigest(id));
@@ -237,11 +303,54 @@ mod tests {
         }
     }
 
+    fn endpoint_states() -> BTreeMap<ProxyId, CallbackEndpointState> {
+        BTreeMap::from([
+            (
+                ProxyId(1),
+                CallbackEndpointState {
+                    generation: 3,
+                    response_state: 6,
+                    actuator_revision: 0,
+                },
+            ),
+            (
+                ProxyId(2),
+                CallbackEndpointState {
+                    generation: 4,
+                    response_state: 7,
+                    actuator_revision: 0,
+                },
+            ),
+            (
+                ProxyId(9),
+                CallbackEndpointState {
+                    generation: 2,
+                    response_state: 8,
+                    actuator_revision: 5,
+                },
+            ),
+        ])
+    }
+
+    fn verify(
+        world_revision: u64,
+        expected: &[CallbackEventSnapshot],
+        supplied: &[CallbackEventReceipt],
+    ) -> Result<CallbackEventVerificationReport, CallbackEventVerificationError> {
+        super::verify(
+            world_revision,
+            [11; 32],
+            &endpoint_states(),
+            expected,
+            supplied,
+        )
+    }
+
     #[test]
     fn one_event_replays_as_delivered() {
         let expected = [snapshot(10, 0)];
         let supplied = [receipt(expected[0])];
-        let report = verify_callback_event_receipts(10, &expected, &supplied)
+        let report = verify(10, &expected, &supplied)
             .expect("complete event receipt");
         assert_eq!(report.event_count, 1);
         assert_eq!(report.delivered_count, 1);
@@ -253,7 +362,7 @@ mod tests {
         let current = snapshot(11, 0);
         assert_ne!(previous.id, current.id);
         assert_eq!(
-            verify_callback_event_receipts(11, &[current], &[receipt(current)])
+            verify(11, &[current], &[receipt(current)])
                 .expect("next-step event"),
             CallbackEventVerificationReport {
                 event_count: 1,
@@ -268,7 +377,7 @@ mod tests {
     fn duplicate_expected_event_is_rejected() {
         let event = snapshot(10, 0);
         assert_eq!(
-            verify_callback_event_receipts(10, &[event, event], &[receipt(event), receipt(event)]),
+            verify(10, &[event, event], &[receipt(event), receipt(event)]),
             Err(CallbackEventVerificationError::DuplicateExpectedEvent(event.id))
         );
     }
@@ -278,7 +387,7 @@ mod tests {
         let event = snapshot(10, 0);
         let expected = [event];
         assert_eq!(
-            verify_callback_event_receipts(10, &expected, &[receipt(event), receipt(event)]),
+            verify(10, &expected, &[receipt(event), receipt(event)]),
             Err(CallbackEventVerificationError::DuplicateSuppliedEvent(event.id))
         );
     }
@@ -287,7 +396,7 @@ mod tests {
     fn omitted_event_is_rejected() {
         let event = snapshot(10, 0);
         assert_eq!(
-            verify_callback_event_receipts(10, &[event], &[]),
+            verify(10, &[event], &[]),
             Err(CallbackEventVerificationError::MissingEvent(event.id))
         );
     }
@@ -297,7 +406,7 @@ mod tests {
         let expected = snapshot(10, 0);
         let unexpected = snapshot(10, 1);
         assert_eq!(
-            verify_callback_event_receipts(10, &[expected], &[receipt(unexpected)]),
+            verify(10, &[expected], &[receipt(unexpected)]),
             Err(CallbackEventVerificationError::MissingEvent(expected.id))
         );
     }
@@ -308,7 +417,7 @@ mod tests {
         let mut tampered = expected;
         tampered.payload_sha256 = [13; 32];
         assert_eq!(
-            verify_callback_event_receipts(10, &[expected], &[receipt(tampered)]),
+            verify(10, &[expected], &[receipt(tampered)]),
             Err(CallbackEventVerificationError::EventPayloadMismatch(expected.id))
         );
     }
@@ -319,7 +428,7 @@ mod tests {
         let mut changed = expected;
         changed.endpoint_response_state[0] += 1;
         assert_eq!(
-            verify_callback_event_receipts(10, &[expected], &[receipt(changed)]),
+            verify(10, &[expected], &[receipt(changed)]),
             Err(CallbackEventVerificationError::EventPayloadMismatch(expected.id))
         );
     }
@@ -340,7 +449,7 @@ mod tests {
                 outcome: CallbackDeliveryOutcome::Failed,
             },
         ];
-        let report = verify_callback_event_receipts(10, &[delivered, pending, failed], &supplied)
+        let report = verify(10, &[delivered, pending, failed], &supplied)
             .expect("all outcomes are explicit");
         assert_eq!(report.delivered_count, 1);
         assert_eq!(report.pending_count, 1);
@@ -351,7 +460,7 @@ mod tests {
     fn stale_world_revision_is_rejected() {
         let event = snapshot(9, 0);
         assert_eq!(
-            verify_callback_event_receipts(10, &[event], &[receipt(event)]),
+            verify(10, &[event], &[receipt(event)]),
             Err(CallbackEventVerificationError::WrongWorldRevision(event.id))
         );
     }
@@ -373,7 +482,7 @@ mod tests {
             endpoint_response_state: [8, 0],
             payload_sha256: [22; 32],
         };
-        let report = verify_callback_event_receipts(10, &[event], &[receipt(event)])
+        let report = verify(10, &[event], &[receipt(event)])
             .expect("body-scoped work receipt");
         assert_eq!(report.delivered_count, 1);
     }
@@ -396,10 +505,74 @@ mod tests {
             payload_sha256: [22; 32],
         };
         assert_eq!(
-            verify_callback_event_receipts(10, &[event], &[receipt(event)]),
+            verify(10, &[event], &[receipt(event)]),
             Err(CallbackEventVerificationError::SubjectKindMismatch(event.id))
         );
     }
 
+    #[test]
+    fn stale_proxy_generation_is_rejected_against_current_endpoint_snapshot() {
+        let mut event = snapshot(10, 0);
+        let CallbackEventSubject::Pair {
+            pair,
+            mut generations,
+            manifold_revision,
+        } = event.id.subject else {
+            panic!("pair event expected");
+        };
+        generations[0] += 1;
+        event.id.subject = CallbackEventSubject::Pair {
+            pair,
+            generations,
+            manifold_revision,
+        };
+        assert_eq!(
+            verify(10, &[event], &[receipt(event)]),
+            Err(CallbackEventVerificationError::EndpointGenerationMismatch(ProxyId(1)))
+        );
+    }
+
+    #[test]
+    fn stale_response_state_is_rejected_against_current_endpoint_snapshot() {
+        let mut event = snapshot(10, 0);
+        event.endpoint_response_state[0] += 1;
+        assert_eq!(
+            verify(10, &[event], &[receipt(event)]),
+            Err(CallbackEventVerificationError::EndpointResponseStateMismatch(ProxyId(1)))
+        );
+    }
+
+    #[test]
+    fn response_policy_digest_must_match_current_global_policy() {
+        let mut event = snapshot(10, 0);
+        event.response_policy_sha256 = [99; 32];
+        assert_eq!(
+            verify(10, &[event], &[receipt(event)]),
+            Err(CallbackEventVerificationError::ResponsePolicyDigestMismatch(event.id))
+        );
+    }
+
+    #[test]
+    fn body_work_actuator_revision_must_match_current_snapshot() {
+        let event = CallbackEventSnapshot {
+            id: CallbackEventId {
+                world_revision: 10,
+                subject: CallbackEventSubject::Body {
+                    proxy: ProxyId(9),
+                    generation: 2,
+                    actuator_revision: 4,
+                },
+                kind: CallbackEventKind::Work,
+                ordinal: 0,
+            },
+            response_policy_sha256: [11; 32],
+            endpoint_response_state: [8, 0],
+            payload_sha256: [22; 32],
+        };
+        assert_eq!(
+            verify(10, &[event], &[receipt(event)]),
+            Err(CallbackEventVerificationError::ActuatorRevisionMismatch(ProxyId(9)))
+        );
+    }
 
 }
