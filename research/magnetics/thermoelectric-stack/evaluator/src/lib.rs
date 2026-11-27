@@ -108,6 +108,9 @@ pub struct ComponentAcceptance {
     pub component_id: String,
     pub specimen_id: String,
     pub build_id: String,
+    pub functional_test_evidence_id: String,
+    pub functional_test_digest: String,
+    pub linked_evidence_ids: Vec<String>,
     pub maturity: Maturity,
     pub disposition: Disposition,
     pub scope_digest: String,
@@ -447,6 +450,9 @@ fn validate_acceptance(trial: &Trial, blockers: &mut Vec<Blocker>) {
     if acceptance.component_id != trial.component_id
         || acceptance.specimen_id.trim().is_empty()
         || acceptance.build_id.trim().is_empty()
+        || acceptance.functional_test_evidence_id.trim().is_empty()
+        || acceptance.linked_evidence_ids.is_empty()
+        || !valid_sha256(&acceptance.functional_test_digest)
         || acceptance.maturity < Maturity::M4
         || acceptance.disposition != Disposition::Qualified
         || !valid_sha256(&acceptance.scope_digest)
@@ -539,6 +545,20 @@ fn validate_observations(
         if valid {
             by_id.insert(observation.metric_id.as_str(), observation);
         }
+    }
+
+    let linked_ids: BTreeSet<&str> = trial
+        .acceptance
+        .linked_evidence_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let mut expected_linked_ids = evidence_ids.clone();
+    expected_linked_ids.insert(trial.acceptance.functional_test_evidence_id.as_str());
+    if linked_ids.len() != trial.acceptance.linked_evidence_ids.len()
+        || linked_ids != expected_linked_ids
+    {
+        blockers.push(Blocker::BrokenSpecimenBinding);
     }
 
     let mut intervals = BTreeMap::new();
@@ -802,6 +822,9 @@ mod tests {
             component_id: id.to_string(),
             specimen_id: format!("SPEC-{id}"),
             build_id: format!("BUILD-{id}"),
+            functional_test_evidence_id: String::new(),
+            functional_test_digest: digest('5'),
+            linked_evidence_ids: Vec::new(),
             maturity: Maturity::M4,
             disposition: Disposition::Qualified,
             scope_digest: digest('1'),
@@ -869,6 +892,14 @@ mod tests {
                 let mut accepted = acceptance(&component_id);
                 accepted.specimen_id = specimen_id;
                 accepted.build_id = build_id;
+                accepted.functional_test_evidence_id = format!("FUNCTIONAL-{id}");
+                accepted.linked_evidence_ids = observations
+                    .iter()
+                    .map(|observation| observation.evidence_id.clone())
+                    .chain(std::iter::once(
+                        accepted.functional_test_evidence_id.clone(),
+                    ))
+                    .collect();
                 accepted
             },
             optimization: Some(optimization()),
@@ -1069,6 +1100,17 @@ mod tests {
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
         assert!(result[0].blockers.contains(&Blocker::InvalidAcceptance));
+    }
+
+    #[test]
+    fn acceptance_must_link_every_measurement_and_functional_test_receipt() {
+        let mut trials = known_trials();
+        trials[0].acceptance.linked_evidence_ids.pop();
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(result[0]
+            .blockers
+            .contains(&Blocker::BrokenSpecimenBinding));
     }
 
     #[test]
