@@ -125,7 +125,9 @@ pub enum PortfolioContractError {
     InvalidBoundsReceiptId,
     InvalidBoundsReceiptDigest,
     EmptyRequiredApprovals,
+    EmptyApprovalId,
     EmptyPostconditionEvidence,
+    EmptyPostconditionId,
     DuplicateActionCoverage,
     DuplicatePrerequisite,
     DuplicateDependency,
@@ -263,10 +265,17 @@ fn validate_contract(
         if has_duplicate(&action.required_postcondition_evidence) {
             return Err(PortfolioContractError::DuplicatePostcondition);
         }
-        if action.required_approvals.iter().any(|id| id.trim().is_empty())
-            || action.required_postcondition_evidence.iter().any(|id| id.trim().is_empty())
-        {
-            return Err(PortfolioContractError::EmptyPostconditionEvidence);
+        if action.addresses_alert_ids.iter().any(|id| id.trim().is_empty()) {
+            return Err(PortfolioContractError::EmptyAlertId);
+        }
+        if action.prerequisite_evidence_ids.iter().any(|id| id.trim().is_empty()) {
+            return Err(PortfolioContractError::EmptyEvidenceId);
+        }
+        if action.required_approvals.iter().any(|id| id.trim().is_empty()) {
+            return Err(PortfolioContractError::EmptyApprovalId);
+        }
+        if action.required_postcondition_evidence.iter().any(|id| id.trim().is_empty()) {
+            return Err(PortfolioContractError::EmptyPostconditionId);
         }
         for alert_id in &action.addresses_alert_ids {
             if !known_alerts.contains(alert_id.as_str()) {
@@ -649,9 +658,49 @@ mod tests {
         let first = action("verify-a", &["alert-a"], 1, 1, 1, 1);
         let mut second = action("verify-b", &["alert-a"], 2, 2, 2, 2);
         second.bounds_receipt_id = first.bounds_receipt_id.clone();
+        second.cost_upper_microunits = 2;
+        second.energy_upper_millijoules = 0;
+        second.duration_upper_ms = 0;
+        second.downtime_upper_ms = 0;
         let result = plan_portfolio(&policy(&["alert-a"]), &[first, second]).unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::Feasible);
         assert_eq!(result.pareto_frontier.len(), 2);
+    }
+
+    #[test]
+    fn action_count_cap_rejects_unbounded_candidate_sets() {
+        let candidates: Vec<ActionCandidate> = (0..=MAX_CANDIDATE_ACTIONS)
+            .map(|index| action(&format!("action-{index}"), &["alert-a"], 1, 1, 1, 1))
+            .collect();
+        assert_eq!(
+            plan_portfolio(&policy(&["alert-a"]), &candidates),
+            Err(PortfolioContractError::TooManyCandidates)
+        );
+    }
+
+    #[test]
+    fn plan_action_limit_is_enforced_after_dependency_and_coverage_checks() {
+        let mut p = policy(&["alert-a", "alert-b"]);
+        p.max_actions = 1;
+        let candidates = [
+            action("address-a", &["alert-a"], 1, 1, 1, 0),
+            action("address-b", &["alert-b"], 1, 1, 1, 0),
+        ];
+        let result = plan_portfolio(&p, &candidates).unwrap();
+        assert_eq!(result.disposition, PortfolioDisposition::Infeasible);
+        assert!(result.pareto_frontier.is_empty());
+    }
+
+    #[test]
+    fn arithmetic_overflow_is_rejected_not_saturated() {
+        let candidates = [
+            action("address-a", &["alert-a"], u64::MAX, 1, 1, 1),
+            action("address-b", &["alert-b"], 1, 1, 1, 1),
+        ];
+        assert_eq!(
+            plan_portfolio(&policy(&["alert-a", "alert-b"]), &candidates),
+            Err(PortfolioContractError::ArithmeticOverflow)
+        );
     }
 
     #[test]
