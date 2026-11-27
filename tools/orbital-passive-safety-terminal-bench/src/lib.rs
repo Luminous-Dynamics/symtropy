@@ -14,6 +14,16 @@ pub enum BoundState {
 }
 
 impl BoundState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Pass => "PASS",
+            Self::Fail => "FAIL",
+            Self::Unknown => "UNKNOWN",
+            Self::Stale => "STALE",
+            Self::Revoked => "REVOKED",
+        }
+    }
+
     pub fn parse(value: &str) -> Option<Self> {
         match value {
             "PASS" => Some(Self::Pass),
@@ -89,6 +99,14 @@ pub struct TerminalCase {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TerminalResult {
     pub case_id: String,
+    pub scope: HorizonScope,
+    pub terminal_epoch_tai_ns: u64,
+    pub bounds_provider_id: String,
+    pub bounds_provider_revision: String,
+    pub bounds_receipt_sha256: String,
+    pub bounds_state: BoundState,
+    pub period_witness_id: Option<String>,
+    pub period_witness_receipt_sha256: Option<String>,
     pub disposition: TerminalDisposition,
     pub delta_a_branch: String,
     pub margin_scaled: Option<i128>,
@@ -130,6 +148,17 @@ fn result(
 ) -> TerminalResult {
     TerminalResult {
         case_id: case.case_id.clone(),
+        scope: case.scope.clone(),
+        terminal_epoch_tai_ns: case.terminal_epoch_tai_ns,
+        bounds_provider_id: case.bounds.provider_id.clone(),
+        bounds_provider_revision: case.bounds.provider_revision.clone(),
+        bounds_receipt_sha256: case.bounds.receipt_sha256.clone(),
+        bounds_state: case.bounds.state,
+        period_witness_id: case.period_witness.as_ref().map(|witness| witness.horizon_id.clone()),
+        period_witness_receipt_sha256: case
+            .period_witness
+            .as_ref()
+            .map(|witness| witness.receipt_sha256.clone()),
         disposition,
         delta_a_branch: branch.to_owned(),
         margin_scaled,
