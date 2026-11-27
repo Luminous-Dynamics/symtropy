@@ -706,7 +706,7 @@ pub fn evaluate_temporal_replay_case(case: &Value, mode: TemporalQueryMode) -> R
 
     let event_index = events
         .iter()
-        .filter_map(|event| Some((source_key(event), event)))
+        .map(|event| (source_key(event), event))
         .collect::<BTreeMap<_, _>>();
 
     // Corrections are never interpreted as a generic latest-row replacement.
