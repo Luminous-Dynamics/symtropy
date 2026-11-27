@@ -48,3 +48,10 @@ A reluctance-only control is secondary and does not satisfy the conventional-PM 
 ## Claim ceiling
 
 A synthetic architecture advantage validates interval/decision semantics only. It is not evidence that AM is physically superior to conventional PM designs, nor an electromagnetic solver result, production capability claim, certification or product-release authority.
+
+
+## Conservative interval semantics
+
+Non-inferiority compares the candidate's worst supported interval endpoint against the comparator's best supported endpoint, plus the preregistered margin: maximizing metrics use candidate lower versus baseline upper; minimizing metrics use candidate upper versus baseline lower. A comparator that itself fails a mandatory hard limit is not an admissible reference. A candidate that violates a hard limit is FAIL; a baseline that violates one makes the comparison INDETERMINATE; scope mismatch is NOT_COMPARABLE; a functionally inferior candidate is reported as `InferiorToBaseline`.
+
+Only candidate-role AM/hybrid trials receive candidate decision rows; required baselines and secondary controls are comparator evidence, not architecture candidates.
