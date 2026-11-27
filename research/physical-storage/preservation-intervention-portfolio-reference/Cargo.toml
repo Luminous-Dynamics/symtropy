@@ -1,0 +1,14 @@
+[package]
+name = "preservation-intervention-portfolio-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "MIT"
+description = "Deterministic evidence-bounded Pareto planning for preservation interventions"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+[workspace]

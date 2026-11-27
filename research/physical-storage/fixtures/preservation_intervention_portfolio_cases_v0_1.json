@@ -1,0 +1,1718 @@
+{
+  "schema_version": "preservation-intervention-portfolio-cases-v0.1",
+  "corpus_id": "PIP-001-CASES-V0.1",
+  "evidence_class": "synthetic_semantic_fixture",
+  "qualification_status": "not_run",
+  "case_count": 19,
+  "cases": [
+    {
+      "case_id": "PIP-001-SINGLE-VERIFIED-PLAN",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 4000000,
+          "energy_upper_millijoules": 10000,
+          "duration_upper_ms": 1000,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Feasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [
+        [
+          "verify-fixity"
+        ]
+      ],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-002-EXACT-PARETO-FRONTIER",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "low-cost",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 3000000,
+          "energy_upper_millijoules": 40000,
+          "duration_upper_ms": 900,
+          "downtime_upper_ms": 100,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-low-cost",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-low-cost"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "low-energy",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 5000000,
+          "energy_upper_millijoules": 20000,
+          "duration_upper_ms": 1500,
+          "downtime_upper_ms": 500,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-low-energy",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-low-energy"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "dominated",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 6000000,
+          "energy_upper_millijoules": 50000,
+          "duration_upper_ms": 2000,
+          "downtime_upper_ms": 700,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-dominated",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-dominated"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Feasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [
+        [
+          "low-cost"
+        ],
+        [
+          "low-energy"
+        ]
+      ],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-003-COMPLETE-MULTI-ALERT-COVERAGE",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity",
+          "alert-trust"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 2000000,
+          "energy_upper_millijoules": 2000,
+          "duration_upper_ms": 100,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "refresh-trust",
+          "addresses_alert_ids": [
+            "alert-trust"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 3000000,
+          "energy_upper_millijoules": 3000,
+          "duration_upper_ms": 200,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-refresh-trust",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-refresh-trust"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Feasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [
+        [
+          "refresh-trust",
+          "verify-fixity"
+        ]
+      ],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-004-MISSING-PREREQUISITE-EVIDENCE",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "missing-calibration"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000000,
+          "energy_upper_millijoules": 1000,
+          "duration_upper_ms": 100,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "EvidenceIncomplete",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": [
+        {
+          "action_id": "verify-fixity",
+          "reasons": [
+            "MissingPrerequisiteEvidence"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "PIP-005-UNVERIFIED-BOUNDS",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-redundancy"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "create-copy",
+          "addresses_alert_ids": [
+            "alert-redundancy"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000,
+          "energy_upper_millijoules": 1000,
+          "duration_upper_ms": 100,
+          "downtime_upper_ms": 10,
+          "bounds_status": "Unverified",
+          "bounds_receipt_id": "bounds-create-copy",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-create-copy"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "EvidenceIncomplete",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": [
+        {
+          "action_id": "create-copy",
+          "reasons": [
+            "BoundsUnverified"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "PIP-006-INVALID-BOUNDS",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-redundancy"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "create-copy",
+          "addresses_alert_ids": [
+            "alert-redundancy"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000,
+          "energy_upper_millijoules": 1000,
+          "duration_upper_ms": 100,
+          "downtime_upper_ms": 10,
+          "bounds_status": "Invalid",
+          "bounds_receipt_id": "bounds-create-copy",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-create-copy"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "InvalidEvidence",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": [
+        {
+          "action_id": "create-copy",
+          "reasons": [
+            "BoundsInvalid"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "PIP-007-HARD-COST-BUDGET",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 999,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Infeasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-008-DESTRUCTIVE-OR-SOURCE-DISCARDING",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "overwrite-source",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-overwrite-source",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-overwrite-source"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": true
+        },
+        {
+          "action_id": "delete-source",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-delete-source",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-delete-source"
+          ],
+          "preserves_source_until_acceptance": false,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Infeasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": [
+        {
+          "action_id": "delete-source",
+          "reasons": [
+            "SourceNotPreserved"
+          ]
+        },
+        {
+          "action_id": "overwrite-source",
+          "reasons": [
+            "DestructiveAction"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "PIP-009-MISSING-DEPENDENCY",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-reader"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "replace-reader",
+          "addresses_alert_ids": [
+            "alert-reader"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [
+            "prepare-reader"
+          ],
+          "currency_code": "USD",
+          "cost_upper_microunits": 2,
+          "energy_upper_millijoules": 2,
+          "duration_upper_ms": 300,
+          "downtime_upper_ms": 20,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-replace-reader",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-replace-reader"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "UnknownActionDependency",
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-010-DEPENDENCY-CYCLE",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "first",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [
+            "second"
+          ],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-first",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-first"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "second",
+          "addresses_alert_ids": [],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [
+            "first"
+          ],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-second",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-second"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "DependencyCycle",
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-011-MIXED-CURRENCY",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "ZAR",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "CurrencyMismatch",
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-012-ACTION-COUNT-CAP",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-a",
+          "alert-b"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 1,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "address-a",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-address-a",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-address-a"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "address-b",
+          "addresses_alert_ids": [
+            "alert-b"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-address-b",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-address-b"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Infeasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-013-NO-ACTION-REQUIRED",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [],
+        "available_evidence_ids": [],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [],
+      "expected_disposition": "NoActionRequired",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-014-MORE-THAN-12-CANDIDATES",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-a"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "action-00",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-00",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-00"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-01",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-01",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-01"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-02",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-02",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-02"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-03",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-03",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-03"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-04",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-04",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-04"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-05",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-05",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-05"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-06",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-06",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-06"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-07",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-07",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-07"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-08",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-08",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-08"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-09",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-09",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-09"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-10",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-10",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-10"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-11",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-11",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-11"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "action-12",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-action-12",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-action-12"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "TooManyCandidates",
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-015-UNKNOWN-ALERT-ADDRESS",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "not-in-policy"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": null,
+      "expected_contract_error": "UnknownAddressedAlert",
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-016-REDUNDANT-ZERO-COST-HELPER-DOMINATED",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-a"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "direct",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000,
+          "energy_upper_millijoules": 1000,
+          "duration_upper_ms": 1000,
+          "downtime_upper_ms": 100,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-direct",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-direct"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "helper",
+          "addresses_alert_ids": [],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 0,
+          "energy_upper_millijoules": 0,
+          "duration_upper_ms": 0,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-helper",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-helper"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "combined",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [
+            "helper"
+          ],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000,
+          "energy_upper_millijoules": 1000,
+          "duration_upper_ms": 1000,
+          "downtime_upper_ms": 100,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-combined",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-combined"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Feasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [
+        [
+          "direct"
+        ]
+      ],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-017-RECEIPT-MAY-COVER-SEPARATE-ACTION-ESTIMATES",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-a"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-a",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-a",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-a"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "verify-b",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 2,
+          "energy_upper_millijoules": 0,
+          "duration_upper_ms": 0,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-a",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-b"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Feasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [
+        [
+          "verify-a"
+        ],
+        [
+          "verify-b"
+        ]
+      ],
+      "expected_exclusions": []
+    },
+    {
+      "case_id": "PIP-018-INVALID-OPTIONAL-CANDIDATE-WITH-VALID-FALLBACK",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-a"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner",
+          "independent_reviewer"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "valid-plan",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1000,
+          "energy_upper_millijoules": 1000,
+          "duration_upper_ms": 1000,
+          "downtime_upper_ms": 100,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-valid-plan",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-valid-plan"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        },
+        {
+          "action_id": "invalid-alternative",
+          "addresses_alert_ids": [
+            "alert-a"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 1,
+          "energy_upper_millijoules": 1,
+          "duration_upper_ms": 1,
+          "downtime_upper_ms": 1,
+          "bounds_status": "Invalid",
+          "bounds_receipt_id": "bounds-invalid-alternative",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-invalid-alternative"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "Feasible",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [
+        [
+          "valid-plan"
+        ]
+      ],
+      "expected_exclusions": [
+        {
+          "action_id": "invalid-alternative",
+          "reasons": [
+            "BoundsInvalid"
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "PIP-019-APPROVAL-AUTHORITY-UNAVAILABLE",
+      "policy": {
+        "target_id": "archive-A",
+        "unresolved_alert_ids": [
+          "alert-fixity"
+        ],
+        "available_evidence_ids": [
+          "evidence-fixity",
+          "evidence-trust"
+        ],
+        "currency_code": "USD",
+        "max_cost_microunits": 20000000,
+        "max_energy_millijoules": 100000,
+        "max_duration_ms": 20000,
+        "max_downtime_ms": 5000,
+        "max_actions": 8,
+        "available_approval_ids": [
+          "archive_owner"
+        ]
+      },
+      "candidates": [
+        {
+          "action_id": "verify-fixity",
+          "addresses_alert_ids": [
+            "alert-fixity"
+          ],
+          "prerequisite_evidence_ids": [
+            "evidence-fixity"
+          ],
+          "depends_on_action_ids": [],
+          "currency_code": "USD",
+          "cost_upper_microunits": 4000000,
+          "energy_upper_millijoules": 10000,
+          "duration_upper_ms": 1000,
+          "downtime_upper_ms": 0,
+          "bounds_status": "Verified",
+          "bounds_receipt_id": "bounds-verify-fixity",
+          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "required_approvals": [
+            "archive_owner",
+            "independent_reviewer"
+          ],
+          "required_postcondition_evidence": [
+            "postcondition-verify-fixity"
+          ],
+          "preserves_source_until_acceptance": true,
+          "destructive": false
+        }
+      ],
+      "expected_disposition": "EvidenceIncomplete",
+      "expected_contract_error": null,
+      "expected_frontier_action_sets": [],
+      "expected_exclusions": [
+        {
+          "action_id": "verify-fixity",
+          "reasons": [
+            "MissingApprovalAuthority"
+          ]
+        }
+      ]
+    }
+  ]
+}
