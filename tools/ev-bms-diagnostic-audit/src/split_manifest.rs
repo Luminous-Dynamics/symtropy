@@ -539,7 +539,8 @@ mod tests {
             .unwrap()
             .remove("event_id");
         let bytes = serde_json::to_vec(&value).expect("manifest with missing optional event");
-        let report = audit_split_manifest(SCHEMA, &bytes).expect("missing optional event is allowed");
+        let report = audit_split_manifest(SCHEMA, &bytes)
+            .expect("missing optional event is allowed");
         assert_eq!(report.record_count, 5);
         assert_eq!(report.optional_leakage_keys, vec!["event_id"]);
     }
