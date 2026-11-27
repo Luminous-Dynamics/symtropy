@@ -377,7 +377,7 @@ fn lower_um(center_m: f64, radius_m: f64) -> Option<i64> {
         return None;
     }
     let integer = scaled.floor();
-    if integer < I64_LOWER_INCLUSIVE || integer >= I64_UPPER_EXCLUSIVE {
+    if !(I64_LOWER_INCLUSIVE..I64_UPPER_EXCLUSIVE).contains(&integer) {
         return None;
     }
     Some(integer as i64)
@@ -405,7 +405,7 @@ fn orientation_cap_urad(radius_rad: f64) -> Option<u64> {
     }
     let capped = radius_rad.min(PI_UPPER);
     let scaled = next_up(capped * MICRORADIANS_PER_RADIAN);
-    if !scaled.is_finite() || scaled < 0.0 || scaled >= 18_446_744_073_709_551_616.0 {
+    if !scaled.is_finite() || !(0.0..18_446_744_073_709_551_616.0).contains(&scaled) {
         return None;
     }
     Some(scaled.ceil() as u64)
@@ -416,7 +416,7 @@ fn conformal_rank(sample_count: u64, nominal_level_bps: u16) -> Option<u64> {
         return None;
     }
     let numerator = (u128::from(sample_count) + 1) * u128::from(nominal_level_bps);
-    let rank = (numerator + 9_999) / 10_000;
+    let rank = numerator.div_ceil(10_000);
     u64::try_from(rank).ok()
 }
 
@@ -581,7 +581,7 @@ pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
     };
 
     let mut bounds = [[0_i64; 2]; 3];
-    for axis in 0..3 {
+    for (axis, bound) in bounds.iter_mut().enumerate() {
         let lower = lower_um(input.predicted_translation_m[axis], translation_radius);
         let upper = upper_um(input.predicted_translation_m[axis], translation_radius);
         let (Some(lower), Some(upper)) = (lower, upper) else {
@@ -598,7 +598,7 @@ pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
                 "TRANSLATION_INTERVAL_ORDER_INVALID",
             );
         }
-        bounds[axis] = [lower, upper];
+        *bound = [lower, upper];
     }
 
     let Some(orientation_cap) = orientation_cap_urad(rotation_radius) else {
