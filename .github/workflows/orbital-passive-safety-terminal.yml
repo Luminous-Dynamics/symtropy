@@ -71,7 +71,12 @@ jobs:
           assert cases["PS016"]["disposition"] == "INDETERMINATE"
           assert cases["PS029"]["disposition"] == "INVALID_INPUT"
           assert cases["PS033"]["disposition"] == "INDETERMINATE"
-          print("38 passive-terminal cases: exact Rust/Python receipt equality")
+          assert cases["PS001"]["scope"]["action_id"] == "action-1"
+          assert cases["PS001"]["bounds_provider_id"] == "orbit-bound-provider"
+          assert cases["PS001"]["bounds_receipt_sha256"] == "a" * 64
+          assert cases["PS008"]["period_witness_id"] == "period-PS008"
+          assert cases["PS008"]["period_witness_receipt_sha256"] == "b" * 64
+          print("38 passive-terminal cases: exact Rust/Python receipt equality with provenance")
           PY
       - name: Retain exact-head evidence
         if: success()
