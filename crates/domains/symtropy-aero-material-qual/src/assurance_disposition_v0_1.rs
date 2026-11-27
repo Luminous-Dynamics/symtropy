@@ -65,6 +65,27 @@ impl From<super::effectivity_interval_v0_1::EffectivityRelation>
     }
 }
 
+impl From<super::effectivity_interval_v0_1::EffectivityRelation>
+    for SubjectTimeEffectivityV0_1
+{
+    fn from(relation: super::effectivity_interval_v0_1::EffectivityRelation) -> Self {
+        match relation {
+            super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyEffective => {
+                Self::DefinitelyEffective
+            }
+            super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyNotYetEffective => {
+                Self::DefinitelyNotYetEffective
+            }
+            super::effectivity_interval_v0_1::EffectivityRelation::BoundaryAmbiguous => {
+                Self::BoundaryAmbiguous
+            }
+            super::effectivity_interval_v0_1::EffectivityRelation::InvalidInterval => {
+                Self::InvalidInterval
+            }
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum PropositionEvidenceStateV0_1 {
     #[serde(rename = "NEITHER")]
@@ -764,6 +785,36 @@ mod tests {
             SubjectEffectivity::from(EffectivityRelation::InvalidInterval),
             SubjectEffectivity::InvalidInterval
         );
+    }
+
+    #[test]
+    fn existing_interval_relation_maps_without_reimplementing_chronology() {
+        use super::super::effectivity_interval_v0_1::EffectivityRelation;
+
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::DefinitelyEffective),
+            SubjectEffectivity::DefinitelyEffective
+        );
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::DefinitelyNotYetEffective),
+            SubjectEffectivity::DefinitelyNotYetEffective
+        );
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::BoundaryAmbiguous),
+            SubjectEffectivity::BoundaryAmbiguous
+        );
+        assert_eq!(
+            SubjectEffectivity::from(EffectivityRelation::InvalidInterval),
+            SubjectEffectivity::InvalidInterval
+        );
+    }
+
+    #[test]
+    fn result_preserves_requested_replay_mode() {
+        let mut case = positive_case();
+        case.replay_mode = Replay::CurrentPolicyCounterfactual;
+        let result = evaluate_assurance_state_case_v0_1(&case);
+        assert_eq!(result.replay_mode, Replay::CurrentPolicyCounterfactual);
     }
 
     #[test]
