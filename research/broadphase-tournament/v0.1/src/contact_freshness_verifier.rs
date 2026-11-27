@@ -68,7 +68,7 @@ pub fn verify_contact_lifecycle_plan(
 
     for stream in events {
         let mut previous = None;
-        for pair in *stream {
+        for pair in stream.iter() {
             if pair.0 >= pair.1 || previous.is_some_and(|last| last >= *pair) {
                 return Err(ContactLifecycleError::NonCanonicalEventList.into());
             }
