@@ -1566,6 +1566,53 @@ mod tests {
     }
 
     #[test]
+    fn all_hard_risk_ineligible_portfolios_produce_an_empty_frontier() {
+        let mut gate = gate_report();
+        for check in &mut gate.scenario_portfolio_risk_checks {
+            check.within_declared_finite_support_budget = false;
+            check.mission_union_mass = ExactMass {
+                numerator: 2,
+                denominator: 100,
+            };
+        }
+        gate.eligible_portfolio_ids.clear();
+        gate.ineligible_portfolio_ids = vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C];
+        gate.ineligible_scenarios_by_portfolio = BTreeMap::from([
+            (PORTFOLIO_A, vec![SCENARIO_A, SCENARIO_B]),
+            (PORTFOLIO_B, vec![SCENARIO_A, SCENARIO_B]),
+            (PORTFOLIO_C, vec![SCENARIO_A, SCENARIO_B]),
+        ]);
+        gate.minimax_regret_undominated_eligible_portfolio_ids.clear();
+
+        let process = PairedObjectiveParetoCampaign::new(
+            &gate,
+            standard_supports(),
+            vec![specs()[0]],
+            Vec::new(),
+        )
+        .unwrap();
+        let atoms = standard_supports()
+            .into_iter()
+            .flat_map(|support| {
+                support.atom_ids.into_iter().map(move |atom_id| PairedObjectiveAtom {
+                    scenario_id: support.scenario_id,
+                    atom_id,
+                    outcomes: Vec::new(),
+                })
+            })
+            .collect::<Vec<_>>();
+        let report = process.evaluate(&atoms).unwrap();
+        assert!(report.eligible_portfolio_ids.is_empty());
+        assert_eq!(
+            report.ineligible_portfolio_ids,
+            vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C]
+        );
+        assert!(report.pairwise_contrasts.is_empty());
+        assert!(report.dominance_witnesses.is_empty());
+        assert!(report.pareto_frontier_portfolio_ids.is_empty());
+    }
+
+    #[test]
     fn pairwise_contrast_bounds_are_derived_from_arm_bounds() {
         let process = campaign(
             standard_supports(),
