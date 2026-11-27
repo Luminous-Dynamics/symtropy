@@ -171,15 +171,15 @@ impl EpistemicMinimaxRegret {
         mut portfolio_ids: Vec<[u8; 32]>,
         consequence_unit_id: [u8; 32],
     ) -> Result<Self, EpistemicMinimaxRegretError> {
-        if !total_family_alpha.is_finite()
-            || total_family_alpha <= 0.0
-            || total_family_alpha >= 1.0
+        if !total_family_alpha.is_finite() || total_family_alpha <= 0.0 || total_family_alpha >= 1.0
         {
             return Err(EpistemicMinimaxRegretError::InvalidFamilyAlpha);
         }
         if expected_scenario_ids.is_empty()
             || expected_scenario_ids.len() > 1_024
-            || expected_scenario_ids.iter().any(|id| id.iter().all(|b| *b == 0))
+            || expected_scenario_ids
+                .iter()
+                .any(|id| id.iter().all(|b| *b == 0))
             || consequence_unit_id.iter().all(|b| *b == 0)
         {
             return Err(EpistemicMinimaxRegretError::InvalidScenarioUniverse);
@@ -514,11 +514,7 @@ mod tests {
             draw_count: 100,
             pairwise_intervals: intervals,
             unique_best_portfolio_id: None,
-            statistically_undominated_portfolio_ids: vec![
-                PORTFOLIO_A,
-                PORTFOLIO_B,
-                PORTFOLIO_C,
-            ],
+            statistically_undominated_portfolio_ids: vec![PORTFOLIO_A, PORTFOLIO_B, PORTFOLIO_C],
             target_measure_id: [80; 32],
             density_space_id: [81; 32],
             scenario_id,
