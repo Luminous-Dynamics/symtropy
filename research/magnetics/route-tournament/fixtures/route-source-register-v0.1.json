@@ -138,6 +138,151 @@
         "the paper addresses AM-enabled electrical-machine materials and assemblies broadly; apply only where the magnetic component/use case matches its scope",
         "maturity labels describe evidence demonstrated, not intended capability or route superiority"
       ]
+    },
+    {
+      "source_id": "JSAMD-NDFEB-AM-REVIEW-2026",
+      "route_stratum": "cross_route_ndfeb_permanent_magnets",
+      "doi": "10.1016/j.jsamd.2026.101226",
+      "publication_date": "2026-09",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "reported_am_ndfeb_remanence_t_range": [
+          0.6,
+          1
+        ],
+        "conventional_anisotropic_sintered_ndfeb_remanence_t_range": [
+          1.4,
+          1.5
+        ],
+        "mex_most_competitive_am_route_for_bonded_ndfeb": true,
+        "lpbf_can_produce_dense_parts_but_magnetic_texture_is_limiting": true,
+        "sls_binder_jet_porosity_is_limiting": true
+      },
+      "limitations": [
+        "ranges aggregate different studies, materials, densities and methods",
+        "not matched head-to-head route data",
+        "do not treat a review envelope as a universal physical route limit or acceptance threshold"
+      ]
+    },
+    {
+      "source_id": "MOINUDDIN-MAGNETIC-AM-REVIEW-2026",
+      "route_stratum": "magnetic_am_microstructure_property_control",
+      "doi": "10.1002/adem.202502792",
+      "publication_date": "2026-05-09",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "process_settings_feedstock_design_and_postprocessing_jointly_affect_magnetic_properties": true,
+        "process_induced_microstructure_defect_distribution_and_orientation_affect_magnetic_function": true,
+        "selected_permanent_magnet_and_soft_magnetic_systems_need_distinct_property_targets": true
+      },
+      "limitations": [
+        "review spans soft magnetic and selected hard-magnetic systems; route comparisons must preserve material family and application scope",
+        "not a matched route-performance dataset"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52902-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52902:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "geometric capability assessment test artefacts"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52904-2024",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52904:2024",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "metal PBF process characteristics and performance for critical applications"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52905-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM TR 52905:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "NDT defect detection and evaluation in AM parts"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52908-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52908:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "PBF finished-part properties, post-processing, inspection and testing"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52927-2024",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52927:2024",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "AM characteristics and corresponding test methods"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52928-2024",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52928:2024",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "metal feedstock powder lifecycle management"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52929-2025",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52929:2025",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "PBF metal material property data-sheet presentation"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52931-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52931:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "EHS principles for metallic additive manufacturing materials"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
     }
   ]
 }
