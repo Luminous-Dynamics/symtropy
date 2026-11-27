@@ -649,4 +649,28 @@ mod tests {
             TerminalDisposition::InvalidInput
         );
     }
+
+    #[test]
+    fn verdict_retains_action_scope_provider_and_period_receipt_identity() {
+        let mut value = case(bounds(0, 0, -9_000_000, 9_000_000, 1_000_000));
+        value.case_id = "evidence-bound-case".to_owned();
+        value.period_witness = Some(period_witness());
+        let result = evaluate(&value);
+
+        assert_eq!(result.case_id, value.case_id);
+        assert_eq!(result.scope, value.scope);
+        assert_eq!(result.terminal_epoch_tai_ns, value.terminal_epoch_tai_ns);
+        assert_eq!(result.bounds_provider_id, value.bounds.provider_id);
+        assert_eq!(result.bounds_provider_revision, value.bounds.provider_revision);
+        assert_eq!(result.bounds_receipt_sha256, value.bounds.receipt_sha256);
+        assert_eq!(result.bounds_state, value.bounds.state);
+        assert_eq!(
+            result.period_witness_id.as_deref(),
+            value.period_witness.as_ref().map(|witness| witness.horizon_id.as_str())
+        );
+        assert_eq!(
+            result.period_witness_receipt_sha256.as_deref(),
+            value.period_witness.as_ref().map(|witness| witness.receipt_sha256.as_str())
+        );
+    }
 }
