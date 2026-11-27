@@ -171,3 +171,10 @@ The frozen #7554 service receipt is also consumed by `tests/canonical_receiver_s
 **Qualification status:** the base #7554 owner implementation passed its earlier exact-head workflow. The new Mycelix composition integration is in #7557's branch and its exact-head run #32 is queued; no pass is claimed for that new join until formatting, tests, strict Clippy and receipt generation complete.
 
 A passing fixture is evidence of this model's arithmetic and declared topology only. It is not a physical or industry qualification.
+
+
+## Same-information decision oracle (R1)
+
+The one-epoch finite R1 implementation is specified in [same-information-oracle-protocol.md](same-information-oracle-protocol.md) and tracked in [MCSC-SAME-INFO-ORACLE-001 #7834](https://github.com/Luminous-Dynamics/symtropy/issues/7834). It composes KITE's as-of evidence snapshots and enforces one common action across scenarios with identical observable information. It enumerates bounded action policies and reports a component-wise adverse outcome envelope with scenario witnesses and a Pareto frontier without probabilities or scalar weights.
+
+The first executable slice is deliberately one decision epoch. It is not a multistage optimizer or deployable recovery policy. R0 clairvoyant bounds, R1 same-information oracle results, and R2 compute-budget-matched operational policies remain separate.
