@@ -1,0 +1,11 @@
+[package]
+name = "magnetic-qualification-maturity"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Evidence-derived MOEM M1-M5 maturity gates for magnetic manufacturing routes"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
