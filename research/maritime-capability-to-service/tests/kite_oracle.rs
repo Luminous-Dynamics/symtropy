@@ -1,10 +1,10 @@
+use maritime_capability_to_service::kite::Gate;
 use maritime_capability_to_service::kite::{
-    select_as_of, AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState,
+    AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, RightsState, select_as_of,
 };
 use maritime_capability_to_service::kite_oracle::{
     ActionOutcome, DecisionContext, OutcomeVector, ScenarioDecision, solve_r1_finite,
 };
-use maritime_capability_to_service::kite::Gate;
 
 fn context() -> DecisionContext {
     DecisionContext {
