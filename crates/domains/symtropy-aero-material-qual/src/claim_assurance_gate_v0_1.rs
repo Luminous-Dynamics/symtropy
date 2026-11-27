@@ -1002,7 +1002,15 @@ mod tests {
         trust_policy_sha256: &str,
     ) -> OwnerEvidenceCutV0_1 {
         let model = model_cut_for_context(&context_template(evidence_refs));
-        let mut refs = evidence_refs.to_vec();
+        let mut refs = evidence_refs
+            .iter()
+            .filter(|reference| {
+                !reference.trim().is_empty() && reference.as_str() == reference.trim()
+            })
+            .cloned()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
         if !refs.iter().any(|item| item == &model.evidence_ref) {
             refs.push(model.evidence_ref.clone());
         }
