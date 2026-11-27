@@ -1,5 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use maritime_capability_to_service::{
+    compare_recovery_regret, RecoveryServiceOutcome,
+};
+
 const MANIFEST: &str = include_str!(concat!(
     "../../../docs/research/maritime-capability-to-service/fixtures/",
     "common-cause-recovery-regret-v0.tsv"
@@ -123,4 +127,58 @@ fn lifecycle_and_recovery_edge_cases_keep_service_and_knowledge_bounds() {
 
     let after_deadline = find("LC15_REPLACEMENT_QUALIFIES_AFTER_DEADLINE");
     assert_eq!(after_deadline.expected, "NO_CURRENT_SERVICE_CREDIT");
+}
+
+
+#[test]
+fn partial_recovery_regret_is_reported_as_a_vector_against_clairvoyant_bound() {
+    let candidate = RecoveryServiceOutcome {
+        instance_id: "MCSC-RESILIENCE-REGRET-001".to_owned(),
+        instance_version: "v0.1".to_owned(),
+        scenario_id: "RC16_PARTIAL_RESTORE_THEN_SECOND_RESOURCE_BLOCK".to_owned(),
+        policy_id: "COMMON_CAUSE_AWARE_NON_CLAIRVOYANT".to_owned(),
+        service_id: "ESSENTIAL-CARGO".to_owned(),
+        deadline_day: 10,
+        horizon_day: 20,
+        expected_units: 100,
+        receiver_accepted_units: 60,
+        on_time_accepted_units: 60,
+        unresolved_units: 40,
+        service_deficit_unit_hours: 250,
+        time_to_minimum_viable_service_day: 4,
+        time_to_full_service_day: 10,
+        recovery_cost_units: 120,
+        recovery_emissions_units: 50,
+        requalification_actions: 3,
+    };
+    let clairvoyant_bound = RecoveryServiceOutcome {
+        instance_id: candidate.instance_id.clone(),
+        instance_version: candidate.instance_version.clone(),
+        scenario_id: candidate.scenario_id.clone(),
+        policy_id: "CLAIRVOYANT_SCENARIO_UPPER_BOUND".to_owned(),
+        service_id: candidate.service_id.clone(),
+        deadline_day: candidate.deadline_day,
+        horizon_day: candidate.horizon_day,
+        expected_units: candidate.expected_units,
+        receiver_accepted_units: 100,
+        on_time_accepted_units: 100,
+        unresolved_units: 0,
+        service_deficit_unit_hours: 0,
+        time_to_minimum_viable_service_day: 2,
+        time_to_full_service_day: 5,
+        recovery_cost_units: 100,
+        recovery_emissions_units: 40,
+        requalification_actions: 1,
+    };
+
+    let regret = compare_recovery_regret(&candidate, &clairvoyant_bound).unwrap();
+    assert_eq!(regret.unmet_units_at_deadline_delta, 40);
+    assert_eq!(regret.late_accepted_units_delta, 0);
+    assert_eq!(regret.unresolved_units_delta, 40);
+    assert_eq!(regret.service_deficit_unit_hours_delta, 250);
+    assert_eq!(regret.time_to_minimum_viable_service_day_delta, 2);
+    assert_eq!(regret.time_to_full_service_day_delta, 5);
+    assert_eq!(regret.recovery_cost_units_delta, 20);
+    assert_eq!(regret.recovery_emissions_units_delta, 10);
+    assert_eq!(regret.requalification_actions_delta, 2);
 }
