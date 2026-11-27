@@ -1138,8 +1138,7 @@ mod tests {
     fn report_tampering_is_detected_by_independent_recomputation() {
         let input = sample_input();
         let mut report = evaluate(&input).unwrap();
-        report.disposition = ClosureDisposition::ClosedForIndependentReview;
-        report.findings.clear();
+        report.reached_evidence_refs.push("evidence:forged".to_owned());
         assert!(!verify_report(&input, &report).unwrap());
     }
 
