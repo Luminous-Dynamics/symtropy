@@ -239,3 +239,41 @@ The next receipt revision is tracked in [#7702 — separate candidate and exact 
 
 The receipt must explicitly derive contact-created, contact-retained and contact-ended outcomes separately from candidate added/removed/revalidated events. Every current exact contact needs one current payload stamp; every ended contact needs an explicit reason; a new candidate needs an explicit narrowphase result even when no contact is found. Until this is implemented, the current planner should be described as translating candidate-pair events into contact work obligations, not as proving the exact contact topology.
 
+
+
+## 9. Relative-motion geometric lease prototype
+
+The research crate now exports `contact_reuse_lease`, an initial executable admission predicate for #6865. It consumes a canonical relative-transform translation delta, an upper bound on maximum point-rotation angle, maximum contact-geometry lever arm, generation and shape revisions, stable feature identity and feature-margin lower bound, normal-variation upper bound, and updated signed-gap interval.
+
+The conservative displacement bound is:
+
+[
+delta_{	ext{pair}} le |Delta t_{	ext{rel}}| + R_{	ext{rel}},	heta_{max} + arepsilon
+]
+
+using (2sin(	heta/2) le 	heta), conservative for the admitted angle interval ([0,pi]). Arithmetic operations are rounded upward with `next_up`; overflow or non-finite input fails closed.
+
+Reuse is admitted only when the pair identity, proxy generations, shape revisions and feature identity remain valid; the feature-margin lower bound strictly exceeds the relative-motion upper bound; the normal-variation upper bound stays within tolerance; and the updated gap interval remains inside the declared contact/penetration envelope. The result is `ReuseCertified`, `ContactEnded`, `RefreshRequired(reason)` or `UnsupportedGeometry`. Equality at the feature-margin or contact-slop boundary refreshes rather than reuses.
+
+### Evidence boundary
+
+This is a predicate over externally supplied witnesses. It does not yet derive the relative transform, feature margin, normal-variation interval, or updated gap interval from the real shape/manifold types. A production adapter must conservatively compute and independently qualify those values, or fall back to fresh narrowphase. The prototype does not modify production contacts and does not establish a speedup.
+
+### Current production baseline observed
+
+In the current `symtropy-physics` source, `PhysicsWorld::step_internal` clears `self.contacts` and reconstructs manifolds from broadphase candidates every step. The separate `ContactCache` stores normal/tangent impulses and contact points for warm-start matching by body pair plus proximity; its `begin_frame()` clears the frame cache. Therefore the current code has impulse warm-starting but not persistent geometric-manifold recycling. Any integration must first preserve the old manifold separately from the impulse cache and handle identity/revision/semantic invalidation.
+
+### New external prior art: Box2D 3.2 contact recycling
+
+Box2D 3.2 shipped contact recycling enabled by default. The October 2026 design write-up describes caching the relative transform of a contact pair, computing a relative-movement measure that combines translation and rotation, and reusing contact points while adjusting separation. It warns not to rebase the cached relative transform on each recycled step because accumulated drift results. Release notes describe a default movement threshold of roughly 5 cm or 11 degrees, configurable per world/body. Box2D 3.2 reports roughly 3x total performance over 3.1 and attributes a portion to contact recycling; these are vendor-reported results, not an independent matched comparison.
+
+Therefore **relative-motion manifold recycling is established prior art**. Symtropy's research opportunity must go further: feature-stability lower bounds and normal-variation bounds, uncertainty intervals and deterministic refresh on boundary/unsupported cases, separation of manifold validity from material/callback and solver warm-start validity, generation/shape-revision-bound identity, and independently replayable contact lifecycle receipts.
+
+References:
+- [Box2D Contact Recycling, October 2026](https://box2d.org/posts/2026/10/contact-recycling/)
+- [Box2D 3.2 release notes](https://box2d.org/documentation/md_release__notes__v320.html)
+- [Box2D simulation/contact documentation](https://box2d.org/documentation/md_simulation.html)
+
+### Qualification tests and targets
+
+The lease prototype has 18 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
