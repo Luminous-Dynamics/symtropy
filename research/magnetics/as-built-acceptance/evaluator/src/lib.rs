@@ -96,9 +96,14 @@ pub struct ComparisonEvidence {
     pub record_id: String,
     pub digest: String,
     pub prediction_record_id: String,
+    pub prediction_digest: String,
     pub observation_record_id: String,
+    pub observation_digest: String,
     pub scope: Scope,
     pub verdict: Verdict,
+    /// True only when the comparison verdict accounts for its complete
+    /// uncertainty budget rather than a point estimate.
+    pub uncertainty_resolved: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -122,6 +127,9 @@ pub struct SpatialCertificate {
     pub material_state_record_id: String,
     pub complete_domain_coverage: bool,
     pub verdict: Verdict,
+    /// A spatial verdict is admissible only when its uncertainty treatment is
+    /// closed over the declared continuous domain.
+    pub uncertainty_resolved: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -199,6 +207,8 @@ pub enum Blocker {
     UnresolvedHardRequirement,
     ComparisonFailure,
     UnresolvedComparison,
+    ComparisonPredictionDigestMismatch,
+    ComparisonObservationDigestMismatch,
     IncompleteSpatialCoverage,
     SpatialMarginFailure,
     UnresolvedSpatialMargin,
@@ -350,8 +360,14 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     if case.comparison.prediction_record_id != case.solver.record.id {
         blockers.push(Blocker::ComparisonPredictionMismatch);
     }
+    if case.comparison.prediction_digest != case.solver.record.digest {
+        blockers.push(Blocker::ComparisonPredictionDigestMismatch);
+    }
     if case.comparison.observation_record_id != case.observation.record.id {
         blockers.push(Blocker::ComparisonObservationMismatch);
+    }
+    if case.comparison.observation_digest != case.observation.record.digest {
+        blockers.push(Blocker::ComparisonObservationDigestMismatch);
     }
     if case.comparison.scope != case.scope {
         blockers.push(Blocker::WrongScope);
@@ -451,31 +467,45 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     let mut failures = Vec::new();
     let mut unresolved = Vec::new();
 
-    if case.comparison.verdict == Verdict::Fail {
-        failures.push(Blocker::ComparisonFailure);
-    } else if case.comparison.verdict == Verdict::Unresolved {
-        unresolved.push(Blocker::UnresolvedComparison);
+    match case.comparison.verdict {
+        Verdict::Safe if case.comparison.uncertainty_resolved => {}
+        Verdict::Safe | Verdict::Unresolved => {
+            unresolved.push(Blocker::UnresolvedComparison);
+        }
+        Verdict::Fail if case.comparison.uncertainty_resolved => {
+            failures.push(Blocker::ComparisonFailure);
+        }
+        Verdict::Fail => unresolved.push(Blocker::UnresolvedComparison),
     }
 
     for requirement in &case.hard_requirements {
         match requirement.verdict {
-            Verdict::Safe => {}
+            Verdict::Safe if requirement.uncertainty_resolved => {}
+            Verdict::Safe | Verdict::Unresolved => {
+                unresolved.push(Blocker::UnresolvedHardRequirement);
+            }
             Verdict::Fail if requirement.uncertainty_resolved => {
                 failures.push(Blocker::DefiniteHardRequirementFailure);
             }
-            Verdict::Fail | Verdict::Unresolved => {
-                unresolved.push(Blocker::UnresolvedHardRequirement);
-            }
+            Verdict::Fail => unresolved.push(Blocker::UnresolvedHardRequirement),
         }
     }
 
-    match case.spatial_certificate.verdict {
-        Verdict::Fail => failures.push(Blocker::SpatialMarginFailure),
-        Verdict::Unresolved => unresolved.push(Blocker::UnresolvedSpatialMargin),
-        Verdict::Safe if !case.spatial_certificate.complete_domain_coverage => {
+    match (
+        case.spatial_certificate.verdict,
+        case.spatial_certificate.uncertainty_resolved,
+        case.spatial_certificate.complete_domain_coverage,
+    ) {
+        (Verdict::Safe, true, true) => {}
+        (Verdict::Fail, true, _) => failures.push(Blocker::SpatialMarginFailure),
+        (Verdict::Fail, false, _)
+        | (Verdict::Unresolved, _, _)
+        | (Verdict::Safe, false, _) => {
+            unresolved.push(Blocker::UnresolvedSpatialMargin);
+        }
+        (Verdict::Safe, true, false) => {
             unresolved.push(Blocker::IncompleteSpatialCoverage);
         }
-        Verdict::Safe => {}
     }
 
     if !failures.is_empty() {
@@ -621,9 +651,12 @@ mod tests {
                 record_id: "CMP-001".to_string(),
                 digest: digest('7'),
                 prediction_record_id: solver_record.id.clone(),
+                prediction_digest: solver_record.digest.clone(),
                 observation_record_id: observation_record.id.clone(),
+                observation_digest: observation_record.digest.clone(),
                 scope: scope.clone(),
                 verdict: Verdict::Safe,
+                uncertainty_resolved: true,
             },
             spatial_certificate: SpatialCertificate {
                 certificate_id: "SPACE-001".to_string(),
@@ -634,6 +667,7 @@ mod tests {
                 material_state_record_id: material_state.id.clone(),
                 complete_domain_coverage: true,
                 verdict: Verdict::Safe,
+                uncertainty_resolved: true,
             },
             hard_requirements: vec![RequirementEvidence {
                 requirement_id: scope.requirement_id.clone(),
@@ -834,6 +868,61 @@ mod tests {
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Fail);
         assert!(result.blockers.contains(&Blocker::SpatialMarginFailure));
+    }
+
+    #[test]
+    fn a_safe_requirement_requires_resolved_uncertainty() {
+        let mut case = valid_case();
+        case.hard_requirements[0].uncertainty_resolved = false;
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::UnresolvedHardRequirement));
+    }
+
+    #[test]
+    fn comparison_binds_prediction_and_observation_digests() {
+        let mut case = valid_case();
+        case.comparison.prediction_digest = digest('f');
+        case.comparison.observation_digest = digest('e');
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::ComparisonPredictionDigestMismatch));
+        assert!(result
+            .blockers
+            .contains(&Blocker::ComparisonObservationDigestMismatch));
+    }
+
+    #[test]
+    fn a_safe_comparison_requires_resolved_uncertainty() {
+        let mut case = valid_case();
+        case.comparison.uncertainty_resolved = false;
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::UnresolvedComparison));
+    }
+
+    #[test]
+    fn a_safe_spatial_certificate_requires_resolved_uncertainty() {
+        let mut case = valid_case();
+        case.spatial_certificate.uncertainty_resolved = false;
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::UnresolvedSpatialMargin));
+    }
+
+    #[test]
+    fn comparison_and_spatial_failures_with_unresolved_uncertainty_are_not_definite() {
+        let mut case = valid_case();
+        case.comparison.verdict = Verdict::Fail;
+        case.comparison.uncertainty_resolved = false;
+        case.spatial_certificate.verdict = Verdict::Fail;
+        case.spatial_certificate.uncertainty_resolved = false;
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::UnresolvedComparison));
+        assert!(result.blockers.contains(&Blocker::UnresolvedSpatialMargin));
     }
 
     #[test]
