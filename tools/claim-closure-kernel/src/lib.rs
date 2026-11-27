@@ -731,6 +731,28 @@ mod tests {
     use super::*;
 
     const POSITIVE_FIXTURE: &str = include_str!("../fixtures/positive-v0.1.json");
+    const MUTATION_CORPUS: &str = include_str!("../fixtures/mutation-cases-v0.1.json");
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct MutationCorpus {
+        schema_version: String,
+        synthetic_only: bool,
+        oracle_review_status: String,
+        execution_status: String,
+        mutation_count: usize,
+        cases: Vec<MutationCase>,
+    }
+
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct MutationCase {
+        case_id: String,
+        operation: String,
+        target: String,
+        value: serde_json::Value,
+        expected_finding_code: String,
+    }
 
     fn digest(character: char) -> String {
         character.to_string().repeat(64)
@@ -864,6 +886,64 @@ mod tests {
         );
         assert_eq!(report.reached_evidence_refs.len(), 3);
         assert!(verify_report(&input, &report).unwrap());
+    }
+
+    #[test]
+    fn frozen_adversarial_mutation_corpus_matches_expected_findings() {
+        let corpus: MutationCorpus =
+            serde_json::from_str(MUTATION_CORPUS).expect("mutation corpus parses");
+        assert_eq!(
+            corpus.schema_version,
+            "engineering-claim-closure-mutation-corpus-v0.1"
+        );
+        assert!(corpus.synthetic_only);
+        assert_eq!(corpus.oracle_review_status, "NOT_INDEPENDENTLY_REVIEWED");
+        assert_eq!(corpus.execution_status, "AUTHORED_NOT_YET_EXECUTED");
+        assert_eq!(corpus.mutation_count, corpus.cases.len());
+        assert_eq!(corpus.mutation_count, 25);
+
+        let mut case_ids = BTreeSet::new();
+        for mutation in corpus.cases {
+            assert!(
+                case_ids.insert(mutation.case_id.clone()),
+                "duplicate mutation case ID: {}",
+                mutation.case_id
+            );
+            let mut raw =
+                serde_json::to_value(sample_input()).expect("sample input converts to JSON");
+            let target = raw
+                .pointer_mut(&mutation.target)
+                .unwrap_or_else(|| panic!("{}: mutation target exists", mutation.case_id));
+
+            match mutation.operation.as_str() {
+                "set" => *target = mutation.value,
+                "append" => target
+                    .as_array_mut()
+                    .unwrap_or_else(|| panic!("{}: append target is an array", mutation.case_id))
+                    .push(mutation.value),
+                operation => panic!(
+                    "{}: unsupported mutation operation {operation}",
+                    mutation.case_id
+                ),
+            }
+
+            let mutated: ClaimClosureInput =
+                serde_json::from_value(raw).expect("mutated input remains typed");
+            let report = evaluate(&mutated).expect("mutation evaluation completes");
+            assert_eq!(
+                report.disposition,
+                ClosureDisposition::Blocked,
+                "{}: adversarial mutation must block closure",
+                mutation.case_id
+            );
+            assert!(
+                has_code(&report, &mutation.expected_finding_code),
+                "{}: expected finding {} in {:?}",
+                mutation.case_id,
+                mutation.expected_finding_code,
+                report.findings
+            );
+        }
     }
 
     #[test]
