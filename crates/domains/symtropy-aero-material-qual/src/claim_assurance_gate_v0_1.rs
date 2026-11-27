@@ -15,7 +15,6 @@ use super::decision_context_v0_1::{
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::model_credibility_cut_v0_1::{
     ModelCredibilityCutV0_1, ModelDomainCoverageStatus, ModelPackageStatus,
-    MetricStratumStatus, SplitIntegrityStatus,
 };
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::owner_evidence_cut_v0_1::{
@@ -890,8 +889,7 @@ mod tests {
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::model_credibility_cut_v0_1::{
-        ModelCredibilityCutV0_1, ModelDomainCoverageStatus,
-        MetricStratumStatus, SplitIntegrityStatus,
+        ModelCredibilityCutV0_1, ModelDomainCoverageStatus, SplitIntegrityStatus,
     };
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::owner_evidence_cut_v0_1::{
