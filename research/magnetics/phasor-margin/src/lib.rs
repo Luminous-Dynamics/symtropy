@@ -56,8 +56,8 @@ fn validate_domain(domain: &ParameterDomain<5>) -> Result<(), PhaseMarginError> 
     }
 
     let expected_ids = expected_parameter_ids();
-    for index in 0..5 {
-        if domain.parameter_ids[index] != expected_ids[index] {
+    for (index, expected_id) in expected_ids.iter().enumerate() {
+        if domain.parameter_ids[index] != *expected_id {
             return Err(PhaseMarginError::WrongParameterOrder { index });
         }
         if domain.parameter_units[index] != "dimensionless" {
