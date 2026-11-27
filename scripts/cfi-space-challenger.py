@@ -27,10 +27,11 @@ FAULT_FAMILIES = [
     "translation", "dynamics", "observability", "integrity",
 ]
 SPLITS = {"development", "calibration", "confirmatory", "blind_holdout"}
-GENERALIZATION = {
+GENERALIZATION_ORDER = (
     "seen_target", "unseen_target", "unseen_target_family",
     "unseen_renderer", "unseen_sensor_rig",
-}
+)
+GENERALIZATION = set(GENERALIZATION_ORDER)
 VARIANTS = {"clean", "single_fault", "interaction"}
 HEX64 = re.compile(r"^[a-f0-9]{64}$")
 
@@ -358,15 +359,16 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     generalization = [
         {
             "stratum": stratum,
-            "episodes": values[0],
-            "fault_episodes": values[1],
-            "critical_fault_episodes": values[2],
-            "unsafe_accepts": values[3],
-            "clean_episodes": values[4],
-            "clean_qualified": values[5],
-            "false_abstentions": values[6],
+            "episodes": generalization_counts[stratum][0],
+            "fault_episodes": generalization_counts[stratum][1],
+            "critical_fault_episodes": generalization_counts[stratum][2],
+            "unsafe_accepts": generalization_counts[stratum][3],
+            "clean_episodes": generalization_counts[stratum][4],
+            "clean_qualified": generalization_counts[stratum][5],
+            "false_abstentions": generalization_counts[stratum][6],
         }
-        for stratum, values in generalization_counts.items() if values[0] > 0
+        for stratum in GENERALIZATION_ORDER
+        if generalization_counts[stratum][0] > 0
     ]
     return {
         "benchmark_id": benchmark_id,
