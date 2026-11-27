@@ -1,7 +1,7 @@
 use engineering_claim_closure::{
     AttestationStatus, Claim, ClaimClosureInput, ClosureDisposition, DependencyBinding,
-    EvidenceRecord, EvidenceRequirement, ProducerAuthority, TrustSnapshot, UncertaintyBudget,
-    evaluate, INPUT_SCHEMA_VERSION,
+    EvidenceRecord, EvidenceRequirement, INPUT_SCHEMA_VERSION, ProducerAuthority, TrustSnapshot,
+    UncertaintyBudget, evaluate,
 };
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -56,7 +56,12 @@ fn build_graph(nodes: usize, fanout: usize) -> Result<(ClaimClosureInput, usize,
         records.push(EvidenceRecord {
             evidence_ref: references[index].clone(),
             record_sha256: record_digests[index].clone(),
-            role: if is_root { "model" } else { "supporting_evidence" }.to_owned(),
+            role: if is_root {
+                "model"
+            } else {
+                "supporting_evidence"
+            }
+            .to_owned(),
             subject_ref: if is_root {
                 "part:benchmark-subject".to_owned()
             } else {
