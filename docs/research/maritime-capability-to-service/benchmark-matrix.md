@@ -71,6 +71,42 @@ MCSC must consume those owner-native traces rather than implement another PCC ve
 
 Keep Ngqura/Coega and Durban as paired research environments, not a premature site competition. The first tests industrial integration and productive-capability formation; the second tests service continuity and constrained infrastructure. Neither site is an approved demonstrator until the relevant port, utility, participant, environmental and data-rights holders authorize the work.
 
+### Public South African baseline: capacity estimates vs estimated shore-power demand
+
+Two September 2025 CSIR/GIZ studies provide a useful published baseline for the paired-site design. Their values are useful for selecting stress cases and requesting the right data, but they are **not meter readings or connection offers**.
+
+**Load Connection Capacity Assessment of South African National Ports** (CSIR/GIZ/PtX Hub, September 2025) is explicitly a pre-feasibility desktop assessment. It estimates:
+- Ngqura: firm supply 25 MVA, NMD 6 MVA, estimated spare capacity 19 MVA (reported power equivalent 17.1 MW), low connection-risk category.
+- Durban: estimated spare capacity 4 MVA (3.6 MW power equivalent), medium connection-risk category. The report recommends using the 4 MVA at lower distribution voltages first; if shore-power demand exceeds 4 MVA, a second dedicated feeder may be required.
+- The connection-risk class is based on estimated spare capacity alone. The report explicitly excludes other factors such as substation space, accessibility, electrical servitudes, routing and grid-connection requirements; municipalities/Eskom and a formal load application are required for feasibility confirmation.
+
+**Shore Power Demand for South African Ports** (CSIR/GIZ/PtX Hub, September 2025) uses TNPA vessel-activity records and vessel-type power reference data to estimate time-series demand. Its published absolute-peak / average-peak estimates are:
+
+| Port | Financial year | Absolute peak estimate | Average peak estimate |
+|---|---|---:|---:|
+| Durban | 2018–19 | 47 MW | 21 MW |
+| Durban | 2019–20 | 42 MW | 19 MW |
+| Durban | 2020–21 | 41 MW | 17 MW |
+| Durban | 2021–22 | Not reported | Not reported |
+| Durban | 2022–23 | Not reported | Not reported |
+| Durban | 2023–24 | 37 MW | 17 MW |
+| Durban | 2024–25 | 42 MW | 20 MW |
+| Ngqura / Coega | 2018–19 | 10.6 MW | 4.7 MW |
+| Ngqura / Coega | 2019–20 | 12.6 MW | 5.8 MW |
+| Ngqura / Coega | 2020–21 | 9.8 MW | 5.0 MW |
+| Ngqura / Coega | 2021–22 | 11.5 MW | 5.2 MW |
+| Ngqura / Coega | 2022–23 | 9.5 MW | 4.3 MW |
+| Ngqura / Coega | 2023–24 | Not reported | Not reported |
+| Ngqura / Coega | 2024–25 | Not reported | Not reported |
+
+The report defines the absolute peak as the maximum demand using vessels' maximum reference power; its average-peak series uses average reference power. These are reconstructed estimates, not metered coincident shore-power load. It notes data-cleaning and classing limitations, and some port/year combinations are absent. A dash is **UNKNOWN / NOT_REPORTED**, never zero.
+
+**What this comparison suggests—and does not prove.** On the published estimates, Durban's shore-power demand peak is much larger than its pre-feasibility spare-capacity estimate; Ngqura's estimated shore-power peak is closer to its estimated spare-capacity power equivalent. It would be invalid to subtract these numbers and declare a physical deficit or surplus: MVA and MW are different measures; the study boundaries and time bases differ; the peak-demand method is reference-power-based rather than metered; the spare-capacity estimate is not firm allocation; and network/connection constraints remain unresolved. This contrast is a strong reason to test simultaneous berth demand, time-of-day coincidence, power factor, feeder topology, contingency limits and shore-power readiness using utility-confirmed time-series evidence.
+
+The public aggregates are frozen in [south-african-port-energy-evidence-v0.tsv](fixtures/south-african-port-energy-evidence-v0.tsv). Keep the original reports, publication versions and claim ceilings attached to every use:
+- [CSIR/GIZ Load Connection Capacity Assessment (2025)](https://www.international-climate-initiative.com/en/iki-media/publication/load-connection-capacity-assessment-of-south-african-national-ports-new696e3fd8d74ab589496258/) · [PDF](https://ptx-hub.org/wp-content/uploads/2025/11/PtX-Hub-Load-Connection-Capacity-Assessment-of-South-African-National-Ports_final-1.pdf)
+- [CSIR/GIZ Shore Power Demand for South African Ports (2025)](https://ptx-hub.org/publication/shore-power-demand-for-south-african-ports/) · [PDF](https://ptx-hub.org/wp-content/uploads/2025/10/PtX-Hub-Shore-Power-Demand-for-South-African-Ports-2.pdf)
+
 ### Required evidence packets
 
 | Packet | Minimum evidence | Admission rule |
