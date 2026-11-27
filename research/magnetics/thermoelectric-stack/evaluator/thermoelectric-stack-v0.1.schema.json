@@ -168,7 +168,7 @@
         "linked_evidence_ids",
         "maturity",
         "disposition",
-        "scope_digest",
+        "acceptance_policy_digest",
         "receipt_digest",
         "physical_evidence_digest"
       ],
@@ -217,13 +217,13 @@
             "Indeterminate"
           ]
         },
-        "scope_digest": {
-          "$ref": "#/$defs/digest"
-        },
         "receipt_digest": {
           "$ref": "#/$defs/digest"
         },
         "physical_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_policy_digest": {
           "$ref": "#/$defs/digest"
         }
       },
