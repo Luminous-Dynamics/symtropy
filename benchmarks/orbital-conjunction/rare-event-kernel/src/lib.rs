@@ -67,6 +67,8 @@ pub mod residual;
 pub mod scenario_mission_risk_gate;
 /// Conservative interval Pareto frontier after hard mission-risk feasibility.
 pub mod scenario_robust_pareto;
+/// Exact paired objective contrasts and a scenario-robust finite Pareto oracle.
+pub mod paired_objective_pareto;
 pub mod sequential;
 /// Atomic simultaneous selection across portfolios under a defensive proposal.
 pub mod simultaneous_defensive_selection;
@@ -137,6 +139,13 @@ pub use ncdot_temporal::{
 };
 pub use normal_positive_part::{
     GaussianPositivePartBranch, GaussianPositivePartReport, gaussian_negative_part_expectation,
+};
+pub use paired_objective_pareto::{
+    PairedObjectiveAtom, PairedObjectiveContrast, PairedObjectiveDirection,
+    PairedObjectiveDominanceWitness, PairedObjectiveOutcome, PairedObjectiveParetoCampaign,
+    PairedObjectiveParetoError, PairedObjectiveParetoReport, PairedObjectivePortfolioBound,
+    PairedObjectiveSpec, PairedPortfolioDominanceWitness, ScenarioAtomUniverse,
+    ScenarioObjectiveContrastWitness,
 };
 pub use paired_counterfactual::{
     MAX_PAIRED_COUNTERFACTUAL_ATOMS, MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS,
