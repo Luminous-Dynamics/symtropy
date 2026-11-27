@@ -171,7 +171,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         if !case_ids.insert(item.input.case_id.clone()) {
             return Err(format!("duplicate case ID: {}", item.input.case_id).into());
         }
-        expected.insert(item.input.case_id.clone(), item.expected);
+        if expected
+            .insert(item.input.case_id.clone(), item.expected)
+            .is_some()
+        {
+            return Err(format!("duplicate expected row: {}", item.input.case_id).into());
+        }
         parsed.push(item.input);
     }
 
@@ -180,7 +185,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let mut results = evaluate_manifest(&parsed);
-    results.sort_by(|left, right| left.sample_id.cmp(&right.sample_id));
+    results.sort_by_key(|result| result.sample_id.clone());
 
     for result in &results {
         let expected_disposition = expected
