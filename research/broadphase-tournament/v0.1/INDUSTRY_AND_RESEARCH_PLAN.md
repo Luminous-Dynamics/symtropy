@@ -272,3 +272,30 @@ References:
 - [Box2D contact recycling design (2026-10-12)](https://box2d.org/posts/2026/10/contact-recycling/)
 - [Box2D 3.2 release notes](https://box2d.org/documentation/md_release__notes__v320.html)
 - [Box2D simulation/contact documentation](https://box2d.org/documentation/md_simulation.html)
+
+
+### 7.8 Multi-rate geometry and response semantics
+
+Box2D 3.2's contact recycling is a particularly important comparator. Its v3.2 release notes say recycled touching contacts reuse their manifold and skip material updates and the pre-solve callback until relative movement reaches about 5 cm or rotation about 11 degrees; the behavior is on by default and can be disabled globally or per body. Box2D's documentation warns that recycled contacts skip friction/restitution updates and pre-solve callbacks. Its 3.2 announcement attributes roughly 40% of the 3.1-to-3.2 performance gain to contact recycling, with additional gains from solver and SIMD/broadphase changes. Those are vendor-reported figures, not an independently matched Symtropy comparison.
+
+This creates an opportunity specific to Symtropy's callback architecture:
+- Reuse geometric anchors/manifold data only under the conservative lease.
+- Continue current-step friction_multiplier and modulate_impulse evaluation when the solver path requires it.
+- Continue per-impact on_collision / apply_trauma semantics and record_dissipation; a geometric lease cannot suppress event delivery.
+- Separate the global callback/response law digest from the per-endpoint dynamic response-state revision.
+- Invalidate warm-start cache state when response inputs change, while retaining geometry when its independent lease still holds.
+- Bind event callbacks to their own event identity/revision and commit receipt; geometry reuse is not an exactly-once event-delivery guarantee.
+
+The new GlobalContactRevisions.contact_response_policy_sha256 and EndpointRevisions.response_state implement only the revision-decision scaffolding. The contact_reuse_lease still consumes external geometric witnesses, and no production callback/manifold adapter is implemented.
+
+Benchmark this as three different semantic modes, not one pooled score:
+1. always-fresh geometry + always-current callbacks (Symtropy correctness baseline);
+2. geometric lease + always-current callbacks and event delivery (target architecture);
+3. Box2D-style lease with callback/material update deferral (performance comparator, explicitly marked semantic trade-off).
+
+Report callback counts and timing, material/response update counts, event counts and end-to-end tick latency. The target architecture must preserve the same callback/event outputs as mode 1 while reducing geometry work. Mode 3 can only be compared on scenes where the semantic difference is acceptable and must never be labelled equivalent.
+
+References:
+- [Box2D 3.2 release notes: callback/material behavior](https://box2d.org/documentation/md_release__notes__v320.html)
+- [Box2D simulation guide: recycling distance and skipped updates](https://box2d.org/documentation/md_simulation.html)
+- [Box2D 3.2 performance breakdown](https://box2d.org/posts/2026/10/box2d-3.2/)
