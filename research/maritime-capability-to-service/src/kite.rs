@@ -269,14 +269,18 @@ pub fn select_as_of(vintages: &[EvidenceVintage], cutoff: u64) -> Result<AsOfSna
 
     for (logical_id, mut revisions) in grouped {
         revisions.sort_by_key(|vintage| vintage.revision);
-        let selected_revision = revisions.iter().rev().find(|vintage| {
-            vintage.first_available_at <= cutoff
-                && vintage.ingested_at <= cutoff
-                && vintage.validated_at <= cutoff
-        });
+        let selected_revision = revisions
+            .iter()
+            .rev()
+            .find(|vintage| {
+                vintage.first_available_at <= cutoff
+                    && vintage.ingested_at <= cutoff
+                    && vintage.validated_at <= cutoff
+            })
+            .map(|vintage| vintage.revision);
 
         for vintage in revisions {
-            if selected_revision.is_some_and(|chosen| chosen.revision == vintage.revision) {
+            if selected_revision == Some(vintage.revision) {
                 selected.insert(logical_id.to_owned(), assess_vintage(vintage, cutoff));
             } else {
                 let mut assessment = assess_vintage(vintage, cutoff);
