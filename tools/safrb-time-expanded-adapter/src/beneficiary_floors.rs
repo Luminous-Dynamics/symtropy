@@ -1049,6 +1049,49 @@ mod tests {
     }
 
     #[test]
+    fn aggregate_maximum_value_does_not_prove_each_beneficiary_floor() {
+        let model = profile(15, 15, 15);
+        let aggregate = compile_temporal_profile(&model).unwrap().solve().unwrap();
+        assert_eq!(aggregate.max_flow, 15);
+
+        // This is a physically feasible aggregate-maximum allocation:
+        // all 15 L go to A and B receives zero. It has optimal aggregate
+        // value but violates B's 5 L mandatory floor.
+        let unconstrained_allocation = [("service-a", 15_u64), ("service-b", 0_u64)];
+        assert_eq!(
+            unconstrained_allocation
+                .iter()
+                .map(|(_, amount)| *amount)
+                .sum::<u64>(),
+            aggregate.max_flow
+        );
+        assert!(unconstrained_allocation[0].1 <= 15);
+        assert!(unconstrained_allocation[1].1 < 5);
+
+        let floors = vec![
+            BeneficiaryFloor {
+                service_id: "service-a".to_string(),
+                minimum_required_quantity: 10,
+            },
+            BeneficiaryFloor {
+                service_id: "service-b".to_string(),
+                minimum_required_quantity: 5,
+            },
+        ];
+        let report = evaluate_beneficiary_floors(&model, &floors).unwrap();
+        assert!(report.floors_jointly_feasible);
+        let allocations = report.beneficiary_allocations.as_ref().unwrap();
+        assert!(allocations.iter().all(|item| {
+            item.allocated_quantity >= item.minimum_required_quantity
+        }));
+        assert_eq!(
+            allocations.iter().map(|item| item.allocated_quantity).sum::<u64>(),
+            15
+        );
+        verify_beneficiary_floor_report(&model, &floors, &report).unwrap();
+    }
+
+    #[test]
     fn individually_possible_floors_can_be_jointly_infeasible() {
         let model = profile(15, 10, 10);
         let floors = vec![
@@ -1147,6 +1190,45 @@ mod tests {
             verify_beneficiary_floor_report(&model, &floors, &forged)
                 .unwrap_err()
                 .contains("allocation does not match")
+        );
+    }
+
+    #[test]
+    fn verifier_rejects_mutated_auxiliary_graph_and_flow_certificate() {
+        let model = profile(15, 10, 10);
+        let floors = vec![
+            BeneficiaryFloor {
+                service_id: "service-a".to_string(),
+                minimum_required_quantity: 5,
+            },
+            BeneficiaryFloor {
+                service_id: "service-b".to_string(),
+                minimum_required_quantity: 5,
+            },
+        ];
+        let report = evaluate_beneficiary_floors(&model, &floors).unwrap();
+
+        let mut changed_graph = report.clone();
+        let edge = changed_graph
+            .feasibility_certificate
+            .graph
+            .edges
+            .iter_mut()
+            .find(|edge| edge.id.starts_with(SUPER_SOURCE_PREFIX))
+            .unwrap();
+        edge.capacity = edge.capacity.saturating_sub(1);
+        assert!(
+            verify_beneficiary_floor_report(&model, &floors, &changed_graph)
+                .unwrap_err()
+                .contains("reconstructed lower-bound reduction")
+        );
+
+        let mut changed_witness = report;
+        changed_witness.feasibility_certificate.result.max_flow = 0;
+        assert!(
+            verify_beneficiary_floor_report(&model, &floors, &changed_witness)
+                .unwrap_err()
+                .contains("lower-bound feasibility certificate invalid")
         );
     }
 
