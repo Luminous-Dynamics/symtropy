@@ -92,7 +92,7 @@ pub struct WorldPolicyDecision {
     pub scenario_id: [u8; 32],
     /// Hidden latent world identity; not part of the decision function.
     pub world_id: [u8; 32],
-    /// Decision epoch.
+    /// Decision epoch index within the frozen time schedule.
     pub decision_epoch: u32,
     /// Digest of only the measurements available by the decision epoch.
     pub observable_history_digest: [u8; 32],
@@ -113,8 +113,10 @@ pub struct NonAnticipativePolicyReport {
     pub policy_id: [u8; 32],
     /// Policy implementation/configuration digest.
     pub policy_code_digest: [u8; 32],
-    /// Frozen decision epoch.
+    /// Frozen decision epoch index within the declared schedule.
     pub decision_epoch: u32,
+    /// Digest mapping logical epoch indices to absolute instants and time-scale semantics.
+    pub decision_schedule_digest: [u8; 32],
     /// Digest of the exact hard-risk gate.
     pub mission_risk_gate_digest: [u8; 32],
     /// Digest of the validated shared-exogenous trajectory receipt report.
@@ -148,6 +150,8 @@ pub enum NonAnticipativePolicyError {
     InvalidTrajectoryReceiptReport,
     /// Decision epoch is zero or otherwise invalid.
     InvalidDecisionEpoch,
+    /// The decision time-schedule identity is zero.
+    InvalidDecisionSchedule,
     /// Policy identity or implementation digest is zero.
     InvalidPolicyIdentity,
     /// Frozen world universe is empty, too large, duplicated or malformed.
@@ -180,6 +184,9 @@ impl core::fmt::Display for NonAnticipativePolicyError {
                 "trajectory receipt report does not match the hard-risk gate"
             }
             Self::InvalidDecisionEpoch => "policy decision epoch must be positive",
+            Self::InvalidDecisionSchedule => {
+                "policy decision schedule identity must be nonzero"
+            },
             Self::InvalidPolicyIdentity => "policy identity or implementation digest is zero",
             Self::InvalidWorldUniverse => "frozen scenario/world universe is invalid",
             Self::IncompleteWorldObservationMatrix => {
@@ -217,6 +224,7 @@ impl std::error::Error for NonAnticipativePolicyError {}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NonAnticipativePolicyCampaign {
     decision_epoch: u32,
+    decision_schedule_digest: [u8; 32],
     mission_risk_gate_digest: [u8; 32],
     trajectory_receipt_digest: [u8; 32],
     scenario_ids: Vec<[u8; 32]>,
@@ -237,9 +245,13 @@ impl NonAnticipativePolicyCampaign {
         gate: &ScenarioMissionRiskGateReport,
         trajectory_report: &CounterfactualTrajectoryReceiptReport,
         decision_epoch: u32,
+        decision_schedule_digest: [u8; 32],
     ) -> Result<Self, NonAnticipativePolicyError> {
         if decision_epoch == 0 {
             return Err(NonAnticipativePolicyError::InvalidDecisionEpoch);
+        }
+        if is_zero(&decision_schedule_digest) {
+            return Err(NonAnticipativePolicyError::InvalidDecisionSchedule);
         }
         let mission_risk_gate_digest = validate_and_digest_gate(gate)
             .map_err(|_| NonAnticipativePolicyError::InvalidMissionRiskGate)?;
@@ -347,6 +359,7 @@ impl NonAnticipativePolicyCampaign {
 
         let frozen_input_digest = digest_frozen_input(
             decision_epoch,
+            decision_schedule_digest,
             mission_risk_gate_digest,
             trajectory_report.result_digest,
             &scenario_ids,
@@ -357,6 +370,7 @@ impl NonAnticipativePolicyCampaign {
 
         Ok(Self {
             decision_epoch,
+            decision_schedule_digest,
             mission_risk_gate_digest,
             trajectory_receipt_digest: trajectory_report.result_digest,
             scenario_ids,
@@ -515,6 +529,7 @@ impl NonAnticipativePolicyCampaign {
             policy_id: plan.policy_id,
             policy_code_digest: plan.policy_code_digest,
             decision_epoch: self.decision_epoch,
+            decision_schedule_digest: self.decision_schedule_digest,
             mission_risk_gate_digest: self.mission_risk_gate_digest,
             trajectory_receipt_digest: self.trajectory_receipt_digest,
             scenario_ids: self.scenario_ids.clone(),
@@ -534,6 +549,7 @@ impl NonAnticipativePolicyCampaign {
 
 fn digest_frozen_input(
     decision_epoch: u32,
+    decision_schedule_digest: [u8; 32],
     gate_digest: [u8; 32],
     trajectory_receipt_digest: [u8; 32],
     scenarios: &[[u8; 32]],
@@ -544,6 +560,7 @@ fn digest_frozen_input(
     let mut hasher = Sha256::new();
     hasher.update(b"luminous.orbital.non-anticipative-policy.frozen.v0.1\0");
     hasher.update(decision_epoch.to_be_bytes());
+    hasher.update(decision_schedule_digest);
     hasher.update(gate_digest);
     hasher.update(trajectory_receipt_digest);
     hash_ids(&mut hasher, scenarios);
@@ -601,6 +618,7 @@ fn digest_policy_report(
     hasher.update(report.policy_id);
     hasher.update(report.policy_code_digest);
     hasher.update(report.decision_epoch.to_be_bytes());
+    hasher.update(report.decision_schedule_digest);
     hasher.update(report.mission_risk_gate_digest);
     hasher.update(report.trajectory_receipt_digest);
     hasher.update(report.frozen_input_digest);
@@ -889,7 +907,7 @@ mod tests {
     }
 
     fn campaign() -> NonAnticipativePolicyCampaign {
-        NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2).unwrap()
+        NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [210; 32]).unwrap()
     }
 
     fn policy_node(
