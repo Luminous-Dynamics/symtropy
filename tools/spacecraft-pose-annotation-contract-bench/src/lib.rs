@@ -135,11 +135,7 @@ fn projected_pixel(input: &PoseInput, quaternion: [f64; 4]) -> Option<[f64; 2]> 
 
     // Blender camera: +X right, +Y up, -Z forward.
     // OpenCV camera: +X right, +Y down, +Z forward.
-    let camera_opencv = [
-        camera_blender[0],
-        -camera_blender[1],
-        -camera_blender[2],
-    ];
+    let camera_opencv = [camera_blender[0], -camera_blender[1], -camera_blender[2]];
     let depth = camera_opencv[2];
     if !depth.is_finite() || depth <= 1.0e-9 {
         return None;
@@ -538,10 +534,16 @@ mod tests {
     fn nonunit_or_zero_quaternion_is_invalid() {
         let mut value = input();
         value.quaternion = [0.0, 0.0, 0.0, 2.0];
-        assert_eq!(evaluate(&value).disposition, AnnotationDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AnnotationDisposition::InvalidInput
+        );
         let mut zero = input();
         zero.quaternion = [0.0; 4];
-        assert_eq!(evaluate(&zero).disposition, AnnotationDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&zero).disposition,
+            AnnotationDisposition::InvalidInput
+        );
     }
 
     #[test]
@@ -568,23 +570,38 @@ mod tests {
     fn unsupported_coordinate_semantics_are_out_of_scope() {
         let mut value = input();
         value.pose_semantics = "WORLD_TO_CAMERA".to_owned();
-        assert_eq!(evaluate(&value).disposition, AnnotationDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AnnotationDisposition::OutOfScope
+        );
         let mut axes = input();
         axes.camera_axis_convention = "OPENCV".to_owned();
-        assert_eq!(evaluate(&axes).disposition, AnnotationDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&axes).disposition,
+            AnnotationDisposition::OutOfScope
+        );
     }
 
     #[test]
     fn invalid_intrinsics_and_cardinality_are_rejected() {
         let mut zero_fx = input();
         zero_fx.fx = 0.0;
-        assert_eq!(evaluate(&zero_fx).disposition, AnnotationDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&zero_fx).disposition,
+            AnnotationDisposition::InvalidInput
+        );
         let mut zero_width = input();
         zero_width.image_width = 0;
-        assert_eq!(evaluate(&zero_width).disposition, AnnotationDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&zero_width).disposition,
+            AnnotationDisposition::InvalidInput
+        );
         let mut no_keypoint = input();
         no_keypoint.keypoint_count = 0;
-        assert_eq!(evaluate(&no_keypoint).disposition, AnnotationDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&no_keypoint).disposition,
+            AnnotationDisposition::InvalidInput
+        );
     }
 
     #[test]
@@ -599,7 +616,10 @@ mod tests {
     fn metre_millimetre_mismatch_is_out_of_scope() {
         let mut value = input();
         value.length_unit = "millimetre".to_owned();
-        assert_eq!(evaluate(&value).disposition, AnnotationDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AnnotationDisposition::OutOfScope
+        );
     }
 
     #[test]
@@ -609,9 +629,11 @@ mod tests {
         second.case_id = "pose-2".to_owned();
         second.split = "train".to_owned();
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|result| {
-            result.disposition == AnnotationDisposition::DuplicateSplitSample
-        }));
+        assert!(
+            results.iter().all(|result| {
+                result.disposition == AnnotationDisposition::DuplicateSplitSample
+            })
+        );
     }
 
     #[test]
@@ -620,8 +642,10 @@ mod tests {
         let mut second = input();
         second.case_id = "pose-2".to_owned();
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|result| {
-            result.disposition == AnnotationDisposition::DuplicateKeypoint
-        }));
+        assert!(
+            results
+                .iter()
+                .all(|result| { result.disposition == AnnotationDisposition::DuplicateKeypoint })
+        );
     }
 }
