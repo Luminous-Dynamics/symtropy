@@ -324,7 +324,7 @@ At the current research branch state, the authored test counts are:
 - independent lifecycle/receipt verifier: 31 tests;
 - relative-motion geometric lease predicate: 25 tests;
 - callback event identity and delivery receipt verifier: 16 tests;
-- OBB shape-contact to conservative AABB candidate coverage: 4 tests.
+- OBB shape-contact to conservative AABB candidate coverage: 5 tests.
 
 These counts describe source annotations only. They are not evidence that the tests have compiled or run. Exact-head Rust formatting, tests, strict Clippy and scale-campaign results must be read from the current GitHub Actions run before any pass claim.
 ## 11. Exact shape-contact coverage against conservative AABB candidates
@@ -338,6 +338,12 @@ The corpus reuses the same 4,096-case seeds, box half-extents, center ranges, ra
 The `shape-coverage-benchmark` binary emits two CSV rows (2D and 3D) with requested pair count, exact shape contacts, AABB candidates, candidate-only false positives, missed contacts, shape-contact recall, candidate amplification, and seed. CI runs 4,096 pairs per dimension, requires nonzero exact contacts, zero missed contacts and recall exactly 1.0, and retains `shape-coverage.csv`.
 
 The module also includes negative-control auditing: an exact contact omitted from the candidate set is reported as a false negative. A zero-contact denominator is emitted as undefined rather than silently converted to a finite amplification score.
+
+### Same-frame backend campaign
+
+The separate `shape-backend-coverage-benchmark` builds one 8,192-proxy frame from the same 4,096 OBB pairs for each dimension, with spatial separation between independent pairs. It runs all nine existing backends against the exact AABB oracle on that exact frame and emits 18 rows (nine backends × two dimensions). Every row includes the number of exact OBB contacts, backend candidate count, backend AABB false negatives, derived shape-contact recall, candidate amplification, and one cold-frame time. A backend's derived recall is marked 1.0 only when its AABB false-negative count is zero; this follows from the separately qualified `ExactOBBContacts ⊆ AabbOraclePairs` inclusion. CI requires all 18 rows, nonzero contact sets, zero AABB false negatives, and derived recall 1.0.
+
+The cold-frame time is one first-frame sample, not a stable performance distribution and not a cross-engine SOTA score. The main multi-frame tournament remains the performance comparison; this campaign exists to make the shape-contact recall claim backend-specific on identical transformed-OBB inputs.
 
 ### Evidence boundary
 
