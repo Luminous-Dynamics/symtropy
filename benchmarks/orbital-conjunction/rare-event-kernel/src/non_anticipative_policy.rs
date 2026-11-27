@@ -951,6 +951,21 @@ mod tests {
     }
 
     #[test]
+    fn decision_schedule_identity_is_required_and_changes_the_frozen_campaign() {
+        assert_eq!(
+            NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [0; 32]),
+            Err(NonAnticipativePolicyError::InvalidDecisionSchedule)
+        );
+        let first =
+            NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [210; 32])
+                .unwrap();
+        let second =
+            NonAnticipativePolicyCampaign::new(&gate(), &trajectory_report(), 2, [211; 32])
+                .unwrap();
+        assert_ne!(first.frozen_input_digest(), second.frozen_input_digest());
+    }
+
+    #[test]
     fn same_observable_history_uses_one_action_across_hidden_scenarios_and_worlds() {
         let traces = complete_traces(false);
         let node = policy_node(&traces[0].measurements, PORTFOLIO_A);
