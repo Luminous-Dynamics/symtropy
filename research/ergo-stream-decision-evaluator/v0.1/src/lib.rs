@@ -1,0 +1,1714 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
+
+use ergo_stream_microcosm::decision_disambiguation::{
+    DecisionDisambiguationProblemV0, DecisionDisambiguationResultV0,
+    select_decision_sufficient_probe_v0,
+};
+
+pub const MAX_EVALUATOR_TRUTH_HYPOTHESES_V0: usize = 65_536;
+pub const MAX_EVALUATOR_TRUTH_PROBE_OUTCOME_SUPPORTS_V0: usize = 1_048_576;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GroundTruthHypothesisV0 {
+    pub witness_key: u64,
+    pub decision_class_id: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CandidateWitnessBindingV0 {
+    pub candidate_hypothesis_id: u32,
+    pub witness_key: Option<u64>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct GroundTruthProbeOutcomeSupportV0 {
+    pub probe_id: u32,
+    pub witness_key: u64,
+    pub possible_outcome_id: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct DecisionDisambiguationGroundTruthV0 {
+    pub admissible_hypotheses: Vec<GroundTruthHypothesisV0>,
+    pub probe_outcome_supports: Vec<GroundTruthProbeOutcomeSupportV0>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecisionDisambiguationEvaluationV0 {
+    pub candidate_hypothesis_count: usize,
+    pub admissible_hypothesis_count: usize,
+    pub candidate_policy_result_matches_problem: bool,
+    pub correctly_bound_hypotheses: usize,
+    pub false_excluded_hypotheses: usize,
+    pub false_included_hypotheses: usize,
+    pub decision_pairs_compared: u128,
+    pub false_decision_equivalence_pairs: u128,
+    pub false_decision_split_pairs: u128,
+    pub missed_probe_outcome_supports: usize,
+    pub spurious_probe_outcome_supports: usize,
+    pub actual_baseline_conflicting_pairs: u128,
+    pub actual_worst_case_conflicting_pairs: Option<u128>,
+    pub claimed_decision_sufficient: bool,
+    pub decision_sufficiency_receipt_matches_truth: Option<bool>,
+    pub decision_sufficiency_is_valid: bool,
+    pub false_decision_sufficiency_claim: bool,
+    pub claimed_probe_id: Option<u32>,
+    pub claimed_probe_is_decision_reducing: Option<bool>,
+    pub claimed_probe_overstates_improvement: bool,
+    pub unnecessary_abstention: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DecisionEvaluatorErrorV0 {
+    InvalidCandidateProblem,
+    EmptyGroundTruthHypotheses,
+    DuplicateGroundTruthWitness,
+    DuplicateCandidateBinding,
+    MissingCandidateBinding,
+    BindingForUnknownCandidateHypothesis,
+    BindingToUnknownWitness,
+    DuplicateTruthProbeOutcome,
+    TooManyGroundTruthHypotheses,
+    TooManyGroundTruthProbeOutcomeSupports,
+    TruthOutcomeForUnknownProbe,
+    MissingTruthProbeOutcomeSupport,
+    ArithmeticOverflow,
+}
+
+impl fmt::Display for DecisionEvaluatorErrorV0 {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let message = match self {
+            Self::InvalidCandidateProblem => "candidate problem is invalid",
+            Self::EmptyGroundTruthHypotheses => "ground truth has no admissible witnesses",
+            Self::DuplicateGroundTruthWitness => "ground-truth witness IDs are duplicated",
+            Self::DuplicateCandidateBinding => "candidate witness bindings are duplicated",
+            Self::MissingCandidateBinding => "a candidate hypothesis has no evaluator binding",
+            Self::BindingForUnknownCandidateHypothesis => {
+                "binding references an unknown candidate hypothesis"
+            }
+            Self::BindingToUnknownWitness => "binding references a witness outside ground truth",
+            Self::DuplicateTruthProbeOutcome => "ground-truth probe outcome row is duplicated",
+            Self::TooManyGroundTruthHypotheses => {
+                "ground-truth hypothesis count exceeds the evaluator v0 resource bound"
+            }
+            Self::TooManyGroundTruthProbeOutcomeSupports => {
+                "ground-truth probe support count exceeds the evaluator v0 resource bound"
+            }
+            Self::TruthOutcomeForUnknownProbe => {
+                "ground-truth outcome references an undeclared probe"
+            }
+            Self::MissingTruthProbeOutcomeSupport => {
+                "ground truth lacks support for a declared probe/witness pair"
+            }
+            Self::ArithmeticOverflow => "evaluation pair accounting overflowed",
+        };
+        formatter.write_str(message)
+    }
+}
+impl std::error::Error for DecisionEvaluatorErrorV0 {}
+
+#[derive(Debug, Clone)]
+struct ValidatedTruthV0 {
+    decision_by_witness: BTreeMap<u64, u32>,
+    outcomes_by_probe_witness: BTreeMap<(u32, u64), BTreeSet<u32>>,
+}
+
+fn validate_truth(
+    problem: &DecisionDisambiguationProblemV0,
+    bindings: &[CandidateWitnessBindingV0],
+    truth: &DecisionDisambiguationGroundTruthV0,
+) -> Result<(BTreeMap<u32, Option<u64>>, ValidatedTruthV0), DecisionEvaluatorErrorV0> {
+    if truth.admissible_hypotheses.len() > MAX_EVALUATOR_TRUTH_HYPOTHESES_V0 {
+        return Err(DecisionEvaluatorErrorV0::TooManyGroundTruthHypotheses);
+    }
+    if truth.probe_outcome_supports.len() > MAX_EVALUATOR_TRUTH_PROBE_OUTCOME_SUPPORTS_V0 {
+        return Err(DecisionEvaluatorErrorV0::TooManyGroundTruthProbeOutcomeSupports);
+    }
+    let required_truth_support_pairs = problem
+        .probes
+        .len()
+        .checked_mul(truth.admissible_hypotheses.len())
+        .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?;
+    if required_truth_support_pairs > MAX_EVALUATOR_TRUTH_PROBE_OUTCOME_SUPPORTS_V0 {
+        return Err(DecisionEvaluatorErrorV0::TooManyGroundTruthProbeOutcomeSupports);
+    }
+    if truth.admissible_hypotheses.is_empty() {
+        return Err(DecisionEvaluatorErrorV0::EmptyGroundTruthHypotheses);
+    }
+
+    let candidate_ids = problem
+        .hypotheses
+        .iter()
+        .map(|hypothesis| hypothesis.hypothesis_id)
+        .collect::<BTreeSet<_>>();
+    let mut binding_by_candidate = BTreeMap::new();
+    for binding in bindings {
+        if !candidate_ids.contains(&binding.candidate_hypothesis_id) {
+            return Err(DecisionEvaluatorErrorV0::BindingForUnknownCandidateHypothesis);
+        }
+        if binding_by_candidate
+            .insert(binding.candidate_hypothesis_id, binding.witness_key)
+            .is_some()
+        {
+            return Err(DecisionEvaluatorErrorV0::DuplicateCandidateBinding);
+        }
+    }
+    if binding_by_candidate.len() != candidate_ids.len() {
+        return Err(DecisionEvaluatorErrorV0::MissingCandidateBinding);
+    }
+
+    let mut decision_by_witness = BTreeMap::new();
+    for hypothesis in &truth.admissible_hypotheses {
+        if decision_by_witness
+            .insert(hypothesis.witness_key, hypothesis.decision_class_id)
+            .is_some()
+        {
+            return Err(DecisionEvaluatorErrorV0::DuplicateGroundTruthWitness);
+        }
+    }
+
+    let mut bound_witnesses = BTreeSet::new();
+    for witness_key in binding_by_candidate.values().flatten() {
+        if !decision_by_witness.contains_key(witness_key) {
+            return Err(DecisionEvaluatorErrorV0::BindingToUnknownWitness);
+        }
+        if !bound_witnesses.insert(*witness_key) {
+            return Err(DecisionEvaluatorErrorV0::DuplicateCandidateBinding);
+        }
+    }
+
+    let declared_probe_ids = problem
+        .probes
+        .iter()
+        .map(|option| option.probe_id)
+        .collect::<BTreeSet<_>>();
+    let mut outcomes_by_probe_witness = BTreeMap::<(u32, u64), BTreeSet<u32>>::new();
+    let mut seen_rows = BTreeSet::new();
+    for row in &truth.probe_outcome_supports {
+        if !declared_probe_ids.contains(&row.probe_id) {
+            return Err(DecisionEvaluatorErrorV0::TruthOutcomeForUnknownProbe);
+        }
+        if !decision_by_witness.contains_key(&row.witness_key) {
+            return Err(DecisionEvaluatorErrorV0::BindingToUnknownWitness);
+        }
+        if !seen_rows.insert(*row) {
+            return Err(DecisionEvaluatorErrorV0::DuplicateTruthProbeOutcome);
+        }
+        outcomes_by_probe_witness
+            .entry((row.probe_id, row.witness_key))
+            .or_default()
+            .insert(row.possible_outcome_id);
+    }
+    for option in &problem.probes {
+        for witness_key in decision_by_witness.keys() {
+            if outcomes_by_probe_witness
+                .get(&(option.probe_id, *witness_key))
+                .is_none_or(|set| set.is_empty())
+            {
+                return Err(DecisionEvaluatorErrorV0::MissingTruthProbeOutcomeSupport);
+            }
+        }
+    }
+
+    Ok((
+        binding_by_candidate,
+        ValidatedTruthV0 {
+            decision_by_witness,
+            outcomes_by_probe_witness,
+        },
+    ))
+}
+
+fn conflicting_pairs(
+    classes: impl IntoIterator<Item = u32>,
+) -> Result<u128, DecisionEvaluatorErrorV0> {
+    let mut counts = BTreeMap::<u32, u128>::new();
+    let mut total = 0_u128;
+    for class_id in classes {
+        let count = counts.entry(class_id).or_default();
+        *count = count
+            .checked_add(1)
+            .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?;
+        total = total
+            .checked_add(1)
+            .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?;
+    }
+    let all_pairs = total
+        .checked_mul(total.saturating_sub(1))
+        .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?
+        / 2;
+    let same_pairs = counts.values().try_fold(0_u128, |sum, count| {
+        let pairs = count
+            .checked_mul(count.saturating_sub(1))
+            .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?
+            / 2;
+        sum.checked_add(pairs)
+            .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)
+    })?;
+    all_pairs
+        .checked_sub(same_pairs)
+        .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)
+}
+
+fn actual_worst_case_conflicts(
+    probe_id: u32,
+    truth: &ValidatedTruthV0,
+) -> Result<u128, DecisionEvaluatorErrorV0> {
+    let mut by_outcome = BTreeMap::<u32, Vec<u32>>::new();
+    for (witness_key, decision_class) in &truth.decision_by_witness {
+        let outcomes = truth
+            .outcomes_by_probe_witness
+            .get(&(probe_id, *witness_key))
+            .ok_or(DecisionEvaluatorErrorV0::MissingTruthProbeOutcomeSupport)?;
+        for outcome in outcomes {
+            by_outcome
+                .entry(*outcome)
+                .or_default()
+                .push(*decision_class);
+        }
+    }
+    by_outcome
+        .values()
+        .map(|classes| conflicting_pairs(classes.iter().copied()))
+        .try_fold(0_u128, |worst, value| Ok(worst.max(value?)))
+}
+
+fn unique_truth_decision_class(truth: &ValidatedTruthV0) -> Option<u32> {
+    let mut classes = truth.decision_by_witness.values().copied();
+    let first = classes.next()?;
+    classes.all(|class_id| class_id == first).then_some(first)
+}
+
+/// Score a frozen candidate result against evaluator-held admissible witnesses
+/// and true probe-outcome supports. Bindings are created by the independent
+/// structural validator and never included in candidate-visible data.
+pub fn evaluate_decision_disambiguation_claim_v0(
+    problem: &DecisionDisambiguationProblemV0,
+    claimed_result: &DecisionDisambiguationResultV0,
+    bindings: &[CandidateWitnessBindingV0],
+    ground_truth: &DecisionDisambiguationGroundTruthV0,
+) -> Result<DecisionDisambiguationEvaluationV0, DecisionEvaluatorErrorV0> {
+    let expected_candidate_result = select_decision_sufficient_probe_v0(problem)
+        .map_err(|_| DecisionEvaluatorErrorV0::InvalidCandidateProblem)?;
+    let candidate_policy_result_matches_problem = expected_candidate_result == *claimed_result;
+    let (binding_by_candidate, truth) = validate_truth(problem, bindings, ground_truth)?;
+
+    let truth_keys = truth
+        .decision_by_witness
+        .keys()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let candidate_keys = binding_by_candidate
+        .values()
+        .flatten()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let correctly_bound_hypotheses = candidate_keys.intersection(&truth_keys).count();
+    let false_excluded_hypotheses = truth_keys.difference(&candidate_keys).count();
+    let false_included_hypotheses = binding_by_candidate
+        .values()
+        .filter(|key| key.is_none_or(|key| !truth_keys.contains(&key)))
+        .count();
+
+    let candidate_decisions = problem
+        .hypotheses
+        .iter()
+        .map(|hypothesis| (hypothesis.hypothesis_id, hypothesis.decision_class_id))
+        .collect::<BTreeMap<_, _>>();
+    let valid_bindings = binding_by_candidate
+        .iter()
+        .filter_map(|(candidate_id, witness_key)| witness_key.map(|key| (*candidate_id, key)))
+        .filter(|(_, witness_key)| truth_keys.contains(witness_key))
+        .collect::<Vec<_>>();
+
+    let mut decision_pairs_compared = 0_u128;
+    let mut false_decision_equivalence_pairs = 0_u128;
+    let mut false_decision_split_pairs = 0_u128;
+    for (index, (left_id, left_key)) in valid_bindings.iter().enumerate() {
+        for (right_id, right_key) in valid_bindings.iter().skip(index + 1) {
+            let candidate_same = candidate_decisions[left_id] == candidate_decisions[right_id];
+            let truth_same =
+                truth.decision_by_witness[left_key] == truth.decision_by_witness[right_key];
+            decision_pairs_compared = decision_pairs_compared
+                .checked_add(1)
+                .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?;
+            match (candidate_same, truth_same) {
+                (true, false) => {
+                    false_decision_equivalence_pairs = false_decision_equivalence_pairs
+                        .checked_add(1)
+                        .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?
+                }
+                (false, true) => {
+                    false_decision_split_pairs = false_decision_split_pairs
+                        .checked_add(1)
+                        .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?
+                }
+                _ => {}
+            }
+        }
+    }
+
+    let mut missed_probe_outcome_supports = 0_usize;
+    let mut spurious_probe_outcome_supports = 0_usize;
+    for (candidate_id, witness_key) in &valid_bindings {
+        for option in &problem.probes {
+            let predicted = problem
+                .outcome_supports
+                .iter()
+                .filter(|row| row.probe_id == option.probe_id && row.hypothesis_id == *candidate_id)
+                .map(|row| row.possible_outcome_id)
+                .collect::<BTreeSet<_>>();
+            let actual = truth
+                .outcomes_by_probe_witness
+                .get(&(option.probe_id, *witness_key))
+                .ok_or(DecisionEvaluatorErrorV0::MissingTruthProbeOutcomeSupport)?;
+            missed_probe_outcome_supports = missed_probe_outcome_supports
+                .checked_add(actual.difference(&predicted).count())
+                .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?;
+            spurious_probe_outcome_supports = spurious_probe_outcome_supports
+                .checked_add(predicted.difference(actual).count())
+                .ok_or(DecisionEvaluatorErrorV0::ArithmeticOverflow)?;
+        }
+    }
+
+    let actual_baseline_conflicting_pairs =
+        conflicting_pairs(truth.decision_by_witness.values().copied())?;
+    let claimed_decision_sufficient = matches!(
+        claimed_result,
+        DecisionDisambiguationResultV0::DecisionSufficient { .. }
+    );
+    let complete_witness_coverage =
+        false_excluded_hypotheses == 0 && false_included_hypotheses == 0;
+    let decision_sufficiency_receipt_matches_truth = match claimed_result {
+        DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id,
+            live_hypotheses,
+        } => Some(
+            unique_truth_decision_class(&truth).is_some()
+                && *live_hypotheses == problem.hypotheses.len()
+                && problem
+                    .hypotheses
+                    .iter()
+                    .all(|hypothesis| hypothesis.decision_class_id == *decision_class_id),
+        ),
+        _ => None,
+    };
+    let decision_sufficiency_is_valid = claimed_decision_sufficient
+        && candidate_policy_result_matches_problem
+        && complete_witness_coverage
+        && decision_sufficiency_receipt_matches_truth == Some(true)
+        && false_decision_equivalence_pairs == 0
+        && false_decision_split_pairs == 0;
+    let false_decision_sufficiency_claim =
+        claimed_decision_sufficient && !decision_sufficiency_is_valid;
+
+    let mut claimed_probe_id = None;
+    let mut claimed_probe_is_decision_reducing = None;
+    let mut claimed_probe_overstates_improvement = false;
+    let mut actual_worst_case_conflicting_pairs = None;
+    let mut unnecessary_abstention = false;
+
+    match claimed_result {
+        DecisionDisambiguationResultV0::ProbeSelected {
+            probe_id,
+            worst_case_conflicting_pairs: predicted_worst,
+            ..
+        } => {
+            claimed_probe_id = Some(*probe_id);
+            let option = problem
+                .probes
+                .iter()
+                .find(|option| option.probe_id == *probe_id)
+                .ok_or(DecisionEvaluatorErrorV0::InvalidCandidateProblem)?;
+            if option.cost_units > problem.remaining_cost_units
+                || option.latency_ticks > problem.remaining_latency_ticks
+            {
+                claimed_probe_is_decision_reducing = Some(false);
+            } else {
+                let actual_worst = actual_worst_case_conflicts(*probe_id, &truth)?;
+                actual_worst_case_conflicting_pairs = Some(actual_worst);
+                claimed_probe_is_decision_reducing =
+                    Some(actual_worst < actual_baseline_conflicting_pairs);
+                claimed_probe_overstates_improvement = *predicted_worst < actual_worst;
+            }
+        }
+        DecisionDisambiguationResultV0::Unresolved { .. } => {
+            for option in &problem.probes {
+                if option.cost_units > problem.remaining_cost_units
+                    || option.latency_ticks > problem.remaining_latency_ticks
+                {
+                    continue;
+                }
+                let actual_worst = actual_worst_case_conflicts(option.probe_id, &truth)?;
+                if actual_worst < actual_baseline_conflicting_pairs {
+                    unnecessary_abstention = true;
+                    actual_worst_case_conflicting_pairs = Some(actual_worst);
+                    break;
+                }
+            }
+        }
+        DecisionDisambiguationResultV0::DecisionSufficient { .. } => {}
+    }
+
+    Ok(DecisionDisambiguationEvaluationV0 {
+        candidate_hypothesis_count: problem.hypotheses.len(),
+        admissible_hypothesis_count: truth.decision_by_witness.len(),
+        candidate_policy_result_matches_problem,
+        correctly_bound_hypotheses,
+        false_excluded_hypotheses,
+        false_included_hypotheses,
+        decision_pairs_compared,
+        false_decision_equivalence_pairs,
+        false_decision_split_pairs,
+        missed_probe_outcome_supports,
+        spurious_probe_outcome_supports,
+        actual_baseline_conflicting_pairs,
+        actual_worst_case_conflicting_pairs,
+        claimed_decision_sufficient,
+        decision_sufficiency_receipt_matches_truth,
+        decision_sufficiency_is_valid,
+        false_decision_sufficiency_claim,
+        claimed_probe_id,
+        claimed_probe_is_decision_reducing,
+        claimed_probe_overstates_improvement,
+        unnecessary_abstention,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ergo_stream_microcosm::decision_disambiguation::{
+        DecisionHypothesisProjectionV0, DecisionProbeOptionV0, DecisionProbeOutcomeSupportV0,
+        select_decision_sufficient_probe_v0,
+    };
+
+    fn problem() -> DecisionDisambiguationProblemV0 {
+        DecisionDisambiguationProblemV0 {
+            hypotheses: vec![
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 1,
+                    decision_class_id: 10,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 2,
+                    decision_class_id: 10,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 3,
+                    decision_class_id: 20,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 4,
+                    decision_class_id: 20,
+                },
+            ],
+            probes: vec![
+                DecisionProbeOptionV0 {
+                    probe_id: 1,
+                    cost_units: 1,
+                    latency_ticks: 1,
+                },
+                DecisionProbeOptionV0 {
+                    probe_id: 2,
+                    cost_units: 5,
+                    latency_ticks: 2,
+                },
+            ],
+            outcome_supports: vec![
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    hypothesis_id: 1,
+                    possible_outcome_id: 100,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    hypothesis_id: 2,
+                    possible_outcome_id: 200,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    hypothesis_id: 3,
+                    possible_outcome_id: 100,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    hypothesis_id: 4,
+                    possible_outcome_id: 200,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    hypothesis_id: 1,
+                    possible_outcome_id: 300,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    hypothesis_id: 2,
+                    possible_outcome_id: 300,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    hypothesis_id: 3,
+                    possible_outcome_id: 400,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    hypothesis_id: 4,
+                    possible_outcome_id: 400,
+                },
+            ],
+            remaining_cost_units: 10,
+            remaining_latency_ticks: 10,
+        }
+    }
+
+    fn bindings() -> Vec<CandidateWitnessBindingV0> {
+        vec![
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 1,
+                witness_key: Some(101),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 2,
+                witness_key: Some(102),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 3,
+                witness_key: Some(103),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 4,
+                witness_key: Some(104),
+            },
+        ]
+    }
+
+    fn truth() -> DecisionDisambiguationGroundTruthV0 {
+        DecisionDisambiguationGroundTruthV0 {
+            admissible_hypotheses: vec![
+                GroundTruthHypothesisV0 {
+                    witness_key: 101,
+                    decision_class_id: 7,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 102,
+                    decision_class_id: 7,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 103,
+                    decision_class_id: 9,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 104,
+                    decision_class_id: 9,
+                },
+            ],
+            probe_outcome_supports: vec![
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    witness_key: 101,
+                    possible_outcome_id: 100,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    witness_key: 102,
+                    possible_outcome_id: 200,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    witness_key: 103,
+                    possible_outcome_id: 100,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 1,
+                    witness_key: 104,
+                    possible_outcome_id: 200,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    witness_key: 101,
+                    possible_outcome_id: 300,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    witness_key: 102,
+                    possible_outcome_id: 300,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    witness_key: 103,
+                    possible_outcome_id: 400,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 2,
+                    witness_key: 104,
+                    possible_outcome_id: 400,
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn decision_sufficiency_receipt_must_match_truth_class_and_live_count() {
+        let candidate_problem = DecisionDisambiguationProblemV0 {
+            hypotheses: vec![
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 1,
+                    decision_class_id: 10,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 2,
+                    decision_class_id: 10,
+                },
+            ],
+            probes: Vec::new(),
+            outcome_supports: Vec::new(),
+            remaining_cost_units: 0,
+            remaining_latency_ticks: 0,
+        };
+        let bindings = vec![
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 1,
+                witness_key: Some(101),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 2,
+                witness_key: Some(102),
+            },
+        ];
+        let ground_truth = DecisionDisambiguationGroundTruthV0 {
+            admissible_hypotheses: vec![
+                GroundTruthHypothesisV0 {
+                    witness_key: 101,
+                    decision_class_id: 7,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 102,
+                    decision_class_id: 7,
+                },
+            ],
+            probe_outcome_supports: Vec::new(),
+        };
+
+        let wrong_class = DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id: 99,
+            live_hypotheses: 2,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &wrong_class,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+        assert_eq!(
+            report.decision_sufficiency_receipt_matches_truth,
+            Some(false)
+        );
+        assert!(report.false_decision_sufficiency_claim);
+
+        let wrong_count = DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id: 10,
+            live_hypotheses: 3,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &wrong_count,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+        assert_eq!(
+            report.decision_sufficiency_receipt_matches_truth,
+            Some(false)
+        );
+        assert!(report.false_decision_sufficiency_claim);
+
+        let correct = DecisionDisambiguationResultV0::DecisionSufficient {
+            decision_class_id: 10,
+            live_hypotheses: 2,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &correct,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+        assert_eq!(
+            report.decision_sufficiency_receipt_matches_truth,
+            Some(true)
+        );
+        assert!(report.decision_sufficiency_is_valid);
+    }
+
+    #[test]
+    fn evaluates_complete_witness_set_and_real_probe_partition() {
+        let candidate_problem = problem();
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings(),
+            &truth(),
+        )
+        .unwrap();
+
+        assert!(report.candidate_policy_result_matches_problem);
+        assert_eq!(report.correctly_bound_hypotheses, 4);
+        assert_eq!(report.false_excluded_hypotheses, 0);
+        assert_eq!(report.false_included_hypotheses, 0);
+        assert_eq!(report.false_decision_equivalence_pairs, 0);
+        assert_eq!(report.false_decision_split_pairs, 0);
+        assert_eq!(report.actual_baseline_conflicting_pairs, 4);
+        assert_eq!(report.claimed_probe_id, Some(2));
+        assert_eq!(report.claimed_probe_is_decision_reducing, Some(true));
+        assert!(!report.claimed_probe_overstates_improvement);
+    }
+
+    #[test]
+    fn rejects_sufficiency_claim_that_omits_a_valid_alternative() {
+        let candidate_problem = DecisionDisambiguationProblemV0 {
+            hypotheses: vec![
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 1,
+                    decision_class_id: 10,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 2,
+                    decision_class_id: 10,
+                },
+            ],
+            probes: Vec::new(),
+            outcome_supports: Vec::new(),
+            remaining_cost_units: 0,
+            remaining_latency_ticks: 0,
+        };
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let bindings = vec![
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 1,
+                witness_key: Some(101),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 2,
+                witness_key: Some(102),
+            },
+        ];
+        let ground_truth = DecisionDisambiguationGroundTruthV0 {
+            admissible_hypotheses: vec![
+                GroundTruthHypothesisV0 {
+                    witness_key: 101,
+                    decision_class_id: 7,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 102,
+                    decision_class_id: 7,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 103,
+                    decision_class_id: 9,
+                },
+            ],
+            probe_outcome_supports: Vec::new(),
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+
+        assert_eq!(report.false_excluded_hypotheses, 1);
+        assert!(report.false_decision_sufficiency_claim);
+        assert!(!report.decision_sufficiency_is_valid);
+    }
+
+    #[test]
+    fn scores_false_merges_and_false_splits_separately() {
+        let mut candidate_problem = problem();
+        candidate_problem.hypotheses[2].decision_class_id = 10;
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings(),
+            &truth(),
+        )
+        .unwrap();
+        assert!(report.false_decision_equivalence_pairs > 0);
+
+        candidate_problem.hypotheses[1].decision_class_id = 99;
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings(),
+            &truth(),
+        )
+        .unwrap();
+        assert!(report.false_decision_split_pairs > 0);
+    }
+
+    #[test]
+    fn rejects_probe_that_candidate_predicts_as_useful_but_truth_does_not() {
+        let candidate_problem = DecisionDisambiguationProblemV0 {
+            hypotheses: vec![
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 1,
+                    decision_class_id: 10,
+                },
+                DecisionHypothesisProjectionV0 {
+                    hypothesis_id: 2,
+                    decision_class_id: 20,
+                },
+            ],
+            probes: vec![DecisionProbeOptionV0 {
+                probe_id: 8,
+                cost_units: 1,
+                latency_ticks: 1,
+            }],
+            outcome_supports: vec![
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 8,
+                    hypothesis_id: 1,
+                    possible_outcome_id: 80,
+                },
+                DecisionProbeOutcomeSupportV0 {
+                    probe_id: 8,
+                    hypothesis_id: 2,
+                    possible_outcome_id: 81,
+                },
+            ],
+            remaining_cost_units: 2,
+            remaining_latency_ticks: 2,
+        };
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let bindings = vec![
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 1,
+                witness_key: Some(201),
+            },
+            CandidateWitnessBindingV0 {
+                candidate_hypothesis_id: 2,
+                witness_key: Some(202),
+            },
+        ];
+        let ground_truth = DecisionDisambiguationGroundTruthV0 {
+            admissible_hypotheses: vec![
+                GroundTruthHypothesisV0 {
+                    witness_key: 201,
+                    decision_class_id: 1,
+                },
+                GroundTruthHypothesisV0 {
+                    witness_key: 202,
+                    decision_class_id: 2,
+                },
+            ],
+            probe_outcome_supports: vec![
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 8,
+                    witness_key: 201,
+                    possible_outcome_id: 800,
+                },
+                GroundTruthProbeOutcomeSupportV0 {
+                    probe_id: 8,
+                    witness_key: 202,
+                    possible_outcome_id: 800,
+                },
+            ],
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap();
+
+        assert_eq!(report.actual_baseline_conflicting_pairs, 1);
+        assert_eq!(report.actual_worst_case_conflicting_pairs, Some(1));
+        assert_eq!(report.claimed_probe_is_decision_reducing, Some(false));
+    }
+
+    #[test]
+    fn detects_unnecessary_abstention_when_truth_contains_a_useful_probe() {
+        let candidate_problem = problem();
+        let unresolved = DecisionDisambiguationResultV0::Unresolved {
+            reason: ergo_stream_microcosm::decision_disambiguation::DecisionDisambiguationUnresolvedReasonV0::NoDecisionDistinguishingProbe,
+            baseline_conflicting_pairs: 4,
+            declared_probe_count: 2,
+            budget_feasible_probe_count: 2,
+        };
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &unresolved,
+            &bindings(),
+            &truth(),
+        )
+        .unwrap();
+        assert!(report.unnecessary_abstention);
+    }
+
+    #[test]
+    fn reports_missing_and_spurious_outcome_supports_independently() {
+        let mut candidate_problem = problem();
+        candidate_problem
+            .outcome_supports
+            .push(DecisionProbeOutcomeSupportV0 {
+                probe_id: 2,
+                hypothesis_id: 1,
+                possible_outcome_id: 999,
+            });
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let report = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings(),
+            &truth(),
+        )
+        .unwrap();
+        assert!(report.spurious_probe_outcome_supports > 0);
+        assert_eq!(report.missed_probe_outcome_supports, 0);
+    }
+    #[test]
+    fn rejects_truth_outcomes_for_undeclared_probes() {
+        let candidate_problem = problem();
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let bindings = bindings();
+        let mut ground_truth = truth();
+        ground_truth
+            .probe_outcome_supports
+            .push(GroundTruthProbeOutcomeSupportV0 {
+                probe_id: 999,
+                witness_key: 101,
+                possible_outcome_id: 999,
+            });
+
+        let error = evaluate_decision_disambiguation_claim_v0(
+            &candidate_problem,
+            &selected,
+            &bindings,
+            &ground_truth,
+        )
+        .unwrap_err();
+        assert_eq!(error, DecisionEvaluatorErrorV0::TruthOutcomeForUnknownProbe);
+    }
+
+    /// Exhaustively cross-check the evaluator's decision/probe scoring against
+    /// a deliberately simple pair-enumeration oracle. This covers all 3-way
+    /// decision-label assignments (3^3) and all non-empty two-outcome support
+    /// sets for three witnesses (3^3), for 729 deterministic worlds.
+    #[test]
+    fn exhaustive_three_witness_decision_and_probe_oracle_agreement() {
+        fn pair_conflicts(classes: &[u32]) -> u128 {
+            let mut conflicts = 0_u128;
+            for left in 0..classes.len() {
+                for right in (left + 1)..classes.len() {
+                    if classes[left] != classes[right] {
+                        conflicts += 1;
+                    }
+                }
+            }
+            conflicts
+        }
+
+        fn brute_force_worst_conflicts(classes: &[u32], support_masks: &[u8]) -> u128 {
+            [1_u8, 2_u8]
+                .into_iter()
+                .map(|outcome_bit| {
+                    let surviving = classes
+                        .iter()
+                        .zip(support_masks)
+                        .filter_map(|(class_id, mask)| {
+                            (mask & outcome_bit != 0).then_some(*class_id)
+                        })
+                        .collect::<Vec<_>>();
+                    pair_conflicts(&surviving)
+                })
+                .max()
+                .unwrap_or(0)
+        }
+
+        let mut worlds_checked = 0_usize;
+        for partition_code in 0_u32..27 {
+            let mut encoded_partition = partition_code;
+            let classes = (0..3)
+                .map(|_| {
+                    let class_id = encoded_partition % 3;
+                    encoded_partition /= 3;
+                    class_id
+                })
+                .collect::<Vec<_>>();
+            let baseline_conflicts = pair_conflicts(&classes);
+
+            for support_code in 0_u32..27 {
+                let mut encoded_supports = support_code;
+                // Each mask is 1, 2, or 3: outcome 1, outcome 2, or both.
+                let support_masks = (0..3)
+                    .map(|_| {
+                        let mask = (encoded_supports % 3 + 1) as u8;
+                        encoded_supports /= 3;
+                        mask
+                    })
+                    .collect::<Vec<_>>();
+                let hypotheses = (0..3)
+                    .map(|index| DecisionHypothesisProjectionV0 {
+                        hypothesis_id: index as u32 + 1,
+                        decision_class_id: classes[index],
+                    })
+                    .collect::<Vec<_>>();
+                let mut outcome_supports = Vec::new();
+                let mut truth_outcome_supports = Vec::new();
+                let mut admissible_hypotheses = Vec::new();
+                let bindings = (0..3)
+                    .map(|index| CandidateWitnessBindingV0 {
+                        candidate_hypothesis_id: index as u32 + 1,
+                        witness_key: Some(100 + index as u64),
+                    })
+                    .collect::<Vec<_>>();
+
+                for index in 0..3 {
+                    let witness_key = 100 + index as u64;
+                    admissible_hypotheses.push(GroundTruthHypothesisV0 {
+                        witness_key,
+                        decision_class_id: classes[index],
+                    });
+                    for (outcome_index, outcome_bit) in [1_u8, 2_u8].into_iter().enumerate() {
+                        if support_masks[index] & outcome_bit != 0 {
+                            let outcome_id = outcome_index as u32 + 1;
+                            outcome_supports.push(DecisionProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                hypothesis_id: index as u32 + 1,
+                                possible_outcome_id: outcome_id,
+                            });
+                            truth_outcome_supports.push(GroundTruthProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                witness_key,
+                                possible_outcome_id: outcome_id,
+                            });
+                        }
+                    }
+                }
+
+                let problem = DecisionDisambiguationProblemV0 {
+                    hypotheses,
+                    probes: vec![DecisionProbeOptionV0 {
+                        probe_id: 7,
+                        cost_units: 1,
+                        latency_ticks: 1,
+                    }],
+                    outcome_supports,
+                    remaining_cost_units: 1,
+                    remaining_latency_ticks: 1,
+                };
+                let ground_truth = DecisionDisambiguationGroundTruthV0 {
+                    admissible_hypotheses,
+                    probe_outcome_supports: truth_outcome_supports,
+                };
+                let selected = select_decision_sufficient_probe_v0(&problem).unwrap();
+                let report = evaluate_decision_disambiguation_claim_v0(
+                    &problem,
+                    &selected,
+                    &bindings,
+                    &ground_truth,
+                )
+                .unwrap();
+
+                let actual_worst = brute_force_worst_conflicts(&classes, &support_masks);
+                assert!(report.candidate_policy_result_matches_problem);
+                assert_eq!(report.correctly_bound_hypotheses, 3);
+                assert_eq!(report.false_excluded_hypotheses, 0);
+                assert_eq!(report.false_included_hypotheses, 0);
+                assert_eq!(report.false_decision_equivalence_pairs, 0);
+                assert_eq!(report.false_decision_split_pairs, 0);
+                assert_eq!(report.missed_probe_outcome_supports, 0);
+                assert_eq!(report.spurious_probe_outcome_supports, 0);
+                assert_eq!(report.actual_baseline_conflicting_pairs, baseline_conflicts);
+
+                match selected {
+                    DecisionDisambiguationResultV0::DecisionSufficient { .. } => {
+                        assert_eq!(baseline_conflicts, 0);
+                        assert!(report.decision_sufficiency_is_valid);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                    DecisionDisambiguationResultV0::ProbeSelected {
+                        worst_case_conflicting_pairs,
+                        ..
+                    } => {
+                        assert!(baseline_conflicts > 0);
+                        assert_eq!(actual_worst, worst_case_conflicting_pairs);
+                        assert_eq!(
+                            report.actual_worst_case_conflicting_pairs,
+                            Some(actual_worst)
+                        );
+                        assert_eq!(
+                            report.claimed_probe_is_decision_reducing,
+                            Some(actual_worst < baseline_conflicts)
+                        );
+                        assert!(!report.claimed_probe_overstates_improvement);
+                        assert!(!report.unnecessary_abstention);
+                    }
+                    DecisionDisambiguationResultV0::Unresolved { .. } => {
+                        assert!(baseline_conflicts > 0);
+                        assert!(actual_worst >= baseline_conflicts);
+                        assert!(!report.unnecessary_abstention);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                }
+                worlds_checked += 1;
+            }
+        }
+
+        assert_eq!(worlds_checked, 729);
+    }
+
+    /// Exhaustively extend the differential oracle to three possible outcomes.
+    /// There are 3^3 decision-label assignments and 7^3 non-empty support
+    /// subsets over three outcomes for each of three witnesses.
+    #[test]
+    fn exhaustive_three_witness_three_outcome_oracle_agreement() {
+        fn pair_conflicts(classes: &[u32]) -> u128 {
+            let mut conflicts = 0_u128;
+            for left in 0..classes.len() {
+                for right in (left + 1)..classes.len() {
+                    if classes[left] != classes[right] {
+                        conflicts += 1;
+                    }
+                }
+            }
+            conflicts
+        }
+
+        fn brute_force_worst_conflicts(classes: &[u32], support_masks: &[u8]) -> u128 {
+            [1_u8, 2_u8, 3_u8]
+                .into_iter()
+                .map(|outcome_id| {
+                    let outcome_bit = 1_u8 << (outcome_id - 1);
+                    let surviving = classes
+                        .iter()
+                        .zip(support_masks)
+                        .filter_map(|(class_id, mask)| {
+                            (mask & outcome_bit != 0).then_some(*class_id)
+                        })
+                        .collect::<Vec<_>>();
+                    pair_conflicts(&surviving)
+                })
+                .max()
+                .unwrap_or(0)
+        }
+
+        let mut worlds_checked = 0_usize;
+        for partition_code in 0_u32..27 {
+            let mut encoded_partition = partition_code;
+            let classes = (0..3)
+                .map(|_| {
+                    let class_id = encoded_partition % 3;
+                    encoded_partition /= 3;
+                    class_id
+                })
+                .collect::<Vec<_>>();
+            let baseline_conflicts = pair_conflicts(&classes);
+
+            for support_code in 0_u32..343 {
+                let mut encoded_supports = support_code;
+                // Each mask is 1..=7: every non-empty subset of three outcomes.
+                let support_masks = (0..3)
+                    .map(|_| {
+                        let mask = (encoded_supports % 7 + 1) as u8;
+                        encoded_supports /= 7;
+                        mask
+                    })
+                    .collect::<Vec<_>>();
+                let hypotheses = (0..3)
+                    .map(|index| DecisionHypothesisProjectionV0 {
+                        hypothesis_id: index as u32 + 1,
+                        decision_class_id: classes[index],
+                    })
+                    .collect::<Vec<_>>();
+                let mut outcome_supports = Vec::new();
+                let mut truth_outcome_supports = Vec::new();
+                let mut admissible_hypotheses = Vec::new();
+                let bindings = (0..3)
+                    .map(|index| CandidateWitnessBindingV0 {
+                        candidate_hypothesis_id: index as u32 + 1,
+                        witness_key: Some(100 + index as u64),
+                    })
+                    .collect::<Vec<_>>();
+
+                for index in 0..3 {
+                    let witness_key = 100 + index as u64;
+                    admissible_hypotheses.push(GroundTruthHypothesisV0 {
+                        witness_key,
+                        decision_class_id: classes[index],
+                    });
+                    for (outcome_index, outcome_bit) in [1_u8, 2_u8, 4_u8].into_iter().enumerate() {
+                        if support_masks[index] & outcome_bit != 0 {
+                            let outcome_id = outcome_index as u32 + 1;
+                            outcome_supports.push(DecisionProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                hypothesis_id: index as u32 + 1,
+                                possible_outcome_id: outcome_id,
+                            });
+                            truth_outcome_supports.push(GroundTruthProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                witness_key,
+                                possible_outcome_id: outcome_id,
+                            });
+                        }
+                    }
+                }
+
+                let problem = DecisionDisambiguationProblemV0 {
+                    hypotheses,
+                    probes: vec![DecisionProbeOptionV0 {
+                        probe_id: 7,
+                        cost_units: 1,
+                        latency_ticks: 1,
+                    }],
+                    outcome_supports,
+                    remaining_cost_units: 1,
+                    remaining_latency_ticks: 1,
+                };
+                let ground_truth = DecisionDisambiguationGroundTruthV0 {
+                    admissible_hypotheses,
+                    probe_outcome_supports: truth_outcome_supports,
+                };
+                let selected = select_decision_sufficient_probe_v0(&problem).unwrap();
+                let report = evaluate_decision_disambiguation_claim_v0(
+                    &problem,
+                    &selected,
+                    &bindings,
+                    &ground_truth,
+                )
+                .unwrap();
+
+                let actual_worst = brute_force_worst_conflicts(&classes, &support_masks);
+                assert!(report.candidate_policy_result_matches_problem);
+                assert_eq!(report.correctly_bound_hypotheses, 3);
+                assert_eq!(report.false_excluded_hypotheses, 0);
+                assert_eq!(report.false_included_hypotheses, 0);
+                assert_eq!(report.false_decision_equivalence_pairs, 0);
+                assert_eq!(report.false_decision_split_pairs, 0);
+                assert_eq!(report.missed_probe_outcome_supports, 0);
+                assert_eq!(report.spurious_probe_outcome_supports, 0);
+                assert_eq!(report.actual_baseline_conflicting_pairs, baseline_conflicts);
+
+                match selected {
+                    DecisionDisambiguationResultV0::DecisionSufficient { .. } => {
+                        assert_eq!(baseline_conflicts, 0);
+                        assert!(report.decision_sufficiency_is_valid);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                    DecisionDisambiguationResultV0::ProbeSelected {
+                        worst_case_conflicting_pairs,
+                        ..
+                    } => {
+                        assert!(baseline_conflicts > 0);
+                        assert_eq!(actual_worst, worst_case_conflicting_pairs);
+                        assert_eq!(
+                            report.actual_worst_case_conflicting_pairs,
+                            Some(actual_worst)
+                        );
+                        assert_eq!(
+                            report.claimed_probe_is_decision_reducing,
+                            Some(actual_worst < baseline_conflicts)
+                        );
+                        assert!(!report.claimed_probe_overstates_improvement);
+                        assert!(!report.unnecessary_abstention);
+                    }
+                    DecisionDisambiguationResultV0::Unresolved { .. } => {
+                        assert!(baseline_conflicts > 0);
+                        assert!(actual_worst >= baseline_conflicts);
+                        assert!(!report.unnecessary_abstention);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                }
+                worlds_checked += 1;
+            }
+        }
+
+        assert_eq!(worlds_checked, 9_261);
+    }
+
+    #[test]
+    fn bounds_evaluator_owned_truth_hypothesis_count() {
+        let candidate_problem = problem();
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let bindings = bindings();
+        let mut ground_truth = truth();
+        ground_truth.admissible_hypotheses.resize(
+            MAX_EVALUATOR_TRUTH_HYPOTHESES_V0 + 1,
+            GroundTruthHypothesisV0 {
+                witness_key: u64::MAX,
+                decision_class_id: 0,
+            },
+        );
+
+        assert_eq!(
+            evaluate_decision_disambiguation_claim_v0(
+                &candidate_problem,
+                &selected,
+                &bindings,
+                &ground_truth,
+            )
+            .unwrap_err(),
+            DecisionEvaluatorErrorV0::TooManyGroundTruthHypotheses
+        );
+    }
+
+    #[test]
+    fn bounds_truth_support_cross_product_before_missing_support_scan() {
+        let mut candidate_problem = problem();
+        for probe_id in 3..=17 {
+            candidate_problem.probes.push(DecisionProbeOptionV0 {
+                probe_id,
+                cost_units: 1,
+                latency_ticks: 1,
+            });
+            for hypothesis_id in 1..=4 {
+                candidate_problem
+                    .outcome_supports
+                    .push(DecisionProbeOutcomeSupportV0 {
+                        probe_id,
+                        hypothesis_id,
+                        possible_outcome_id: probe_id * 10 + hypothesis_id,
+                    });
+            }
+        }
+        let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+        let bindings = bindings();
+        let ground_truth = DecisionDisambiguationGroundTruthV0 {
+            admissible_hypotheses: (0..MAX_EVALUATOR_TRUTH_HYPOTHESES_V0)
+                .map(|index| GroundTruthHypothesisV0 {
+                    witness_key: index as u64 + 1,
+                    decision_class_id: (index % 3) as u32,
+                })
+                .collect(),
+            probe_outcome_supports: Vec::new(),
+        };
+
+        assert_eq!(
+            evaluate_decision_disambiguation_claim_v0(
+                &candidate_problem,
+                &selected,
+                &bindings,
+                &ground_truth,
+            )
+            .unwrap_err(),
+            DecisionEvaluatorErrorV0::TooManyGroundTruthProbeOutcomeSupports
+        );
+    }
+
+    /// Exhaustively extend the brute-force differential oracle to four possible
+    /// outcomes. There are 3^3 decision-label assignments and 15^3 non-empty
+    /// support subsets over four outcomes for each of three witnesses.
+    #[test]
+    fn exhaustive_three_witness_four_outcome_oracle_agreement() {
+        fn pair_conflicts(classes: &[u32]) -> u128 {
+            let mut conflicts = 0_u128;
+            for left in 0..classes.len() {
+                for right in (left + 1)..classes.len() {
+                    if classes[left] != classes[right] {
+                        conflicts += 1;
+                    }
+                }
+            }
+            conflicts
+        }
+
+        fn brute_force_worst_conflicts(classes: &[u32], support_masks: &[u8]) -> u128 {
+            (1_u8..=4)
+                .map(|outcome_id| {
+                    let outcome_bit = 1_u8 << (outcome_id - 1);
+                    let surviving = classes
+                        .iter()
+                        .zip(support_masks)
+                        .filter_map(|(class_id, mask)| {
+                            (mask & outcome_bit != 0).then_some(*class_id)
+                        })
+                        .collect::<Vec<_>>();
+                    pair_conflicts(&surviving)
+                })
+                .max()
+                .unwrap_or(0)
+        }
+
+        let mut worlds_checked = 0_usize;
+        for partition_code in 0_u32..27 {
+            let mut encoded_partition = partition_code;
+            let classes = (0..3)
+                .map(|_| {
+                    let class_id = encoded_partition % 3;
+                    encoded_partition /= 3;
+                    class_id
+                })
+                .collect::<Vec<_>>();
+            let baseline_conflicts = pair_conflicts(&classes);
+
+            for support_code in 0_u32..3_375 {
+                let mut encoded_supports = support_code;
+                // Each mask is 1..=15: every non-empty subset of four outcomes.
+                let support_masks = (0..3)
+                    .map(|_| {
+                        let mask = (encoded_supports % 15 + 1) as u8;
+                        encoded_supports /= 15;
+                        mask
+                    })
+                    .collect::<Vec<_>>();
+                let hypotheses = (0..3)
+                    .map(|index| DecisionHypothesisProjectionV0 {
+                        hypothesis_id: index as u32 + 1,
+                        decision_class_id: classes[index],
+                    })
+                    .collect::<Vec<_>>();
+                let mut outcome_supports = Vec::new();
+                let mut truth_outcome_supports = Vec::new();
+                let mut admissible_hypotheses = Vec::new();
+                let local_bindings = (0..3)
+                    .map(|index| CandidateWitnessBindingV0 {
+                        candidate_hypothesis_id: index as u32 + 1,
+                        witness_key: Some(100 + index as u64),
+                    })
+                    .collect::<Vec<_>>();
+
+                for index in 0..3 {
+                    let witness_key = 100 + index as u64;
+                    admissible_hypotheses.push(GroundTruthHypothesisV0 {
+                        witness_key,
+                        decision_class_id: classes[index],
+                    });
+                    for outcome_index in 0..4 {
+                        let outcome_bit = 1_u8 << outcome_index;
+                        if support_masks[index] & outcome_bit != 0 {
+                            let outcome_id = outcome_index as u32 + 1;
+                            outcome_supports.push(DecisionProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                hypothesis_id: index as u32 + 1,
+                                possible_outcome_id: outcome_id,
+                            });
+                            truth_outcome_supports.push(GroundTruthProbeOutcomeSupportV0 {
+                                probe_id: 7,
+                                witness_key,
+                                possible_outcome_id: outcome_id,
+                            });
+                        }
+                    }
+                }
+
+                let candidate_problem = DecisionDisambiguationProblemV0 {
+                    hypotheses,
+                    probes: vec![DecisionProbeOptionV0 {
+                        probe_id: 7,
+                        cost_units: 1,
+                        latency_ticks: 1,
+                    }],
+                    outcome_supports,
+                    remaining_cost_units: 1,
+                    remaining_latency_ticks: 1,
+                };
+                let ground_truth = DecisionDisambiguationGroundTruthV0 {
+                    admissible_hypotheses,
+                    probe_outcome_supports: truth_outcome_supports,
+                };
+                let selected = select_decision_sufficient_probe_v0(&candidate_problem).unwrap();
+                let report = evaluate_decision_disambiguation_claim_v0(
+                    &candidate_problem,
+                    &selected,
+                    &local_bindings,
+                    &ground_truth,
+                )
+                .unwrap();
+
+                let actual_worst = brute_force_worst_conflicts(&classes, &support_masks);
+                assert!(report.candidate_policy_result_matches_problem);
+                assert_eq!(report.correctly_bound_hypotheses, 3);
+                assert_eq!(report.false_excluded_hypotheses, 0);
+                assert_eq!(report.false_included_hypotheses, 0);
+                assert_eq!(report.false_decision_equivalence_pairs, 0);
+                assert_eq!(report.false_decision_split_pairs, 0);
+                assert_eq!(report.missed_probe_outcome_supports, 0);
+                assert_eq!(report.spurious_probe_outcome_supports, 0);
+                assert_eq!(report.actual_baseline_conflicting_pairs, baseline_conflicts);
+
+                match selected {
+                    DecisionDisambiguationResultV0::DecisionSufficient { .. } => {
+                        assert_eq!(baseline_conflicts, 0);
+                        assert!(report.decision_sufficiency_is_valid);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                    DecisionDisambiguationResultV0::ProbeSelected {
+                        worst_case_conflicting_pairs,
+                        ..
+                    } => {
+                        assert!(baseline_conflicts > 0);
+                        assert_eq!(actual_worst, worst_case_conflicting_pairs);
+                        assert_eq!(
+                            report.actual_worst_case_conflicting_pairs,
+                            Some(actual_worst)
+                        );
+                        assert_eq!(
+                            report.claimed_probe_is_decision_reducing,
+                            Some(actual_worst < baseline_conflicts)
+                        );
+                        assert!(!report.claimed_probe_overstates_improvement);
+                        assert!(!report.unnecessary_abstention);
+                    }
+                    DecisionDisambiguationResultV0::Unresolved { .. } => {
+                        assert!(baseline_conflicts > 0);
+                        assert!(actual_worst >= baseline_conflicts);
+                        assert!(!report.unnecessary_abstention);
+                        assert!(!report.false_decision_sufficiency_claim);
+                    }
+                }
+                worlds_checked += 1;
+            }
+        }
+
+        assert_eq!(worlds_checked, 91_125);
+    }
+
+    #[test]
+    fn evaluator_is_invariant_to_identifier_renaming_and_row_order() {
+        let original_problem = problem();
+        let original_bindings = bindings();
+        let original_truth = truth();
+        let original_result = select_decision_sufficient_probe_v0(&original_problem).unwrap();
+        let original = evaluate_decision_disambiguation_claim_v0(
+            &original_problem,
+            &original_result,
+            &original_bindings,
+            &original_truth,
+        )
+        .unwrap();
+
+        let mut renamed_problem = original_problem;
+        for hypothesis in &mut renamed_problem.hypotheses {
+            hypothesis.hypothesis_id += 100;
+            hypothesis.decision_class_id = match hypothesis.decision_class_id {
+                10 => 900,
+                20 => 800,
+                other => other + 700,
+            };
+        }
+        for probe in &mut renamed_problem.probes {
+            probe.probe_id += 40;
+        }
+        for support in &mut renamed_problem.outcome_supports {
+            support.hypothesis_id += 100;
+            support.probe_id += 40;
+            support.possible_outcome_id += 1_000;
+        }
+        renamed_problem.hypotheses.reverse();
+        renamed_problem.probes.reverse();
+        renamed_problem.outcome_supports.reverse();
+
+        let renamed_bindings = original_bindings
+            .into_iter()
+            .map(|mut binding| {
+                binding.candidate_hypothesis_id += 100;
+                binding.witness_key = binding.witness_key.map(|key| key + 1_000);
+                binding
+            })
+            .rev()
+            .collect::<Vec<_>>();
+
+        let mut renamed_truth = original_truth;
+        for hypothesis in &mut renamed_truth.admissible_hypotheses {
+            hypothesis.witness_key += 1_000;
+            hypothesis.decision_class_id = match hypothesis.decision_class_id {
+                7 => 600,
+                9 => 500,
+                other => other + 400,
+            };
+        }
+        for support in &mut renamed_truth.probe_outcome_supports {
+            support.witness_key += 1_000;
+            support.probe_id += 40;
+            support.possible_outcome_id += 1_000;
+        }
+        renamed_truth.admissible_hypotheses.reverse();
+        renamed_truth.probe_outcome_supports.reverse();
+
+        let renamed_result = select_decision_sufficient_probe_v0(&renamed_problem).unwrap();
+        let renamed = evaluate_decision_disambiguation_claim_v0(
+            &renamed_problem,
+            &renamed_result,
+            &renamed_bindings,
+            &renamed_truth,
+        )
+        .unwrap();
+
+        assert!(renamed.candidate_policy_result_matches_problem);
+        assert_eq!(
+            renamed.correctly_bound_hypotheses,
+            original.correctly_bound_hypotheses
+        );
+        assert_eq!(
+            renamed.false_excluded_hypotheses,
+            original.false_excluded_hypotheses
+        );
+        assert_eq!(
+            renamed.false_included_hypotheses,
+            original.false_included_hypotheses
+        );
+        assert_eq!(
+            renamed.decision_pairs_compared,
+            original.decision_pairs_compared
+        );
+        assert_eq!(
+            renamed.false_decision_equivalence_pairs,
+            original.false_decision_equivalence_pairs
+        );
+        assert_eq!(
+            renamed.false_decision_split_pairs,
+            original.false_decision_split_pairs
+        );
+        assert_eq!(
+            renamed.missed_probe_outcome_supports,
+            original.missed_probe_outcome_supports
+        );
+        assert_eq!(
+            renamed.spurious_probe_outcome_supports,
+            original.spurious_probe_outcome_supports
+        );
+        assert_eq!(
+            renamed.actual_baseline_conflicting_pairs,
+            original.actual_baseline_conflicting_pairs
+        );
+        assert_eq!(
+            renamed.actual_worst_case_conflicting_pairs,
+            original.actual_worst_case_conflicting_pairs
+        );
+        assert_eq!(
+            renamed.claimed_decision_sufficient,
+            original.claimed_decision_sufficient
+        );
+        assert_eq!(
+            renamed.decision_sufficiency_receipt_matches_truth,
+            original.decision_sufficiency_receipt_matches_truth
+        );
+        assert_eq!(
+            renamed.decision_sufficiency_is_valid,
+            original.decision_sufficiency_is_valid
+        );
+        assert_eq!(
+            renamed.false_decision_sufficiency_claim,
+            original.false_decision_sufficiency_claim
+        );
+        assert_eq!(
+            renamed.claimed_probe_is_decision_reducing,
+            original.claimed_probe_is_decision_reducing
+        );
+        assert_eq!(
+            renamed.claimed_probe_overstates_improvement,
+            original.claimed_probe_overstates_improvement
+        );
+        assert_eq!(
+            renamed.unnecessary_abstention,
+            original.unnecessary_abstention
+        );
+    }
+}

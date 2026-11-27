@@ -1,0 +1,38 @@
+name: ErgoStream decision evaluator
+
+on:
+  pull_request:
+    paths:
+      - "research/ergo-stream-decision-evaluator/v0.1/**"
+      - "research/ergo-stream-world-contract/v0.1/**"
+      - ".github/workflows/ergo-stream-decision-evaluator.yml"
+  push:
+    branches:
+      - "research/ergo-stream-decision-evaluator-v0.1"
+    paths:
+      - "research/ergo-stream-decision-evaluator/v0.1/**"
+      - "research/ergo-stream-world-contract/v0.1/**"
+      - ".github/workflows/ergo-stream-decision-evaluator.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ergo-stream-decision-evaluator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/ergo-stream-decision-evaluator/v0.1/Cargo.toml -- --check
+      - name: Run evaluator tests
+        run: cargo test --locked --manifest-path research/ergo-stream-decision-evaluator/v0.1/Cargo.toml
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/ergo-stream-decision-evaluator/v0.1/Cargo.toml --all-targets -- -D warnings
