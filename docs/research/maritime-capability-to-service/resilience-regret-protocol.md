@@ -47,6 +47,8 @@ The MCSC Rust reference now exposes `compare_recovery_regret(candidate, referenc
 
 It computes candidate-minus-reference deltas separately for:
 - unmet expected units at the deadline;
+- inspection-qualified units;
+- receiver-accepted units;
 - late accepted units;
 - unresolved units;
 - service deficit unit-hours;
@@ -54,7 +56,7 @@ It computes candidate-minus-reference deltas separately for:
 - recovery cost and emissions;
 - requalification action count.
 
-Positive deltas are worse for the candidate. This vector is not scalarized. The reference may be a clairvoyant per-scenario admissible upper bound, but is not an implementable policy and has no probability weight. Validation rejects inconsistent accepted/on-time/unresolved quantities and impossible recovery times. Unit tests cover a nine-dimensional known answer, context mismatches, invalid inputs and zero-regret equality.
+Positive deltas are worse for the candidate. This vector is not scalarized. The reference may be a clairvoyant per-scenario admissible upper bound, but is not an implementable policy and has no probability weight. Validation rejects receiver acceptance above inspection-qualified quantity, inconsistent accepted/on-time/unresolved quantities and impossible recovery times. Unit tests cover an eleven-dimensional known answer, context mismatches, invalid inputs and zero-regret equality.
 
 This API is only a comparison primitive. The 20-case corpus currently validates scenario coverage and claim ceilings; no full recovery optimizer, scenario probability model or empirical regret result is claimed.
 
