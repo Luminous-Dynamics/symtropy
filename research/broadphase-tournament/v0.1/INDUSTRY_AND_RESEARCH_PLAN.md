@@ -264,7 +264,7 @@ The October 2026 Box2D contact-recycling publication changes our novelty boundar
 
 Symtropy must not claim basic relative-motion manifold reuse as novel. Compare Box2D 3.2 one-shot manifold recycling, PhysX persistent contact manifold/contact-cache alternatives, and exact pinned Bepu/Avian/Rapier implementations where appropriate.
 
-The research target is an **evidence-qualified lease**: feature-margin lower bounds, normal-variation bounds, gap intervals, exact shape/proxy generations, material/callback and solver freshness as separate state, and independent replay. The new `contact_reuse_lease` module is a reference admission predicate over externally supplied witnesses, not production integration.
+The research target is an **evidence-qualified lease**: feature-margin lower bounds, normal-variation bounds, gap intervals, exact shape/proxy generations, material/callback response and solver freshness as separate state, current-step callback delivery preserved, and independent replay. The new `contact_reuse_lease` module is a reference admission predicate over externally supplied witnesses, not production integration.
 
 Box2D also warns that cached relative transforms must not be rebased every recycled step because this accumulates drift. Symtropy's benchmark must include long-duration drift tests where the cached reference transform changes only on a fresh narrowphase/manifold build.
 
