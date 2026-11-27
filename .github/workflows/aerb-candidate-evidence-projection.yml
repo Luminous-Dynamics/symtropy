@@ -36,31 +36,33 @@ jobs:
           set -euo pipefail
           FILE="research/mobility-rrvr-aerb-observation-projection-v0.2/fixtures/candidate_evidence_snapshot_synthetic_v0_2.json"
           jq -e '
-            .schema_version == "0.2"
-            and .benchmark == "AERB"
+            . as $snapshot
+            | .observations as $observations
+            | $snapshot.schema_version == "0.2"
+            and $snapshot.benchmark == "AERB"
             and .decision_cut_sequence == .ledger_frontier_sequence
             and (.observations | length == 3)
             and ([.observations[].evidence_id] | length == (unique | length))
             and all(.observations[]; .ingest_sequence <= .decision_cut_sequence)
             and all(.observations[]; .evidence_domain == "process_model" and .source.source_role == "model_oracle")
             and all(.observations[]; (.parent_evidence_ids | length == (unique | length)))
-            and all(.observations[] as $row;
+            and all($observations[] as $row;
               all($row.parent_evidence_ids[];
                 . as $parent_id
-                | any(.observations[]; .evidence_id == $parent_id and .ingest_sequence < $row.ingest_sequence)
+                | any($snapshot.observations[]; .evidence_id == $parent_id and .ingest_sequence < $row.ingest_sequence)
               )
             )
-            and ([$.observations[].payload.kind] | length == 3)
-            and any(.observations[]; .payload.kind == "command_acknowledgement" and .payload.acknowledgement_state == "lost")
-            and any(.observations[]; .payload.kind == "physical_measurement" and .payload.modality == "pose" and .payload.unit == "m" and (.payload.values | length == 3))
-            and any(.observations[]; .payload.kind == "temporal_closure_receipt" and .payload.closure_disposition == "hold" and .payload.horizon_ms == null and .payload.hold_reason == "IncompleteInventory")
-            and (has("hidden_truth_world_id") | not)
-            and (has("actual_probe_outcome_supports") | not)
-            and (has("decision_losses") | not)
-            and (has("likelihoods") | not)
-            and (has("seed") | not)
-            and (tostring | contains("https://") | not)
-            and (tostring | contains("/mnt/") | not)
+            and ([$observations[].payload.kind] | length == 3)
+            and any($observations[]; .payload.kind == "command_acknowledgement" and .payload.acknowledgement_state == "lost")
+            and any($observations[]; .payload.kind == "physical_measurement" and .payload.modality == "pose" and .payload.unit == "m" and (.payload.values | length == 3))
+            and any($observations[]; .payload.kind == "temporal_closure_receipt" and .payload.closure_disposition == "hold" and .payload.horizon_ms == null and .payload.hold_reason == "IncompleteInventory")
+            and ($snapshot | has("hidden_truth_world_id") | not)
+            and ($snapshot | has("actual_probe_outcome_supports") | not)
+            and ($snapshot | has("decision_losses") | not)
+            and ($snapshot | has("likelihoods") | not)
+            and ($snapshot | has("seed") | not)
+            and ($snapshot | tostring | contains("https://") | not)
+            and ($snapshot | tostring | contains("/mnt/") | not)
           ' "$FILE"
 
       - name: Confirm temporal closure is not asserted as NoEffect
@@ -69,7 +71,7 @@ jobs:
           set -euo pipefail
           FILE="research/mobility-rrvr-aerb-observation-projection-v0.2/fixtures/candidate_evidence_snapshot_synthetic_v0_2.json"
           jq -e '
-            all(.observations[] | select(.payload.kind == "temporal_closure_receipt");
+            all($observations[] | select(.payload.kind == "temporal_closure_receipt");
               .payload.closure_disposition != "closed"
               or (.payload | has("effect_outcome") | not)
             )
