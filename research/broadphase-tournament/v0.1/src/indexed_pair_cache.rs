@@ -5,14 +5,13 @@
 //! current frontier. The current AABB is always rechecked before a pair event
 //! is committed; fat-tree hits are conservative candidates, not final pairs.
 
-use super::{overlaps, validate_proxy_sequence, PairDeltaFrame, ProxyFrame, TournamentError};
+use super::{PairDeltaFrame, ProxyFrame, TournamentError, overlaps, validate_proxy_sequence};
 use incremental_aabb_tree_reference::{BalancePolicy, IncrementalAabbTree, ProxyId, ProxyPair};
 use std::collections::{BTreeMap, BTreeSet};
 
 fn full_relation_reconciliation_threshold(population: usize) -> usize {
     let population = population.max(1);
-    let ceil_log2 =
-        (usize::BITS - population.saturating_sub(1).leading_zeros()).max(1) as usize;
+    let ceil_log2 = (usize::BITS - population.saturating_sub(1).leading_zeros()).max(1) as usize;
     population.saturating_mul(ceil_log2)
 }
 
@@ -140,9 +139,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
             }
             previous = Some(*id);
         }
-        Ok(expected
-            .iter()
-            .all(|id| supplied.binary_search(id).is_ok()))
+        Ok(expected.iter().all(|id| supplied.binary_search(id).is_ok()))
     }
 
     pub(super) fn step(
@@ -153,13 +150,11 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         let mut snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
             .ok()
             .and_then(|previous| {
-                u64::try_from(frame.len())
-                    .ok()
-                    .and_then(|current| {
-                        current
-                            .checked_mul(2)
-                            .and_then(|current| previous.checked_add(current))
-                    })
+                u64::try_from(frame.len()).ok().and_then(|current| {
+                    current
+                        .checked_mul(2)
+                        .and_then(|current| previous.checked_add(current))
+                })
             })
             .ok_or(TournamentError::CounterOverflow)?;
         if self.force_dirty {
@@ -229,14 +224,14 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         }
 
         let query = next_tree.query_pairs();
-        let candidate_count = u64::try_from(query.pairs.len())
-            .map_err(|_| TournamentError::CounterOverflow)?;
-        let node_visits = u64::try_from(query.stats.node_visits)
-            .map_err(|_| TournamentError::CounterOverflow)?;
-        let leaf_tests = u64::try_from(query.stats.leaf_tests)
-            .map_err(|_| TournamentError::CounterOverflow)?;
-        let aabb_tests = u64::try_from(query.stats.aabb_tests)
-            .map_err(|_| TournamentError::CounterOverflow)?;
+        let candidate_count =
+            u64::try_from(query.pairs.len()).map_err(|_| TournamentError::CounterOverflow)?;
+        let node_visits =
+            u64::try_from(query.stats.node_visits).map_err(|_| TournamentError::CounterOverflow)?;
+        let leaf_tests =
+            u64::try_from(query.stats.leaf_tests).map_err(|_| TournamentError::CounterOverflow)?;
+        let aabb_tests =
+            u64::try_from(query.stats.aabb_tests).map_err(|_| TournamentError::CounterOverflow)?;
 
         let mut current_pairs = BTreeSet::<ProxyPair>::new();
         let mut overlap_tests = 0_u64;
@@ -339,8 +334,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
                 return Err(TournamentError::InvalidDirtyJournal);
             }
             let existed_before = self.previous_bounds.contains_key(dirty_id);
-            let current_index =
-                frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
+            let current_index = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
             let exists_now = current_index.is_some();
             if !existed_before && !exists_now {
                 return Err(TournamentError::InvalidDirtyJournal);
@@ -359,8 +353,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         // claim; the selected mode is exported in the frame receipt.
         let population = self.previous_bounds.len().max(frame.len()).max(1);
         let threshold = full_relation_reconciliation_threshold(population);
-        let dirty_pair_upper_bound =
-            dirty.len().saturating_mul(dirty.len().saturating_sub(1)) / 2;
+        let dirty_pair_upper_bound = dirty.len().saturating_mul(dirty.len().saturating_sub(1)) / 2;
         if dirty_pair_upper_bound > threshold {
             return self.apply_full_relation_reconciliation(
                 frame,
@@ -399,8 +392,7 @@ impl<const D: usize> IndexedPairDeltaCache<D> {
         // so a current overlap with an unchanged proxy must be returned here.
         // Changed/changed relationships are handled explicitly below.
         for dirty_id in &dirty {
-            let Some(index) = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok()
-            else {
+            let Some(index) = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok() else {
                 continue;
             };
             let query = self.tree.query(frame[index].bounds)?;
