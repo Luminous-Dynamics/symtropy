@@ -82,6 +82,8 @@ pub enum Verdict {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ComparisonEvidence {
+    pub record_id: String,
+    pub digest: String,
     pub prediction_record_id: String,
     pub observation_record_id: String,
     pub scope: Scope,
@@ -102,6 +104,7 @@ pub struct RequirementEvidence {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpatialCertificate {
     pub certificate_id: String,
+    pub digest: String,
     pub specimen_id: String,
     pub scope: Scope,
     pub geometry_digest: String,
@@ -224,9 +227,13 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
         || case.scope.frame_id.trim().is_empty()
         || case.scope.grid_id.trim().is_empty()
         || case.scope.operating_condition_id.trim().is_empty()
-        || !valid_sha256(&case.acceptance_policy_digest)
+        || case.acceptance_policy_digest.trim().is_empty()
     {
         blockers.push(Blocker::MissingIdentity);
+    }
+
+    if !valid_sha256(&case.acceptance_policy_digest) {
+        blockers.push(Blocker::InvalidSha256Digest);
     }
 
     check_record(
@@ -301,6 +308,12 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
         blockers.push(Blocker::MissingBackgroundFieldTreatment);
     }
 
+    if case.comparison.record_id.trim().is_empty() {
+        blockers.push(Blocker::MissingIdentity);
+    }
+    if !valid_sha256(&case.comparison.digest) {
+        blockers.push(Blocker::InvalidSha256Digest);
+    }
     if case.comparison.prediction_record_id != case.solver.record.id {
         blockers.push(Blocker::ComparisonPredictionMismatch);
     }
@@ -311,6 +324,12 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
         blockers.push(Blocker::WrongScope);
     }
 
+    if case.spatial_certificate.certificate_id.trim().is_empty() {
+        blockers.push(Blocker::MissingIdentity);
+    }
+    if !valid_sha256(&case.spatial_certificate.digest) {
+        blockers.push(Blocker::InvalidSha256Digest);
+    }
     if case.spatial_certificate.specimen_id != case.specimen_id {
         blockers.push(Blocker::SpatialSpecimenMismatch);
     }
@@ -548,6 +567,8 @@ mod tests {
                 background_field_treatment_id: "BG-CORRECTION-001".to_string(),
             },
             comparison: ComparisonEvidence {
+                record_id: "CMP-001".to_string(),
+                digest: digest('7'),
                 prediction_record_id: solver_record.id.clone(),
                 observation_record_id: observation_record.id.clone(),
                 scope: scope.clone(),
@@ -555,6 +576,7 @@ mod tests {
             },
             spatial_certificate: SpatialCertificate {
                 certificate_id: "SPACE-001".to_string(),
+                digest: digest('8'),
                 specimen_id: specimen.clone(),
                 scope: scope.clone(),
                 geometry_digest: geometry.as_built_geometry_digest.clone(),
@@ -702,6 +724,24 @@ mod tests {
         assert!(result
             .blockers
             .contains(&Blocker::ComparisonObservationMismatch));
+    }
+
+    #[test]
+    fn comparison_receipt_requires_its_own_identity_and_digest() {
+        let mut case = valid_case();
+        case.comparison.digest = "not-a-sha256".to_string();
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::InvalidSha256Digest));
+    }
+
+    #[test]
+    fn spatial_certificate_requires_its_own_identity_and_digest() {
+        let mut case = valid_case();
+        case.spatial_certificate.certificate_id.clear();
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingIdentity));
     }
 
     #[test]
