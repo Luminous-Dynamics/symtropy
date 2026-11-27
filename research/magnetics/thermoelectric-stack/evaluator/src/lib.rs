@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Family {
     ConventionalWindingCooling,
-    ConventionalDirectOilCooling,
+    ConventionalHighPerformanceCooling,
     ConventionalDirectOilCooling,
     ConventionalMultiNozzleOilJetCooling,
     ConventionalHairpinOilSprayCooling,
