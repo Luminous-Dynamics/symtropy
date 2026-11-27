@@ -223,7 +223,7 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         || input.intended_use != "NONCOMMERCIAL"
         || input.corrected_pose_revision != SPACESENSE_REVISION
         || input.camera_frame != "FRD_X_FORWARD_Y_RIGHT_Z_DOWN"
-        || input.world_frame != "AIRS​IM_NED"
+        || input.world_frame != "AIRSIM_NED"
         || input.quaternion_convention != "HAMILTON_WXYZ"
         || input.pose_length_unit != "metre"
         || input.depth_unit != "millimetre"
@@ -310,10 +310,8 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
 /// Detects duplicate sample keys and spacecraft leakage across splits. Results
 /// remain aligned with the input records so every rejected row is retained.
 pub fn evaluate_manifest(inputs: &[BundleInput]) -> Vec<BundleResult> {
-    let mut samples = BTreeSet::new();
     let mut spacecraft_splits: BTreeMap<&str, BTreeSet<&str>> = BTreeMap::new();
     for input in inputs {
-        samples.insert(input.sample_id.as_str());
         spacecraft_splits
             .entry(input.spacecraft_id.as_str())
             .or_default()
@@ -392,7 +390,7 @@ mod tests {
             corrected_pose_revision: SPACESENSE_REVISION.to_owned(),
             pose_csv_revision: SPACESENSE_REVISION.to_owned(),
             camera_frame: "FRD_X_FORWARD_Y_RIGHT_Z_DOWN".to_owned(),
-            world_frame: "AIRS​IM_NED".to_owned(),
+            world_frame: "AIRSIM_NED".to_owned(),
             quaternion_convention: "HAMILTON_WXYZ".to_owned(),
             pose_length_unit: "metre".to_owned(),
             depth_unit: "millimetre".to_owned(),
