@@ -30,6 +30,9 @@ pub struct EndpointRevisions {
     pub eligibility: u64,
     pub motion_class: u64,
     pub material: u64,
+    /// Revision of per-body dynamic inputs used by callback response policy.
+    /// Examples include consciousness state sampled for impulse or friction modulation.
+    pub response_state: u64,
     pub wake_epoch: u64,
 }
 
@@ -85,6 +88,7 @@ pub enum RevisionDomain {
     Eligibility,
     MotionClass,
     Material,
+    ResponseState,
     WakeEpoch,
 }
 
@@ -119,6 +123,7 @@ pub enum FreshnessReason {
     CollisionPolicyChanged,
     NarrowphaseConfigurationChanged,
     ContactMaterialChanged,
+    ResponseStateChanged,
     SolverConfigurationChanged,
     ContactResponsePolicyChanged,
     WakeEpochAdvanced,
@@ -272,6 +277,17 @@ impl ContactFreshnessStamp {
             )?;
             if current.material != previous.material {
                 reasons.insert(FreshnessReason::ContactMaterialChanged);
+                warm_start_reusable = false;
+            }
+
+            check_revision(
+                previous.response_state,
+                current.response_state,
+                current.proxy,
+                RevisionDomain::ResponseState,
+            )?;
+            if current.response_state != previous.response_state {
+                reasons.insert(FreshnessReason::ResponseStateChanged);
                 warm_start_reusable = false;
             }
 
@@ -579,6 +595,7 @@ mod tests {
             eligibility: 3,
             motion_class: 1,
             material: 7,
+            response_state: 6,
             wake_epoch: 2,
         }
     }
@@ -1235,6 +1252,24 @@ mod tests {
             .expect("response policy stamp committed");
         assert_eq!(decision.geometry, ReuseDisposition::Reusable);
         assert_eq!(decision.warm_start, ReuseDisposition::Reusable);
+    }
+
+
+
+    #[test]
+    fn dynamic_callback_response_state_change_preserves_geometry_but_resets_warm_start() {
+        let old_stamp = stamp();
+        let mut current_left = endpoint(1);
+        current_left.response_state += 1;
+        let decision = old_stamp
+            .assess(next_global(), current_left, endpoint(2))
+            .expect("dynamic callback response state changed");
+        assert_eq!(decision.geometry, ReuseDisposition::Reusable);
+        assert_eq!(decision.warm_start, ReuseDisposition::RefreshRequired);
+        assert_eq!(
+            decision.reasons,
+            vec![FreshnessReason::ResponseStateChanged]
+        );
     }
 
 
