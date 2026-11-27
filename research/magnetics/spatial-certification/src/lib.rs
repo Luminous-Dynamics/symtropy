@@ -84,10 +84,11 @@ impl AxisAlignedBox3 {
 
     pub fn widths_m(self) -> Result<[f64; 3], CertificationError> {
         self.validate()?;
-        let widths = std::array::from_fn(|index| {
-            self.maximum_m[index] - self.minimum_m[index]
-        });
-        if widths.iter().any(|value| !value.is_finite() || *value <= 0.0) {
+        let widths = std::array::from_fn(|index| self.maximum_m[index] - self.minimum_m[index]);
+        if widths
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+        {
             return Err(CertificationError::InvalidBox);
         }
         Ok(widths)
@@ -343,10 +344,7 @@ fn validate_evidence(evidence: &CellMarginEvidence) -> Result<(), CertificationE
     {
         return Err(CertificationError::InvalidIdentity);
     }
-    validate_digest(
-        &evidence.centre_sample_sha256,
-        "centre_sample_sha256",
-    )?;
+    validate_digest(&evidence.centre_sample_sha256, "centre_sample_sha256")?;
     validate_digest(&evidence.geometry_sha256, "geometry_sha256")?;
     validate_digest(&evidence.material_sha256, "material_sha256")?;
     evidence.bounds.validate()?;
@@ -392,9 +390,7 @@ fn dominant_axis(contributions: [f64; 3]) -> Option<Axis> {
 ///
 /// The result is conditional on the supplied component-wise derivative
 /// suprema being valid everywhere inside this exact box.
-pub fn certify_cell(
-    evidence: &CellMarginEvidence,
-) -> Result<CellCertificate, CertificationError> {
+pub fn certify_cell(evidence: &CellMarginEvidence) -> Result<CellCertificate, CertificationError> {
     validate_evidence(evidence)?;
     let half_widths = evidence.bounds.half_widths_m();
     let mut contributions = [0.0; 3];
@@ -415,10 +411,14 @@ pub fn certify_cell(
         }
     }
 
-    let margin_lower_enclosure =
-        subtract_down(evidence.centre_margin_lower_bound, maximum_spatial_variation);
-    let margin_upper_enclosure =
-        add_up(evidence.centre_margin_upper_bound, maximum_spatial_variation);
+    let margin_lower_enclosure = subtract_down(
+        evidence.centre_margin_lower_bound,
+        maximum_spatial_variation,
+    );
+    let margin_upper_enclosure = add_up(
+        evidence.centre_margin_upper_bound,
+        maximum_spatial_variation,
+    );
     if !margin_lower_enclosure.is_finite() || !margin_upper_enclosure.is_finite() {
         return Err(CertificationError::NonFiniteDerivedMargin);
     }
@@ -449,8 +449,7 @@ fn stable_midpoint(minimum: f64, maximum: f64) -> Option<f64> {
     } else {
         minimum * 0.5 + maximum * 0.5
     };
-    (midpoint.is_finite() && midpoint > minimum && midpoint < maximum)
-        .then_some(midpoint)
+    (midpoint.is_finite() && midpoint > minimum && midpoint < maximum).then_some(midpoint)
 }
 
 pub fn validate_split(
@@ -553,12 +552,7 @@ pub fn plan_refinement(
     let finish = |disposition, split: Option<CellSplit>, resulting_leaf_count| {
         let suggested_probe_positions_m = split
             .as_ref()
-            .map(|value| {
-                vec![
-                    value.left_bounds.centre_m(),
-                    value.right_bounds.centre_m(),
-                ]
-            })
+            .map(|value| vec![value.left_bounds.centre_m(), value.right_bounds.centre_m()])
             .unwrap_or_default();
         RefinementPlan {
             certificate: certificate.clone(),
@@ -707,10 +701,7 @@ pub fn validate_leaf_partition(
         }
         for y_window in y_planes.windows(2) {
             let [y_min, y_max] = [y_window[0], y_window[1]];
-            if y_min < root.minimum_m[1]
-                || y_max > root.maximum_m[1]
-                || y_min >= y_max
-            {
+            if y_min < root.minimum_m[1] || y_max > root.maximum_m[1] || y_min >= y_max {
                 continue;
             }
 
@@ -787,10 +778,7 @@ pub fn certify_domain(
         cell_certificates.push(certify_cell(cell)?);
     }
 
-    let leaves = evidence
-        .iter()
-        .map(|cell| cell.bounds)
-        .collect::<Vec<_>>();
+    let leaves = evidence.iter().map(|cell| cell.bounds).collect::<Vec<_>>();
     let partition = validate_leaf_partition(root, &leaves)?;
     let certified_safe_cell_count = cell_certificates
         .iter()
@@ -928,11 +916,9 @@ mod tests {
     fn exact_split_children_cover_parent_without_gap_or_overlap() {
         let input = evidence();
         let split = build_split(&input.cell_id, input.bounds, Axis::Y).expect("representable");
-        let metrics = validate_leaf_partition(
-            input.bounds,
-            &[split.left_bounds, split.right_bounds],
-        )
-        .expect("complete partition");
+        let metrics =
+            validate_leaf_partition(input.bounds, &[split.left_bounds, split.right_bounds])
+                .expect("complete partition");
         assert_eq!(metrics.leaf_count, 2);
         assert!((metrics.domain_volume_m3 - metrics.summed_leaf_volume_m3).abs() < 1.0e-12);
     }
@@ -945,8 +931,7 @@ mod tests {
         left.maximum_m[0] = -0.1;
         right.minimum_m[0] = 0.1;
         assert_eq!(
-            validate_leaf_partition(root, &[left, right])
-                .expect_err("missing slab is not covered"),
+            validate_leaf_partition(root, &[left, right]).expect_err("missing slab is not covered"),
             CertificationError::PartitionVolumeMismatch
         );
     }
@@ -959,8 +944,7 @@ mod tests {
         left.maximum_m[0] = 0.2;
         right.minimum_m[0] = -0.2;
         assert_eq!(
-            validate_leaf_partition(root, &[left, right])
-                .expect_err("overlap is invalid"),
+            validate_leaf_partition(root, &[left, right]).expect_err("overlap is invalid"),
             CertificationError::OverlappingPartitionCells
         );
     }
