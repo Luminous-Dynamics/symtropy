@@ -49,6 +49,18 @@ Observed result in the recorded execution:
 
 The tuple compared is maximum total flow, negative service volume for each priority tier in priority order, then route cost. Tied but different optimal flow assignments are accepted. The harness also independently checks the final arc witness for exact arc coverage, lower/upper bounds, fixed total flow, and intermediate-node conservation; each previously optimized priority-gate amount must remain unchanged in the final cost pass.
 
+## Expanded conformance lane
+
+The current harness revision extends the original 100-case smoke corpus with:
+
+- 1,000 seeded six-node / eight-arc instances using the same bounded two-tier objective and exhaustive integer-flow oracle.
+- 100 additional instances containing two distinct parallel arcs with the same endpoints.
+- A NetworkX `network_simplex` edge-node transformation: every original arc receives a collision-checked synthetic node, preserving the original arc ID and cost independently while keeping the comparator graph a simple `DiGraph`.
+- Native `MultiDiGraph` execution for `capacity_scaling`; both solver paths are checked against exhaustive enumeration on the parallel-arc cases.
+- The final logical-arc flow is reconstructed from the edge-node witness and checked against the original arc bounds and node-conservation equations.
+
+A local exploratory check of the same edge-node transformation obtained exact objective-tuple parity on 200 seeded parallel-arc instances for both NetworkX algorithms (NetworkX 3.6.1). This was a local focused test, not execution of the committed 1,000 + 100 workflow. The expanded exact-head workflow is the source of the next reproducible CI receipt. The historical 100-case timing table above must not be read as a performance result for this expanded suite.
+
 ## Limits — do not overclaim
 
 This is a tiny correctness experiment for the **benchmark transformation**, not a benchmark of the Rust SAFRB planner. It does not establish solver speed superiority, field validity, physical capacity, evidence authority, service delivery, or readiness for large instances.
