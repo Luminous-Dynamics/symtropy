@@ -81,6 +81,15 @@ pub struct SharedExogenousWorldReceipt {
     pub reference_epoch_digest: [u8; 32],
 }
 
+impl SharedExogenousWorldReceipt {
+    /// Return the canonical SHA-256 digest of this shared pre-action world receipt.
+    ///
+    /// This is a content identity, not an issuer signature or proof of execution.
+    pub fn canonical_digest(&self) -> [u8; 32] {
+        digest_shared_world(self)
+    }
+}
+
 /// One portfolio's post-intervention trajectory and mission-risk binding.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PortfolioTrajectoryReceipt {
