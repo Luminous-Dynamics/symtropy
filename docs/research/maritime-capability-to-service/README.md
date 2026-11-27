@@ -182,3 +182,8 @@ The first executable slice solves one decision epoch only. It is not a multistag
 The follow-on [conformal decision protocol](conformal-decision-contract-v0.1.md) is tracked in [MCSC-CONFORMAL-ACTION-001 #7855](https://github.com/Luminous-Dynamics/symtropy/issues/7855). The new Rust module implements exact finite-sample absolute-residual split-conformal rank arithmetic, calibration/model/decision chronology, explicit unbounded output for insufficient samples, applicability-aware coverage claims and a conservative single-deadline interval gate.
 
 This is a calibration and decision-gate primitive, not a predictive model, full berth/crane optimizer or evidence that a Durban deployment achieves nominal coverage. Conditional coverage and distribution shift remain explicit research questions.
+## Joint conformal risk budget and multi-resource robust action gate
+
+The follow-on [joint-risk-budget protocol](joint-conformal-risk-budget-v0.1.md) is tracked in [MCSC-ROBUST-ACTION-ENVELOPE-001 #7858](https://github.com/Luminous-Dynamics/symtropy/issues/7858). The Rust module src/robust_action.rs predeclares alpha allocations for arrival, handling, crane minutes, shore power and yard slots, checks their sum against a joint miscoverage budget using the union bound, and evaluates adverse resource bounds for one candidate action.
+
+This avoids claiming that several marginal 90% intervals automatically provide 90% simultaneous feasibility. The adapter is a bounded single-action feasibility filter, not a multi-vessel berth/quay-crane/yard optimizer or live action authority.
