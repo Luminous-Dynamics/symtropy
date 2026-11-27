@@ -137,6 +137,117 @@ fn validate_contract(contract: &CalibrationContract) -> Result<(), String> {
     Ok(())
 }
 
+fn expected_rank_1based(sample_count: u64, alpha_ppm: u32) -> Option<u64> {
+    if sample_count == 0 || alpha_ppm == 0 || alpha_ppm >= 1_000_000 {
+        return None;
+    }
+    let numerator = (u128::from(sample_count) + 1)
+        .checked_mul(u128::from(1_000_000 - alpha_ppm))?;
+    u64::try_from(numerator.div_ceil(1_000_000)).ok()
+}
+
+fn valid_coverage_claim(
+    coverage_claim: CoverageClaim,
+    nominal_coverage_claim_ppm: Option<u32>,
+    alpha_ppm: u32,
+) -> bool {
+    match coverage_claim {
+        CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability => {
+            nominal_coverage_claim_ppm == Some(1_000_000 - alpha_ppm)
+        }
+        CoverageClaim::NoFormalGuaranteeKnownDistributionShift
+        | CoverageClaim::NoFormalGuaranteeApplicabilityUnknown => {
+            nominal_coverage_claim_ppm.is_none()
+        }
+    }
+}
+
+fn valid_calibration_identity(
+    model_sha256: &str,
+    feature_schema_sha256: &str,
+    calibration_data_sha256: &str,
+    model_fit_cutoff: u64,
+    calibration_window_start: u64,
+    calibration_window_end: u64,
+    decision_cutoff: u64,
+) -> bool {
+    is_sha256_digest(model_sha256)
+        && is_sha256_digest(feature_schema_sha256)
+        && is_sha256_digest(calibration_data_sha256)
+        && model_fit_cutoff < calibration_window_start
+        && calibration_window_start <= calibration_window_end
+        && calibration_window_end <= decision_cutoff
+}
+
+/// Validate the exact finite-sample rank, provenance digests, calibration
+/// chronology, claim semantics and endpoint arithmetic of a finite interval.
+/// This validates the declared contract, not authenticity of the committed bytes.
+pub fn validate_interval(interval: &ConformalInterval) -> Result<(), String> {
+    let expected_rank = expected_rank_1based(interval.sample_count, interval.alpha_ppm)
+        .ok_or_else(|| "interval has invalid alpha or zero calibration sample count".to_owned())?;
+    if expected_rank != interval.quantile_rank_1based {
+        return Err("interval rank does not match the exact finite-sample conformal rank".to_owned());
+    }
+    if expected_rank > interval.sample_count {
+        return Err("finite interval supplied for an unbounded conformal rank".to_owned());
+    }
+    if !valid_calibration_identity(
+        &interval.model_sha256,
+        &interval.feature_schema_sha256,
+        &interval.calibration_data_sha256,
+        interval.model_fit_cutoff,
+        interval.calibration_window_start,
+        interval.calibration_window_end,
+        interval.decision_cutoff,
+    ) {
+        return Err("interval calibration provenance or chronology is invalid".to_owned());
+    }
+    if !valid_coverage_claim(
+        interval.coverage_claim,
+        interval.nominal_coverage_claim_ppm,
+        interval.alpha_ppm,
+    ) {
+        return Err("interval nominal coverage claim is inconsistent with its applicability state".to_owned());
+    }
+    if interval.point_prediction.saturating_sub(interval.radius) != interval.lower
+        || interval.point_prediction.checked_add(interval.radius) != Some(interval.upper)
+    {
+        return Err("interval endpoints do not match point prediction and radius".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_calibration_report(report: &CalibrationReport) -> Result<(), String> {
+    let expected_rank = expected_rank_1based(report.sample_count, report.alpha_ppm)
+        .ok_or_else(|| "calibration report has invalid alpha or zero sample count".to_owned())?;
+    if expected_rank != report.quantile_rank_1based {
+        return Err("calibration report rank does not match exact finite-sample rank".to_owned());
+    }
+    if !valid_calibration_identity(
+        &report.model_sha256,
+        &report.feature_schema_sha256,
+        &report.calibration_data_sha256,
+        report.model_fit_cutoff,
+        report.calibration_window_start,
+        report.calibration_window_end,
+        report.decision_cutoff,
+    ) {
+        return Err("calibration report provenance or chronology is invalid".to_owned());
+    }
+    if !valid_coverage_claim(
+        report.coverage_claim,
+        report.nominal_coverage_claim_ppm,
+        report.alpha_ppm,
+    ) {
+        return Err("calibration report coverage claim is inconsistent".to_owned());
+    }
+    match (report.radius, expected_rank <= report.sample_count) {
+        (Some(_), true) | (None, false) => Ok(()),
+        (Some(_), false) => Err("finite radius supplied for an unbounded conformal rank".to_owned()),
+        (None, true) => Err("unbounded radius supplied despite an available finite conformal rank".to_owned()),
+    }
+}
+
 /// Calibrate the absolute-residual split-conformal radius.
 ///
 /// Uses the exact finite-sample rank ceil((n + 1) * (1 - alpha)). If that rank
@@ -235,6 +346,7 @@ pub fn build_interval(
     report: &CalibrationReport,
     point_prediction: u64,
 ) -> Result<Option<ConformalInterval>, String> {
+    validate_calibration_report(report)?;
     let Some(radius) = report.radius else {
         return Ok(None);
     };
@@ -281,8 +393,9 @@ pub fn assess_deadline_feasibility(
     handling_duration_upper: u64,
     deadline: u64,
 ) -> DecisionGate {
-    if interval.coverage_claim != CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
-        || interval.nominal_coverage_claim_ppm.is_none()
+    if validate_interval(interval).is_err()
+        || interval.coverage_claim
+            != CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability
     {
         return DecisionGate::Indeterminate;
     }
