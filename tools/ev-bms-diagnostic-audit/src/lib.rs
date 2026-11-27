@@ -1,8 +1,10 @@
+pub mod dataset_manifest;
+
 use jsonschema::{Validator, draft202012};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 const SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/transport/ev-bms-diagnostic-event/0.1";
 const CORPUS_VERSION: &str = "ev-bms-diagnostic-corpus/0.1";
@@ -401,7 +403,7 @@ fn validate_event(event: &Event) -> Vec<String> {
                 );
             }
         }
-        "approved" | "denied" => {
+        "approved" | "denied"
             if reaction
                 .authority_ref
                 .as_deref()
@@ -409,13 +411,11 @@ fn validate_event(event: &Event) -> Vec<String> {
                 || reaction
                     .authority_digest
                     .as_deref()
-                    .is_none_or(|value| !is_digest(value))
-            {
-                errors.push(
-                    "authority decision requires an authority reference and digest".to_owned(),
-                );
-            }
+                    .is_none_or(|value| !is_digest(value)) =>
+        {
+            errors.push("authority decision requires an authority reference and digest".to_owned());
         }
+        "approved" | "denied" => {}
         _ => {}
     }
 

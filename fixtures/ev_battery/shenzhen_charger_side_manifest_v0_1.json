@@ -1,0 +1,65 @@
+{
+  "manifest_version": "ev-bms-dataset-manifest/v0.1",
+  "dataset_id": "shenzhen-charger-side-mendeley-c7gg94tmvz-v3",
+  "title": "A dataset of EV battery charging from Shenzhen Auto Electric Power Plant Co., Ltd (Autosun) and Hong Kong Polytechnic University",
+  "doi": "10.17632/c7gg94tmvz.3",
+  "source_record_url": "https://data.mendeley.com/datasets/c7gg94tmvz/3",
+  "source_repository": "Mendeley Data",
+  "source_version": "3",
+  "source_published_on": "2024-10-08",
+  "metadata_retrieved_on": "2026-11-27",
+  "license_spdx": "CC-BY-4.0",
+  "evidence_class": "operator_collected_field_observation",
+  "source_domain": "charger_side",
+  "measurement_boundary": "charging_station_metering",
+  "sample_interval_seconds": 60,
+  "counts": {
+    "sample_count": 1547432,
+    "sample_count_is_approximate": false,
+    "vehicle_count": 10154,
+    "session_count": 21175,
+    "station_count": 30,
+    "manufacturer_group_count": null,
+    "data_owner_group_count": 8
+  },
+  "label_contract": {
+    "task": "binary_fault_warning",
+    "granularity": "charging_session_sample",
+    "classes": [
+      "normal",
+      "fault"
+    ],
+    "label_sources": [
+      "engineering_reported_fault",
+      "high_temperature_station_disconnect"
+    ],
+    "limitations": [
+      "The dataset is station-side telemetry rather than a full BMS stream.",
+      "Fault labels combine engineering-reported faults and high-temperature station disconnections.",
+      "The fault label does not by itself identify a cell-level failure mechanism.",
+      "Only charging sessions longer than 30 minutes are used in the paper's primary modelling dataset."
+    ]
+  },
+  "asset_group_keys": [
+    "vehicle_id",
+    "station_id",
+    "data_owner_group",
+    "transaction_id",
+    "time"
+  ],
+  "assets": [
+    {
+      "name": "processed_data.xlsx",
+      "source_md5": null,
+      "local_sha256": null
+    },
+    {
+      "name": "processed_data_longer_than_30.xlsx",
+      "source_md5": null,
+      "local_sha256": null
+    }
+  ],
+  "admission_state": "metadata_only",
+  "claim_ceiling": "Metadata-only source registration. No raw bytes, label frequencies, event boundaries, model score, station split or physical fault claim has yet been independently verified by this project.",
+  "count_basis_asset": "processed_data_longer_than_30.xlsx"
+}

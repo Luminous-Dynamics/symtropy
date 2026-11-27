@@ -5,8 +5,11 @@ on:
     paths:
       - "schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json"
       - "fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json"
+      - "fixtures/ev_battery/*_manifest_v0_1.json"
+      - "schemas/transport/ev_bms_dataset_manifest_v0_1.schema.json"
       - "tools/ev-bms-diagnostic-audit/**"
       - "docs/transport/EV_BMS_DIAGNOSTIC_EVENT_V0_1.md"
+      - "docs/transport/EV_BMS_FAULT_DATASET_REGISTRY_V0_1.md"
       - ".github/workflows/ev-bms-diagnostic-audit.yml"
 
 permissions:
@@ -26,9 +29,19 @@ jobs:
         run: cargo fmt --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml -- --check
       - name: Run diagnostic evidence and mutation tests
         run: cargo test --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml
+      - name: Run warnings-denied Clippy
+        run: cargo clippy --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --all-targets -- -D warnings
+
+      - name: Audit metadata-only benchmark dataset manifests
+        run: |
+          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-dataset-manifest-audit -- --schema schemas/transport/ev_bms_dataset_manifest_v0_1.schema.json --manifest fixtures/ev_battery/cao_onboard_bms_manifest_v0_1.json > "$RUNNER_TEMP/cao-dataset-admission.json"
+          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-dataset-manifest-audit -- --schema schemas/transport/ev_bms_dataset_manifest_v0_1.schema.json --manifest fixtures/ev_battery/shenzhen_charger_side_manifest_v0_1.json > "$RUNNER_TEMP/shenzhen-dataset-admission.json"
+          jq -e '.admission_state == "metadata_only" and .vehicle_count == 515 and .asset_count == 7' "$RUNNER_TEMP/cao-dataset-admission.json"
+          jq -e '.admission_state == "metadata_only" and .vehicle_count == 10154 and .session_count == 21175 and .station_count == 30 and .asset_count == 2' "$RUNNER_TEMP/shenzhen-dataset-admission.json"
+
       - name: Audit frozen synthetic corpus
         run: |
-          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml -- --schema schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json --corpus fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json > "$RUNNER_TEMP/ev-bms-diagnostic-report.json"
+          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-diagnostic-audit -- --schema schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json --corpus fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json > "$RUNNER_TEMP/ev-bms-diagnostic-report.json"
           jq -e '
             .case_count == 12 and
             .accepted_count == 6 and
