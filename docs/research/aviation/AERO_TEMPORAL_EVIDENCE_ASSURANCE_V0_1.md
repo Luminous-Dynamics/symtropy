@@ -434,7 +434,7 @@ It contains 29 synthetic controls: a positive no-event binding case; known-but-f
 
 Every case freezes `AS_KNOWN_AT`, `RECOMPUTED_WITH_CURRENT_TRUST` and `RECOMPUTED_WITH_CURRENT_EVIDENCE_AND_TRUST` dispositions over distinct evidence and trust cutoffs. Event effective-time comparison is against acquisition time, not report time. Timestamp status `valid` also requires a non-null token time and exact event-digest imprint equality. The fixture deliberately permits duplicate event IDs so that the duplicate-conflict challenge is representable; uniqueness is a semantic rule to be evaluated, not a JSON Schema uniqueness rule over complete objects.
 
-**Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus is a contract fixture and is schema-validated in CI. It is not yet wired to the v0.2 Rust evaluator and must not be described as a passing semantic oracle. Independent review should precede evaluator integration.
+**Oracle status: `NOT_INDEPENDENTLY_REVIEWED`.** The corpus remains a synthetic contract fixture. A research-only Rust reference kernel in `temporal_replay_v0_1.rs` now evaluates all 29 cases in all three historical query modes against the frozen expected dispositions. This is executable conformance to the current fixture, not an independently adjudicated semantic oracle, cryptographic verifier, trusted-time service or production owner-receipt integration. Independent review is still required before any disposition is promoted.
 
 ## 11. Execution sequence
 
