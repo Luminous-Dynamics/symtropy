@@ -49,3 +49,6 @@ Campaign cost is consumed as one digest-bound cost receipt. Cost per accepted pa
 
 
 The replication gate uses `replication_eligible_builds` and the number of distinct valid feedstock lots actually referenced by valid builds. Unused lot records cannot satisfy the lot floor. Failed-before-inspection builds still count as attempted/eligible build replications when their identity and genealogy are valid. Duplicate receipt IDs invalidate the cohort.
+
+
+Only unique builds with valid build/process/genealogy receipts and a valid linked material lot count toward replication eligibility. Only distinct lots actually used by such builds count toward the lot floor. The attempted-build denominator remains all declared build records. Duplicate qualification, rework and scrap receipt IDs invalidate cohort structure.
