@@ -153,6 +153,10 @@ pub enum ContractError {
     ZeroEnergySampleInterval,
 }
 
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 fn contains_duplicate_stages(stages: &[Stage]) -> bool {
     stages
         .iter()
@@ -673,9 +677,9 @@ mod tests {
         receipt
             .stage_observations
             .retain(|item| item.stage != Stage::MediaMount);
-        let score = score(&contract(), &receipt).unwrap();
-        assert_eq!(score.disposition, ServiceDisposition::Fail);
-        assert_eq!(score.missing_required_stages, vec![Stage::MediaMount]);
+        let scored = score(&contract(), &receipt).unwrap();
+        assert_eq!(scored.disposition, ServiceDisposition::Fail);
+        assert_eq!(scored.missing_required_stages, vec![Stage::MediaMount]);
 
         receipt.candidate_claimed_full_success = false;
         assert_eq!(
