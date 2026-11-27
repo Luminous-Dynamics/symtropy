@@ -128,11 +128,14 @@ fn valid_sha256(value: Option<&str>) -> bool {
     })
 }
 
+fn composite_key(source_namespace: &str, event_id: &str) -> String {
+    format!("{source_namespace}:{event_id}")
+}
+
 fn source_key(event: &Value) -> String {
-    format!(
-        "{}:{}",
+    composite_key(
         string(event, "source_namespace").unwrap_or("source"),
-        string(event, "event_id").unwrap_or("event")
+        string(event, "event_id").unwrap_or("event"),
     )
 }
 
@@ -237,7 +240,7 @@ fn check_checkpoint(snapshot: &Value, findings: &mut Findings) -> Option<u64> {
         findings.reason("EVIDENCE_CHECKPOINT_DIGEST_MISMATCH");
         return None;
     }
-    watermark
+    Some(watermark)
 }
 
 fn check_observer_coverage(snapshot: &Value, evidence_watermark: u64, findings: &mut Findings) {
