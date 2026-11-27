@@ -9,7 +9,7 @@
 //! then checks that its graph and witness faithfully encode the profile.
 
 use crate::temporal_profile::{
-    TemporalProfile, TemporalService, TemporalTransfer, TEMPORAL_PROFILE_SCHEMA,
+    TEMPORAL_PROFILE_SCHEMA, TemporalProfile, TemporalService, TemporalTransfer,
 };
 use single_commodity_flow_kernel::{
     EdgeFlow, FlowCertificateBundle, FlowEdge, MAX_EDGES, MAX_NODES,
@@ -28,10 +28,7 @@ struct ExpectedEdge {
 }
 
 fn state_id(node_id: &str, period: u64) -> String {
-    format!(
-        "safrb-temporal/state/{}/{node_id}/{period}",
-        node_id.len()
-    )
+    format!("safrb-temporal/state/{}/{node_id}/{period}", node_id.len())
 }
 
 fn handling_id(node_id: &str, period: u64) -> String {
@@ -54,10 +51,7 @@ fn handling_edge_id(node_id: &str, period: u64) -> String {
 }
 
 fn issue_edge_id(node_id: &str, period: u64) -> String {
-    format!(
-        "service-issue-gate/{}/{node_id}/{period}",
-        node_id.len()
-    )
+    format!("service-issue-gate/{}/{node_id}/{period}", node_id.len())
 }
 
 fn source_edge_id(kind: &str, id: &str) -> String {
@@ -93,10 +87,7 @@ fn check_nonempty(value: &str, label: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn check_unique<'a>(
-    values: impl IntoIterator<Item = &'a str>,
-    label: &str,
-) -> Result<(), String> {
+fn check_unique<'a>(values: impl IntoIterator<Item = &'a str>, label: &str) -> Result<(), String> {
     let mut seen = BTreeSet::new();
     for value in values {
         check_nonempty(value, label)?;
@@ -570,9 +561,11 @@ pub fn verify_temporal_certificate(
             }
 
             let mut declared_service = 0_u64;
-            for service in profile.services.iter().filter(|service| {
-                service.node_id == node.node_id && service.period == period
-            }) {
+            for service in profile
+                .services
+                .iter()
+                .filter(|service| service.node_id == node.node_id && service.period == period)
+            {
                 let service_edge = source_edge_id("service", &service.service_id);
                 declared_service = checked_add(
                     declared_service,
@@ -603,10 +596,7 @@ pub fn verify_temporal_certificate(
     Ok(())
 }
 
-fn check_flow_arc(
-    flow: &EdgeFlow,
-    graph_edge: &FlowEdge,
-) -> Result<(), String> {
+fn check_flow_arc(flow: &EdgeFlow, graph_edge: &FlowEdge) -> Result<(), String> {
     if flow.from != graph_edge.from
         || flow.to != graph_edge.to
         || flow.capacity != graph_edge.capacity
