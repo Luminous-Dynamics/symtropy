@@ -57,3 +57,5 @@ The authoring environment has no Cargo, rustc or rustfmt; 22 Rust tests are auth
 The reference Pareto filter compares feasible subsets pairwise. The 12-action cap limits the worst-case frontier comparison space to about 4,095² ≈ 16.8 million pair checks. Raising the cap requires a more scalable exact skyline algorithm and matching property tests.
 
 Solver comparison roadmap: [PRESERVATION_PORTFOLIO_SOLVER_TOURNAMENT_001.md](PRESERVATION_PORTFOLIO_SOLVER_TOURNAMENT_001.md), tracked by [issue #7676](https://github.com/Luminous-Dynamics/symtropy/issues/7676).
+
+**CI qualification:** `.github/workflows/preservation-intervention-portfolio-reference.yml` runs this standalone crate with Rust 1.96.0, rustfmt, strict Clippy and its unit tests. The workflow formats/commits only this crate's source on the research PR branch before checking it; push-to-main qualification is check-only.
