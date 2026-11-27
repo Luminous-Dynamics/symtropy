@@ -5,11 +5,11 @@ on:
     paths:
       - "schemas/transport/ev_bms_diagnostic_event_v0_1.schema.json"
       - "fixtures/ev_battery/bms_diagnostic_event_scenarios_v0_1.json"
-      - "tools/ev-bms-diagnostic-audit/**"
-      - "docs/transport/EV_BMS_DIAGNOSTIC_EVENT_V0_1.md
-      - "docs/transport/EV_BMS_FAULT_DATASET_REGISTRY_V0_1.md"
+      - "fixtures/ev_battery/*_manifest_v0_1.json"
       - "schemas/transport/ev_bms_dataset_manifest_v0_1.schema.json"
-      - "fixtures/ev_battery/*_manifest_v0_1.json""
+      - "tools/ev-bms-diagnostic-audit/**"
+      - "docs/transport/EV_BMS_DIAGNOSTIC_EVENT_V0_1.md"
+      - "docs/transport/EV_BMS_FAULT_DATASET_REGISTRY_V0_1.md"
       - ".github/workflows/ev-bms-diagnostic-audit.yml"
 
 permissions:
