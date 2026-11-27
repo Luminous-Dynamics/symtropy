@@ -19,7 +19,6 @@ use crate::decision_context_v0_1::{
 use crate::model_credibility_cut_v0_1::{MetricStratumStatus, ModelCredibilityCutV0_1};
 use crate::owner_evidence_cut_v0_1::{
     OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness, OwnerEvidenceLifecycle,
-    OwnerEvidenceRecordV0_1,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -1015,7 +1014,7 @@ mod tests {
     use crate::claim_specification_v0_1::{ClaimSpecificationV0_1, ValidityIntervalV0_1};
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::model_credibility_cut_v0_1::{MetricStratumReportV0_1, ModelCredibilityCutV0_1};
-    use crate::owner_evidence_cut_v0_1::OwnerEvidenceCutV0_1;
+    use crate::owner_evidence_cut_v0_1::{OwnerEvidenceCutV0_1, OwnerEvidenceRecordV0_1};
 
     fn sha(text: &str) -> String {
         sha256_hex(text.as_bytes())
