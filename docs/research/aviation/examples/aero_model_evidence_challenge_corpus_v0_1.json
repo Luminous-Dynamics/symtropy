@@ -334,7 +334,7 @@
       "partition": "PUBLIC_DEVELOPMENT"
     },
     {
-      "case_id": "stale-transitive-BASALT-dependency",
+      "case_id": "stale-transitive-basalt-dependency",
       "family": "owner_freshness",
       "case_type": "coupled_fault",
       "mutations": [
