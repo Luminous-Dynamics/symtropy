@@ -48,32 +48,34 @@ fn weekly_teu_total_is_reproduced_without_reallocating_other_or_averages() {
         .filter(|row: &Vec<&str>| row[0] == "weekly_flow")
         .collect();
 
-    let weekly_total: u64 = records
+    let terminal_rows: Vec<&Vec<&str>> = records
         .iter()
-        .map(|row| row[8].parse::<u64>().expect("weekly TEU total"))
+        .filter(|row| row[3] != "South Africa")
+        .collect();
+    let weekly_terminal_total: u64 = terminal_rows
+        .iter()
+        .map(|row| row[8].parse::<u64>().expect("weekly terminal TEU total"))
         .sum();
-    assert_eq!(weekly_total, 100_423);
+    assert_eq!(weekly_terminal_total, 100_423);
 
-    let daily_average_sum: u64 = records
+    let terminal_daily_average_sum: u64 = terminal_rows
         .iter()
-        .map(|row| row[7].parse::<u64>().expect("daily average TEU"))
+        .map(|row| row[7].parse::<u64>().expect("terminal daily average TEU"))
         .sum();
-    let published_total_daily_average = records
+    let national_row = records
         .iter()
         .find(|row| row[3] == "South Africa")
-        .expect("national total row")[7]
+        .expect("national total row");
+    let published_total_daily_average = national_row[7]
         .parse::<u64>()
         .expect("national daily average");
 
     // Independently rounded terminal averages sum to 14,347; the published
     // national total is 14,346. Preserve both source values; do not "fix" either.
-    assert_eq!(daily_average_sum, 14_347);
+    assert_eq!(terminal_daily_average_sum, 14_347);
     assert_eq!(published_total_daily_average, 14_346);
 
-    let national_weekly_total = records
-        .iter()
-        .find(|row| row[3] == "South Africa")
-        .expect("national total row")[8]
+    let national_weekly_total = national_row[8]
         .parse::<u64>()
         .expect("national weekly total");
     assert_eq!(national_weekly_total, 100_423);
