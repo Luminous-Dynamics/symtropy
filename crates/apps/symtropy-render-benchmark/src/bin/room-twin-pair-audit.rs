@@ -116,14 +116,14 @@ fn read_and_validate_camera_profile(
         || profile["image"]["color_range"] != "full"
         || profile["clock_domain"]["domain_id"] != "room-twin-bevy-real-time"
         || profile["clock_domain"]["generation"] != 0
-        || profile["clock_domain"]["time_scale_id"]
-            != "monotonic-seconds-since-app-start-v1"
+        || profile["clock_domain"]["time_scale_id"] != "monotonic-seconds-since-app-start-v1"
         || profile["transport"]["availability_ticks"] != json!([1, 2, 3])
         || profile["transport"]["prefix_decision_cutoff_tick"] != 2
         || profile["transport"]["first_distinguishing_observation_tick"] != 3
         || profile["capture_time_bounds"]["upper_bound_secs"] != 23.5
         || profile["capture_time_bounds"]["exact_exposure_timestamp_available"] != false
-        || profile["capture_time_bounds"]["lower_bound_semantics"] != "scheduled screenshot request time"
+        || profile["capture_time_bounds"]["lower_bound_semantics"]
+            != "scheduled screenshot request time"
         || profile["calibration"]["calibration_profile_sha256"] != Value::Null
         || profile["calibration"]["status"] != "synthetic_un-calibrated"
     {
@@ -137,7 +137,11 @@ fn read_and_validate_camera_profile(
         || profile_times
             .iter()
             .zip(CAPTURE_TIMES)
-            .any(|(actual, expected)| actual.as_f64().is_none_or(|value| (value - expected).abs() > 0.01))
+            .any(|(actual, expected)| {
+                actual
+                    .as_f64()
+                    .is_none_or(|value| (value - expected).abs() > 0.01)
+            })
     {
         return Err("camera profile capture times do not match the audit schedule".into());
     }
@@ -179,7 +183,9 @@ fn read_and_validate_run_settings(
         return Err("render settings do not bind the expected ROOM-TWIN camera profile and capture contract".into());
     }
     if metadata["render_settings_sha256"].as_str() != Some(settings_sha256.as_str()) {
-        return Err("capture receipt render-settings digest does not match exact settings bytes".into());
+        return Err(
+            "capture receipt render-settings digest does not match exact settings bytes".into(),
+        );
     }
 
     let fixture_path = env::current_dir()?.join("benchmarks/render/ROOM-TWIN-01.json");
@@ -241,11 +247,7 @@ fn validate_receipt(
         .as_array()
         .ok_or("receipt images field is not an array")?;
     if images.len() != CAPTURE_TIMES.len() {
-        return Err(format!(
-            "expected three images, found {}",
-            images.len()
-        )
-        .into());
+        return Err(format!("expected three images, found {}", images.len()).into());
     }
 
     let mut decoded = Vec::with_capacity(CAPTURE_TIMES.len());
@@ -303,7 +305,10 @@ fn validate_receipt(
     Ok(decoded)
 }
 
-fn export_raw_rgba(directory: &Path, frames: &[DecodedCapture]) -> Result<Vec<Value>, Box<dyn Error>> {
+fn export_raw_rgba(
+    directory: &Path,
+    frames: &[DecodedCapture],
+) -> Result<Vec<Value>, Box<dyn Error>> {
     let export_dir = directory.join("decoded-rgba8");
     fs::create_dir(&export_dir)?;
     let mut exports = Vec::with_capacity(frames.len());
