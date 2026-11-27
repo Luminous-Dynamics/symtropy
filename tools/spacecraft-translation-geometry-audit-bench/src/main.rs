@@ -1,6 +1,6 @@
 use spacecraft_translation_geometry_audit_bench::{
-    AuditReceipt, CropState, FrameAnnotations, FrameMetadata, FrameScore, LandmarkPair,
-    MaskPair, MaskScore, ScopeKey, UnitKind, UnitScore, Visibility, audit_manifest,
+    AuditReceipt, CropState, FrameAnnotations, FrameMetadata, FrameScore, LandmarkPair, MaskPair,
+    MaskScore, ScopeKey, UnitKind, UnitScore, Visibility, audit_manifest,
 };
 use std::collections::BTreeMap;
 use std::error::Error;
@@ -260,7 +260,9 @@ fn parse_manifest(contents: &str) -> Result<Vec<FrameAnnotations>, Box<dyn Error
                     || fields[36] != "NONE"
                     || fields[37] != "NONE"
                 {
-                    return Err(format!("line {}: LANDMARK row carries mask fields", index + 2).into());
+                    return Err(
+                        format!("line {}: LANDMARK row carries mask fields", index + 2).into(),
+                    );
                 }
                 frame.landmarks.push(LandmarkPair {
                     landmark_id: fields[26].to_owned(),
@@ -276,7 +278,9 @@ fn parse_manifest(contents: &str) -> Result<Vec<FrameAnnotations>, Box<dyn Error
             }
             "MASK" => {
                 if fields[27..35].iter().any(|field| *field != "NONE") {
-                    return Err(format!("line {}: MASK row carries landmark fields", index + 2).into());
+                    return Err(
+                        format!("line {}: MASK row carries landmark fields", index + 2).into(),
+                    );
                 }
                 frame.masks.push(MaskPair {
                     region_id: fields[26].to_owned(),
@@ -285,7 +289,9 @@ fn parse_manifest(contents: &str) -> Result<Vec<FrameAnnotations>, Box<dyn Error
                     iou_floor_bps: parse_u16(fields[37], "mask_iou_floor_bps")?,
                 });
             }
-            other => return Err(format!("line {}: unsupported record_kind {other}", index + 2).into()),
+            other => {
+                return Err(format!("line {}: unsupported record_kind {other}", index + 2).into());
+            }
         }
     }
 
