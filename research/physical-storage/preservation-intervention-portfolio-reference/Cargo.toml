@@ -10,3 +10,5 @@ description = "Deterministic evidence-bounded Pareto planning for preservation i
 path = "src/lib.rs"
 
 [dependencies]
+
+[workspace]
