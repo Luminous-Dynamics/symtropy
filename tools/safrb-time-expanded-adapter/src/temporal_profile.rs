@@ -10,6 +10,7 @@
 //! This compiler does not authenticate inputs, infer event ordering, model
 //! cross-node common resources, perform grade conversion, or authorize actions.
 
+use serde::{Deserialize, Serialize};
 use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES};
 use std::collections::BTreeSet;
 
@@ -19,7 +20,8 @@ pub const TEMPORAL_PROFILE_SCHEMA: &str =
 const SOURCE_NODE: &str = "safrb-temporal/source";
 const SINK_NODE: &str = "safrb-temporal/sink";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalNode {
     pub node_id: String,
     /// Maximum inventory allowed to remain at the end of each period.
@@ -35,7 +37,8 @@ pub struct TemporalNode {
     pub opening_inventory: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalReceipt {
     pub receipt_id: String,
     pub node_id: String,
@@ -44,7 +47,8 @@ pub struct TemporalReceipt {
     pub quantity: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalTransfer {
     pub transfer_id: String,
     pub from_node_id: String,
@@ -55,7 +59,8 @@ pub struct TemporalTransfer {
     pub route_capacity: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalService {
     pub service_id: String,
     pub node_id: String,
@@ -65,7 +70,8 @@ pub struct TemporalService {
     pub requested_quantity: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalProfile {
     pub schema_version: String,
     pub case_id: String,
