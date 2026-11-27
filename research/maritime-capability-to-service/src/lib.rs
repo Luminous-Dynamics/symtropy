@@ -573,6 +573,7 @@ pub struct RecoveryServiceOutcome {
     pub deadline_day: u64,
     pub horizon_day: u64,
     pub expected_units: u64,
+    pub inspection_qualified_units: u64,
     pub receiver_accepted_units: u64,
     pub on_time_accepted_units: u64,
     pub unresolved_units: u64,
@@ -595,6 +596,8 @@ pub struct RecoveryRegretVector {
     pub candidate_policy_id: String,
     pub reference_policy_id: String,
     pub unmet_units_at_deadline_delta: i128,
+    pub inspection_qualified_units_delta: i128,
+    pub receiver_accepted_units_delta: i128,
     pub late_accepted_units_delta: i128,
     pub unresolved_units_delta: i128,
     pub service_deficit_unit_hours_delta: i128,
@@ -622,7 +625,8 @@ fn validate_recovery_outcome(outcome: &RecoveryServiceOutcome) -> Result<(), Str
         return Err("recovery outcome has an empty identity field".to_owned());
     }
     if outcome.expected_units == 0
-        || outcome.receiver_accepted_units > outcome.expected_units
+        || outcome.inspection_qualified_units > outcome.expected_units
+        || outcome.receiver_accepted_units > outcome.inspection_qualified_units
         || outcome.on_time_accepted_units > outcome.receiver_accepted_units
         || outcome.unresolved_units > outcome.expected_units - outcome.receiver_accepted_units
     {
@@ -670,6 +674,10 @@ pub fn compare_recovery_regret(
         reference_policy_id: reference.policy_id.clone(),
         unmet_units_at_deadline_delta: i128::from(candidate_unmet)
             - i128::from(reference_unmet),
+        inspection_qualified_units_delta: i128::from(candidate.inspection_qualified_units)
+            - i128::from(reference.inspection_qualified_units),
+        receiver_accepted_units_delta: i128::from(candidate.receiver_accepted_units)
+            - i128::from(reference.receiver_accepted_units),
         late_accepted_units_delta: i128::from(candidate_late)
             - i128::from(reference_late),
         unresolved_units_delta: i128::from(candidate.unresolved_units)
@@ -1161,6 +1169,7 @@ mod tests {
             deadline_day: 10,
             horizon_day: 20,
             expected_units: 100,
+            inspection_qualified_units: 90,
             receiver_accepted_units: 80,
             on_time_accepted_units: 60,
             unresolved_units: 10,
@@ -1177,6 +1186,7 @@ mod tests {
     fn recovery_regret_is_a_vector_against_the_same_scenario_oracle() {
         let candidate = recovery_outcome("ROBUST-POLICY");
         let mut oracle = recovery_outcome("CLAIRVOYANT-BOUND");
+        oracle.inspection_qualified_units = 90;
         oracle.receiver_accepted_units = 90;
         oracle.on_time_accepted_units = 85;
         oracle.unresolved_units = 5;
@@ -1189,6 +1199,8 @@ mod tests {
 
         let regret = compare_recovery_regret(&candidate, &oracle).unwrap();
         assert_eq!(regret.unmet_units_at_deadline_delta, 25);
+        assert_eq!(regret.inspection_qualified_units_delta, 0);
+        assert_eq!(regret.receiver_accepted_units_delta, -10);
         assert_eq!(regret.late_accepted_units_delta, 15);
         assert_eq!(regret.unresolved_units_delta, 5);
         assert_eq!(regret.service_deficit_unit_hours_delta, 900);
@@ -1244,6 +1256,8 @@ mod tests {
         let reference = recovery_outcome("ORACLE-A");
         let regret = compare_recovery_regret(&candidate, &reference).unwrap();
         assert_eq!(regret.unmet_units_at_deadline_delta, 0);
+        assert_eq!(regret.inspection_qualified_units_delta, 0);
+        assert_eq!(regret.receiver_accepted_units_delta, 0);
         assert_eq!(regret.late_accepted_units_delta, 0);
         assert_eq!(regret.unresolved_units_delta, 0);
         assert_eq!(regret.service_deficit_unit_hours_delta, 0);
