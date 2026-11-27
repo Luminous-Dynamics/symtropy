@@ -240,3 +240,11 @@ AERO must author a domain-specific aerospace challenge suite and independently a
 
 The AERO comparison should report the risk-coverage curve and false-review rate alongside reviewer time, evidence-acquisition cost, unnecessary requalification, replay reproducibility and resource consumption. Any prospective economic benefit (including the ≥20% cost reduction target) must be measured at matched risk and independently reviewed decision quality.
 
+## 12. Machine-readable benchmark metric registry
+
+The companion registry defines 17 prospective metrics with fixed numerators, denominators, populations, inclusions, exclusions and required stratification. It is a preregistration artefact, not a result file: its status is `PROSPECTIVE_NOT_EXECUTED`, and its case-adjudication status is `NOT_INDEPENDENTLY_ADJUDICATED`.
+
+Safety metrics remain separate from coverage and economics. False-review, context substitution, owner-proof bypass, missing mandatory obligations, unsupported model domains, missing required strata, temporal disagreement, missed invalidations and hard-gate mutation survival have prospective zero-observed targets. False rejection and abstention are report-only, so a reject-everything gate cannot win. The at-most-0.80 cost ratio is a prospective target only at matched risk and independently adjudicated decision quality. The unnecessary-requalification target is subordinate to zero missed invalidations. Replay p95 has no fixed target until workload and hardware baselines are matched.
+
+The schema and registry are `schemas/aero_assurance_benchmark_metrics_v0_1.schema.json` and `examples/aero_assurance_benchmark_metrics_v0_1.json`. CI checks shape and metric census; it does not execute the benchmark.
+
