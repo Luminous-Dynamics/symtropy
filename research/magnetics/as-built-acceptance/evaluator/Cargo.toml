@@ -1,0 +1,9 @@
+[package]
+name = "magnetic-asbuilt-acceptance"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Evidence-gated specimen-level magnetic functional acceptance reference"
+
+[lib]
+path = "src/lib.rs"
