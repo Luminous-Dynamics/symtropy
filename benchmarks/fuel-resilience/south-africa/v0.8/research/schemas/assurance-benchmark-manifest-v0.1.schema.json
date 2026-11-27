@@ -40,7 +40,8 @@
         "evidence_integrity",
         "coherent_scenarios",
         "service_outcomes",
-        "interop"
+        "interop",
+        "nonanticipative_policy"
       ]
     },
     "status": {
@@ -173,7 +174,8 @@
             "process_coupled",
             "integer_schedule",
             "electrical_power_flow",
-            "other"
+            "other",
+            "nonanticipative_scenario_tree"
           ]
         },
         "schema_version": {
@@ -208,6 +210,25 @@
           "items": {
             "type": "string"
           }
+        },
+        "decision_timing": {
+          "enum": [
+            "here_and_now",
+            "full_recourse",
+            "two_stage_nonanticipative",
+            "multi_stage_nonanticipative"
+          ],
+          "description": "Decision-time contract. Comparisons across different timing/recourse assumptions are invalid."
+        },
+        "information_set_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Digest of canonical decision-time information sets."
+        },
+        "scenario_tree_digest": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "description": "Digest of the exact rooted scenario tree and observation/revelation schedule."
         }
       }
     },
@@ -347,7 +368,10 @@
             "relaxation_only",
             "indeterminate",
             "unsupported",
-            "not_yet_known"
+            "not_yet_known",
+            "here_and_now_feasible",
+            "full_recourse_only",
+            "not_feasible_within_supplied_tree"
           ]
         },
         "expected_objective_vector": {
@@ -408,6 +432,18 @@
         "decision_time_budget_ms": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "scenario_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decision_node_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_action_count": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
