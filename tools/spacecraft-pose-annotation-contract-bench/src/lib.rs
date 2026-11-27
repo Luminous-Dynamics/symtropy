@@ -184,10 +184,9 @@ fn scaled_i64(value: f64) -> Option<i64> {
     let scaled = (value * PIXEL_SCALE).round();
     // i64::MAX as f64 rounds up to 2^63, so the upper edge must be
     // exclusive. The exact lower edge -2^63 is representable and inclusive.
-    if scaled.is_finite()
-        && scaled >= -9_223_372_036_854_775_808.0
-        && scaled < 9_223_372_036_854_775_808.0
-    {
+    let lower_inclusive = i64::MIN as f64;
+    let upper_exclusive = -lower_inclusive;
+    if scaled.is_finite() && (lower_inclusive..upper_exclusive).contains(&scaled) {
         Some(scaled as i64)
     } else {
         None
@@ -606,8 +605,8 @@ mod tests {
 
     #[test]
     fn fixed_point_i64_edges_are_checked_without_saturation() {
-        let lower = -9_223_372_036_854.775_808_f64;
-        let upper = 9_223_372_036_854.775_808_f64;
+        let lower = (i64::MIN as f64) / PIXEL_SCALE;
+        let upper = -((i64::MIN as f64) / PIXEL_SCALE);
         assert_eq!(super::scaled_i64(lower), Some(i64::MIN));
         assert_eq!(super::scaled_i64(upper), None);
     }
