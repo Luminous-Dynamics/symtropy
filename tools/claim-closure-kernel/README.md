@@ -59,7 +59,7 @@ The test-only Python reference oracle independently evaluates the positive fixtu
 
 Both Rust and the independent Python oracle consume the same frozen `mutation-base-v0.1.json` graph; this avoids testing different positive graphs in two implementations. The separate positive fixture is independently checked as well.
 
-The frozen mutation corpus now contains 25 machine-readable adversarial cases. The Rust test harness applies every mutation to the positive graph and checks its exact expected finding. The corpus is marked synthetic and not independently reviewed; the CI workflow validates both input and mutation-corpus schemas.
+The frozen mutation corpus contains 25 machine-readable adversarial cases. The Rust test harness applies every mutation to the shared mutation-base graph and checks its exact expected finding. The independent Python reference oracle uses that same frozen base; the two implementations agree on all 25 expected blockers and the positive controls at tested source commit `0913e630f6aded392af06b23734f21f2c3ea127b`. The corpus is synthetic and not independently reviewed by an external party; CI validates both schemas.
 
 The initial suite should test positive controls and mutations for:
 1. missing required evidence and missing transitive ancestors;
@@ -73,7 +73,9 @@ The initial suite should test positive controls and mutations for:
 9. input permutation and deterministic replay;
 10. report tampering and resource-limit exhaustion.
 
-The current crate contains 34 authored Rust tests, including the 25-case mutation corpus. CI must execute them before test completion is claimed. The plan records target metrics, not achieved results. The first acceptance target is zero false-closures on the frozen adversarial suite and zero false-blocks on valid positive controls. Scale cases cover 100, 1,000 and 10,000 evidence records with varying graph fan-out and depth. Report p50/p95/p99 latency, peak memory and throughput; compare only matched input graphs.
+The crate contains 34 Rust tests. Exact-head workflow run [#59](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45996908844) passed formatting, strict Clippy, all tests, the independent Python oracle, the seven-shape scale harness and both JSON Schemas at source commit `0913e630f6aded392af06b23734f21f2c3ea127b`. The run passed all 25 mutation cases with their expected blockers and both positive controls.
+
+The first exact-head baseline measured roughly 10.3–10.7k evidence records/s across the tested shapes. At 10,000 records, p50 was 966–967 ms and p95 was 979–989 ms. The process high-water RSS observed during the run was approximately 39.9 MB at the largest shape. These are 15-sample measurements from one `ubuntu-latest` runner with two warm-ups excluded; the memory figure is the process-wide high-water mark, not isolated per-case allocation. This is a reproducibility baseline, not a SOTA comparison or a false-assurance field-risk estimate. See `results/scale-baseline-2026-11-27-v0.1.json` for raw measurements.
 
 ## Running
 
