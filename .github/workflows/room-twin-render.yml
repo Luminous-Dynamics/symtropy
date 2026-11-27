@@ -77,6 +77,9 @@ jobs:
           assert truth["visibility"].startswith("evaluator-only")
           assert camera["fixture_id"] == fixture["fixture_id"]
           assert camera["camera_profile_id"] == fixture["camera"]["camera_id"]
+          assert camera["pose_delivery"]["status"] == "not_agent_visible"
+          assert camera["pose_delivery"]["pose_source"] == "renderer_evaluator_only"
+          assert "camera_rail" not in camera
           assert camera["image"]["pixel_format"] == "rgba8"
           assert camera["image"]["width_px"] == fixture["render"]["width_px"]
           assert camera["image"]["height_px"] == fixture["render"]["height_px"]

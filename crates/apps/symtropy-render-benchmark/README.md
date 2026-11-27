@@ -119,3 +119,6 @@ The fixture includes `ROOM-TWIN-01.camera-profile.json`, a frozen shared camera/
 The camera profile deliberately carries a bounded capture-time interval rather than claiming exact exposure timestamps: the capture plugin records scheduled screenshot request times, not hardware exposure times. It also marks calibration as `synthetic_un-calibrated`. Import into #6201 must preserve those bounds and must not create a clock transform or physical calibration claim.
 
 The exported A/B directories and truth metadata are evaluator-side development artifacts. A #6201 importer must create a variant-neutral candidate bundle in a separate candidate-visible root, with no A/B label, hidden world digest or truth file. #6754 isolation is still required before blind testing.
+
+
+**RGB-only input condition:** the camera-profile manifest deliberately excludes per-frame camera poses and the future camera rail. The trajectory is stored only in evaluator-side render settings; the candidate receives RGB observations and static sensor metadata. A privileged pose-provided comparison must be a separate registered arm with its own candidate-visible pose stream and matched baseline.

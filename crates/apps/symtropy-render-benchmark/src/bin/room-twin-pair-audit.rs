@@ -106,6 +106,9 @@ fn read_and_validate_camera_profile(
         || profile["camera_profile_id"] != "room-twin-camera-v1"
         || profile["sensor_id"] != "camera-front"
         || profile["renderer"] != "Bevy 0.19.0"
+        || profile["pose_delivery"]["status"] != "not_agent_visible"
+        || profile["pose_delivery"]["pose_source"] != "renderer_evaluator_only"
+        || profile.get("camera_rail").is_some()
         || profile["image"]["width_px"] != metadata["width_px"]
         || profile["image"]["height_px"] != metadata["height_px"]
         || profile["image"]["pixel_format"] != "rgba8"
