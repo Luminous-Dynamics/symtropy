@@ -866,11 +866,7 @@ mod tests {
             .unwrap()
             .recovered_output_id = "UNKNOWN".to_string();
         let result = evaluate(&passport);
-        assert!(
-            result
-                .blockers
-                .contains(&Blocker::DownstreamOutputMismatch)
-        );
+        assert!(result.blockers.contains(&Blocker::DownstreamOutputMismatch));
         assert!(result.qualified_closed_loop_product_ids.is_empty());
     }
 
