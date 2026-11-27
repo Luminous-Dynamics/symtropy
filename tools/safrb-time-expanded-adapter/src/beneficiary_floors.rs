@@ -989,6 +989,24 @@ mod tests {
     }
 
     #[test]
+    fn published_floor_schemas_are_valid_json_documents() {
+        let report_schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/beneficiary-floor-feasibility-v0.1.schema.json"
+        ))
+        .unwrap();
+        let input_schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../schemas/beneficiary-floor-feasibility-input-v0.1.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            report_schema["properties"]["schema_version"]["const"],
+            FLOOR_FEASIBILITY_SCHEMA
+        );
+        assert_eq!(input_schema["required"][0], "profile");
+        assert_eq!(input_schema["required"][1], "floors");
+    }
+
+    #[test]
     fn floor_input_envelope_round_trips_and_verifies() {
         let input = BeneficiaryFloorInput {
             profile: profile(15, 10, 10),
