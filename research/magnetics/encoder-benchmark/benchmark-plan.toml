@@ -159,3 +159,11 @@ renishaw_reference_configuration_frozen = false
 tmag5111_exact_frontend_and_magnet_geometry_frozen = false
 magpylib_015_artifact_digest_frozen = false
 independent_fem_solver_and_material_model_frozen = false
+
+[reference_resolution_gate]
+expanded_reference_uncertainty_target_arcsec = 3.6
+resolute_200mm_typical_installed_accuracy_arcsec = 4.3
+resolute_550mm_typical_installed_accuracy_arcsec = 1.9
+installed_accuracy_equals_expanded_uncertainty = false
+reference_calibration_certificate_required = true
+full_uncertainty_budget_required = true
