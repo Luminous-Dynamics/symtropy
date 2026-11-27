@@ -1,0 +1,22 @@
+# MCSC synthetic frozen micro-instance v0.1
+# Units are synthetic. Service units are abstract cargo_unit (not containers, TEU, or tonnes).
+# SERVICE <service_id> <expected_units> <unit> <deadline_day>
+# DEPENDENCY <dependency_id> <available_from_day>
+# SHOCK <dependency_id> <unavailable_start_day_inclusive> <unavailable_end_day_exclusive>
+# OPTION <option_id> <region> <cost_units> <production_or_supply_days> <inspection_days> <commissioning_days> <receiver_handoff_days> <emissions_units> <regional_value_units> <dependency_ids_csv>
+INSTANCE	MCSC-TINY-001	v0.1
+SERVICE	SERVICE-001	10	cargo_unit	10
+DEPENDENCY	MILL-01	0
+DEPENDENCY	GRID-A	0
+DEPENDENCY	NDT-01	0
+DEPENDENCY	MILL-02	0
+DEPENDENCY	GRID-B	0
+DEPENDENCY	NDT-02	0
+DEPENDENCY	FOREIGN-SUPPLIER	0
+DEPENDENCY	EXISTING-CAPABILITY	0
+SHOCK	GRID-A	0	6
+OPTION	LOCAL-A	REGIONAL	130	5	1	1	1	30	80	MILL-01,GRID-A,NDT-01
+OPTION	LOCAL-B	REGIONAL	125	6	1	1	1	35	70	MILL-01,GRID-A,NDT-01
+OPTION	LOCAL-C	REGIONAL	145	7	1	1	1	32	60	MILL-02,GRID-B,NDT-02
+OPTION	IMPORT	IMPORTED	100	10	1	1	1	40	5	FOREIGN-SUPPLIER
+OPTION	EXISTING	EXISTING	90	20	1	1	1	45	0	EXISTING-CAPABILITY
