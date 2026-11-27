@@ -22,6 +22,7 @@ on:
     branches:
       - research/wpt-exact-service-oracle-v0
       - research/single-commodity-flow-kernel-v0
+      - research/dimacs-mcf-input-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
