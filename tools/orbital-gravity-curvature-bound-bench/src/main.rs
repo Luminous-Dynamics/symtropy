@@ -2,6 +2,7 @@ use orbital_gravity_curvature_bound_bench::{
     CurvatureDisposition, CurvatureInput, CurvatureResult, EvidenceSet, ProviderEvidence,
     ProviderState, RECEIPT_SCHEMA, Scope, derive,
 };
+use std::collections::BTreeSet;
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -209,6 +210,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut results = Vec::new();
     let mut matches = 0_usize;
+    let mut case_ids = BTreeSet::new();
     for (index, line) in content.lines().enumerate() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') || line.starts_with("case_id,") {
@@ -216,6 +218,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         let fields = line.split(',').collect::<Vec<_>>();
         let parsed = parse_row(&fields, index + 1)?;
+        if !case_ids.insert(parsed.input.case_id.clone()) {
+            return Err(format!("duplicate case ID: {}", parsed.input.case_id).into());
+        }
         let result = derive(&parsed.input);
         if result.disposition.as_str() != parsed.expected {
             return Err(format!(
