@@ -1,6 +1,6 @@
 use maritime_capability_to_service::conformal::{
     CalibrationContract, CalibrationObservation, CoverageApplicability, DecisionGate,
-    assess_deadline_feasibility, build_interval, calibrate_absolute_residuals,
+    assess_deadline_feasibility, build_interval, calibrate_absolute_residuals, validate_interval,
 };
 
 fn contract(applicability: CoverageApplicability) -> CalibrationContract {
@@ -51,6 +51,40 @@ fn public_api_computes_finite_sample_conformal_interval_and_deadline_gate() {
         assess_deadline_feasibility(&interval, 10, 118),
         DecisionGate::Infeasible
     );
+}
+
+#[test]
+fn public_interval_validator_checks_rank_provenance_chronology_and_endpoints() {
+    let report = calibrate_absolute_residuals(
+        &contract(CoverageApplicability::ExchangeabilitySupported),
+        &observations(9),
+    )
+    .expect("calibration");
+    let mut interval = build_interval(&report, 100)
+        .expect("interval")
+        .expect("finite");
+    assert!(validate_interval(&interval).is_ok());
+
+    interval.quantile_rank_1based = 8;
+    assert!(validate_interval(&interval).unwrap_err().contains("exact finite-sample"));
+
+    let mut interval = build_interval(&report, 100)
+        .expect("interval")
+        .expect("finite");
+    interval.calibration_window_end = interval.decision_cutoff + 1;
+    assert!(validate_interval(&interval).unwrap_err().contains("provenance or chronology"));
+
+    let mut interval = build_interval(&report, 100)
+        .expect("interval")
+        .expect("finite");
+    interval.feature_schema_sha256 = "not-a-digest".to_owned();
+    assert!(validate_interval(&interval).unwrap_err().contains("provenance or chronology"));
+
+    let mut interval = build_interval(&report, 100)
+        .expect("interval")
+        .expect("finite");
+    interval.upper += 1;
+    assert!(validate_interval(&interval).unwrap_err().contains("endpoints"));
 }
 
 #[test]
