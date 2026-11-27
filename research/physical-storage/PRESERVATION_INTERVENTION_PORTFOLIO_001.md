@@ -38,7 +38,7 @@ The caller supplies:
 - maximum action count;
 - candidate actions and their dependencies, prerequisites, intended alert coverage, upper bounds and required approvals.
 
-Each candidate includes a bounds evidence receipt ID and SHA-256 digest. The planner checks identifier/digest shape and the supplied `BoundsEvidenceStatus`. It does not calculate the digest, retrieve the receipt, authenticate the estimator, prove the estimate is conservative or validate its measurement boundary. The external evidence adapter owns those claims.
+Each candidate includes a bounds evidence receipt ID and digest. The planner checks identifier/digest shape and the supplied `BoundsEvidenceStatus`. It does not calculate the digest, retrieve the receipt, authenticate the estimator, prove the estimate is conservative or validate its measurement boundary. The external evidence adapter owns those claims.
 
 Only externally verified upper bounds are eligible. Missing/unverified bound evidence, missing prerequisites or unavailable approval authorities exclude a candidate. Invalid bound evidence is classified separately from missing evidence.
 
@@ -65,7 +65,7 @@ The policy includes the currently available approval-authority IDs. A candidate 
 
 ## 5. Exact Pareto selection
 
-v0.1 caps the candidate set at 16, so exhaustive enumeration visits at most (2^{16}-1=4,095) non-empty subsets.
+v0.1 caps the candidate set at **12 actions**, so exhaustive enumeration visits at most `2^12 - 1 = 4,095` non-empty subsets.
 
 For each valid subset, the scorer checks coverage, dependencies, preconditions and all hard caps. It computes:
 - cost upper bound;
@@ -78,7 +78,7 @@ Portfolio A dominates B when A is no worse on every objective and strictly bette
 
 Action count is included as a fifth minimization dimension so an unnecessary zero-resource helper does not survive alongside an otherwise identical smaller plan.
 
-Aggregate bounds are accumulated in u128 and compared with u64 policy caps. This allows the planner to skip a subset whose total exceeds a policy cap without aborting consideration of other subsets.
+Aggregate bounds are accumulated in `u128` and compared with `u64` policy caps. This allows the planner to skip a subset whose total exceeds a policy cap without aborting consideration of other subsets.
 
 ## 6. Dispositions
 
