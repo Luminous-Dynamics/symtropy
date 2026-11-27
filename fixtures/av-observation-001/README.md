@@ -205,3 +205,10 @@ The protocol now separates **observational equivalence** (what worlds can be dis
 The registry now includes [scenario-matrix-active-exploration-v0.tsv](./scenario-matrix-active-exploration-v0.tsv): four paired counterfactuals / eight cases for targeted versus random views, falsification-seeking versus confirmation, stopping at decision sufficiency versus over-acquisition, and uncertain-3D fallback versus corrupted-3D commitment.
 
 The research crosswalk adds [ESI-Bench](https://esi-bench.github.io/) as the active perception-action reference (3,081 tasks, 10 categories, 29 subcategories, with passive-single, random multi-view, active exploration and oracle-trajectory arms) and [THUD++](https://www.nature.com/articles/s41597-026-07993-8) as a dynamic indoor RGB-D/navigation reference. Their native task and ground-truth protocols are kept separate from OVO-S, metric SLAM and the metadata-only twin-world matrices.
+
+
+## Dynamic indoor map persistence
+
+Opened [DYN-MAP-PERSISTENCE-001 #7787](https://github.com/Luminous-Dynamics/symtropy/issues/7787) to qualify persistent structure versus transient indoor occupancy. It composes #1595, #6183, #6201, #7693 and #6754 and uses THUD++ as an external dynamic-scene reference. The first target is to separate temporary people/carts/occlusion from lasting structural changes, report 5/10/15-pedestrian strata independently, and score map revisions and tracking coverage without pooling real-world, synthetic and Unity-emulator results.
+
+THUD++ data: [paper](https://www.nature.com/articles/s41597-026-07993-8) · [code](https://github.com/jackyzengl/THUD-plus-plus) · [dataset DOI](https://doi.org/10.5281/zenodo.18459791).
