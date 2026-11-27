@@ -12,9 +12,7 @@
 //! separately, verifies the transformed certificate, and checks the recovered
 //! original-network allocation and every beneficiary floor.
 
-use crate::temporal_profile::{
-    TEMPORAL_PROFILE_SCHEMA, TemporalProfile, compile_temporal_profile,
-};
+use crate::temporal_profile::{TEMPORAL_PROFILE_SCHEMA, TemporalProfile, compile_temporal_profile};
 use crate::temporal_verify::verify_temporal_certificate;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
