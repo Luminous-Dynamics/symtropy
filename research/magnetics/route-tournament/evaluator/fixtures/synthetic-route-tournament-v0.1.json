@@ -131,7 +131,11 @@
           "role": "ProcessRecord",
           "method_id": "COST-ROLLUP-v1"
         }
-      ]
+      ],
+      "geometry_inspection_record_id": "GEOM-MEX-001",
+      "geometry_inspection_method_id": "CMM-INSPECTION-v1",
+      "geometry_inspection_calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "geometry_inspection_reference_chain_id": "CMM-REFERENCE-001"
     },
     {
       "candidate_id": "LPBF-001",
@@ -230,7 +234,11 @@
           "role": "ProcessRecord",
           "method_id": "COST-ROLLUP-v1"
         }
-      ]
+      ],
+      "geometry_inspection_record_id": "GEOM-LPBF-001",
+      "geometry_inspection_method_id": "CMM-INSPECTION-v1",
+      "geometry_inspection_calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "geometry_inspection_reference_chain_id": "CMM-REFERENCE-001"
     }
   ],
   "expected_tournament": {
