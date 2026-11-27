@@ -23,6 +23,7 @@ const DATASET_DOI: &str = "10.7799/1787031";
 const EXPECTED_INTERVALS: usize = 96;
 const INTERVAL_HOURS: f64 = 0.25;
 const POWER_TOLERANCE_KW: f64 = 1e-9;
+const RAMP_DIRECTION_EPSILON_KW: f64 = 1e-9;
 
 const FLEETS: [&str; 3] = [
     "fleet1-beverage-delivery",
@@ -119,6 +120,15 @@ struct ProfileComparison {
     reference_peak_kw: f64,
     candidate_peak_kw: f64,
     peak_absolute_error_kw: f64,
+    load_duration_curve_mae_kw: f64,
+    load_duration_curve_rmse_kw: f64,
+    load_duration_curve_p95_abs_error_kw: f64,
+    ramp_mae_kw_per_15min: f64,
+    ramp_rmse_kw_per_15min: f64,
+    ramp_p95_abs_error_kw_per_15min: f64,
+    ramp_direction_mismatch_fraction: f64,
+    maximum_ramp_error_kw_per_15min: f64,
+    peak_time_absolute_error_minutes: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -139,6 +149,15 @@ struct ComparisonSummary {
     sum_profile_daily_energy_absolute_error_kwh: f64,
     sum_profile_daily_energy_relative_error_percent: f64,
     maximum_profile_peak_absolute_error_kw: f64,
+    load_duration_curve_mae_kw: f64,
+    load_duration_curve_rmse_kw: f64,
+    load_duration_curve_p95_abs_error_kw: f64,
+    ramp_mae_kw_per_15min: f64,
+    ramp_rmse_kw_per_15min: f64,
+    ramp_p95_abs_error_kw_per_15min: f64,
+    ramp_direction_mismatch_fraction: f64,
+    maximum_ramp_error_kw_per_15min: f64,
+    maximum_peak_time_absolute_error_minutes: usize,
     profile_comparisons: Vec<ProfileComparison>,
 }
 
@@ -434,6 +453,96 @@ fn percentile(values: &[f64], fraction: f64) -> Option<f64> {
     Some(sorted[index])
 }
 
+
+#[derive(Debug, Clone)]
+struct ProfileShapeErrors {
+    load_duration_curve_absolute_errors_kw: Vec<f64>,
+    ramp_absolute_errors_kw_per_15min: Vec<f64>,
+    ramp_direction_mismatch_count: usize,
+    ramp_interval_count: usize,
+    peak_time_absolute_error_minutes: usize,
+}
+
+fn ramp_direction(value: f64) -> i8 {
+    if value > RAMP_DIRECTION_EPSILON_KW {
+        1
+    } else if value < -RAMP_DIRECTION_EPSILON_KW {
+        -1
+    } else {
+        0
+    }
+}
+
+fn mean(values: &[f64]) -> f64 {
+    if values.is_empty() {
+        0.0
+    } else {
+        values.iter().sum::<f64>() / values.len() as f64
+    }
+}
+
+fn root_mean_square(values: &[f64]) -> f64 {
+    if values.is_empty() {
+        0.0
+    } else {
+        (values.iter().map(|value| value * value).sum::<f64>() / values.len() as f64).sqrt()
+    }
+}
+
+fn peak_index(values: &[f64]) -> usize {
+    let mut best_index = 0;
+    for (index, value) in values.iter().enumerate().skip(1) {
+        if *value > values[best_index] {
+            best_index = index;
+        }
+    }
+    best_index
+}
+
+fn profile_shape_errors(reference: &[f64], candidate: &[f64]) -> ProfileShapeErrors {
+    let mut reference_sorted = reference.to_vec();
+    let mut candidate_sorted = candidate.to_vec();
+    reference_sorted.sort_by(|left, right| right.total_cmp(left));
+    candidate_sorted.sort_by(|left, right| right.total_cmp(left));
+
+    let load_duration_curve_absolute_errors_kw = reference_sorted
+        .iter()
+        .zip(candidate_sorted.iter())
+        .map(|(reference_kw, candidate_kw)| (candidate_kw - reference_kw).abs())
+        .collect::<Vec<_>>();
+
+    let reference_ramps = reference
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .collect::<Vec<_>>();
+    let candidate_ramps = candidate
+        .windows(2)
+        .map(|pair| pair[1] - pair[0])
+        .collect::<Vec<_>>();
+
+    let mut ramp_absolute_errors_kw_per_15min = Vec::with_capacity(reference_ramps.len());
+    let mut ramp_direction_mismatch_count = 0;
+    for (reference_ramp, candidate_ramp) in
+        reference_ramps.iter().zip(candidate_ramps.iter())
+    {
+        ramp_absolute_errors_kw_per_15min.push((candidate_ramp - reference_ramp).abs());
+        if ramp_direction(*reference_ramp) != ramp_direction(*candidate_ramp) {
+            ramp_direction_mismatch_count += 1;
+        }
+    }
+
+    let peak_time_absolute_error_minutes =
+        peak_index(reference).abs_diff(peak_index(candidate)) * 15;
+
+    ProfileShapeErrors {
+        load_duration_curve_absolute_errors_kw,
+        ramp_absolute_errors_kw_per_15min,
+        ramp_direction_mismatch_count,
+        ramp_interval_count: reference_ramps.len(),
+        peak_time_absolute_error_minutes,
+    }
+}
+
 fn compare_archives(
     reference: &AuditedArchive,
     candidate: &AuditedArchive,
@@ -448,6 +557,12 @@ fn compare_archives(
     let mut reference_energy_sum = 0.0_f64;
     let mut candidate_energy_sum = 0.0_f64;
     let mut maximum_peak_error = 0.0_f64;
+    let mut all_load_duration_curve_errors = Vec::with_capacity(81 * EXPECTED_INTERVALS);
+    let mut all_ramp_errors = Vec::with_capacity(81 * (EXPECTED_INTERVALS - 1));
+    let mut all_ramp_direction_mismatches = 0_usize;
+    let mut all_ramp_intervals = 0_usize;
+    let mut maximum_ramp_error = 0.0_f64;
+    let mut maximum_peak_time_error_minutes = 0_usize;
 
     for (key, reference_profile) in &reference.profiles {
         let candidate_profile = candidate
@@ -497,6 +612,42 @@ fn compare_archives(
             ));
         };
         let peak_absolute_error = (candidate_profile.peak_kw - reference_profile.peak_kw).abs();
+        let shape_errors =
+            profile_shape_errors(&reference_profile.values_kw, &candidate_profile.values_kw);
+        let load_duration_curve_mae = mean(&shape_errors.load_duration_curve_absolute_errors_kw);
+        let load_duration_curve_rmse =
+            root_mean_square(&shape_errors.load_duration_curve_absolute_errors_kw);
+        let load_duration_curve_p95 = percentile(
+            &shape_errors.load_duration_curve_absolute_errors_kw,
+            0.95,
+        )
+        .unwrap_or(0.0);
+        let ramp_mae = mean(&shape_errors.ramp_absolute_errors_kw_per_15min);
+        let ramp_rmse = root_mean_square(&shape_errors.ramp_absolute_errors_kw_per_15min);
+        let ramp_p95 =
+            percentile(&shape_errors.ramp_absolute_errors_kw_per_15min, 0.95).unwrap_or(0.0);
+        let ramp_direction_mismatch_fraction =
+            if shape_errors.ramp_interval_count > 0 {
+                shape_errors.ramp_direction_mismatch_count as f64
+                    / shape_errors.ramp_interval_count as f64
+            } else {
+                0.0
+            };
+        let profile_maximum_ramp_error = shape_errors
+            .ramp_absolute_errors_kw_per_15min
+            .iter()
+            .copied()
+            .fold(0.0_f64, f64::max);
+
+        all_load_duration_curve_errors.extend_from_slice(
+            &shape_errors.load_duration_curve_absolute_errors_kw,
+        );
+        all_ramp_errors.extend_from_slice(&shape_errors.ramp_absolute_errors_kw_per_15min);
+        all_ramp_direction_mismatches += shape_errors.ramp_direction_mismatch_count;
+        all_ramp_intervals += shape_errors.ramp_interval_count;
+        maximum_ramp_error = maximum_ramp_error.max(profile_maximum_ramp_error);
+        maximum_peak_time_error_minutes =
+            maximum_peak_time_error_minutes.max(shape_errors.peak_time_absolute_error_minutes);
 
         reference_energy_sum += reference_profile.energy_kwh;
         candidate_energy_sum += candidate_profile.energy_kwh;
@@ -518,6 +669,15 @@ fn compare_archives(
             reference_peak_kw: reference_profile.peak_kw,
             candidate_peak_kw: candidate_profile.peak_kw,
             peak_absolute_error_kw: peak_absolute_error,
+            load_duration_curve_mae_kw: load_duration_curve_mae,
+            load_duration_curve_rmse_kw: load_duration_curve_rmse,
+            load_duration_curve_p95_abs_error_kw: load_duration_curve_p95,
+            ramp_mae_kw_per_15min: ramp_mae,
+            ramp_rmse_kw_per_15min: ramp_rmse,
+            ramp_p95_abs_error_kw_per_15min: ramp_p95,
+            ramp_direction_mismatch_fraction,
+            maximum_ramp_error_kw_per_15min: profile_maximum_ramp_error,
+            peak_time_absolute_error_minutes: shape_errors.peak_time_absolute_error_minutes,
         });
     }
 
@@ -536,6 +696,18 @@ fn compare_archives(
         return Err(
             "non-zero aggregate candidate energy against zero total reference energy".into(),
         );
+    };
+    let load_duration_curve_mae = mean(&all_load_duration_curve_errors);
+    let load_duration_curve_rmse = root_mean_square(&all_load_duration_curve_errors);
+    let load_duration_curve_p95 =
+        percentile(&all_load_duration_curve_errors, 0.95).unwrap_or(0.0);
+    let ramp_mae = mean(&all_ramp_errors);
+    let ramp_rmse = root_mean_square(&all_ramp_errors);
+    let ramp_p95 = percentile(&all_ramp_errors, 0.95).unwrap_or(0.0);
+    let ramp_direction_mismatch_fraction = if all_ramp_intervals > 0 {
+        all_ramp_direction_mismatches as f64 / all_ramp_intervals as f64
+    } else {
+        0.0
     };
     let sum_profile_energy_relative_error = if reference_energy_sum > 0.0 {
         energy_absolute_error_sum / reference_energy_sum * 100.0
@@ -564,6 +736,15 @@ fn compare_archives(
         sum_profile_daily_energy_absolute_error_kwh: energy_absolute_error_sum,
         sum_profile_daily_energy_relative_error_percent: sum_profile_energy_relative_error,
         maximum_profile_peak_absolute_error_kw: maximum_peak_error,
+        load_duration_curve_mae_kw: load_duration_curve_mae,
+        load_duration_curve_rmse_kw: load_duration_curve_rmse,
+        load_duration_curve_p95_abs_error_kw: load_duration_curve_p95,
+        ramp_mae_kw_per_15min: ramp_mae,
+        ramp_rmse_kw_per_15min: ramp_rmse,
+        ramp_p95_abs_error_kw_per_15min: ramp_p95,
+        ramp_direction_mismatch_fraction,
+        maximum_ramp_error_kw_per_15min: maximum_ramp_error,
+        maximum_peak_time_absolute_error_minutes: maximum_peak_time_error_minutes,
         profile_comparisons: comparisons,
     })
 }
@@ -617,7 +798,7 @@ fn audit(options: &Options) -> Result<AuditEnvelope, String> {
     };
 
     let report = AuditReport {
-        schema_version: "ev-nlr-profile-audit/v0.1".into(),
+        schema_version: "ev-nlr-profile-audit/v0.2".into(),
         tool: "ev-nlr-profile-audit".into(),
         dataset_id: "NLR-DATA-CATALOG-162".into(),
         dataset_doi: DATASET_DOI.into(),
@@ -875,8 +1056,48 @@ mod tests {
         assert!(report.sum_profile_daily_energy_absolute_error_kwh.abs() < 1e-12);
         assert!(report.aggregate_energy_absolute_error_kwh.abs() < 1e-12);
         assert!(report.aggregate_energy_bias_kwh.abs() < 1e-12);
+        assert!(report.load_duration_curve_mae_kw.abs() < 1e-12);
+        assert!(report.ramp_mae_kw_per_15min.abs() < 1e-12);
+        assert!(report.ramp_direction_mismatch_fraction.abs() < 1e-12);
+        assert_eq!(report.maximum_peak_time_absolute_error_minutes, 0);
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
+    }
+
+
+    #[test]
+    fn load_duration_curve_is_permutation_invariant_but_ramps_are_time_ordered() {
+        let reference = [0.0, 1.0, 2.0, 3.0];
+        let candidate = [3.0, 0.0, 1.0, 2.0];
+        let metrics = profile_shape_errors(&reference, &candidate);
+
+        assert!(mean(&metrics.load_duration_curve_absolute_errors_kw).abs() < 1e-12);
+        assert!((mean(&metrics.ramp_absolute_errors_kw_per_15min) - 4.0 / 3.0).abs() < 1e-12);
+        assert_eq!(metrics.ramp_direction_mismatch_count, 1);
+        assert_eq!(metrics.ramp_interval_count, 3);
+        assert_eq!(metrics.peak_time_absolute_error_minutes, 45);
+    }
+
+    #[test]
+    fn load_duration_and_ramp_metrics_match_a_hand_calculated_fixture() {
+        let reference = [0.0, 1.0, 2.0, 3.0];
+        let candidate = [0.0, 1.5, 1.5, 3.0];
+        let metrics = profile_shape_errors(&reference, &candidate);
+
+        assert!((mean(&metrics.load_duration_curve_absolute_errors_kw) - 0.25).abs() < 1e-12);
+        assert!(
+            (root_mean_square(&metrics.load_duration_curve_absolute_errors_kw) - 0.125_f64.sqrt())
+                .abs()
+                < 1e-12
+        );
+        assert!((mean(&metrics.ramp_absolute_errors_kw_per_15min) - 2.0 / 3.0).abs() < 1e-12);
+        assert!(
+            (root_mean_square(&metrics.ramp_absolute_errors_kw_per_15min) - 0.5_f64.sqrt())
+                .abs()
+                < 1e-12
+        );
+        assert_eq!(metrics.ramp_direction_mismatch_count, 1);
+        assert_eq!(metrics.peak_time_absolute_error_minutes, 0);
     }
 
     #[test]
@@ -895,6 +1116,11 @@ mod tests {
         assert!((report.sum_profile_daily_energy_absolute_error_kwh - 81.0 * 12.0).abs() < 1e-9);
         assert!((report.aggregate_energy_absolute_error_kwh - 81.0 * 12.0).abs() < 1e-9);
         assert!((report.aggregate_energy_bias_kwh - 81.0 * 12.0).abs() < 1e-9);
+        assert!((report.load_duration_curve_mae_kw - 0.5).abs() < 1e-9);
+        assert!((report.load_duration_curve_rmse_kw - 0.5).abs() < 1e-9);
+        assert!(report.ramp_mae_kw_per_15min.abs() < 1e-9);
+        assert!(report.ramp_direction_mismatch_fraction.abs() < 1e-12);
+        assert_eq!(report.maximum_peak_time_absolute_error_minutes, 0);
         fs::remove_dir_all(reference_dir).expect("remove reference fixture");
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
