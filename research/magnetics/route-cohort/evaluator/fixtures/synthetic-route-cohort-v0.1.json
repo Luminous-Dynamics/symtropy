@@ -189,6 +189,7 @@
       "ratio_ppm": 666666
     },
     "generalization_status": "GeneralizationUnavailable",
-    "inferential_yield_claim_available": false
+    "inferential_yield_claim_available": false,
+    "replication_eligible_builds": 2
   }
 }
