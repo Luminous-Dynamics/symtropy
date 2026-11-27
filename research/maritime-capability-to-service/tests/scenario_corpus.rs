@@ -50,11 +50,7 @@ fn scenario_input(
                 ));
             }
             "RECEIVER_ACCEPTANCE" => {
-                records.push(apply_disposition_override(
-                    line,
-                    &fields,
-                    receiver_override,
-                ));
+                records.push(apply_disposition_override(line, &fields, receiver_override));
             }
             _ => records.push(line.to_owned()),
         }
