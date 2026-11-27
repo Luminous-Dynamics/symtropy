@@ -403,16 +403,10 @@ def summarize(results: list[dict[str, object]]) -> dict[str, object]:
     for threshold in THRESHOLDS:
         selected = [
             result for result in valid
-            if int(result["confidence_score_ppm"]) >= threshold
+            if result["accepted_by_model"]
+            and int(result["confidence_score_ppm"]) >= threshold
         ]
-        false = sum(
-            result["mahalanobis_squared"] is not None
-            and (
-                result["coverage_95"] is not True
-                or result["observability_policy_violation"]
-            )
-            for result in selected
-        )
+        false = sum(bool(result["false_confident_95"]) for result in selected)
         risk.append(
             {
                 "confidence_threshold_ppm": threshold,
