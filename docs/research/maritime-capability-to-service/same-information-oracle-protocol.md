@@ -108,3 +108,8 @@ Next:
 - Malformed observable-state commitments are rejected.
 - Every receiver-accepted unit is classified as on-time, late or acceptance-time-unknown; no accepted quantity may silently disappear from timing accounting.
 - Every adverse component reports its scenario witness; the envelope type is separate from a realized scenario outcome.
+
+
+## Independent finite reference
+
+The public integration test `tests/independent_r1_reference.rs` includes a deliberately simple challenger for a tiny one-information-set case. It manually enumerates the common actions, constructs the adverse metrics from the scenario rows, and independently applies component-wise dominance. It does not call the production information-set key, solver, or dominance helper. The hosted run must still establish whether the source compiles and the challenger matches the production output.
