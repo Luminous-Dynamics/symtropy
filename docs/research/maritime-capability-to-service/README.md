@@ -100,7 +100,7 @@ cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo
 
 The Rust reference parses the frozen service obligation, dependency inventory, day-zero shocks, alternatives, configuration revisions, inspection dispositions and receiver-acceptance dispositions. Every option must have exactly one inspection record and one receiver-acceptance record, both bound to its configuration revision. Inspection PASS can qualify a partial quantity; FAIL/UNKNOWN qualifies zero. Receiver ACCEPTED may accept no more than the inspection-qualified quantity; REJECTED/UNKNOWN accepts zero. The receipt separately reports expected, inspection-qualified, receiver-accepted and on-time accepted units. Missing/duplicate evidence, revision mismatch, over-qualification/over-acceptance, unknown/duplicate dependencies, unsupported shock timing and receiver-day overflow fail closed.
 
-Twenty Rust unit tests and nine integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. Integration coverage includes an independent base-receipt oracle, a 30-case adversarial corpus, a Mycelix #6774 owner-receipt composition test, and three South African source-evidence controls (MVA/MW dimensional separation, unknown-period preservation and source claim-ceiling preservation). The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
+Twenty Rust unit tests and thirteen integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. Integration coverage includes an independent base-receipt oracle, a 30-case adversarial corpus, a Mycelix #6774 owner-receipt composition test, and three South African source-evidence controls (MVA/MW dimensional separation, unknown-period preservation and source claim-ceiling preservation). The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
 
 **Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The current extension separates inspection qualification from receiver acceptance, adds a 30-case adversarial corpus, implements vector-valued service option comparison, and consumes frozen Mycelix/receiver-service owner receipts; this exact head has not yet completed its hosted qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
 
@@ -133,6 +133,20 @@ The result is conditional on the exact declared synthetic dependency topology, i
 5. Extend beyond the current 30 cases to held-out facility/shock families, transitive dependencies and lifecycle recovery.
 6. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 7. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
+
+## Canonical port-city service-equivalence owner composition
+
+Mycelix [#6343 / draft PR #6344](https://github.com/Luminous-Dynamics/mycelix/pull/6344) now provides the cross-owner port-city service-equivalence golden trace. MCSC freezes its exact JSON source and a deterministic TSV projection with source commit/blob identity in `fixtures/mycelix-port-city-service-equivalence-source.md`.
+
+A new Rust integration test consumes all 48 owner dispositions (14 Positive, 21 Negative, 11 Unknown, 2 Conflict), three matched policy traces, the shared PCC input profiles and three heat partitions. It independently recomputes:
+- PCC import at each of the four 15-minute intervals from fixed port + vessel + terminal + IT + cooling + RO − renewables;
+- interval power cap breach and 15-minute integrated import energy;
+- identical compute useful work and port/terminal service obligations across the policies;
+- heat recovery and IT/seawater partition residuals.
+
+The owner-known-answer values are baseline 7.4 MW peak, naive objective-only shift 9.2 MW peak with a 1.0 MW breach, and no-new-peak admitted policy 7.2 MW with unchanged 6.125 MWh import energy. All preserve 100 useful compute-work units and declared service-energy quantities.
+
+**Claim ceiling:** this is a synthetic integration fixture from a draft owner PR, not a physically qualified port-city plant. RO product-water volume, feedwater-quality evidence and environmental discharge limits remain null/unsupplied. Heat arithmetic closure earns no potable-water or environmental credit. MCSC consumes the owner trace; it does not implement the PCC verifier, compute scheduler, thermal store, desalination process, marine forecast, spatial-rights layer or common-cause dependency graph. The exact source owner PR has not been independently qualified by its dedicated golden-trace workflow.
 
 ## Canonical receiver-service owner composition
 
