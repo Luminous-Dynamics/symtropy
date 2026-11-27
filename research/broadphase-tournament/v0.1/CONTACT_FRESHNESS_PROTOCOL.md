@@ -260,9 +260,7 @@ The research crate now exports `contact_reuse_lease`, an initial executable admi
 
 The conservative displacement bound is:
 
-[
-delta_{	ext{pair}} le |Delta t_{	ext{rel}}| + R_{	ext{rel}},	heta_{max} + arepsilon
-]
+`norm_upper(delta_t_rel) + R_rel * theta_max + rounding_allowance`
 
 using (2sin(	heta/2) le 	heta), conservative for the admitted angle interval ([0,pi]). Arithmetic operations are rounded upward with `next_up`; overflow or non-finite input fails closed.
 
