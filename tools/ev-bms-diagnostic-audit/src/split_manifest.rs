@@ -22,6 +22,7 @@ struct SplitManifest {
     split_strategy: String,
     group_key: String,
     leakage_keys: Vec<String>,
+    optional_leakage_keys: Vec<String>,
     temporal_exclusion_keys: Vec<String>,
     split_seed: u64,
     generator_revision: String,
@@ -66,6 +67,7 @@ pub struct SplitAuditReport {
     pub split_strategy: String,
     pub group_key: String,
     pub leakage_keys: Vec<String>,
+    pub optional_leakage_keys: Vec<String>,
     pub temporal_exclusion_keys: Vec<String>,
     pub split_seed: u64,
     pub generator_revision: String,
@@ -232,6 +234,19 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     if manifest.leakage_keys.is_empty() {
         return Err("at least one leakage key is required".to_owned());
     }
+    let mut optional_leakage_keys = BTreeSet::new();
+    for key in &manifest.optional_leakage_keys {
+        if !nonempty(key)
+            || key == &manifest.group_key
+            || leakage_keys.contains(key)
+            || !optional_leakage_keys.insert(key)
+        {
+            return Err(
+                "optional leakage keys must be unique and distinct from primary/required keys"
+                    .to_owned(),
+            );
+        }
+    }
 
     let expected_partitions = ["train", "calibration", "test"];
     let mut partition_names = BTreeSet::new();
@@ -323,6 +338,28 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
                 }
             }
 
+            for key in &manifest.optional_leakage_keys {
+                if let Some(value) = record.group_values.get(key) {
+                    if !nonempty(value) {
+                        return Err(format!(
+                            "record {} has an empty optional leakage key {}",
+                            record.record_id, key
+                        ));
+                    }
+                    let index = (key.clone(), value.clone());
+                    if let Some(owner) = leakage_owners.get(&index) {
+                        if owner != &partition.name {
+                            return Err(format!(
+                                "optional leakage key {}={} crosses {} and {}",
+                                key, value, owner, partition.name
+                            ));
+                        }
+                    } else {
+                        leakage_owners.insert(index, partition.name.clone());
+                    }
+                }
+            }
+
             for key in &manifest.temporal_exclusion_keys {
                 let value = record
                     .group_values
@@ -381,6 +418,7 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
         split_strategy: manifest.split_strategy.clone(),
         group_key: manifest.group_key.clone(),
         leakage_keys: manifest.leakage_keys.clone(),
+        optional_leakage_keys: manifest.optional_leakage_keys.clone(),
         temporal_exclusion_keys: manifest.temporal_exclusion_keys.clone(),
         split_seed: manifest.split_seed,
         generator_revision: manifest.generator_revision.clone(),
@@ -490,6 +528,32 @@ mod tests {
         value["partitions"][2]["records"][0]["group_values"]["transaction_id"] =
             Value::String(train_transaction);
         let bytes = serde_json::to_vec(&value).expect("mutated split JSON");
+        assert!(audit_split_manifest(SCHEMA, &bytes).is_err());
+    }
+
+    #[test]
+    fn accepts_missing_optional_event_id_without_imputing_it() {
+        let mut value: Value = serde_json::from_slice(CAO).expect("Cao split JSON");
+        value["partitions"][0]["records"][0]["group_values"]
+            .as_object_mut()
+            .unwrap()
+            .remove("event_id");
+        let bytes = serde_json::to_vec(&value).expect("manifest with missing optional event");
+        let report = audit_split_manifest(SCHEMA, &bytes).expect("missing optional event is allowed");
+        assert_eq!(report.record_count, 5);
+        assert_eq!(report.optional_leakage_keys, vec!["event_id"]);
+    }
+
+    #[test]
+    fn rejects_present_optional_event_id_cross_partition() {
+        let mut value: Value = serde_json::from_slice(CAO).expect("Cao split JSON");
+        let train_event = value["partitions"][0]["records"][0]["group_values"]["event_id"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        value["partitions"][2]["records"][0]["group_values"]["event_id"] =
+            Value::String(train_event);
+        let bytes = serde_json::to_vec(&value).expect("mutated optional event manifest");
         assert!(audit_split_manifest(SCHEMA, &bytes).is_err());
     }
 
