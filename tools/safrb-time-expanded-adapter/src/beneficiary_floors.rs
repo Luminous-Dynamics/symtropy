@@ -13,7 +13,7 @@
 //! original-network allocation and every beneficiary floor.
 
 use crate::temporal_profile::{
-    TemporalProfile, TemporalService, TEMPORAL_PROFILE_SCHEMA, compile_temporal_profile,
+    TEMPORAL_PROFILE_SCHEMA, TemporalProfile, compile_temporal_profile,
 };
 use crate::temporal_verify::verify_temporal_certificate;
 use serde::{Deserialize, Serialize};
@@ -32,8 +32,7 @@ const RETURN_METADATA: &str = "safrb-beneficiary-floor-feasibility-v0.1/return";
 const SUPER_SOURCE_PREFIX: &str = "__safrb-floor-feasibility/ss/";
 const SUPER_SINK_PREFIX: &str = "__safrb-floor-feasibility/tt/";
 
-pub const FLOOR_CLAIM_CEILING: &str =
-    "Synthetic joint feasibility of the declared beneficiary minimum floors in the supplied temporal single-commodity graph only; no priority optimization, source authentication, legal authority, physical qualification, dispatch authorization or actual service claim.";
+pub const FLOOR_CLAIM_CEILING: &str = "Synthetic joint feasibility of the declared beneficiary minimum floors in the supplied temporal single-commodity graph only; no priority optimization, source authentication, legal authority, physical qualification, dispatch authorization or actual service claim.";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -193,7 +192,11 @@ fn build_reduction(
         .canonical_bytes()
         .map_err(|error| format!("invalid temporal base graph: {error}"))?;
 
-    if base_graph.nodes.iter().any(|node| node.id == AUX_SOURCE || node.id == AUX_SINK) {
+    if base_graph
+        .nodes
+        .iter()
+        .any(|node| node.id == AUX_SOURCE || node.id == AUX_SINK)
+    {
         return Err("base graph collides with reserved lower-bound reduction node".to_string());
     }
     if base_graph.edges.iter().any(|edge| edge.id == RETURN_EDGE) {
@@ -226,7 +229,10 @@ fn build_reduction(
     for edge in &base_graph.edges {
         let lower = lower_by_edge.get(&edge.id).copied().unwrap_or(0);
         if lower > edge.capacity {
-            return Err(format!("lower bound exceeds upper capacity for edge {}", edge.id));
+            return Err(format!(
+                "lower bound exceeds upper capacity for edge {}",
+                edge.id
+            ));
         }
         add_balance(&mut balances, &edge.from, -(i128::from(lower)))?;
         add_balance(&mut balances, &edge.to, i128::from(lower))?;
@@ -272,9 +278,9 @@ fn build_reduction(
             positive_balance = positive_balance
                 .checked_add(*balance)
                 .ok_or_else(|| "positive lower-bound total overflowed i128".to_string())?;
-            required_flow = required_flow
-                .checked_add(capacity)
-                .ok_or_else(|| "required lower-bound feasibility flow overflowed u64".to_string())?;
+            required_flow = required_flow.checked_add(capacity).ok_or_else(|| {
+                "required lower-bound feasibility flow overflowed u64".to_string()
+            })?;
             residual_edges.push(FlowEdge::new(
                 format!("{SUPER_SOURCE_PREFIX}{}{node_id}", node_id.len()),
                 AUX_SOURCE,
@@ -374,7 +380,10 @@ fn reconstruct_expected_reduction(
     for edge in &base_graph.edges {
         let lower = lower_by_edge.get(&edge.id).copied().unwrap_or(0);
         if lower > edge.capacity {
-            return Err(format!("verifier found lower bound above capacity on {}", edge.id));
+            return Err(format!(
+                "verifier found lower bound above capacity on {}",
+                edge.id
+            ));
         }
         let from_balance = node_balance
             .get(&edge.from)
@@ -446,7 +455,9 @@ fn reconstruct_expected_reduction(
                     from: AUX_SOURCE.to_string(),
                     to: node_id.clone(),
                     capacity: amount,
-                    metadata_ref: Some(format!("{FLOOR_FEASIBILITY_SCHEMA}/super-source/{node_id}")),
+                    metadata_ref: Some(format!(
+                        "{FLOOR_FEASIBILITY_SCHEMA}/super-source/{node_id}"
+                    )),
                 });
             }
             std::cmp::Ordering::Less => {
@@ -515,7 +526,10 @@ fn reconstruct_original_flows(
             .checked_add(residual)
             .ok_or_else(|| format!("recovered original flow overflowed for {}", edge.id))?;
         if flow > edge.capacity {
-            return Err(format!("recovered original flow exceeds capacity on {}", edge.id));
+            return Err(format!(
+                "recovered original flow exceeds capacity on {}",
+                edge.id
+            ));
         }
         result.push(EdgeFlow {
             id: edge.id.clone(),
@@ -541,7 +555,9 @@ fn verify_original_allocation(
         .map(|edge| (edge.id.as_str(), edge))
         .collect::<BTreeMap<_, _>>();
     if flow_by_id.len() != base_graph.edges.len() || flows.len() != base_graph.edges.len() {
-        return Err("original allocation does not cover every base graph edge exactly once".to_string());
+        return Err(
+            "original allocation does not cover every base graph edge exactly once".to_string(),
+        );
     }
 
     let graph_edges = base_graph
@@ -565,7 +581,10 @@ fn verify_original_allocation(
             || edge_flow.metadata_ref != graph_edge.metadata_ref
             || edge_flow.flow > edge_flow.capacity
         {
-            return Err(format!("allocation edge {} does not match base graph", edge_flow.id));
+            return Err(format!(
+                "allocation edge {} does not match base graph",
+                edge_flow.id
+            ));
         }
 
         let from = node_balance
@@ -600,11 +619,10 @@ fn verify_original_allocation(
         return Err("original allocation source/sink balances do not reconcile".to_string());
     }
     for (node_id, balance) in &node_balance {
-        if node_id != &base_graph.source
-            && node_id != &base_graph.sink
-            && *balance != 0
-        {
-            return Err(format!("original allocation violates conservation at {node_id}"));
+        if node_id != &base_graph.source && node_id != &base_graph.sink && *balance != 0 {
+            return Err(format!(
+                "original allocation violates conservation at {node_id}"
+            ));
         }
     }
 
@@ -615,9 +633,12 @@ fn verify_original_allocation(
         .collect::<BTreeMap<_, _>>();
     let mut allocations = Vec::with_capacity(floors.len());
     for floor in floors {
-        let service = services
-            .get(floor.service_id.as_str())
-            .ok_or_else(|| format!("allocation floor references unknown service {}", floor.service_id))?;
+        let service = services.get(floor.service_id.as_str()).ok_or_else(|| {
+            format!(
+                "allocation floor references unknown service {}",
+                floor.service_id
+            )
+        })?;
         let edge_id = service_edge_id(&floor.service_id);
         let amount = flow_by_id
             .get(edge_id.as_str())
@@ -665,8 +686,7 @@ pub fn evaluate_beneficiary_floors(
             &reduction.lower_by_edge,
             &feasibility_certificate,
         )?;
-        let allocations =
-            verify_original_allocation(profile, &base_graph, &obligations, &flows)?;
+        let allocations = verify_original_allocation(profile, &base_graph, &obligations, &flows)?;
         (Some(flows), Some(allocations))
     } else {
         (None, None)
@@ -714,8 +734,7 @@ pub fn verify_beneficiary_floor_report(
         return Err("beneficiary-floor report case identity mismatch".to_string());
     }
 
-    let (obligations, lower_by_edge) =
-        validate_floor_inputs(profile, &report.base_graph, floors)?;
+    let (obligations, lower_by_edge) = validate_floor_inputs(profile, &report.base_graph, floors)?;
     if report.obligations != obligations {
         return Err("beneficiary-floor obligations do not match verifier inputs".to_string());
     }
@@ -743,7 +762,10 @@ pub fn verify_beneficiary_floor_report(
         .canonical_bytes()
         .map_err(|error| format!("reported feasibility graph is invalid: {error}"))?;
     if expected_bytes != actual_bytes {
-        return Err("feasibility certificate graph does not match reconstructed lower-bound reduction".to_string());
+        return Err(
+            "feasibility certificate graph does not match reconstructed lower-bound reduction"
+                .to_string(),
+        );
     }
 
     report
@@ -757,7 +779,9 @@ pub fn verify_beneficiary_floor_report(
     }
     let expected_feasible = expected_required_flow == report.achieved_auxiliary_flow;
     if report.floors_jointly_feasible != expected_feasible {
-        return Err("beneficiary-floor disposition does not match auxiliary certificate".to_string());
+        return Err(
+            "beneficiary-floor disposition does not match auxiliary certificate".to_string(),
+        );
     }
 
     if expected_feasible {
@@ -771,7 +795,10 @@ pub fn verify_beneficiary_floor_report(
         if report.original_edge_flows.as_ref() != Some(&expected_flows)
             || report.beneficiary_allocations.as_ref() != Some(&expected_allocations)
         {
-            return Err("beneficiary-floor allocation does not match reconstructed feasible flow".to_string());
+            return Err(
+                "beneficiary-floor allocation does not match reconstructed feasible flow"
+                    .to_string(),
+            );
         }
     } else if report.original_edge_flows.is_some() || report.beneficiary_allocations.is_some() {
         return Err("infeasible floor report must not expose an original allocation".to_string());
@@ -792,7 +819,7 @@ pub fn verify_beneficiary_floor_input(
 mod tests {
     use super::*;
     use crate::temporal_profile::{
-        TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer, TEMPORAL_PROFILE_SCHEMA,
+        TEMPORAL_PROFILE_SCHEMA, TemporalNode, TemporalReceipt, TemporalService, TemporalTransfer,
     };
 
     fn node(
@@ -897,9 +924,7 @@ mod tests {
             if floor.minimum_required_quantity > per_service_limit {
                 return false;
             }
-            let Some(next_total) =
-                total_floor.checked_add(floor.minimum_required_quantity)
-            else {
+            let Some(next_total) = total_floor.checked_add(floor.minimum_required_quantity) else {
                 return false;
             };
             total_floor = next_total;
@@ -981,17 +1006,22 @@ mod tests {
             );
             let report = evaluate_beneficiary_floors(&profile, &floors).unwrap();
             assert_eq!(
-                report.floors_jointly_feasible,
-                expected,
+                report.floors_jointly_feasible, expected,
                 "seed {seed}: independent physical floor oracle disagreed"
             );
             verify_beneficiary_floor_report(&profile, &floors, &report).unwrap();
             if expected {
-                assert!(report.beneficiary_allocations.as_ref().is_some_and(|allocations| {
-                    allocations
-                        .iter()
-                        .all(|allocation| allocation.allocated_quantity >= allocation.minimum_required_quantity)
-                }));
+                assert!(
+                    report
+                        .beneficiary_allocations
+                        .as_ref()
+                        .is_some_and(|allocations| {
+                            allocations.iter().all(|allocation| {
+                                allocation.allocated_quantity
+                                    >= allocation.minimum_required_quantity
+                            })
+                        })
+                );
             } else {
                 assert!(report.original_edge_flows.is_none());
                 assert!(report.beneficiary_allocations.is_none());
@@ -1124,6 +1154,9 @@ mod tests {
 
     #[test]
     fn published_floor_schemas_are_valid_json_documents() {
+        let temporal_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/temporal-profile-v0.1.schema.json"))
+                .unwrap();
         let report_schema: serde_json::Value = serde_json::from_str(include_str!(
             "../schemas/beneficiary-floor-feasibility-v0.1.schema.json"
         ))
@@ -1132,6 +1165,10 @@ mod tests {
             "../schemas/beneficiary-floor-feasibility-input-v0.1.schema.json"
         ))
         .unwrap();
+        assert_eq!(
+            temporal_schema["properties"]["schema_version"]["const"],
+            TEMPORAL_PROFILE_SCHEMA
+        );
         assert_eq!(
             report_schema["properties"]["schema_version"]["const"],
             FLOOR_FEASIBILITY_SCHEMA
