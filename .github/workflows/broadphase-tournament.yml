@@ -26,6 +26,12 @@ jobs:
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
+      - name: Resolve isolated Cargo.lock for shape coverage
+        run: |
+          cargo generate-lockfile --manifest-path research/broadphase-tournament/v0.1/Cargo.toml
+          printf '\n---BROADPHASE_LOCK_BEGIN---\n'
+          cat research/broadphase-tournament/v0.1/Cargo.lock
+          printf '\n---BROADPHASE_LOCK_END---\n'
       - name: Check formatting
         run: cargo fmt --manifest-path research/broadphase-tournament/v0.1/Cargo.toml -- --check
       - name: Run tests
