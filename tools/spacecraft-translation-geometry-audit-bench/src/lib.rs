@@ -242,9 +242,9 @@ fn ceil_sqrt(value: u128) -> Option<u64> {
     u64::try_from(result).ok()
 }
 
-fn displacement_mpx(dx: i64, dy: i64) -> Option<u64> {
-    let x = i128::from(dx).unsigned_abs();
-    let y = i128::from(dy).unsigned_abs();
+fn displacement_mpx(dx: i128, dy: i128) -> Option<u64> {
+    let x = dx.unsigned_abs();
+    let y = dy.unsigned_abs();
     let squared = x.checked_mul(x)?.checked_add(y.checked_mul(y)?)?;
     ceil_sqrt(squared)
 }
@@ -495,8 +495,10 @@ fn score_frame(frame: &FrameAnnotations) -> Result<FrameScore, String> {
                 ));
                 continue;
             }
-            let dx = landmark.translated_x_mpx - landmark.source_x_mpx;
-            let dy = landmark.translated_y_mpx - landmark.source_y_mpx;
+            let dx = i128::from(landmark.translated_x_mpx)
+                - i128::from(landmark.source_x_mpx);
+            let dy = i128::from(landmark.translated_y_mpx)
+                - i128::from(landmark.source_y_mpx);
             let displacement = displacement_mpx(dx, dy)
                 .ok_or_else(|| "landmark displacement overflow".to_owned())?;
             if displacement > frame.metadata.scope.landmark_tolerance_mpx {
@@ -637,10 +639,12 @@ fn temporal_motion_residual(frames: &[FrameAnnotations]) -> Result<Option<u64>, 
                 continue;
             }
 
-            let source_dx = right.source_x_mpx - left.source_x_mpx;
-            let source_dy = right.source_y_mpx - left.source_y_mpx;
-            let translated_dx = right.translated_x_mpx - left.translated_x_mpx;
-            let translated_dy = right.translated_y_mpx - left.translated_y_mpx;
+            let source_dx = i128::from(right.source_x_mpx) - i128::from(left.source_x_mpx);
+            let source_dy = i128::from(right.source_y_mpx) - i128::from(left.source_y_mpx);
+            let translated_dx =
+                i128::from(right.translated_x_mpx) - i128::from(left.translated_x_mpx);
+            let translated_dy =
+                i128::from(right.translated_y_mpx) - i128::from(left.translated_y_mpx);
             let residual = displacement_mpx(translated_dx - source_dx, translated_dy - source_dy)
                 .ok_or_else(|| "temporal motion residual overflow".to_owned())?;
             maximum = Some(maximum.map_or(residual, |current| current.max(residual)));
