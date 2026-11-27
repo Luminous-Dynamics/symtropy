@@ -1,0 +1,50 @@
+name: space-systems-reference
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/space-systems-reference.yml"
+      - "tools/space-systems-reference/**"
+      - "docs/space-engineering/SPACE_SYSTEMS_FEASIBILITY_V0_1.md"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/space-systems-reference.yml"
+      - "tools/space-systems-reference/**"
+      - "docs/space-engineering/SPACE_SYSTEMS_FEASIBILITY_V0_1.md"
+
+permissions:
+  contents: read
+
+jobs:
+  reference:
+    name: space-system analytical reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/space-systems-reference/Cargo.toml -- --check
+
+      - name: Run unit tests
+        run: cargo test --manifest-path tools/space-systems-reference/Cargo.toml
+
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/space-systems-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute frozen screening cases
+        run: |
+          cargo run --manifest-path tools/space-systems-reference/Cargo.toml --release > space-systems-reference.json
+          python3 -m json.tool space-systems-reference.json > /dev/null
+          grep -q '"evidence_class": "synthetic_analytical_screening"' space-systems-reference.json
+          grep -q '"equivalent_target_plane_attenuation_area_km2":' space-systems-reference.json
+          grep -q '"equivalent_area_mass_proxy_kg":' space-systems-reference.json
+          grep -q '"claim_ceiling":' space-systems-reference.json
