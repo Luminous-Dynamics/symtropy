@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-QUALIFICATION-MATURITY-001",
+  "claim_ceiling": "Source register for maturity gates; this does not claim conformity or certification.",
+  "sources": [
+    {
+      "id": "FODOR-MOEM-2026",
+      "doi": "10.1002/adem.71259",
+      "source_type": "research_perspective",
+      "scope": "MOEM M1-M5 evidence maturity for AM-enabled electrical-machine materials and components",
+      "limitation": "heuristic/reporting framework, not a formal standard"
+    },
+    {
+      "id": "ISO-ASTM-52920-2023",
+      "reference": "ISO/ASTM 52920:2023",
+      "source_type": "international_standard",
+      "scope": "industrial AM processes and production-site quality assurance",
+      "limitation": "not the sole material/property/component qualification evidence"
+    },
+    {
+      "id": "ISO-ASTM-TS-52930-2021",
+      "reference": "ISO/ASTM TS 52930:2021",
+      "source_type": "technical_specification",
+      "scope": "PBF-LB equipment IQ/OQ/PQ",
+      "limitation": "does not cover feedstock qualification and most post-processing"
+    },
+    {
+      "id": "IEC-60404-5-2015",
+      "reference": "IEC 60404-5:2015",
+      "source_type": "international_standard",
+      "scope": "hard-magnet flux density, polarization, field strength, demagnetization and recoil measurement methods",
+      "limitation": "material measurement method, not component functional qualification"
+    },
+    {
+      "id": "IEC-60404-18-2025",
+      "reference": "IEC 60404-18:2025",
+      "source_type": "international_standard",
+      "scope": "SCM open-circuit DC measurement for hard magnets and self-demagnetizing-field correction",
+      "limitation": "method scope and material homogeneity conditions apply"
+    },
+    {
+      "id": "ISO-IEC-17025-2017",
+      "reference": "ISO/IEC 17025:2017",
+      "source_type": "international_standard",
+      "scope": "testing/calibration laboratory competence, impartiality and consistent operation",
+      "limitation": "lab competence does not validate a manufacturing process or route"
+    }
+  ]
+}
