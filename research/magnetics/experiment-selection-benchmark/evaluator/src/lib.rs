@@ -453,19 +453,17 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
         .iter()
         .filter(|outcome| outcome.disposition == ExperimentDisposition::Qualified)
         .min_by_key(|outcome| outcome.iteration);
-    let mut accumulated_cost = 0u64;
-    let mut cost_to_first = None;
-    for outcome in {
-        let mut values = trace.outcomes.iter().collect::<Vec<_>>();
-        values.sort_by_key(|outcome| outcome.iteration);
-        values
-    } {
-        accumulated_cost = accumulated_cost.saturating_add(outcome.cost_minor);
-        if outcome.disposition == ExperimentDisposition::Qualified {
-            cost_to_first = Some(accumulated_cost);
-            break;
-        }
-    }
+    // Experiments selected in one batch share an iteration. Count the
+    // entire successful batch when reporting cost to first discovery; the
+    // evaluator must not pretend a policy could stop halfway through a batch.
+    let first_qualified_iteration = first_qualified.map(|outcome| outcome.iteration);
+    let cost_to_first = first_qualified_iteration.map(|iteration| {
+        trace
+            .outcomes
+            .iter()
+            .filter(|outcome| outcome.iteration <= iteration)
+            .fold(0u64, |total, outcome| total.saturating_add(outcome.cost_minor))
+    });
 
     let false_feasible_selections = trace
         .outcomes
@@ -629,7 +627,7 @@ fn score_trace(task: &BenchmarkTask, trace: &PolicyTrace) -> TraceMetrics {
         qualified_experiments: qualified.len() as u64,
         confirmed_failures,
         unresolved_experiments: unresolved,
-        first_qualified_iteration: first_qualified.map(|outcome| outcome.iteration),
+        first_qualified_iteration,
         total_experiment_cost_minor: trace
             .outcomes
             .iter()
@@ -972,6 +970,16 @@ mod tests {
     }
 
     #[test]
+    fn cost_to_first_discovery_counts_the_entire_successful_batch() {
+        let mut policy_trace = trace(PolicyFamily::CostAwareBatch);
+        policy_trace.outcomes[2].iteration = 3;
+        policy_trace.outcomes[3].iteration = 3;
+        let metrics = score_trace(&task(), &policy_trace);
+        assert_eq!(metrics.first_qualified_iteration, Some(3));
+        assert_eq!(metrics.cost_to_first_qualified_minor, Some(11_500));
+    }
+
+    #[test]
     fn unqualified_trials_still_contribute_to_total_and_first_pass_cost() {
         let mut trace = trace(PolicyFamily::Random);
         trace.outcomes[0].disposition = ExperimentDisposition::Fail;
@@ -989,7 +997,7 @@ mod tests {
         benchmark_task.objectives[0].direction = ObjectiveDirection::Maximize;
         benchmark_task.oracle_best_objective_0 = Some(40.0);
         let metrics = score_trace(&benchmark_task, &trace(PolicyFamily::ExpertPrior));
-        assert_eq!(metrics.simple_regret_objective_0, Some(30.0));
+        assert_eq!(metrics.simple_regret_objective_0, Some(25.0));
     }
 
     #[test]
