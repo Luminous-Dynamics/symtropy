@@ -1,0 +1,239 @@
+{
+  "schema": "AeroAssuranceCapsuleChallengeV0_1",
+  "corpus_id": "AERO-ASSURANCE-CAPSULE-CHALLENGE-001-V0_1",
+  "oracle_status": "NOT_INDEPENDENTLY_REVIEWED",
+  "execution_status": "NOT_EXECUTED",
+  "cases": [
+    {
+      "case_id": "AC01",
+      "case_class": "positive_control",
+      "mutation": "The synthetic capsule has one root claim, a connected acyclic argument graph, exact evidence-manifest links and non-positive synthetic decision disposition.",
+      "expected_validator_result": "STRUCTURALLY_VALID",
+      "expected_reason_codes": []
+    },
+    {
+      "case_id": "AC02",
+      "case_class": "single_fault",
+      "mutation": "Duplicate one argument node ID.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_ARGUMENT_NODE_ID_DUPLICATE"
+      ]
+    },
+    {
+      "case_id": "AC03",
+      "case_class": "single_fault",
+      "mutation": "Set root_node_id to a node ID absent from nodes.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_ARGUMENT_ROOT_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC04",
+      "case_class": "single_fault",
+      "mutation": "Add an edge whose from_node_id does not exist.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_ARGUMENT_EDGE_ENDPOINT_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC05",
+      "case_class": "single_fault",
+      "mutation": "Add a directed cycle to the argument graph.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_ARGUMENT_GRAPH_CYCLE"
+      ]
+    },
+    {
+      "case_id": "AC06",
+      "case_class": "single_fault",
+      "mutation": "Add a node disconnected from the root argument component.",
+      "expected_validator_result": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CAPSULE_ARGUMENT_NODE_UNREACHABLE"
+      ]
+    },
+    {
+      "case_id": "AC07",
+      "case_class": "single_fault",
+      "mutation": "Have an evidence node reference an evidence_ref absent from the evidence manifest.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_EVIDENCE_NODE_REFERENCE_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC08",
+      "case_class": "single_fault",
+      "mutation": "Duplicate an evidence_ref with different raw payload digests.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_EVIDENCE_REFERENCE_DUPLICATE"
+      ]
+    },
+    {
+      "case_id": "AC09",
+      "case_class": "single_fault",
+      "mutation": "Duplicate a component_id and attempt to overwrite its disposition.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_COMPONENT_ID_DUPLICATE"
+      ]
+    },
+    {
+      "case_id": "AC10",
+      "case_class": "single_fault",
+      "mutation": "Make the overall decision REVIEWABLE while one mandatory component result is UNVERIFIED.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_DECISION_COMPENSATES_COMPONENT_BLOCKER"
+      ]
+    },
+    {
+      "case_id": "AC11",
+      "case_class": "single_fault",
+      "mutation": "Remove all reason codes from an INCOMPLETE decision.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_NONPOSITIVE_DECISION_REASON_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC12",
+      "case_class": "single_fault",
+      "mutation": "Declare FULLY_REPRODUCIBLE while unresolved prerequisites remain.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_REPRODUCTION_UNRESOLVED_PREREQUISITES"
+      ]
+    },
+    {
+      "case_id": "AC13",
+      "case_class": "single_fault",
+      "mutation": "Declare FULLY_REPRODUCIBLE while required evidence bytes are not included.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_REPRODUCTION_REQUIRED_EVIDENCE_NOT_INCLUDED"
+      ]
+    },
+    {
+      "case_id": "AC14",
+      "case_class": "single_fault",
+      "mutation": "List an included evidence reference that is absent from required_evidence_refs and the evidence manifest.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_REPRODUCTION_INCLUDED_EVIDENCE_REFERENCE_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC15",
+      "case_class": "single_fault",
+      "mutation": "Use a receiver-first-seen interval later than the historical as_known_at cutoff for an evidence item required by the original decision.",
+      "expected_validator_result": "NOT_KNOWN_AT_SNAPSHOT",
+      "expected_reason_codes": [
+        "CAPSULE_EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"
+      ]
+    },
+    {
+      "case_id": "AC16",
+      "case_class": "single_fault",
+      "mutation": "Reverse an evidence receiver-first-seen interval.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_RECEIVER_INTERVAL_REVERSED"
+      ]
+    },
+    {
+      "case_id": "AC17",
+      "case_class": "single_fault",
+      "mutation": "Bind a component result input digest to a different decision_context_sha256.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_COMPONENT_CONTEXT_DIGEST_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "AC18",
+      "case_class": "single_fault",
+      "mutation": "Remove the verifier source tree digest or dependency lock digest.",
+      "expected_validator_result": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CAPSULE_VERIFIER_REPRODUCTION_IDENTITY_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC19",
+      "case_class": "single_fault",
+      "mutation": "Declare FULLY_REPRODUCIBLE while network_policy is network_required_unqualified.",
+      "expected_validator_result": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CAPSULE_VERIFIER_NETWORK_POLICY_UNQUALIFIED"
+      ]
+    },
+    {
+      "case_id": "AC20",
+      "case_class": "single_fault",
+      "mutation": "Omit the detached owner receipt for the capsule package digest.",
+      "expected_validator_result": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CAPSULE_DETACHED_PACKAGE_RECEIPT_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC21",
+      "case_class": "single_fault",
+      "mutation": "Claim physical_truth_established or certification_granted in the non_claims boundary.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_AUTHORITY_CEILING_VIOLATION"
+      ]
+    },
+    {
+      "case_id": "AC22",
+      "case_class": "coupled_fault",
+      "mutation": "Combine a dangling evidence node reference with a forged-looking but unverified owner receipt.",
+      "expected_validator_result": "REJECTED",
+      "expected_reason_codes": [
+        "CAPSULE_EVIDENCE_NODE_REFERENCE_MISSING",
+        "CAPSULE_OWNER_RECEIPT_UNVERIFIED"
+      ]
+    },
+    {
+      "case_id": "AC23",
+      "case_class": "coupled_fault",
+      "mutation": "Combine a late receiver-first-seen interval and a current trust-policy digest while replaying an earlier historical decision.",
+      "expected_validator_result": "NOT_KNOWN_AT_SNAPSHOT",
+      "expected_reason_codes": [
+        "CAPSULE_EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"
+      ]
+    },
+    {
+      "case_id": "AC24",
+      "case_class": "metamorphic",
+      "mutation": "Permute node and evidence-manifest ordering without changing IDs, edges or content; normalized graph/manifest semantics must remain the same.",
+      "expected_validator_result": "STRUCTURALLY_VALID",
+      "expected_reason_codes": []
+    },
+    {
+      "case_id": "AC25",
+      "case_class": "single_fault",
+      "mutation": "Use a model-report evidence item with no owner namespace or raw digest.",
+      "expected_validator_result": "INCOMPLETE",
+      "expected_reason_codes": [
+        "CAPSULE_EVIDENCE_PROVENANCE_FIELDS_MISSING"
+      ]
+    },
+    {
+      "case_id": "AC26",
+      "case_class": "single_fault",
+      "mutation": "Use a reviewer judgement node marked supported without a reviewer receipt or reviewer identity evidence.",
+      "expected_validator_result": "UNVERIFIED",
+      "expected_reason_codes": [
+        "CAPSULE_REVIEW_JUDGEMENT_RECEIPT_MISSING"
+      ]
+    }
+  ]
+}
