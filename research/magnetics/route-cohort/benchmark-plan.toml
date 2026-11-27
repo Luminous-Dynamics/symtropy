@@ -51,9 +51,7 @@ synthetic_fixture = "evaluator/fixtures/synthetic-route-cohort-v0.1.json"
 workflow = ".github/workflows/magnetic-route-cohort.yml"
 language = "Rust 2024"
 dependencies = []
-unit_tests_authored = 19
-unit_tests_executed = false
-exact_head_ci_pass = false
+unit_tests_authored = 21
 unit_tests_executed = false
 exact_head_ci_pass = false
 
