@@ -123,7 +123,10 @@ fn lifecycle_and_recovery_edge_cases_keep_service_and_knowledge_bounds() {
 
     let late = find("EV18_LATE_EVIDENCE_HISTORICAL_REPLAY");
     assert_eq!(late.expected, "PRESERVE_HISTORICAL_KNOWLEDGE_CUT");
-    assert_eq!(late.lifecycle_event, "FIRST_AVAILABLE_AFTER_DECISION_CUTOFF");
+    assert_eq!(
+        late.lifecycle_event,
+        "FIRST_AVAILABLE_AFTER_DECISION_CUTOFF"
+    );
 
     let after_deadline = find("LC15_REPLACEMENT_QUALIFIES_AFTER_DEADLINE");
     assert_eq!(after_deadline.expected, "NO_CURRENT_SERVICE_CREDIT");
