@@ -42,6 +42,31 @@ Supported lanes:
 - Re-run after every code, schema, model or comparator change. Queued/skipped/cancelled CI is not qualification.
 - Never allow a schema-valid artifact to be called a valid certificate without independent cryptographic/domain verification.
 
+## Solver comparator matrix (November 2026)
+
+Keep maximum flow and minimum-cost flow as separate lanes.
+
+### Maximum flow
+
+The shared Rust SCF kernel currently uses a Dinic-style level graph and blocking-flow algorithm. Its caps of 4,096 nodes and 65,536 arcs are deliberate admission limits, not a large-scale or SOTA claim. The DIMACS 2.0 reference page recommends HIPR4 (highest-level push-relabel), Pseudoflow and EIBFS; it names HIPR4 as the main cross-family baseline because no solver dominates every family. Benchmark exact same graphs and integer capacities, and measure where Dinic is competitive, slower, faster or unsupported. Preserve parser/format translation, graph digest, proof production and proof verification overhead. Reference: https://coral.ise.lehigh.edu/flow-challenge-2-0/max-flow-reference-solvers/
+
+### Minimum-cost flow
+
+Primary practical baselines remain LEMON 1.3.1 CostScaling and NetworkSimplex, plus Google OR-Tools SimpleMinCostFlow. NetworkX is a secondary small-instance differential reference; NetworkSimplex requires a directed simple graph, so any parallel-arc transformation must retain a verifiable map back to original arc IDs.
+
+An important new research comparator is Schätzle, Meierhans, Kyng and Probst Gutenberg, *A Practical Combinatorial Interior Point Method for Minimum-Cost Flow*, arXiv:2610.18328 (submitted October 13, 2026): https://arxiv.org/abs/2610.18328. It compares a practical combinatorial IPM against LEMON on 12 DIMACS core families. The paper reports competitive scaling on five families and better scaling on two; on `grid_wide`, it reports approximately `m^1.04` against LEMON's `m^1.48`. The authors also report a feasible but non-optimal result on `grid_long`, and livelock/non-termination on a `road_flow` case under some precision settings.
+
+Those results make the IPM an important emerging comparator, not an overall winner. The paper's experimental section reports one run on one seed per family/size pair on an AMD EPYC 7742 / 512 GB host, with C++23 `-O3 -march=native -ffast-math`; the observed results are informative but not a repeated-run leaderboard. It is a strong reason to record false-optimum, verifier-rejection, early-termination, livelock and timeout outcomes separately. The independent primal/dual verifier must catch a feasible-but-non-optimal result.
+
+### Matched-comparison rules
+
+- Compare the same integer network, node supplies/demands, lower/upper bounds, parallel arcs, time expansion and ordered objective vector.
+- For lexicographic SAFRB objectives, apply identical exact sequential passes or a proven mathematically equivalent encoding; never compare different Big-M or scalarized objectives as if they were the same problem.
+- Record source code revision and license, compiler/toolchain flags, CPU/memory, seeds, warmups, repetitions, timeout and warm-start policy.
+- Report parse/model-build/solve/witness/dual-proof/independent-verification times separately.
+- Reject or flag outputs with exact feasibility but incorrect objective; DNF, livelock, timeout and unsupported are separate outcomes.
+- Keep solver score independent from evidence admission, model-semantic correctness and service-outcome scorecards.
+
 ## Acceptance and reporting
 
 The top-level SAFRB protocol contains the prospective false-guarantee, positive-control, exact proof, latency and scale targets. This manifest supplies per-case traceability to those targets; it does not aggregate them into one score. A benchmark result is accepted only when the exact manifest, inputs, run receipt and independent verification can be replayed.
