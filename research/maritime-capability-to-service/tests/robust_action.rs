@@ -12,7 +12,8 @@ fn interval(point: u64, radius: u64, alpha: u32) -> ConformalInterval {
         radius,
         alpha_ppm: alpha,
         sample_count: 100,
-        quantile_rank_1based: 91,
+        quantile_rank_1based: (u128::from(101u64) * u128::from(1_000_000 - alpha))
+            .div_ceil(1_000_000) as u64,
         coverage_claim: CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability,
         nominal_coverage_claim_ppm: Some(1_000_000 - alpha),
         decision_cutoff: 50,
