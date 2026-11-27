@@ -1,0 +1,814 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-candidate-evidence-snapshot-v0.2.schema.json",
+  "title": "AERB Candidate Evidence Snapshot v0.2",
+  "description": "Candidate-visible, source-qualified evidence projection at one immutable decision cut. It contains typed observation results, but no hidden evaluator truth, actual probe-support partitions, likelihoods, loss tables, seeds or future observations. A structurally valid snapshot is not proof of source authenticity or physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "episode_id",
+    "attempt_id",
+    "command_id",
+    "execution_scope_id",
+    "decision_cut_sequence",
+    "ledger_frontier_sequence",
+    "evidence_profile_sha256",
+    "adapter_revision_sha256",
+    "observations",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "benchmark": {
+      "const": "AERB"
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_scope_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_cut_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "ledger_frontier_sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evidence_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "adapter_revision_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "observations": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 20
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "time_interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_domain_id",
+        "earliest_ticks_ns",
+        "latest_ticks_ns",
+        "uncertainty_ns"
+      ],
+      "properties": {
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "earliest_ticks_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latest_ticks_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "principal_id",
+        "source_role",
+        "independence_group",
+        "profile_sha256"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "principal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_role": {
+          "enum": [
+            "fault_injector",
+            "physical_observer",
+            "independent_adjudicator",
+            "endpoint",
+            "network_monitor",
+            "coordinator_log",
+            "controller_telemetry",
+            "command_holder_inventory",
+            "independent_inventory_adjudicator",
+            "model_oracle"
+          ]
+        },
+        "independence_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_domain_id",
+        "start_earliest_ns",
+        "start_latest_ns",
+        "end_earliest_ns",
+        "end_latest_ns",
+        "complete"
+      ],
+      "properties": {
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start_earliest_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start_latest_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_earliest_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_latest_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      }
+    },
+    "artifact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "media_type",
+        "byte_length",
+        "access_mode"
+      ],
+      "properties": {
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "access_mode": {
+          "const": "host_mediated_read_only"
+        }
+      }
+    },
+    "effect_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "subject_id",
+        "finding",
+        "coverage",
+        "raw_data_sha256",
+        "calibration_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "effect_observation"
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "finding": {
+          "enum": [
+            "fault_present",
+            "fault_absent",
+            "effect_present",
+            "effect_absent",
+            "stale_effect_present",
+            "unknown",
+            "disputed"
+          ]
+        },
+        "coverage": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/coverage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_data_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "finding": {
+                "enum": [
+                  "effect_absent",
+                  "fault_absent"
+                ]
+              }
+            },
+            "required": [
+              "finding"
+            ]
+          },
+          "then": {
+            "properties": {
+              "coverage": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/coverage"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "complete"
+                    ],
+                    "properties": {
+                      "complete": {
+                        "const": true
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "endpoint_fence_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "holder_id",
+        "accepted_epoch",
+        "queue_generation",
+        "accepted_high_water",
+        "retired_high_water",
+        "outstanding_n",
+        "in_flight_n",
+        "terminal_actuator_fenced"
+      ],
+      "properties": {
+        "kind": {
+          "const": "endpoint_fence_receipt"
+        },
+        "holder_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accepted_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted_high_water": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retired_high_water": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outstanding_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "in_flight_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal_actuator_fenced": {
+          "type": "boolean"
+        }
+      }
+    },
+    "edge_closure_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "edge_id",
+        "source_holder_id",
+        "target_holder_id",
+        "authority_epoch",
+        "queue_generation",
+        "old_epoch_enqueue_closed"
+      ],
+      "properties": {
+        "kind": {
+          "const": "edge_closure_receipt"
+        },
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_holder_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_holder_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "old_epoch_enqueue_closed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "holder_inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "complete",
+        "holder_ids",
+        "edge_ids"
+      ],
+      "properties": {
+        "kind": {
+          "const": "holder_inventory"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "holder_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "edge_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "temporal_closure_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "closure_disposition",
+        "proof_path",
+        "system_boundary_manifest_sha256",
+        "graph_revision_sha256",
+        "authority_epoch",
+        "queue_generation",
+        "qualified_node_n",
+        "qualified_edge_n",
+        "horizon_ms",
+        "hold_reason"
+      ],
+      "properties": {
+        "kind": {
+          "const": "temporal_closure_receipt"
+        },
+        "closure_disposition": {
+          "enum": [
+            "closed",
+            "hold",
+            "unknown",
+            "disputed"
+          ]
+        },
+        "proof_path": {
+          "enum": [
+            "fenced_and_drained",
+            "bounded_expiry",
+            "none"
+          ]
+        },
+        "system_boundary_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "graph_revision_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authority_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qualified_node_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "qualified_edge_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "horizon_ms": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hold_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "closure_disposition": {
+                "const": "closed"
+              }
+            },
+            "required": [
+              "closure_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "proof_path": {
+                "enum": [
+                  "fenced_and_drained",
+                  "bounded_expiry"
+                ]
+              },
+              "hold_reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "closure_disposition": {
+                "enum": [
+                  "hold",
+                  "unknown",
+                  "disputed"
+                ]
+              }
+            },
+            "required": [
+              "closure_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "hold_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "proof_path": {
+                "const": "bounded_expiry"
+              }
+            },
+            "required": [
+              "proof_path"
+            ]
+          },
+          "then": {
+            "properties": {
+              "horizon_ms": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "physical_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "measurement_id",
+        "modality",
+        "values",
+        "unit",
+        "frame_id",
+        "uncertainty_model",
+        "uncertainty_values",
+        "calibration_sha256",
+        "raw_data_sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "physical_measurement"
+        },
+        "measurement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "enum": [
+            "pose",
+            "force",
+            "torque",
+            "contact",
+            "gripper_state",
+            "actuator_state",
+            "joint_state",
+            "other"
+          ]
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "type": "number"
+          }
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty_model": {
+          "enum": [
+            "standard_deviation",
+            "interval_half_width",
+            "covariance_upper_triangular",
+            "not_available"
+          ]
+        },
+        "uncertainty_values": {
+          "type": "array",
+          "maxItems": 136,
+          "items": {
+            "type": "number"
+          }
+        },
+        "calibration_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_data_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "command_acknowledgement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "acknowledgement_state",
+        "command_id",
+        "endpoint_id"
+      ],
+      "properties": {
+        "kind": {
+          "const": "command_acknowledgement"
+        },
+        "acknowledgement_state": {
+          "enum": [
+            "received",
+            "lost",
+            "delayed",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoint_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "payload": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/effect_observation"
+        },
+        {
+          "$ref": "#/$defs/endpoint_fence_receipt"
+        },
+        {
+          "$ref": "#/$defs/edge_closure_receipt"
+        },
+        {
+          "$ref": "#/$defs/holder_inventory"
+        },
+        {
+          "$ref": "#/$defs/temporal_closure_receipt"
+        },
+        {
+          "$ref": "#/$defs/physical_measurement"
+        },
+        {
+          "$ref": "#/$defs/command_acknowledgement"
+        }
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "attempt_id",
+        "command_id",
+        "execution_scope_id",
+        "source",
+        "parent_evidence_ids",
+        "evidence_domain",
+        "event_time",
+        "observation_time",
+        "ingest_sequence",
+        "quality",
+        "reason_codes",
+        "payload",
+        "content_sha256",
+        "raw_artifact_sha256"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "command_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "parent_evidence_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_domain": {
+          "enum": [
+            "formal_model",
+            "process_model",
+            "simulator",
+            "hil",
+            "physical"
+          ]
+        },
+        "event_time": {
+          "$ref": "#/$defs/time_interval"
+        },
+        "observation_time": {
+          "$ref": "#/$defs/time_interval"
+        },
+        "ingest_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "quality": {
+          "enum": [
+            "admitted",
+            "stale",
+            "unknown",
+            "disputed",
+            "rejected"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "payload": {
+          "$ref": "#/$defs/payload"
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "raw_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifact_ref": {
+          "$ref": "#/$defs/artifact_ref"
+        }
+      }
+    }
+  }
+}

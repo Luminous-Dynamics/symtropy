@@ -1,0 +1,86 @@
+name: AERB Candidate Evidence Snapshot v0.2
+
+on:
+  push:
+    branches:
+      - research/aerb-candidate-evidence-snapshot-v0-2
+    paths:
+      - "research/mobility-rrvr-aerb-observation-projection-v0.2/**"
+      - ".github/workflows/aerb-candidate-evidence-projection.yml"
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-observation-projection-v0.2/**"
+      - ".github/workflows/aerb-candidate-evidence-projection.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-evidence-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse schema and synthetic evidence snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-observation-projection-v0.2"
+          jq empty "$ROOT/schemas/aerb_candidate_evidence_snapshot_v0_2.schema.json"
+          jq empty "$ROOT/fixtures/candidate_evidence_snapshot_synthetic_v0_2.json"
+
+      - name: Check decision-cut, identity, provenance and source-role invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="research/mobility-rrvr-aerb-observation-projection-v0.2/fixtures/candidate_evidence_snapshot_synthetic_v0_2.json"
+          jq -e '
+            . as $snapshot
+            | .observations as $observations
+            | $snapshot.schema_version == "0.2"
+            and $snapshot.benchmark == "AERB"
+            and $snapshot.decision_cut_sequence == $snapshot.ledger_frontier_sequence
+            and ($observations | length == 3)
+            and ([$observations[].evidence_id] | length == (unique | length))
+            and ([$observations[].ingest_sequence] | length == (unique | length))
+            and all($observations[]; .ingest_sequence <= $snapshot.decision_cut_sequence)
+            and all($observations[]; .attempt_id == $snapshot.attempt_id and .command_id == $snapshot.command_id and .execution_scope_id == $snapshot.execution_scope_id)
+            and all($observations[]; .evidence_domain == "process_model" and .source.source_role == "model_oracle")
+            and all($observations[]; (.parent_evidence_ids | length == (unique | length)))
+            and all($observations[]; .event_time.earliest_ticks_ns <= .event_time.latest_ticks_ns and .observation_time.earliest_ticks_ns <= .observation_time.latest_ticks_ns)
+            and all($observations[] | select(.quality != "admitted"); (.reason_codes | length) > 0)
+            and all($observations[] | select(.payload.kind == "effect_observation" and (.payload.finding == "effect_absent" or .payload.finding == "fault_absent")); .payload.coverage != null and .payload.coverage.complete == true)
+            and all($observations[] | select(.payload.kind == "temporal_closure_receipt" and .payload.closure_disposition == "closed"); .payload.proof_path != "none" and .payload.hold_reason == null)
+            and all($observations[] | select(.payload.kind == "temporal_closure_receipt" and .payload.closure_disposition != "closed"); .payload.hold_reason != null)
+            and all($observations[];
+              . as $row
+              | all($row.parent_evidence_ids[];
+                . as $parent_id
+                | any($snapshot.observations[]; .evidence_id == $parent_id and .ingest_sequence < $row.ingest_sequence)
+              )
+            )
+            and ([$observations[].payload.kind] | length == 3)
+            and any($observations[]; .payload.kind == "command_acknowledgement" and .payload.acknowledgement_state == "lost")
+            and any($observations[]; .payload.kind == "physical_measurement" and .payload.modality == "pose" and .payload.unit == "m" and (.payload.values | length == 3))
+            and any($observations[]; .payload.kind == "temporal_closure_receipt" and .payload.closure_disposition == "hold" and .payload.horizon_ms == null and .payload.hold_reason == "IncompleteInventory")
+            and ($snapshot | has("hidden_truth_world_id") | not)
+            and ($snapshot | has("actual_probe_outcome_supports") | not)
+            and ($snapshot | has("decision_losses") | not)
+            and ($snapshot | has("likelihoods") | not)
+            and ($snapshot | has("seed") | not)
+            and ($snapshot | tostring | contains("https://") | not)
+            and ($snapshot | tostring | contains("/mnt/") | not)
+          ' "$FILE"
+
+      - name: Confirm temporal closure is not asserted as NoEffect
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="research/mobility-rrvr-aerb-observation-projection-v0.2/fixtures/candidate_evidence_snapshot_synthetic_v0_2.json"
+          jq -e '
+            all(.observations[] | select(.payload.kind == "temporal_closure_receipt");
+              .payload.closure_disposition != "closed"
+              or (.payload | has("effect_outcome") | not)
+            )
+          ' "$FILE"
