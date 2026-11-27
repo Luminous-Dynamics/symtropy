@@ -441,7 +441,7 @@ fn enumerate_policies(
     Ok(())
 }
 
-fn adverse_envelope(outcomes: &[(&str, OutcomeVector)]) -> Result<AdverseEnvelope, String> {
+pub fn adverse_envelope(outcomes: &[(&str, OutcomeVector)]) -> Result<AdverseEnvelope, String> {
     let Some((first_scenario, first)) = outcomes.first() else {
         return Err("cannot calculate an empty adverse envelope".to_owned());
     };
