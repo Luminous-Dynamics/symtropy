@@ -196,15 +196,13 @@ fn validate_trace(trace: &BoundedFieldTrace) -> Result<(), BoundedEvaluationErro
         if sample.field_error_radius_t < 0.0 {
             return Err(BoundedEvaluationError::NegativeFieldErrorRadius { index });
         }
-        if index > 0
-            && sample.mechanical_angle_rad <= trace.samples[index - 1].mechanical_angle_rad
+        if index > 0 && sample.mechanical_angle_rad <= trace.samples[index - 1].mechanical_angle_rad
         {
             return Err(BoundedEvaluationError::NonMonotonicAngleGrid { index });
         }
 
         let expected_angle = first_angle + index as f64 * step;
-        if (sample.mechanical_angle_rad - expected_angle).abs()
-            > ANGLE_GRID_TOLERANCE_RAD
+        if (sample.mechanical_angle_rad - expected_angle).abs() > ANGLE_GRID_TOLERANCE_RAD
         {
             return Err(BoundedEvaluationError::NonUniformOrIncompleteRevolution { index });
         }
@@ -290,18 +288,17 @@ pub fn evaluate_bounded_trace(
         let measured_magnitude = sample.bx_t.hypot(sample.by_t);
         let radius = sample.field_error_radius_t;
 
-        let (field_lower_bound, field_phase_bound, phase_defined) =
-            if measured_magnitude > radius {
-                (
-                    measured_magnitude - radius,
-                    (radius / measured_magnitude).asin(),
-                    true,
-                )
-            } else {
-                // The admissible disk touches or contains zero. A positive
-                // field floor cannot be guaranteed, and phase may be undefined.
-                (0.0, PI, false)
-            };
+        let (field_lower_bound, field_phase_bound, phase_defined) = if measured_magnitude > radius {
+            (
+                measured_magnitude - radius,
+                (radius / measured_magnitude).asin(),
+                true,
+            )
+        } else {
+            // The admissible disk touches or contains zero. A positive
+            // field floor cannot be guaranteed, and phase may be undefined.
+            (0.0, PI, false)
+        };
 
         if !field_lower_bound.is_finite() || !field_phase_bound.is_finite() {
             return Err(BoundedEvaluationError::NumericOverflow { index });
@@ -378,12 +375,10 @@ pub fn evaluate_bounded_trace(
     let rms_upper = (sum_squares / absolute_error_upper_bounds.len() as f64).sqrt();
 
     absolute_error_upper_bounds.sort_by(f64::total_cmp);
-    let nearest_rank = ((0.95 * absolute_error_upper_bounds.len() as f64).ceil() as usize)
-        .max(1);
+    let nearest_rank = ((0.95 * absolute_error_upper_bounds.len() as f64).ceil() as usize).max(1);
     let p95_upper = absolute_error_upper_bounds[nearest_rank - 1];
 
-    let minimum_field_margin =
-        minimum_field - requirements.minimum_true_in_plane_field_t;
+    let minimum_field_margin = minimum_field - requirements.minimum_true_in_plane_field_t;
     let peak_margin = requirements.maximum_peak_phase_error_rad - peak_upper;
     let rms_margin = requirements.maximum_rms_phase_error_rad - rms_upper;
 
@@ -465,8 +460,7 @@ mod tests {
         let samples = (0..16)
             .map(|index| {
                 let theta = TAU * index as f64 / 16.0;
-                let phase =
-                    phase_rotation_sense as f64 * pole_pairs as f64 * theta;
+                let phase = phase_rotation_sense as f64 * pole_pairs as f64 * theta;
                 BoundedFieldSample {
                     mechanical_angle_rad: theta,
                     bx_t: phase.cos(),
