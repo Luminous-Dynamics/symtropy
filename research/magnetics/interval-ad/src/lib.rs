@@ -244,10 +244,7 @@ impl Mul for Interval {
         }
 
         let lower = products.iter().copied().fold(f64::INFINITY, f64::min);
-        let upper = products
-            .iter()
-            .copied()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let upper = products.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         Self {
             lower: outward_down(lower),
             upper: outward_up(upper),
@@ -310,9 +307,7 @@ impl<const N: usize> IntervalDual<N> {
         let two = Interval::point(2.0).expect("finite constant");
         Self {
             value: self.value.square(),
-            gradient: std::array::from_fn(|index| {
-                two * self.value * self.gradient[index]
-            }),
+            gradient: std::array::from_fn(|index| two * self.value * self.gradient[index]),
         }
     }
 
@@ -366,9 +361,7 @@ impl<const N: usize> Add for IntervalDual<N> {
     fn add(self, rhs: Self) -> Self::Output {
         Self {
             value: self.value + rhs.value,
-            gradient: std::array::from_fn(|index| {
-                self.gradient[index] + rhs.gradient[index]
-            }),
+            gradient: std::array::from_fn(|index| self.gradient[index] + rhs.gradient[index]),
         }
     }
 }
@@ -510,16 +503,13 @@ pub enum IntervalAdError {
 impl From<IntervalError> for IntervalAdError {
     fn from(error: IntervalError) -> Self {
         match error {
-            IntervalError::SquareRootOutsideRealDomain => {
-                Self::SquareRootOutsideRealDomain
-            }
+            IntervalError::SquareRootOutsideRealDomain => Self::SquareRootOutsideRealDomain,
             IntervalError::NaNEndpoint | IntervalError::ReversedEndpoints => {
                 Self::InvalidIntervalOperation
             }
         }
     }
 }
-
 
 fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
@@ -537,9 +527,7 @@ fn validate_digest(value: &str, field: &'static str) -> Result<(), IntervalAdErr
     }
 }
 
-fn validate_domain<const N: usize>(
-    domain: &ParameterDomain<N>,
-) -> Result<(), IntervalAdError> {
+fn validate_domain<const N: usize>(domain: &ParameterDomain<N>) -> Result<(), IntervalAdError> {
     if N == 0 {
         return Err(IntervalAdError::EmptyParameterDomain);
     }
@@ -601,9 +589,8 @@ where
 {
     validate_domain(domain)?;
 
-    let variables = std::array::from_fn(|index| {
-        IntervalDual::variable(domain.parameter_bounds[index], index)
-    });
+    let variables =
+        std::array::from_fn(|index| IntervalDual::variable(domain.parameter_bounds[index], index));
     let output = evaluate(variables)?;
 
     if !output.value.is_finite() {
@@ -611,9 +598,8 @@ where
     }
 
     let derivative_intervals = output.gradient;
-    let derivative_abs_supremum: [Option<f64>; N] = std::array::from_fn(|index| {
-        derivative_intervals[index].abs_upper_bound()
-    });
+    let derivative_abs_supremum: [Option<f64>; N] =
+        std::array::from_fn(|index| derivative_intervals[index].abs_upper_bound());
     let mut finite_suprema = [0.0; N];
     for (index, (supremum, output)) in derivative_abs_supremum
         .iter()
@@ -700,19 +686,24 @@ where
 
     let mut mean_value_enclosure = centre_value;
     for index in 0..N {
-        let centre_interval = Interval::point(centres[index])
-            .map_err(IntervalAdError::from)?;
+        let centre_interval = Interval::point(centres[index]).map_err(IntervalAdError::from)?;
         let displacement = domain.parameter_bounds[index] - centre_interval;
-        mean_value_enclosure = mean_value_enclosure
-            + result.derivative_intervals[index] * displacement;
+        mean_value_enclosure =
+            mean_value_enclosure + result.derivative_intervals[index] * displacement;
     }
     if !mean_value_enclosure.is_finite() {
         return Err(IntervalAdError::UnboundedValueEnclosure);
     }
 
     let intersection = Interval::new(
-        result.natural_value_enclosure.lower().max(mean_value_enclosure.lower()),
-        result.natural_value_enclosure.upper().min(mean_value_enclosure.upper()),
+        result
+            .natural_value_enclosure
+            .lower()
+            .max(mean_value_enclosure.lower()),
+        result
+            .natural_value_enclosure
+            .upper()
+            .min(mean_value_enclosure.upper()),
     )
     .map_err(|_| IntervalAdError::InconsistentValueEnclosures)?;
 
@@ -1058,15 +1049,13 @@ mod tests {
     #[test]
     fn centered_form_tightens_a_repeated_variable_dependency() {
         let scope = domain(["x"], [interval(-1.0, 1.0)]);
-        let natural = certify_expression(&scope, |[x]| Ok(x - x))
-            .expect("natural interval extension");
+        let natural =
+            certify_expression(&scope, |[x]| Ok(x - x)).expect("natural interval extension");
         let centered = certify_expression_centered(&scope, |[x]| Ok(x - x))
             .expect("centered mean-value enclosure");
 
-        let natural_width =
-            natural.value_enclosure.upper() - natural.value_enclosure.lower();
-        let centered_width =
-            centered.value_enclosure.upper() - centered.value_enclosure.lower();
+        let natural_width = natural.value_enclosure.upper() - natural.value_enclosure.lower();
+        let centered_width = centered.value_enclosure.upper() - centered.value_enclosure.lower();
 
         assert!(natural.value_enclosure.lower() <= 0.0);
         assert!(natural.value_enclosure.upper() >= 0.0);
@@ -1155,7 +1144,9 @@ mod tests {
     #[test]
     fn square_root_rejects_a_wholly_negative_interval() {
         assert_eq!(
-            interval(-4.0, -1.0).sqrt().expect_err("outside real domain"),
+            interval(-4.0, -1.0)
+                .sqrt()
+                .expect_err("outside real domain"),
             IntervalError::SquareRootOutsideRealDomain
         );
     }
@@ -1180,8 +1171,8 @@ mod tests {
     #[test]
     fn quadratic_interval_ad_encloses_analytic_derivative_range() {
         let scope = domain(["x"], [interval(1.0, 2.0)]);
-        let result = certify_expression(&scope, |[x]| Ok(x * x))
-            .expect("bounded quadratic expression");
+        let result =
+            certify_expression(&scope, |[x]| Ok(x * x)).expect("bounded quadratic expression");
         assert!(result.derivative_intervals[0].lower() <= 2.0);
         assert!(result.derivative_intervals[0].upper() >= 4.0);
         assert!(result.derivative_abs_supremum[0] >= 4.0);
@@ -1189,12 +1180,9 @@ mod tests {
 
     #[test]
     fn bilinear_interval_ad_encloses_both_partial_derivatives() {
-        let scope = domain(
-            ["y", "z"],
-            [interval(2.0, 3.0), interval(-2.0, -1.0)],
-        );
-        let result = certify_expression(&scope, |[y, z]| Ok(y * z))
-            .expect("bounded bilinear expression");
+        let scope = domain(["y", "z"], [interval(2.0, 3.0), interval(-2.0, -1.0)]);
+        let result =
+            certify_expression(&scope, |[y, z]| Ok(y * z)).expect("bounded bilinear expression");
         assert!(result.derivative_intervals[0].lower() <= -2.0);
         assert!(result.derivative_intervals[0].upper() >= -1.0);
         assert!(result.derivative_intervals[1].lower() <= 2.0);
@@ -1218,8 +1206,8 @@ mod tests {
     #[test]
     fn quadratic_derivative_is_enclosed_when_input_crosses_zero() {
         let scope = domain(["x"], [interval(-2.0, 3.0)]);
-        let result = certify_expression(&scope, |[x]| Ok(x * x))
-            .expect("bounded quadratic across zero");
+        let result =
+            certify_expression(&scope, |[x]| Ok(x * x)).expect("bounded quadratic across zero");
         assert!(result.derivative_intervals[0].lower() <= -4.0);
         assert!(result.derivative_intervals[0].upper() >= 6.0);
         assert!(result.derivative_abs_supremum[0] >= 6.0);
@@ -1229,22 +1217,16 @@ mod tests {
     fn derivative_interval_widens_with_a_wider_quadratic_input_box() {
         let narrow = domain(["x"], [interval(1.0, 1.5)]);
         let wide = domain(["x"], [interval(1.0, 2.0)]);
-        let narrow_result =
-            certify_expression(&narrow, |[x]| Ok(x * x)).expect("narrow interval");
-        let wide_result =
-            certify_expression(&wide, |[x]| Ok(x * x)).expect("wide interval");
-        assert!(
-            wide_result.derivative_abs_supremum[0]
-                >= narrow_result.derivative_abs_supremum[0]
-        );
+        let narrow_result = certify_expression(&narrow, |[x]| Ok(x * x)).expect("narrow interval");
+        let wide_result = certify_expression(&wide, |[x]| Ok(x * x)).expect("wide interval");
+        assert!(wide_result.derivative_abs_supremum[0] >= narrow_result.derivative_abs_supremum[0]);
     }
 
     #[test]
     fn denominator_crossing_zero_cannot_emit_a_finite_derivative_bound() {
         let scope = domain(["x"], [interval(-0.1, 0.1)]);
-        let result = certify_expression(&scope, |[x]| {
-            Ok(IntervalDual::constant(Interval::ONE) / x)
-        });
+        let result =
+            certify_expression(&scope, |[x]| Ok(IntervalDual::constant(Interval::ONE) / x));
         assert_eq!(
             result.expect_err("singular interval has no finite derivative bound"),
             IntervalAdError::UnboundedValueEnclosure
@@ -1255,7 +1237,8 @@ mod tests {
     fn square_root_box_touching_zero_has_unbounded_derivative() {
         let scope = domain(["x"], [interval(0.0, 1.0)]);
         let result = certify_expression(&scope, |[x]| {
-            x.sqrt().map_err(|_| IntervalAdError::SquareRootOutsideRealDomain)
+            x.sqrt()
+                .map_err(|_| IntervalAdError::SquareRootOutsideRealDomain)
         });
         assert_eq!(
             result.expect_err("derivative is unbounded at zero"),
@@ -1290,8 +1273,18 @@ mod tests {
         .expect("box does not contain the dipole singularity");
 
         assert!(result.value_enclosure.is_finite());
-        assert!(result.derivative_abs_supremum.iter().all(|value| value.is_finite()));
-        assert!(result.derivative_abs_supremum.iter().all(|value| *value > 0.0));
+        assert!(
+            result
+                .derivative_abs_supremum
+                .iter()
+                .all(|value| value.is_finite())
+        );
+        assert!(
+            result
+                .derivative_abs_supremum
+                .iter()
+                .all(|value| *value > 0.0)
+        );
         assert_eq!(result.cell_id, "cell-001");
         assert_eq!(
             result.parameter_ids,
@@ -1304,8 +1297,7 @@ mod tests {
         let mut scope = domain(["x"], [interval(1.0, 2.0)]);
         scope.input_sha256 = "not-a-digest".to_owned();
         assert_eq!(
-            certify_expression(&scope, |[x]| Ok(x * x))
-                .expect_err("invalid input digest"),
+            certify_expression(&scope, |[x]| Ok(x * x)).expect_err("invalid input digest"),
             IntervalAdError::InvalidSha256 {
                 field: "input_sha256"
             }
@@ -1326,8 +1318,7 @@ mod tests {
     fn unbounded_parameter_boxes_are_rejected() {
         let scope = domain(["x"], [Interval::ENTIRE]);
         assert_eq!(
-            certify_expression(&scope, |[x]| Ok(x * x))
-                .expect_err("input domain must be bounded"),
+            certify_expression(&scope, |[x]| Ok(x * x)).expect_err("input domain must be bounded"),
             IntervalAdError::NonFiniteParameterBound { index: 0 }
         );
     }
@@ -1348,8 +1339,7 @@ mod tests {
     fn constant_expression_has_zero_derivative_supremum() {
         let scope = domain(["x"], [interval(-2.0, 2.0)]);
         let constant = IntervalDual::constant(interval(5.0, 5.0));
-        let result = certify_expression(&scope, |_| Ok(constant))
-            .expect("constant expression");
+        let result = certify_expression(&scope, |_| Ok(constant)).expect("constant expression");
         assert_eq!(result.derivative_abs_supremum[0], 0.0);
     }
 
@@ -1366,8 +1356,7 @@ mod tests {
     #[test]
     fn subnormal_product_is_enclosed_outward() {
         let exact = f64::MIN_POSITIVE * 0.5;
-        let result = interval(f64::MIN_POSITIVE, f64::MIN_POSITIVE)
-            * interval(0.5, 0.5);
+        let result = interval(f64::MIN_POSITIVE, f64::MIN_POSITIVE) * interval(0.5, 0.5);
         assert!(result.lower() <= exact);
         assert!(result.upper() >= exact);
         assert!(result.lower() < result.upper());
@@ -1386,8 +1375,8 @@ mod tests {
     #[test]
     fn integer_power_uses_the_interval_chain_rule() {
         let scope = domain(["x"], [interval(1.0, 2.0)]);
-        let result = certify_expression(&scope, |[x]| Ok(x.powi(3)))
-            .expect("bounded cubic expression");
+        let result =
+            certify_expression(&scope, |[x]| Ok(x.powi(3))).expect("bounded cubic expression");
         assert!(result.derivative_intervals[0].lower() <= 3.0);
         assert!(result.derivative_intervals[0].upper() >= 12.0);
         assert!(result.derivative_abs_supremum[0] >= 12.0);
