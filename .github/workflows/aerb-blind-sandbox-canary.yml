@@ -1,0 +1,36 @@
+name: AERB blind sandbox canary
+
+on:
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/**"
+      - ".github/workflows/aerb-blind-sandbox-canary.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  sandbox-canary:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Install namespace sandbox and musl linker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap util-linux musl-tools
+      - name: Add static Linux target
+        run: rustup target add x86_64-unknown-linux-musl
+      - name: Format check
+        run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml -- --check
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --all-targets -- -D warnings
+      - name: Evaluator contract tests
+        run: cargo test --locked --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml
+      - name: Build static canary runtime
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --bin aerb_sandbox_canary
+      - name: Execute actual Bubblewrap isolation canary
+        timeout-minutes: 2
+        run: target/x86_64-unknown-linux-musl/release/aerb_sandbox_canary
