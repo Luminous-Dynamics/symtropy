@@ -284,14 +284,7 @@ pub fn evaluate(case: &TerminalCase) -> TerminalResult {
         };
 
         if let Err((disposition, reason)) = validate_period_witness(case, witness) {
-            return result(
-                case,
-                disposition,
-                "EXACT_ZERO_DELTA_A",
-                None,
-                reason,
-                true,
-            );
+            return result(case, disposition, "EXACT_ZERO_DELTA_A", None, reason, true);
         }
 
         return result(
@@ -389,8 +382,7 @@ pub fn evaluate(case: &TerminalCase) -> TerminalResult {
 #[cfg(test)]
 mod tests {
     use super::{
-        BoundEnvelope, BoundState, PeriodWitness, TerminalCase, TerminalDisposition,
-        evaluate,
+        BoundEnvelope, BoundState, PeriodWitness, TerminalCase, TerminalDisposition, evaluate,
     };
     use orbital_inspection_horizon_composition_bench::{HorizonDisposition, HorizonScope};
 
@@ -505,7 +497,10 @@ mod tests {
         let mut witness = period_witness();
         witness.start_tai_ns = 99;
         value.period_witness = Some(witness);
-        assert_eq!(evaluate(&value).disposition, TerminalDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            TerminalDisposition::OutOfScope
+        );
     }
 
     #[test]
@@ -514,7 +509,10 @@ mod tests {
         let mut witness = period_witness();
         witness.end_tai_ns = 1_000_000_099;
         value.period_witness = Some(witness);
-        assert_eq!(evaluate(&value).disposition, TerminalDisposition::Indeterminate);
+        assert_eq!(
+            evaluate(&value).disposition,
+            TerminalDisposition::Indeterminate
+        );
     }
 
     #[test]
@@ -523,7 +521,10 @@ mod tests {
         let mut witness = period_witness();
         witness.complete_time_coverage = false;
         value.period_witness = Some(witness);
-        assert_eq!(evaluate(&value).disposition, TerminalDisposition::Indeterminate);
+        assert_eq!(
+            evaluate(&value).disposition,
+            TerminalDisposition::Indeterminate
+        );
     }
 
     #[test]
@@ -532,7 +533,10 @@ mod tests {
         let mut witness = period_witness();
         witness.scope.frame_revision = "frame-r2".to_owned();
         value.period_witness = Some(witness);
-        assert_eq!(evaluate(&value).disposition, TerminalDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            TerminalDisposition::OutOfScope
+        );
     }
 
     #[test]
@@ -569,17 +573,26 @@ mod tests {
     fn uncertain_or_stale_bounds_do_not_pass() {
         let mut unknown = case(bounds(-10, -1, 2_000_000, 3_000_000, 1_000_000));
         unknown.bounds.state = BoundState::Unknown;
-        assert_eq!(evaluate(&unknown).disposition, TerminalDisposition::Indeterminate);
+        assert_eq!(
+            evaluate(&unknown).disposition,
+            TerminalDisposition::Indeterminate
+        );
         let mut stale = unknown.clone();
         stale.bounds.state = BoundState::Stale;
-        assert_eq!(evaluate(&stale).disposition, TerminalDisposition::Indeterminate);
+        assert_eq!(
+            evaluate(&stale).disposition,
+            TerminalDisposition::Indeterminate
+        );
     }
 
     #[test]
     fn failed_bound_provider_does_not_pass() {
         let mut value = case(bounds(-10, -1, 2_000_000, 3_000_000, 1_000_000));
         value.bounds.state = BoundState::Fail;
-        assert_eq!(evaluate(&value).disposition, TerminalDisposition::NotPassiveSafe);
+        assert_eq!(
+            evaluate(&value).disposition,
+            TerminalDisposition::NotPassiveSafe
+        );
     }
 
     #[test]
@@ -602,6 +615,9 @@ mod tests {
     fn a_period_witness_cannot_promote_a_secular_branch() {
         let mut value = case(bounds(-10, -1, 2_000_000, 3_000_000, 1_000_000));
         value.period_witness = Some(period_witness());
-        assert_eq!(evaluate(&value).disposition, TerminalDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&value).disposition,
+            TerminalDisposition::InvalidInput
+        );
     }
 }
