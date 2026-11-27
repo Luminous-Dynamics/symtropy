@@ -16,6 +16,9 @@ use serde::{Deserialize, Serialize};
 use single_commodity_flow_kernel::FlowCertificateBundle;
 use std::collections::BTreeSet;
 
+pub const COHERENT_SCENARIO_SET_SCHEMA: &str =
+    "safrb-coherent-scenario-set-v0.1";
+
 pub const SCENARIO_SET_CLAIM_CEILING: &str =
     "Maximum aggregate requested delivery within each supplied coherent synthetic scenario only; no scenario-set completeness, evidence authority, probability, beneficiary-floor guarantee, physical qualification, dispatch authority or actual service claim.";
 
@@ -42,6 +45,7 @@ pub struct CoherentScenarioOutcome {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CoherentScenarioSetReport {
+    pub schema_version: String,
     pub scenario_set_id: String,
     /// Sorted by scenario_id, independent of input ordering.
     pub outcomes: Vec<CoherentScenarioOutcome>,
@@ -151,6 +155,7 @@ pub fn evaluate_coherent_scenario_set(
         .ok_or_else(|| "coherent scenario set unexpectedly has no outcomes".to_string())?;
 
     Ok(CoherentScenarioSetReport {
+        schema_version: COHERENT_SCENARIO_SET_SCHEMA.to_string(),
         scenario_set_id: scenario_set_id.to_string(),
         outcomes,
         minimum_scenario_maximum,
@@ -173,6 +178,9 @@ pub fn verify_coherent_scenario_set(
     require_nonempty(scenario_set_id, "scenario_set_id")?;
     validate_scenario_identities(scenarios)?;
 
+    if report.schema_version != COHERENT_SCENARIO_SET_SCHEMA {
+        return Err("unsupported coherent scenario-set schema".to_string());
+    }
     if report.scenario_set_id != scenario_set_id {
         return Err("scenario-set identifier mismatch".to_string());
     }
@@ -393,6 +401,29 @@ mod tests {
                 .unwrap_err()
                 .contains("duplicate temporal profile case")
         );
+    }
+
+    #[test]
+    fn scenario_report_json_round_trip_is_strict_and_reverifies() {
+        let scenarios = vec![
+            CoherentScenario {
+                scenario_id: "mode-a".to_string(),
+                profile: profile("case-a", 10, 0),
+            },
+            CoherentScenario {
+                scenario_id: "mode-b".to_string(),
+                profile: profile("case-b", 0, 10),
+            },
+        ];
+        let report = evaluate_coherent_scenario_set("set-v1", &scenarios).unwrap();
+        let encoded = serde_json::to_vec(&report).unwrap();
+        let decoded: CoherentScenarioSetReport = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, report);
+        verify_coherent_scenario_set("set-v1", &scenarios, &decoded).unwrap();
+
+        let mut unknown = serde_json::to_value(&report).unwrap();
+        unknown["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<CoherentScenarioSetReport>(unknown).is_err());
     }
 
     #[test]
