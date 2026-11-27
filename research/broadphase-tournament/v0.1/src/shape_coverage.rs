@@ -15,7 +15,10 @@ use incremental_aabb_tree_reference::{Aabb, ProxyId, ProxyPair};
 use std::collections::BTreeSet;
 use symtropy_math::{Bivector, Point, Rotor};
 
-use super::{ProxyFrame, TournamentError, oracle_pairs};
+use super::{
+    BackendKind, ProxyFrame, SceneFamily, TemporalScene, TournamentConfig, TournamentError,
+    oracle_pairs, run_backend,
+};
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct ShapeCoverageAudit {
@@ -500,6 +503,242 @@ fn run_3d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
     Ok(row_from_audit(3, cases as u64, seed, audit))
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ShapeCoverageBackendRow {
+    pub dimension: u8,
+    pub backend: &'static str,
+    pub requested_obb_pairs: u64,
+    pub exact_shape_contacts: u64,
+    pub backend_candidate_pairs: u64,
+    pub backend_aabb_false_negatives: u64,
+    /// A value of 1.0 is derived only when the backend has zero AABB false
+    /// negatives and the exact shape-contact-to-AABB oracle gate is zero-FN.
+    pub derived_shape_contact_recall: Option<f64>,
+    pub candidate_amplification: Option<f64>,
+    pub p50_frame_ns: u128,
+    pub p95_frame_ns: u128,
+    pub p99_frame_ns: u128,
+    pub seed: u64,
+}
+
+impl ShapeCoverageBackendRow {
+    #[must_use]
+    pub const fn csv_header() -> &'static str {
+        "dimension,backend,requested_obb_pairs,exact_shape_contacts,backend_candidate_pairs,backend_aabb_false_negatives,derived_shape_contact_recall,candidate_amplification,p50_frame_ns,p95_frame_ns,p99_frame_ns,seed"
+    }
+
+    #[must_use]
+    pub fn to_csv(self) -> String {
+        let recall = self
+            .derived_shape_contact_recall
+            .map_or_else(String::new, |value| format!("{value:.9}"));
+        let amplification = self
+            .candidate_amplification
+            .map_or_else(String::new, |value| format!("{value:.6}"));
+        format!(
+            "{},{},{},{},{},{},{},{},{},{},{},{}",
+            self.dimension,
+            self.backend,
+            self.requested_obb_pairs,
+            self.exact_shape_contacts,
+            self.backend_candidate_pairs,
+            self.backend_aabb_false_negatives,
+            recall,
+            amplification,
+            self.p50_frame_ns,
+            self.p95_frame_ns,
+            self.p99_frame_ns,
+            self.seed
+        )
+    }
+}
+
+fn build_2d_backend_frame(
+    cases: usize,
+    seed: u64,
+) -> Result<(Vec<ProxyFrame<2>>, BTreeSet<ProxyPair>), TournamentError> {
+    let mut state = seed;
+    let half_a = [1.0, 0.5];
+    let half_b = [0.75, 0.35];
+    let mut frame = Vec::with_capacity(cases.saturating_mul(2));
+    let mut exact_contacts = BTreeSet::new();
+
+    for index in 0..cases {
+        // Preserve the random draw order used by PR #7622.
+        let angle_a =
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI);
+        let angle_b =
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI);
+        let delta_x = super::next_between(&mut state, -3.0, 3.0);
+        let delta_y = super::next_between(&mut state, -2.0, 2.0);
+        let offset = index as f64 * 10.0;
+        let left = Obb2 {
+            center: [offset, 0.0],
+            half: half_a,
+            angle: angle_a,
+        };
+        let right = Obb2 {
+            center: [offset + delta_x, delta_y],
+            half: half_b,
+            angle: angle_b,
+        };
+        let id = u64::try_from(index).map_err(|_| TournamentError::CounterOverflow)?;
+        let left_id = id.checked_mul(2).ok_or(TournamentError::CounterOverflow)?;
+        let right_id = left_id.checked_add(1).ok_or(TournamentError::CounterOverflow)?;
+        let pair = ProxyPair::new(ProxyId(left_id), ProxyId(right_id))
+            .ok_or(TournamentError::DuplicateProxyId)?;
+        frame.push(ProxyFrame {
+            id: pair.0,
+            bounds: left.world_aabb()?,
+        });
+        frame.push(ProxyFrame {
+            id: pair.1,
+            bounds: right.world_aabb()?,
+        });
+        if obb2_intersects(left, right) {
+            exact_contacts.insert(pair);
+        }
+    }
+    Ok((frame, exact_contacts))
+}
+
+fn build_3d_backend_frame(
+    cases: usize,
+    seed: u64,
+) -> Result<(Vec<ProxyFrame<3>>, BTreeSet<ProxyPair>), TournamentError> {
+    let mut state = seed;
+    let half_a = [1.0, 0.55, 0.3];
+    let half_b = [0.8, 0.45, 0.25];
+    let mut frame = Vec::with_capacity(cases.saturating_mul(2));
+    let mut exact_contacts = BTreeSet::new();
+
+    for index in 0..cases {
+        // Preserve the #7622 XY, YZ, XZ rotation and translation draw order.
+        let plane_angles_a = [
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+        ];
+        let plane_angles_b = [
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+            super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
+        ];
+        let delta_x = super::next_between(&mut state, -1.62, 1.62);
+        let delta_y = super::next_between(&mut state, -0.90, 0.90);
+        let delta_z = super::next_between(&mut state, -0.495, 0.495);
+        let offset = index as f64 * 10.0;
+        let left = Obb3 {
+            center: [offset, 0.0, 0.0],
+            half: half_a,
+            plane_angles_xy_yz_xz: plane_angles_a,
+        };
+        let right = Obb3 {
+            center: [offset + delta_x, delta_y, delta_z],
+            half: half_b,
+            plane_angles_xy_yz_xz: plane_angles_b,
+        };
+        let id = u64::try_from(index).map_err(|_| TournamentError::CounterOverflow)?;
+        let left_id = id.checked_mul(2).ok_or(TournamentError::CounterOverflow)?;
+        let right_id = left_id.checked_add(1).ok_or(TournamentError::CounterOverflow)?;
+        let pair = ProxyPair::new(ProxyId(left_id), ProxyId(right_id))
+            .ok_or(TournamentError::DuplicateProxyId)?;
+        frame.push(ProxyFrame {
+            id: pair.0,
+            bounds: left.world_aabb()?,
+        });
+        frame.push(ProxyFrame {
+            id: pair.1,
+            bounds: right.world_aabb()?,
+        });
+        if obb3_intersects(left, right) {
+            exact_contacts.insert(pair);
+        }
+    }
+    Ok((frame, exact_contacts))
+}
+
+/// Run all nine existing broadphase backends on the exact same OBB-derived
+/// proxy frame. Backend false negatives are measured against the independent
+/// AABB oracle. When that count is zero, the separately-qualified
+/// ExactOBBContacts subset AabbOraclePairs property composes to prove
+/// ExactOBBContacts subset BackendCandidates for that row.
+pub fn run_shape_coverage_backend_campaign(
+    cases_per_dimension: usize,
+) -> Result<Vec<ShapeCoverageBackendRow>, TournamentError> {
+    if cases_per_dimension == 0 {
+        return Err(TournamentError::EmptyScene);
+    }
+    let seed_2d = 0x4551_4356_5655_3031;
+    let seed_3d = 0x3344_4f42_4256_5655;
+    let (frame_2d, contacts_2d) = build_2d_backend_frame(cases_per_dimension, seed_2d)?;
+    let (frame_3d, contacts_3d) = build_3d_backend_frame(cases_per_dimension, seed_3d)?;
+    let mut rows = Vec::with_capacity(BackendKind::ALL.len() * 2);
+    rows.extend(run_backend_coverage::<2>(
+        frame_2d,
+        contacts_2d.len() as u64,
+        cases_per_dimension,
+        seed_2d,
+    )?);
+    rows.extend(run_backend_coverage::<3>(
+        frame_3d,
+        contacts_3d.len() as u64,
+        cases_per_dimension,
+        seed_3d,
+    )?);
+    Ok(rows)
+}
+
+fn run_backend_coverage<const D: usize>(
+    frame: Vec<ProxyFrame<D>>,
+    exact_shape_contacts: u64,
+    requested_pairs: usize,
+    seed: u64,
+) -> Result<Vec<ShapeCoverageBackendRow>, TournamentError> {
+    let scene = TemporalScene {
+        family: SceneFamily::SparseCoherent,
+        seed,
+        declared_proxy_count: frame.len(),
+        frames: vec![frame],
+    };
+    let oracle = scene
+        .frames
+        .iter()
+        .map(|frame| oracle_pairs(frame))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut rows = Vec::with_capacity(BackendKind::ALL.len());
+    for backend in BackendKind::ALL {
+        let result = run_backend(
+            &scene,
+            &oracle,
+            backend,
+            "brute_force_all_pairs",
+            1,
+        )?;
+        let recall = (result.false_negatives == 0 && exact_shape_contacts > 0)
+            .then_some(1.0);
+        let amplification = (exact_shape_contacts > 0).then(|| {
+            result.candidate_pairs as f64 / exact_shape_contacts as f64
+        });
+        rows.push(ShapeCoverageBackendRow {
+            dimension: u8::try_from(D).map_err(|_| TournamentError::CounterOverflow)?,
+            backend: result.backend,
+            requested_obb_pairs: u64::try_from(requested_pairs)
+                .map_err(|_| TournamentError::CounterOverflow)?,
+            exact_shape_contacts,
+            backend_candidate_pairs: result.candidate_pairs,
+            backend_aabb_false_negatives: result.false_negatives,
+            derived_shape_contact_recall: recall,
+            candidate_amplification: amplification,
+            p50_frame_ns: result.p50_frame_ns,
+            p95_frame_ns: result.p95_frame_ns,
+            p99_frame_ns: result.p99_frame_ns,
+            seed,
+        });
+    }
+    Ok(rows)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -541,4 +780,17 @@ mod tests {
         assert_eq!(audit.recall(), None);
         assert_eq!(audit.candidate_amplification(), None);
     }
+
+    #[test]
+    fn same_frame_backend_coverage_includes_all_nine_backends() {
+        let rows = run_shape_coverage_backend_campaign(32)
+            .expect("same-frame backend shape coverage");
+        assert_eq!(rows.len(), 18);
+        for row in rows {
+            assert!(row.exact_shape_contacts > 0);
+            assert_eq!(row.backend_aabb_false_negatives, 0, "{}", row.backend);
+            assert_eq!(row.derived_shape_contact_recall, Some(1.0), "{}", row.backend);
+        }
+    }
+
 }
