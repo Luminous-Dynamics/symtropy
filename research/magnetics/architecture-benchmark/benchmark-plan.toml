@@ -65,3 +65,18 @@ only_candidate_architectures_receive_candidate_decisions = true
 maximize_noninferiority_compares_candidate_lower_to_baseline_upper = true
 minimize_noninferiority_compares_candidate_upper_to_baseline_lower = true
 baseline_must_itself_pass_declared_hard_limits = true
+
+
+[baseline_admissibility]
+baseline_must_pass_hard_requirements = true
+baseline_hard_failure_decision = "Indeterminate"
+candidate_hard_failure_decision = "Fail"
+mandatory_noninferiority_failure_decision = "InferiorToBaseline"
+all_required_baselines_must_be_present = true
+reluctance_only_is_secondary_control = true
+candidate_role_must_be_am_or_hybrid = true
+
+[noninferiority_interval_rules]
+maximize = "candidate_lower >= baseline_upper - margin"
+minimize = "candidate_upper <= baseline_lower + margin"
+benefit_interval_overlap_counts_as_improvement = false
