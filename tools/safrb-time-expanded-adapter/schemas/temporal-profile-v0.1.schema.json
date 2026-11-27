@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/temporal-profile-v0.1.schema.json",
+  "title": "SAFRB Temporal Inventory and Handling Profile v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "commodity_ref",
+    "capacity_unit_ref",
+    "quantity_boundary_ref",
+    "period_timebase_ref",
+    "horizon_last_period",
+    "nodes",
+    "receipts",
+    "transfers",
+    "services"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-temporal-inventory-handling-arrival-at-period-start-v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "commodity_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capacity_unit_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantity_boundary_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "period_timebase_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable period-zero/duration/calendar reference. Bound into graph identity but not authenticated by this schema."
+    },
+    "horizon_last_period": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "receipts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/receipt"
+      }
+    },
+    "transfers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transfer"
+      }
+    },
+    "services": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/service"
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "storage_capacity",
+        "handling_capacity",
+        "service_issue_capacity",
+        "opening_inventory"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "storage_capacity": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "End-of-period carry capacity; constant over v0.1 horizon."
+        },
+        "handling_capacity": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Shared outbound transfer-departure capacity per node-period; constant over v0.1 horizon."
+        },
+        "service_issue_capacity": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Shared beneficiary issue capacity per node-period; constant over v0.1 horizon."
+        },
+        "opening_inventory": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_id",
+        "node_id",
+        "available_period",
+        "quantity"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "available_period": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Receipt is available at the start of this period."
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "transfer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transfer_id",
+        "from_node_id",
+        "to_node_id",
+        "departure_period",
+        "transit_periods",
+        "route_capacity"
+      ],
+      "properties": {
+        "transfer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "departure_period": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transit_periods": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Zero-period and same-period transfer are unsupported in v0.1."
+        },
+        "route_capacity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_id",
+        "node_id",
+        "period",
+        "requested_quantity"
+      ],
+      "properties": {
+        "service_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "requested_quantity": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Request ceiling only; not a mandatory minimum floor or priority guarantee."
+        }
+      }
+    }
+  }
+}

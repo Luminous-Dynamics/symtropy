@@ -10,6 +10,7 @@
 //! This compiler does not authenticate inputs, infer event ordering, model
 //! cross-node common resources, perform grade conversion, or authorize actions.
 
+use serde::{Deserialize, Serialize};
 use single_commodity_flow_kernel::{FlowEdge, FlowGraph, FlowNode, MAX_EDGES, MAX_NODES};
 use std::collections::BTreeSet;
 
@@ -19,7 +20,8 @@ pub const TEMPORAL_PROFILE_SCHEMA: &str =
 const SOURCE_NODE: &str = "safrb-temporal/source";
 const SINK_NODE: &str = "safrb-temporal/sink";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalNode {
     pub node_id: String,
     /// Maximum inventory allowed to remain at the end of each period.
@@ -35,7 +37,8 @@ pub struct TemporalNode {
     pub opening_inventory: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalReceipt {
     pub receipt_id: String,
     pub node_id: String,
@@ -44,7 +47,8 @@ pub struct TemporalReceipt {
     pub quantity: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalTransfer {
     pub transfer_id: String,
     pub from_node_id: String,
@@ -55,7 +59,8 @@ pub struct TemporalTransfer {
     pub route_capacity: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalService {
     pub service_id: String,
     pub node_id: String,
@@ -65,7 +70,8 @@ pub struct TemporalService {
     pub requested_quantity: u64,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TemporalProfile {
     pub schema_version: String,
     pub case_id: String,
@@ -1026,6 +1032,34 @@ mod tests {
                 .unwrap_err()
                 .contains("model-context binding mismatch")
         );
+    }
+
+    #[test]
+    fn temporal_profile_json_round_trip_is_strict() {
+        let model = profile(
+            0,
+            vec![node("yard", 100, 100, 100)],
+            vec![TemporalReceipt {
+                receipt_id: "receipt".to_string(),
+                node_id: "yard".to_string(),
+                available_period: 0,
+                quantity: 10,
+            }],
+            vec![],
+            vec![TemporalService {
+                service_id: "service".to_string(),
+                node_id: "yard".to_string(),
+                period: 0,
+                requested_quantity: 10,
+            }],
+        );
+        let encoded = serde_json::to_vec(&model).unwrap();
+        let decoded: TemporalProfile = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, model);
+
+        let mut unknown = serde_json::to_value(&model).unwrap();
+        unknown["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<TemporalProfile>(unknown).is_err());
     }
 
     #[test]

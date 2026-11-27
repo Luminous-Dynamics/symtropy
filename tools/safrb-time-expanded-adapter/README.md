@@ -71,6 +71,23 @@ The temporal tests cover cross-dock throughput above end-of-period storage, carr
 
 The Rust exact-head workflow is `.github/workflows/safrb-flow-rust.yml`. It pins the repository Rust toolchain and checks exact checkout, formatting, Clippy, Rust tests, and independent portable certificate conformance. A green run qualifies only the exact commit recorded by that run; later commits require fresh receipts. Repository tests do not establish evidence authenticity, legal access, physical asset qualification, dispatch authority, or actual beneficiary service.
 
+## Coherent capacity scenarios v0.1
+
+The separate `coherent_scenarios` module evaluates each supplied operating scenario as a complete temporal profile. It compiles and solves each case independently, retains one graph-bound certificate per scenario, checks each receipt with the independent temporal verifier, and reports the minimum/maximum of the **per-scenario aggregate maximum requested delivery**.
+
+It deliberately does not create an optimistic network by combining per-resource maxima from different scenarios. The adversarial fixture has two mutually exclusive route modes: each coherent mode supports 10 L, while a component-wise splice of both route maxima supports 15 L through the shared 15 L handling gate. The 15 L result is an outer mathematical relaxation and is not reported as a coherent scenario result.
+
+The report is deterministic under scenario input reordering and carries a canonical `scenario_set_sha256` over the sorted scenario IDs and canonicalized temporal profiles. The verifier recomputes this digest before validating every scenario certificate and the reported range; changed capacities, case identity, timebase or source profile therefore invalidate the prior report. A typed CoherentScenarioSetInput provides a strict serialized input envelope. All scenarios must share one comparison context: schema version, commodity, capacity unit, quantity boundary, period timebase and horizon. Scenario-specific capacities and operating states may vary, but a min/max across incompatible physical quantities or time windows is rejected before evaluation. A 200-seed corpus varies two route capacities across two to four mutually distinct scenarios per set and compares the reported minimum/maximum with an independent physical upper-bound calculation; a negative-control test mutates each comparison-context field. Its range is descriptive only; it is not a mandatory-beneficiary-floor allocation, robust guarantee, probability estimate, evidence-authority assertion or proof that the scenario set is complete. Those limits are explicit in the report claim ceiling.
+
+### Portable contracts
+
+- `schemas/temporal-profile-v0.1.schema.json` defines the temporal model input with strict unknown-field rejection.
+- `schemas/coherent-scenario-input-v0.1.schema.json` defines the explicit scenario-set input.
+- `schemas/coherent-scenario-report-v0.1.schema.json` defines the result envelope and reuses the shared flow-kernel certificate schema.
+- Rust models derive strict Serde serialization/deserialization; tests check round trips, unknown-property rejection and schema-document JSON parsing.
+
+Schema validity is not certificate validation. Consumers still need to verify each embedded flow bundle and the domain-level temporal receipt, and they must separately authenticate evidence authority, scenario completeness and common-cause relations.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.

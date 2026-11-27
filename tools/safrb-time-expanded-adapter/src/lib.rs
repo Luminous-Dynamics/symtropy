@@ -7,6 +7,7 @@ use single_commodity_flow_kernel::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod coherent_scenarios;
 pub mod temporal_profile;
 pub mod temporal_verify;
 

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/coherent-scenario-input-v0.1.schema.json",
+  "title": "SAFRB Coherent Scenario Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_set_id",
+    "scenarios"
+  ],
+  "properties": {
+    "scenario_set_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "profile"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "profile": {
+            "$ref": "temporal-profile-v0.1.schema.json"
+          }
+        }
+      }
+    }
+  },
+  "description": "A finite list of complete, separately modeled scenarios. This schema does not authenticate scenario-set completeness, probabilities, evidence authority, exclusivity or common-cause closure."
+}
