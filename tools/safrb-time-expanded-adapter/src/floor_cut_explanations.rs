@@ -738,6 +738,32 @@ mod tests {
     }
 
     #[test]
+    fn service_issue_cut_maps_to_physical_beneficiary_and_window() {
+        let mut model = profile(20, 20, 20);
+        model.nodes[1].service_issue_capacity = 7;
+        let floor_set = floors(8, 8);
+        let report = evaluate_beneficiary_floors(&model, &floor_set).unwrap();
+        assert!(!report.floors_jointly_feasible);
+
+        let explanation =
+            explain_beneficiary_floor_infeasibility(&model, &floor_set, &report).unwrap();
+        assert!(explanation.cut_edges.iter().any(|edge| {
+            edge.constraint_family == FloorCutConstraintFamily::BeneficiaryServiceIssueCapacity
+                && edge.node_id.as_deref() == Some("beneficiary-a")
+                && edge.node_state == Some(TemporalNodeState::ServiceIssue)
+                && edge.period == Some(1)
+                && edge.related_service_ids == vec!["service-a".to_string()]
+        }));
+        verify_beneficiary_floor_infeasibility_explanation(
+            &model,
+            &floor_set,
+            &report,
+            &explanation,
+        )
+        .unwrap();
+    }
+
+    #[test]
     fn explanation_is_refused_for_feasible_floors() {
         let model = profile(20, 10, 10);
         let floor_set = floors(5, 5);
@@ -778,6 +804,10 @@ mod tests {
         .unwrap();
         assert_eq!(schema["properties"]["schema_version"]["const"], FLOOR_CUT_EXPLANATION_SCHEMA);
         assert_eq!(schema["properties"]["cut_edges"]["type"], "array");
+        assert_eq!(
+            schema["properties"]["cut_edges"]["items"]["properties"]["node_state"]["enum"][1],
+            "handling"
+        );
         assert_eq!(schema["additionalProperties"], false);
     }
 
