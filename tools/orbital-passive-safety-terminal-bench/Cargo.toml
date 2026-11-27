@@ -1,0 +1,18 @@
+[package]
+name = "orbital-passive-safety-terminal-bench"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+
+[dependencies]
+orbital-inspection-horizon-composition-bench = { path = "../orbital-inspection-horizon-composition-bench" }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "orbital-passive-safety-terminal-bench"
+path = "src/main.rs"
+
+[workspace]
