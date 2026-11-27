@@ -637,10 +637,6 @@ mod tests {
     #[test]
     fn changed_support_feature_forces_fresh_narrowphase() {
         let witness = lease();
-        let decision = evaluate(
-            &witness,
-            &motion([0.0; 3], 0.0, 1.0),
-        );
         let mut changed_feature = witness.feature_identity.expect("cached feature");
         changed_feature.feature_b += 1;
         let decision = evaluate_contact_geometry_lease(
