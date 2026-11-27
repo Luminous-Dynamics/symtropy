@@ -130,6 +130,17 @@ pub struct PoseResult {
     pub sample_id: String,
     pub target_id: String,
     pub split: String,
+    pub dataset_id: String,
+    pub dataset_revision: String,
+    pub dataset_sha256: String,
+    pub model_revision: String,
+    pub model_sha256: String,
+    pub calibration_revision: String,
+    pub calibration_sha256: String,
+    pub sensor_mode: String,
+    pub frame_convention: String,
+    pub tangent_convention: String,
+    pub decision_reason: String,
     pub disposition: EvaluationDisposition,
     pub decision: PoseDecision,
     pub translation_error_m: Option<f64>,
@@ -285,7 +296,7 @@ fn cholesky(matrix: &[f64; 36]) -> Option<[[f64; 6]; 6]> {
         for column in 0..6 {
             let a = matrix[row * 6 + column];
             let b = matrix[column * 6 + row];
-            if (a - b).abs() > SYMMETRY_TOLERANCE * scale.max(1.0) {
+            if (a - b).abs() > SYMMETRY_TOLERANCE * scale {
                 return None;
             }
         }
@@ -359,6 +370,17 @@ fn base_result(
         sample_id: input.sample_id.clone(),
         target_id: input.target_id.clone(),
         split: input.split.clone(),
+        dataset_id: input.dataset_id.clone(),
+        dataset_revision: input.dataset_revision.clone(),
+        dataset_sha256: input.dataset_sha256.clone(),
+        model_revision: input.model_revision.clone(),
+        model_sha256: input.model_sha256.clone(),
+        calibration_revision: input.calibration_revision.clone(),
+        calibration_sha256: input.calibration_sha256.clone(),
+        sensor_mode: input.sensor_mode.clone(),
+        frame_convention: input.frame_convention.clone(),
+        tangent_convention: input.tangent_convention.clone(),
+        decision_reason: input.abstain_reason.clone(),
         disposition,
         decision: input.decision,
         translation_error_m: None,
@@ -401,11 +423,9 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
         input.dataset_revision.as_str(),
         input.model_revision.as_str(),
         input.calibration_revision.as_str(),
-        input.abstain_reason.as_str(),
     ]
     .iter()
     .any(|value| !valid_text(value))
-        && !(input.decision == PoseDecision::Accept && input.abstain_reason.is_empty())
     {
         return base_result(
             input,
