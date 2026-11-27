@@ -7,14 +7,14 @@ on:
       - 'research/physical-storage/preservation-service-reference/Cargo.lock'
       - '.github/workflows/preservation-service-reference.yml'
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - 'research/physical-storage/preservation-service-reference/**'
       - 'research/physical-storage/preservation-service-reference/Cargo.lock'
       - '.github/workflows/preservation-service-reference.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   rust:
@@ -23,34 +23,23 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       MANIFEST: research/physical-storage/preservation-service-reference/Cargo.toml
-      SOURCE: research/physical-storage/preservation-service-reference/src/lib.rs
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref }}
-      - name: Set up pinned Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify exact tested commit
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$EXPECTED_HEAD"
+          echo "Exact tested commit: $actual"
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.96.0
           components: clippy, rustfmt
-      - name: Apply rustfmt
-        run: cargo fmt --manifest-path "$MANIFEST"
-      - name: Commit rustfmt changes to this PR branch
-        if: github.event_name == 'pull_request'
-        env:
-          PR_BRANCH: ${{ github.head_ref }}
-        run: |
-          if git diff --quiet -- "$SOURCE"; then
-            echo "No rustfmt changes required."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$SOURCE"
-          git commit -m "style: rustfmt preservation-service-reference"
-          git push origin "HEAD:$PR_BRANCH"
       - name: Check formatting
-        run: cargo fmt --manifest-path "$MANIFEST" -- --check
+        run: cargo fmt --locked --manifest-path "$MANIFEST" -- --check
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -64,8 +53,8 @@ jobs:
 
           pairs = [
               ("research/physical-storage/preservation_service_workloads_v0_1.schema.json", "research/physical-storage/fixtures/preservation_service_workloads_v0_1.json"),
-    ("research/physical-storage/preservation_service_receipts_v0_1.schema.json", "research/physical-storage/fixtures/preservation_service_receipts_v0_1.json"),
-    ("research/physical-storage/preservation_migration_receipts_v0_1.schema.json", "research/physical-storage/fixtures/preservation_migration_receipts_v0_1.json"),
+              ("research/physical-storage/preservation_service_receipts_v0_1.schema.json", "research/physical-storage/fixtures/preservation_service_receipts_v0_1.json"),
+              ("research/physical-storage/preservation_migration_receipts_v0_1.schema.json", "research/physical-storage/fixtures/preservation_migration_receipts_v0_1.json"),
           ]
           for schema_path, fixture_path in pairs:
               schema = json.loads(Path(schema_path).read_text())
