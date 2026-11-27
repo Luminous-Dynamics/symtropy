@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent challenger for RGB/event pose consistency and common-cause admission."""
+"""Independent oracle for the cross-modal spacecraft pose consistency gate."""
 
 from __future__ import annotations
 
@@ -26,43 +26,35 @@ def valid_digest(value: str) -> bool:
     return len(value) == 64 and all(c in "0123456789abcdefABCDEF" for c in value)
 
 
+def boolean(value: str, label: str) -> bool:
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    raise ValueError(f"invalid boolean {label}: {value}")
+
+
 def ceil_sqrt(value: int) -> int:
     root = math.isqrt(value)
     return root if root * root == value else root + 1
 
 
-def parse_bool(value: str, field: str) -> bool:
-    if value == "true":
-        return True
-    if value == "false":
-        return False
-    raise ValueError(f"invalid boolean {field}: {value}")
-
-
-def estimate_from_row(row: dict[str, str], modality: str) -> dict[str, object]:
+def estimate(row: dict[str, str], modality: str) -> dict[str, object]:
     prefix = modality.lower()
-    sample = row[f"{prefix}_sample_id"]
-    frame = row[f"{prefix}_frame_id"]
-    target = row[f"{prefix}_target_id"]
-    frame_convention = row[f"{prefix}_frame_convention"]
-    transform_direction = row[f"{prefix}_transform_direction"]
-    translation_unit = row[f"{prefix}_translation_unit"]
-    quaternion_order = row[f"{prefix}_quaternion_order"]
-    for name, value in (
-        ("sample_id", sample),
-        ("frame_id", frame),
-        ("target_id", target),
-        ("frame_convention", frame_convention),
-        ("transform_direction", transform_direction),
-        ("translation_unit", translation_unit),
-        ("quaternion_order", quaternion_order),
-    ):
+    fields = {
+        "sample_id": row[f"{prefix}_sample_id"],
+        "frame_id": row[f"{prefix}_frame_id"],
+        "target_id": row[f"{prefix}_target_id"],
+        "frame_convention": row[f"{prefix}_frame_convention"],
+        "transform_direction": row[f"{prefix}_transform_direction"],
+        "translation_unit": row[f"{prefix}_translation_unit"],
+        "quaternion_order": row[f"{prefix}_quaternion_order"],
+    }
+    for name, value in fields.items():
         if not valid_text(value):
             raise ValueError(f"{modality} {name} is empty or reserved")
 
-    dependencies = {
-        name: row[f"{prefix}_{name}_sha256"] for name in DEPENDENCIES
-    }
+    dependencies = {name: row[f"{prefix}_{name}_sha256"] for name in DEPENDENCIES}
     for name, digest in dependencies.items():
         if not valid_digest(digest):
             raise ValueError(f"{modality} dependency digest {name} is malformed")
@@ -72,8 +64,8 @@ def estimate_from_row(row: dict[str, str], modality: str) -> dict[str, object]:
         for axis in ("x", "y", "z", "w")
     ]
     norm_sq = sum(value * value for value in quaternion)
-    target_norm_sq = Q30_ONE * Q30_ONE
-    if abs(norm_sq - target_norm_sq) > target_norm_sq // 1000:
+    target_sq = Q30_ONE * Q30_ONE
+    if abs(norm_sq - target_sq) > target_sq // 1000:
         raise ValueError(f"{modality} quaternion is not unit within Q30 tolerance")
 
     status = row[f"{prefix}_status"]
@@ -81,27 +73,19 @@ def estimate_from_row(row: dict[str, str], modality: str) -> dict[str, object]:
         raise ValueError(f"{modality} unsupported status {status}")
 
     return {
+        **fields,
         "modality": modality,
-        "sample_id": sample,
-        "frame_id": frame,
-        "target_id": target,
         "timestamp_ms": int(row[f"{prefix}_timestamp_ms"]),
-        "frame_convention": frame_convention,
-        "transform_direction": transform_direction,
-        "translation_unit": translation_unit,
-        "quaternion_order": quaternion_order,
-        "translation_um": [
-            int(row[f"{prefix}_t{axis}_um"]) for axis in ("x", "y", "z")
-        ],
+        "translation_um": [int(row[f"{prefix}_t{axis}_um"]) for axis in ("x", "y", "z")],
         "quaternion_xyzw_q30": quaternion,
         "status": status,
-        "ood": parse_bool(row[f"{prefix}_ood"], f"{modality} OOD"),
-        "low_observability": parse_bool(
+        "ood": boolean(row[f"{prefix}_ood"], f"{modality} OOD"),
+        "low_observability": boolean(
             row[f"{prefix}_low_observability"], f"{modality} low observability"
         ),
         "dependencies": {
             **dependencies,
-            "declarations_complete": parse_bool(
+            "declarations_complete": boolean(
                 row[f"{prefix}_dependencies_complete"],
                 f"{modality} dependency completeness",
             ),
@@ -109,29 +93,8 @@ def estimate_from_row(row: dict[str, str], modality: str) -> dict[str, object]:
     }
 
 
-def pose_disagreement(rgb: dict[str, object], event: dict[str, object]) -> tuple[int, int]:
-    left = rgb["translation_um"]
-    right = event["translation_um"]
-    translation = ceil_sqrt(sum((a - b) ** 2 for a, b in zip(left, right, strict=True)))
-
-    q_left = rgb["quaternion_xyzw_q30"]
-    q_right = event["quaternion_xyzw_q30"]
-    direct = [a - b for a, b in zip(q_left, q_right, strict=True)]
-    antipodal = [a + b for a, b in zip(q_left, q_right, strict=True)]
-    direct_chord = ceil_sqrt(sum(value * value for value in direct))
-    antipodal_chord = ceil_sqrt(sum(value * value for value in antipodal))
-    return translation, min(direct_chord, antipodal_chord)
-
-
 def evaluate_pair(rgb: dict[str, object], event: dict[str, object], row: dict[str, str]) -> dict[str, object]:
     skew = abs(rgb["timestamp_ms"] - event["timestamp_ms"])
-    compatible = all(
-        rgb[field] == event[field]
-        for field in (
-            "sample_id", "frame_id", "target_id", "frame_convention",
-            "transform_direction", "translation_unit", "quaternion_order",
-        )
-    )
     base = {
         "sample_id": rgb["sample_id"],
         "frame_id": rgb["frame_id"],
@@ -148,7 +111,13 @@ def evaluate_pair(rgb: dict[str, object], event: dict[str, object], row: dict[st
         "deterministic_safety_bound": False,
         "maneuver_authority_granted": False,
     }
-
+    compatible = all(
+        rgb[key] == event[key]
+        for key in (
+            "sample_id", "frame_id", "target_id", "frame_convention",
+            "transform_direction", "translation_unit", "quaternion_order",
+        )
+    )
     if not compatible:
         return {
             "disposition": "OUT_OF_SCOPE",
@@ -186,7 +155,19 @@ def evaluate_pair(rgb: dict[str, object], event: dict[str, object], row: dict[st
             **base,
         }
 
-    translation, orientation = pose_disagreement(rgb, event)
+    translation = ceil_sqrt(sum(
+        (left - right) ** 2
+        for left, right in zip(rgb["translation_um"], event["translation_um"], strict=True)
+    ))
+    left_q = rgb["quaternion_xyzw_q30"]
+    right_q = event["quaternion_xyzw_q30"]
+    direct = [left - right for left, right in zip(left_q, right_q, strict=True)]
+    antipodal = [left + right for left, right in zip(left_q, right_q, strict=True)]
+    orientation = min(
+        ceil_sqrt(sum(value * value for value in direct)),
+        ceil_sqrt(sum(value * value for value in antipodal)),
+    )
+
     result = {
         **base,
         "translation_disagreement_um": translation,
@@ -201,23 +182,21 @@ def evaluate_pair(rgb: dict[str, object], event: dict[str, object], row: dict[st
         result["disposition"] = "DISAGREEMENT"
         result["reason_codes"].append("POSE_DISAGREEMENT_EXCEEDS_POLICY")
 
-    shared = [
+    shared = sorted(
         name for name in DEPENDENCIES
         if rgb["dependencies"][name] != "NONE"
         and rgb["dependencies"][name] == event["dependencies"][name]
-    ]
-    result["shared_dependency_kinds"] = sorted(shared)
-
+    )
+    result["shared_dependency_kinds"] = shared
     if (
-        parse_bool(row["rgb_dependencies_complete"], "RGB dependency completeness") is False
-        or parse_bool(row["event_dependencies_complete"], "EVENT dependency completeness") is False
+        not rgb["dependencies"]["declarations_complete"]
+        or not event["dependencies"]["declarations_complete"]
     ):
         result["disposition"] = "DEPENDENCE_UNKNOWN"
         result["reason_codes"].append("DEPENDENCY_DECLARATIONS_INCOMPLETE")
     if shared:
         result["disposition"] = "DEPENDENCE_UNKNOWN"
         result["reason_codes"].append("SHARED_COMMON_CAUSE_DEPENDENCY")
-
     result["reason_codes"] = sorted(set(result["reason_codes"]))
     return result
 
@@ -232,20 +211,19 @@ def main() -> int:
     digest = hashlib.sha256(raw).hexdigest()
     if digest != sys.argv[3]:
         raise SystemExit("manifest SHA-256 does not match raw bytes")
-
     with path.open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream, delimiter="\t"))
     if not rows:
-        raise ValueError("manifest has no pair rows")
+        raise ValueError("manifest has no pairs")
 
-    results = []
     seen = set()
+    results = []
     for row in rows:
-        if row["rgb_sample_id"] in seen:
+        rgb = estimate(row, "RGB")
+        event = estimate(row, "EVENT")
+        if rgb["sample_id"] in seen:
             raise ValueError("duplicate pair sample id")
-        seen.add(row["rgb_sample_id"])
-        rgb = estimate_from_row(row, "RGB")
-        event = estimate_from_row(row, "EVENT")
+        seen.add(rgb["sample_id"])
         results.append(evaluate_pair(rgb, event, row))
 
     receipt = {
