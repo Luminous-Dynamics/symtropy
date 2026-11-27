@@ -49,7 +49,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -114,7 +115,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -179,7 +181,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -244,7 +247,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -309,7 +313,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -374,7 +379,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -439,7 +445,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -504,7 +511,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
@@ -569,7 +577,8 @@
         "world_b_candidate_input_sha256": null,
         "world_a_transcript_sha256": null,
         "world_b_transcript_sha256": null,
-        "first_distinguishing_observation": null
+        "first_distinguishing_observation": null,
+        "equivalence_evidence": null
       },
       "decision_contract": {
         "decision_need_sha256": null,
