@@ -351,6 +351,20 @@ mod tests {
     }
 
     #[test]
+    fn rejects_negative_forward_reduced_cost_on_available_arc() {
+        let instance = parse_dimacs_mcf("p min 2 1\\na 1 2 0 5 2").unwrap();
+        // flow == lower bound: only the forward residual arc is available.
+        // pi[1] = 0 and pi[2] = 3 make c + pi[1] - pi[2] = -1.
+        let cert = certificate(&instance, &[0], &[0, 0, 3], 0);
+        assert!(
+            verify_mcf_optimality(&instance, &cert)
+                .unwrap_err()
+                .to_string()
+                .contains("negative forward reduced cost")
+        );
+    }
+
+    #[test]
     fn verifies_negative_cost_at_upper_capacity() {
         let instance = parse_dimacs_mcf("p min 2 1\nn 1 5\nn 2 -5\na 1 2 0 5 -2").unwrap();
         let cert = certificate(&instance, &[5], &[0, 0, 0], -10);
