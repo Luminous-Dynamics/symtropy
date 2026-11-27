@@ -326,7 +326,7 @@ The comparator hierarchy is explicit:
 - **R1 same-information decision oracle:** sees exactly the evidence vintage available at each decision cutoff and obeys the same hard constraints. It is an offline decision-quality reference; report its compute time and do not imply deployability.
 - **R2 compute-budget-matched policies:** receive the same as-of evidence and cutoffs, with the same declared wall-clock/resource/authority envelope.
 
-Report the information gap (R0→R1) separately from the decision gap (R1→R2), with vector outcomes and execution/authorization delay shown independently. The synthetic 20-case negative-control manifest in `fixtures/information-set-replay-v0.tsv` covers late observation, late ingestion/validation, backfill, correction, authority revocation, expiry, rights, conflict, censoring, future-derived features, clock uncertainty, plan publication and authorization latency. The manifest is not yet wired to an executable replay parser.
+Report the information gap (R0→R1) separately from the decision gap (R1→R2), with vector outcomes and execution/authorization delay shown independently. The synthetic 20-case negative-control manifest in `fixtures/information-set-replay-v0.tsv` covers late observation, late ingestion/validation, backfill, correction, authority revocation, expiry, rights, conflict, censoring, future-derived features, clock uncertainty, plan publication and authorization latency. KITE #7775 now has a Rust manifest conformance parser; reusable append-only as-of replay primitives are in draft PR #7833. Draft PR #7835 adds a one-epoch same-information R1 oracle with committed observable-state digests, exact service partitions and a separate tiny-instance challenger. These are synthetic assurance components; no real South African historical decision-time event corpus is yet admitted.
 
 ### Strong 2026 comparison targets
 
@@ -360,3 +360,49 @@ A credible claim requires a matched, reproducible result, not a larger architect
 - generalization to held-out facilities and unseen disruption families.
 
 These are qualification targets. Until the R2 methods are run on source-qualified and held-out port data, MCSC has not demonstrated superiority to any published method or industry KPI.
+
+
+## 11. South African local benchmark baseline and comparability
+
+The initial source audit is tracked in [MCSC-SA-EMPIRICAL-EVIDENCE-001 #7836](https://github.com/Luminous-Dynamics/symtropy/issues/7836). It deliberately separates regulator scorecards, Transnet/TPT throughput, MarineTraffic AIS-derived dwell, global AIS port-call estimates, and receiver-service outcomes.
+
+### BUSA / SAaff Cargo Movement Update #306
+
+Source: [BUSA Cargo Movement Update #306, report date 1 November 2026](https://ewc.org.za/wp-content/uploads/2026/11/BUSA-Cargo-Movement-Update-2026-11-01.pdf).
+
+The local snapshot contains:
+- **Terminal-level dwell aggregates:** eight anchorage/berth averages from Table 4, attributed to MarineTraffic AIS and marked updated 3 November 2026.
+- **Weekly terminal flows:** Table 2 reports TPT-derived TEU flows for 26 October–1 November 2026.
+- **Corridor context:** road-border queue/processing time and rail movement commentary, which must remain distinct from port and receiver outcomes.
+
+The dwell values are: Durban DGT 10.3 days anchorage / 4.9 days berth; Durban Pier 1 5.4 / 3.3; Durban MPT 4.9 / 4.1; Cape Town CTCT 0.2 / 1.8; Cape Town FPT 0.1 / 3.2; Ngqura NCT 1.8 / 2.6; East London MPT 0.1 / 2.0; Port Elizabeth PECT 0.7 / 1.5.
+
+The weekly TPT TEU totals are: Durban DGT 34,976; Durban Pier 1 13,517; Cape Town CTCT 18,886; Ngqura NCT 18,257; Port Elizabeth PECT 6,017; Other 8,770; all terminals 100,423. Per-terminal daily averages are individually rounded and should not be re-summed as exact weekly totals.
+
+The PDF cover date is 1 November, but the dwell table has a 3 November update marker and the narrative cites queue observations on 3 and 5 November. Preserve row-level report/source-update dates; do not infer one synchronized event cutoff from the cover date.
+
+Frozen records: [busa-cargo-movement-update-306-snapshot-v0.tsv](fixtures/busa-cargo-movement-update-306-snapshot-v0.tsv).
+
+### South African metric crosswalk
+
+| Metric family | Public source | Valid comparison | Invalid inference to avoid |
+|---|---|---|---|
+| Port-level vessel time | World Bank/S&P CPPI; UNCTAD PPS | Cross-year/port scorecard comparison when source definitions match | Treating CPPI as a terminal-level anchorage/berth split |
+| Terminal anchorage and berth averages | BUSA/SAaff Table 4, MarineTraffic AIS | Reproduce the reported terminal averages and compare like-for-like windows | Reconstructing individual calls or first-available times from averages |
+| Weekly terminal cargo flow | BUSA Table 2, TPT-derived | TEU throughput by named terminal and exact reporting week | Treating TEU moved as vessel count, cargo acceptance or receiver-delivered units |
+| Regulatory efficiency indicators | PRSA WEGO | Preserve its weighted/capped KPI and reference-period definition | Treating WEGO percentages as raw hours or physical capacity |
+| Annual port-system activity | Transnet FY2025/26 aggregate | System-wide annual consistency check | Distributing annual arrivals or tonnage across individual ports without source rows |
+| AIS-derived port-call estimates | Voydar per-port ZADUR / monthly dataset; IMF PortWatch-derived Ngqura estimates | Detector/coverage research with provenance and licensing bound per source | Treating AIS detected calls as official calls or receiver acceptance |
+| Receiver service | Canonical Symtropy #7554 evaluator and owner records | Accepted/on-time/late/unresolved service where cargo identity and authority evidence exists | Inferring receiver acceptance from terminal throughput or AIS departure |
+
+### What this enables
+
+A first matched local study can reproduce BUSA's **eight terminal dwell averages and weekly TEU flow snapshot** and then build a richer benchmark only when underlying records become available. Candidate algorithm comparisons should be stratified by terminal and operational period and should report:
+- anchorage wait and berth time separately;
+- throughput and vessel-call counts separately;
+- receiver-accepted and on-time service separately;
+- port, rail, road and border segment delays separately;
+- source coverage, censoring, update times and provenance families;
+- p50/p95/p99 where raw event records support tail computation.
+
+This is a credible local baseline, not yet a matched SOTA comparison. The BUSA PDF publishes averages and aggregate weekly flows, not the vessel-level MarineTraffic rows or receiver-acceptance records. Any claim of causal improvement, faster recovery or superiority requires those underlying data and a matched control/design.
