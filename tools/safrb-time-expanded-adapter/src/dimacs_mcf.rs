@@ -294,15 +294,15 @@ pub fn parse_dimacs_mcf(
 
     for (index, raw_line) in text.lines().enumerate() {
         let line_number = index + 1;
-        let tokens = raw_line.split_whitespace().collect::<Vec<_>>();
-        if tokens.is_empty() {
+        let mut tokens = raw_line.split_whitespace();
+        let Some(record_type) = tokens.next() else {
             continue;
-        }
+        };
 
-        match tokens[0] {
+        match record_type {
             "c" => {
-                // Comment records are permitted anywhere; preserve raw digest,
-                // but exclude comments from canonical semantic identity.
+                // Comments may contain arbitrary text. They are skipped
+                // without collecting the comment's words into an allocation.
                 continue;
             }
             "p" => {
@@ -312,14 +312,17 @@ pub fn parse_dimacs_mcf(
                         "problem line must appear exactly once before node and arc records",
                     ));
                 }
-                if tokens.len() != 4 || tokens[1] != "min" {
+                let format = tokens.next();
+                let nodes_token = tokens.next();
+                let arcs_token = tokens.next();
+                if format != Some("min") || nodes_token.is_none() || arcs_token.is_none() || tokens.next().is_some() {
                     return Err(DimacsMcfParseError::new(
                         line_number,
                         "problem line must have exactly the form: p min <nodes> <arcs>",
                     ));
                 }
-                let nodes: u32 = parse_number(tokens[2], line_number, "node count")?;
-                let arc_count: u32 = parse_number(tokens[3], line_number, "arc count")?;
+                let nodes: u32 = parse_number(nodes_token.unwrap(), line_number, "node count")?;
+                let arc_count: u32 = parse_number(arcs_token.unwrap(), line_number, "arc count")?;
                 estimated_allocation =
                     preflight(nodes, arc_count, input.len(), limits, line_number)?;
                 let node_slots = usize::try_from(nodes)
@@ -354,20 +357,23 @@ pub fn parse_dimacs_mcf(
                         "node records must precede all arc records",
                     ));
                 }
-                if tokens.len() != 3 {
+                let node_token = tokens.next();
+                let supply_token = tokens.next();
+                if node_token.is_none() || supply_token.is_none() || tokens.next().is_some() {
                     return Err(DimacsMcfParseError::new(
                         line_number,
                         "node record must have exactly the form: n <id> <supply>",
                     ));
                 }
-                let node_id: u32 = parse_number(tokens[1], line_number, "node ID")?;
+                let node_id: u32 = parse_number(node_token.unwrap(), line_number, "node ID")?;
                 if node_id == 0 || node_id > nodes {
                     return Err(DimacsMcfParseError::new(
                         line_number,
                         format!("node ID {node_id} is outside the required 1..={nodes} range"),
                     ));
                 }
-                let supply: i64 = parse_number(tokens[2], line_number, "node supply")?;
+                let supply: i64 =
+                    parse_number(supply_token.unwrap(), line_number, "node supply")?;
                 if supply == 0 {
                     return Err(DimacsMcfParseError::new(
                         line_number,
@@ -394,14 +400,27 @@ pub fn parse_dimacs_mcf(
                     )
                 })?;
                 saw_arc = true;
-                if tokens.len() != 6 {
+
+                let tail_token = tokens.next();
+                let head_token = tokens.next();
+                let lower_token = tokens.next();
+                let upper_token = tokens.next();
+                let cost_token = tokens.next();
+                if tail_token.is_none()
+                    || head_token.is_none()
+                    || lower_token.is_none()
+                    || upper_token.is_none()
+                    || cost_token.is_none()
+                    || tokens.next().is_some()
+                {
                     return Err(DimacsMcfParseError::new(
                         line_number,
                         "arc record must have exactly the form: a <tail> <head> <lower> <upper> <cost>",
                     ));
                 }
-                let tail: u32 = parse_number(tokens[1], line_number, "arc tail")?;
-                let head: u32 = parse_number(tokens[2], line_number, "arc head")?;
+
+                let tail: u32 = parse_number(tail_token.unwrap(), line_number, "arc tail")?;
+                let head: u32 = parse_number(head_token.unwrap(), line_number, "arc head")?;
                 if tail == 0 || tail > nodes || head == 0 || head > nodes {
                     return Err(DimacsMcfParseError::new(
                         line_number,
@@ -411,9 +430,9 @@ pub fn parse_dimacs_mcf(
                     ));
                 }
                 let lower_bound: i64 =
-                    parse_number(tokens[3], line_number, "arc lower bound")?;
+                    parse_number(lower_token.unwrap(), line_number, "arc lower bound")?;
                 let upper_bound: i64 =
-                    parse_number(tokens[4], line_number, "arc upper bound")?;
+                    parse_number(upper_token.unwrap(), line_number, "arc upper bound")?;
                 if lower_bound > upper_bound {
                     return Err(DimacsMcfParseError::new(
                         line_number,
@@ -422,7 +441,8 @@ pub fn parse_dimacs_mcf(
                         ),
                     ));
                 }
-                let unit_cost: i32 = parse_number(tokens[5], line_number, "arc unit cost")?;
+                let unit_cost: i32 =
+                    parse_number(cost_token.unwrap(), line_number, "arc unit cost")?;
                 let ordinal = u32::try_from(arcs.len()).map_err(|_| {
                     DimacsMcfParseError::new(line_number, "arc ordinal exceeds u32")
                 })?;
@@ -449,7 +469,6 @@ pub fn parse_dimacs_mcf(
             }
         }
     }
-
     let (node_count, declared_arc_count) =
         problem.ok_or_else(|| DimacsMcfParseError::new(0, "missing DIMACS problem line"))?;
     if arcs.len() != declared_arc_count as usize {
