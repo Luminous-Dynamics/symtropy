@@ -171,11 +171,7 @@ fn modalities(input: &BundleInput) -> [(&'static str, &ModalityRecord, &'static 
     ]
 }
 
-fn result(
-    input: &BundleInput,
-    disposition: BundleDisposition,
-    reason: &str,
-) -> BundleResult {
+fn result(input: &BundleInput, disposition: BundleDisposition, reason: &str) -> BundleResult {
     let mut modality_sha256 = BTreeMap::new();
     let mut modality_paths = BTreeMap::new();
     for (name, record, _) in modalities(input) {
@@ -246,11 +242,7 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
     }
 
     if !matches!(input.split.as_str(), "train" | "validation" | "test") {
-        return result(
-            input,
-            BundleDisposition::InvalidInput,
-            "UNKNOWN_SPLIT",
-        );
+        return result(input, BundleDisposition::InvalidInput, "UNKNOWN_SPLIT");
     }
 
     if input.dataset_id != "SpaceSense-Bench"
@@ -327,10 +319,7 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
                 "MODALITY_PATH_OR_DIGEST_INVALID",
             );
         }
-        let required_path_scope = format!(
-            "{}/{}/",
-            input.spacecraft_id, input.trajectory_id
-        );
+        let required_path_scope = format!("{}/{}/", input.spacecraft_id, input.trajectory_id);
         if !record.path.contains(&required_path_scope)
             || !record.path.contains(&input.capture_timestamp)
         {
@@ -366,11 +355,7 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         }
     }
 
-    result(
-        input,
-        BundleDisposition::Synchronized,
-        "",
-    )
+    result(input, BundleDisposition::Synchronized, "")
 }
 
 /// Detects duplicate sample keys and spacecraft leakage across splits. Results
@@ -489,7 +474,10 @@ mod tests {
     fn one_millisecond_pose_shift_is_unsynchronized() {
         let mut value = input();
         value.pose.timestamp = "20260120165126342".to_owned();
-        assert_eq!(evaluate(&value).disposition, BundleDisposition::Unsynchronized);
+        assert_eq!(
+            evaluate(&value).disposition,
+            BundleDisposition::Unsynchronized
+        );
     }
 
     #[test]
@@ -501,7 +489,10 @@ mod tests {
                 "depth" => value.depth.timestamp = "20260120165126243".to_owned(),
                 _ => value.segmentation.timestamp = "20260120165126244".to_owned(),
             }
-            assert_eq!(evaluate(&value).disposition, BundleDisposition::Unsynchronized);
+            assert_eq!(
+                evaluate(&value).disposition,
+                BundleDisposition::Unsynchronized
+            );
         }
     }
 
@@ -523,31 +514,32 @@ mod tests {
     fn wrong_modality_frame_or_sensor_is_out_of_scope() {
         let mut wrong_frame = input();
         wrong_frame.lidar.frame_id = "another-frame".to_owned();
-        assert_eq!(evaluate(&wrong_frame).disposition, BundleDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&wrong_frame).disposition,
+            BundleDisposition::OutOfScope
+        );
 
         let mut wrong_sensor = input();
         wrong_sensor.depth.sensor_id = "cam1".to_owned();
-        assert_eq!(evaluate(&wrong_sensor).disposition, BundleDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&wrong_sensor).disposition,
+            BundleDisposition::OutOfScope
+        );
     }
 
     #[test]
     fn wrong_trajectory_path_is_out_of_scope() {
         let mut value = input();
-        value.pose.path = "raw/another-spacecraft/other-trajectory/pose/20260120165126242".to_owned();
-        assert_eq!(
-            evaluate(&value).disposition,
-            BundleDisposition::OutOfScope
-        );
+        value.pose.path =
+            "raw/another-spacecraft/other-trajectory/pose/20260120165126242".to_owned();
+        assert_eq!(evaluate(&value).disposition, BundleDisposition::OutOfScope);
     }
 
     #[test]
     fn sample_id_must_bind_exact_frame_key() {
         let mut value = input();
         value.sample_id = "ACE/approach_front/another-timestamp".to_owned();
-        assert_eq!(
-            evaluate(&value).disposition,
-            BundleDisposition::OutOfScope
-        );
+        assert_eq!(evaluate(&value).disposition, BundleDisposition::OutOfScope);
     }
 
     #[test]
@@ -561,11 +553,17 @@ mod tests {
     fn timestamp_calendar_and_format_are_validated() {
         let mut malformed = input();
         malformed.capture_timestamp = "20260230000000000".to_owned();
-        assert_eq!(evaluate(&malformed).disposition, BundleDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&malformed).disposition,
+            BundleDisposition::InvalidInput
+        );
 
         let mut malformed_format = input();
         malformed_format.rgb.timestamp = "2026-01-20T16:51:26.242".to_owned();
-        assert_eq!(evaluate(&malformed_format).disposition, BundleDisposition::InvalidInput);
+        assert_eq!(
+            evaluate(&malformed_format).disposition,
+            BundleDisposition::InvalidInput
+        );
     }
 
     #[test]
@@ -582,7 +580,10 @@ mod tests {
         ] {
             record.timestamp = value.capture_timestamp.clone();
         }
-        assert_eq!(evaluate(&value).disposition, BundleDisposition::Synchronized);
+        assert_eq!(
+            evaluate(&value).disposition,
+            BundleDisposition::Synchronized
+        );
     }
 
     #[test]
@@ -610,7 +611,10 @@ mod tests {
 
         let mut extrinsics = input();
         extrinsics.lidar_to_camera_sha256 = "bad".to_owned();
-        assert_eq!(evaluate(&extrinsics).disposition, BundleDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&extrinsics).disposition,
+            BundleDisposition::OutOfScope
+        );
     }
 
     #[test]
@@ -640,7 +644,11 @@ mod tests {
             record.frame_id = "frame-0002".to_owned();
         }
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|result| result.disposition == BundleDisposition::SplitLeakage));
+        assert!(
+            results
+                .iter()
+                .all(|result| result.disposition == BundleDisposition::SplitLeakage)
+        );
     }
 
     #[test]
@@ -649,6 +657,10 @@ mod tests {
         let mut second = input();
         second.case_id = "sync-2".to_owned();
         let results = evaluate_manifest(&[first, second]);
-        assert!(results.iter().all(|result| result.disposition == BundleDisposition::DuplicateSample));
+        assert!(
+            results
+                .iter()
+                .all(|result| result.disposition == BundleDisposition::DuplicateSample)
+        );
     }
 }
