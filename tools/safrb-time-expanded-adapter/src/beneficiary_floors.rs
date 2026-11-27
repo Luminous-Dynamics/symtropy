@@ -386,6 +386,21 @@ fn reconstruct_expected_reduction(
         }
     }
 
+    let expected_node_count = base_graph
+        .nodes
+        .len()
+        .checked_add(2)
+        .ok_or_else(|| "verifier lower-bound node count overflowed usize".to_string())?;
+    let expected_edge_ceiling = base_graph
+        .edges
+        .len()
+        .checked_add(base_graph.nodes.len())
+        .and_then(|count| count.checked_add(1))
+        .ok_or_else(|| "verifier lower-bound edge count overflowed usize".to_string())?;
+    if expected_node_count > MAX_NODES || expected_edge_ceiling > MAX_EDGES {
+        return Err("verifier lower-bound reduction exceeds kernel graph limits".to_string());
+    }
+
     if node_balance.contains_key(AUX_SOURCE) || node_balance.contains_key(AUX_SINK) {
         return Err("verifier detected reserved node identity collision".to_string());
     }
@@ -844,6 +859,137 @@ mod tests {
                     requested_quantity: 15,
                 },
             ],
+        }
+    }
+
+    fn next_small(state: &mut u64, bound: u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (*state >> 32) % bound
+    }
+
+    fn physical_floor_oracle(
+        floors: &[BeneficiaryFloor],
+        route_limits: &[u64],
+        issue_limits: &[u64],
+        requests: &[u64],
+        supply: u64,
+        handling: u64,
+    ) -> bool {
+        if floors.len() != route_limits.len()
+            || floors.len() != issue_limits.len()
+            || floors.len() != requests.len()
+        {
+            return false;
+        }
+        let mut total_floor = 0_u64;
+        for index in 0..floors.len() {
+            let per_service_limit = route_limits[index]
+                .min(issue_limits[index])
+                .min(requests[index]);
+            if floors[index].minimum_required_quantity > per_service_limit {
+                return false;
+            }
+            let Some(next_total) =
+                total_floor.checked_add(floors[index].minimum_required_quantity)
+            else {
+                return false;
+            };
+            total_floor = next_total;
+        }
+        total_floor <= supply.min(handling)
+    }
+
+    #[test]
+    fn seeded_floor_sets_match_independent_physical_feasibility_oracle() {
+        for seed in 0..250_u64 {
+            let mut rng = 0x05AF_B202_6D15_CA11_u64 ^ seed;
+            let count = 2 + next_small(&mut rng, 3) as usize;
+            let supply = next_small(&mut rng, 21);
+            let handling = next_small(&mut rng, 21);
+            let mut nodes = vec![node("origin-yard", 0, handling, 0)];
+            let receipts = vec![TemporalReceipt {
+                receipt_id: format!("receipt-{seed}"),
+                node_id: "origin-yard".to_string(),
+                available_period: 0,
+                quantity: supply,
+            }];
+            let mut transfers = Vec::new();
+            let mut services = Vec::new();
+            let mut floors = Vec::new();
+            let mut route_limits = Vec::new();
+            let mut issue_limits = Vec::new();
+            let mut requests = Vec::new();
+
+            for index in 0..count {
+                let destination = format!("beneficiary-{index}");
+                let route_capacity = next_small(&mut rng, 13);
+                let issue_capacity = next_small(&mut rng, 13);
+                let request = next_small(&mut rng, 13);
+                let floor = next_small(&mut rng, request + 1);
+                nodes.push(node(&destination, 0, 0, issue_capacity));
+                transfers.push(TemporalTransfer {
+                    transfer_id: format!("route-{seed}-{index}"),
+                    from_node_id: "origin-yard".to_string(),
+                    to_node_id: destination.clone(),
+                    departure_period: 0,
+                    transit_periods: 1,
+                    route_capacity,
+                });
+                services.push(TemporalService {
+                    service_id: format!("service-{seed}-{index}"),
+                    node_id: destination,
+                    period: 1,
+                    requested_quantity: request,
+                });
+                floors.push(BeneficiaryFloor {
+                    service_id: format!("service-{seed}-{index}"),
+                    minimum_required_quantity: floor,
+                });
+                route_limits.push(route_capacity);
+                issue_limits.push(issue_capacity);
+                requests.push(request);
+            }
+
+            let profile = TemporalProfile {
+                schema_version: TEMPORAL_PROFILE_SCHEMA.to_string(),
+                case_id: format!("seeded-floor-feasibility-{seed}"),
+                commodity_ref: "diesel".to_string(),
+                capacity_unit_ref: "litre".to_string(),
+                quantity_boundary_ref: "beneficiary-deliverable-litres".to_string(),
+                period_timebase_ref: "synthetic:daily-periods".to_string(),
+                horizon_last_period: 1,
+                nodes,
+                receipts,
+                transfers,
+                services,
+            };
+            let expected = physical_floor_oracle(
+                &floors,
+                &route_limits,
+                &issue_limits,
+                &requests,
+                supply,
+                handling,
+            );
+            let report = evaluate_beneficiary_floors(&profile, &floors).unwrap();
+            assert_eq!(
+                report.floors_jointly_feasible,
+                expected,
+                "seed {seed}: independent physical floor oracle disagreed"
+            );
+            verify_beneficiary_floor_report(&profile, &floors, &report).unwrap();
+            if expected {
+                assert!(report.beneficiary_allocations.as_ref().is_some_and(|allocations| {
+                    allocations
+                        .iter()
+                        .all(|allocation| allocation.allocated_quantity >= allocation.minimum_required_quantity)
+                }));
+            } else {
+                assert!(report.original_edge_flows.is_none());
+                assert!(report.beneficiary_allocations.is_none());
+            }
         }
     }
 
