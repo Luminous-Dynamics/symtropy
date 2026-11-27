@@ -117,6 +117,15 @@ This profile complements existing aerospace model-credibility and lifecycle syst
 
 AERO's intended differentiator is a narrow, portable and non-compensatory commitment across independent owner reports. The context digest does not replace an MBSE tool, model-validation process, technical authority, or vendor integration. No matched vendor benchmark or industry-leading result is claimed.
 
+### Aerospace quality-management scheme boundary (reviewed 27 November 2026)
+
+The established aerospace QMS comparator is the IAQG 9100-series, not a new software evidence schema. SAE lists AS9100D as revised on 8 December 2025; it incorporates ISO 9001:2015 requirements with additional aviation, space and defense requirements, and explicitly remains complementary to customer and statutory/regulatory requirements. IAQG describes its certification scheme through the 9104-series, accredited third-party certification bodies and OASIS status records. AERO should integrate its claim/evidence references into that controlled QMS environment, supplier-change and calibration workflows; it must not present its own output as AS9100 conformity or an ICOP certification result.
+
+Aerospace Federation also publishes AF 9100:2026 and AF ASTRA-100:2026 as a separate standards family. Its own publication page says the AF publications are voluntary unless adopted by a contract, programme or authorized arrangement. The public sources reviewed here do not establish that this family is part of the IAQG 9104/ICOP/OASIS certification scheme or equivalent to AS9100D. Treat it as an emerging voluntary comparator, not as a substitute for the established IAQG scheme or competent-authority requirements.
+
+Sources: [SAE AS9100D](https://saemobilus.sae.org/standards/as9100d-quality-management-systems-requirements-aviation-space-defense-organizations); [IAQG 9100](https://iaqg.org/standard/9100-qms-requirements-for-aviation-space-and-defense-organizations/); [IAQG certification scheme](https://iaqg.org/certification/); [AF 9100:2026](https://af.org/standards/af-9100/); [AF standards programme](https://af.org/standards/); [IAF association members](https://iaf.nu/en/association-members/).
+
+
 ## 9. Open gates
 
 1. Independent review of context semantics, canonical field order and digest vectors.
