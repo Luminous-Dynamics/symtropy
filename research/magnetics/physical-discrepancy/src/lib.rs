@@ -257,11 +257,13 @@ pub fn bind_interval_ad_residual_jacobian(
             (mapped.artifact_sha256 == input.residual_jacobian_artifact_sha256, "artifact_sha256"),
             (mapped.environment_sha256 == input.residual_jacobian_environment_sha256, "environment_sha256"),
         ];
-        if let Some((_, field)) = scope_matches.iter().find(|(matches, _)| !matches) {
-            return Err(DiscrepancyError::IntervalAdScopeMismatch {
-                component,
-                field,
-            });
+        for (matches, field) in scope_matches {
+            if !matches {
+                return Err(DiscrepancyError::IntervalAdScopeMismatch {
+                    component,
+                    field,
+                });
+            }
         }
 
         for previous in records.iter().take(component) {
