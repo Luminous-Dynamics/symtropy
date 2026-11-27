@@ -14,8 +14,7 @@ use std::fmt;
 pub const DIMACS_MCF_FORMAT_VERSION: &str = "dimacs-mcf-v1";
 pub const DIMACS_MCF_IMPORT_RECEIPT_SCHEMA: &str = "dimacs-mcf-import-receipt-v0.1";
 pub const DIMACS_MCF_PARSER_VERSION: &str = "luminous-dimacs-mcf-import-v0.1";
-pub const DIMACS_MCF_IMPORT_CLAIM_CEILING: &str =
-    "DIMACS MCF syntax, raw-file identity and canonical imported-network identity only; no instance feasibility, solver optimality, external source authority, physical model validity or service claim.";
+pub const DIMACS_MCF_IMPORT_CLAIM_CEILING: &str = "DIMACS MCF syntax, raw-file identity and canonical imported-network identity only; no instance feasibility, solver optimality, external source authority, physical model validity or service claim.";
 pub const DIMACS_MAX_NODES_AND_ARCS: u32 = i32::MAX as u32;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -185,10 +184,23 @@ impl DimacsMcfInstance {
             },
             total_supply_decimal: self.total_supply.to_string(),
             supply_total_is_zero: self.supply_total_is_zero,
-            negative_cost_arc_count: self.arcs.iter().filter(|arc| arc.unit_cost < 0).count() as u32,
-            negative_lower_bound_arc_count: self.arcs.iter().filter(|arc| arc.lower_bound < 0).count() as u32,
-            negative_upper_bound_arc_count: self.arcs.iter().filter(|arc| arc.upper_bound < 0).count() as u32,
-            nonzero_lower_bound_arc_count: self.arcs.iter().filter(|arc| arc.lower_bound != 0).count() as u32,
+            negative_cost_arc_count: self.arcs.iter().filter(|arc| arc.unit_cost < 0).count()
+                as u32,
+            negative_lower_bound_arc_count: self
+                .arcs
+                .iter()
+                .filter(|arc| arc.lower_bound < 0)
+                .count() as u32,
+            negative_upper_bound_arc_count: self
+                .arcs
+                .iter()
+                .filter(|arc| arc.upper_bound < 0)
+                .count() as u32,
+            nonzero_lower_bound_arc_count: self
+                .arcs
+                .iter()
+                .filter(|arc| arc.lower_bound != 0)
+                .count() as u32,
             claim_ceiling: DIMACS_MCF_IMPORT_CLAIM_CEILING.to_string(),
         }
     }
@@ -346,9 +358,8 @@ pub fn verify_dimacs_mcf_import_receipt(
             "DIMACS MCF import claim ceiling mismatch",
         ));
     }
-    let max_input_bytes = usize::try_from(receipt.limits.max_input_bytes).map_err(|_| {
-        DimacsMcfParseError::new(0, "recorded input-byte limit does not fit usize")
-    })?;
+    let max_input_bytes = usize::try_from(receipt.limits.max_input_bytes)
+        .map_err(|_| DimacsMcfParseError::new(0, "recorded input-byte limit does not fit usize"))?;
     let limits = ImportLimits {
         max_nodes: receipt.limits.max_nodes,
         max_arcs: receipt.limits.max_arcs,
