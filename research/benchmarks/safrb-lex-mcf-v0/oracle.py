@@ -105,12 +105,12 @@ def solve_fixed_flow_mcf(
         if lower < 0 or upper < lower or upper > capacity:
             raise ValueError(f"invalid frozen bound for {edge_id}")
 
-        demand[tail] += lower
-        demand[head] -= lower
         residual_capacity = upper - lower
         unit_cost = int(stage_costs.get(edge_id, 0))
 
         if implementation == "capacity_scaling":
+            demand[tail] += lower
+            demand[head] -= lower
             graph.add_edge(
                 tail,
                 head,
@@ -119,16 +119,27 @@ def solve_fixed_flow_mcf(
                 weight=unit_cost,
             )
         else:
-            if graph.has_edge(tail, head):
-                raise ValueError(
-                    "network_simplex experiment requires an identity-preserving "
-                    "simple directed graph; parallel arcs must use a separate "
-                    "edge-node transformation lane"
-                )
+            # Preserve every original arc identity in NetworkX's simple
+            # DiGraph by routing it through a unique synthetic edge node.
+            # The lower-bound baseline is carried as supply at that node;
+            # the priced node-to-head arc therefore reports the full logical
+            # arc flow, including its lower bound.
+            edge_node = f"__scfk_arc__{edge_id}"
+            while edge_node in graph:
+                edge_node += "_"
+            graph.add_node(edge_node)
+            demand[tail] += lower
+            demand[edge_node] = -lower
             graph.add_edge(
                 tail,
-                head,
+                edge_node,
                 capacity=residual_capacity,
+                weight=0,
+            )
+            graph.add_edge(
+                edge_node,
+                head,
+                capacity=capacity,
                 weight=unit_cost,
             )
 
@@ -148,9 +159,8 @@ def solve_fixed_flow_mcf(
 
     _, flow_dict = nx.network_simplex(graph)
     return {
-        str(arc["id"]): int(frozen_lower_bounds.get(str(arc["id"]), 0))
-        + int(
-            flow_dict[str(arc["tail"])].get(str(arc["head"]), 0)
+        str(arc["id"]): int(
+            flow_dict[f"__scfk_arc__{arc['id']}"].get(str(arc["head"]), 0)
         )
         for arc in arcs
     }
@@ -288,6 +298,34 @@ def make_instance(seed: int) -> Tuple[List[Node], List[Arc]]:
     return nodes, arcs
 
 
+def make_parallel_instance(seed: int) -> Tuple[List[Node], List[Arc]]:
+    """Create a bounded network with parallel source arcs of distinct identity."""
+    rng = random.Random(0xA12C0000 + seed)
+    nodes = ["s", "a", "p0", "p1", "t"]
+    topology = [
+        ("parallel-0", "s", "a"),
+        ("parallel-1", "s", "a"),
+        ("e0", "a", "p0"),
+        ("e1", "a", "p1"),
+        ("d0", "p0", "t"),
+        ("d1", "p1", "t"),
+    ]
+    arcs: List[Arc] = []
+    for edge_id, tail, head in topology:
+        capacity = rng.randint(1, 2)
+        unit_cost = 0 if edge_id.startswith("d") else rng.randint(0, 7)
+        arcs.append(
+            {
+                "id": edge_id,
+                "tail": tail,
+                "head": head,
+                "capacity": capacity,
+                "unit_cost": unit_cost,
+            }
+        )
+    return nodes, arcs
+
+
 def percentile(values: Sequence[float], quantile: float) -> float:
     ordered = sorted(values)
     index = min(len(ordered) - 1, int((len(ordered) - 1) * quantile))
@@ -295,7 +333,8 @@ def percentile(values: Sequence[float], quantile: float) -> float:
 
 
 def main() -> None:
-    seeds = 100
+    seeds = 1000
+    parallel_seeds = 100
     source, sink = "s", "t"
     service_edges = ("d0", "d1")
     implementations = ("capacity_scaling", "network_simplex")
@@ -324,8 +363,29 @@ def main() -> None:
                     f"expected={expected} observed={observed}"
                 )
 
+    for seed in range(parallel_seeds):
+        nodes, arcs = make_parallel_instance(seed)
+        expected, _ = exhaustive_oracle(
+            nodes, arcs, source, sink, service_edges
+        )
+        for implementation in implementations:
+            observed = sequential_lexicographic_mcf(
+                nodes,
+                arcs,
+                source,
+                sink,
+                service_edges,
+                implementation,
+            )
+            if observed != expected:
+                raise AssertionError(
+                    f"parallel_seed={seed} implementation={implementation} "
+                    f"expected={expected} observed={observed}"
+                )
+
     print(f"networkx_version={nx.__version__}")
-    print(f"independent_tiny_instances={seeds}")
+    print(f"independent_seeded_instances={seeds}")
+    print(f"parallel_arc_identity_instances={parallel_seeds}")
     for implementation, durations in timings.items():
         print(
             f"{implementation}: parity={seeds}/{seeds}, "
@@ -335,6 +395,8 @@ def main() -> None:
         )
     print(
         "scope=6_nodes,8_arcs,2_priority_tiers,integer_capacity_1_to_2,"
+        "1000_seeded_instances,100_parallel_arc_instances,"
+        "identity_preserving_network_simplex_edge_nodes,"
         "exhaustive_integral_flow_oracle,sequential_lower_bound_mcf"
     )
     print(
