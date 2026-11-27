@@ -450,6 +450,12 @@ impl From<ContactLifecycleVerificationError> for ContactLifecycleReceiptVerifica
     }
 }
 
+impl From<ContactLifecycleError> for ContactLifecycleReceiptVerificationError {
+    fn from(value: ContactLifecycleError) -> Self {
+        Self::Plan(ContactLifecycleVerificationError::Input(value))
+    }
+}
+
 /// Replay the pair/contact transition from immutable before/after snapshots.
 ///
 /// The verifier derives additions/removals from pair-relation set differences
@@ -1115,7 +1121,7 @@ mod tests {
         let (mut receipt, _, _) = receipt_fixture(false);
         let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
         receipt.current_global.solver_config_sha256 = [42; 32];
-        let old_stamp = receipt.previous_contact_stamps[&pair];
+        let old_stamp = receipt.previous_contact_stamps[&pair].clone();
         let committed = old_stamp
             .commit_transition(
                 receipt.current_global,
