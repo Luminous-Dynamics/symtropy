@@ -293,7 +293,9 @@ fn thirty_frozen_scenarios_match_the_separate_reference_or_reject() {
         let shocks = fields[2];
         let availability = fields[3];
         let deadline = fields[4].parse::<u64>().expect("deadline is numeric");
-        let units = fields[5].parse::<u64>().expect("expected units are numeric");
+        let units = fields[5]
+            .parse::<u64>()
+            .expect("expected units are numeric");
         let inspection = fields[6];
         let receiver = fields[7];
         let expected_result = fields[8];
