@@ -87,6 +87,8 @@ pub struct PoseScore {
     pub frame_id: String,
     pub disposition: ScoreDisposition,
     pub reason_codes: Vec<String>,
+    pub translation_error_l2_um: Option<u64>,
+    pub orientation_error_urad: Option<u64>,
     pub regions: Vec<RegionScore>,
 }
 
@@ -115,6 +117,10 @@ pub struct GroupScore {
     pub abstained_count: u64,
     pub missing_count: u64,
     pub invalid_count: u64,
+    pub sum_translation_error_l2_um: u128,
+    pub max_translation_error_l2_um: u64,
+    pub sum_orientation_error_urad: u128,
+    pub max_orientation_error_urad: u64,
     pub levels: Vec<LevelAggregate>,
 }
 
@@ -193,8 +199,42 @@ fn base_score(input: &PredictionInput, disposition: ScoreDisposition, reason: &s
         } else {
             vec![reason.to_owned()]
         },
+        translation_error_l2_um: None,
+        orientation_error_urad: None,
         regions: Vec::new(),
     }
+}
+
+fn translation_error_l2_upper_um(input: &PredictionInput) -> Option<u64> {
+    let mut squared_sum = 0_u128;
+    for (&predicted, &truth) in input
+        .predicted_translation_um
+        .iter()
+        .zip(input.truth_translation_um.iter())
+    {
+        let delta = i128::from(predicted).checked_sub(i128::from(truth))?;
+        let magnitude = u128::try_from(delta.abs()).ok()?;
+        let squared = magnitude.checked_mul(magnitude)?;
+        squared_sum = squared_sum.checked_add(squared)?;
+    }
+
+    let mut low = 0_u128;
+    let mut high = 1_u128 << 64;
+    while low + 1 < high {
+        let middle = low + (high - low) / 2;
+        if middle != 0 && middle <= squared_sum / middle {
+            low = middle;
+        } else {
+            high = middle;
+        }
+    }
+    let square = low.checked_mul(low)?;
+    let upper = if square == squared_sum {
+        low
+    } else {
+        low.checked_add(1)?
+    };
+    u64::try_from(upper).ok()
 }
 
 fn validate_identity(input: &PredictionInput) -> Option<&'static str> {
@@ -228,7 +268,9 @@ fn validate_identity(input: &PredictionInput) -> Option<&'static str> {
     None
 }
 
-fn score_accepted(input: &PredictionInput) -> Result<Vec<RegionScore>, &'static str> {
+fn score_accepted(
+    input: &PredictionInput,
+) -> Result<(Vec<RegionScore>, u64, u64), &'static str> {
     if let Some(reason) = validate_identity(input) {
         return Err(reason);
     }
@@ -241,6 +283,8 @@ fn score_accepted(input: &PredictionInput) -> Result<Vec<RegionScore>, &'static 
         .ok_or("TRUTH_QUATERNION_INVALID")?;
     let orientation_error = orientation_error_urad(predicted_q, truth_q)
         .ok_or("ORIENTATION_ERROR_UNREPRESENTABLE")?;
+    let translation_error = translation_error_l2_upper_um(input)
+        .ok_or("TRANSLATION_ERROR_UNREPRESENTABLE")?;
 
     let mut scores = Vec::with_capacity(5);
     let mut previous: Option<&PoseRegion> = None;
@@ -315,7 +359,7 @@ fn score_accepted(input: &PredictionInput) -> Result<Vec<RegionScore>, &'static 
         previous = Some(region);
     }
 
-    Ok(scores)
+    Ok((scores, translation_error, orientation_error))
 }
 
 pub fn evaluate(input: &PredictionInput) -> PoseScore {
@@ -331,8 +375,10 @@ pub fn evaluate(input: &PredictionInput) -> PoseScore {
     }
 
     match score_accepted(input) {
-        Ok(regions) => {
+        Ok((regions, translation_error, orientation_error)) => {
             let mut score = base_score(input, ScoreDisposition::Scored, "");
+            score.translation_error_l2_um = Some(translation_error);
+            score.orientation_error_urad = Some(orientation_error);
             score.regions = regions;
             score
         }
@@ -448,6 +494,22 @@ pub fn evaluate_manifest(inputs: &[PredictionInput]) -> Scorecard {
     }
 
     let groups = grouped.into_iter().map(|(key, rows)| {
+        let mut sum_translation_error_l2_um = 0_u128;
+        let mut max_translation_error_l2_um = 0_u64;
+        let mut sum_orientation_error_urad = 0_u128;
+        let mut max_orientation_error_urad = 0_u64;
+        for row in &rows {
+            if row.disposition == ScoreDisposition::Scored {
+                if let Some(value) = row.translation_error_l2_um {
+                    sum_translation_error_l2_um += u128::from(value);
+                    max_translation_error_l2_um = max_translation_error_l2_um.max(value);
+                }
+                if let Some(value) = row.orientation_error_urad {
+                    sum_orientation_error_urad += u128::from(value);
+                    max_orientation_error_urad = max_orientation_error_urad.max(value);
+                }
+            }
+        }
         GroupScore {
             target_id: key.target_id,
             crop_stratum: key.crop_stratum,
@@ -458,6 +520,10 @@ pub fn evaluate_manifest(inputs: &[PredictionInput]) -> Scorecard {
             abstained_count: rows.iter().filter(|row| row.disposition == ScoreDisposition::Abstained).count() as u64,
             missing_count: rows.iter().filter(|row| row.disposition == ScoreDisposition::Missing).count() as u64,
             invalid_count: rows.iter().filter(|row| !matches!(row.disposition, ScoreDisposition::Scored | ScoreDisposition::Abstained | ScoreDisposition::Missing)).count() as u64,
+            sum_translation_error_l2_um,
+            max_translation_error_l2_um,
+            sum_orientation_error_urad,
+            max_orientation_error_urad,
             levels: aggregate(&rows),
         }
     }).collect();
