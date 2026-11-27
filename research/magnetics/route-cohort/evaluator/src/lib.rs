@@ -273,6 +273,9 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
             .entry(build.build_id.as_str())
             .or_insert(0usize) += 1;
     }
+    if build_id_counts.values().any(|count| *count > 1) {
+        blockers.push(Blocker::DuplicateBuildId);
+    }
     counts.initiated_builds = cohort.builds.len() as u64;
 
     let mut used_valid_lot_ids = BTreeSet::new();
@@ -938,7 +941,8 @@ mod tests {
         let result = evaluate_cohort(&cohort);
         assert!(result.blockers.contains(&Blocker::DuplicateSpecimenId));
         assert_eq!(result.summary.counts.initiated_specimens, 3);
-        assert_eq!(result.summary.counts.missing_specimen_outcomes, 1);
+        assert_eq!(result.summary.counts.missing_specimen_outcomes, 2);
+        assert_eq!(result.summary.counts.first_pass_qualified, 0);
     }
 
     #[test]
