@@ -35,6 +35,7 @@ pub struct DecisionDependency {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DecisionSupportReceipt {
     pub decision_id: String,
+    pub decision_support_receipt_sha256: String,
     pub decision_snapshot_sha256: String,
     pub possible_world_support_sha256: String,
     pub counterfactual_policy_sha256: String,
@@ -69,6 +70,7 @@ pub enum ChangeKind {
 pub struct DecisionChange {
     pub event_id: String,
     pub event_sha256: String,
+    pub impact_receipt_sha256: String,
     pub effective_event_sequence: u64,
     pub ingested_sequence: u64,
     pub kind: ChangeKind,
@@ -164,6 +166,10 @@ fn validate_receipt(receipt: &DecisionSupportReceipt) -> Result<(), InvalidReaso
         return Err(InvalidReason::EmptyDecisionId);
     }
     for (name, digest) in [
+        (
+            "decision_support_receipt_sha256",
+            &receipt.decision_support_receipt_sha256,
+        ),
         ("decision_snapshot_sha256", &receipt.decision_snapshot_sha256),
         (
             "possible_world_support_sha256",
@@ -314,6 +320,11 @@ pub fn revalidate_before_effect(
                 reason: InvalidReason::DigestInvalid("change.event_sha256"),
             };
         }
+        if !valid_sha256(&change.impact_receipt_sha256) {
+            return DecisionRevalidation::Invalid {
+                reason: InvalidReason::DigestInvalid("change.impact_receipt_sha256"),
+            };
+        }
         if !valid_sha256(&change.resulting_revision_sha256) {
             return DecisionRevalidation::Invalid {
                 reason: InvalidReason::DigestInvalid("change.resulting_revision_sha256"),
@@ -428,6 +439,7 @@ mod tests {
     fn receipt() -> DecisionSupportReceipt {
         DecisionSupportReceipt {
             decision_id: "decision-7".to_owned(),
+            decision_support_receipt_sha256: digest('0'),
             decision_snapshot_sha256: digest('a'),
             possible_world_support_sha256: digest('b'),
             counterfactual_policy_sha256: digest('d'),
@@ -470,6 +482,7 @@ mod tests {
         DecisionChange {
             event_id: event_id.to_owned(),
             event_sha256: digest('5'),
+            impact_receipt_sha256: digest('7'),
             effective_event_sequence: effective,
             ingested_sequence: ingested,
             kind,
