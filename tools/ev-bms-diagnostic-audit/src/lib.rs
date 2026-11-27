@@ -1,5 +1,5 @@
-pub mod generated_reference;
 pub mod dataset_manifest;
+pub mod generated_reference;
 
 use jsonschema::{Validator, draft202012};
 use serde::{Deserialize, Serialize};
