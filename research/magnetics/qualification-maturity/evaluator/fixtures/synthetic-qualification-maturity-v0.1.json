@@ -15,6 +15,9 @@
       "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
     "component_id": "COMP-001",
+    "qualification_specimen_id": "SPEC-001",
+    "qualification_material_lot_id": "LOT-001",
+    "qualification_build_id": "BUILD-001",
     "pbf_lb_equipment_qualification_required": false,
     "replication_policy": {
       "minimum_independent_builds": 3,
