@@ -78,7 +78,11 @@ fn common_cause_identity_is_preserved_across_distinct_services_and_scenarios() {
         .count();
     let calibration_users = rows
         .iter()
-        .filter(|row| row.dependencies.iter().any(|dependency| dependency == "LAB:CAL-LAB-01"))
+        .filter(|row| {
+            row.dependencies
+                .iter()
+                .any(|dependency| dependency == "LAB:CAL-LAB-01")
+        })
         .count();
     let workforce_users = rows
         .iter()
