@@ -515,16 +515,15 @@ pub struct ShapeCoverageBackendRow {
     /// negatives and the exact shape-contact-to-AABB oracle gate is zero-FN.
     pub derived_shape_contact_recall: Option<f64>,
     pub candidate_amplification: Option<f64>,
-    pub p50_frame_ns: u128,
-    pub p95_frame_ns: u128,
-    pub p99_frame_ns: u128,
+    /// Single cold-frame timing; not a p50/p95/p99 distribution.
+    pub cold_frame_ns: u128,
     pub seed: u64,
 }
 
 impl ShapeCoverageBackendRow {
     #[must_use]
     pub const fn csv_header() -> &'static str {
-        "dimension,backend,requested_obb_pairs,exact_shape_contacts,backend_candidate_pairs,backend_aabb_false_negatives,derived_shape_contact_recall,candidate_amplification,p50_frame_ns,p95_frame_ns,p99_frame_ns,seed"
+        "dimension,backend,requested_obb_pairs,exact_shape_contacts,backend_candidate_pairs,backend_aabb_false_negatives,derived_shape_contact_recall,candidate_amplification,cold_frame_ns,seed"
     }
 
     #[must_use]
@@ -536,7 +535,7 @@ impl ShapeCoverageBackendRow {
             .candidate_amplification
             .map_or_else(String::new, |value| format!("{value:.6}"));
         format!(
-            "{},{},{},{},{},{},{},{},{},{},{},{}",
+            "{},{},{},{},{},{},{},{},{},{}",
             self.dimension,
             self.backend,
             self.requested_obb_pairs,
@@ -545,9 +544,7 @@ impl ShapeCoverageBackendRow {
             self.backend_aabb_false_negatives,
             recall,
             amplification,
-            self.p50_frame_ns,
-            self.p95_frame_ns,
-            self.p99_frame_ns,
+            self.cold_frame_ns,
             self.seed
         )
     }
@@ -730,9 +727,7 @@ fn run_backend_coverage<const D: usize>(
             backend_aabb_false_negatives: result.false_negatives,
             derived_shape_contact_recall: recall,
             candidate_amplification: amplification,
-            p50_frame_ns: result.p50_frame_ns,
-            p95_frame_ns: result.p95_frame_ns,
-            p99_frame_ns: result.p99_frame_ns,
+            cold_frame_ns: result.p50_frame_ns,
             seed,
         });
     }
