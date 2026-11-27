@@ -21,7 +21,7 @@ For a two-channel sensor:
 
 The matrix coefficient unit is `output_unit / field_unit`. Offset and response residual units match the output unit. The first implementation requires dimensionless phasor output. The intervals are component-wise; correlations are not encoded, so overestimation is possible.
 
-The sensor calibration, transfer model, artifact, environment, frontend and exact upstream physical scope are identity-bound. The external evidence behind those identities is not cryptographically authenticated by this crate.
+The sensor calibration is required to carry the Calibration evidence role, while the evaluated physical field and independent reference retain their own roles. A frozen calibration may therefore score a sealed blind-holdout field/reference pair without collapsing their evidence classes. Adaptive-exploration or blind-holdout evidence cannot be presented as the calibration source. The transfer model, artifact, environment, frontend and exact upstream physical scope are identity-bound. The external evidence behind those identities is not cryptographically authenticated by this crate.
 
 ## Functional margins
 
@@ -49,7 +49,7 @@ The result is conditional on the correctness of the physical field, sensor trans
 
 ## Tests and benchmark targets
 
-The initial test suite covers identity transfer, independent phase/amplitude failure, a branch-cut challenge, a potentially zero measured phasor, nonzero reference, uncertainty widening, exact cell scope, calibration digest, evidence-role and unit controls.
+The initial test suite covers identity transfer, independent phase/amplitude failure, a branch-cut challenge, a potentially zero measured phasor, nonzero reference, uncertainty widening, exact cell scope, calibration digest, independent calibration/holdout role handling and unit controls.
 
 Research targets:
 - zero false-safe classifications on preregistered analytic and physical holdouts;
