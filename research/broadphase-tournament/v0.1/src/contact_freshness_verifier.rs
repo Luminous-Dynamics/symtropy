@@ -1113,21 +1113,30 @@ mod tests {
     #[test]
     fn receipt_replay_requires_revalidation_for_global_solver_change() {
         let (mut receipt, _, _) = receipt_fixture(false);
+        let pair = ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair");
         receipt.current_global.solver_config_sha256 = [42; 32];
-        let plan = super::super::contact_freshness::plan_contact_lifecycle(
-            &PairDeltaFrame::default(),
-            &receipt.previous_contact_stamps,
-            receipt.current_global,
-            &receipt.current_endpoints,
-        )
-        .expect("no revalidation plan is valid only for empty old/new relations");
-        receipt.producer_plan = plan;
+        let old_stamp = receipt.previous_contact_stamps[&pair];
+        let committed = old_stamp
+            .commit_transition(
+                receipt.current_global,
+                endpoint(1),
+                endpoint(2),
+                false,
+                true,
+                false,
+                false,
+            )
+            .expect("warm-start reset committed under new solver config");
+        receipt.post_contact_stamps = BTreeMap::from([(pair, committed)]);
+        receipt.producer_plan.actions.clear();
+
         assert_eq!(
             verify_contact_lifecycle_receipt(&receipt),
-            Err(ContactLifecycleReceiptVerificationError::Receipt(
-                ContactLifecycleReceiptError::MissingCommittedContactStamp(
-                    ProxyPair::new(ProxyId(1), ProxyId(2)).expect("pair")
-                )
+            Err(ContactLifecycleReceiptVerificationError::Plan(
+                ContactLifecycleVerificationError::ActionCountMismatch {
+                    expected: 1,
+                    actual: 0,
+                }
             ))
         );
     }
