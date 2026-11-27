@@ -44,3 +44,5 @@ Replication coverage counts only unique build IDs with valid build/process/genea
 
 
 Replication eligibility is stricter than record presence: only unique build IDs with valid process/recipe/genealogy and a valid linked lot count toward the independent-build floor; only distinct material lots used by those builds count. Unused lots, duplicated build IDs and invalid lineage cannot improve replication coverage. Duplicate qualification, rework or scrap receipt IDs invalidate the cohort.
+
+Replication eligibility is stricter than record presence: only unique build IDs with valid process, recipe and genealogy evidence and a valid linked feedstock lot count toward the build floor; only distinct lots actually used by such valid builds count toward the lot floor. Failed-before-inspection builds count as attempted replications when their genealogy is valid. Unused lots, duplicate build IDs and invalid lineage cannot improve replication coverage. Duplicate qualification, rework and scrap receipt IDs invalidate cohort structure.
