@@ -707,6 +707,20 @@ mod tests {
     }
 
     #[test]
+    fn unauthenticated_frame_source_never_yields_candidate_region() {
+        let mut value = input();
+        value.frame_source_bytes_authenticated = false;
+        let result = evaluate(&value);
+        assert_eq!(
+            result.disposition,
+            AdmissionDisposition::AbstainUncalibrated
+        );
+        assert!(!result.upstream_source_bytes_authenticated);
+        assert!(!result.source_authentication_verified_here);
+        assert!(!result.source_bytes_authenticated);
+    }
+
+    #[test]
     fn direct_regression_does_not_require_correspondences() {
         let mut value = input();
         value.support_mode = "DIRECT_REGRESSION".to_owned();
