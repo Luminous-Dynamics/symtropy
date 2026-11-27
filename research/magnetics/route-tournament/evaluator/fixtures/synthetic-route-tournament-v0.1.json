@@ -11,9 +11,26 @@
       "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
     },
     "metrics": [
-      { "metric_id": "field_error", "unit": "mT", "required_role": "PhysicalObservation", "objective": "Minimize", "hard_max": 30.0 },
-      { "metric_id": "remanence", "unit": "T", "required_role": "MaterialCharacterization", "objective": "Maximize", "hard_min": 0.25 },
-      { "metric_id": "accepted_part_cost", "unit": "USD/part", "required_role": "ProcessRecord", "objective": "Minimize" }
+      {
+        "metric_id": "field_error",
+        "unit": "mT",
+        "required_role": "PhysicalObservation",
+        "objective": "Minimize",
+        "hard_max": 30
+      },
+      {
+        "metric_id": "remanence",
+        "unit": "T",
+        "required_role": "MaterialCharacterization",
+        "objective": "Maximize",
+        "hard_min": 0.25
+      },
+      {
+        "metric_id": "accepted_part_cost",
+        "unit": "USD/part",
+        "required_role": "ProcessRecord",
+        "objective": "Minimize"
+      }
     ]
   },
   "candidates": [
@@ -50,41 +67,179 @@
           "process_genealogy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
           "material_state_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
           "post_magnetization_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
-          "scope": { "application_id": "ENCODER-80MM-001", "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
-          "value": 18.0, "uncertainty_radius": 0.5, "unit": "mT", "role": "PhysicalObservation", "method_id": "FIELD-MAP-REF-v1",
-          "calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "reference_chain_id": "REFERENCE-LAB-001"
+          "scope": {
+            "application_id": "ENCODER-80MM-001",
+            "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "value": 18,
+          "uncertainty_radius": 0.5,
+          "unit": "mT",
+          "role": "PhysicalObservation",
+          "method_id": "FIELD-MAP-REF-v1",
+          "calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "reference_chain_id": "REFERENCE-LAB-001"
         },
         {
           "record_id": "OBS-SPEC-MEX-001-remanence",
           "record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-          "metric_id": "remanence", "specimen_id": "SPEC-MEX-001", "material_lot_id": "LOT-MEX-001", "build_run_id": "BUILD-MEX-001",
+          "metric_id": "remanence",
+          "specimen_id": "SPEC-MEX-001",
+          "material_lot_id": "LOT-MEX-001",
+          "build_run_id": "BUILD-MEX-001",
           "as_built_geometry_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "geometry_inspection_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
           "process_genealogy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
           "material_state_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
           "post_magnetization_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
-          "scope": { "application_id": "ENCODER-80MM-001", "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
-          "value": 0.34, "uncertainty_radius": 0.01, "unit": "T", "role": "MaterialCharacterization", "method_id": "HYSTERESIS-v1",
-          "calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "reference_chain_id": "REFERENCE-LAB-001"
+          "scope": {
+            "application_id": "ENCODER-80MM-001",
+            "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "value": 0.34,
+          "uncertainty_radius": 0.01,
+          "unit": "T",
+          "role": "MaterialCharacterization",
+          "method_id": "HYSTERESIS-v1",
+          "calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "reference_chain_id": "REFERENCE-LAB-001"
         },
         {
           "record_id": "OBS-SPEC-MEX-001-accepted_part_cost",
           "record_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-          "metric_id": "accepted_part_cost", "specimen_id": "SPEC-MEX-001", "material_lot_id": "LOT-MEX-001", "build_run_id": "BUILD-MEX-001",
+          "metric_id": "accepted_part_cost",
+          "specimen_id": "SPEC-MEX-001",
+          "material_lot_id": "LOT-MEX-001",
+          "build_run_id": "BUILD-MEX-001",
           "as_built_geometry_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "geometry_inspection_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
           "process_genealogy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
           "material_state_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
           "post_magnetization_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
-          "scope": { "application_id": "ENCODER-80MM-001", "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" },
-          "value": 5.0, "uncertainty_radius": 0.1, "unit": "USD/part", "role": "ProcessRecord", "method_id": "COST-ROLLUP-v1"
+          "scope": {
+            "application_id": "ENCODER-80MM-001",
+            "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "value": 5,
+          "uncertainty_radius": 0.1,
+          "unit": "USD/part",
+          "role": "ProcessRecord",
+          "method_id": "COST-ROLLUP-v1"
+        }
+      ]
+    },
+    {
+      "candidate_id": "LPBF-001",
+      "route_family": "LpbfSlm",
+      "specimen_id": "SPEC-LPBF-001",
+      "material_lot_id": "LOT-LPBF-001",
+      "build_run_id": "BUILD-LPBF-001",
+      "nominal_geometry_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "as_built_geometry_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "geometry_inspection_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "inspected_geometry_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "process_genealogy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "material_state_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "post_magnetization_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "scope": {
+        "application_id": "ENCODER-80MM-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "method_scope_supported": true,
+      "observations": [
+        {
+          "record_id": "OBS-SPEC-LPBF-001-field_error",
+          "record_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "metric_id": "field_error",
+          "specimen_id": "SPEC-LPBF-001",
+          "material_lot_id": "LOT-LPBF-001",
+          "build_run_id": "BUILD-LPBF-001",
+          "as_built_geometry_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "geometry_inspection_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "process_genealogy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "material_state_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "post_magnetization_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": {
+            "application_id": "ENCODER-80MM-001",
+            "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "value": 22,
+          "uncertainty_radius": 0.5,
+          "unit": "mT",
+          "role": "PhysicalObservation",
+          "method_id": "FIELD-MAP-REF-v1",
+          "calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "reference_chain_id": "REFERENCE-LAB-001"
+        },
+        {
+          "record_id": "OBS-SPEC-LPBF-001-remanence",
+          "record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "metric_id": "remanence",
+          "specimen_id": "SPEC-LPBF-001",
+          "material_lot_id": "LOT-LPBF-001",
+          "build_run_id": "BUILD-LPBF-001",
+          "as_built_geometry_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "geometry_inspection_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "process_genealogy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "material_state_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "post_magnetization_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": {
+            "application_id": "ENCODER-80MM-001",
+            "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "value": 0.3,
+          "uncertainty_radius": 0.01,
+          "unit": "T",
+          "role": "MaterialCharacterization",
+          "method_id": "HYSTERESIS-v1",
+          "calibration_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "reference_chain_id": "REFERENCE-LAB-001"
+        },
+        {
+          "record_id": "OBS-SPEC-LPBF-001-accepted_part_cost",
+          "record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "metric_id": "accepted_part_cost",
+          "specimen_id": "SPEC-LPBF-001",
+          "material_lot_id": "LOT-LPBF-001",
+          "build_run_id": "BUILD-LPBF-001",
+          "as_built_geometry_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "geometry_inspection_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "process_genealogy_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "material_state_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "post_magnetization_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "scope": {
+            "application_id": "ENCODER-80MM-001",
+            "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "value": 8,
+          "uncertainty_radius": 0.1,
+          "unit": "USD/part",
+          "role": "ProcessRecord",
+          "method_id": "COST-ROLLUP-v1"
         }
       ]
     }
   ],
   "expected_tournament": {
-    "nondominated_candidate_ids": ["MEX-001"],
-    "dominated_candidate_ids": [],
+    "nondominated_candidate_ids": [
+      "MEX-001"
+    ],
+    "dominated_candidate_ids": [
+      "LPBF-001"
+    ],
     "incomparable_pairs": []
   }
 }
