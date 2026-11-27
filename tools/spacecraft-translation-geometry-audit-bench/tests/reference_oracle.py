@@ -90,7 +90,7 @@ def component_count(mask: list[bool], width: int, height: int) -> int:
 
 
 def score_mask(row: dict[str, str], width: int, height: int) -> dict[str, object]:
-    floor = int(row["mask_iou_floor_bps"])
+    floor = int(row["iou_floor_bps"])
     if floor > 10000:
         raise ValueError("mask IoU floor exceeds 10000 bps")
     count = width * height
