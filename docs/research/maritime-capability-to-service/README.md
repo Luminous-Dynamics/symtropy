@@ -171,3 +171,8 @@ The frozen #7554 service receipt is also consumed by `tests/canonical_receiver_s
 **Qualification status:** the base #7554 owner implementation passed its earlier exact-head workflow. The new Mycelix composition integration is in #7557's branch and its exact-head run #32 is queued; no pass is claimed for that new join until formatting, tests, strict Clippy and receipt generation complete.
 
 A passing fixture is evidence of this model's arithmetic and declared topology only. It is not a physical or industry qualification.
+
+
+## South African empirical source admission
+
+The source audit in [south-african-empirical-source-audit-v0.1.md](south-african-empirical-source-audit-v0.1.md) is tracked in [MCSC-SA-EMPIRICAL-EVIDENCE-001 #7836](https://github.com/Luminous-Dynamics/symtropy/issues/7836). It separates PRSA WEGO, Transnet annual activity and UNCTAD international aggregates from event-level operational evidence. It also records concrete KITE admission blockers found in the candidate Open AIS Historical Dataset pipeline. No South African event-level replay corpus is claimed yet.
