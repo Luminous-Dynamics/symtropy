@@ -387,10 +387,12 @@ impl ClaimSpecificationV0_1 {
         ) {
             (true, Some(value)) if (1..1_000_000).contains(&value) => {}
             (true, None) => {
-                reasons.insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING".to_owned());
+                reasons
+                    .insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_MISSING".to_owned());
             }
             (true, Some(_)) => {
-                reasons.insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_INVALID".to_owned());
+                reasons
+                    .insert("CLAIM_SPECIFICATION_POPULATION_CONFIDENCE_LEVEL_INVALID".to_owned());
             }
             (false, None) => {}
             (false, Some(_)) => {
@@ -411,10 +413,12 @@ impl ClaimSpecificationV0_1 {
         ) {
             (true, Some(value)) if (1..1_000_000).contains(&value) => {}
             (true, None) => {
-                reasons.insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING".to_owned());
+                reasons
+                    .insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_MISSING".to_owned());
             }
             (true, Some(_)) => {
-                reasons.insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_INVALID".to_owned());
+                reasons
+                    .insert("CLAIM_SPECIFICATION_UNCERTAINTY_CONFIDENCE_LEVEL_INVALID".to_owned());
             }
             (false, None) => {}
             (false, Some(_)) => {
@@ -618,12 +622,9 @@ mod tests {
             malformed.assess().disposition,
             ClaimSpecificationDispositionV0_1::Rejected
         );
-        assert!(
-            malformed
-                .assess()
-                .reason_codes
-                .contains(&"CLAIM_SPECIFICATION_ACCEPTANCE_AUTHORITY_ROLE_REF_NONCANONICAL".to_owned())
-        );
+        assert!(malformed.assess().reason_codes.contains(
+            &"CLAIM_SPECIFICATION_ACCEPTANCE_AUTHORITY_ROLE_REF_NONCANONICAL".to_owned()
+        ));
     }
 
     #[test]
