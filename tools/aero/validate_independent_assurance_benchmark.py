@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[2]
 AVIATION = ROOT / "docs" / "research" / "aviation"
@@ -26,7 +26,7 @@ def load_json(path: Path) -> Any:
 
 def validate_instance(instance: Any, schema: Any, label: str) -> None:
     Draft202012Validator.check_schema(schema)
-    validator = Draft202012Validator(schema)
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
     errors = sorted(
         validator.iter_errors(instance),
         key=lambda error: (list(map(str, error.absolute_path)), error.message),
@@ -116,6 +116,87 @@ def main() -> int:
         )
     if not any(case["case_class"] == "positive_control" for case in cases):
         raise SystemExit("FAIL: challenge corpus has no positive control")
+
+    state_schema_path = AVIATION / "schemas" / "aero_assurance_state_vector_v0_1.schema.json"
+    state_vectors_path = AVIATION / "examples" / "aero_assurance_state_vectors_v0_1.json"
+    state_schema = load_json(state_schema_path)
+    state_vectors = load_json(state_vectors_path)
+    validate_instance(state_vectors, state_schema, "assurance state vectors")
+
+    state_cases = state_vectors["cases"]
+    if len(state_cases) != 10:
+        raise SystemExit(f"FAIL: expected 10 state-vector cases, found {len(state_cases)}")
+    state_case_ids = [case["case_id"] for case in state_cases]
+    require_unique(state_case_ids, "state-vector case IDs")
+    required_projections = {
+        "REJECTED", "OUT_OF_SCOPE", "NOT_KNOWN_AT_SNAPSHOT",
+        "UNVERIFIED", "INCOMPLETE", "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+    }
+    projections = {case["expected_disposition"] for case in state_cases}
+    if not required_projections.issubset(projections):
+        raise SystemExit(
+            "FAIL: state-vector examples do not cover all disposition projections"
+        )
+
+    for case in state_cases:
+        obligations = case["obligations"]
+        obligation_ids = [obligation["obligation_id"] for obligation in obligations]
+        require_unique(obligation_ids, f"obligation IDs in {case['case_id']}")
+        if not set(case["expected_blocking_obligation_ids"]).issubset(set(obligation_ids)):
+            raise SystemExit(f"FAIL: unknown blocking obligation in {case['case_id']}")
+        mandatory = [item for item in obligations if item["mandatory"]]
+        disposition = case["expected_disposition"]
+        if disposition == "REVIEWABLE_FOR_INDEPENDENT_DECISION":
+            for item in mandatory:
+                if (
+                    item["proposition_evidence"] != "SUPPORTED_ONLY"
+                    or item["applicability"] != "IN_SCOPE"
+                    or item["authority"] not in {"AUTHORIZED", "NOT_REQUIRED"}
+                    or item["temporal_knowledge"] not in {"KNOWN_AT_CUTOFF", "NOT_TEMPORAL"}
+                    or item["observer_coverage"] not in {"COMPLETE", "NOT_APPLICABLE"}
+                    or item["verification"] != "VERIFIED"
+                ):
+                    raise SystemExit(
+                        f"FAIL: reviewable fixture has a blocking axis in {case['case_id']}"
+                    )
+            if any(
+                item["status"] == "UNRESOLVED" and item["materiality"] == "BLOCKING"
+                for item in case["defeaters"]
+            ):
+                raise SystemExit(f"FAIL: reviewable fixture has unresolved blocking defeater in {case['case_id']}")
+        elif disposition == "REJECTED":
+            if not any(
+                (item["hard_gate"] and (
+                    (item["proposition_evidence"] == "REFUTED_ONLY"
+                     and item["verification"] == "VERIFIED")
+                    or item["verification"] == "FAILED"
+                ))
+                or (item["authority"] == "DENIED" and item["verification"] == "VERIFIED")
+                for item in mandatory
+            ):
+                raise SystemExit(f"FAIL: rejected fixture has no verified hard blocker in {case['case_id']}")
+        elif disposition == "OUT_OF_SCOPE":
+            if not any(item["applicability"] == "OUT_OF_SCOPE" for item in mandatory):
+                raise SystemExit(f"FAIL: out-of-scope fixture has no out-of-scope obligation in {case['case_id']}")
+        elif disposition == "NOT_KNOWN_AT_SNAPSHOT":
+            if not any(item["temporal_knowledge"] == "NOT_KNOWN_AT_CUTOFF" for item in mandatory):
+                raise SystemExit(f"FAIL: historical fixture has no late evidence in {case['case_id']}")
+        elif disposition == "UNVERIFIED":
+            if not any(
+                item["authority"] == "UNKNOWN" or item["verification"] == "UNVERIFIED"
+                for item in mandatory
+            ):
+                raise SystemExit(f"FAIL: unverified fixture has no unverified axis in {case['case_id']}")
+        elif disposition == "INCOMPLETE":
+            if not any(
+                item["proposition_evidence"] in {"NEITHER", "BOTH"}
+                or item["observer_coverage"] in {"UNKNOWN", "INCOMPLETE"}
+                for item in mandatory
+            ) and not any(
+                item["status"] == "UNRESOLVED" and item["materiality"] == "BLOCKING"
+                for item in case["defeaters"]
+            ):
+                raise SystemExit(f"FAIL: incomplete fixture has no missing/conflicting obligation in {case['case_id']}")
 
     print(
         "PASS: AERO IAB v0.3 structural validation "
