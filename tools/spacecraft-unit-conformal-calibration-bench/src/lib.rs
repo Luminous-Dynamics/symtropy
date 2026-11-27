@@ -133,12 +133,6 @@ impl ScopeKey {
 
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-struct UnitKey {
-    scope: ScopeKey,
-    unit_id: String,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct UnitRows {
     partition: Partition,
