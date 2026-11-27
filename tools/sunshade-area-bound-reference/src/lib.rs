@@ -175,6 +175,7 @@ mod tests {
         .unwrap();
 
         close(estimate.source_to_shade_fraction, 0.75, 1e-15);
+        close(estimate.mean_target_attenuation_fraction, 0.2, 1e-15);
         close(
             estimate.projected_mask_union_area_lower_bound_m2,
             11.25,
@@ -202,6 +203,11 @@ mod tests {
         .unwrap();
 
         close(
+            half_transmitting.mean_target_attenuation_fraction,
+            opaque.mean_target_attenuation_fraction,
+            1e-15,
+        );
+        close(
             half_transmitting.projected_mask_union_area_lower_bound_m2,
             2.0 * opaque.projected_mask_union_area_lower_bound_m2,
             1e-14,
@@ -228,6 +234,7 @@ mod tests {
         let base = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 3.0,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 100.0,
             integrated_target_attenuation_area_m2: 20.0,
             module_transmittance_fraction: 0.2,
         })
@@ -235,6 +242,7 @@ mod tests {
         let scaled = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 3.0e100,
             shade_to_target_distance_m: 1.0e100,
+            target_domain_area_m2: 100.0,
             integrated_target_attenuation_area_m2: 20.0,
             module_transmittance_fraction: 0.2,
         })
