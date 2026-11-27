@@ -53,7 +53,7 @@ The adapter must fail closed if the claim profile is unsupported, formally incom
 
 ## 4. Source-derived time, not caller-declared labels
 
-Temporal enums in the state vector are derived outputs. The source-binding envelope carries raw clocks:
+Temporal enums in the state vector are derived outputs. The source-binding envelope carries an explicit replay mode and raw clocks:
 - issuer-asserted time;
 - source/event effective-time interval;
 - physical/acquisition-time interval from the decision context;
@@ -68,14 +68,14 @@ Rules:
 - If evidence was received by the cutoff but the event is definitely not effective over the physical acquisition interval, derive NOT_EFFECTIVE_AT_SUBJECT_TIME.
 - If event/acquisition bounds overlap, derive TEMPORAL_CONFLICT / INCOMPLETE.
 - If either interval is malformed, retain a verified invalidity finding and reject the assertion.
-- A trust policy or revocation is evaluated with both effective time and receiver-first-seen time. A later-observed revocation cannot silently rewrite historical as-known state; current-policy counterfactual is a separate evaluation.
+- The replay mode is one of HISTORICAL_AS_KNOWN, CURRENT_POLICY_COUNTERFACTUAL or CURRENT_AS_KNOWN. A trust policy or revocation is evaluated with both effective time and receiver-first-seen time. A later-observed revocation cannot silently rewrite historical as-known state; current-policy counterfactual is a separate evaluation.
 - Preserve issuer-asserted time even where it does not determine receiver knowledge.
 
 The adapter consumes the existing EffectivityRelation result; it does not replace the source chronology or interval comparator.
 
 ## 5. Source contract
 
-The companion JSON Schema binds claim-specification identity/digest, decision context and acquisition interval, trust-policy snapshot/events, owner evidence cut/receipt watermark, model credibility cut, observer coverage receipt/scope, per-obligation requirement source and owner evidence records, and root-cause partition.
+The companion JSON Schema binds claim-specification identity/digest, decision context and acquisition interval, replay mode, trust-policy snapshot/events, a collection of owner-scoped evidence cuts/receipt watermarks, model credibility cut, observer coverage receipt/scope, per-obligation requirement source and owner evidence records, and root-cause partition. Each evidence receipt must resolve to exactly one matching owner namespace/cut; missing or duplicate owner cuts fail validation.
 
 The JSON example is synthetic. Its digests are placeholders and do not represent valid signed owner receipts. It exists only to exercise the envelope's shape; it is not engineering evidence.
 
