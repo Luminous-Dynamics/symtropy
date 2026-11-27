@@ -31,6 +31,8 @@ def result_base(row: dict[str, str], disposition: str, reason: str | None) -> di
         "frame_id": row["frame_id"],
         "disposition": disposition,
         "reason_codes": [] if reason is None else [reason],
+        "translation_error_l2_um": None,
+        "orientation_error_urad": None,
         "regions": [],
     }
 
@@ -112,6 +114,16 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if angular_error is None:
         return result_base(row, "INVALID_INPUT", "ORIENTATION_ERROR_UNREPRESENTABLE")
 
+    squared_translation_error = sum(
+        (predicted_translation[axis] - truth_translation[axis]) ** 2
+        for axis in range(3)
+    )
+    translation_error = math.isqrt(squared_translation_error)
+    if translation_error * translation_error < squared_translation_error:
+        translation_error += 1
+    if translation_error > (1 << 64) - 1:
+        return result_base(row, "INVALID_INPUT", "TRANSLATION_ERROR_UNREPRESENTABLE")
+
     region_scores = []
     previous: dict[str, object] | None = None
     for index, nominal in enumerate(LEVELS):
@@ -162,6 +174,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
         previous = {"lower": lower, "upper": upper, "radius": radius}
 
     result = result_base(row, "SCORED", None)
+    result["translation_error_l2_um"] = translation_error
+    result["orientation_error_urad"] = angular_error
     result["regions"] = region_scores
     return result
 
@@ -255,6 +269,10 @@ def evaluate_manifest(rows: list[dict[str, str]]) -> dict[str, object]:
                 "abstained_count": sum(row["disposition"] == "ABSTAINED" for row in group_rows),
                 "missing_count": sum(row["disposition"] == "MISSING" for row in group_rows),
                 "invalid_count": sum(row["disposition"] not in ("SCORED", "ABSTAINED", "MISSING") for row in group_rows),
+                "sum_translation_error_l2_um": sum(row["translation_error_l2_um"] or 0 for row in group_rows),
+                "max_translation_error_l2_um": max((row["translation_error_l2_um"] or 0 for row in group_rows), default=0),
+                "sum_orientation_error_urad": sum(row["orientation_error_urad"] or 0 for row in group_rows),
+                "max_orientation_error_urad": max((row["orientation_error_urad"] or 0 for row in group_rows), default=0),
                 "levels": aggregate(group_rows),
             }
         )
