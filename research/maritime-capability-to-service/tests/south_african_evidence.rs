@@ -96,7 +96,10 @@ fn validate(rows: &[EvidenceRow<'_>]) -> Result<(), String> {
                         .parse::<f64>()
                         .map_err(|_| format!("non-numeric shore-power value {}", row.value))?;
                 }
-                if !row.claim_ceiling.contains("Not an interval-metered demand observation") {
+                if !row
+                    .claim_ceiling
+                    .contains("Not an interval-metered demand observation")
+                {
                     return Err(format!(
                         "shore-power estimate {} at {} lost its measurement caveat",
                         row.period, row.site
