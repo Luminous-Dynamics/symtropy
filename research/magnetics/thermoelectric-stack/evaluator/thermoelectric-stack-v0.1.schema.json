@@ -292,6 +292,11 @@
           "enum": [
             "ConventionalWindingCooling",
             "ConventionalHighPerformanceCooling",
+            "ConventionalDirectOilCooling",
+            "ConventionalMultiNozzleOilJetCooling",
+            "ConventionalHairpinOilSprayCooling",
+            "ConventionalSlotEmbeddedCooling",
+            "ConventionalHollowConductorCooling",
             "AmIntegratedWindingCooling",
             "HybridThermalSubassembly",
             "ReferenceControl"
