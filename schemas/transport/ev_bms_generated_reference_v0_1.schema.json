@@ -43,7 +43,7 @@
       "const": "ev-bms-generated-reference/v0.1"
     },
     "dataset_id": {
-      "const": "ch-batteryg-en-iclr-2026-v1"
+      "const": "ch-batterygen-iclr-2026-v1"
     },
     "title": {
       "type": "string",
