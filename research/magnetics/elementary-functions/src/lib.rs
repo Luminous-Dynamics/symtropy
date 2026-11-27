@@ -15,9 +15,7 @@ pub struct EnclosureMetadata {
     pub gaps_filled: bool,
 }
 
-pub fn metadata<S: scioxide_validated::RealScalar>(
-    enclosure: &ElementaryEnclosure<S>,
-) -> EnclosureMetadata {
+pub fn metadata(enclosure: &ElementaryEnclosure<f64>) -> EnclosureMetadata {
     EnclosureMetadata {
         status: enclosure.status(),
         piece_count: enclosure.pieces().len(),
@@ -131,6 +129,15 @@ mod tests {
         let enclosure = enclose_asin(-2.0, 0.5).expect("partially valid inverse-sine domain");
         assert_eq!(enclosure.status(), EnclosureStatus::PartiallyDefined);
         assert!(enclosure.contains(0.5235987755982988));
+    }
+
+    #[test]
+    fn large_angle_uses_the_candidates_bounded_argument_reduction() {
+        let enclosure =
+            enclose_sin(1.0e300, 1.0e300).expect("finite point angle in the f64 domain");
+        assert_eq!(enclosure.status(), EnclosureStatus::Defined);
+        assert_eq!(enclosure.pieces().len(), 1);
+        assert!(!enclosure.gaps_filled());
     }
 
     #[test]
