@@ -751,7 +751,7 @@ fn dominance_witness(
     let mut all_no_worse = true;
     let mut any_strict = false;
     let mut witnesses = Vec::with_capacity(specs.len());
-    for spec in objective_specs {
+    for spec in specs {
         let better = envelopes
             .iter()
             .find(|row| row.portfolio_id == dominating_id && row.objective_id == spec.objective_id)
