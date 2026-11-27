@@ -136,6 +136,82 @@ fn obb_sat_reference(
     true
 }
 
+fn dot3(a: [f64; 3], b: [f64; 3]) -> f64 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+fn cross3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
+}
+
+fn rotor_3d(xy: f64, yz: f64, xz: f64) -> Rotor<3> {
+    let rotate_xy = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), xy);
+    let rotate_yz = Rotor::from_plane_angle(&Bivector::unit_plane(1, 2), yz);
+    let rotate_xz = Rotor::from_plane_angle(&Bivector::unit_plane(0, 2), xz);
+    rotate_xz.compose(&rotate_yz.compose(&rotate_xy))
+}
+
+fn axes_3d(rotation: &Rotor<3>) -> [[f64; 3]; 3] {
+    std::array::from_fn(|index| {
+        let mut basis = SVector::<f64, 3>::zeros();
+        basis[index] = 1.0;
+        let world = rotation.rotate_vector(&basis);
+        [world[0], world[1], world[2]]
+    })
+}
+
+/// Independent 3D OBB reference using all 15 separating axes:
+/// three face normals from each box and nine pairwise edge cross products.
+/// It does not use Symtropy support maps, GJK, EPA, or its OBB routines.
+fn obb_sat_3d_reference(
+    center_a: [f64; 3],
+    half_a: [f64; 3],
+    rotation_a: &Rotor<3>,
+    center_b: [f64; 3],
+    half_b: [f64; 3],
+    rotation_b: &Rotor<3>,
+) -> bool {
+    let axes_a = axes_3d(rotation_a);
+    let axes_b = axes_3d(rotation_b);
+    let delta = [
+        center_b[0] - center_a[0],
+        center_b[1] - center_a[1],
+        center_b[2] - center_a[2],
+    ];
+
+    let mut candidates = Vec::with_capacity(15);
+    candidates.extend(axes_a);
+    candidates.extend(axes_b);
+    for axis_a in axes_a {
+        for axis_b in axes_b {
+            candidates.push(cross3(axis_a, axis_b));
+        }
+    }
+
+    for axis in candidates {
+        let norm = dot3(axis, axis).sqrt();
+        if norm < 1.0e-12 {
+            continue;
+        }
+
+        let radius_a = half_a[0] * dot3(axes_a[0], axis).abs()
+            + half_a[1] * dot3(axes_a[1], axis).abs()
+            + half_a[2] * dot3(axes_a[2], axis).abs();
+        let radius_b = half_b[0] * dot3(axes_b[0], axis).abs()
+            + half_b[1] * dot3(axes_b[1], axis).abs()
+            + half_b[2] * dot3(axes_b[2], axis).abs();
+
+        if dot3(delta, axis).abs() > radius_a + radius_b + 1.0e-12 * norm {
+            return false;
+        }
+    }
+    true
+}
+
 #[test]
 fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
     const CASES: usize = 4_096;
@@ -210,6 +286,97 @@ fn transformed_obb_gjk_matches_seeded_independent_sat_reference() {
     );
     println!(
         "OBB seed: cases={CASES}, false_positives={false_positives}, false_negatives={false_negatives}, translation_only_disagreements={translation_only_disagreements}"
+    );
+}
+
+#[test]
+fn transformed_obb_3d_gjk_matches_independent_fifteen_axis_sat() {
+    const CASES: usize = 4_096;
+    const SEED: u64 = 0x3344_4f42_4256_5655;
+
+    let half_a = [1.0, 0.55, 0.3];
+    let half_b = [0.8, 0.45, 0.25];
+    let shape_a = HyperBox::<3>::new(half_a);
+    let shape_b = HyperBox::<3>::new(half_b);
+    let center_a = [0.0, 0.0, 0.0];
+
+    let mut state = SEED;
+    let mut false_positives = 0usize;
+    let mut false_negatives = 0usize;
+    let mut translation_only_disagreements = 0usize;
+
+    for _ in 0..CASES {
+        let rotation_a = rotor_3d(
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+        );
+        let rotation_b = rotor_3d(
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+            sample_range(&mut state, -PI, PI),
+        );
+        let center_b = [
+            sample_range(&mut state, -3.5, 3.5),
+            sample_range(&mut state, -3.0, 3.0),
+            sample_range(&mut state, -2.5, 2.5),
+        ];
+
+        let expected = obb_sat_3d_reference(
+            center_a,
+            half_a,
+            &rotation_a,
+            center_b,
+            half_b,
+            &rotation_b,
+        );
+        let observed = gjk::intersects_transformed(
+            &shape_a,
+            &Transform {
+                translation: Point::new(center_a),
+                rotation: rotation_a.clone(),
+            },
+            &shape_b,
+            &Transform {
+                translation: Point::new(center_b),
+                rotation: rotation_b.clone(),
+            },
+        )
+        .intersecting;
+
+        if observed && !expected {
+            false_positives += 1;
+        }
+        if !observed && expected {
+            false_negatives += 1;
+        }
+
+        let translation_only = gjk::intersects(
+            &shape_a,
+            &SVector::from(center_a),
+            &shape_b,
+            &SVector::from(center_b),
+        )
+        .intersecting;
+        if translation_only != expected {
+            translation_only_disagreements += 1;
+        }
+    }
+
+    assert_eq!(
+        false_positives, 0,
+        "3D transformed GJK false positives across {CASES} cases"
+    );
+    assert_eq!(
+        false_negatives, 0,
+        "3D transformed GJK false negatives across {CASES} cases"
+    );
+    assert!(
+        translation_only_disagreements > CASES / 10,
+        "3D translation-only negative control was too weak: {translation_only_disagreements}/{CASES}"
+    );
+    println!(
+        "3D OBB seed: cases={CASES}, false_positives={false_positives}, false_negatives={false_negatives}, translation_only_disagreements={translation_only_disagreements}"
     );
 }
 
