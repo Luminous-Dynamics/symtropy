@@ -54,3 +54,30 @@ The public fixture contains synthetic truth for known-answer tests. The generato
 ## Claim ceiling
 
 Software/process-model conformance only. No physical effect truth, causal identification, calibrated probability, simulator/HIL/physical qualification, robot safety certification, RoboRecover reproduction or SOTA superiority is established. The public hard-risk threshold is illustrative; a real campaign must justify its threshold and losses prospectively.
+
+## Candidate counterfactual-policy contract v0.2
+
+The isolated module `src/v0_2.rs` validates the candidate-visible AERB v0.2 envelope without changing the v0.1 evaluator's semantics.
+
+It checks:
+- schema / episode identity and the existing v0.1 sorted-JSON candidate snapshot digest;
+- digest syntax for DecisionNeed, decision contract, probe catalogue, model and observer profile;
+- a mandatory `block_new_effect` actuation guard;
+- non-empty, unique possible-history support with `open_world_residual` retained;
+- permitted candidate probe models and complete outcome-support coverage of the candidate's initial support;
+- ordinary-probe open-world retention and the special closed-plus-unresolved support rule for `reconcile_effect_and_scope`;
+- an acyclic, bounded policy tree with one parent per non-root node, no unreachable nodes, and branch edges matching exactly the outcomes reachable under the current candidate support;
+- cumulative acquisition cost and result delay along every policy path;
+- rejection of a `recommend_fresh_attempt` terminal while the candidate's own support still contains any history other than `not_dispatched` / `dispatched_no_effect`.
+
+The module denies unknown JSON fields, so candidate submissions cannot smuggle evaluator-only truth, outcome partitions, likelihoods or loss rows into this candidate-facing object. A schema / type check is not a process-security boundary; blind evaluation still requires separately permissioned candidate and evaluator environments.
+
+Run the existing focused commands:
+
+~~~bash
+cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml -- --check
+cargo test --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked
+cargo clippy --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml --locked --all-targets -- -D warnings
+~~~
+
+The v0.2 tests are authored, but must not be described as passing until an exact-head run reports the formatter, Rust tests and strict Clippy complete successfully. This module checks the candidate contract and policy graph; it does not compute minimax / EVSI, certify the source or observation, execute a probe, or authorize robot motion.
