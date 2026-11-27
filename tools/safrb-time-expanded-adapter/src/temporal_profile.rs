@@ -82,7 +82,10 @@ fn state_node_id(node_id: &str, period: u64) -> String {
 }
 
 fn handling_node_id(node_id: &str, period: u64) -> String {
-    format!("safrb-temporal/handling/{}/{node_id}/{period}", node_id.len())
+    format!(
+        "safrb-temporal/handling/{}/{node_id}/{period}",
+        node_id.len()
+    )
 }
 
 fn issue_node_id(node_id: &str, period: u64) -> String {
@@ -112,10 +115,7 @@ fn require_nonempty(value: &str, label: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn ensure_unique<'a>(
-    values: impl IntoIterator<Item = &'a str>,
-    label: &str,
-) -> Result<(), String> {
+fn ensure_unique<'a>(values: impl IntoIterator<Item = &'a str>, label: &str) -> Result<(), String> {
     let mut seen = BTreeSet::new();
     for value in values {
         require_nonempty(value, label)?;
@@ -233,7 +233,12 @@ pub fn compile_temporal_profile(profile: &TemporalProfile) -> Result<FlowGraph, 
         let arrival_period = transfer
             .departure_period
             .checked_add(transfer.transit_periods)
-            .ok_or_else(|| format!("transfer {} arrival period overflowed u64", transfer.transfer_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "transfer {} arrival period overflowed u64",
+                    transfer.transfer_id
+                )
+            })?;
         if transfer.departure_period >= profile.horizon_last_period
             || arrival_period > profile.horizon_last_period
         {
@@ -683,7 +688,10 @@ mod tests {
         });
         let on_time_result = verified_result(&available);
         assert_eq!(on_time_result.max_flow, 100);
-        assert_eq!(flow_for(&on_time_result, &source_edge_id("service", "on-time")), 100);
+        assert_eq!(
+            flow_for(&on_time_result, &source_edge_id("service", "on-time")),
+            100
+        );
         assert_eq!(
             flow_for(&on_time_result, &source_edge_id("service", "too-early")),
             0
@@ -788,12 +796,18 @@ mod tests {
             vec![],
             vec![],
         );
-        let left = compile_temporal_profile(&first).unwrap().canonical_bytes().unwrap();
+        let left = compile_temporal_profile(&first)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
         first.nodes.reverse();
         first.receipts.reverse();
         first.transfers.reverse();
         first.services.reverse();
-        let right = compile_temporal_profile(&first).unwrap().canonical_bytes().unwrap();
+        let right = compile_temporal_profile(&first)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
         assert_eq!(left, right);
     }
 }
