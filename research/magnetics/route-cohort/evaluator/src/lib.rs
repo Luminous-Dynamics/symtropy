@@ -1067,6 +1067,55 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_rework_receipt_ids_invalidate_cohort() {
+        let mut cohort = valid_cohort();
+        cohort.specimens[0].first_pass_disposition = SpecimenDisposition::Fail;
+        cohort.specimens[0].rework_attempts = 1;
+        cohort.specimens[0].rework_receipt_id =
+            cohort.specimens[1].rework_receipt_id.clone();
+        cohort.specimens[0].rework_receipt_digest = Some(digest('3'));
+        let result = evaluate_cohort(&cohort);
+        assert!(result
+            .blockers
+            .contains(&Blocker::DuplicateReworkReceiptId));
+        assert_eq!(
+            result.summary.generalization_status,
+            GeneralizationStatus::GeneralizationUnavailable
+        );
+    }
+
+    #[test]
+    fn duplicate_scrap_receipt_ids_invalidate_cohort() {
+        let mut cohort = valid_cohort();
+        for specimen in &mut cohort.specimens[..2] {
+            specimen.scrapped = true;
+            specimen.scrap_receipt_id = Some("SCRAP-SHARED".to_string());
+            specimen.scrap_receipt_digest = Some(digest('4'));
+        }
+        let result = evaluate_cohort(&cohort);
+        assert!(result
+            .blockers
+            .contains(&Blocker::DuplicateScrapReceiptId));
+        assert_eq!(result.summary.counts.final_accepted_specimens, 0);
+    }
+
+    #[test]
+    fn duplicate_build_identity_cannot_satisfy_replication_floor() {
+        let mut cohort = valid_cohort();
+        let mut duplicate = cohort.builds[0].clone();
+        duplicate.initiated_specimen_ids = vec!["SPEC-4".to_string()];
+        cohort.builds.push(duplicate);
+        let result = evaluate_cohort(&cohort);
+        assert!(result.blockers.contains(&Blocker::DuplicateBuildId));
+        assert_eq!(result.summary.counts.initiated_builds, 3);
+        assert_eq!(result.summary.counts.replication_eligible_builds, 1);
+        assert_eq!(
+            result.summary.generalization_status,
+            GeneralizationStatus::GeneralizationUnavailable
+        );
+    }
+
+    #[test]
     fn invalid_recycled_fraction_is_rejected() {
         let mut cohort = valid_cohort();
         cohort.lots[0].recycled_mass_fraction = 1.2;
