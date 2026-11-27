@@ -12,6 +12,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod claim_assurance_gate_v0_1;
+pub mod decision_context_v0_1;
 pub mod effectivity_interval_v0_1;
 pub mod evidence_binding_v0_2;
 pub mod evidence_gap_packet_v0_1;

@@ -9,6 +9,9 @@
 //! establish airworthiness. Its strongest result is reviewability by an
 //! independent decision-maker under the supplied evidence contract.
 
+use super::decision_context_v0_1::{
+    DecisionContextV0_1, compute_required_evidence_manifest_sha256,
+};
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::vector_watermark_v0_1::{CutAssessment, CutStatus};
@@ -119,6 +122,8 @@ impl ClaimGateStatus {
 pub struct ClaimGateInput<'a> {
     /// Stable claim identity.
     pub claim_id: &'a str,
+    /// Typed decision context; the gate derives its own commitment from these fields.
+    pub decision_context: &'a DecisionContextV0_1,
     /// Exact identity/context/report bindings for all three component reports.
     pub bindings: &'a ClaimComponentBindings,
     /// Result of the separately-owned observer-coverage evaluator.
@@ -207,24 +212,36 @@ pub fn compute_component_report_sha256<T: Serialize>(
     Ok(digest_hex)
 }
 
+struct ComponentBindingExpectation<'a> {
+    claim_id: &'a str,
+    subject_ref: &'a str,
+    expected_context_sha256: &'a str,
+    coverage: &'a CoverageAssessment,
+    causal_cut: &'a CutAssessment,
+    effectivity: &'a EffectivityRelation,
+}
+
 /// Validate that the three typed component results refer to exactly the same
 /// claim, physical subject and canonical decision context. Each supplied
 /// report digest must match a fresh digest of its actual typed assessment.
 fn validate_component_bindings(
-    claim_id: &str,
+    expected: ComponentBindingExpectation<'_>,
     bindings: &ClaimComponentBindings,
-    coverage: &CoverageAssessment,
-    causal_cut: &CutAssessment,
-    effectivity: &EffectivityRelation,
     reasons: &mut BTreeSet<String>,
-) -> Option<String> {
+) -> bool {
+    let ComponentBindingExpectation {
+        claim_id,
+        subject_ref,
+        expected_context_sha256,
+        coverage,
+        causal_cut,
+        effectivity,
+    } = expected;
     let components = [
         ("COVERAGE", "OBSERVER_COVERAGE", &bindings.coverage),
         ("CAUSAL_CUT", "CAUSAL_CUT", &bindings.causal_cut),
         ("EFFECTIVITY", "EFFECTIVITY", &bindings.effectivity),
     ];
-    let mut shared_subject: Option<&str> = None;
-    let mut shared_context: Option<&str> = None;
     let mut report_digests = BTreeSet::new();
     let mut valid = true;
 
@@ -239,25 +256,17 @@ fn validate_component_bindings(
             valid = false;
             reasons.insert(format!("{kind}_SUBJECT_REF_INVALID"));
         }
-        if let Some(subject) = shared_subject {
-            if binding.subject_ref != subject {
-                valid = false;
-                reasons.insert("COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned());
-            }
-        } else {
-            shared_subject = Some(&binding.subject_ref);
+        if binding.subject_ref != subject_ref {
+            valid = false;
+            reasons.insert("COMPONENT_SUBJECT_BINDING_MISMATCH".to_owned());
         }
         if !valid_sha256(&binding.decision_context_sha256) {
             valid = false;
             reasons.insert(format!("{kind}_DECISION_CONTEXT_DIGEST_INVALID"));
         }
-        if let Some(context) = shared_context {
-            if binding.decision_context_sha256 != context {
-                valid = false;
-                reasons.insert("COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned());
-            }
-        } else {
-            shared_context = Some(&binding.decision_context_sha256);
+        if binding.decision_context_sha256 != expected_context_sha256 {
+            valid = false;
+            reasons.insert("COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned());
         }
         if !valid_sha256(&binding.report_sha256) {
             valid = false;
@@ -292,11 +301,7 @@ fn validate_component_bindings(
         }
     }
 
-    if valid {
-        shared_context.map(str::to_owned)
-    } else {
-        None
-    }
+    valid
 }
 
 fn component_reasons(prefix: &str, reasons: &[String], target: &mut BTreeSet<String>) {
@@ -326,18 +331,50 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         reasons.insert("CLAIM_ID_MISSING_OR_NONCANONICAL".to_owned());
     }
 
-    let decision_context_sha256 = validate_component_bindings(
-        input.claim_id,
-        input.bindings,
-        input.coverage,
-        input.causal_cut,
-        &input.effectivity,
-        &mut reasons,
-    )
-    .unwrap_or_else(|| {
+    let decision_context_sha256 = match input.decision_context.compute_sha256() {
+        Ok(digest) => digest,
+        Err(context_errors) => {
+            invalid = true;
+            reasons.extend(context_errors);
+            String::new()
+        }
+    };
+    if input.decision_context.claim_id != input.claim_id {
         invalid = true;
-        input.bindings.coverage.decision_context_sha256.clone()
-    });
+        reasons.insert("DECISION_CONTEXT_CLAIM_ID_MISMATCH".to_owned());
+    }
+    if !validate_component_bindings(
+        ComponentBindingExpectation {
+            claim_id: input.claim_id,
+            subject_ref: &input.decision_context.subject_ref,
+            expected_context_sha256: &decision_context_sha256,
+            coverage: input.coverage,
+            causal_cut: input.causal_cut,
+            effectivity: &input.effectivity,
+        },
+        input.bindings,
+        &mut reasons,
+    ) {
+        invalid = true;
+    }
+
+    let evidence_refs_for_manifest = input
+        .required_evidence
+        .iter()
+        .map(|evidence| evidence.evidence_ref.clone())
+        .collect::<Vec<_>>();
+    match compute_required_evidence_manifest_sha256(&evidence_refs_for_manifest) {
+        Ok(actual_manifest) => {
+            if actual_manifest != input.decision_context.required_evidence_manifest_sha256 {
+                invalid = true;
+                reasons.insert("REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned());
+            }
+        }
+        Err(reason) => {
+            invalid = true;
+            reasons.insert(reason);
+        }
+    }
 
     component_reasons("COVERAGE", &input.coverage.reason_codes, &mut reasons);
     component_reasons("CAUSAL_CUT", &input.causal_cut.reason_codes, &mut reasons);
@@ -462,6 +499,8 @@ mod tests {
         EvidenceAdmissionState, RequiredEvidenceAdmission, compute_component_report_sha256,
         evaluate_claim_gate,
     };
+    use crate::decision_context_v0_1::DecisionContextV0_1;
+    use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::effectivity_interval_v0_1::EffectivityRelation;
     use crate::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus, ReplayConsequence};
     use crate::vector_watermark_v0_1::{CutAssessment, CutStatus};
@@ -511,21 +550,56 @@ mod tests {
         }
     }
 
+    fn decision_context_for_refs(evidence_refs: &[String]) -> DecisionContextV0_1 {
+        DecisionContextV0_1 {
+            claim_id: "claim-wing-panel-001".to_owned(),
+            subject_ref: "part:wing-panel-001".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
+            operating_envelope_ref: "envelope:transport-normal".to_owned(),
+            acquisition_time_earliest_unix_ms: 1_795_514_399_900,
+            acquisition_time_latest_unix_ms: 1_795_514_400_100,
+            as_known_at_unix_ms: 1_795_516_800_000,
+            source_scope_manifest_sha256: "a".repeat(64),
+            evidence_knowledge_cut_sha256: "b".repeat(64),
+            trust_policy_sha256: "c".repeat(64),
+            claim_specification_sha256: "d".repeat(64),
+            required_evidence_manifest_sha256: compute_required_evidence_manifest_sha256(
+                evidence_refs,
+            )
+            .expect("evidence manifest serializes"),
+            risk_classification_sha256: "e".repeat(64),
+            model_applicability_profile_sha256: "f".repeat(64),
+        }
+    }
+
+    fn context_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> DecisionContextV0_1 {
+        let refs = evidence
+            .iter()
+            .map(|item| item.evidence_ref.clone())
+            .collect::<Vec<_>>();
+        decision_context_for_refs(&refs)
+    }
+
+    fn context_digest(context: &DecisionContextV0_1) -> String {
+        context
+            .compute_sha256()
+            .expect("test decision context is valid")
+    }
+
     fn evidence(state: EvidenceAdmissionState, evidence_ref: &str) -> RequiredEvidenceAdmission {
+        let context = decision_context_for_refs(&[evidence_ref.to_owned()]);
         RequiredEvidenceAdmission {
             evidence_ref: evidence_ref.to_owned(),
-            decision_context_sha256:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            decision_context_sha256: context_digest(&context),
             state,
         }
     }
 
-    fn component_binding(profile: &str) -> AssessmentBinding {
+    fn component_binding(profile: &str, context: &DecisionContextV0_1) -> AssessmentBinding {
         AssessmentBinding {
-            claim_id: "claim-wing-panel-001".to_owned(),
-            subject_ref: "part:wing-panel-001".to_owned(),
-            decision_context_sha256:
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            claim_id: context.claim_id.clone(),
+            subject_ref: context.subject_ref.clone(),
+            decision_context_sha256: context_digest(context),
             report_sha256: String::new(),
             evaluator_profile: profile.to_owned(),
         }
@@ -535,11 +609,12 @@ mod tests {
         coverage: &CoverageAssessment,
         causal_cut: &CutAssessment,
         effectivity: EffectivityRelation,
+        context: &DecisionContextV0_1,
     ) -> ClaimComponentBindings {
         let mut result = ClaimComponentBindings {
-            coverage: component_binding("basalt-coverage-v0.1"),
-            causal_cut: component_binding("aero-causal-cut-v0.1"),
-            effectivity: component_binding("aero-effectivity-v0.1"),
+            coverage: component_binding("basalt-coverage-v0.1", context),
+            causal_cut: component_binding("aero-causal-cut-v0.1", context),
+            effectivity: component_binding("aero-effectivity-v0.1", context),
         };
         result.coverage.report_sha256 =
             compute_component_report_sha256("OBSERVER_COVERAGE", &result.coverage, coverage)
@@ -554,12 +629,15 @@ mod tests {
     }
 
     fn positive_bindings() -> ClaimComponentBindings {
+        let evidence = all_admitted();
+        let context = context_for_evidence(&evidence);
         let coverage = coverage(CoverageStatus::QualifiedCompleteForScope);
         let causal_cut = cut(CutStatus::Closed);
         bindings_for(
             &coverage,
             &causal_cut,
             EffectivityRelation::DefinitelyEffective,
+            &context,
         )
     }
 
@@ -572,8 +650,10 @@ mod tests {
     ) -> super::ClaimAssuranceAssessment {
         let coverage = coverage(coverage_status);
         let cut = cut(cut_status);
+        let decision_context = context_for_evidence(evidence);
         evaluate_claim_gate(ClaimGateInput {
             claim_id: "claim-wing-panel-001",
+            decision_context: &decision_context,
             bindings: component_bindings,
             coverage: &coverage,
             causal_cut: &cut,
@@ -590,7 +670,13 @@ mod tests {
     ) -> super::ClaimAssuranceAssessment {
         let coverage_result = coverage(coverage_status);
         let cut_result = cut(cut_status);
-        let component_bindings = bindings_for(&coverage_result, &cut_result, effectivity);
+        let decision_context = context_for_evidence(evidence);
+        let component_bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            effectivity,
+            &decision_context,
+        );
         evaluate_with_bindings(
             coverage_status,
             cut_status,
@@ -601,10 +687,16 @@ mod tests {
     }
 
     fn all_admitted() -> Vec<RequiredEvidenceAdmission> {
-        vec![
+        let mut result = vec![
             evidence(EvidenceAdmissionState::Admitted, "receipt:inspection-01"),
             evidence(EvidenceAdmissionState::Admitted, "receipt:calibration-02"),
-        ]
+        ];
+        let context = context_for_evidence(&result);
+        let digest = context_digest(&context);
+        for item in &mut result {
+            item.decision_context_sha256 = digest.clone();
+        }
+        result
     }
 
     fn reviewable(result: &super::ClaimAssuranceAssessment) {
@@ -792,26 +884,51 @@ mod tests {
 
     #[test]
     fn malformed_or_duplicate_evidence_identity_rejects() {
-        let blank = [evidence(EvidenceAdmissionState::Admitted, " ")];
-        let result = evaluate(
-            CoverageStatus::QualifiedCompleteForScope,
-            CutStatus::Closed,
+        // Construct the owner/context bindings from a valid evidence set, then
+        // mutate only the required-evidence list at the claim-gate boundary.
+        // This exercises the intended validator instead of failing while a
+        // malformed decision context is being constructed by the test helper.
+        let valid = all_admitted();
+        let context = context_for_evidence(&valid);
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
             EffectivityRelation::DefinitelyEffective,
-            &blank,
+            &context,
         );
-        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        let evaluate_attacked = |required_evidence: &[RequiredEvidenceAdmission]| {
+            evaluate_claim_gate(ClaimGateInput {
+                claim_id: "claim-wing-panel-001",
+                decision_context: &context,
+                bindings: &bindings,
+                coverage: &coverage_result,
+                causal_cut: &cut_result,
+                effectivity: EffectivityRelation::DefinitelyEffective,
+                required_evidence,
+            })
+        };
 
-        let duplicate = [
-            evidence(EvidenceAdmissionState::Admitted, "receipt:same"),
-            evidence(EvidenceAdmissionState::Admitted, "receipt:same"),
-        ];
-        let result = evaluate(
-            CoverageStatus::QualifiedCompleteForScope,
-            CutStatus::Closed,
-            EffectivityRelation::DefinitelyEffective,
-            &duplicate,
-        );
+        let mut blank = valid.clone();
+        blank[0].evidence_ref = " ".to_owned();
+        let result = evaluate_attacked(&blank);
         assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned())
+        );
+
+        let mut duplicate = valid;
+        duplicate[1].evidence_ref = duplicate[0].evidence_ref.clone();
+        let result = evaluate_attacked(&duplicate);
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"DUPLICATE_REQUIRED_EVIDENCE_REF".to_owned())
+        );
     }
 
     #[test]
@@ -941,6 +1058,65 @@ mod tests {
             result
                 .reason_codes
                 .contains(&"REQUIRED_EVIDENCE_CONTEXT_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
+    fn required_evidence_manifest_must_match_the_exact_input_reference_set() {
+        let mut evidence = all_admitted();
+        let mut context = context_for_evidence(&evidence);
+        context.required_evidence_manifest_sha256 = "9".repeat(64);
+        let digest = context_digest(&context);
+        for item in &mut evidence {
+            item.decision_context_sha256 = digest.clone();
+        }
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            EffectivityRelation::DefinitelyEffective,
+            &context,
+        );
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned())
+        );
+    }
+
+    #[test]
+    fn context_change_invalidates_previously_bound_component_reports() {
+        let evidence = all_admitted();
+        let mut context = context_for_evidence(&evidence);
+        context.trust_policy_sha256 = "9".repeat(64);
+        let bindings = positive_bindings();
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(
+            result
+                .reason_codes
+                .contains(&"COMPONENT_DECISION_CONTEXT_MISMATCH".to_owned())
         );
     }
 
