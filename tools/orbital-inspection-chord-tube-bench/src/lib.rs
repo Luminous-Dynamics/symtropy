@@ -46,7 +46,7 @@ fn ceil_div_nonnegative(numerator: i128, denominator: i128) -> Option<i128> {
         return None;
     }
     let quotient = numerator / denominator;
-    if numerator.is_multiple_of(denominator) {
+    if quotient.checked_mul(denominator) == Some(numerator) {
         Some(quotient)
     } else {
         quotient.checked_add(1)
