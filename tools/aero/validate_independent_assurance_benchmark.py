@@ -139,8 +139,15 @@ def main() -> int:
             "FAIL: state-vector examples do not cover all disposition projections"
         )
 
+    intrinsic_kinds = {"CLAIM_IDENTITY", "EVIDENCE_INTEGRITY", "PRODUCER_AUTHORITY"}
     for case in state_cases:
         obligations = case["obligations"]
+        for kind in intrinsic_kinds:
+            matching = [item for item in obligations if item["kind"] == kind]
+            if not matching or any(not item["mandatory"] or not item["hard_gate"] for item in matching):
+                raise SystemExit(
+                    f"FAIL: intrinsic hard gate missing or downgraded in {case['case_id']}: {kind}"
+                )
         obligation_ids = [obligation["obligation_id"] for obligation in obligations]
         require_unique(obligation_ids, f"obligation IDs in {case['case_id']}")
         if not set(case["expected_blocking_obligation_ids"]).issubset(set(obligation_ids)):
