@@ -198,8 +198,7 @@ pub fn verify_post_run_reveal(
     {
         return Err(BlindGenerationError::RevealMismatch("schema_version"));
     }
-    if candidate.corpus_class != BLIND_CORPUS_CLASS
-        || evaluator.corpus_class != BLIND_CORPUS_CLASS
+    if candidate.corpus_class != BLIND_CORPUS_CLASS || evaluator.corpus_class != BLIND_CORPUS_CLASS
     {
         return Err(BlindGenerationError::RevealMismatch("corpus_class"));
     }
@@ -249,9 +248,7 @@ pub fn verify_post_run_reveal(
     Ok(())
 }
 
-fn commitment_for(
-    evaluator: &EvaluatorBlindManifest,
-) -> Result<String, BlindGenerationError> {
+fn commitment_for(evaluator: &EvaluatorBlindManifest) -> Result<String, BlindGenerationError> {
     // Scoped profile: deterministic Serde struct/array serialization for this
     // exact Rust schema revision. This is not a claim of RFC 8785/JCS support.
     let bytes = serde_json::to_vec(evaluator)
@@ -289,8 +286,7 @@ fn random_below<E: EntropySource>(
     entropy: &mut E,
     upper: usize,
 ) -> Result<usize, BlindGenerationError> {
-    let upper = u64::try_from(upper)
-        .map_err(|_| BlindGenerationError::InvalidEpisodeCount)?;
+    let upper = u64::try_from(upper).map_err(|_| BlindGenerationError::InvalidEpisodeCount)?;
     if upper == 0 {
         return Err(BlindGenerationError::InvalidEpisodeCount);
     }
@@ -318,9 +314,7 @@ fn fisher_yates_shuffle<E: EntropySource>(
 }
 
 fn is_opaque_episode_id(value: &str) -> bool {
-    value.len() == 3 + OPAQUE_ID_BYTES * 2
-        && value.starts_with("ep_")
-        && is_lower_hex(&value[3..])
+    value.len() == 3 + OPAQUE_ID_BYTES * 2 && value.starts_with("ep_") && is_lower_hex(&value[3..])
 }
 
 fn is_opaque_campaign_id(value: &str) -> bool {
@@ -358,10 +352,7 @@ mod tests {
     }
 
     impl EntropySource for CounterEntropy {
-        fn fill_bytes(
-            &mut self,
-            destination: &mut [u8],
-        ) -> Result<(), BlindGenerationError> {
+        fn fill_bytes(&mut self, destination: &mut [u8]) -> Result<(), BlindGenerationError> {
             let value = self.calls;
             self.calls = self.calls.wrapping_add(1);
             destination.fill(value);
@@ -372,10 +363,7 @@ mod tests {
     struct FailingEntropy;
 
     impl EntropySource for FailingEntropy {
-        fn fill_bytes(
-            &mut self,
-            _destination: &mut [u8],
-        ) -> Result<(), BlindGenerationError> {
+        fn fill_bytes(&mut self, _destination: &mut [u8]) -> Result<(), BlindGenerationError> {
             Err(BlindGenerationError::EntropyUnavailable(
                 "injected test failure".to_owned(),
             ))
@@ -401,11 +389,8 @@ mod tests {
     #[test]
     fn pre_run_commitment_verifies_against_post_run_reveal() {
         let campaign = generate_blind_campaign(32).expect("OS-random campaign");
-        verify_post_run_reveal(
-            &campaign.candidate_manifest,
-            &campaign.evaluator_manifest,
-        )
-        .expect("reveal matches pre-run commitment");
+        verify_post_run_reveal(&campaign.candidate_manifest, &campaign.evaluator_manifest)
+            .expect("reveal matches pre-run commitment");
     }
 
     #[test]
@@ -421,10 +406,7 @@ mod tests {
         campaign.evaluator_manifest.assignments[0].hidden_truth_world_id =
             (*replacement).to_owned();
         assert_eq!(
-            verify_post_run_reveal(
-                &campaign.candidate_manifest,
-                &campaign.evaluator_manifest,
-            ),
+            verify_post_run_reveal(&campaign.candidate_manifest, &campaign.evaluator_manifest,),
             Err(BlindGenerationError::RevealMismatch("campaign_commitment"))
         );
     }
@@ -436,10 +418,7 @@ mod tests {
             .expect("test campaign generation");
         campaign.evaluator_manifest.assignments.swap(0, 1);
         assert_eq!(
-            verify_post_run_reveal(
-                &campaign.candidate_manifest,
-                &campaign.evaluator_manifest,
-            ),
+            verify_post_run_reveal(&campaign.candidate_manifest, &campaign.evaluator_manifest,),
             Err(BlindGenerationError::RevealMismatch(
                 "candidate_episode_order_or_identity"
             ))
@@ -492,7 +471,6 @@ mod tests {
         assert!(counts.values().any(|count| *count != 2));
     }
 
-
     #[test]
     fn campaign_identity_tamper_invalidates_the_reveal() {
         let mut entropy = CounterEntropy { calls: 0 };
@@ -500,10 +478,7 @@ mod tests {
             .expect("test campaign generation");
         campaign.candidate_manifest.campaign_id = format!("camp_{}", "a".repeat(32));
         assert_eq!(
-            verify_post_run_reveal(
-                &campaign.candidate_manifest,
-                &campaign.evaluator_manifest,
-            ),
+            verify_post_run_reveal(&campaign.candidate_manifest, &campaign.evaluator_manifest,),
             Err(BlindGenerationError::RevealMismatch("campaign_id"))
         );
     }
@@ -515,10 +490,7 @@ mod tests {
             .expect("test campaign generation");
         campaign.evaluator_manifest.manifest_salt_hex = "f".repeat(64);
         assert_eq!(
-            verify_post_run_reveal(
-                &campaign.candidate_manifest,
-                &campaign.evaluator_manifest,
-            ),
+            verify_post_run_reveal(&campaign.candidate_manifest, &campaign.evaluator_manifest,),
             Err(BlindGenerationError::RevealMismatch("campaign_commitment"))
         );
     }
