@@ -63,6 +63,8 @@ pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
 pub mod refinement_scheduler;
 pub mod residual;
+/// Exact cross-scenario mission-risk feasibility gate before regret selection.
+pub mod scenario_mission_risk_gate;
 pub mod sequential;
 /// Atomic simultaneous selection across portfolios under a defensive proposal.
 pub mod simultaneous_defensive_selection;
@@ -188,6 +190,12 @@ pub use residual::{
     AffineCollisionChart, AffineCollisionComponent, AffineResidualMassConfig,
     AffineResidualMassReport, AffineUnionResidualMassConfig,
     affine_collision_residual_mass_upper_bound, affine_union_collision_residual_mass_upper_bound,
+};
+pub use scenario_mission_risk_gate::{
+    EligiblePortfolioRegretInterval, PortfolioScenarioRiskCheck, PortfolioScenarioRiskContract,
+    PortfolioScenarioRiskEvidence, ScenarioMissionRiskGate, ScenarioMissionRiskGateError,
+    ScenarioMissionRiskGateReport, mission_risk_envelope_digest,
+    portfolio_scenario_risk_envelope_digest,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use simultaneous_defensive_selection::{
