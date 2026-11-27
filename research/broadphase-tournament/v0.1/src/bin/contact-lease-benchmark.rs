@@ -88,6 +88,7 @@ fn run_scenario<const D: usize>(scenario: Scenario, iterations: usize) -> (Count
         };
         let mut translation = [0.0; D];
         let mut angle = 0.0;
+        let mut second_plane_angle = 0.0;
         let mut generations = [3, 4];
         let mut current_feature = Some(feature);
 
@@ -95,7 +96,12 @@ fn run_scenario<const D: usize>(scenario: Scenario, iterations: usize) -> (Count
             Scenario::IdleReuse => {}
             Scenario::LowRelativeMotion => translation[0] = 0.1,
             Scenario::MotionRefresh => translation[0] = 0.6,
-            Scenario::RotationRefresh => angle = 0.6,
+            Scenario::RotationRefresh => {
+                angle = 0.6;
+                if D >= 4 {
+                    second_plane_angle = 0.45;
+                }
+            },
             Scenario::FeatureRefresh => {
                 current_feature = Some(ContactFeatureIdentity {
                     feature_a: 17,
@@ -121,6 +127,14 @@ fn run_scenario<const D: usize>(scenario: Scenario, iterations: usize) -> (Count
             relative_rotation_delta_abs_upper[0][1] = sine.abs();
             relative_rotation_delta_abs_upper[1][0] = sine.abs();
             relative_rotation_delta_abs_upper[1][1] = cosine_delta.abs();
+        }
+        if D >= 4 {
+            let cosine_delta = second_plane_angle.cos() - 1.0;
+            let sine = second_plane_angle.sin();
+            relative_rotation_delta_abs_upper[2][2] = cosine_delta.abs();
+            relative_rotation_delta_abs_upper[2][3] = sine.abs();
+            relative_rotation_delta_abs_upper[3][2] = sine.abs();
+            relative_rotation_delta_abs_upper[3][3] = cosine_delta.abs();
         }
         let motion = RelativeMotionEnvelope {
             relative_translation_delta: translation,
