@@ -246,8 +246,7 @@ fn transformed_obb_classification_is_invariant_under_common_rigid_motion() {
             sample_range(&mut state, -10.0, 10.0),
         ];
 
-        let base_expected =
-            obb_sat_reference(center_a, half_a, angle_a, center_b, half_b, angle_b);
+        let base_expected = obb_sat_reference(center_a, half_a, angle_a, center_b, half_b, angle_b);
         let base_observed = gjk::intersects_transformed(
             &shape_a,
             &Transform {
