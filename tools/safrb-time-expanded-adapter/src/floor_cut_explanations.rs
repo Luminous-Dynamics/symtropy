@@ -7,8 +7,7 @@
 //! relabeling the cut as a causal root-cause or investment recommendation.
 
 use crate::beneficiary_floors::{
-    BeneficiaryFloor, BeneficiaryFloorReport, FLOOR_FEASIBILITY_SCHEMA,
-    verify_beneficiary_floor_report,
+    BeneficiaryFloor, BeneficiaryFloorReport, verify_beneficiary_floor_report,
 };
 use crate::temporal_profile::{TEMPORAL_PROFILE_SCHEMA, TemporalProfile};
 use serde::{Deserialize, Serialize};
@@ -540,7 +539,7 @@ pub fn explain_beneficiary_floor_infeasibility(
         .min_cut
         .edges
         .iter()
-        .map(|edge| attribute_cut_edge(profile, &report.base_graph, edge))
+        .map(|edge| attribute_cut_edge(profile, floors, &report.base_graph, edge))
         .collect::<Result<Vec<_>, _>>()?;
     cut_edges.sort_by(|left, right| left.auxiliary_edge_id.cmp(&right.auxiliary_edge_id));
 
