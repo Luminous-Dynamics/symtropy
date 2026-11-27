@@ -1,0 +1,28 @@
+name: AERB checkpoint rustfmt export
+
+on:
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/probe_checkpoint_v0_1.rs"
+      - ".github/workflows/aerb-checkpoint-rustfmt-export.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  export-formatted-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Format evaluator crate
+        run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml
+      - name: Export formatted checkpoint module
+        run: cp research/mobility-rrvr-aerb-v0.1/evaluator/src/probe_checkpoint_v0_1.rs "$RUNNER_TEMP/probe_checkpoint_v0_1.rs"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aerb-checkpoint-rustfmt-source
+          path: ${{ runner.temp }}/probe_checkpoint_v0_1.rs
+          if-no-files-found: error
