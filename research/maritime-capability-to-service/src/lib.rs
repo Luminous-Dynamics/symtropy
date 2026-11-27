@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+#[cfg(test)]
 const FIXTURE: &str = include_str!(
     "../../../docs/research/maritime-capability-to-service/fixtures/mcsc-counterfactual-tiny-v0.tsv"
 );
@@ -135,23 +136,21 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                         "line {line_number}: v0.1 shock must begin at day 0 and have positive duration"
                     ));
                 }
-                let dependency = dependencies.get_mut(fields[1]).ok_or_else(|| {
-                    format!(
-                        "line {line_number}: shock references undeclared dependency '{}'",
-                        fields[1]
-                    )
-                })?;
-                dependency.shocks.push(Shock { start_day, end_day });
+                pending_shocks.push((
+                    fields[1].to_owned(),
+                    Shock { start_day, end_day },
+                ));
             }
             "OPTION" if fields.len() == 11 => {
                 if fields[1].is_empty() || fields[2].is_empty() {
                     return Err(format!("line {line_number}: empty option identity or region"));
                 }
-                let dependency_ids: Vec<String> = if fields[10] == "-" {
+                let mut dependency_ids: Vec<String> = if fields[10] == "-" {
                     Vec::new()
                 } else {
                     fields[10].split(',').map(str::to_owned).collect()
                 };
+                dependency_ids.sort();
                 if dependency_ids.iter().any(String::is_empty) {
                     return Err(format!("line {line_number}: empty dependency in option"));
                 }
@@ -188,6 +187,14 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
                 ));
             }
         }
+    }
+
+    // Resolve shocks after parsing so record ordering is semantically irrelevant.
+    for (dependency_id, shock) in pending_shocks {
+        let dependency = dependencies.get_mut(&dependency_id).ok_or_else(|| {
+            format!("shock references undeclared dependency '{dependency_id}'")
+        })?;
+        dependency.shocks.push(shock);
     }
 
     let (id, version) = identity.ok_or_else(|| "missing INSTANCE record".to_owned())?;
@@ -228,35 +235,51 @@ fn effective_dependency_day(dependency: &Dependency, include_shocks: bool) -> u6
     available
 }
 
-fn receiver_day(instance: &Instance, option: &PortfolioOption, include_shocks: bool) -> u64 {
+fn receiver_day(
+    instance: &Instance,
+    option: &PortfolioOption,
+    include_shocks: bool,
+) -> Result<u64, String> {
     let ready_day = option
         .dependencies
         .iter()
-        .filter_map(|dependency_id| instance.dependencies.get(dependency_id))
+        .map(|dependency_id| {
+            instance
+                .dependencies
+                .get(dependency_id)
+                .expect("parser validates every option dependency")
+        })
         .map(|dependency| effective_dependency_day(dependency, include_shocks))
         .max()
         .unwrap_or(0);
 
-    ready_day
-        + option.production_days
-        + option.inspection_days
-        + option.commissioning_days
-        + option.handoff_days
+    [
+        option.production_days,
+        option.inspection_days,
+        option.commissioning_days,
+        option.handoff_days,
+    ]
+    .into_iter()
+    .try_fold(ready_day, |day, duration| {
+        day.checked_add(duration)
+            .ok_or_else(|| format!("receiver-day overflow for option '{}'", option.id))
+    })
 }
 
-fn evaluate(instance: &Instance) -> Vec<Outcome> {
+fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
     instance
         .options
         .values()
         .map(|option| {
-            let receiver_day_without_shock = receiver_day(instance, option, false);
-            let receiver_day_with_shock = receiver_day(instance, option, true);
-            let on_time_units_with_shock = if receiver_day_with_shock <= instance.service.deadline_day {
-                instance.service.expected_units
-            } else {
-                0
-            };
-            Outcome {
+            let receiver_day_without_shock = receiver_day(instance, option, false)?;
+            let receiver_day_with_shock = receiver_day(instance, option, true)?;
+            let on_time_units_with_shock =
+                if receiver_day_with_shock <= instance.service.deadline_day {
+                    instance.service.expected_units
+                } else {
+                    0
+                };
+            Ok(Outcome {
                 option_id: option.id.clone(),
                 region: option.region.clone(),
                 receiver_day_without_shock,
@@ -266,7 +289,7 @@ fn evaluate(instance: &Instance) -> Vec<Outcome> {
                 cost_units: option.cost_units,
                 emissions_units: option.emissions_units,
                 regional_value_units: option.regional_value_units,
-            }
+            })
         })
         .collect()
 }
@@ -295,6 +318,26 @@ fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
             ));
         }
     }
+    for option in instance.options.values() {
+        let dependencies = if option.dependencies.is_empty() {
+            "-".to_owned()
+        } else {
+            option.dependencies.join(",")
+        };
+        lines.push(format!(
+            "OPTION\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}",
+            option.id,
+            option.region,
+            option.cost_units,
+            option.production_days,
+            option.inspection_days,
+            option.commissioning_days,
+            option.handoff_days,
+            option.emissions_units,
+            option.regional_value_units,
+            dependencies
+        ));
+    }
     for outcome in outcomes {
         lines.push(format!(
             "OUTCOME\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
@@ -315,7 +358,7 @@ fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
 
 pub fn run_audit(input: &str) -> Result<String, String> {
     let instance = parse_instance(input)?;
-    let outcomes = evaluate(&instance);
+    let outcomes = evaluate(&instance)?;
     Ok(render_receipt(&instance, &outcomes))
 }
 
@@ -326,7 +369,7 @@ mod tests {
     #[test]
     fn frozen_microcase_matches_all_five_expected_outcomes() {
         let instance = parse_instance(FIXTURE).expect("fixture parses");
-        let outcomes = evaluate(&instance);
+        let outcomes = evaluate(&instance).expect("evaluation succeeds");
         let expected = [
             ("EXISTING", 23, 23, 0, 90, 45, 0),
             ("IMPORT", 13, 13, 0, 100, 40, 5),
@@ -353,6 +396,7 @@ mod tests {
     fn late_outcome_keeps_the_full_expected_denominator() {
         let instance = parse_instance(FIXTURE).expect("fixture parses");
         let import = evaluate(&instance)
+            .expect("evaluation succeeds")
             .into_iter()
             .find(|outcome| outcome.option_id == "IMPORT")
             .expect("import option exists");
