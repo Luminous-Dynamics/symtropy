@@ -34,6 +34,14 @@ The crate evaluates the following expression using the interval forward-mode AD 
 
 It returns a value enclosure and a whole-box derivative enclosure over five dimensionless inputs: measured X/Y, reference X/Y, and the threshold cosine.
 
+## Spatial derivative handoff
+
+`certify_spatial_phasor_phase_margin` accepts a pure expression evaluator over interval dual XYZ coordinates. The evaluator supplies the measured phasor, reference phasor and threshold cosine as expressions of the exact cell coordinates. The function checks the nonzero norm bounds and threshold domain, evaluates the centered interval phase-margin expression, and maps the resulting XYZ derivative suprema through `map_spatial_derivative_suprema`.
+
+The returned `SpatialDerivativeSupremumEvidence` is suitable for the spatial certifier's derivative-bound fields when cell/frame/condition/model/solver/geometry/material/requirement identities match. It contains the phase margin's derivative suprema in dimensionless-per-metre units.
+
+**This does not create the spatial certifier's centre margin.** The centre measurement, measurement uncertainty and centre-margin interval must still be independently supplied at the exact box centre. The whole-cell value enclosure is not substituted for that sample. A separate minimum-amplitude margin is also required.
+
 ## Fail-closed contract
 
 - Parameter identity/order, units, expression ID, requirement and interval-domain provenance are explicit.
