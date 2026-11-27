@@ -325,7 +325,7 @@ fn render_receipt(instance: &Instance, outcomes: &[Outcome]) -> String {
             option.dependencies.join(",")
         };
         lines.push(format!(
-            "OPTION\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}",
+            "OPTION\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}\\t{}",
             option.id,
             option.region,
             option.cost_units,
