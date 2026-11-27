@@ -329,8 +329,11 @@ fn cholesky(matrix: &[f64; 36]) -> Option<[[f64; 6]; 6]> {
     for row in 0..6 {
         for column in 0..=row {
             let mut sum = matrix[row * 6 + column];
-            for k in 0..column {
-                sum -= lower[row][k] * lower[column][k];
+            for (left, right) in lower[row][..column]
+                .iter()
+                .zip(lower[column][..column].iter())
+            {
+                sum -= left * right;
             }
             if row == column {
                 if !sum.is_finite() || sum <= f64::EPSILON * scale * 16.0 {
