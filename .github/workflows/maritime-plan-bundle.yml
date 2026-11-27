@@ -1,0 +1,43 @@
+name: maritime-plan-bundle
+
+on:
+  push:
+    paths:
+      - "research/maritime-plan-bundle/**"
+      - ".github/workflows/maritime-plan-bundle.yml"
+  pull_request:
+    paths:
+      - "research/maritime-plan-bundle/**"
+      - ".github/workflows/maritime-plan-bundle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-plan-bundle/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-plan-bundle/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-plan-bundle/Cargo.toml --all-targets -- -D warnings
+      - name: Emit deterministic plan-bundle receipt
+        run: cargo run --locked --manifest-path research/maritime-plan-bundle/Cargo.toml --bin plan-bundle-audit > plan-bundle-receipt.tsv
+      - name: Independent reference and frozen multi-party cases
+        run: python3 research/maritime-plan-bundle/scripts/independent_reference.py --receipt plan-bundle-receipt.tsv
+      - name: Upload deterministic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-plan-bundle-receipt
+          path: plan-bundle-receipt.tsv
+          if-no-files-found: error
+          retention-days: 30
