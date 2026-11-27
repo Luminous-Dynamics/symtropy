@@ -902,11 +902,11 @@ mod tests {
     #[test]
     fn capability_receipt_can_supply_the_only_admitted_plan_evidence() {
         let fixture = concat!(
-            "INSTANCE\\tMCSC-NO-DEPENDENCY\\tv0.4\\n",
-            "SERVICE\\tS\\t10\\tcargo_unit\\t10\\n",
-            "OPTION\\tO\\tIMPORT\\t1\\t1\\t1\\t1\\t1\\t1\\t0\\t-\\tREV-001\\n",
-            "INSPECTION\\tO\\tPASS\\t10\\tREV-001\\n",
-            "RECEIVER_ACCEPTANCE\\tO\\tACCEPTED\\t10\\tREV-001\\n",
+            "INSTANCE\tMCSC-NO-DEPENDENCY\tv0.4\n",
+            "SERVICE\tS\t10\tcargo_unit\t10\n",
+            "OPTION\tO\tIMPORT\t1\t1\t1\t1\t1\t1\t0\t-\tREV-001\n",
+            "INSPECTION\tO\tPASS\t10\tREV-001\n",
+            "RECEIVER_ACCEPTANCE\tO\tACCEPTED\t10\tREV-001\n",
         );
         let receipt = run_audit(fixture)
             .expect("an option can be sourced through an external capability receipt");
@@ -938,6 +938,23 @@ mod tests {
         assert_eq!(value.cost_units_delta, 55);
         assert_eq!(value.emissions_units_delta, -13);
         assert_eq!(value.regional_value_units_delta, 60);
+
+        // Partial receiver acceptance changes accepted quantity independently from
+        // inspection qualification and from on-time delivery.
+        let partial_fixture = FIXTURE.replace(
+            "RECEIVER_ACCEPTANCE\\tLOCAL-C\\tACCEPTED\\t10\\tREV-001",
+            "RECEIVER_ACCEPTANCE\\tLOCAL-C\\tACCEPTED\\t6\\tREV-001",
+        );
+        let partial_instance = parse_instance(&partial_fixture).unwrap();
+        let partial_outcomes = evaluate(&partial_instance).unwrap();
+        let partial_local_c = partial_outcomes
+            .iter()
+            .find(|outcome| outcome.option_id == "LOCAL-C")
+            .unwrap();
+        let partial_value = compare_service_options(existing, partial_local_c).unwrap();
+        assert_eq!(partial_value.inspection_qualified_units_delta, 0);
+        assert_eq!(partial_value.receiver_accepted_units_delta, -4);
+        assert_eq!(partial_value.on_time_accepted_units_delta, 6);
     }
 
     #[test]
