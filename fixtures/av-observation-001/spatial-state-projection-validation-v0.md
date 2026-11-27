@@ -186,3 +186,6 @@ Do not silently convert BLAKE3 to SHA-256 and discard the upstream digest. If a 
 
 
 The v0 schema represents both calibration-state and clock-transform references as the same explicit algorithm/value object used for source content digests. Projection envelope, evidence-prefix, producer revision and parent projection digests remain SHA-256 by this schema's declared convention.
+
+
+A transform's epistemic origin is required in v0, matching entity and relation claims. The candidate must distinguish observed/inferred/remembered/predicted/simulated/counterfactual transform state; origin must never be inferred from confidence or calibration metadata.
