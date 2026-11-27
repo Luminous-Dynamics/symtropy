@@ -184,3 +184,8 @@ The follow-on [conformal decision protocol](conformal-decision-contract-v0.1.md)
 Finite intervals now retain model, feature-schema and calibration-data SHA-256 digests, model-fit cutoff and calibration-window boundaries. A public validator checks exact finite-sample rank, claim semantics, provenance encoding, chronology and endpoint arithmetic before a downstream action gate can use an interval.
 
 This remains a calibration and decision-gate primitive, not a predictive model, full berth/crane optimizer or evidence that a Durban deployment achieves nominal coverage. Conditional coverage and distribution shift remain explicit research questions.
+## Sequential conformal benchmark under maritime drift
+
+The follow-on [sequential conformal protocol](sequential-conformal-benchmark-protocol-v0.1.md) is tracked in [MCSC-SEQUENTIAL-CONFORMAL-001 #7866](https://github.com/Luminous-Dynamics/symtropy/issues/7866). It compares fixed split conformal with rolling windows, ACI, ECI, SAOCP, heterogeneous-horizon ensembles and fresh-fold sequential calibration under temporal dependence, regime shifts, delayed labels and multistage selection.
+
+The protocol preserves each method's guarantee class and evaluates prequential coverage, interval width, subgroup gaps, shift-recovery time and online compute. It is a benchmark plan; it does not claim these methods have already been implemented or reproduced here.
