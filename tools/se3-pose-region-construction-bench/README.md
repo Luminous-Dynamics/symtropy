@@ -48,9 +48,9 @@ The box/cap is an outer approximation of the **joint tangent ellipsoid**. It doe
 - Profile, runtime receipt and calibration-score artifact identities are retained.
 - The profile must be current, scope-matched, source-authentication-claimed, sufficiently sampled and above its declared held-out coverage lower-confidence-bound floor.
 - The exact 95% split-conformal rank is recomputed using checked integer arithmetic.
-- Covariance must be finite, symmetric and positive definite.
+- Covariance must be finite and exactly symmetric; outward-rounded interval Cholesky must prove every pivot strictly positive. Inconclusive or excessively ill-conditioned cases fail closed.
 - Non-finite inputs, invalid conventions, authority escalation and arithmetic/representation overflow never produce a region.
-- Outward rounding is explicit for addition, square root, multiplication and integer interval conversion.
+- Outward rounding is explicit throughout the interval-Cholesky definiteness proof, spectral row bounds, square root, multiplication and integer interval conversion.
 - Duplicate sample identities invalidate every occurrence.
 - Output flags for locally verified source authentication, authenticated bytes, physical calibration, deterministic safety and maneuver authority remain false.
 
@@ -74,7 +74,7 @@ The CLI emits a deterministic JSON receipt bound to the exact source commit and 
 ## Frozen corpus
 
 The v0.1 CSV contains 35 rows, including:
-- positive controls with diagonal and correlated covariance;
+- positive controls with diagonal, correlated and near-singular-but-positive-definite covariance;
 - signed and near-zero translations;
 - weak/stale/undersampled calibration profiles;
 - rank, digest, score, tangent and perturbation mismatches;
