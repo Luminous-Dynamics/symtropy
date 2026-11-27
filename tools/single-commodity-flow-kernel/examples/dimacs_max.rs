@@ -42,7 +42,7 @@ fn parse_dimacs_max(input: &str) -> Result<FlowGraph, String> {
                 let arc_count = tokens[3]
                     .parse::<usize>()
                     .map_err(|_| format!("line {line_number}: invalid arc count"))?;
-                if node_count < 2 || node_count > MAX_NODES {
+                if !(2..=MAX_NODES).contains(&node_count) {
                     return Err(format!(
                         "line {line_number}: node count outside supported kernel range 2..={MAX_NODES}"
                     ));
