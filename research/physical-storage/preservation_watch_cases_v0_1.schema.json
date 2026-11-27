@@ -26,8 +26,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 20,
+      "maxItems": 20,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -112,7 +112,9 @@
                 "observer_id",
                 "provenance",
                 "supersedes_observation_id",
-                "observed_independent_copies"
+                "observed_independent_copies",
+                "remediation_receipt_id",
+                "remediation_receipt_sha256"
               ],
               "properties": {
                 "observation_id": {
@@ -190,6 +192,20 @@
                     "null"
                   ],
                   "minimum": 0
+                },
+                "remediation_receipt_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "minLength": 1
+                },
+                "remediation_receipt_sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[0-9a-fA-F]{64}$"
                 }
               }
             }
