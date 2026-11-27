@@ -164,7 +164,7 @@ The intended contribution is not a new generic AABB tree or a claim that pair ca
 
 ## 7. Current evidence boundary
 
-Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, manifold and warm-start payload revisions/digests, a post-action stamp commit barrier, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, immutable before/after receipt replay with post-stamp payload checks, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
+Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, manifold and warm-start payload revisions/digests, a post-action stamp commit barrier, deterministic candidate-pair-to-contact-work action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, immutable before/after receipt replay with post-stamp payload checks, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
 
 Not yet implemented or established: authoritative live world mutation journal integration; canonical serialization and independent re-hashing of actual contact/manifold/impulse payload bytes; separate verifier process/trust anchor; live contact-manager or solver integration; matched external-engine runs; exact-head Rust formatting, tests, Clippy or release timings.
 
@@ -229,3 +229,13 @@ The verifier includes tests for:
 - rejecting material refresh without warm-start revision advancement.
 
 The benchmark follow-on should measure receipt construction, independent replay CPU, serialization size, verifier memory and the ratio of safe-fallback transitions. These costs must be included in the end-to-end tick and in any speed claims.
+### 8.2 Candidate topology is not exact contact topology
+
+The present AABB receipt prototype uses the broadphase candidate relation as its pair relation. That is suitable for candidate-to-contact work obligations, but it does not distinguish an exact narrowphase contact from a conservative false-positive candidate. Therefore the absence of a post-contact stamp after a geometry refresh is not by itself proof that narrowphase ran and found no contact.
+
+The next receipt revision is tracked in [#7702 — separate candidate and exact contact relations](https://github.com/Luminous-Dynamics/symtropy/issues/7702). It will maintain both:
+- candidate relation: conservative broadphase pairs;
+- exact contact relation: pairs with an actual narrowphase/manifold result, constrained to be a subset of candidates.
+
+The receipt must explicitly derive contact-created, contact-retained and contact-ended outcomes separately from candidate added/removed/revalidated events. Every current exact contact needs one current payload stamp; every ended contact needs an explicit reason; a new candidate needs an explicit narrowphase result even when no contact is found. Until this is implemented, the current planner should be described as translating candidate-pair events into contact work obligations, not as proving the exact contact topology.
+
