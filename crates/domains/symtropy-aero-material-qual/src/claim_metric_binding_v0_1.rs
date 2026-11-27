@@ -204,21 +204,54 @@ impl ClaimMetricSemanticBindingV0_1 {
             }
         }
         for (field, value) in [
-            ("SPECIFICATION_PAYLOAD", self.claim_specification_payload_sha256.as_str()),
-            ("SPECIFICATION_SEMANTIC", self.claim_specification_semantic_sha256.as_str()),
+            (
+                "SPECIFICATION_PAYLOAD",
+                self.claim_specification_payload_sha256.as_str(),
+            ),
+            (
+                "SPECIFICATION_SEMANTIC",
+                self.claim_specification_semantic_sha256.as_str(),
+            ),
             ("DECISION_CONTEXT", self.decision_context_sha256.as_str()),
             ("MODEL_CREDIBILITY", self.model_credibility_sha256.as_str()),
-            ("OWNER_EVIDENCE_CUT", self.owner_evidence_cut_sha256.as_str()),
+            (
+                "OWNER_EVIDENCE_CUT",
+                self.owner_evidence_cut_sha256.as_str(),
+            ),
             ("METRIC_DEFINITION", self.metric_definition_sha256.as_str()),
             ("MAPPING_BASIS", self.semantic_mapping_basis_sha256.as_str()),
-            ("POPULATION_MANIFEST", self.population_manifest_sha256.as_str()),
-            ("UNCERTAINTY_PROFILE", self.uncertainty_profile_sha256.as_str()),
-            ("METRIC_SEMANTICS_RECORD", self.metric_semantics_record_sha256.as_str()),
-            ("MODEL_REPORT_RECORD", self.model_report_record_sha256.as_str()),
-            ("OWNER_ATTESTATION_RECORD", self.owner_attestation_record_sha256.as_str()),
-            ("PRODUCER_AUTHORITY_RECORD", self.producer_authority_receipt_sha256.as_str()),
-            ("SEMANTIC_VALIDATION_RECORD", self.semantic_validation_receipt_sha256.as_str()),
-            ("RECEIVER_FIRST_SEEN_RECORD", self.receiver_first_seen_record_sha256.as_str()),
+            (
+                "POPULATION_MANIFEST",
+                self.population_manifest_sha256.as_str(),
+            ),
+            (
+                "UNCERTAINTY_PROFILE",
+                self.uncertainty_profile_sha256.as_str(),
+            ),
+            (
+                "METRIC_SEMANTICS_RECORD",
+                self.metric_semantics_record_sha256.as_str(),
+            ),
+            (
+                "MODEL_REPORT_RECORD",
+                self.model_report_record_sha256.as_str(),
+            ),
+            (
+                "OWNER_ATTESTATION_RECORD",
+                self.owner_attestation_record_sha256.as_str(),
+            ),
+            (
+                "PRODUCER_AUTHORITY_RECORD",
+                self.producer_authority_receipt_sha256.as_str(),
+            ),
+            (
+                "SEMANTIC_VALIDATION_RECORD",
+                self.semantic_validation_receipt_sha256.as_str(),
+            ),
+            (
+                "RECEIVER_FIRST_SEEN_RECORD",
+                self.receiver_first_seen_record_sha256.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 errors.push(format!("CLAIM_METRIC_BINDING_{field}_DIGEST_MISSING"));
@@ -233,14 +266,32 @@ impl ClaimMetricSemanticBindingV0_1 {
             ("SEMANTIC_MAPPING_REF", self.semantic_mapping_ref.as_str()),
             ("POPULATION_REF", self.population_ref.as_str()),
             ("SAMPLING_UNIT_REF", self.sampling_unit_ref.as_str()),
-            ("UNCERTAINTY_METHOD_REF", self.uncertainty_method_ref.as_str()),
+            (
+                "UNCERTAINTY_METHOD_REF",
+                self.uncertainty_method_ref.as_str(),
+            ),
             ("OWNER_NAMESPACE", self.owner_namespace.as_str()),
-            ("METRIC_SEMANTICS_REF", self.metric_semantics_evidence_ref.as_str()),
+            (
+                "METRIC_SEMANTICS_REF",
+                self.metric_semantics_evidence_ref.as_str(),
+            ),
             ("MODEL_REPORT_REF", self.model_report_evidence_ref.as_str()),
-            ("OWNER_ATTESTATION_REF", self.owner_attestation_evidence_ref.as_str()),
-            ("PRODUCER_AUTHORITY_REF", self.producer_authority_receipt_ref.as_str()),
-            ("SEMANTIC_VALIDATION_REF", self.semantic_validation_receipt_ref.as_str()),
-            ("RECEIVER_FIRST_SEEN_REF", self.receiver_first_seen_receipt_ref.as_str()),
+            (
+                "OWNER_ATTESTATION_REF",
+                self.owner_attestation_evidence_ref.as_str(),
+            ),
+            (
+                "PRODUCER_AUTHORITY_REF",
+                self.producer_authority_receipt_ref.as_str(),
+            ),
+            (
+                "SEMANTIC_VALIDATION_REF",
+                self.semantic_validation_receipt_ref.as_str(),
+            ),
+            (
+                "RECEIVER_FIRST_SEEN_REF",
+                self.receiver_first_seen_receipt_ref.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 errors.push(format!("CLAIM_METRIC_BINDING_{field}_MISSING"));
@@ -286,7 +337,9 @@ impl ClaimMetricSemanticBindingV0_1 {
             if evidence_ref.trim().is_empty() {
                 errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_MISSING".to_owned());
             } else if !valid_identifier(evidence_ref) {
-                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned());
+                errors.push(
+                    "CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned(),
+                );
             }
             if !required_refs.insert(evidence_ref.as_str()) {
                 errors
@@ -738,12 +791,16 @@ impl ClaimMetricSemanticBindingV0_1 {
         for (role, evidence_ref, expected_record_sha256) in required_owner_records {
             if evidence_ref.trim().is_empty() || expected_record_sha256.trim().is_empty() {
                 incomplete = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_MISSING"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_MISSING"
+                ));
                 continue;
             }
             if !valid_identifier(evidence_ref) || !valid_sha256(expected_record_sha256) {
                 rejected = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_INVALID"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_INVALID"
+                ));
                 continue;
             }
             if !distinct_refs.insert(evidence_ref) {
@@ -1434,10 +1491,16 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.receiver_first_seen_record_sha256 = "8".repeat(64);
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_RECEIPT_OWNER_RECORD_DIGEST_MISMATCH".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Rejected
+        );
+        assert!(
+            result.reason_codes.contains(
+                &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_RECEIPT_OWNER_RECORD_DIGEST_MISMATCH"
+                    .to_owned()
+            )
+        );
     }
 
     #[test]
@@ -1445,17 +1508,24 @@ mod tests {
         let mut fixture = fixture();
         let receiver_ref = fixture.binding.receiver_first_seen_receipt_ref.clone();
         fixture.binding.receiver_first_seen_receipt_ref.clear();
-        fixture.binding.required_evidence_refs.retain(|reference| reference != &receiver_ref);
+        fixture
+            .binding
+            .required_evidence_refs
+            .retain(|reference| reference != &receiver_ref);
         fixture.context.required_evidence_manifest_sha256 =
             compute_required_evidence_manifest_sha256(&fixture.binding.required_evidence_refs)
                 .unwrap();
-        fixture.binding.decision_context_sha256 =
-            fixture.context.compute_sha256().unwrap();
+        fixture.binding.decision_context_sha256 = fixture.context.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_MISSING".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Incomplete
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_MISSING".to_owned())
+        );
     }
 
     #[test]
@@ -1472,21 +1542,31 @@ mod tests {
             compute_required_evidence_manifest_sha256(&fixture.binding.required_evidence_refs)
                 .unwrap_or_else(|_| fixture.context.required_evidence_manifest_sha256.clone());
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_NONCANONICAL".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Rejected
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_REF_NONCANONICAL".to_owned())
+        );
     }
 
     #[test]
     fn missing_receiver_first_seen_owner_record_is_unverified() {
         let mut fixture = fixture();
         let receiver_ref = fixture.binding.receiver_first_seen_receipt_ref.clone();
-        fixture.owner_cut.evidence_records.retain(|record| record.evidence_ref != receiver_ref);
-        fixture.binding.owner_evidence_cut_sha256 =
-            fixture.owner_cut.compute_sha256().unwrap();
+        fixture
+            .owner_cut
+            .evidence_records
+            .retain(|record| record.evidence_ref != receiver_ref);
+        fixture.binding.owner_evidence_cut_sha256 = fixture.owner_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Unverified);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Unverified
+        );
         assert!(result.reason_codes.contains(
             &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_RECEIPT_OWNER_RECORD_MISSING".to_owned()
         ));
@@ -1572,10 +1652,15 @@ mod tests {
         let mut fixture = fixture();
         fixture.payload_sha256.clear();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISSING".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Incomplete
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISSING".to_owned())
+        );
     }
 
     #[test]
@@ -1583,10 +1668,15 @@ mod tests {
         let mut fixture = fixture();
         fixture.payload_sha256 = "not-a-digest".to_owned();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_INVALID".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Rejected
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_INVALID".to_owned())
+        );
     }
 
     #[test]
@@ -1594,10 +1684,15 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.claim_specification_payload_sha256.clear();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_SPECIFICATION_PAYLOAD_DIGEST_MISSING".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Incomplete
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_SPECIFICATION_PAYLOAD_DIGEST_MISSING".to_owned())
+        );
         assert!(
             !result
                 .reason_codes
