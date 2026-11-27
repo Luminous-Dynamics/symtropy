@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use maritime_capability_to_service::{
-    compare_recovery_regret, RecoveryServiceOutcome,
-};
+use maritime_capability_to_service::{RecoveryServiceOutcome, compare_recovery_regret};
 
 const MANIFEST: &str = include_str!(concat!(
     "../../../docs/research/maritime-capability-to-service/fixtures/",
