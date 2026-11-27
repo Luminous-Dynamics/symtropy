@@ -307,6 +307,55 @@ mod tests {
         interval(value, value)
     }
 
+    fn spatial_domain() -> ParameterDomain<3> {
+        ParameterDomain {
+            record_id: "spatial-phase-record-001".to_owned(),
+            expression_id: PHASE_MARGIN_EXPRESSION_ID.to_owned(),
+            cell_id: "phase-cell-xyz-001".to_owned(),
+            input_sha256: DIGEST_A.to_owned(),
+            source_revision: "spatial-phasor-model-v1".to_owned(),
+            implementation_id: "magnetic-phasor-margin".to_owned(),
+            artifact_sha256: DIGEST_B.to_owned(),
+            environment_sha256: DIGEST_C.to_owned(),
+            parameter_ids: ["x".to_owned(), "y".to_owned(), "z".to_owned()],
+            parameter_units: [
+                "metre".to_owned(),
+                "metre".to_owned(),
+                "metre".to_owned(),
+            ],
+            parameter_bounds: [
+                interval(-0.1, 0.1),
+                interval(-0.1, 0.1),
+                interval(-0.05, 0.05),
+            ],
+            output_unit: "dimensionless".to_owned(),
+            coordinate_frame_id: "encoder-phase-spatial-frame".to_owned(),
+            operating_condition_id: "nominal-speed-temperature".to_owned(),
+            model_set_id: "encoder-response-model-v1".to_owned(),
+            solver_run_id: "spatial-response-run-001".to_owned(),
+            geometry_sha256: DIGEST_A.to_owned(),
+            material_sha256: DIGEST_B.to_owned(),
+            requirement_id: "maximum-shortest-arc-phase-error".to_owned(),
+        }
+    }
+
+    fn spatial_phasors(
+        [x, y, _z]: [IntervalDual<3>; 3],
+    ) -> Result<PhasorComponents<3>, IntervalAdError> {
+        let one = IntervalDual::constant(Interval::ONE);
+        let zero = IntervalDual::constant(Interval::ZERO);
+        let point_one = IntervalDual::constant(point(0.1));
+        let point_two = IntervalDual::constant(point(0.2));
+        let cosine_limit = IntervalDual::constant(point(0.95));
+        Ok(PhasorComponents {
+            measured_x: one + point_one * x,
+            measured_y: point_two * y,
+            reference_x: one,
+            reference_y: zero,
+            minimum_cosine: cosine_limit,
+        })
+    }
+
     fn enclosure_contains(enclosure: Interval, value: f64) -> bool {
         enclosure.lower() <= value && enclosure.upper() >= value
     }
@@ -453,6 +502,74 @@ mod tests {
                 .expect_err("phasor components are dimensionless"),
             PhaseMarginError::WrongParameterUnit { index: 0 }
         );
+    }
+
+    #[test]
+    fn spatial_phase_margin_exports_xyz_derivative_suprema() {
+        let scope = spatial_domain();
+        let certificate = certify_spatial_phasor_phase_margin(&scope, spatial_phasors)
+            .expect("nonzero phasors throughout the spatial cell");
+        let mapped = &certificate.spatial_derivative_evidence;
+
+        assert_eq!(mapped.cell_id, "phase-cell-xyz-001");
+        assert_eq!(
+            mapped.axis_parameter_ids,
+            ["x".to_owned(), "y".to_owned(), "z".to_owned()]
+        );
+        assert_eq!(mapped.axis_bounds_m, scope.parameter_bounds);
+        assert_eq!(mapped.output_unit, "dimensionless");
+        assert_eq!(mapped.derivative_unit, "dimensionless/metre");
+        assert_eq!(mapped.requirement_id, scope.requirement_id);
+        assert!(mapped.derivative_abs_supremum_by_axis.iter().all(|value| value.is_finite()));
+        assert!(certificate.measured_norm_squared_enclosure.lower() > 0.0);
+        assert!(certificate.reference_norm_squared_enclosure.lower() > 0.0);
+        assert!(certificate.minimum_cosine_enclosure.lower() > -1.0);
+        assert!(certificate.minimum_cosine_enclosure.upper() <= 1.0);
+    }
+
+    #[test]
+    fn spatial_phase_margin_does_not_create_a_centre_measurement() {
+        let scope = spatial_domain();
+        let certificate = certify_spatial_phasor_phase_margin(&scope, spatial_phasors)
+            .expect("valid spatial phase envelope");
+        assert_eq!(certificate.derivative_enclosure.cell_id, scope.cell_id);
+        // The spatial centre sample and uncertainty are still required by
+        // CellMarginEvidence; only derivative evidence is provided here.
+        assert_eq!(certificate.spatial_derivative_evidence.source_record_id,
+            certificate.derivative_enclosure.record_id);
+    }
+
+    #[test]
+    fn spatial_phase_margin_rejects_wrong_xyz_parameter_identity() {
+        let mut scope = spatial_domain();
+        scope.parameter_ids.swap(0, 1);
+        assert_eq!(
+            certify_spatial_phasor_phase_margin(&scope, spatial_phasors)
+                .expect_err("XYZ axis identities are explicit"),
+            PhaseMarginError::InvalidSpatialParameterOrder { axis: 0 }
+        );
+    }
+
+    #[test]
+    fn spatial_phase_margin_rejects_non_metre_coordinates() {
+        let mut scope = spatial_domain();
+        scope.parameter_units[1] = "millimetre".to_owned();
+        assert_eq!(
+            certify_spatial_phasor_phase_margin(&scope, spatial_phasors)
+                .expect_err("spatial bounds are in metres"),
+            PhaseMarginError::InvalidSpatialParameterUnit { axis: 1 }
+        );
+    }
+
+    #[test]
+    fn spatial_phase_margin_rejects_a_different_threshold_requirement() {
+        let mut scope = spatial_domain();
+        scope.requirement_id = "other-phase-limit".to_owned();
+        // Identity itself is still valid and will be carried through; the
+        // adapter binds this record to the explicitly supplied requirement.
+        let certificate = certify_spatial_phasor_phase_margin(&scope, spatial_phasors)
+            .expect("valid alternative requirement identity");
+        assert_eq!(certificate.spatial_derivative_evidence.requirement_id, "other-phase-limit");
     }
 
     #[test]
