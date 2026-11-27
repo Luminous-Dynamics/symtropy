@@ -802,6 +802,18 @@ mod tests {
         .expect("4D two-plane relative rotation");
         assert!(bound.rotation_displacement_upper > 0.0);
         assert!(bound.rotation_displacement_upper < 1.0);
+
+        let anchor = [0.5_f64, -0.5, 0.5, 0.5];
+        let (sin_a, cos_a) = angle_a.sin_cos();
+        let (sin_b, cos_b) = angle_b.sin_cos();
+        let moved = [
+            (cos_a - 1.0) * anchor[0] - sin_a * anchor[1],
+            sin_a * anchor[0] + (cos_a - 1.0) * anchor[1],
+            (cos_b - 1.0) * anchor[2] - sin_b * anchor[3],
+            sin_b * anchor[2] + (cos_b - 1.0) * anchor[3],
+        ];
+        let actual_displacement = moved.iter().map(|value| value * value).sum::<f64>().sqrt();
+        assert!(actual_displacement <= bound.rotation_displacement_upper);
     }
 
     #[test]
