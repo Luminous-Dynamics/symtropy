@@ -83,7 +83,9 @@ fn push_length_prefixed(bytes: &mut Vec<u8>, value: &[u8]) -> Result<(), String>
 
 fn canonical_profile_bytes(profile: &TemporalProfile) -> Result<Vec<u8>, String> {
     let mut canonical = profile.clone();
-    canonical.nodes.sort_by(|left, right| left.node_id.cmp(&right.node_id));
+    canonical
+        .nodes
+        .sort_by(|left, right| left.node_id.cmp(&right.node_id));
     canonical
         .receipts
         .sort_by(|left, right| left.receipt_id.cmp(&right.receipt_id));
@@ -456,39 +458,51 @@ mod tests {
 
         let mut scenarios = pair();
         scenarios[1].profile.commodity_ref = "water".to_string();
-        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
-            .unwrap_err()
-            .contains("comparison context mismatch"));
+        assert!(
+            evaluate_coherent_scenario_set("set-v1", &scenarios)
+                .unwrap_err()
+                .contains("comparison context mismatch")
+        );
 
         let mut scenarios = pair();
         scenarios[1].profile.capacity_unit_ref = "gallon".to_string();
-        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
-            .unwrap_err()
-            .contains("comparison context mismatch"));
+        assert!(
+            evaluate_coherent_scenario_set("set-v1", &scenarios)
+                .unwrap_err()
+                .contains("comparison context mismatch")
+        );
 
         let mut scenarios = pair();
         scenarios[1].profile.quantity_boundary_ref = "facility-output-litres".to_string();
-        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
-            .unwrap_err()
-            .contains("comparison context mismatch"));
+        assert!(
+            evaluate_coherent_scenario_set("set-v1", &scenarios)
+                .unwrap_err()
+                .contains("comparison context mismatch")
+        );
 
         let mut scenarios = pair();
         scenarios[1].profile.period_timebase_ref = "synthetic:weekly-periods".to_string();
-        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
-            .unwrap_err()
-            .contains("comparison context mismatch"));
+        assert!(
+            evaluate_coherent_scenario_set("set-v1", &scenarios)
+                .unwrap_err()
+                .contains("comparison context mismatch")
+        );
 
         let mut scenarios = pair();
         scenarios[1].profile.horizon_last_period = 2;
-        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
-            .unwrap_err()
-            .contains("comparison context mismatch"));
+        assert!(
+            evaluate_coherent_scenario_set("set-v1", &scenarios)
+                .unwrap_err()
+                .contains("comparison context mismatch")
+        );
 
         let mut scenarios = pair();
         scenarios[1].profile.schema_version = "temporal-profile-v0.2".to_string();
-        assert!(evaluate_coherent_scenario_set("set-v1", &scenarios)
-            .unwrap_err()
-            .contains("comparison context mismatch"));
+        assert!(
+            evaluate_coherent_scenario_set("set-v1", &scenarios)
+                .unwrap_err()
+                .contains("comparison context mismatch")
+        );
     }
 
     #[test]
