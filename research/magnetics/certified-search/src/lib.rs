@@ -959,9 +959,11 @@ mod tests {
 
     #[test]
     fn minimum_design_width_budget_preserves_unresolved_region() {
+        let mut root = root_domain();
+        root.parameter_bounds[0] = interval(0.6, 0.8);
         let mut bounded = policy(1.0e-12);
         bounded.minimum_design_widths = vec![3.0];
-        let result = branch_and_bound(&root_domain(), 1, bounded, objective, margin)
+        let result = branch_and_bound(&root, 1, bounded, objective, margin)
             .expect("valid minimum width budget");
         assert!(result.incumbent.is_some());
         assert_eq!(result.unresolved_leaf_count, 1);
