@@ -850,25 +850,32 @@ mod tests {
         fs::remove_dir_all(directory).expect("remove fixture directory");
     }
 
+    fn overwrite_first_power(directory: &Path, key: &ProfileKey, value: &str) {
+        let path = directory.join(key.file_name());
+        let source = fs::read_to_string(&path).expect("read source profile");
+        let mut lines = source.lines().map(str::to_owned).collect::<Vec<_>>();
+        let time = lines
+            .get(1)
+            .and_then(|line| line.split(',').next())
+            .expect("first data timestamp")
+            .to_owned();
+        lines[1] = format!("{time},{value}");
+        fs::write(path, lines.join("\n") + "\n").expect("rewrite source profile");
+    }
+
     #[test]
     fn rejects_negative_and_non_finite_power_values() {
+        let key = expected_keys().into_iter().next().expect("expected profile key");
+
         let negative_dir = temporary_directory("negative-power");
         write_fixture_archive(&negative_dir, 0.0);
-        let key = expected_keys().into_iter().next().expect("expected profile key");
-        let path = negative_dir.join(key.file_name());
-        let source = fs::read_to_string(&path).expect("read negative fixture");
-        let changed = source.replacen("8.000000", "-1.000000", 1);
-        fs::write(&path, changed).expect("write negative fixture");
+        overwrite_first_power(&negative_dir, &key, "-1.000000");
         assert!(audit_archive(&negative_dir).is_err());
         fs::remove_dir_all(negative_dir).expect("remove negative fixture");
 
         let non_finite_dir = temporary_directory("non-finite-power");
         write_fixture_archive(&non_finite_dir, 0.0);
-        let key = expected_keys().into_iter().next().expect("expected profile key");
-        let path = non_finite_dir.join(key.file_name());
-        let source = fs::read_to_string(&path).expect("read non-finite fixture");
-        let changed = source.replacen("8.000000", "NaN", 1);
-        fs::write(&path, changed).expect("write non-finite fixture");
+        overwrite_first_power(&non_finite_dir, &key, "NaN");
         assert!(audit_archive(&non_finite_dir).is_err());
         fs::remove_dir_all(non_finite_dir).expect("remove non-finite fixture");
     }
