@@ -818,4 +818,134 @@ mod tests {
             DecisionRevalidation::CurrentForCommit { .. }
         ));
     }
+
+
+    #[test]
+    fn malformed_decision_support_receipt_digest_is_invalid() {
+        let mut receipt = receipt();
+        receipt.decision_support_receipt_sha256 = "not-a-digest".to_owned();
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::Invalid {
+                reason: InvalidReason::DigestInvalid("decision_support_receipt_sha256"),
+            }
+        );
+    }
+
+    #[test]
+    fn malformed_dependency_impact_receipt_digest_is_invalid() {
+        let receipt = receipt();
+        let mut event = change(
+            "unsigned-impact",
+            21,
+            31,
+            ChangeKind::Updated,
+            &["endpoint-profile"],
+        );
+        event.impact_receipt_sha256 = "invalid".to_owned();
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[event],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::Invalid {
+                reason: InvalidReason::DigestInvalid("change.impact_receipt_sha256"),
+            }
+        );
+    }
+
+    #[test]
+    fn change_outside_covered_knowledge_interval_is_invalid() {
+        let receipt = receipt();
+        let event = change(
+            "uncovered-late-event",
+            21,
+            32,
+            ChangeKind::Updated,
+            &["endpoint-profile"],
+        );
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[event],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::Invalid {
+                reason: InvalidReason::ChangeOutsideCoveredIngestRange {
+                    event_id: "uncovered-late-event".to_owned(),
+                },
+            }
+        );
+    }
+
+    #[test]
+    fn regressed_pre_effect_cut_is_invalid() {
+        let receipt = receipt();
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[],
+            &cut(19, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::Invalid {
+                reason: InvalidReason::CutRegressed,
+            }
+        );
+    }
+
+    #[test]
+    fn change_stream_profile_mismatch_is_invalid() {
+        let receipt = receipt();
+        let mut coverage = coverage();
+        coverage.profile_sha256 = digest('9');
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage,
+            &[],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::Invalid {
+                reason: InvalidReason::DigestInvalid("change_stream_profile_mismatch"),
+            }
+        );
+    }
+
+    #[test]
+    fn duplicate_decision_dependency_identity_is_invalid() {
+        let mut receipt = receipt();
+        receipt.dependencies.push(receipt.dependencies[0].clone());
+        let result = revalidate_before_effect(
+            &receipt,
+            &coverage(),
+            &[],
+            &cut(21, 31),
+            &receipt.action_ticket_sha256,
+        );
+        assert_eq!(
+            result,
+            DecisionRevalidation::Invalid {
+                reason: InvalidReason::DuplicateDependencyId("endpoint-profile".to_owned()),
+            }
+        );
+    }
 }
