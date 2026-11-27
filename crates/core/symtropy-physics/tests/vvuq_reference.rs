@@ -5,7 +5,7 @@
 //! - uniform-gravity semi-implicit Euler convergence against a closed form;
 //! - transformed 2D OBB overlap against an independent SAT implementation.
 //!
-//! This does not qualify 3D/4D collisions, general CCD, full rigid-body
+//! This does not qualify 4D collisions, general CCD, full rigid-body
 //! validation, experimental physics fidelity, or cross-platform determinism.
 
 use std::f64::consts::PI;
