@@ -100,9 +100,23 @@ cargo run --locked --manifest-path research/maritime-capability-to-service/Cargo
 
 The Rust reference parses the frozen service obligation, dependency inventory, day-zero shocks, alternatives, configuration revisions, inspection dispositions and receiver-acceptance dispositions. Every option must have exactly one inspection record and one receiver-acceptance record, both bound to its configuration revision. Inspection PASS can qualify a partial quantity; FAIL/UNKNOWN qualifies zero. Receiver ACCEPTED may accept no more than the inspection-qualified quantity; REJECTED/UNKNOWN accepts zero. The receipt separately reports expected, inspection-qualified, receiver-accepted and on-time accepted units. Missing/duplicate evidence, revision mismatch, over-qualification/over-acceptance, unknown/duplicate dependencies, unsupported shock timing and receiver-day overflow fail closed.
 
-Eighteen Rust unit tests and seven integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. Integration coverage includes an independent base-receipt oracle, a 30-case adversarial corpus, a Mycelix #6774 owner-receipt composition test, and three South African source-evidence controls (MVA/MW dimensional separation, unknown-period preservation and source claim-ceiling preservation). The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
+Twenty Rust unit tests and seven integration tests are authored. The unit suite covers the five hand-calculated known answers, late and partial receiver acceptance, failed/unknown inspection, rejected/unknown receiver disposition, separate inspection and receiver revision mismatch, missing/duplicate evidence records, over-qualification/over-acceptance, receiver-day overflow, input-order invariance, unknown/duplicate dependencies and unsupported shock timing. Integration coverage includes an independent base-receipt oracle, a 30-case adversarial corpus, a Mycelix #6774 owner-receipt composition test, and three South African source-evidence controls (MVA/MW dimensional separation, unknown-period preservation and source claim-ceiling preservation). The exact-head workflow runs formatting, locked tests, strict Clippy and the deterministic CLI receipt.
 
-**Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The present v0.4 extension separates inspection qualification from receiver acceptance and adds a 30-case adversarial corpus; it has not yet completed its own exact-head qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
+**Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The current extension separates inspection qualification from receiver acceptance, adds a 30-case adversarial corpus, implements vector-valued service option comparison, and consumes frozen Mycelix/receiver-service owner receipts; this exact head has not yet completed its hosted qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
+
+## Service option value: vector comparison
+
+The Rust reference now exposes `compare_service_options(baseline, candidate)`. It only compares outcomes from the same frozen instance, service obligation, receiver deadline and expected-unit denominator. It returns a vector of signed deltas—receiver day, inspection-qualified units, receiver-accepted units, on-time accepted units, cost, embodied emissions and regional value added. It does not produce a weighted score.
+
+In the frozen MCSC-TINY-001 outage case, comparing EXISTING with LOCAL-C yields:
+- receiver completion 13 days earlier;
+- no change in inspection-qualified or total receiver-accepted units;
+- 10 additional on-time receiver-accepted units;
+- 55 additional synthetic cost units;
+- 13 fewer synthetic embodied-emissions units;
+- 60 additional synthetic regional-value units.
+
+This is a modelled option-value vector, not a causal estimate or a recommendation to invest in LOCAL-C. The API rejects comparisons across different service denominators or deadlines.
 
 ## What this fixture does not establish
 
@@ -116,7 +130,7 @@ The result is conditional on the exact declared synthetic dependency topology, i
 2. Replace the frozen Mycelix receipt snapshot with an exact-digest, freshness-, rights- and authority-bound owner adapter.
 3. Extend both evidence records to actual source IDs, timestamped observations, custody/dispatch/handoff provenance and participant authority from Mycelix's owner-native artifacts.
 4. Add transitive dependency closure, stale/revoked source evidence, unknown dependency remainder, inspection measurement uncertainty, partial dispatch/receipt and cancellation/rework states.
-5. Extend beyond the current 30 cases to at least 30 frozen cases and held-out facility/shock families.
+5. Extend beyond the current 30 cases to held-out facility/shock families, transitive dependencies and lifecycle recovery.
 6. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 7. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
 
