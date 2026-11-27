@@ -157,6 +157,8 @@ def base_result(row: dict[str, str], disposition: str, reason: str | None) -> di
         "profile_revision": row["profile_revision"],
         "profile_sha256": row["profile_sha256"],
         "profile_source_bytes_authenticated": profile_authenticated,
+        "upstream_source_bytes_authenticated": frame_authenticated and profile_authenticated,
+        "source_authentication_verified_here": False,
         "sensor_mode": row["sensor_mode"],
         "frame_convention": row["frame_convention"],
         "tangent_convention": row["tangent_convention"],
@@ -175,7 +177,7 @@ def base_result(row: dict[str, str], disposition: str, reason: str | None) -> di
         "statistical_region_only": disposition == "CANDIDATE_STATISTICAL_REGION",
         "deterministic_safety_bound": False,
         "physical_calibration_validated": False,
-        "source_bytes_authenticated": frame_authenticated and profile_authenticated,
+        "source_bytes_authenticated": False,
         "maneuver_authority_granted": False,
     }
 
@@ -206,6 +208,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
 
     if row["frame_bundle_state"] != "SYNCHRONIZED":
         return base_result(row, "ABSTAIN_UNCALIBRATED", "FRAME_BUNDLE_NOT_SYNCHRONIZED")
+    if row["frame_source_bytes_authenticated"] != "true":
+        return base_result(row, "ABSTAIN_UNCALIBRATED", "FRAME_SOURCE_BYTES_NOT_AUTHENTICATED")
 
     if (
         row["profile_dataset_id"] != row["dataset_id"]
