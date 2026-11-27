@@ -186,7 +186,9 @@ fn censored_receiver_units_produce_bounds_and_unknown_floor_not_assumed_success(
             quantity: 1,
             unit: "cargo_unit".to_owned(),
             deadline_at: 20,
-            evidence: OutcomeEvidence::Censored { last_observed_at: 15 },
+            evidence: OutcomeEvidence::Censored {
+                last_observed_at: 15,
+            },
         });
     }
     let floor = ProtectedServiceFloor {
