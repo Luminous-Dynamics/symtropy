@@ -631,3 +631,49 @@ These are prospective Symtropy/Symthaea research targets, not reported THUD++ re
 ### 23.8 Dynamic map-persistence implementation owner
 
 The THUD++ dynamic-scene benchmark adapter is now tracked under [DYN-MAP-PERSISTENCE-001 #7787](https://github.com/Luminous-Dynamics/symtropy/issues/7787). It owns static-structure versus transient-occupancy scenarios, density splits, map-change metrics and matched RGB-D reproduction planning. It composes the existing #1595 world, #6183 AV observation, #6201 replay, #7693 map evaluator and #6754 custody boundaries; it does not add a second map store or object tracker.
+
+
+## 24. Failure-inclusive SOTA comparison and trajectory coverage
+
+Current leaderboards can report excellent conditional trajectory error while excluding tracking failures. CROSS's live leaderboard explicitly states that failed sequences (tracking coverage below 80%, crash or timeout) are omitted from the mean ATE and that such rows are not ranked. Its published table includes configurations with substantial failure counts, including ORB-SLAM3 stereo+IMU at 9/40 failed sequences and ORB-SLAM3 monocular at 22/40 failed sequences. Those failures are part of the method's performance and must not disappear behind the surviving-sequence ATE. Source: https://jiaming.im/CROSS/leaderboard/ (checked 2026-11-27).
+
+### 24.1 Required reporting contract
+
+Every sequence-, episode-, query- and action-level result must retain its original attempt denominator and one terminal disposition:
+- completed within the declared coverage/quality envelope;
+- completed but outside the metric/quality envelope;
+- tracking lost / localization unavailable;
+- timeout / deadline missed;
+- crash / malformed output;
+- unsupported sensor, calibration or domain;
+- deliberately abstained / safely stopped;
+- unknown outcome pending reconciliation.
+
+Do not merge unsupported, unattempted, failed, abstained and successful cases into one denominator. Report counts and rates separately by disposition, sensor modality, environment, sequence and difficulty stratum.
+
+For trajectory tasks, report at minimum:
+1. **Conditional error:** ATE/RPE on sequences with valid trajectories, with the exact successful-sequence denominator.
+2. **Coverage:** fraction of sequence time/frames/trials with valid pose output; fraction of complete sequences; and lost-tracking duration.
+3. **Failure-inclusive success:** fraction of all attempted sequences satisfying both the trajectory-error threshold and the preregistered minimum-coverage threshold.
+4. **Risk–coverage frontier:** error and safety/decision quality as the system is allowed to abstain or stop at different coverage levels.
+5. **Tail behavior:** per-sequence p50/p95/p99, worst-case and catastrophic failure modes, not only a pooled mean.
+6. **Resource use:** runtime, memory, sensor and compute energy per attempted sequence, including failed work and recovery.
+
+For navigation or decision tasks, every attempted episode remains in the denominator. Report collision/near-collision, intervention, false block, route failure, safe-stop, abstention and deadline miss separately. A safe stop is not a successful route, but may be preferable to an unsafe motion; retain both outcomes instead of collapsing them.
+
+### 24.2 Do not invent one universal failure penalty
+
+Avoid assigning an arbitrary giant ATE to every failed trajectory and then hiding the choice in a single scalar. Instead, report the conditional metric, failure/coverage profile and a separately preregistered task utility or risk score. If a composite is necessary, publish the utility/loss function, failure penalty, censoring rule and sensitivity analysis before running the candidate.
+
+Use clustered paired bootstrap or other sequence/session-level uncertainty estimates; frames from one sequence are not independent samples. For stochastic agents, retain all registered seeds and report mean, dispersion, confidence intervals and all failed attempts.
+
+### 24.3 Implications for our benchmark targets
+
+- CROSS reproduction must preserve per-dataset failures, not just headline T1/T2/T3 values. Pin each sensor/odometry mode; the headline stereo+odometry mode, camera-only mode and per-system best-configuration table are different comparison contracts.
+- LaMAria reports a summary method only when it supplies results for all sequences in that challenge. Retain per-sequence failures/coverage and the challenge inclusion rule when reproducing the leaderboard.
+- THUD++ dynamic-scene and navigation results must retain trajectory coverage and pedestrian-density denominators; low ATE on only easy/low-density survivors cannot qualify static-map persistence.
+- OVO-S, ESI-Bench, VideoZeroBench and FPS-Bench should retain correct-abstention, missed-decision, unsupported-claim and incomplete-attempt counts alongside accuracy/grounding.
+
+### 24.4 Promotion gate
+
+A candidate cannot claim “better than SOTA” from a lower conditional ATE or higher success percentage alone. It must show a paired improvement on the declared task metric without an unacceptable regression in coverage, failure rate, tail risk, calibration, resource budget or abstention. Every comparison must disclose exact input modalities, data/split revisions, hardware, model/solver revisions and all attempted denominators.
