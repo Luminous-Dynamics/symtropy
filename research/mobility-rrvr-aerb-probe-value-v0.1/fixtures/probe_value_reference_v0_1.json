@@ -1,0 +1,227 @@
+{
+  "artifact_scope": "public_diagnostic_reference_vector_not_candidate_input",
+  "schema_version": "0.1",
+  "benchmark": "AERB",
+  "source_profile": "aerb-balanced-world-cycle-generator-v0.1",
+  "decision_model": {
+    "possible_world_ids": [
+      "not_dispatched",
+      "dispatched_no_effect",
+      "applied_once_ack_lost",
+      "partial_effect",
+      "duplicate_effect",
+      "stale_authority_effect",
+      "unresolved_command_holder",
+      "open_world_residual"
+    ],
+    "post_observation_decision_ids": [
+      "hold",
+      "abstain",
+      "fresh_attempt"
+    ],
+    "excluded_pre_observation_action": {
+      "id": "request_observation",
+      "reason": "Probe acquisition is selected before the observation and is not a post-observation disposition."
+    },
+    "loss_table": {
+      "hold": {
+        "not_dispatched": 0.35,
+        "dispatched_no_effect": 0.35,
+        "applied_once_ack_lost": 0.05,
+        "partial_effect": 0.1,
+        "duplicate_effect": 0.15,
+        "stale_authority_effect": 0.25,
+        "unresolved_command_holder": 0.25,
+        "open_world_residual": 0.3
+      },
+      "abstain": {
+        "not_dispatched": 0.45,
+        "dispatched_no_effect": 0.45,
+        "applied_once_ack_lost": 0.45,
+        "partial_effect": 0.45,
+        "duplicate_effect": 0.45,
+        "stale_authority_effect": 0.45,
+        "unresolved_command_holder": 0.45,
+        "open_world_residual": 0.45
+      },
+      "fresh_attempt": {
+        "not_dispatched": 0,
+        "dispatched_no_effect": 0,
+        "applied_once_ack_lost": 0.95,
+        "partial_effect": 0.95,
+        "duplicate_effect": 1,
+        "stale_authority_effect": 1,
+        "unresolved_command_holder": 0.9,
+        "open_world_residual": 1
+      }
+    },
+    "baseline_minimax_loss": 0.35
+  },
+  "probes": [
+    {
+      "probe_id": "read_endpoint_journal",
+      "acquisition_cost_units": 1,
+      "result_delay_steps": 2,
+      "outcomes": [
+        {
+          "outcome_id": "journal_no_effect_complete",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "journal_applied_once_complete",
+          "possible_world_ids": [
+            "applied_once_ack_lost",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "journal_partial_duplicate_or_stale",
+          "possible_world_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "journal_incomplete_or_holder_unresolved",
+          "possible_world_ids": [
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ],
+      "outcome_minimax_losses": [
+        0.35,
+        0.3,
+        0.3,
+        0.3
+      ],
+      "worst_case_post_observation_minimax_loss": 0.35,
+      "guaranteed_worst_case_loss_reduction": 0
+    },
+    {
+      "probe_id": "independent_pose_observation",
+      "acquisition_cost_units": 2,
+      "result_delay_steps": 5,
+      "outcomes": [
+        {
+          "outcome_id": "no_pose_change",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "target_pose_once",
+          "possible_world_ids": [
+            "applied_once_ack_lost",
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "partial_or_multiple_pose_change",
+          "possible_world_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect",
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ],
+      "outcome_minimax_losses": [
+        0.35,
+        0.3,
+        0.3
+      ],
+      "worst_case_post_observation_minimax_loss": 0.35,
+      "guaranteed_worst_case_loss_reduction": 0
+    },
+    {
+      "probe_id": "inventory_command_holders",
+      "acquisition_cost_units": 1,
+      "result_delay_steps": 3,
+      "outcomes": [
+        {
+          "outcome_id": "holder_inventory_closed",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "applied_once_ack_lost",
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect",
+            "open_world_residual"
+          ]
+        },
+        {
+          "outcome_id": "unresolved_holder_found",
+          "possible_world_ids": [
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ],
+      "outcome_minimax_losses": [
+        0.35,
+        0.3
+      ],
+      "worst_case_post_observation_minimax_loss": 0.35,
+      "guaranteed_worst_case_loss_reduction": 0
+    },
+    {
+      "probe_id": "reconcile_effect_and_scope",
+      "acquisition_cost_units": 2,
+      "result_delay_steps": 5,
+      "outcomes": [
+        {
+          "outcome_id": "complete_no_effect",
+          "possible_world_ids": [
+            "not_dispatched",
+            "dispatched_no_effect"
+          ]
+        },
+        {
+          "outcome_id": "complete_applied_once",
+          "possible_world_ids": [
+            "applied_once_ack_lost"
+          ]
+        },
+        {
+          "outcome_id": "partial_duplicate_or_stale",
+          "possible_world_ids": [
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect"
+          ]
+        },
+        {
+          "outcome_id": "scope_incomplete_or_unmodelled",
+          "possible_world_ids": [
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        }
+      ],
+      "outcome_minimax_losses": [
+        0,
+        0.05,
+        0.25,
+        0.3
+      ],
+      "worst_case_post_observation_minimax_loss": 0.3,
+      "guaranteed_worst_case_loss_reduction": 0.05
+    }
+  ],
+  "interpretation": "Finite set-valued minimax reference. No priors, outcome likelihoods, sensor calibration, empirical event frequencies, deployment-risk estimate, learned-agent result or physical qualification are implied.",
+  "expected_selection": "reconcile_effect_and_scope",
+  "expected_selection_reason": "It has the only positive guaranteed worst-case decision-loss reduction among the four generator probes; all are within the synthetic cost and deadline envelope."
+}
