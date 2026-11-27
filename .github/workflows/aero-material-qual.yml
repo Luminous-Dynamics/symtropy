@@ -2,7 +2,7 @@ name: AERO Material Qualification Contract
 
 on:
   push:
-    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
+    branches: ["research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-duplicate-event-id-fix-v0.1", "research/aero-temporal-replay-model-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1", "research/aero-claim-model-metric-binding-v0.1"]
     paths:
       - "crates/domains/symtropy-aero-material-qual/**"
       - "docs/research/aviation/AERO_EVIDENCE_BINDING_001_V0_2.md"
@@ -52,9 +52,14 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/examples/aero_claim_model_metric_binding_challenge_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_model_metric_binding_challenge_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_claim_model_metric_binding_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_model_metric_binding_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CLAIM_MODEL_METRIC_BINDING_V0_1.md"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
-    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
+    branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1", "research/aero-claim-specification-assurance-v0.1"]
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -107,6 +112,11 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
       - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
+      - "docs/research/aviation/examples/aero_claim_model_metric_binding_challenge_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_model_metric_binding_challenge_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_claim_model_metric_binding_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_model_metric_binding_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CLAIM_MODEL_METRIC_BINDING_V0_1.md"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
@@ -1042,6 +1052,61 @@ jobs:
           if not any(case["expected_disposition"] == "FORMALLY_WELL_SPECIFIED" for case in cases):
               raise SystemExit("challenge seed must retain a positive control")
           print("AERO claim-spec schemas/examples passed; 12-case challenge seed remains unreviewed and unexecuted.")
+          PY
+
+      - name: Validate AERO claim-to-model metric semantic binding schema and challenge seed
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          from jsonschema import Draft202012Validator
+
+          root = pathlib.Path.cwd()
+          pairs = [
+              (
+                  root / "docs/research/aviation/schemas/aero_claim_model_metric_binding_v0_1.schema.json",
+                  root / "docs/research/aviation/examples/aero_claim_model_metric_binding_v0_1.json",
+              ),
+              (
+                  root / "docs/research/aviation/schemas/aero_claim_model_metric_binding_challenge_v0_1.schema.json",
+                  root / "docs/research/aviation/examples/aero_claim_model_metric_binding_challenge_v0_1.json",
+              ),
+          ]
+          for schema_path, instance_path in pairs:
+              schema = json.loads(schema_path.read_text())
+              instance = json.loads(instance_path.read_text())
+              if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+                  raise SystemExit(f"{schema_path.name}: Draft 2020-12 is required")
+              Draft202012Validator.check_schema(schema)
+              errors = sorted(
+                  Draft202012Validator(schema).iter_errors(instance),
+                  key=lambda error: list(error.absolute_path),
+              )
+              if errors:
+                  for error in errors:
+                      print(f"{instance_path.name} {list(error.absolute_path)}: {error.message}", file=sys.stderr)
+                  raise SystemExit(f"{instance_path.name}: {len(errors)} schema validation errors")
+          binding = json.loads(pairs[0][1].read_text())
+          if len(binding["required_strata"]) < 1:
+              raise SystemExit("binding fixture must declare required claim/model strata")
+          if len(binding["required_evidence_refs"]) != len(set(binding["required_evidence_refs"])):
+              raise SystemExit("binding fixture required evidence references must be unique")
+          if binding["model_report_evidence_ref"] not in binding["required_evidence_refs"]:
+              raise SystemExit("model report receipt must be included in the required evidence manifest")
+          corpus = json.loads(pairs[1][1].read_text())
+          cases = corpus["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(cases) != 25 or len(ids) != len(set(ids)):
+              raise SystemExit("metric-binding challenge seed must contain exactly 25 unique cases")
+          if corpus["oracle_status"] != "NOT_INDEPENDENTLY_REVIEWED" or corpus["execution_status"] != "NOT_EXECUTED":
+              raise SystemExit("metric-binding challenge seed must remain unreviewed and unexecuted")
+          if not any(case["case_class"] == "positive_control" for case in cases):
+              raise SystemExit("challenge corpus must include a positive control; reject-all is invalid")
+          if any(case["case_class"] != "positive_control" and case["expected_disposition"] == "SEMANTICS_BOUND" for case in cases):
+              raise SystemExit("fault-bearing challenge cases cannot expect a positive semantics binding")
+          print("AERO claim-to-model metric binding schemas/examples passed; 25-case seed remains unreviewed and unexecuted.")
           PY
 
       - name: Run evaluator tests
