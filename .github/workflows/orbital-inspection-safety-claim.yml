@@ -1,0 +1,98 @@
+name: Orbital Inspection Safety Claim Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "tools/orbital-inspection-safety-claim-bench/**"
+      - "docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json"
+      - "docs/research/orbital-truss/orbital_inspection_safety_claim_corpus_v0_1.schema.json"
+      - "docs/research/orbital-truss/orbital_inspection_safety_claim_v0_1.md"
+      - ".github/workflows/orbital-inspection-safety-claim.yml"
+  push:
+    branches:
+      - "research/orbital-inspection-safety-claim-v0-1"
+    paths:
+      - "tools/orbital-inspection-safety-claim-bench/**"
+      - "docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json"
+      - "docs/research/orbital-truss/orbital_inspection_safety_claim_corpus_v0_1.schema.json"
+      - ".github/workflows/orbital-inspection-safety-claim.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typed safety claims and independent oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate frozen corpus and Draft 2020-12 schema
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.25.1
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          fixture = json.loads(Path("docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json").read_text())
+          schema = json.loads(Path("docs/research/orbital-truss/orbital_inspection_safety_claim_corpus_v0_1.schema.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = list(Draft202012Validator(schema).iter_errors(fixture))
+          assert not errors, errors
+          assert len(fixture["cases"]) == 26
+          assert len({case["case_id"] for case in fixture["cases"]}) == 26
+          print("26 typed safety-claim cases and Draft 2020-12 schema validated")
+          PY
+      - name: Format
+        run: cargo fmt --manifest-path tools/orbital-inspection-safety-claim-bench/Cargo.toml -- --check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path tools/orbital-inspection-safety-claim-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/orbital-inspection-safety-claim-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Deterministic Rust receipt replay
+        run: |
+          cargo run --quiet --locked --manifest-path tools/orbital-inspection-safety-claim-bench/Cargo.toml --bin orbital-inspection-safety-claim-bench -- docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json "$GITHUB_SHA" > /tmp/safety-claim-rust-a.json
+          cargo run --quiet --locked --manifest-path tools/orbital-inspection-safety-claim-bench/Cargo.toml --bin orbital-inspection-safety-claim-bench -- docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json "$GITHUB_SHA" > /tmp/safety-claim-rust-b.json
+          cmp /tmp/safety-claim-rust-a.json /tmp/safety-claim-rust-b.json
+      - name: Independent safety-claim oracle
+        run: |
+          python3 tools/orbital-inspection-safety-claim-bench/tests/reference_oracle.py docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json "$GITHUB_SHA" > /tmp/safety-claim-python.json
+      - name: Compare complete Rust and Python receipts
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rust = json.loads(Path("/tmp/safety-claim-rust-a.json").read_text())
+          oracle = json.loads(Path("/tmp/safety-claim-python.json").read_text())
+          assert rust == oracle
+          assert rust["expected_disposition_matches"] == 26
+          assert rust["expected_disposition_mismatches"] == 0
+          assert rust["source_bytes_authenticated"] is False
+          assert rust["authority_granted"] is False
+          cases = {case["case_id"]: case for case in rust["cases"]}
+          assert cases["SA-001-COMPOSITE-PASS"]["disposition"] == "SAFETY_CLAIMS_COMPLETE"
+          assert cases["SA-002-FINITE-ONLY"]["disposition"] == "SAFETY_CLAIM_INCOMPLETE"
+          assert cases["SA-014-PC-ONLY"]["disposition"] == "RISK_ONLY"
+          assert cases["SA-019-CLEARANCE-TOO-SMALL"]["disposition"] == "SAFETY_CLAIM_FAILED"
+          assert cases["SA-024-ABORT-REACHABLE-CONTINUATION"]["disposition"] == "SAFETY_CLAIMS_COMPLETE"
+          assert cases["SA-025-FINITE-VALID-UNTIL-EQUALS-ACTION-END"]["disposition"] == "SAFETY_CLAIMS_COMPLETE"
+          assert cases["SA-026-TERMINAL-VALID-UNTIL-EQUALS-EPOCH"]["disposition"] == "OUT_OF_SCOPE"
+          print("Rust and independent oracle agree on all 26 typed safety-claim cases")
+          PY
+      - name: Retain exact-head evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbital-inspection-safety-claim-evidence
+          path: |
+            /tmp/safety-claim-rust-a.json
+            /tmp/safety-claim-python.json
+            docs/research/orbital-truss/fixtures/inspection-safety-claim-v0_1.json
+            docs/research/orbital-truss/orbital_inspection_safety_claim_corpus_v0_1.schema.json
+          if-no-files-found: error
+          retention-days: 30
