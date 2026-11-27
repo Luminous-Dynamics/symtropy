@@ -617,13 +617,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         push_wpt_edge(
             &mut edges,
             &mut edge_metadata,
-            FlowEdge::new(
-                edge_id.clone(),
-                from,
-                to,
-                slot.max_acceptance_mwh,
-                None,
-            ),
+            FlowEdge::new(edge_id.clone(), from, to, slot.max_acceptance_mwh, None),
             "receiver_acceptance",
             format!("{}@{}", slot.receiver_id, slot.interval_index),
         );
