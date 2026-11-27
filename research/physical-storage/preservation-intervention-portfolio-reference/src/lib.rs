@@ -8,6 +8,7 @@
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+// Pairwise Pareto filtering is O(P^2); this cap bounds the reference subset space.
 pub const MAX_CANDIDATE_ACTIONS: usize = 12;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
