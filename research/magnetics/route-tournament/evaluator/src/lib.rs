@@ -299,11 +299,6 @@ pub fn evaluate_candidate(
         if observation.post_magnetization_digest != candidate.post_magnetization_digest {
             blockers.push(Blocker::PostMagnetizationBindingMismatch);
         }
-        if observation.role == EvidenceRole::MaterialCharacterization
-            && observation.record_digest != candidate.material_state_digest
-        {
-            blockers.push(Blocker::MaterialStateBindingMismatch);
-        }
         if observation.scope != cohort.scope {
             blockers.push(Blocker::WrongCohortScope);
         }
@@ -1040,6 +1035,26 @@ mod tests {
                 .iter()
                 .all(|evaluation| evaluation.blockers.contains(&Blocker::DuplicateCandidateId))
         );
+    }
+
+    #[test]
+    fn material_metric_records_may_differ_while_binding_the_same_material_state() {
+        let mut candidate = candidate("MEX-001", RouteFamily::Mex, 20.0, 0.34, 5.0);
+        candidate.observations[1].record_digest = digest('f');
+        let result = evaluate_candidate(&cohort(), &candidate);
+        assert_eq!(result.disposition, Disposition::Qualified);
+        assert!(!result
+            .blockers
+            .contains(&Blocker::MaterialStateBindingMismatch));
+    }
+
+    #[test]
+    fn physical_observation_requires_a_reference_chain() {
+        let mut candidate = candidate("MEX-001", RouteFamily::Mex, 20.0, 0.34, 5.0);
+        candidate.observations[0].reference_chain_id = None;
+        let result = evaluate_candidate(&cohort(), &candidate);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingReferenceChain));
     }
 
     #[test]
