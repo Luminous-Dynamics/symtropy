@@ -1,6 +1,6 @@
 use maritime_capability_to_service::kite::{
-    assess_action, select_as_of, ActionCandidate, AuthorityState, ClockQuality, EvidenceState,
-    EvidenceVintage, Gate, RightsState, VintageDisposition,
+    ActionCandidate, AuthorityState, ClockQuality, EvidenceState, EvidenceVintage, Gate,
+    RightsState, VintageDisposition, assess_action, select_as_of,
 };
 
 fn evidence(
@@ -46,7 +46,10 @@ fn public_api_replays_a_valid_historical_evidence_vintage() {
 
     assert_eq!(snapshot.selected["FEEDER"].vintage_id, "FEEDER-V1");
     assert_eq!(snapshot.selected["FEEDER"].admissible, Gate::Yes);
-    assert_eq!(snapshot.withheld[0].disposition, VintageDisposition::NotYetAvailable);
+    assert_eq!(
+        snapshot.withheld[0].disposition,
+        VintageDisposition::NotYetAvailable
+    );
 
     let action = ActionCandidate {
         action_id: "RECOVER-FEEDER".to_owned(),
@@ -70,9 +73,23 @@ fn public_api_replays_a_valid_historical_evidence_vintage() {
 
 #[test]
 fn missing_censored_and_duplicate_prerequisites_never_make_an_action_executable() {
-    let mut censored = evidence("CENSORED", "CENSORED-V1", 1, None, 60, AuthorityState::Valid);
+    let mut censored = evidence(
+        "CENSORED",
+        "CENSORED-V1",
+        1,
+        None,
+        60,
+        AuthorityState::Valid,
+    );
     censored.evidence_state = EvidenceState::Censored;
-    let mut duplicate = evidence("DUPLICATE", "DUPLICATE-V1", 1, None, 60, AuthorityState::Valid);
+    let mut duplicate = evidence(
+        "DUPLICATE",
+        "DUPLICATE-V1",
+        1,
+        None,
+        60,
+        AuthorityState::Valid,
+    );
     duplicate.evidence_state = EvidenceState::Duplicate;
 
     let snapshot = select_as_of(&[censored, duplicate], 100).expect("as-of snapshot");
