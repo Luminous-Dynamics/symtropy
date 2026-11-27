@@ -186,7 +186,10 @@ impl OwnerEvidenceCutV0_1 {
             ("PHYSICAL_UNIT", self.physical_unit_ref.as_str()),
             ("CONFIGURATION", self.configuration_ref.as_str()),
             ("BASALT_RUN_ID", self.basalt_run_id.as_str()),
-            ("OBSERVER_COVERAGE_PROFILE", self.observer_coverage_profile_id.as_str()),
+            (
+                "OBSERVER_COVERAGE_PROFILE",
+                self.observer_coverage_profile_id.as_str(),
+            ),
         ] {
             if !valid_identifier(value) {
                 errors.push(format!("OWNER_CUT_{field}_INVALID"));
@@ -198,11 +201,20 @@ impl OwnerEvidenceCutV0_1 {
         for (field, value) in [
             ("COMPONENT_PACKET", self.component_packet_sha256.as_str()),
             ("BASALT_INPUT", self.basalt_timeline_input_sha256.as_str()),
-            ("BASALT_FINAL_STATE", self.basalt_final_state_sha256.as_str()),
+            (
+                "BASALT_FINAL_STATE",
+                self.basalt_final_state_sha256.as_str(),
+            ),
             ("BASALT_REPORT", self.basalt_report_sha256.as_str()),
-            ("RECEIPT_MANIFEST", self.receiver_receipt_manifest_sha256.as_str()),
+            (
+                "RECEIPT_MANIFEST",
+                self.receiver_receipt_manifest_sha256.as_str(),
+            ),
             ("TRUST_POLICY", self.trust_policy_sha256.as_str()),
-            ("OBSERVER_RECEIPT", self.observer_coverage_receipt_sha256.as_str()),
+            (
+                "OBSERVER_RECEIPT",
+                self.observer_coverage_receipt_sha256.as_str(),
+            ),
         ] {
             if !valid_sha256(value) {
                 errors.push(format!("OWNER_CUT_{field}_DIGEST_INVALID"));
@@ -211,9 +223,7 @@ impl OwnerEvidenceCutV0_1 {
         if self.basalt_report_version == 0 {
             errors.push("OWNER_CUT_BASALT_REPORT_VERSION_INVALID".to_owned());
         }
-        if self.observer_coverage_watermark_unix_ms
-            > self.receiver_receipt_watermark_unix_ms
-        {
+        if self.observer_coverage_watermark_unix_ms > self.receiver_receipt_watermark_unix_ms {
             errors.push("OWNER_CUT_OBSERVER_WATERMARK_AFTER_RECEIPT_CUT".to_owned());
         }
         let mut seen = BTreeSet::new();
@@ -247,7 +257,11 @@ impl OwnerEvidenceCutV0_1 {
                 )),
                 _ => {}
             }
-            if record.unresolved_inputs.iter().any(|value| !valid_identifier(value)) {
+            if record
+                .unresolved_inputs
+                .iter()
+                .any(|value| !valid_identifier(value))
+            {
                 errors.push(format!(
                     "OWNER_CUT_UNRESOLVED_INPUT_ID_INVALID:{}",
                     record.evidence_ref
@@ -478,8 +492,14 @@ mod tests {
         cut.evidence_records[0].unresolved_inputs = vec!["toolchain:rust".to_owned()];
         let blockers = cut.reviewability_blockers();
         assert!(blockers.contains(&"BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned()));
-        assert!(blockers.contains(&"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned()));
-        assert!(blockers.contains(&"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()));
+        assert!(
+            blockers.contains(&"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned())
+        );
+        assert!(
+            blockers.contains(
+                &"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()
+            )
+        );
     }
 
     #[test]
