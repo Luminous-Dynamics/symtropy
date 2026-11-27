@@ -240,11 +240,7 @@ fn check_checkpoint(snapshot: &Value, findings: &mut Findings) -> Option<u64> {
     watermark
 }
 
-fn check_observer_coverage(
-    snapshot: &Value,
-    evidence_watermark: u64,
-    findings: &mut Findings,
-) {
+fn check_observer_coverage(snapshot: &Value, evidence_watermark: u64, findings: &mut Findings) {
     match string(snapshot, "observer_coverage_status") {
         Some("SYNTHETIC_QUALIFIED_COMPLETE") => {
             if !nonempty(string(snapshot, "observer_coverage_profile_id"))
@@ -1058,7 +1054,12 @@ mod tests {
             .find(|case| case["case_id"] == "known-effective-revocation")
             .unwrap()
             .clone();
-        for field in ["event_id", "source_namespace", "certificate_id", "issuer_identity_id"] {
+        for field in [
+            "event_id",
+            "source_namespace",
+            "certificate_id",
+            "issuer_identity_id",
+        ] {
             let mut mutated = base.clone();
             mutated["events"][0][field] = Value::from("");
             for report in evaluate_temporal_replay_case_all_modes(&mutated) {
@@ -1127,9 +1128,10 @@ mod tests {
         let report = evaluate_temporal_replay_case(&uncovered, TemporalQueryMode::AsKnownAt);
         assert_eq!(report.disposition, "ABSTAIN");
         assert!(
-            report.reason_codes.iter().any(|reason| {
-                reason == "OBSERVER_COVERAGE_DOES_NOT_COVER_EVIDENCE_CUT"
-            })
+            report
+                .reason_codes
+                .iter()
+                .any(|reason| { reason == "OBSERVER_COVERAGE_DOES_NOT_COVER_EVIDENCE_CUT" })
         );
 
         let mut future = corpus()["cases"][0].clone();
@@ -1137,9 +1139,10 @@ mod tests {
         let report = evaluate_temporal_replay_case(&future, TemporalQueryMode::AsKnownAt);
         assert_eq!(report.disposition, "REJECT");
         assert!(
-            report.reason_codes.iter().any(|reason| {
-                reason == "EVIDENCE_WATERMARK_AFTER_EVALUATION_TIME"
-            })
+            report
+                .reason_codes
+                .iter()
+                .any(|reason| { reason == "EVIDENCE_WATERMARK_AFTER_EVALUATION_TIME" })
         );
     }
 
@@ -1147,28 +1150,26 @@ mod tests {
     fn trust_snapshot_requires_an_explicit_non_future_as_of_time() {
         let mut missing = corpus()["cases"][0].clone();
         missing["current_reassessment"]["trust_status_as_of_unix_ms"] = Value::Null;
-        let report = evaluate_temporal_replay_case(
-            &missing,
-            TemporalQueryMode::RecomputedWithCurrentTrust,
-        );
+        let report =
+            evaluate_temporal_replay_case(&missing, TemporalQueryMode::RecomputedWithCurrentTrust);
         assert_eq!(report.disposition, "TRUST_UNRESOLVED");
         assert!(
-            report.reason_codes.iter().any(|reason| {
-                reason == "TRUST_POLICY_SNAPSHOT_TIME_UNRESOLVED"
-            })
+            report
+                .reason_codes
+                .iter()
+                .any(|reason| { reason == "TRUST_POLICY_SNAPSHOT_TIME_UNRESOLVED" })
         );
 
         let mut future = corpus()["cases"][0].clone();
         future["current_reassessment"]["trust_status_as_of_unix_ms"] = Value::from(221_u64);
-        let report = evaluate_temporal_replay_case(
-            &future,
-            TemporalQueryMode::RecomputedWithCurrentTrust,
-        );
+        let report =
+            evaluate_temporal_replay_case(&future, TemporalQueryMode::RecomputedWithCurrentTrust);
         assert_eq!(report.disposition, "REJECT");
         assert!(
-            report.reason_codes.iter().any(|reason| {
-                reason == "TRUST_POLICY_TIME_AFTER_EVALUATION"
-            })
+            report
+                .reason_codes
+                .iter()
+                .any(|reason| { reason == "TRUST_POLICY_TIME_AFTER_EVALUATION" })
         );
     }
 
