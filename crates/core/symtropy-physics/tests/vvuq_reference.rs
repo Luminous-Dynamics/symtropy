@@ -525,9 +525,7 @@ fn transformed_obb_2d_boundary_envelope_matches_sat_and_is_symmetric() {
                 rotation: rotation.clone(),
             };
 
-            let expected = obb_sat_reference(
-                center_a, half_a, angle, center_b, half_b, angle,
-            );
+            let expected = obb_sat_reference(center_a, half_a, angle, center_b, half_b, angle);
             let observed_ab =
                 gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
                     .intersecting;
@@ -586,9 +584,8 @@ fn transformed_obb_3d_boundary_envelope_matches_fifteen_axis_sat_and_is_symmetri
                 rotation: rotation.clone(),
             };
 
-            let expected = obb_sat_3d_reference(
-                center_a, half_a, &rotation, center_b, half_b, &rotation,
-            );
+            let expected =
+                obb_sat_3d_reference(center_a, half_a, &rotation, center_b, half_b, &rotation);
             let observed_ab =
                 gjk::intersects_transformed(&shape_a, &transform_a, &shape_b, &transform_b)
                     .intersecting;
@@ -596,7 +593,11 @@ fn transformed_obb_3d_boundary_envelope_matches_fifteen_axis_sat_and_is_symmetri
                 gjk::intersects_transformed(&shape_b, &transform_b, &shape_a, &transform_a)
                     .intersecting;
 
-            assert_eq!(expected, margin <= 0.0, "3D SAT boundary convention changed");
+            assert_eq!(
+                expected,
+                margin <= 0.0,
+                "3D SAT boundary convention changed"
+            );
             assert_eq!(
                 observed_ab, expected,
                 "3D transformed GJK disagreed at rotation=({xy},{yz},{xz}), margin={margin}"
