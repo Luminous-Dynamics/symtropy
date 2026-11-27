@@ -44,6 +44,23 @@ pub struct GlobalContactRevisions {
     pub solver_config_sha256: [u8; 32],
 }
 
+/// Revision and digest of the actual cached manifold and warm-start payload.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ContactPayloadRevisions {
+    pub manifold_revision: u64,
+    pub manifold_digest_sha256: [u8; 32],
+    pub warm_start_revision: u64,
+    pub warm_start_digest_sha256: [u8; 32],
+}
+
+impl ContactPayloadRevisions {
+    #[must_use]
+    pub fn has_digests(&self) -> bool {
+        self.manifold_digest_sha256.iter().any(|byte| *byte != 0)
+            && self.warm_start_digest_sha256.iter().any(|byte| *byte != 0)
+    }
+}
+
 /// The exact revision tuple under which a contact manifold was last produced.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ContactFreshnessStamp {
@@ -51,6 +68,7 @@ pub struct ContactFreshnessStamp {
     pub global: GlobalContactRevisions,
     pub left: EndpointRevisions,
     pub right: EndpointRevisions,
+    pub payload: ContactPayloadRevisions,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -80,6 +98,11 @@ pub enum ContactFreshnessError {
     WarmStartResetNotCommitted,
     SolverActivationNotCommitted,
     PairEligibilityRecheckNotCommitted,
+    ContactPayloadDigestMissing,
+    ManifoldRevisionDidNotAdvance,
+    WarmStartRevisionDidNotAdvance,
+    ManifoldChangedWithoutRefresh,
+    WarmStartChangedWithoutReset,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -126,15 +149,20 @@ impl ContactFreshnessStamp {
         global: GlobalContactRevisions,
         left: EndpointRevisions,
         right: EndpointRevisions,
+        payload: ContactPayloadRevisions,
     ) -> Result<Self, ContactFreshnessError> {
         if pair.0 != left.proxy || pair.1 != right.proxy {
             return Err(ContactFreshnessError::PairIdentityMismatch);
+        }
+        if !payload.has_digests() {
+            return Err(ContactFreshnessError::ContactPayloadDigestMissing);
         }
         Ok(Self {
             pair,
             global,
             left,
             right,
+            payload,
         })
     }
 
@@ -312,6 +340,7 @@ impl ContactFreshnessStamp {
         warm_start_reset: bool,
         pair_eligibility_rechecked: bool,
         solver_activated: bool,
+        payload: ContactPayloadRevisions,
     ) -> Result<Self, ContactFreshnessError> {
         let decision = self.assess(global, left, right)?;
         if decision.geometry == ReuseDisposition::RefreshRequired && !geometry_refreshed {
@@ -326,7 +355,35 @@ impl ContactFreshnessStamp {
         if decision.solver_activation_required && !solver_activated {
             return Err(ContactFreshnessError::SolverActivationNotCommitted);
         }
-        Self::new(self.pair, global, left, right)
+        if !payload.has_digests() {
+            return Err(ContactFreshnessError::ContactPayloadDigestMissing);
+        }
+
+        let generation_changed = left.generation != self.left.generation
+            || right.generation != self.right.generation;
+        if !generation_changed {
+            if decision.geometry == ReuseDisposition::RefreshRequired {
+                if payload.manifold_revision <= self.payload.manifold_revision {
+                    return Err(ContactFreshnessError::ManifoldRevisionDidNotAdvance);
+                }
+            } else if payload.manifold_revision != self.payload.manifold_revision
+                || payload.manifold_digest_sha256 != self.payload.manifold_digest_sha256
+            {
+                return Err(ContactFreshnessError::ManifoldChangedWithoutRefresh);
+            }
+
+            if decision.warm_start == ReuseDisposition::RefreshRequired {
+                if payload.warm_start_revision <= self.payload.warm_start_revision {
+                    return Err(ContactFreshnessError::WarmStartRevisionDidNotAdvance);
+                }
+            } else if payload.warm_start_revision != self.payload.warm_start_revision
+                || payload.warm_start_digest_sha256 != self.payload.warm_start_digest_sha256
+            {
+                return Err(ContactFreshnessError::WarmStartChangedWithoutReset);
+            }
+        }
+
+        Self::new(self.pair, global, left, right, payload)
     }
 }
 
@@ -530,12 +587,22 @@ mod tests {
         current
     }
 
+    fn payload() -> ContactPayloadRevisions {
+        ContactPayloadRevisions {
+            manifold_revision: 1,
+            manifold_digest_sha256: [21; 32],
+            warm_start_revision: 1,
+            warm_start_digest_sha256: [22; 32],
+        }
+    }
+
     fn stamp() -> ContactFreshnessStamp {
         ContactFreshnessStamp::new(
             ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct IDs"),
             global(),
             endpoint(1),
             endpoint(2),
+            payload(),
         )
         .expect("canonical pair identity")
     }
@@ -892,11 +959,11 @@ mod tests {
         material.material += 1;
         let next = next_global();
         assert_eq!(
-            stamp.commit_transition(next, endpoint(1), material, false, false, false, false,),
+            stamp.commit_transition(next, endpoint(1), material, false, false, false, false, payload(),),
             Err(ContactFreshnessError::WarmStartResetNotCommitted)
         );
         let committed = stamp
-            .commit_transition(next, endpoint(1), material, false, true, false, false)
+            .commit_transition(next, endpoint(1), material, false, true, false, false, ContactPayloadRevisions { warm_start_revision: 2, warm_start_digest_sha256: [23; 32], ..payload() })
             .expect("warm-start reset completed");
         let next_step = GlobalContactRevisions {
             world: next.world + 1,
@@ -917,11 +984,11 @@ mod tests {
         awake.wake_epoch += 1;
         let next = next_global();
         assert_eq!(
-            stamp.commit_transition(next, awake, endpoint(2), false, false, false, false,),
+            stamp.commit_transition(next, awake, endpoint(2), false, false, false, false, payload(),),
             Err(ContactFreshnessError::SolverActivationNotCommitted)
         );
         let committed = stamp
-            .commit_transition(next, awake, endpoint(2), false, false, false, true)
+            .commit_transition(next, awake, endpoint(2), false, false, false, true, payload())
             .expect("solver island has been reactivated");
         let next_step = GlobalContactRevisions {
             world: next.world + 1,
@@ -941,7 +1008,7 @@ mod tests {
         let mut moved = endpoint(1);
         moved.transform += 1;
         assert_eq!(
-            stamp.commit_transition(next_global(), moved, endpoint(2), true, false, false, false,),
+            stamp.commit_transition(next_global(), moved, endpoint(2), true, false, false, false, ContactPayloadRevisions { manifold_revision: 2, manifold_digest_sha256: [24; 32], warm_start_revision: 2, warm_start_digest_sha256: [23; 32] },),
             Err(ContactFreshnessError::WarmStartResetNotCommitted)
         );
     }
@@ -954,13 +1021,76 @@ mod tests {
         let mut next = next_global();
         next.collision_policy += 1;
         assert_eq!(
-            stamp.commit_transition(next, filtered, endpoint(2), true, true, false, false,),
+            stamp.commit_transition(next, filtered, endpoint(2), true, true, false, false, ContactPayloadRevisions { manifold_revision: 2, manifold_digest_sha256: [24; 32], warm_start_revision: 2, warm_start_digest_sha256: [23; 32] },),
             Err(ContactFreshnessError::PairEligibilityRecheckNotCommitted)
         );
         assert!(
             stamp
-                .commit_transition(next, filtered, endpoint(2), true, true, true, false,)
+                .commit_transition(next, filtered, endpoint(2), true, true, true, false, ContactPayloadRevisions { manifold_revision: 2, manifold_digest_sha256: [24; 32], warm_start_revision: 2, warm_start_digest_sha256: [23; 32] },)
                 .is_ok()
+        );
+    }
+
+    #[test]
+    fn commit_transition_rejects_refresh_without_new_manifold_payload_revision() {
+        let stamp = stamp();
+        let mut moved = endpoint(1);
+        moved.transform += 1;
+        assert_eq!(
+            stamp.commit_transition(
+                next_global(),
+                moved,
+                endpoint(2),
+                true,
+                true,
+                false,
+                false,
+                payload(),
+            ),
+            Err(ContactFreshnessError::ManifoldRevisionDidNotAdvance)
+        );
+    }
+
+    #[test]
+    fn commit_transition_rejects_warm_start_payload_change_without_reset() {
+        let stamp = stamp();
+        let changed = ContactPayloadRevisions {
+            warm_start_revision: 2,
+            warm_start_digest_sha256: [25; 32],
+            ..payload()
+        };
+        assert_eq!(
+            stamp.commit_transition(
+                next_global(),
+                endpoint(1),
+                endpoint(2),
+                false,
+                false,
+                false,
+                false,
+                changed,
+            ),
+            Err(ContactFreshnessError::WarmStartChangedWithoutReset)
+        );
+    }
+
+    #[test]
+    fn commit_transition_rejects_missing_payload_digest() {
+        let stamp = stamp();
+        let mut missing = payload();
+        missing.manifold_digest_sha256 = [0; 32];
+        assert_eq!(
+            stamp.commit_transition(
+                next_global(),
+                endpoint(1),
+                endpoint(2),
+                false,
+                false,
+                false,
+                false,
+                missing,
+            ),
+            Err(ContactFreshnessError::ContactPayloadDigestMissing)
         );
     }
 
