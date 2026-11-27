@@ -10,18 +10,16 @@
 
 use crate::claim_specification_v0_1::{
     AggregationV0_1, ClaimSpecificationDispositionV0_1, ClaimSpecificationV0_1,
-    ComparisonOperatorV0_1, PopulationQuantifierV0_1, RationalV0_1,
-    UnitCodeV0_1, UncertaintyTreatmentV0_1,
+    ComparisonOperatorV0_1, PopulationQuantifierV0_1, RationalV0_1, UncertaintyTreatmentV0_1,
+    UnitCodeV0_1,
 };
 use crate::decision_context_v0_1::{
     DecisionContextV0_1, compute_required_evidence_manifest_sha256,
 };
-use crate::model_credibility_cut_v0_1::{
-    MetricStratumStatus, ModelCredibilityCutV0_1,
-};
+use crate::model_credibility_cut_v0_1::{MetricStratumStatus, ModelCredibilityCutV0_1};
 use crate::owner_evidence_cut_v0_1::{
-    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
-    OwnerEvidenceLifecycle, OwnerEvidenceRecordV0_1,
+    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness, OwnerEvidenceLifecycle,
+    OwnerEvidenceRecordV0_1,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -247,9 +245,7 @@ impl ClaimMetricSemanticBindingV0_1 {
                 errors.push("CLAIM_METRIC_BINDING_STRATUM_MAPPING_NOT_ONE_TO_ONE".to_owned());
             }
         }
-        if self.receiver_first_seen_earliest_unix_ms
-            > self.receiver_first_seen_latest_unix_ms
-        {
+        if self.receiver_first_seen_earliest_unix_ms > self.receiver_first_seen_latest_unix_ms {
             errors.push("CLAIM_METRIC_BINDING_RECEIVER_INTERVAL_REVERSED".to_owned());
         }
         errors.sort();
@@ -263,7 +259,8 @@ impl ClaimMetricSemanticBindingV0_1 {
                 errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_INVALID".to_owned());
             }
             if !required_refs.insert(evidence_ref.as_str()) {
-                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_DUPLICATE".to_owned());
+                errors
+                    .push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_DUPLICATE".to_owned());
             }
         }
         if self.required_evidence_refs.is_empty() {
@@ -380,7 +377,8 @@ impl ClaimMetricSemanticBindingV0_1 {
         }
         if decision_context.claim_specification_sha256 != semantic_digest {
             rejected = true;
-            reasons.insert("DECISION_CONTEXT_CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned());
+            reasons
+                .insert("DECISION_CONTEXT_CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned());
         }
 
         match compute_required_evidence_manifest_sha256(&self.required_evidence_refs) {
@@ -388,7 +386,8 @@ impl ClaimMetricSemanticBindingV0_1 {
                 if manifest_digest == decision_context.required_evidence_manifest_sha256 => {}
             Ok(_) => {
                 rejected = true;
-                reasons.insert("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned());
+                reasons
+                    .insert("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned());
             }
             Err(reason) => {
                 rejected = true;
@@ -397,17 +396,61 @@ impl ClaimMetricSemanticBindingV0_1 {
         }
 
         for (code, actual, expected) in [
-            ("CLAIM_ID", self.claim_id.as_str(), specification.claim_id.as_str()),
-            ("CLAIM_ID_CONTEXT", decision_context.claim_id.as_str(), specification.claim_id.as_str()),
-            ("SUBJECT_CONTEXT", decision_context.subject_ref.as_str(), specification.subject_ref.as_str()),
-            ("CONFIGURATION_CONTEXT", decision_context.configuration_ref.as_str(), specification.configuration_ref.as_str()),
-            ("OPERATING_ENVELOPE_CONTEXT", decision_context.operating_envelope_ref.as_str(), specification.operating_envelope_ref.as_str()),
-            ("MODEL_CLAIM_ID", model_cut.claim_id.as_str(), specification.claim_id.as_str()),
-            ("MODEL_CONFIGURATION", model_cut.configuration_ref.as_str(), specification.configuration_ref.as_str()),
-            ("MODEL_OPERATING_ENVELOPE", model_cut.operating_envelope_ref.as_str(), specification.operating_envelope_ref.as_str()),
-            ("OWNER_PHYSICAL_SUBJECT", owner_cut.physical_unit_ref.as_str(), specification.subject_ref.as_str()),
-            ("OWNER_CONFIGURATION", owner_cut.configuration_ref.as_str(), specification.configuration_ref.as_str()),
-            ("OWNER_NAMESPACE", self.owner_namespace.as_str(), owner_cut.owner_namespace.as_str()),
+            (
+                "CLAIM_ID",
+                self.claim_id.as_str(),
+                specification.claim_id.as_str(),
+            ),
+            (
+                "CLAIM_ID_CONTEXT",
+                decision_context.claim_id.as_str(),
+                specification.claim_id.as_str(),
+            ),
+            (
+                "SUBJECT_CONTEXT",
+                decision_context.subject_ref.as_str(),
+                specification.subject_ref.as_str(),
+            ),
+            (
+                "CONFIGURATION_CONTEXT",
+                decision_context.configuration_ref.as_str(),
+                specification.configuration_ref.as_str(),
+            ),
+            (
+                "OPERATING_ENVELOPE_CONTEXT",
+                decision_context.operating_envelope_ref.as_str(),
+                specification.operating_envelope_ref.as_str(),
+            ),
+            (
+                "MODEL_CLAIM_ID",
+                model_cut.claim_id.as_str(),
+                specification.claim_id.as_str(),
+            ),
+            (
+                "MODEL_CONFIGURATION",
+                model_cut.configuration_ref.as_str(),
+                specification.configuration_ref.as_str(),
+            ),
+            (
+                "MODEL_OPERATING_ENVELOPE",
+                model_cut.operating_envelope_ref.as_str(),
+                specification.operating_envelope_ref.as_str(),
+            ),
+            (
+                "OWNER_PHYSICAL_SUBJECT",
+                owner_cut.physical_unit_ref.as_str(),
+                specification.subject_ref.as_str(),
+            ),
+            (
+                "OWNER_CONFIGURATION",
+                owner_cut.configuration_ref.as_str(),
+                specification.configuration_ref.as_str(),
+            ),
+            (
+                "OWNER_NAMESPACE",
+                self.owner_namespace.as_str(),
+                owner_cut.owner_namespace.as_str(),
+            ),
         ] {
             if actual != expected {
                 rejected = true;
@@ -424,26 +467,18 @@ impl ClaimMetricSemanticBindingV0_1 {
             reasons.insert("CLAIM_SPECIFICATION_NOT_EFFECTIVE_FOR_ACQUISITION_INTERVAL".to_owned());
         }
 
-        if self.receiver_first_seen_earliest_unix_ms
-            > self.receiver_first_seen_latest_unix_ms
-        {
+        if self.receiver_first_seen_earliest_unix_ms > self.receiver_first_seen_latest_unix_ms {
             rejected = true;
             reasons.insert("CLAIM_METRIC_BINDING_RECEIVER_INTERVAL_REVERSED".to_owned());
-        } else if self.receiver_first_seen_latest_unix_ms
-            > decision_context.as_known_at_unix_ms
-        {
+        } else if self.receiver_first_seen_latest_unix_ms > decision_context.as_known_at_unix_ms {
             not_known_at_snapshot = true;
             reasons.insert("CLAIM_METRIC_BINDING_NOT_KNOWN_AT_SNAPSHOT".to_owned());
         }
-        if self.receiver_first_seen_latest_unix_ms
-            > owner_cut.receiver_receipt_watermark_unix_ms
-        {
+        if self.receiver_first_seen_latest_unix_ms > owner_cut.receiver_receipt_watermark_unix_ms {
             unverified = true;
             reasons.insert("CLAIM_METRIC_BINDING_AFTER_OWNER_RECEIPT_WATERMARK".to_owned());
         }
-        if owner_cut.receiver_receipt_watermark_unix_ms
-            > decision_context.as_known_at_unix_ms
-        {
+        if owner_cut.receiver_receipt_watermark_unix_ms > decision_context.as_known_at_unix_ms {
             rejected = true;
             reasons.insert("OWNER_RECEIPT_WATERMARK_AFTER_DECISION_SNAPSHOT".to_owned());
         }
@@ -491,8 +526,14 @@ impl ClaimMetricSemanticBindingV0_1 {
         for (code, value) in [
             ("METRIC_DEFINITION", self.metric_definition_sha256.as_str()),
             ("MAPPING_BASIS", self.semantic_mapping_basis_sha256.as_str()),
-            ("POPULATION_MANIFEST", self.population_manifest_sha256.as_str()),
-            ("UNCERTAINTY_PROFILE", self.uncertainty_profile_sha256.as_str()),
+            (
+                "POPULATION_MANIFEST",
+                self.population_manifest_sha256.as_str(),
+            ),
+            (
+                "UNCERTAINTY_PROFILE",
+                self.uncertainty_profile_sha256.as_str(),
+            ),
         ] {
             if !valid_sha256(value) {
                 rejected = true;
@@ -506,7 +547,10 @@ impl ClaimMetricSemanticBindingV0_1 {
             ("SEMANTIC_MAPPING_REF", self.semantic_mapping_ref.as_str()),
             ("POPULATION_REF", self.population_ref.as_str()),
             ("SAMPLING_UNIT_REF", self.sampling_unit_ref.as_str()),
-            ("UNCERTAINTY_METHOD_REF", self.uncertainty_method_ref.as_str()),
+            (
+                "UNCERTAINTY_METHOD_REF",
+                self.uncertainty_method_ref.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 incomplete = true;
@@ -533,7 +577,8 @@ impl ClaimMetricSemanticBindingV0_1 {
         }
         if self.population_ref != specification.population.population_ref
             || self.sampling_unit_ref != specification.population.sampling_unit_ref
-            || self.population_manifest_sha256 != specification.population.population_manifest_sha256
+            || self.population_manifest_sha256
+                != specification.population.population_manifest_sha256
             || self.population_quantifier != specification.population.quantifier
             || self.population_confidence_level_ppm != specification.population.confidence_level_ppm
         {
@@ -574,24 +619,52 @@ impl ClaimMetricSemanticBindingV0_1 {
             owner_records.insert(record.evidence_ref.as_str(), record);
         }
         let required_owner_records = [
-            ("METRIC_SEMANTICS", self.metric_semantics_evidence_ref.as_str(), self.metric_semantics_record_sha256.as_str()),
-            ("MODEL_REPORT", self.model_report_evidence_ref.as_str(), self.model_report_record_sha256.as_str()),
-            ("OWNER_ATTESTATION", self.owner_attestation_evidence_ref.as_str(), self.owner_attestation_record_sha256.as_str()),
-            ("PRODUCER_AUTHORITY_RECEIPT", self.producer_authority_receipt_ref.as_str(), self.producer_authority_receipt_sha256.as_str()),
-            ("SEMANTIC_VALIDATION_RECEIPT", self.semantic_validation_receipt_ref.as_str(), self.semantic_validation_receipt_sha256.as_str()),
+            (
+                "METRIC_SEMANTICS",
+                self.metric_semantics_evidence_ref.as_str(),
+                self.metric_semantics_record_sha256.as_str(),
+            ),
+            (
+                "MODEL_REPORT",
+                self.model_report_evidence_ref.as_str(),
+                self.model_report_record_sha256.as_str(),
+            ),
+            (
+                "OWNER_ATTESTATION",
+                self.owner_attestation_evidence_ref.as_str(),
+                self.owner_attestation_record_sha256.as_str(),
+            ),
+            (
+                "PRODUCER_AUTHORITY_RECEIPT",
+                self.producer_authority_receipt_ref.as_str(),
+                self.producer_authority_receipt_sha256.as_str(),
+            ),
+            (
+                "SEMANTIC_VALIDATION_RECEIPT",
+                self.semantic_validation_receipt_ref.as_str(),
+                self.semantic_validation_receipt_sha256.as_str(),
+            ),
         ];
-        let required_refs = self.required_evidence_refs.iter().map(String::as_str).collect::<BTreeSet<_>>();
+        let required_refs = self
+            .required_evidence_refs
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
         for (_, evidence_ref, _) in required_owner_records {
             if !required_refs.contains(evidence_ref) {
                 rejected = true;
-                reasons.insert("CLAIM_METRIC_BINDING_OWNER_RECEIPT_NOT_IN_REQUIRED_MANIFEST".to_owned());
+                reasons.insert(
+                    "CLAIM_METRIC_BINDING_OWNER_RECEIPT_NOT_IN_REQUIRED_MANIFEST".to_owned(),
+                );
             }
         }
         let mut distinct_refs = BTreeSet::new();
         for (role, evidence_ref, expected_record_sha256) in required_owner_records {
             if !valid_identifier(evidence_ref) || !valid_sha256(expected_record_sha256) {
                 incomplete = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_MISSING"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_MISSING"
+                ));
                 continue;
             }
             if !distinct_refs.insert(evidence_ref) {
@@ -605,13 +678,17 @@ impl ClaimMetricSemanticBindingV0_1 {
             };
             if record.record_sha256 != expected_record_sha256 {
                 rejected = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_OWNER_RECORD_DIGEST_MISMATCH"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_OWNER_RECORD_DIGEST_MISMATCH"
+                ));
             }
             if record.subject_ref != specification.subject_ref
                 || record.configuration_ref != specification.configuration_ref
             {
                 rejected = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_OWNER_CONTEXT_MISMATCH"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_OWNER_CONTEXT_MISMATCH"
+                ));
             }
             match record.lifecycle {
                 OwnerEvidenceLifecycle::Active => {}
@@ -620,7 +697,9 @@ impl ClaimMetricSemanticBindingV0_1 {
                 | OwnerEvidenceLifecycle::Revoked
                 | OwnerEvidenceLifecycle::Withdrawn => {
                     rejected = true;
-                    reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_OWNER_LIFECYCLE_NOT_ACTIVE"));
+                    reasons.insert(format!(
+                        "CLAIM_METRIC_BINDING_{role}_OWNER_LIFECYCLE_NOT_ACTIVE"
+                    ));
                 }
             }
             match record.freshness {
@@ -632,7 +711,9 @@ impl ClaimMetricSemanticBindingV0_1 {
             }
             if record.dependency_coverage == OwnerDependencyCoverage::Incomplete {
                 incomplete = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_DEPENDENCY_COVERAGE_INCOMPLETE"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_DEPENDENCY_COVERAGE_INCOMPLETE"
+                ));
             }
             if !record.unresolved_inputs.is_empty() {
                 incomplete = true;
@@ -640,7 +721,9 @@ impl ClaimMetricSemanticBindingV0_1 {
             }
             if record.requires_reverification || !record.eligible_under_declared_coverage {
                 unverified = true;
-                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REVERIFICATION_REQUIRED"));
+                reasons.insert(format!(
+                    "CLAIM_METRIC_BINDING_{role}_REVERIFICATION_REQUIRED"
+                ));
             }
         }
 
@@ -679,7 +762,12 @@ impl ClaimMetricSemanticBindingV0_1 {
         let expected_model_pairs = self
             .required_strata
             .iter()
-            .map(|item| (self.model_metric_id.as_str(), item.model_stratum_ref.as_str()))
+            .map(|item| {
+                (
+                    self.model_metric_id.as_str(),
+                    item.model_stratum_ref.as_str(),
+                )
+            })
             .collect::<BTreeSet<_>>();
         let actual_required_pairs = model_cut
             .required_metric_strata
@@ -781,13 +869,9 @@ impl ClaimMetricSemanticBindingV0_1 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claim_specification_v0_1::{
-        ClaimSpecificationV0_1, ValidityIntervalV0_1,
-    };
+    use crate::claim_specification_v0_1::{ClaimSpecificationV0_1, ValidityIntervalV0_1};
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
-    use crate::model_credibility_cut_v0_1::{
-        MetricStratumReportV0_1, ModelCredibilityCutV0_1,
-    };
+    use crate::model_credibility_cut_v0_1::{MetricStratumReportV0_1, ModelCredibilityCutV0_1};
     use crate::owner_evidence_cut_v0_1::OwnerEvidenceCutV0_1;
 
     fn sha(text: &str) -> String {
@@ -874,8 +958,7 @@ mod tests {
                 stratum_ref: "load_case:limit-load".to_owned(),
             },
         ];
-        context.model_applicability_profile_sha256 =
-            model_cut.applicability_profile_sha256.clone();
+        context.model_applicability_profile_sha256 = model_cut.applicability_profile_sha256.clone();
         context.risk_classification_sha256 = model_cut.risk_classification_sha256.clone();
         model_cut.metric_stratum_reports = model_cut
             .required_metric_strata
@@ -887,8 +970,14 @@ mod tests {
                     .population
                     .population_manifest_sha256
                     .clone(),
-                report_sha256: sha(&format!("report:{}:{}", required.metric_id, required.stratum_ref)),
-                uncertainty_report_sha256: sha(&format!("uncertainty:{}:{}", required.metric_id, required.stratum_ref)),
+                report_sha256: sha(&format!(
+                    "report:{}:{}",
+                    required.metric_id, required.stratum_ref
+                )),
+                uncertainty_report_sha256: sha(&format!(
+                    "uncertainty:{}:{}",
+                    required.metric_id, required.stratum_ref
+                )),
                 sample_count: 100,
                 adverse_count: 0,
                 status: MetricStratumStatus::WithinDeclaredProfile,
@@ -908,7 +997,10 @@ mod tests {
         ];
         let mut records = owner_cut.evidence_records.clone();
         for (index, evidence_ref) in role_refs.iter().enumerate() {
-            if records.iter().any(|record| record.evidence_ref == *evidence_ref) {
+            if records
+                .iter()
+                .any(|record| record.evidence_ref == *evidence_ref)
+            {
                 continue;
             }
             records.push(owner_record(
@@ -950,8 +1042,9 @@ mod tests {
             .map(|record| record.record_sha256.clone())
             .expect("semantic validation record");
 
-        context.evidence_knowledge_cut_sha256 =
-            owner_cut.compute_sha256().expect("owner cut fixture digest");
+        context.evidence_knowledge_cut_sha256 = owner_cut
+            .compute_sha256()
+            .expect("owner cut fixture digest");
         context.required_evidence_manifest_sha256 =
             compute_required_evidence_manifest_sha256(&vec![
                 "receipt:inspection-01".to_owned(),
@@ -1051,7 +1144,10 @@ mod tests {
     fn exact_claim_metric_semantics_are_bound_without_granting_authority() {
         let fixture = fixture();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::SemanticsBound);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::SemanticsBound
+        );
         assert!(!result.owner_authentication_performed);
         assert!(!result.physical_truth_established);
         assert!(!result.engineering_acceptance_granted);
@@ -1063,10 +1159,15 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.model_metric_id = "maximum_displacement".to_owned();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_MODEL_REQUIRED_STRATA_MISMATCH".to_owned()
-        ));
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Rejected
+        );
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_MODEL_REQUIRED_STRATA_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1074,9 +1175,11 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.unit_code = UnitCodeV0_1::Pascal;
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_UNIT_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_UNIT_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1084,9 +1187,11 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.aggregation = AggregationV0_1::Mean;
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_AGGREGATION_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_AGGREGATION_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1094,9 +1199,11 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.population_manifest_sha256 = sha("different-population");
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_POPULATION_SEMANTICS_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_POPULATION_SEMANTICS_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1104,9 +1211,11 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.population_quantifier = PopulationQuantifierV0_1::EveryRequiredUnit;
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_POPULATION_SEMANTICS_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_POPULATION_SEMANTICS_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1114,9 +1223,11 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.predicate_threshold.numerator += 1;
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_PREDICATE_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_PREDICATE_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1124,9 +1235,11 @@ mod tests {
         let mut fixture = fixture();
         fixture.binding.uncertainty_method_ref = "method:unrelated".to_owned();
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_UNCERTAINTY_SEMANTICS_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_UNCERTAINTY_SEMANTICS_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1134,17 +1247,23 @@ mod tests {
         let mut missing = fixture();
         missing.binding.required_strata.pop();
         let result = assess(&missing);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_REQUIRED_STRATUM_COVERAGE_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_REQUIRED_STRATUM_COVERAGE_MISMATCH".to_owned())
+        );
 
         let mut duplicate = fixture();
-        duplicate.binding.required_strata[1].model_stratum_ref =
-            duplicate.binding.required_strata[0].model_stratum_ref.clone();
+        duplicate.binding.required_strata[1].model_stratum_ref = duplicate.binding.required_strata
+            [0]
+        .model_stratum_ref
+        .clone();
         let result = assess(&duplicate);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_STRATUM_MAPPING_NOT_ONE_TO_ONE".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_STRATUM_MAPPING_NOT_ONE_TO_ONE".to_owned())
+        );
     }
 
     #[test]
@@ -1152,8 +1271,7 @@ mod tests {
         let mut fixture = fixture();
         fixture.model_cut.metric_stratum_reports[0].population_manifest_sha256 =
             sha("another-population");
-        fixture.binding.model_credibility_sha256 =
-            fixture.model_cut.compute_sha256().unwrap();
+        fixture.binding.model_credibility_sha256 = fixture.model_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
         assert!(result.reason_codes.iter().any(|reason| {
             reason.starts_with("CLAIM_METRIC_BINDING_REPORT_POPULATION_MISMATCH:")
@@ -1164,10 +1282,12 @@ mod tests {
     fn missing_model_stratum_report_is_incomplete() {
         let mut fixture = fixture();
         fixture.model_cut.metric_stratum_reports.pop();
-        fixture.binding.model_credibility_sha256 =
-            fixture.model_cut.compute_sha256().unwrap();
+        fixture.binding.model_credibility_sha256 = fixture.model_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Incomplete
+        );
     }
 
     #[test]
@@ -1175,55 +1295,66 @@ mod tests {
         let mut fixture = fixture();
         fixture.model_cut.metric_stratum_reports[0].status =
             MetricStratumStatus::OutsideDeclaredProfile;
-        fixture.binding.model_credibility_sha256 =
-            fixture.model_cut.compute_sha256().unwrap();
+        fixture.binding.model_credibility_sha256 = fixture.model_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Rejected
+        );
     }
 
     #[test]
     fn indeterminate_metric_stratum_remains_incomplete() {
         let mut fixture = fixture();
-        fixture.model_cut.metric_stratum_reports[0].status =
-            MetricStratumStatus::Indeterminate;
-        fixture.binding.model_credibility_sha256 =
-            fixture.model_cut.compute_sha256().unwrap();
+        fixture.model_cut.metric_stratum_reports[0].status = MetricStratumStatus::Indeterminate;
+        fixture.binding.model_credibility_sha256 = fixture.model_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Incomplete);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Incomplete
+        );
     }
 
     #[test]
     fn unverified_metric_stratum_remains_unverified() {
         let mut fixture = fixture();
-        fixture.model_cut.metric_stratum_reports[0].status =
-            MetricStratumStatus::Unverified;
-        fixture.binding.model_credibility_sha256 =
-            fixture.model_cut.compute_sha256().unwrap();
+        fixture.model_cut.metric_stratum_reports[0].status = MetricStratumStatus::Unverified;
+        fixture.binding.model_credibility_sha256 = fixture.model_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Unverified);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Unverified
+        );
     }
 
     #[test]
     fn stale_owner_semantics_receipt_cannot_be_used() {
         let mut fixture = fixture();
-        let record = fixture.owner_cut.evidence_records.iter_mut()
+        let record = fixture
+            .owner_cut
+            .evidence_records
+            .iter_mut()
             .find(|record| record.evidence_ref == fixture.binding.metric_semantics_evidence_ref)
             .unwrap();
         record.freshness = OwnerEvidenceFreshness::StaleDirect;
-        fixture.binding.owner_evidence_cut_sha256 =
-            fixture.owner_cut.compute_sha256().unwrap();
+        fixture.binding.owner_evidence_cut_sha256 = fixture.owner_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Unverified);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Unverified
+        );
     }
 
     #[test]
     fn unavailable_payload_verification_remains_unverified() {
         let mut fixture = fixture();
         fixture.owner_cut.artifact_payloads_verified = false;
-        fixture.binding.owner_evidence_cut_sha256 =
-            fixture.owner_cut.compute_sha256().unwrap();
+        fixture.binding.owner_evidence_cut_sha256 = fixture.owner_cut.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Unverified);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::Unverified
+        );
     }
 
     #[test]
@@ -1249,10 +1380,12 @@ mod tests {
         fixture.binding.claim_specification_payload_sha256 = fixture.payload_sha256.clone();
         fixture.binding.claim_specification_semantic_sha256 = semantic.clone();
         fixture.context.claim_specification_sha256 = semantic;
-        fixture.binding.decision_context_sha256 =
-            fixture.context.compute_sha256().unwrap();
+        fixture.binding.decision_context_sha256 = fixture.context.compute_sha256().unwrap();
         let result = assess(&fixture);
-        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::OutOfScope);
+        assert_eq!(
+            result.disposition,
+            ClaimMetricBindingDispositionV0_1::OutOfScope
+        );
     }
 
     #[test]
@@ -1261,9 +1394,11 @@ mod tests {
         fixture.binding.claim_specification_payload_sha256 =
             fixture.binding.claim_specification_semantic_sha256.clone();
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1272,9 +1407,11 @@ mod tests {
         fixture.binding.producer_authority_receipt_ref =
             fixture.binding.owner_attestation_evidence_ref.clone();
         let result = assess(&fixture);
-        assert!(result.reason_codes.contains(
-            &"CLAIM_METRIC_BINDING_OWNER_RECORD_ROLE_REUSED".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CLAIM_METRIC_BINDING_OWNER_RECORD_ROLE_REUSED".to_owned())
+        );
     }
 
     #[test]
