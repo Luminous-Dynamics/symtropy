@@ -854,6 +854,23 @@ mod tests {
     }
 
     #[test]
+    fn import_receipt_preserves_aggregate_supply_beyond_i64_range() {
+        let text = format!(
+            "p min 4 0\nn 1 {}\nn 2 {}\nn 3 {}\n",
+            i64::MAX,
+            i64::MAX,
+            i64::MAX
+        );
+        let instance = parse(&text).unwrap();
+        let receipt = instance.import_receipt();
+        let expected = (i128::from(i64::MAX) * 3).to_string();
+        assert_eq!(receipt.total_supply_decimal, expected);
+        let encoded = serde_json::to_vec(&receipt).unwrap();
+        let decoded: DimacsMcfImportReceipt = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, receipt);
+    }
+
+    #[test]
     fn empty_zero_node_instance_is_structurally_preserved() {
         let instance = parse("p min 0 0\n").unwrap();
         assert_eq!(instance.node_count, 0);
