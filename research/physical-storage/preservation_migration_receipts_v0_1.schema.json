@@ -414,7 +414,32 @@
             ]
           },
           "contract_override": {
-            "type": "object"
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": false,
+            "properties": {
+              "provenance_required": {
+                "type": "boolean"
+              },
+              "required_stages": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "request_admission",
+                    "media_mount",
+                    "reader_bootstrap",
+                    "physical_read",
+                    "fixity_and_manifest",
+                    "migration_write",
+                    "migration_readback",
+                    "destination_verify",
+                    "provenance_acceptance"
+                  ]
+                }
+              }
+            }
           }
         }
       }
