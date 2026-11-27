@@ -593,32 +593,27 @@ mod tests {
     }
 
     #[test]
-    fn recourse_assumption_is_explicit_and_bound_to_the_report() {
-        let mut request = input(10, 10);
-        let report = evaluate_robust_floor_scenarios(&request).unwrap();
-        assert_eq!(
-            report.recourse_assumption,
-            ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation
-        );
-
-        request.recourse_assumption = ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation;
-        verify_robust_floor_scenario_report(&request, &report).unwrap();
-        let mut changed = report;
-        changed.recourse_assumption = ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation;
-        assert_eq!(
-            changed.recourse_assumption.schema_token(),
-            "scenario_observed_before_allocation"
-        );
-    }
-
-    #[test]
     fn strict_json_round_trip_and_unknown_fields_are_enforced() {
         let request = input(10, 9);
-        let report = evaluate_robust_floor_scenarios(&request).unwrap();
+        assert_eq!(
+            request.recourse_assumption,
+            ScenarioRecourseAssumption::ScenarioObservedBeforeAllocation
+        );
+        let input_bytes = serde_json::to_vec(&request).unwrap();
+        let decoded_input: RobustFloorScenarioInput =
+            serde_json::from_slice(&input_bytes).unwrap();
+        assert_eq!(decoded_input, request);
+
+        let mut unsupported_recourse = serde_json::to_value(&request).unwrap();
+        unsupported_recourse["recourse_assumption"] = serde_json::json!("here_and_now");
+        assert!(serde_json::from_value::<RobustFloorScenarioInput>(unsupported_recourse).is_err());
+
+        let report = evaluate_robust_floor_scenarios(&decoded_input).unwrap();
+        assert_eq!(report.recourse_assumption, decoded_input.recourse_assumption);
         let encoded = serde_json::to_vec(&report).unwrap();
         let decoded: RobustFloorScenarioReport = serde_json::from_slice(&encoded).unwrap();
         assert_eq!(decoded, report);
-        verify_robust_floor_scenario_report(&request, &decoded).unwrap();
+        verify_robust_floor_scenario_report(&decoded_input, &decoded).unwrap();
 
         let mut unknown = serde_json::to_value(&report).unwrap();
         unknown["unexpected"] = serde_json::json!(true);
