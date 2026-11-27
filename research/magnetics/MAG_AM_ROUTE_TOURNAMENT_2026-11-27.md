@@ -83,6 +83,33 @@ The unit of comparison is the accepted manufactured component, not a bulk materi
 
 Do not normalize away the physical differences between routes. Preserve the source measurand and compare only when specimen condition and measurement method are matched or a qualified conversion exists.
 
+## 4B. Evidence maturity: MOEM M1–M5
+
+Adopt the qualification-oriented maturity ladder proposed by Fodor et al. (2026), *Materials-Driven Additive Manufacturing for Electrical Machines: Qualification-Oriented Design Beyond Geometric Freedom*, DOI [10.1002/adem.71259](https://doi.org/10.1002/adem.71259). This is a research reporting framework, **not a formal standard or certification scheme**.
+
+Every route/candidate result must report its highest demonstrated maturity, the exact supporting evidence receipts and the gaps that prevent the next level. Maturity is not a route ranking, and a higher label must not be assigned merely because a component was printed or a simulation converged.
+
+| Level | Evidence class | Magnetic manufacturing interpretation | Minimum evidence boundary |
+|---|---|---|---|
+| M1 | Conceptual / modelling | Geometry, route or machine concept; analytical, numerical or design-based evidence only | No experimental material validation |
+| M2 | Coupon-level material evidence | Printed or deposited specimens characterized for magnetic/material properties | Property data are not yet linked to component geometry or application duty |
+| M3 | Controlled PSPP validation | Process parameters, microstructure, defects, interfaces and properties are linked under controlled conditions | Limited component or duty-cycle validation |
+| M4 | Functional component / subsystem | Component or subassembly tested under application-relevant electromagnetic, thermal and mechanical conditions | Reproducibility, lifetime and scale-up remain limited |
+| M5 | Qualification-relevant evidence | Reproducible manufacturing, variability control, durability and qualification-relevant performance demonstrated | Requires a defensible production/qualification evidence package |
+
+### Maturity gates for permanent-magnet routes
+
+- **M2:** Record the exact specimen, material grade/lot, property method, temperature and material state. For hard magnets, include remanence / polarization, intrinsic coercivity, recoil behavior and method-scope limitations. A datasheet ceiling, starting powder or best coupon does not become component evidence.
+- **M3:** Bind process conditions and post-processing to microstructure, texture/orientation, porosity/defects, interfaces and magnetic properties. Separate in-process alignment fields from post-build magnetization. Include measured process-to-property relationships and uncertainty.
+- **M4:** Demonstrate the actual component/subassembly's target field or mechanical function under application-relevant gap, temperature, speed, external field, armature-reaction / field-weakening and mechanical-retention conditions, as relevant. Record bondline/airgap tolerances and magnetic bypass paths for hybrid assemblies.
+- **M5:** Require repeated valid builds and material lots, controlled variability, durability and qualification-relevant component performance. A single excellent component is not M5; a cohort denominator alone is not M5; simply meeting a minimum build count is not M5.
+
+A route tournament must stratify results by maturity. Do not compare an M2 coupon remanence with an M4 functional component response as equivalent evidence. A lower-maturity route may remain a promising research candidate, but its ranking must be clearly marked as feasibility-only.
+
+### Application-level economics
+
+The 2026 perspective argues that industrial adoption should be judged by **cost-per-performance at the intended production volume**, not printability alone. For permanent-magnet and hybrid assemblies, report cost-per-torque or cost-per-power where applicable alongside magnetic function, remanence/coercivity at temperature, demagnetization margin, mechanical retention, build rate, post-processing, inspection, yield, scrap and process capability. These should remain separate metrics or explicit application-specific ratios; do not hide a failed reliability gate inside a favorable cost metric.
+
 ## 5. Common target and matched experiment design
 
 Choose one application target before selecting numeric improvement thresholds. Candidate targets:
