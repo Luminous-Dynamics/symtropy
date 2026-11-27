@@ -453,7 +453,6 @@ fn percentile(values: &[f64], fraction: f64) -> Option<f64> {
     Some(sorted[index])
 }
 
-
 #[derive(Debug, Clone)]
 struct ProfileShapeErrors {
     load_duration_curve_absolute_errors_kw: Vec<f64>,
@@ -522,9 +521,7 @@ fn profile_shape_errors(reference: &[f64], candidate: &[f64]) -> ProfileShapeErr
 
     let mut ramp_absolute_errors_kw_per_15min = Vec::with_capacity(reference_ramps.len());
     let mut ramp_direction_mismatch_count = 0;
-    for (reference_ramp, candidate_ramp) in
-        reference_ramps.iter().zip(candidate_ramps.iter())
-    {
+    for (reference_ramp, candidate_ramp) in reference_ramps.iter().zip(candidate_ramps.iter()) {
         ramp_absolute_errors_kw_per_15min.push((candidate_ramp - reference_ramp).abs());
         if ramp_direction(*reference_ramp) != ramp_direction(*candidate_ramp) {
             ramp_direction_mismatch_count += 1;
@@ -617,31 +614,26 @@ fn compare_archives(
         let load_duration_curve_mae = mean(&shape_errors.load_duration_curve_absolute_errors_kw);
         let load_duration_curve_rmse =
             root_mean_square(&shape_errors.load_duration_curve_absolute_errors_kw);
-        let load_duration_curve_p95 = percentile(
-            &shape_errors.load_duration_curve_absolute_errors_kw,
-            0.95,
-        )
-        .unwrap_or(0.0);
+        let load_duration_curve_p95 =
+            percentile(&shape_errors.load_duration_curve_absolute_errors_kw, 0.95).unwrap_or(0.0);
         let ramp_mae = mean(&shape_errors.ramp_absolute_errors_kw_per_15min);
         let ramp_rmse = root_mean_square(&shape_errors.ramp_absolute_errors_kw_per_15min);
         let ramp_p95 =
             percentile(&shape_errors.ramp_absolute_errors_kw_per_15min, 0.95).unwrap_or(0.0);
-        let ramp_direction_mismatch_fraction =
-            if shape_errors.ramp_interval_count > 0 {
-                shape_errors.ramp_direction_mismatch_count as f64
-                    / shape_errors.ramp_interval_count as f64
-            } else {
-                0.0
-            };
+        let ramp_direction_mismatch_fraction = if shape_errors.ramp_interval_count > 0 {
+            shape_errors.ramp_direction_mismatch_count as f64
+                / shape_errors.ramp_interval_count as f64
+        } else {
+            0.0
+        };
         let profile_maximum_ramp_error = shape_errors
             .ramp_absolute_errors_kw_per_15min
             .iter()
             .copied()
             .fold(0.0_f64, f64::max);
 
-        all_load_duration_curve_errors.extend_from_slice(
-            &shape_errors.load_duration_curve_absolute_errors_kw,
-        );
+        all_load_duration_curve_errors
+            .extend_from_slice(&shape_errors.load_duration_curve_absolute_errors_kw);
         all_ramp_errors.extend_from_slice(&shape_errors.ramp_absolute_errors_kw_per_15min);
         all_ramp_direction_mismatches += shape_errors.ramp_direction_mismatch_count;
         all_ramp_intervals += shape_errors.ramp_interval_count;
@@ -699,8 +691,7 @@ fn compare_archives(
     };
     let load_duration_curve_mae = mean(&all_load_duration_curve_errors);
     let load_duration_curve_rmse = root_mean_square(&all_load_duration_curve_errors);
-    let load_duration_curve_p95 =
-        percentile(&all_load_duration_curve_errors, 0.95).unwrap_or(0.0);
+    let load_duration_curve_p95 = percentile(&all_load_duration_curve_errors, 0.95).unwrap_or(0.0);
     let ramp_mae = mean(&all_ramp_errors);
     let ramp_rmse = root_mean_square(&all_ramp_errors);
     let ramp_p95 = percentile(&all_ramp_errors, 0.95).unwrap_or(0.0);
@@ -1064,7 +1055,6 @@ mod tests {
         fs::remove_dir_all(candidate_dir).expect("remove candidate fixture");
     }
 
-
     #[test]
     fn load_duration_curve_is_permutation_invariant_but_ramps_are_time_ordered() {
         let reference = [0.0, 1.0, 2.0, 3.0];
@@ -1092,8 +1082,7 @@ mod tests {
         );
         assert!((mean(&metrics.ramp_absolute_errors_kw_per_15min) - 2.0 / 3.0).abs() < 1e-12);
         assert!(
-            (root_mean_square(&metrics.ramp_absolute_errors_kw_per_15min) - 0.5_f64.sqrt())
-                .abs()
+            (root_mean_square(&metrics.ramp_absolute_errors_kw_per_15min) - 0.5_f64.sqrt()).abs()
                 < 1e-12
         );
         assert_eq!(metrics.ramp_direction_mismatch_count, 1);
