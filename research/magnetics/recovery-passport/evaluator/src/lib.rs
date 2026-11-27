@@ -284,6 +284,10 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
         Disposition::Indeterminate
     };
 
+    if disposition != Disposition::Qualified {
+        qualified_closed_loop_product_ids.clear();
+    }
+
     RecoveryEvaluation {
         passport_id: passport.passport_id.clone(),
         disposition,
@@ -348,24 +352,41 @@ fn validate_route_eligibility(passport: &RecoveryPassport, blockers: &mut Vec<Bl
             blockers.push(Blocker::RouteEligibilityUnresolved);
         }
     }
-    if !route_form_supported(feedstock.feedstock_form, passport.stage.route) {
+    if !route_form_supported(
+        feedstock.magnet_family,
+        feedstock.feedstock_form,
+        passport.stage.route,
+    ) {
         blockers.push(Blocker::UnsupportedRouteForm);
     }
 }
 
-fn route_form_supported(form: FeedstockForm, route: RecoveryRoute) -> bool {
+fn route_form_supported(
+    family: MagnetFamily,
+    form: FeedstockForm,
+    route: RecoveryRoute,
+) -> bool {
     match route {
-        RecoveryRoute::PolymerHydrolysis => form == FeedstockForm::PolymerBondedMagnet,
+        RecoveryRoute::PolymerHydrolysis => {
+            family == MagnetFamily::NdFeB && form == FeedstockForm::PolymerBondedMagnet
+        }
         RecoveryRoute::HydrogenShortLoop => {
-            matches!(form, FeedstockForm::SinteredMagnet | FeedstockForm::MagnetPowder)
+            family == MagnetFamily::NdFeB
+                && matches!(form, FeedstockForm::SinteredMagnet | FeedstockForm::MagnetPowder)
         }
         RecoveryRoute::MechanicalLiberation => {
-            matches!(form, FeedstockForm::HybridAssembly | FeedstockForm::SinteredMagnet)
+            family != MagnetFamily::Unknown
+                && matches!(
+                    form,
+                    FeedstockForm::PolymerBondedMagnet
+                        | FeedstockForm::SinteredMagnet
+                        | FeedstockForm::HybridAssembly
+                )
         }
         RecoveryRoute::Hydrometallurgy
         | RecoveryRoute::Pyrometallurgy
         | RecoveryRoute::Electrochemical => {
-            !matches!(form, FeedstockForm::Unknown)
+            family != MagnetFamily::Unknown && form != FeedstockForm::Unknown
         }
         RecoveryRoute::Other => false,
     }
@@ -802,15 +823,36 @@ mod tests {
     }
 
     #[test]
+    fn closed_loop_product_list_is_empty_when_any_passport_gate_is_unresolved() {
+        let mut passport = valid_passport();
+        passport.stage.outputs[0].magnetic_characterization_record = None;
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.qualified_closed_loop_product_ids.is_empty());
+    }
+
+    #[test]
+    fn hydrogen_short_loop_is_not_transferred_to_smco_by_label() {
+        let mut passport = valid_passport();
+        passport.feedstock.magnet_family = MagnetFamily::SmCo;
+        passport.feedstock.feedstock_form = FeedstockForm::SinteredMagnet;
+        passport.route_eligibility.magnet_family = MagnetFamily::SmCo;
+        passport.route_eligibility.feedstock_form = FeedstockForm::SinteredMagnet;
+        passport.route_eligibility.route = RecoveryRoute::HydrogenShortLoop;
+        passport.stage.route = RecoveryRoute::HydrogenShortLoop;
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::NotEvaluable);
+        assert!(result.blockers.contains(&Blocker::UnsupportedRouteForm));
+    }
+
+    #[test]
     fn route_family_is_not_transferred_across_magnet_families_or_forms() {
         let mut passport = valid_passport();
         passport.feedstock.magnet_family = MagnetFamily::SmCo;
         passport.route_eligibility.magnet_family = MagnetFamily::SmCo;
         let result = evaluate(&passport);
-        assert_eq!(result.disposition, Disposition::Fail);
-        assert!(result.blockers.contains(&Blocker::UnsupportedRouteForm) == false);
-        // Polymer hydrolysis remains form-compatible, but the scoped eligibility
-        // receipt is the required authority for this material family/route pair.
+        assert_eq!(result.disposition, Disposition::NotEvaluable);
+        assert!(result.blockers.contains(&Blocker::UnsupportedRouteForm));
     }
 
     #[test]
