@@ -46,6 +46,14 @@ Required comparator classes for small, exact cases: exhaustive policy enumeratio
 
 Key metrics: here-and-now feasibility, full-recourse feasibility, exact policy gap, worst-leaf regret, non-anticipativity violations, pathwise budget violations, information-set/tree size, solver gap/node count, policy inference latency, training and solve compute, and independent-verification overhead. Keep probability-weighted objectives separate and use them only when scenario probabilities are authoritative.
 
+## Capacity-evidence schedule benchmark cases
+
+Use the `evidence_integrity` lane with model class `capacity_evidence_schedule`. Register the number of required subjects, evidence records and horizon periods in the resource budget. The expected disposition is either `capacity_schedule_admitted` or `capacity_schedule_rejected`.
+
+Freeze mutation families independently: half-open overlap, coverage gap, staleness before window end, revocation, unknown/conflicted admission, invalid receipt digest, unit/boundary/timebase mismatch, same-role physical-resource alias split, canonical resource identity change, source/admission-receipt digest mutation, and horizon extension. Do not combine these into a single generic invalid-record bucket.
+
+An admitted schedule means only that the externally pre-admitted records form a complete, fresh and non-overlapping structural schedule. It does not verify source signatures, issuer authority, calibration or physical truth. Same-role alias splits are rejected; cross-role shared asset coupling is a separate model class.
+
 ## Execution rules
 
 - Freeze corpus and manifest before measuring. Hash raw inputs and canonical model separately.
