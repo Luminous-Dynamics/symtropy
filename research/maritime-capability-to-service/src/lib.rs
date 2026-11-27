@@ -72,6 +72,7 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
     let mut service: Option<Service> = None;
     let mut dependencies: BTreeMap<String, Dependency> = BTreeMap::new();
     let mut options: BTreeMap<String, PortfolioOption> = BTreeMap::new();
+    let mut pending_shocks: Vec<(String, Shock)> = Vec::new();
 
     for (index, raw_line) in input.lines().enumerate() {
         let line_number = index + 1;
