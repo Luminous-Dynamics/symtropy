@@ -44,6 +44,22 @@ A selected probe is credited only when evaluator truth shows that its possible o
 
 ## Validation protocol
 
+### Differential and resource-bound extensions
+
+The current source extends the original finite fixtures with:
+
+- 729 worlds across every three-witness decision partition and non-empty two-outcome support pattern;
+- 9,261 worlds across every three-witness decision partition and non-empty three-outcome support pattern;
+- 91,125 worlds across every three-witness decision partition and non-empty four-outcome support pattern;
+- an identifier/order metamorphic test that renames candidate, decision, probe, outcome and witness IDs and reverses rows;
+- explicit evaluator-truth bounds: at most 65,536 admissible witnesses and 1,048,576 truth outcome-support rows, with an early probe × witness pair bound before the missing-support scan;
+- checked accumulation for missed and spurious outcome-support metrics.
+
+The brute-force oracle enumerates pairs independently of the evaluator's grouped-count implementation. These tests cover small finite set-valued worlds; they do not establish probabilistic calibration, continuous sensor likelihoods, runtime acquisition, or production blind custody.
+
+**Latest qualification caveat:** the previous exact-head CI attempts failed at rustfmt before test execution. The single follow-on formatting correction is at the current branch head; wait for its exact-head Rust 1.96 formatting, evaluator tests and strict Clippy evidence before describing these new tests as passed.
+
+
 Tiny deterministic fixtures first:
 1. complete witness coverage and a truly discriminating probe;
 2. false decision sufficiency caused by omitting an admissible witness;
