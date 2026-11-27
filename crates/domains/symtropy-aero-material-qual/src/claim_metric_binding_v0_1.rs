@@ -376,9 +376,17 @@ impl ClaimMetricSemanticBindingV0_1 {
             unsupported = true;
             reasons.insert("CLAIM_METRIC_BINDING_SCHEMA_UNSUPPORTED".to_owned());
         }
-        if !valid_identifier(&self.binding_ref) || !valid_identifier(&self.claim_id) {
-            rejected = true;
-            reasons.insert("CLAIM_METRIC_BINDING_IDENTITY_INVALID".to_owned());
+        for (field, value) in [
+            ("BINDING_REF", self.binding_ref.as_str()),
+            ("CLAIM_ID", self.claim_id.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                incomplete = true;
+                reasons.insert(format!("CLAIM_METRIC_BINDING_{field}_MISSING"));
+            } else if !valid_identifier(value) {
+                rejected = true;
+                reasons.insert(format!("CLAIM_METRIC_BINDING_{field}_NONCANONICAL"));
+            }
         }
 
         let semantic_digest = match specification.compute_semantic_sha256() {
@@ -388,16 +396,20 @@ impl ClaimMetricSemanticBindingV0_1 {
                 String::new()
             }
         };
-        if !valid_sha256(raw_specification_payload_sha256) {
+        if raw_specification_payload_sha256.trim().is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISSING".to_owned());
+        } else if !valid_sha256(raw_specification_payload_sha256) {
             rejected = true;
             reasons.insert("CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_INVALID".to_owned());
         } else if self.claim_specification_payload_sha256 != raw_specification_payload_sha256 {
             rejected = true;
             reasons.insert("CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH".to_owned());
         }
-        if !semantic_digest.is_empty()
-            && self.claim_specification_semantic_sha256 != semantic_digest
-        {
+        if semantic_digest.is_empty() {
+            incomplete = true;
+            reasons.insert("CLAIM_SPECIFICATION_SEMANTIC_COMMITMENT_UNAVAILABLE".to_owned());
+        } else if self.claim_specification_semantic_sha256 != semantic_digest {
             rejected = true;
             reasons.insert("CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned());
         }
@@ -414,7 +426,9 @@ impl ClaimMetricSemanticBindingV0_1 {
             rejected = true;
             reasons.insert("CLAIM_METRIC_BINDING_DECISION_CONTEXT_MISMATCH".to_owned());
         }
-        if decision_context.claim_specification_sha256 != semantic_digest {
+        if !semantic_digest.is_empty()
+            && decision_context.claim_specification_sha256 != semantic_digest
+        {
             rejected = true;
             reasons
                 .insert("DECISION_CONTEXT_CLAIM_SPECIFICATION_SEMANTIC_DIGEST_MISMATCH".to_owned());
