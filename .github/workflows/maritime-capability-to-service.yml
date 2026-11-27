@@ -2,13 +2,13 @@ name: Maritime Capability-to-Service Reference
 
 on:
   pull_request:
-    branches: [main, research/mcsc-kite-information-set-replay-v0]
+    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-conformal-decision-contract-v0]
     paths:
       - "research/maritime-capability-to-service/**"
       - "docs/research/maritime-capability-to-service/**"
       - ".github/workflows/maritime-capability-to-service.yml"
   push:
-    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-kite-reusable-replay-v0-3, research/mcsc-r1-finite-oracle-v0-3, research/mcsc-conformal-decision-contract-v0]
+    branches: [main, research/mcsc-kite-information-set-replay-v0, research/mcsc-kite-reusable-replay-v0-3, research/mcsc-r1-finite-oracle-v0-3, research/mcsc-conformal-decision-contract-v0, research/mcsc-robust-action-envelope-v0]
     paths:
       - "research/maritime-capability-to-service/**"
       - "docs/research/maritime-capability-to-service/**"
