@@ -468,6 +468,12 @@ fn collect_forbidden_raw_values(episode: &CandidateEpisode) -> Vec<String> {
             values.insert(value.to_owned());
         }
     }
+    values.insert(episode.command_context.authority_epoch.to_string());
+    values.insert(episode.command_context.queue_generation.to_string());
+    values.insert(episode.decision_cut_sequence.to_string());
+    values.insert(episode.ledger_frontier_sequence.to_string());
+    values.insert(episode.current_step.to_string());
+    values.insert(episode.decision_deadline_step.to_string());
     for observation in &episode.observations {
         for value in [
             observation.observation_id.as_str(),
@@ -543,6 +549,7 @@ pub fn audit_candidate_surface(
     candidate_episode_jsons: &[String],
     receipts: &[BlindProjectionReceipt],
     hidden_world_ids: &[String],
+    evaluator_secret_tokens: &[String],
     candidate_file_names: &[String],
 ) -> Result<CandidateSurfaceAudit, ProjectionError> {
     if candidate_episode_jsons.len() != receipts.len()
@@ -620,6 +627,7 @@ pub fn audit_candidate_surface(
         .iter()
         .flat_map(|receipt| receipt.forbidden_raw_values.iter().cloned())
         .chain(hidden_world_ids.iter().cloned())
+        .chain(evaluator_secret_tokens.iter().cloned())
         .filter(|value| value.len() >= 8)
         .collect::<BTreeSet<_>>();
     for (location, value) in leaves {
@@ -666,6 +674,22 @@ pub fn candidate_metadata_features(
     features.insert("trajectory_cluster_id".to_owned(), episode.trajectory_cluster_id.clone());
     features.insert("evidence_domain".to_owned(), format!("{:?}", episode.evidence_domain));
     features.insert("file_order_index".to_owned(), file_order_index.to_string());
+    for modulus in [2_usize, 3, 4, 5, 7, 8, 11, 13, 16, 17, 31, 32, 64, 127] {
+        features.insert(format!("file_order_mod_{modulus}"), (file_order_index % modulus).to_string());
+    }
+    for (name, value) in [
+        ("episode_id", episode.episode_id.as_str()),
+        ("attempt_id", episode.attempt_id.as_str()),
+    ] {
+        let suffix = value.chars().rev().take_while(|character| character.is_ascii_digit()).collect::<String>();
+        if !suffix.is_empty() {
+            if let Ok(number) = suffix.chars().rev().collect::<String>().parse::<u64>() {
+                for modulus in [2_u64, 3, 4, 5, 7, 8, 11, 13, 16, 17, 31, 32, 64, 127] {
+                    features.insert(format!("{name}_suffix_mod_{modulus}"), (number % modulus).to_string());
+                }
+            }
+        }
+    }
     features.insert("file_name".to_owned(), file_name.to_owned());
     features.insert("serialized_size_bytes".to_owned(), serialized_size_bytes.to_string());
     features.insert("current_step".to_owned(), episode.current_step.to_string());
@@ -1226,4 +1250,70 @@ mod tests {
             Err(ProjectionError::InvalidMetadataAudit("duplicate episode ID"))
         );
     }
+
+    #[test]
+    fn candidate_surface_audit_detects_raw_evaluator_ids_and_hidden_labels() {
+        let context = BlindProjectionContext::from_secret([0x42; 32]);
+        let original = episode(11);
+        let (projected, receipt) =
+            project_candidate_episode(&context, &original, "ep_11111111111111111111111111111111")
+                .expect("projection");
+        let projected_json = serde_json::to_string(&projected).expect("episode JSON");
+        let manifest = serde_json::json!({
+            "schema_version": "aerb-blind-campaign-v0.1",
+            "corpus_class": "blind_evaluation",
+            "campaign_id": "camp_22222222222222222222222222222222",
+            "campaign_commitment_sha256": "a".repeat(64),
+            "episode_ids": ["ep_11111111111111111111111111111111"]
+        });
+        let raw_manifest = serde_json::to_string(&manifest).expect("manifest");
+        let safe = audit_candidate_surface(
+            &raw_manifest,
+            &[projected_json.clone()],
+            std::slice::from_ref(&receipt),
+            &[],
+            &["private-evaluator-salt-should-not-appear".to_owned()],
+            &["ep_11111111111111111111111111111111.json".to_owned()],
+        ).expect("safe surface audit");
+        assert!(safe.passed, "{safe:?}");
+
+        let leaked_json = projected_json.replace(
+            &projected.episode_id,
+            &original.episode_id,
+        );
+        let unsafe_audit = audit_candidate_surface(
+            &raw_manifest,
+            &[leaked_json],
+            std::slice::from_ref(&receipt),
+            &[VALID_WORLD_IDS[4].to_owned()],
+            &["private-evaluator-salt-should-not-appear".to_owned()],
+            &["raw-episode-0011.json".to_owned()],
+        ).expect("unsafe surface audit is reportable");
+        assert!(!unsafe_audit.passed);
+        assert!(unsafe_audit.finding_n >= 3);
+    }
+
+    #[test]
+    fn evaluator_secret_token_is_detected_even_when_not_a_schema_field() {
+        let context = BlindProjectionContext::from_secret([0x10; 32]);
+        let (projected, receipt) =
+            project_candidate_episode(&context, &episode(1), "ep_33333333333333333333333333333333")
+                .expect("projection");
+        let mut raw = serde_json::to_string(&projected).expect("episode");
+        raw.push_str("evaluator-secret-token-opaque-abcdef");
+        let manifest = serde_json::json!({
+            "episode_ids": ["ep_33333333333333333333333333333333"]
+        });
+        let report = audit_candidate_surface(
+            &serde_json::to_string(&manifest).unwrap(),
+            &[raw],
+            std::slice::from_ref(&receipt),
+            &[],
+            &["evaluator-secret-token-opaque-abcdef".to_owned()],
+            &["ep_33333333333333333333333333333333.json".to_owned()],
+        ).expect("audit");
+        assert!(!report.passed);
+        assert!(report.findings.iter().any(|finding| finding.finding_kind == "raw_evaluator_value_leak"));
+    }
+
 }
