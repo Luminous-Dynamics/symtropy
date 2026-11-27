@@ -323,6 +323,22 @@ At the current research branch state, the authored test counts are:
 - contact freshness producer and commit barrier: 33 tests;
 - independent lifecycle/receipt verifier: 31 tests;
 - relative-motion geometric lease predicate: 25 tests;
-- callback event identity and delivery receipt verifier: 16 tests.
+- callback event identity and delivery receipt verifier: 16 tests;
+- OBB shape-contact to conservative AABB candidate coverage: 4 tests.
 
 These counts describe source annotations only. They are not evidence that the tests have compiled or run. Exact-head Rust formatting, tests, strict Clippy and scale-campaign results must be read from the current GitHub Actions run before any pass claim.
+## 11. Exact shape-contact coverage against conservative AABB candidates
+
+The research crate now exports `shape_coverage`, an independent transformed-OBB reference campaign. It composes exact 2D four-axis and 3D fifteen-axis OBB SAT with conservative transformed world-AABBs, then compares the exact shape-contact relation with the AABB candidate relation:
+
+`ExactOBBContacts ⊆ AabbOraclePairs`
+
+The corpus reuses the same 4,096-case seeds, box half-extents, center ranges, random-number generator/draw order, and 3D XY→YZ→XZ rotor composition as [PR #7622](https://github.com/Luminous-Dynamics/symtropy/pull/7622). Each transformed AABB extent is rounded outward at every nonnegative multiplication and sum, followed by outward center-minus/plus-radius bounds. This avoids relying on one final ULP adjustment after multiple rounded operations.
+
+The `shape-coverage-benchmark` binary emits two CSV rows (2D and 3D) with requested pair count, exact shape contacts, AABB candidates, candidate-only false positives, missed contacts, shape-contact recall, candidate amplification, and seed. CI runs 4,096 pairs per dimension, requires nonzero exact contacts, zero missed contacts and recall exactly 1.0, and retains `shape-coverage.csv`.
+
+The module also includes negative-control auditing: an exact contact omitted from the candidate set is reported as a false negative. A zero-contact denominator is emitted as undefined rather than silently converted to a finite amplification score.
+
+### Evidence boundary
+
+This campaign qualifies shape-to-AABB candidate containment against the independent exact AABB oracle. It does not directly run each timed tree backend on these same OBB frames, invoke the live PhysicsWorld narrowphase, include CCD or solver contacts, or verify the exact candidate-versus-contact lifecycle receipts. The separate temporal tournament qualifies each tree backend against the exact AABB relation; combining those two qualified implications establishes the intended abstract containment, but same-frame backend+OBB replay remains a follow-up. 4D physical shape contact is still excluded until the generalized 4D zonotope SAT lane in issue #7684 is independently qualified.
