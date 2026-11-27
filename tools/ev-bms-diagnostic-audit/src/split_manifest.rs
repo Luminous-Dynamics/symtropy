@@ -113,14 +113,16 @@ fn canonicalize(value: &mut Value) {
 
 fn validate_group_key(domain: &str, key: &str) -> Result<(), String> {
     let allowed = match domain {
-        "onboard_bms" => ["vehicle_id", "manufacturer_group"].as_slice(),
+        "onboard_bms" => key == "vehicle_id" || key == "manufacturer_group",
         "charger_side" => {
-            ["vehicle_id", "station_id", "data_owner_group"].as_slice()
+            key == "vehicle_id" || key == "station_id" || key == "data_owner_group"
         }
         _ => return Err("unsupported source domain".to_owned()),
     };
-    if !allowed.contains(&key) {
-        return Err(format!("group key {key} is not valid for source domain {domain}"));
+    if !allowed {
+        return Err(format!(
+            "group key {key} is not valid for source domain {domain}"
+        ));
     }
     Ok(())
 }
@@ -172,6 +174,39 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     }
 
     validate_group_key(&manifest.dataset_domain, &manifest.group_key)?;
+    match manifest.dataset_id.as_str() {
+        "cao-onboard-bms-zenodo-10656500" if manifest.dataset_domain != "onboard_bms" => {
+            return Err("Cao dataset ID requires onboard_bms domain".to_owned());
+        }
+        "shenzhen-charger-side-mendeley-c7gg94tmvz-v3"
+            if manifest.dataset_domain != "charger_side" =>
+        {
+            return Err("Shenzhen dataset ID requires charger_side domain".to_owned());
+        }
+        _ => {}
+    }
+    if manifest.dataset_domain == "charger_side"
+        && !manifest.leakage_keys.iter().any(|key| key == "transaction_id")
+    {
+        return Err("charger-side split must keep transaction_id within one partition".to_owned());
+    }
+    if manifest.dataset_domain == "charger_side"
+        && manifest.group_key != "vehicle_id"
+        && !manifest.temporal_exclusion_keys.iter().any(|key| key == "vehicle_id")
+    {
+        return Err(
+            "station/owner holdouts must prevent overlapping windows for repeated vehicles"
+                .to_owned(),
+        );
+    }
+    if manifest.dataset_domain == "onboard_bms"
+        && manifest.group_key == "manufacturer_group"
+        && !manifest.temporal_exclusion_keys.iter().any(|key| key == "vehicle_id")
+    {
+        return Err(
+            "manufacturer holdouts must also prevent overlapping vehicle windows".to_owned(),
+        );
+    }
     if manifest.partitions.len() != 3 {
         return Err("split manifest must contain exactly train, calibration and test".to_owned());
     }
