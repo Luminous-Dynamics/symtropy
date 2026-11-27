@@ -6,30 +6,30 @@
   "claim_specification": {
     "specification_id": "spec:wing-panel-proof-load-r1",
     "claim_id": "claim:wing-panel-proof-load",
-    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "canonicalization_profile": "canonical-json-profile-v1",
     "assessment_disposition": "FORMALLY_WELL_SPECIFIED",
     "acceptance_authority_role_ref": "role:independent-structures-reviewer"
   },
   "decision_context": {
-    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "claim_id": "claim:wing-panel-proof-load",
     "subject_ref": "part:wing-panel-001",
     "configuration_ref": "configuration:wing-r17",
     "operating_envelope_ref": "envelope:transport-normal",
-    "acquisition_interval": {
-      "earliest_unix_ms": 1795514399900,
-      "latest_unix_ms": 1795514400100
-    },
     "as_known_at_unix_ms": 1795516800000,
-    "source_scope_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "evidence_knowledge_cut_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "required_evidence_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "risk_classification_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "model_applicability_profile_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    "source_scope_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "evidence_knowledge_cut_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "required_evidence_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "risk_classification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_applicability_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "claim_specification_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "trust_policy_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "acquisition_time_earliest_unix_ms": 1795514399900,
+    "acquisition_time_latest_unix_ms": 1795514400100
   },
   "trust_policy": {
-    "snapshot_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "snapshot_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "effective_from_unix_ms": 1794000000000,
     "effective_until_unix_ms": 1800000000000,
     "receiver_first_seen_at_unix_ms": 1794000000000,
@@ -46,21 +46,21 @@
   },
   "model_credibility_cut": {
     "evidence_ref": "aeroweift:validation:wing-panel-001",
-    "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "model_ref": "model:wing-panel-fem-r12",
-    "model_artifact_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "solver_configuration_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "validation_package_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "validation_protocol_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "applicability_profile_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "model_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "solver_configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "validation_package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "validation_protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "applicability_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "domain_coverage_status": "QUALIFIED_COMPLETE_FOR_SCOPE",
     "split_integrity_status": "INTACT"
   },
   "observer_coverage": {
     "profile_id": "basalt-coverage-v0.1",
-    "receipt_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "status": "QUALIFIED_COMPLETE_FOR_SCOPE",
-    "scope_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "watermark_unix_ms": 1795516800000,
     "covered_change_classes": [
       "MODEL_UPDATE",
@@ -79,22 +79,22 @@
         {
           "evidence_ref": "receipt:inspection-01",
           "owner_namespace": "mycelix:aerocommons",
-          "owner_record_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "subject_ref": "part:wing-panel-001",
           "configuration_ref": "configuration:wing-r17",
           "producer_ref": "producer:inspection-lab",
           "producer_role_ref": "role:approved-inspection-provider",
-          "payload_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "issuer_asserted_at_unix_ms": 1795515000000,
           "receiver_first_seen_at_unix_ms": 1795515100000,
-          "owner_receipt_ref": "receipt:owner-01",
-          "owner_receipt_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "owner_receipt_ref": "owner-receipt:receipt:inspection-01",
+          "owner_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "lifecycle": "ACTIVE",
           "freshness": "FRESH",
           "dependency_coverage": "COMPLETE",
           "admission_state": "ADMITTED",
           "verification_state": "VERIFIED",
-          "verification_report_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "verification_report_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "event_effective_interval": {
             "earliest_unix_ms": 1795514000000,
             "latest_unix_ms": 1795514000000
@@ -108,7 +108,32 @@
       "requirement_source_ref": "claim-spec:/required_evidence_classes",
       "mandatory": true,
       "hard_gate": true,
-      "evidence_bindings": []
+      "evidence_bindings": [
+        {
+          "evidence_ref": "receipt:payload-integrity-02",
+          "owner_namespace": "mycelix:aerocommons",
+          "owner_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "subject_ref": "part:wing-panel-001",
+          "configuration_ref": "configuration:wing-r17",
+          "producer_ref": "producer:artifact-verifier",
+          "producer_role_ref": "role:payload-verification-service",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "issuer_asserted_at_unix_ms": 1795515000000,
+          "receiver_first_seen_at_unix_ms": 1795515100000,
+          "owner_receipt_ref": "owner-receipt:receipt:payload-integrity-02",
+          "owner_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "lifecycle": "ACTIVE",
+          "freshness": "FRESH",
+          "dependency_coverage": "COMPLETE",
+          "admission_state": "ADMITTED",
+          "verification_state": "VERIFIED",
+          "verification_report_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "event_effective_interval": {
+            "earliest_unix_ms": 1795514000000,
+            "latest_unix_ms": 1795514000000
+          }
+        }
+      ]
     },
     {
       "obligation_id": "authority",
@@ -116,7 +141,32 @@
       "requirement_source_ref": "trust-policy:/roles",
       "mandatory": true,
       "hard_gate": true,
-      "evidence_bindings": []
+      "evidence_bindings": [
+        {
+          "evidence_ref": "receipt:producer-authority-03",
+          "owner_namespace": "mycelix:aerocommons",
+          "owner_record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "subject_ref": "part:wing-panel-001",
+          "configuration_ref": "configuration:wing-r17",
+          "producer_ref": "producer:trust-authority",
+          "producer_role_ref": "role:approved-producer-authority",
+          "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "issuer_asserted_at_unix_ms": 1795515000000,
+          "receiver_first_seen_at_unix_ms": 1795515100000,
+          "owner_receipt_ref": "owner-receipt:receipt:producer-authority-03",
+          "owner_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "lifecycle": "ACTIVE",
+          "freshness": "FRESH",
+          "dependency_coverage": "COMPLETE",
+          "admission_state": "ADMITTED",
+          "verification_state": "VERIFIED",
+          "verification_report_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "event_effective_interval": {
+            "earliest_unix_ms": 1795514000000,
+            "latest_unix_ms": 1795514000000
+          }
+        }
+      ]
     }
   ],
   "case_partition": {
@@ -126,10 +176,69 @@
   },
   "owner_evidence_cuts": [
     {
-      "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "owner_namespace": "mycelix:aerocommons",
-      "receiver_receipt_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "receiver_receipt_watermark_unix_ms": 1795516800000
+      "receiver_receipt_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "receiver_receipt_watermark_unix_ms": 1795516800000,
+      "schema": "AeroOwnerEvidenceCutV0_1",
+      "component_packet_id": "packet:wing-panel-build-17",
+      "physical_unit_ref": "part:wing-panel-001",
+      "configuration_ref": "configuration:wing-r17",
+      "component_packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "component_packet_byte_length": 4096,
+      "artifact_payloads_verified": true,
+      "evidence_records": [
+        {
+          "evidence_ref": "receipt:inspection-01",
+          "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "subject_ref": "part:wing-panel-001",
+          "configuration_ref": "configuration:wing-r17",
+          "lifecycle": "active",
+          "predecessor_ref": null,
+          "freshness": "fresh",
+          "dependency_coverage": "complete",
+          "unresolved_inputs": [],
+          "requires_reverification": false,
+          "eligible_under_declared_coverage": true
+        },
+        {
+          "evidence_ref": "receipt:payload-integrity-02",
+          "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "subject_ref": "part:wing-panel-001",
+          "configuration_ref": "configuration:wing-r17",
+          "lifecycle": "active",
+          "predecessor_ref": null,
+          "freshness": "fresh",
+          "dependency_coverage": "complete",
+          "unresolved_inputs": [],
+          "requires_reverification": false,
+          "eligible_under_declared_coverage": true
+        },
+        {
+          "evidence_ref": "receipt:producer-authority-03",
+          "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "subject_ref": "part:wing-panel-001",
+          "configuration_ref": "configuration:wing-r17",
+          "lifecycle": "active",
+          "predecessor_ref": null,
+          "freshness": "fresh",
+          "dependency_coverage": "complete",
+          "unresolved_inputs": [],
+          "requires_reverification": false,
+          "eligible_under_declared_coverage": true
+        }
+      ],
+      "basalt_run_id": "basalt-run-2026-11-27-001",
+      "basalt_report_version": 1,
+      "basalt_timeline_input_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "basalt_final_state_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "basalt_report_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "basalt_confirmatory_eligible": true,
+      "trust_policy_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observer_coverage_profile_id": "basalt-coverage-v0.1",
+      "observer_coverage_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observer_coverage_status": "qualified_complete_for_scope",
+      "observer_coverage_watermark_unix_ms": 1795516800000
     }
   ],
   "replay_mode": "HISTORICAL_AS_KNOWN"
