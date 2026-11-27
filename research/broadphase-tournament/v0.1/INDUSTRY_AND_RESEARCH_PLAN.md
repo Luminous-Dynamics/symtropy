@@ -317,3 +317,8 @@ References:
 Dimforge's Q3 2026 Physmark report says timeouts are detected and the corresponding datapoints are ignored. Symtropy's formal benchmark should not copy that survivor-only denominator: freeze all requested cases before execution, retain timeout/OOM/crash/unsupported/not-run outcomes, count zero qualified horizon ticks for incomplete runs, and publish completed throughput together with requested-case coverage. [Physmark timeout behavior](https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/)
 
 The current target is not to claim an aggregate win over PhysX/Rapier/Nexus immediately. First win the matched algorithm-stage and contact-stage lanes with zero false negatives, then compare full-engine temporal scenes on exactly matched hardware, scene artifacts, solver settings and semantic callbacks. CPU/GPU and candidate-only/contact-complete results stay in separate ledgers.
+### 7.11 Lease admission overhead is its own measurement
+
+A new `contact-lease-benchmark` binary produces nine scenarios across 2D/3D/4D and reports per-check time and outcome accounting. The CI campaign runs 100,000 checks per row and retains 27 rows. This isolates the cost of processing a geometric lease witness and deciding reuse versus refresh.
+
+Do not interpret the microbenchmark as proof of contact recycling speedup: it does not build the feature margin, normal-variation interval, updated separation, nor run actual GJK/EPA/SAT. The next matched stage comparison must pair it with fresh narrowphase cost and include witness derivation and update-separation cost. The final comparison must include solver and callback/event semantics.
