@@ -151,7 +151,7 @@ Minimum challenge families:
 23. Duplicate artifact identity with different payload bytes.
 24. Report correction that must preserve the predecessor and original historical view.
 
-Each case should record the injected fault(s), exact expected disposition, required reason-code set, oracle rationale, evidence scope, independent adjudicator, and whether the case belongs to a public or blinded holdout partition. Coupled-fault cases are mandatory: tests must include byte mutation plus a valid unrelated receipt, stale evidence plus a risk/profile substitution, and late receipt plus backdated issuer time.
+Each case should record the injected fault(s), proposed disposition, proposed reason-code set, oracle rationale, evidence scope, independent adjudicator, and whether the case belongs to a public or blinded holdout partition. The public seed corpus and schema are checked in under the companion example/schema files. Its proposed outcomes are explicitly not independently adjudicated and none of the cases has been executed. Coupled-fault cases are mandatory: tests must include byte mutation plus a valid unrelated receipt, stale evidence plus a risk/profile substitution, and late receipt plus backdated issuer time.
 
 The oracle author must not derive expected results from the implementation under test. At least one independent implementation or hand-derived adjudication must consume the raw challenge facts. A second implementation that copies the same fixture-generation assumptions is not an independent oracle.
 
