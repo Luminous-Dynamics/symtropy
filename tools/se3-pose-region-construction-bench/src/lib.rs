@@ -903,10 +903,7 @@ mod tests {
         let mut value = input();
         value.covariance_row_major[1] = 1.0e-18;
         value.covariance_row_major[6] = 1.0e-18 * (1.0 + 5.0e-13);
-        assert_eq!(
-            evaluate(&value).disposition,
-            Disposition::InvalidCovariance
-        );
+        assert_eq!(evaluate(&value).disposition, Disposition::InvalidCovariance);
     }
 
     #[test]
