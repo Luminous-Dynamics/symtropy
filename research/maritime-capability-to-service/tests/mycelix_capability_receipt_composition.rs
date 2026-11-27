@@ -203,9 +203,7 @@ fn build_service_case(owner: &OwnerReport) -> (String, BTreeMap<String, String>)
         // These downstream dispositions are explicit synthetic scenario assumptions
         // applied equally to every owner-feasible plan. They are not emitted by Mycelix
         // and must never be inferred from a FEASIBLE sourcing receipt.
-        rows.push(format!(
-            "INSPECTION\t{option_id}\tPASS\t10\tREV-MPCB-001"
-        ));
+        rows.push(format!("INSPECTION\t{option_id}\tPASS\t10\tREV-MPCB-001"));
         rows.push(format!(
             "RECEIVER_ACCEPTANCE\t{option_id}\tACCEPTED\t10\tREV-MPCB-001"
         ));
