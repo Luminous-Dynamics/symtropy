@@ -52,11 +52,6 @@ on:
       - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
       - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
-      - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
-      - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
-      - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
-      - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
-      - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
       - ".github/workflows/aero-material-qual.yml"
   pull_request:
     branches: ["main", "research/aero-material-process-qual-v0.1", "research/aero-evidence-binding-v0.2", "research/aero-temporal-assurance-v0.1", "research/aero-observer-coverage-qualification-v0.1", "research/aero-compositional-claim-gate-v0.1", "research/aero-decision-context-envelope-v0.1", "research/aero-owner-evidence-cut-v0.1", "research/aero-model-credibility-cut-v0.1", "research/aero-model-credibility-claim-integration-v0.1", "research/aero-model-evidence-attestation-v0.1"]
@@ -107,6 +102,11 @@ on:
       - "docs/research/aviation/examples/aero_model_evidence_challenge_corpus_v0_1.json"
       - "docs/research/aviation/schemas/aero_assurance_benchmark_metrics_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_assurance_benchmark_metrics_v0_1.json"
+      - "docs/research/aviation/examples/aero_claim_specification_challenge_corpus_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_specification_challenge_corpus_v0_1.schema.json"
+      - "docs/research/aviation/examples/aero_claim_specification_v0_1.json"
+      - "docs/research/aviation/schemas/aero_claim_specification_v0_1.schema.json"
+      - "docs/research/aviation/AERO_CLAIM_SPECIFICATION_ASSURANCE_V0_1.md"
       - ".github/workflows/aero-material-qual.yml"
   workflow_dispatch:
 
