@@ -16,9 +16,10 @@ pub struct AreaBoundInput {
     pub source_to_shade_distance_m: f64,
     /// Shade plane to target plane distance, metres.
     pub shade_to_target_distance_m: f64,
-    /// Integral of local fractional target-plane attenuation over a finite
-    /// target domain, in square metres:
-    /// integral_T attenuation_fraction(x) dA_target.
+    /// Area of the finite target-plane domain, square metres.
+    pub target_domain_area_m2: f64,
+    /// Integral of local fractional target-plane attenuation over the target
+    /// domain, in square metres: integral_T attenuation_fraction(x) dA_target.
     pub integrated_target_attenuation_area_m2: f64,
     /// Common scalar radiant transmittance of every module, in [0, 1).
     pub module_transmittance_fraction: f64,
@@ -29,6 +30,8 @@ pub struct AreaBoundInput {
 pub struct AreaBoundEstimate {
     /// alpha = source_to_shade / (source_to_shade + shade_to_target).
     pub source_to_shade_fraction: f64,
+    /// Mean fractional attenuation over the finite target domain.
+    pub mean_target_attenuation_fraction: f64,
     /// Lower bound on the projected union area of the common-plane shade mask,
     /// square metres. This is not a sum of module areas or a system mass.
     pub projected_mask_union_area_lower_bound_m2: f64,
@@ -65,8 +68,14 @@ pub fn evaluate_projected_mask_area_bound(
     if !finite_positive(input.shade_to_target_distance_m) {
         return Err("shade_to_target_distance_m must be finite and positive");
     }
+    if !finite_positive(input.target_domain_area_m2) {
+        return Err("target_domain_area_m2 must be finite and positive");
+    }
     if !finite_nonnegative(input.integrated_target_attenuation_area_m2) {
         return Err("integrated_target_attenuation_area_m2 must be finite and non-negative");
+    }
+    if input.integrated_target_attenuation_area_m2 > input.target_domain_area_m2 {
+        return Err("integrated attenuation cannot exceed the finite target-domain area");
     }
     if !input.module_transmittance_fraction.is_finite()
         || !(0.0..1.0).contains(&input.module_transmittance_fraction)
@@ -84,6 +93,8 @@ pub fn evaluate_projected_mask_area_bound(
     let source_to_shade_fraction =
         scaled_source_distance / (scaled_source_distance + scaled_target_distance);
 
+    let mean_target_attenuation_fraction =
+        input.integrated_target_attenuation_area_m2 / input.target_domain_area_m2;
     let transmission_loss_fraction = 1.0 - input.module_transmittance_fraction;
     let projected_mask_union_area_lower_bound_m2 = source_to_shade_fraction.powi(2)
         * input.integrated_target_attenuation_area_m2
@@ -92,6 +103,7 @@ pub fn evaluate_projected_mask_area_bound(
     if !source_to_shade_fraction.is_finite()
         || source_to_shade_fraction <= 0.0
         || source_to_shade_fraction >= 1.0
+        || !mean_target_attenuation_fraction.is_finite()
         || !projected_mask_union_area_lower_bound_m2.is_finite()
     {
         return Err("projected mask area bound overflowed its finite domain");
@@ -99,6 +111,7 @@ pub fn evaluate_projected_mask_area_bound(
 
     Ok(AreaBoundEstimate {
         source_to_shade_fraction,
+        mean_target_attenuation_fraction,
         projected_mask_union_area_lower_bound_m2,
     })
 }
@@ -119,6 +132,7 @@ pub fn full_plane_integrated_blockage_area(
     let estimate = evaluate_projected_mask_area_bound(AreaBoundInput {
         source_to_shade_distance_m,
         shade_to_target_distance_m,
+        target_domain_area_m2: 1.0,
         integrated_target_attenuation_area_m2: 0.0,
         module_transmittance_fraction: 0.0,
     })?;
@@ -154,6 +168,7 @@ mod tests {
         let estimate = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 3.0,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 100.0,
             integrated_target_attenuation_area_m2: 20.0,
             module_transmittance_fraction: 0.0,
         })
@@ -172,6 +187,7 @@ mod tests {
         let opaque = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 3.0,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 100.0,
             integrated_target_attenuation_area_m2: 20.0,
             module_transmittance_fraction: 0.0,
         })
@@ -179,6 +195,7 @@ mod tests {
         let half_transmitting = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 3.0,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 100.0,
             integrated_target_attenuation_area_m2: 20.0,
             module_transmittance_fraction: 0.5,
         })
@@ -235,6 +252,7 @@ mod tests {
         let estimate = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 1.0,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 10.0,
             integrated_target_attenuation_area_m2: 0.0,
             module_transmittance_fraction: 0.9,
         })
@@ -248,6 +266,7 @@ mod tests {
         let valid = AreaBoundInput {
             source_to_shade_distance_m: 1.0,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 10.0,
             integrated_target_attenuation_area_m2: 1.0,
             module_transmittance_fraction: 0.0,
         };
@@ -279,10 +298,23 @@ mod tests {
     }
 
     #[test]
+    fn integrated_attenuation_cannot_exceed_target_domain_area() {
+        let invalid = AreaBoundInput {
+            source_to_shade_distance_m: 1.0,
+            shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 10.0,
+            integrated_target_attenuation_area_m2: 10.1,
+            module_transmittance_fraction: 0.0,
+        };
+        assert!(evaluate_projected_mask_area_bound(invalid).is_err());
+    }
+
+    #[test]
     fn unrepresentable_bound_is_rejected() {
         let estimate = evaluate_projected_mask_area_bound(AreaBoundInput {
             source_to_shade_distance_m: 1.0e-200,
             shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: f64::MAX,
             integrated_target_attenuation_area_m2: f64::MAX,
             module_transmittance_fraction: 0.0,
         });
