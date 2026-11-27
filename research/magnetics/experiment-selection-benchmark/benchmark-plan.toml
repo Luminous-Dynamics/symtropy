@@ -32,7 +32,7 @@ fixture = "evaluator/fixtures/synthetic-experiment-selection-v0.1.json"
 source_register = "fixtures/experiment-selection-source-register-v0.1.json"
 language = "Rust 2024"
 dependencies = []
-unit_tests_authored = 14
+unit_tests_authored = 18
 unit_tests_executed = false
 exact_head_ci_pass = false
 
@@ -40,3 +40,14 @@ exact_head_ci_pass = false
 synthetic_savings_is_real_experiment_savings = false
 bgolearn_40_60_percent_claim_transfers_to_magnetics = false
 random_search_alone_is_sufficient_baseline = false
+
+
+[batch_accounting]
+cost_to_first_qualified_includes_entire_successful_iteration_batch = true
+partial_batch_stop_credit = false
+cost_accumulation_saturates_u64 = true
+
+[regret]
+objective_direction_is_respected = true
+minimize_uses_best_qualified_minimum = true
+maximize_uses_best_qualified_maximum = true
