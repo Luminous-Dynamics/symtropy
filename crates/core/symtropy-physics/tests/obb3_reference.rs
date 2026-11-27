@@ -57,9 +57,9 @@ fn rotor_3d(angles: [f64; 3]) -> Rotor<3> {
 
 fn local_axes(rotation: &Rotor<3>) -> [SVector<f64, 3>; 3] {
     [
-        rotation.rotate_vector(&SVector::new(1.0, 0.0, 0.0)),
-        rotation.rotate_vector(&SVector::new(0.0, 1.0, 0.0)),
-        rotation.rotate_vector(&SVector::new(0.0, 0.0, 1.0)),
+        rotation.rotate_vector(&SVector::<f64, 3>::new(1.0, 0.0, 0.0)),
+        rotation.rotate_vector(&SVector::<f64, 3>::new(0.0, 1.0, 0.0)),
+        rotation.rotate_vector(&SVector::<f64, 3>::new(0.0, 0.0, 1.0)),
     ]
 }
 
