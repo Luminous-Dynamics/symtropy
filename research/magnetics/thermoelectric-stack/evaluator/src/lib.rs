@@ -107,6 +107,7 @@ pub struct BenchmarkSpec {
 pub struct ComponentAcceptance {
     pub component_id: String,
     pub specimen_id: String,
+    pub build_id: String,
     pub maturity: Maturity,
     pub disposition: Disposition,
     pub scope_digest: String,
@@ -128,6 +129,10 @@ pub struct OptimizationReceipt {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Observation {
     pub metric_id: String,
+    pub component_id: String,
+    pub specimen_id: String,
+    pub build_id: String,
+    pub material_lot_id: String,
     pub unit: String,
     pub value: f64,
     pub uncertainty_radius: f64,
@@ -168,6 +173,7 @@ pub enum Blocker {
     ScopeMismatch,
     WrongCandidateFamily,
     InvalidAcceptance,
+    BrokenSpecimenBinding,
     DuplicateObservation,
     MissingObservation,
     InvalidObservation,
@@ -236,6 +242,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
         }
 
         validate_acceptance(candidate, &mut blockers);
+        validate_optimization(candidate, spec, &mut blockers);
         let candidate_intervals = validate_observations(candidate, spec, &mut blockers);
         let candidate_hard = hard_limit_status(&candidate_intervals, &spec.metrics);
         blockers.extend(candidate_hard.blockers.clone());
@@ -267,7 +274,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
                 }
 
                 let mut baseline_blockers = Vec::new();
-                validate_baseline_optimization(baseline, spec, &mut baseline_blockers);
+                validate_optimization(baseline, spec, &mut baseline_blockers);
                 validate_acceptance(baseline, &mut baseline_blockers);
                 let intervals = validate_observations(baseline, spec, &mut baseline_blockers);
                 let hard = hard_limit_status(&intervals, &spec.metrics);
@@ -307,9 +314,27 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
             blockers.contains(&Blocker::NonInferiorityViolation);
         let benefits = common_robust_benefits(&baseline_comparisons);
 
-        let decision = if blockers.contains(&Blocker::DefiniteHardLimitViolation) {
+        let not_comparable = blockers.iter().any(|blocker| {
+            matches!(
+                blocker,
+                Blocker::InvalidBenchmarkSpec
+                    | Blocker::DuplicateArchitectureId
+                    | Blocker::DuplicateComponentId
+                    | Blocker::MissingCandidate
+                    | Blocker::MissingRequiredBaseline
+                    | Blocker::MissingConventionalBaseline
+                    | Blocker::ScopeMismatch
+                    | Blocker::WrongCandidateFamily
+            )
+        });
+        let unresolved_blockers = blockers
+            .iter()
+            .any(|blocker| *blocker != Blocker::NonInferiorityViolation);
+        let decision = if not_comparable {
+            Decision::NotComparable
+        } else if blockers.contains(&Blocker::DefiniteHardLimitViolation) {
             Decision::Fail
-        } else if !blockers.is_empty()
+        } else if unresolved_blockers
             || any_baseline_invalid
             || !all_comparators_present
             || candidate_hard.unresolved
@@ -416,6 +441,7 @@ fn validate_acceptance(trial: &Trial, blockers: &mut Vec<Blocker>) {
     let acceptance = &trial.acceptance;
     if acceptance.component_id != trial.component_id
         || acceptance.specimen_id.trim().is_empty()
+        || acceptance.build_id.trim().is_empty()
         || acceptance.maturity < Maturity::M4
         || acceptance.disposition != Disposition::Qualified
         || !valid_sha256(&acceptance.scope_digest)
@@ -426,7 +452,7 @@ fn validate_acceptance(trial: &Trial, blockers: &mut Vec<Blocker>) {
     }
 }
 
-fn validate_baseline_optimization(
+fn validate_optimization(
     baseline: &Trial,
     spec: &BenchmarkSpec,
     blockers: &mut Vec<Blocker>,
@@ -467,6 +493,13 @@ fn validate_observations(
             || !evidence_ids.insert(observation.evidence_id.as_str())
         {
             blockers.push(Blocker::DuplicateObservation);
+        }
+        if observation.component_id != trial.component_id
+            || observation.specimen_id != trial.acceptance.specimen_id
+            || observation.build_id != trial.acceptance.build_id
+            || observation.material_lot_id.trim().is_empty()
+        {
+            blockers.push(Blocker::BrokenSpecimenBinding);
         }
         if observation.evidence_class != EvidenceClass::PhysicalMeasurement {
             blockers.push(Blocker::InadmissibleEvidenceClass);
@@ -759,6 +792,7 @@ mod tests {
         ComponentAcceptance {
             component_id: id.to_string(),
             specimen_id: format!("SPEC-{id}"),
+            build_id: format!("BUILD-{id}"),
             maturity: Maturity::M4,
             disposition: Disposition::Qualified,
             scope_digest: digest('1'),
@@ -780,6 +814,9 @@ mod tests {
     }
 
     fn trial(id: &str, family: Family, role: Role, values: [f64; 9]) -> Trial {
+        let component_id = format!("COMP-{id}");
+        let specimen_id = format!("SPEC-{component_id}");
+        let build_id = format!("BUILD-{component_id}");
         let metric_values = [
             ("hotspot", "degC", values[0], 1.0, 'a'),
             ("ac_winding_loss", "W", values[1], 5.0, 'b'),
@@ -796,6 +833,10 @@ mod tests {
             .map(
                 |(metric_id, unit, value, uncertainty_radius, suffix)| Observation {
                     metric_id: metric_id.to_string(),
+                    component_id: component_id.clone(),
+                    specimen_id: specimen_id.clone(),
+                    build_id: build_id.clone(),
+                    material_lot_id: format!("LOT-{metric_id}"),
                     unit: unit.to_string(),
                     value,
                     uncertainty_radius,
@@ -809,15 +850,19 @@ mod tests {
             )
             .collect();
 
-        let component_id = format!("COMP-{id}");
         Trial {
             architecture_id: id.to_string(),
             component_id: component_id.clone(),
             family,
             role,
             scope: scope(),
-            acceptance: acceptance(&component_id),
-            optimization: (role == Role::RequiredBaseline).then(optimization),
+            acceptance: {
+                let mut accepted = acceptance(&component_id);
+                accepted.specimen_id = specimen_id;
+                accepted.build_id = build_id;
+                accepted
+            },
+            optimization: Some(optimization()),
             observations,
         }
     }
