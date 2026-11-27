@@ -657,10 +657,11 @@ mod tests {
         let widened = certify_physical_sensor_function(&physical, &bounded, &requirements())
             .expect("wider residual");
         assert_ne!(widened.phase_status, RequirementStatus::Safe);
-        assert!(
-            widened.phase_margin.expect("nonzero lower norm").width()
-                >= baseline.phase_margin.expect("baseline nonzero").width()
-        );
+        let baseline_margin = baseline.phase_margin.expect("baseline nonzero");
+        let widened_margin = widened.phase_margin.expect("nonzero lower norm");
+        let baseline_width = baseline_margin.upper() - baseline_margin.lower();
+        let widened_width = widened_margin.upper() - widened_margin.lower();
+        assert!(widened_width >= baseline_width);
     }
 
     #[test]
