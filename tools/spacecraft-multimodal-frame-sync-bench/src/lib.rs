@@ -277,6 +277,14 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         );
     }
 
+    if !valid_timestamp(&input.capture_timestamp) {
+        return result(
+            input,
+            BundleDisposition::InvalidInput,
+            "CAPTURE_TIMESTAMP_INVALID",
+        );
+    }
+
     if input.sample_id
         != format!(
             "{}/{}/{}",
@@ -287,14 +295,6 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
             input,
             BundleDisposition::OutOfScope,
             "SAMPLE_ID_DOES_NOT_BIND_SPACECRAFT_TRAJECTORY_AND_TIMESTAMP",
-        );
-    }
-
-    if !valid_timestamp(&input.capture_timestamp) {
-        return result(
-            input,
-            BundleDisposition::InvalidInput,
-            "CAPTURE_TIMESTAMP_INVALID",
         );
     }
 
@@ -416,7 +416,7 @@ mod tests {
             timestamp: "20260120165126242".to_owned(),
             frame_id: "frame-0001".to_owned(),
             sensor_id: sensor.to_owned(),
-            path: format!("raw/satellite/approach_front/{name}/frame-0001"),
+            path: format!("raw/ACE/approach_front/{name}/20260120165126242"),
             sha256: "a".repeat(64),
             present: true,
         }
@@ -572,14 +572,18 @@ mod tests {
         let mut value = input();
         value.capture_timestamp = "20260120165126243".to_owned();
         value.sample_id = "ACE/approach_front/20260120165126243".to_owned();
-        for record in [
-            &mut value.rgb,
-            &mut value.depth,
-            &mut value.segmentation,
-            &mut value.lidar,
-            &mut value.pose,
+        for (name, record) in [
+            ("rgb", &mut value.rgb),
+            ("depth", &mut value.depth),
+            ("segmentation", &mut value.segmentation),
+            ("lidar", &mut value.lidar),
+            ("pose", &mut value.pose),
         ] {
             record.timestamp = value.capture_timestamp.clone();
+            record.path = format!(
+                "raw/{}/{}/{}/{}",
+                value.spacecraft_id, value.trajectory_id, name, value.capture_timestamp
+            );
         }
         assert_eq!(
             evaluate(&value).disposition,
