@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aerb_candidate_blind_manifest_v0_1.schema.json",
+  "title": "AERB candidate-visible blind campaign manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_class",
+    "campaign_id",
+    "campaign_commitment_sha256",
+    "episode_ids"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-blind-campaign-v0.1"
+    },
+    "corpus_class": {
+      "const": "blind_evaluation"
+    },
+    "campaign_id": {
+      "type": "string",
+      "pattern": "^camp_[0-9a-f]{32}$"
+    },
+    "campaign_commitment_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "episode_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^ep_[0-9a-f]{32}$"
+      }
+    }
+  }
+}
