@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "fixture_id": "ROOM-TWIN-01",
+  "title": "Procedural two-chamber indoor topology-identifiability pair",
+  "generator": {
+    "crate": "symtropy-render-benchmark",
+    "binary": "room-twin",
+    "algorithm": "corridor-two-chamber-v1",
+    "external_assets": [],
+    "randomness": "none",
+    "variant_selection": "evaluator-side process argument only; not candidate-visible",
+    "variant_dependent_geometry": "one far-door panel, behind shared corridor occlusion"
+  },
+  "render": {
+    "engine": "Bevy 0.19.0",
+    "projection": "perspective",
+    "width_px": 1280,
+    "height_px": 720,
+    "shadows_enabled": false,
+    "lighting": "fixed ambient and directional, no shadow maps",
+    "material_policy": "fixed matte wall, floor and accent materials"
+  },
+  "camera": {
+    "camera_id": "room-twin-camera-v1",
+    "initial_position_m": [
+      0,
+      1.65,
+      -7
+    ],
+    "initial_look_at_m": [
+      0,
+      1.65,
+      8
+    ],
+    "waypoints": [
+      {
+        "at_secs": 0,
+        "position_m": [
+          0,
+          1.65,
+          -7
+        ],
+        "look_at_m": [
+          0,
+          1.65,
+          8
+        ]
+      },
+      {
+        "at_secs": 4.5,
+        "position_m": [
+          0,
+          1.65,
+          -7
+        ],
+        "look_at_m": [
+          0,
+          1.65,
+          8
+        ]
+      },
+      {
+        "at_secs": 5.7,
+        "position_m": [
+          0,
+          1.65,
+          2
+        ],
+        "look_at_m": [
+          0,
+          1.65,
+          8
+        ]
+      },
+      {
+        "at_secs": 6.4,
+        "position_m": [
+          5.2,
+          1.65,
+          2
+        ],
+        "look_at_m": [
+          5.2,
+          1.65,
+          8
+        ]
+      },
+      {
+        "at_secs": 6.8,
+        "position_m": [
+          5.2,
+          1.65,
+          2
+        ],
+        "look_at_m": [
+          13,
+          1.65,
+          2
+        ]
+      }
+    ]
+  },
+  "capture": {
+    "schedule_secs": [
+      1.5,
+      4,
+      7
+    ],
+    "shared_prefix_cutoff_secs": 4,
+    "first_distinguishing_observation_secs": 7,
+    "pixel_comparison": "decoded RGBA8",
+    "candidate_visible_metadata_common_across_variants": true
+  },
+  "common_geometry_m": {
+    "corridor": {
+      "x_min": -2.2,
+      "x_max": 2.2,
+      "z_min": -9,
+      "z_max": 10,
+      "door_opening_in_right_wall": [
+        0.5,
+        3.5
+      ]
+    },
+    "wing": {
+      "x_min": 2.2,
+      "x_max": 13.5,
+      "z_min": -2.5,
+      "z_max": 6.5
+    },
+    "inner_divider": {
+      "x": 4.2,
+      "door_opening_z": [
+        0.5,
+        3.5
+      ]
+    },
+    "far_wall": {
+      "x": 9.2,
+      "door_opening_z": [
+        0.5,
+        3.5
+      ]
+    },
+    "second_chamber_end_wall": {
+      "x": 13.5
+    }
+  },
+  "claim_ceiling": "fixture and camera schedule only; no rendered equality, replay, map quality, physical camera calibration, blind custody or model performance implied"
+}
