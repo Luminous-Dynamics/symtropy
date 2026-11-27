@@ -576,7 +576,7 @@ mod tests {
             let shared_ceiling = supply.min(handling);
 
             let mut nodes = vec![node("origin-yard", 0, handling, 0)];
-            let mut receipts = vec![TemporalReceipt {
+            let receipts = vec![TemporalReceipt {
                 receipt_id: format!("receipt-{seed}"),
                 node_id: "origin-yard".to_string(),
                 available_period: 0,
@@ -839,6 +839,34 @@ mod tests {
         assert_eq!(
             flow_for(&on_time_result, &source_edge_id("service", "too-early")),
             0
+        );
+    }
+
+    #[test]
+    fn validated_opening_inventory_can_fund_same_period_service_issue() {
+        let mut yard = node("yard", 100, 0, 100);
+        yard.opening_inventory = 80;
+        let model = profile(
+            0,
+            vec![yard],
+            vec![],
+            vec![],
+            vec![TemporalService {
+                service_id: "same-period-service".to_string(),
+                node_id: "yard".to_string(),
+                period: 0,
+                requested_quantity: 80,
+            }],
+        );
+
+        let result = verified_result(&model);
+        assert_eq!(result.max_flow, 80);
+        assert_eq!(
+            flow_for(
+                &result,
+                &source_edge_id("opening-inventory", "yard")
+            ),
+            80
         );
     }
 
