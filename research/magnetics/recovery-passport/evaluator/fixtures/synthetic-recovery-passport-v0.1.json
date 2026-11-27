@@ -123,7 +123,12 @@
         "record_id": "NEW-ACCEPTANCE-001",
         "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "downstream_disposition": "Qualified"
+      "downstream_disposition": "Qualified",
+      "material_consumption_record": {
+        "record_id": "CONSUMPTION-001",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "consumed_mass_mg": 500
     }
   },
   "expected": {
