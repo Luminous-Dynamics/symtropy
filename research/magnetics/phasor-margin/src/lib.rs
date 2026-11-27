@@ -14,6 +14,7 @@ use magnetic_interval_ad::{
 };
 
 pub const PHASE_MARGIN_EXPRESSION_ID: &str = "normalized-phasor-cosine-margin-v0.1";
+pub const AMPLITUDE_MARGIN_EXPRESSION_ID: &str = "phasor-minimum-amplitude-squared-margin-v0.1";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PhasorPhaseMarginCertificate {
@@ -31,6 +32,7 @@ pub struct PhasorComponents<const N: usize> {
     pub reference_x: IntervalDual<N>,
     pub reference_y: IntervalDual<N>,
     pub minimum_cosine: IntervalDual<N>,
+    pub minimum_amplitude_squared: IntervalDual<N>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,6 +46,21 @@ pub struct SpatialPhasorPhaseMarginCertificate {
     pub shortest_arc_contract: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialPhasorAmplitudeMarginCertificate {
+    pub derivative_enclosure: ValidatedDerivativeEnclosure<3>,
+    pub spatial_derivative_evidence: SpatialDerivativeSupremumEvidence,
+    pub measured_norm_squared_enclosure: Interval,
+    pub minimum_amplitude_squared_enclosure: Interval,
+    pub metric_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialPhasorRequirementsCertificate {
+    pub phase_margin: SpatialPhasorPhaseMarginCertificate,
+    pub amplitude_margin: SpatialPhasorAmplitudeMarginCertificate,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PhaseMarginError {
     WrongExpressionIdentity,
@@ -55,6 +72,8 @@ pub enum PhaseMarginError {
     InvalidSpatialParameterOrder { axis: usize },
     InvalidSpatialParameterUnit { axis: usize },
     InvalidSpatialOutputUnit,
+    InvalidAmplitudeThresholdDomain,
+    SpatialScopeMismatch { field: &'static str },
     SpatialMapping(SpatialMappingError),
     IntervalAd(IntervalAdError),
 }
@@ -144,6 +163,7 @@ fn phase_similarity_expression(
         reference_x,
         reference_y,
         minimum_cosine,
+        minimum_amplitude_squared: IntervalDual::constant(Interval::ZERO),
     })
 }
 
@@ -175,6 +195,142 @@ pub fn certify_phasor_phase_margin(
         metric_id: "normalized-phasor-dot-product".to_owned(),
         shortest_arc_contract: "normalized_dot(p,q) >= cos(delta_max), with 0 <= delta_max < pi"
             .to_owned(),
+    })
+}
+
+fn amplitude_reserve_expression<const N: usize>(
+    components: PhasorComponents<N>,
+) -> Result<IntervalDual<N>, IntervalAdError> {
+    let measured_norm_squared = components.measured_x.square() + components.measured_y.square();
+    Ok(measured_norm_squared - components.minimum_amplitude_squared)
+}
+
+fn validate_spatial_axes(domain: &ParameterDomain<3>) -> Result<(), PhaseMarginError> {
+    if domain.output_unit != "dimensionless" {
+        return Err(PhaseMarginError::InvalidSpatialOutputUnit);
+    }
+    let expected_axes = ["x", "y", "z"];
+    for (axis, ((actual_axis, expected_axis), unit)) in domain
+        .parameter_ids
+        .iter()
+        .zip(expected_axes.iter())
+        .zip(domain.parameter_units.iter())
+        .enumerate()
+    {
+        if actual_axis != expected_axis {
+            return Err(PhaseMarginError::InvalidSpatialParameterOrder { axis });
+        }
+        if unit != "metre" {
+            return Err(PhaseMarginError::InvalidSpatialParameterUnit { axis });
+        }
+    }
+    Ok(())
+}
+
+fn validate_paired_spatial_domains(
+    phase: &ParameterDomain<3>,
+    amplitude: &ParameterDomain<3>,
+) -> Result<(), PhaseMarginError> {
+    let matched = [
+        (phase.cell_id == amplitude.cell_id, "cell_id"),
+        (phase.parameter_ids == amplitude.parameter_ids, "parameter_ids"),
+        (phase.parameter_units == amplitude.parameter_units, "parameter_units"),
+        (phase.parameter_bounds == amplitude.parameter_bounds, "parameter_bounds"),
+        (phase.coordinate_frame_id == amplitude.coordinate_frame_id, "coordinate_frame_id"),
+        (phase.operating_condition_id == amplitude.operating_condition_id, "operating_condition_id"),
+        (phase.model_set_id == amplitude.model_set_id, "model_set_id"),
+        (phase.solver_run_id == amplitude.solver_run_id, "solver_run_id"),
+        (phase.geometry_sha256 == amplitude.geometry_sha256, "geometry_sha256"),
+        (phase.material_sha256 == amplitude.material_sha256, "material_sha256"),
+        (phase.source_revision == amplitude.source_revision, "source_revision"),
+        (phase.implementation_id == amplitude.implementation_id, "implementation_id"),
+        (phase.artifact_sha256 == amplitude.artifact_sha256, "artifact_sha256"),
+        (phase.environment_sha256 == amplitude.environment_sha256, "environment_sha256"),
+    ];
+    for (is_match, field) in matched {
+        if !is_match {
+            return Err(PhaseMarginError::SpatialScopeMismatch { field });
+        }
+    }
+    if phase.requirement_id == amplitude.requirement_id {
+        return Err(PhaseMarginError::SpatialScopeMismatch {
+            field: "distinct_requirement_id",
+        });
+    }
+    Ok(())
+}
+
+/// Certify an independent minimum-signal-amplitude reserve over a spatial
+/// cell. The threshold is supplied as a squared, dimensionless magnitude.
+///
+/// The margin is ||p||² - A_min². This is intentionally separate from the
+/// normalized phase margin so normalization cannot hide a weak signal.
+pub fn certify_spatial_phasor_amplitude_margin<F>(
+    domain: &ParameterDomain<3>,
+    evaluate: F,
+) -> Result<SpatialPhasorAmplitudeMarginCertificate, PhaseMarginError>
+where
+    F: Fn([IntervalDual<3>; 3]) -> Result<PhasorComponents<3>, IntervalAdError>,
+{
+    if domain.expression_id != AMPLITUDE_MARGIN_EXPRESSION_ID {
+        return Err(PhaseMarginError::WrongExpressionIdentity);
+    }
+    validate_spatial_axes(domain)?;
+
+    let measured_norm = certify_expression_centered(domain, |variables| {
+        let components = evaluate(variables)?;
+        Ok(components.measured_x.square() + components.measured_y.square())
+    })?;
+    let minimum_amplitude = certify_expression_centered(domain, |variables| {
+        let components = evaluate(variables)?;
+        Ok(components.minimum_amplitude_squared)
+    })?;
+    if !minimum_amplitude.value_enclosure.is_finite()
+        || minimum_amplitude.value_enclosure.lower() < 0.0
+    {
+        return Err(PhaseMarginError::InvalidAmplitudeThresholdDomain);
+    }
+
+    let derivative_enclosure = certify_expression_centered(domain, |variables| {
+        amplitude_reserve_expression(evaluate(variables)?)
+    })?;
+    let spatial_derivative_evidence = map_spatial_derivative_suprema(
+        &derivative_enclosure,
+        &domain.cell_id,
+        &domain.requirement_id,
+        ["x", "y", "z"],
+        "metre",
+    )
+    .map_err(PhaseMarginError::SpatialMapping)?;
+
+    Ok(SpatialPhasorAmplitudeMarginCertificate {
+        derivative_enclosure,
+        spatial_derivative_evidence,
+        measured_norm_squared_enclosure: measured_norm.value_enclosure,
+        minimum_amplitude_squared_enclosure: minimum_amplitude.value_enclosure,
+        metric_id: "measured-phasor-norm-squared-minus-minimum-reserve-squared".to_owned(),
+    })
+}
+
+/// Certify both shortest-arc phase tolerance and minimum signal amplitude as
+/// separate requirements over the same physical XYZ cell. Their requirement
+/// IDs, value enclosures and derivative records remain distinct.
+pub fn certify_spatial_phasor_requirements<F>(
+    phase_domain: &ParameterDomain<3>,
+    amplitude_domain: &ParameterDomain<3>,
+    evaluate: F,
+) -> Result<SpatialPhasorRequirementsCertificate, PhaseMarginError>
+where
+    F: Fn([IntervalDual<3>; 3]) -> Result<PhasorComponents<3>, IntervalAdError>,
+{
+    validate_paired_spatial_domains(phase_domain, amplitude_domain)?;
+    let phase_margin =
+        certify_spatial_phasor_phase_margin(phase_domain, &evaluate)?;
+    let amplitude_margin =
+        certify_spatial_phasor_amplitude_margin(amplitude_domain, &evaluate)?;
+    Ok(SpatialPhasorRequirementsCertificate {
+        phase_margin,
+        amplitude_margin,
     })
 }
 
@@ -358,6 +514,7 @@ mod tests {
             reference_x: one,
             reference_y: zero,
             minimum_cosine: cosine_limit,
+            minimum_amplitude_squared: IntervalDual::constant(point(0.64)),
         })
     }
 
@@ -584,6 +741,116 @@ mod tests {
         assert_eq!(
             certificate.spatial_derivative_evidence.requirement_id,
             "other-phase-limit"
+        );
+    }
+
+    fn spatial_amplitude_domain() -> ParameterDomain<3> {
+        let mut scope = spatial_domain();
+        scope.record_id = "spatial-amplitude-record-001".to_owned();
+        scope.expression_id = AMPLITUDE_MARGIN_EXPRESSION_ID.to_owned();
+        scope.requirement_id = "minimum-signal-amplitude-reserve".to_owned();
+        scope
+    }
+
+    #[test]
+    fn amplitude_margin_exports_its_own_xyz_derivative_evidence() {
+        let scope = spatial_amplitude_domain();
+        let certificate = certify_spatial_phasor_amplitude_margin(&scope, spatial_phasors)
+            .expect("valid nonnegative amplitude threshold");
+        assert_eq!(
+            certificate.spatial_derivative_evidence.requirement_id,
+            "minimum-signal-amplitude-reserve"
+        );
+        assert_eq!(
+            certificate.spatial_derivative_evidence.axis_parameter_ids,
+            ["x".to_owned(), "y".to_owned(), "z".to_owned()]
+        );
+        assert!(certificate.derivative_enclosure.value_enclosure.lower() > 0.0);
+        assert!(
+            certificate
+                .derivative_enclosure
+                .derivative_abs_supremum
+                .iter()
+                .all(|bound| bound.is_finite())
+        );
+        assert_eq!(
+            certificate.metric_id,
+            "measured-phasor-norm-squared-minus-minimum-reserve-squared"
+        );
+    }
+
+    #[test]
+    fn amplitude_margin_reports_a_negative_reserve_without_confusing_phase() {
+        let scope = spatial_amplitude_domain();
+        let excessive_reserve = |variables| {
+            let mut components = spatial_phasors(variables)?;
+            components.minimum_amplitude_squared =
+                IntervalDual::constant(point(1.21));
+            Ok(components)
+        };
+        let certificate = certify_spatial_phasor_amplitude_margin(
+            &scope,
+            excessive_reserve,
+        )
+        .expect("a failing amplitude margin remains a valid enclosure");
+        assert!(certificate.derivative_enclosure.value_enclosure.upper() < 0.0);
+    }
+
+    #[test]
+    fn amplitude_margin_rejects_negative_threshold_squared() {
+        let scope = spatial_amplitude_domain();
+        let invalid_threshold = |variables| {
+            let mut components = spatial_phasors(variables)?;
+            components.minimum_amplitude_squared =
+                IntervalDual::constant(point(-0.01));
+            Ok(components)
+        };
+        assert_eq!(
+            certify_spatial_phasor_amplitude_margin(&scope, invalid_threshold)
+                .expect_err("squared amplitude threshold cannot be negative"),
+            PhaseMarginError::InvalidAmplitudeThresholdDomain
+        );
+    }
+
+    #[test]
+    fn joint_phase_and_amplitude_requirements_keep_distinct_ids() {
+        let phase_scope = spatial_domain();
+        let amplitude_scope = spatial_amplitude_domain();
+        let certificate = certify_spatial_phasor_requirements(
+            &phase_scope,
+            &amplitude_scope,
+            spatial_phasors,
+        )
+        .expect("both requirements share the same physical cell");
+        assert_eq!(
+            certificate.phase_margin.spatial_derivative_evidence.requirement_id,
+            phase_scope.requirement_id
+        );
+        assert_eq!(
+            certificate.amplitude_margin.spatial_derivative_evidence.requirement_id,
+            amplitude_scope.requirement_id
+        );
+        assert_ne!(
+            certificate.phase_margin.derivative_enclosure.record_id,
+            certificate.amplitude_margin.derivative_enclosure.record_id
+        );
+    }
+
+    #[test]
+    fn joint_requirements_reject_different_spatial_boxes() {
+        let phase_scope = spatial_domain();
+        let mut amplitude_scope = spatial_amplitude_domain();
+        amplitude_scope.parameter_bounds[0] = interval(-0.2, 0.2);
+        assert_eq!(
+            certify_spatial_phasor_requirements(
+                &phase_scope,
+                &amplitude_scope,
+                spatial_phasors,
+            )
+            .expect_err("requirements must describe exactly the same XYZ cell"),
+            PhaseMarginError::SpatialScopeMismatch {
+                field: "parameter_bounds"
+            }
         );
     }
 
