@@ -38,7 +38,7 @@ source_register = "fixtures/qualification-maturity-source-register-v0.1.json"
 workflow = ".github/workflows/magnetic-qualification-maturity.yml"
 language = "Rust 2024"
 dependencies = []
-unit_tests_authored = 20
+unit_tests_authored = 27
 unit_tests_executed = false
 exact_head_ci_pass = false
 
@@ -47,3 +47,18 @@ false_maturity_promotions_on_sealed_controls = 0
 evidence_to_level_traceability_fraction = 1.0
 frozen_input_receipt_determinism = true
 invalid_or_mismatched_evidence_can_raise_level = false
+
+
+[measurands]
+m2_required = ["remanence_br", "intrinsic_coercivity_hcj"]
+m3_required = ["phase", "texture_orientation", "porosity_defects"]
+measurement_evidence_requires_matching_laboratory_method_scope = true
+laboratory_scope_standard_reference = "ISO/IEC 17025:2017"
+
+[identity]
+component_binds_to_exact_candidate = true
+site_quality_receipt_binds_to_production_site_id = true
+pbf_lb_equipment_receipts_bind_to_machine_id = true
+variability_receipt_binds_to_same_cohort_summary = true
+pspp_link_requires_same_specimen_lot_and_build = true
+empty_evidence_returns = "Unestablished"
