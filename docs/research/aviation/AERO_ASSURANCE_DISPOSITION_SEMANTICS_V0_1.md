@@ -100,8 +100,9 @@ The full state vector is normative. A primary label is derived using the followi
 2. **OUT_OF_SCOPE** — the claim's declared context of use is affirmatively outside the applicable domain.
 3. **NOT_KNOWN_AT_SNAPSHOT** — evidence necessary to evaluate the claim was first received after the selected as-known cutoff.
 4. **UNVERIFIED** — required payload, producer authority, owner receipt or verifier result cannot be trusted or has not been run. A completed, trusted negative verification is a failure finding, not merely an absence of verification.
-5. **INCOMPLETE** — one or more mandatory obligations remain `NEITHER`, conflicting, uncollected, or dependent on incomplete/unknown observer coverage; or a material defeater remains unresolved.
-6. **REVIEWABLE_FOR_INDEPENDENT_DECISION** — every mandatory obligation is supported, in scope, authorized where required, known at the cutoff, verified, and free of unresolved material defeaters; relevant observers are complete.
+5. **INCOMPLETE** — one or more mandatory obligations remain `NEITHER`, conflicting, uncollected, or dependent on incomplete/unknown observer coverage; an effectivity boundary is ambiguous; or a material defeater remains unresolved.
+6. **NOT_EFFECTIVE_AT_SUBJECT_TIME** — an event is definitely not yet effective for any physical acquisition instant in the declared acquisition interval. This says nothing about whether its evidence was received by the historical cutoff.
+7. **REVIEWABLE_FOR_INDEPENDENT_DECISION** — every mandatory obligation is supported, in scope, authorized where required, known at the cutoff, verified, and free of unresolved material defeaters; relevant observers are complete; and any required event is effective at subject time.
 
 The precedence is a stable user-interface projection, not a safety ranking or compensating score. When multiple conditions occur, report the selected label **and** every obligation-level blocker. For example, a late evidence item and an independently verified wrong-subject record must preserve both facts even though the primary projection is `REJECTED`.
 
@@ -164,8 +165,15 @@ derive_disposition(vector):
 
     if any mandatory proposition is NEITHER or BOTH
        or a material defeater is UNRESOLVED
-       or required observer coverage is UNKNOWN / INCOMPLETE:
+       or required observer coverage is UNKNOWN / INCOMPLETE
+       or subject-time effectivity is BOUNDARY_AMBIGUOUS:
         return INCOMPLETE
+
+    if subject-time effectivity is DEFINITELY_NOT_YET_EFFECTIVE:
+        return NOT_EFFECTIVE_AT_SUBJECT_TIME
+
+    if subject-time effectivity is INVALID_INTERVAL:
+        return REJECTED
 
     if every mandatory obligation passes every applicable axis:
         return REVIEWABLE_FOR_INDEPENDENT_DECISION
