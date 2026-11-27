@@ -1,7 +1,6 @@
 use orbital_inspection_horizon_composition_bench::{HorizonDisposition, HorizonScope};
 use orbital_passive_safety_terminal_bench::{
-    BoundEnvelope, BoundState, PeriodWitness, RECEIPT_SCHEMA, TerminalCase, TerminalDisposition,
-    TerminalResult, evaluate,
+    BoundEnvelope, BoundState, PeriodWitness, RECEIPT_SCHEMA, TerminalCase, TerminalResult, evaluate,
 };
 use std::env;
 use std::error::Error;
@@ -168,7 +167,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut results = Vec::new();
     let mut matches = 0_usize;
-    let mut mismatches = 0_usize;
     for (index, line) in content.lines().enumerate() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') || line.starts_with("case_id,") {
@@ -180,7 +178,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         if result.disposition.as_str() == parsed.expected {
             matches += 1;
         } else {
-            mismatches += 1;
             return Err(format!(
                 "{}: expected {}, received {}",
                 parsed.case.case_id,
@@ -192,7 +189,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         results.push(result);
     }
 
-    if results.is_empty() || matches == 0 || mismatches != 0 {
+    if results.is_empty() || matches == 0 {
         return Err("empty corpus or expected disposition mismatch".into());
     }
 
@@ -208,7 +205,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         json_escape(&corpus_sha256),
         results.len(),
         matches,
-        mismatches,
         rendered
     );
     Ok(())
