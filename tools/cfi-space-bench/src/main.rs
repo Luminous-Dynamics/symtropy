@@ -147,6 +147,9 @@ struct Score {
     counterfactual_groups: usize,
     clean_episodes: usize,
     fault_episodes: usize,
+    critical_fault_episodes: usize,
+    critical_correctly_contained_faults: usize,
+    critical_unsafe_accepts: usize,
     clean_qualified: usize,
     false_abstentions: usize,
     correctly_contained_faults: usize,
@@ -496,6 +499,9 @@ fn validate_and_score(
     let mut correctly_contained_faults = 0;
     let mut clean_qualified = 0;
     let mut fault_episodes = 0;
+    let mut critical_fault_episodes = 0;
+    let mut critical_correctly_contained_faults = 0;
+    let mut critical_unsafe_accepts = 0;
     let mut clean_episodes = 0;
     let mut exact_disposition_matches = 0;
     let mut false_positive_family_labels = 0;
@@ -552,10 +558,19 @@ fn validate_and_score(
             }
         } else {
             fault_episodes += 1;
+            if truth.critical {
+                critical_fault_episodes += 1;
+            }
             if predicted_qualified {
                 unsafe_accepts += 1;
+                if truth.critical {
+                    critical_unsafe_accepts += 1;
+                }
             } else {
                 correctly_contained_faults += 1;
+                if truth.critical {
+                    critical_correctly_contained_faults += 1;
+                }
             }
         }
 
@@ -601,6 +616,9 @@ fn validate_and_score(
         counterfactual_groups: groups.len(),
         clean_episodes,
         fault_episodes,
+        critical_fault_episodes,
+        critical_correctly_contained_faults,
+        critical_unsafe_accepts,
         clean_qualified,
         false_abstentions,
         correctly_contained_faults,
@@ -635,6 +653,12 @@ fn run() -> Result<(), String> {
 
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
+        if flag == "--help" || flag == "-h" {
+            println!(
+                "cfi-space-bench --manifest FILE --ledger FILE --predictions FILE --expect-unsafe N"
+            );
+            return Ok(());
+        }
         let value = args
             .next()
             .ok_or_else(|| format!("missing value for argument {flag}"))?;
@@ -648,12 +672,6 @@ fn run() -> Result<(), String> {
                         .parse::<usize>()
                         .map_err(|error| format!("invalid --expect-unsafe value: {error}"))?,
                 )
-            }
-            "--help" | "-h" => {
-                println!(
-                    "cfi-space-bench --manifest FILE --ledger FILE --predictions FILE --expect-unsafe N"
-                );
-                return Ok(());
             }
             _ => return Err(format!("unknown argument {flag}")),
         }
