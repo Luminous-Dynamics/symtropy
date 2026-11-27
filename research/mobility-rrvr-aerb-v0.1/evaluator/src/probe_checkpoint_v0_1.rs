@@ -144,6 +144,9 @@ pub struct PhysicalPathReceipt {
     pub path_profile_sha256: String,
     pub receipt_sha256: String,
     pub full_trajectory_covered: bool,
+    /// Upstream physical supervisor mandates this path at this checkpoint.
+    /// This assertion is consumed, not authenticated, by the reducer.
+    pub required_by_safety_supervisor: bool,
     pub required_duration_ns: u64,
     /// None is explicitly unknown, never an unbounded safe horizon.
     pub safe_horizon_ns: Option<u64>,
@@ -675,7 +678,40 @@ pub fn evaluate_checkpoint(
         &checkpoint.physical_plan_sha256,
     );
 
-    let action = if checkpoint.lifecycle == ProbeLifecycle::Completed {
+    let mandatory_paths: Vec<&PhysicalPathReceipt> = checkpoint
+        .physical_path_receipts
+        .iter()
+        .filter(|receipt| receipt.required_by_safety_supervisor)
+        .collect();
+    if mandatory_paths.len() > 1 {
+        return Err(CheckpointError::InvalidPathReceipt(
+            "conflicting mandatory supervisor paths",
+        ));
+    }
+
+    let action = if let Some(mandatory) = mandatory_paths.first() {
+        // An upstream physical supervisor's checkpoint-bound mandatory path
+        // overrides the observer's information-value preference. If that
+        // mandatory path is not fully qualified, fail closed rather than
+        // silently substitute a different trajectory.
+        if mandatory.path_kind == PhysicalPathKind::ContinueProbe && !can_continue {
+            CheckpointAction::NoSafeContinuation
+        } else if mandatory.path_kind == PhysicalPathKind::SafeStopHold && !can_stop {
+            CheckpointAction::NoSafeContinuation
+        } else if mandatory.path_kind == PhysicalPathKind::AbortProbe && !can_abort {
+            CheckpointAction::NoSafeContinuation
+        } else if checkpoint.lifecycle == ProbeLifecycle::Completed
+            && mandatory.path_kind == PhysicalPathKind::ContinueProbe
+        {
+            CheckpointAction::NoSafeContinuation
+        } else {
+            match mandatory.path_kind {
+                PhysicalPathKind::ContinueProbe => CheckpointAction::ContinueProbe,
+                PhysicalPathKind::SafeStopHold => CheckpointAction::StopSensingHold,
+                PhysicalPathKind::AbortProbe => CheckpointAction::AbortProbe,
+            }
+        }
+    } else if checkpoint.lifecycle == ProbeLifecycle::Completed {
         // Completion closes acquisition, not the physical need for a qualified
         // hold trajectory. A completed observation is never itself a safe hold.
         if can_stop {
@@ -694,8 +730,8 @@ pub fn evaluate_checkpoint(
     } else if can_continue {
         CheckpointAction::ContinueProbe
     } else if can_stop {
-        // Prefer a qualified non-abort hold over abort when both are available
-        // and the upstream oracle has not independently required abort.
+        // Prefer a qualified non-abort hold only when the safety supervisor
+        // has not marked another physical path as mandatory.
         CheckpointAction::StopSensingHold
     } else if can_abort {
         CheckpointAction::AbortProbe
@@ -773,6 +809,7 @@ mod tests {
             path_profile_sha256: digest('e'),
             receipt_sha256: String::new(),
             full_trajectory_covered: true,
+            required_by_safety_supervisor: false,
             required_duration_ns,
             safe_horizon_ns,
             qualification,
@@ -1544,4 +1581,90 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn mandatory_abort_overrides_a_qualified_hold_path() {
+        let mut input = checkpoint();
+        let mut hold = path(
+            PhysicalPathKind::SafeStopHold,
+            SafetyQualification::Qualified,
+            10,
+            Some(30),
+        );
+        hold.required_by_safety_supervisor = false;
+        hold.receipt_sha256.clear();
+        hold.receipt_sha256 = physical_path_commitment(&hold).expect("hold commitment");
+        let mut abort = path(
+            PhysicalPathKind::AbortProbe,
+            SafetyQualification::Qualified,
+            10,
+            Some(30),
+        );
+        abort.required_by_safety_supervisor = true;
+        abort.receipt_sha256.clear();
+        abort.receipt_sha256 = physical_path_commitment(&abort).expect("abort commitment");
+        input.physical_path_receipts = vec![hold, abort];
+        assert_eq!(
+            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            CheckpointAction::AbortProbe
+        );
+    }
+
+    #[test]
+    fn unqualified_mandatory_abort_does_not_fall_back_to_hold() {
+        let mut input = checkpoint();
+        let mut hold = path(
+            PhysicalPathKind::SafeStopHold,
+            SafetyQualification::Qualified,
+            10,
+            Some(30),
+        );
+        hold.receipt_sha256.clear();
+        hold.receipt_sha256 = physical_path_commitment(&hold).expect("hold commitment");
+        let mut abort = path(
+            PhysicalPathKind::AbortProbe,
+            SafetyQualification::Unknown,
+            10,
+            None,
+        );
+        abort.required_by_safety_supervisor = true;
+        abort.receipt_sha256.clear();
+        abort.receipt_sha256 = physical_path_commitment(&abort).expect("abort commitment");
+        input.physical_path_receipts = vec![hold, abort];
+        assert_eq!(
+            evaluate_checkpoint(&initial_cursor(), &input).expect("checkpoint").action,
+            CheckpointAction::NoSafeContinuation
+        );
+    }
+
+    #[test]
+    fn conflicting_mandatory_supervisor_paths_are_rejected() {
+        let mut input = checkpoint();
+        let mut hold = path(
+            PhysicalPathKind::SafeStopHold,
+            SafetyQualification::Qualified,
+            10,
+            Some(30),
+        );
+        hold.required_by_safety_supervisor = true;
+        hold.receipt_sha256.clear();
+        hold.receipt_sha256 = physical_path_commitment(&hold).expect("hold commitment");
+        let mut abort = path(
+            PhysicalPathKind::AbortProbe,
+            SafetyQualification::Qualified,
+            10,
+            Some(30),
+        );
+        abort.required_by_safety_supervisor = true;
+        abort.receipt_sha256.clear();
+        abort.receipt_sha256 = physical_path_commitment(&abort).expect("abort commitment");
+        input.physical_path_receipts = vec![hold, abort];
+        assert_eq!(
+            evaluate_checkpoint(&initial_cursor(), &input),
+            Err(CheckpointError::InvalidPathReceipt(
+                "conflicting mandatory supervisor paths"
+            ))
+        );
+    }
+
 }
