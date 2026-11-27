@@ -15,7 +15,7 @@ The input is a strictly positive rational lower enclosure:
 
     q_lower = n / d <= y_hat^T K y_hat
 
-where q_lower is expressed in m^-2, the direction is unit-normalized in the exact declared frame, and the evidence providers bind the same:
+where q_lower is expressed in m^-2, the matrix convention is the pinned `body-fixed-K-inverse-m2-v1`, the direction is unit-normalized in the exact declared frame, and the evidence providers bind the same:
 - terminal action and TAI epoch;
 - protected target, keep-out profile and geometry revision;
 - exact K matrix SHA-256 and matrix convention;
@@ -40,7 +40,7 @@ The implementation computes:
 
 using checked u128 multiplication, exact integer ceiling division and a division-based integer square-root search. No floating-point square root can round the result down. The receipt includes T, floor(sqrt(T)), whether T is a perfect square, the q numerator/denominator, exact scope, matrix/direction digests and provider identities.
 
-Only metre input units and the unit-along-track-positive-y direction convention are supported in v0.1. Unsupported units/conventions are rejected instead of being silently converted.
+Only the pinned K matrix convention, metre input units and the unit-along-track-positive-y direction convention are supported in v0.1. Unsupported units/conventions are rejected instead of being silently converted.
 
 ## 36-case synthetic corpus
 
