@@ -1,0 +1,12 @@
+{
+  "format_id": "synthetic-byte-payload-v0.1",
+  "encoding": "opaque byte sequence",
+  "payload_path": "data/payload/hello.txt",
+  "symbol_model": "byte-oriented known-answer fixture",
+  "code_family": "none",
+  "physical_medium_family": "synthetic_none",
+  "physical_layout": null,
+  "reader_input_contract": "none; this fixture contains digital payload bytes only",
+  "decoder_acceptance": "recovered bytes must match the expected SHA-256 digest independently",
+  "evidence_class": "synthetic_fixture"
+}

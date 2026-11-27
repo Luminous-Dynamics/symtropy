@@ -1,0 +1,22 @@
+{
+  "case_id": "KAT-001",
+  "payload_path": "data/payload/hello.txt",
+  "expected_byte_length": 57,
+  "expected_digest_algorithm": "sha256",
+  "expected_digest": "83c2524b06326495b0a1df40f1556295c1f19802230343b5c9a4216edd85b5b3",
+  "expected_result": "exact_byte_equality",
+  "negative_controls": [
+    {
+      "id": "payload_bit_flip",
+      "expected": "digest_mismatch"
+    },
+    {
+      "id": "missing_manifest_entry",
+      "expected": "bag_invalid"
+    },
+    {
+      "id": "decoder_disagreement",
+      "expected": "quarantine_no_acceptance"
+    }
+  ]
+}

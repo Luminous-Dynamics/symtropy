@@ -1,0 +1,35 @@
+{
+  "premis_version": "3.0",
+  "object": [
+    {
+      "identifier": "urn:example:recovery-capsule:payload-001",
+      "object_category": "file",
+      "fixity": {
+        "messageDigestAlgorithm": "SHA-256",
+        "messageDigest": "83c2524b06326495b0a1df40f1556295c1f19802230343b5c9a4216edd85b5b3"
+      },
+      "format": {
+        "formatDesignation": {
+          "formatName": "text/plain",
+          "formatVersion": null
+        }
+      }
+    }
+  ],
+  "event": [
+    {
+      "identifier": "event-001",
+      "eventType": "ingestion",
+      "eventDateTime": "2026-11-26T14:57:00+02:00",
+      "eventDetail": "Synthetic fixture assembly; not a physical storage experiment",
+      "eventOutcome": "schema_fixture_created"
+    }
+  ],
+  "agent": [
+    {
+      "identifier": "agent-001",
+      "agentType": "software",
+      "agentName": "Physical Recovery Capsule synthetic fixture"
+    }
+  ]
+}

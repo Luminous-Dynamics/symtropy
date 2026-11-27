@@ -232,3 +232,12 @@ Two further 2026 studies make the DNA lane substantially more actionable:
 - Ding et al., Bioinformatics (3 August 2026), introduce Polus/SeqFormer quality-aware soft-decision decoding. The reported 38.9% DNA Fountain coverage reduction and ~80% effective-density improvement are in silico, setup-specific results, not physical system qualifications. https://doi.org/10.1093/bioinformatics/btag563
 
 The compiler should treat these as coding/reconstruction baselines. They do not create a commercial DNA medium candidate. The optimizer's service comparison still needs synthesis yield, physical strand mass, read coverage, random access, retention, measured cost and exact end-to-end restore evidence.
+
+
+## Recovery package output and reader replacement
+
+The compiler's design dossier now has a preservation package target: [PHYSICAL-RECOVERY-CAPSULE-001 #7571](https://github.com/Luminous-Dynamics/symtropy/issues/7571). It packages medium/format representation, physical layout, calibration and reader interfaces, decoder source/build pins, known-answer vectors, recovery procedures, PREMIS events, fixity and authenticity evidence.
+
+The profile composes BagIt, OCFL, PREMIS, E-ARK and OAIS concepts rather than creating a competing archive format. A schema and synthetic BagIt sample are in draft [PR #7572](https://github.com/Luminous-Dynamics/symtropy/pull/7572). The sample is fixture-only; it does not establish reader independence or physical recovery.
+
+The consumer-side blind challenge is tracked in Symthaea [#13734](https://github.com/Luminous-Dynamics/symthaea/issues/13734). The compiler should not call a candidate fully qualified until independent reader replacement, exact full-payload restoration and the common-cause dependency profile meet the service contract.

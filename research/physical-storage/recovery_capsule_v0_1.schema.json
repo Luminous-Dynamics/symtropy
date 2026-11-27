@@ -1,0 +1,800 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/physical-recovery-capsule-001/research/physical-storage/recovery_capsule_v0_1.schema.json",
+  "title": "Physical Recovery Capsule v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capsule_id",
+    "evidence_class",
+    "qualification_status",
+    "package_profiles",
+    "payload_manifest",
+    "representation_information",
+    "physical_format",
+    "reader_contract",
+    "decoder_implementations",
+    "independence_assessment",
+    "known_answer_sets",
+    "recovery_procedure",
+    "preservation_metadata",
+    "integrity",
+    "authenticity",
+    "reader_replacement",
+    "dependency_profile",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "physical-recovery-capsule-v0.1"
+    },
+    "capsule_id": {
+      "type": "string",
+      "pattern": "^[A-Z0-9][A-Z0-9._-]{2,127}$"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "published_reproduction",
+        "model_derived",
+        "physical_measurement"
+      ]
+    },
+    "qualification_status": {
+      "enum": [
+        "fixture_only",
+        "unqualified",
+        "in_review",
+        "qualified"
+      ]
+    },
+    "package_profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bagit_version",
+        "bagit_payload_manifests",
+        "ocfl_version",
+        "premis_version",
+        "eark_csip_version"
+      ],
+      "properties": {
+        "bagit_version": {
+          "const": "1.0"
+        },
+        "bagit_payload_manifests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "sha256",
+              "sha512"
+            ]
+          }
+        },
+        "ocfl_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "premis_version": {
+          "const": "3.0"
+        },
+        "eark_csip_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "payload_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "path",
+        "payload_file_count",
+        "fixity_verified"
+      ],
+      "properties": {
+        "algorithm": {
+          "enum": [
+            "sha256",
+            "sha512"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_file_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fixity_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "representation_information": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format_specification_path",
+        "preservation_metadata_path",
+        "recovery_procedure_path",
+        "human_readable_format_description"
+      ],
+      "properties": {
+        "format_specification_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preservation_metadata_path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recovery_procedure_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "human_readable_format_description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "physical_format": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "medium_family",
+        "format_id",
+        "format_version",
+        "physical_layout_ref",
+        "calibration_profile_refs",
+        "raw_observation_contract_ref"
+      ],
+      "properties": {
+        "medium_family": {
+          "enum": [
+            "synthetic_none",
+            "glass_optical",
+            "magnetic_tape",
+            "hdd",
+            "ssd_nand",
+            "mram",
+            "ferroelectric",
+            "pcm",
+            "reram",
+            "dna_molecular",
+            "hybrid"
+          ]
+        },
+        "format_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_layout_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_profile_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "raw_observation_contract_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "reader_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_reader_required",
+        "reader_input_contract_ref",
+        "minimum_reader_implementations",
+        "vendor_runtime_required",
+        "network_required"
+      ],
+      "properties": {
+        "physical_reader_required": {
+          "type": "boolean"
+        },
+        "reader_input_contract_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "minimum_reader_implementations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "vendor_runtime_required": {
+          "type": "boolean"
+        },
+        "network_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "decoder_implementations": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "implementation_id",
+          "implementation_role",
+          "source_ref",
+          "source_digest_sha256",
+          "license",
+          "language",
+          "version_or_commit",
+          "build_recipe_ref",
+          "dependency_lock_ref",
+          "execution_mode",
+          "known_answer_test_ref"
+        ],
+        "properties": {
+          "implementation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "implementation_role": {
+            "enum": [
+              "reference_decoder",
+              "independent_decoder",
+              "reader_adapter",
+              "scorer"
+            ]
+          },
+          "source_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_digest_sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          },
+          "license": {
+            "type": "string",
+            "minLength": 1
+          },
+          "language": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version_or_commit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "build_recipe_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dependency_lock_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "execution_mode": {
+            "enum": [
+              "source_reproducible",
+              "binary_only",
+              "documentation_fixture"
+            ]
+          },
+          "known_answer_test_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "independence_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "assessor_ref",
+        "shared_dependencies",
+        "common_code_reviewed",
+        "independent_builds_verified"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unassessed",
+            "partial",
+            "qualified",
+            "failed"
+          ]
+        },
+        "assessor_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shared_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "common_code_reviewed": {
+          "type": "boolean"
+        },
+        "independent_builds_verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "known_answer_sets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "payload_path",
+          "expected_byte_length",
+          "expected_digest_algorithm",
+          "expected_digest",
+          "fault_scenarios"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "payload_path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "expected_byte_length": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "expected_digest_algorithm": {
+            "enum": [
+              "sha256",
+              "sha512"
+            ]
+          },
+          "expected_digest": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]+$"
+          },
+          "fault_scenarios": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "scenario_id",
+                "expected_outcome"
+              ],
+              "properties": {
+                "scenario_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expected_outcome": {
+                  "enum": [
+                    "exact_recovery",
+                    "reject_digest_mismatch",
+                    "fail_closed",
+                    "unsupported"
+                  ]
+                },
+                "fault_mask_ref": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "recovery_procedure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "procedure_ref",
+        "offline_capable",
+        "network_required",
+        "human_authorization_required",
+        "bootstrap_dependencies"
+      ],
+      "properties": {
+        "procedure_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offline_capable": {
+          "type": "boolean"
+        },
+        "network_required": {
+          "type": "boolean"
+        },
+        "human_authorization_required": {
+          "type": "boolean"
+        },
+        "bootstrap_dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "preservation_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "premis_ref",
+        "format_registry_refs",
+        "rights_ref",
+        "migration_lineage_ref"
+      ],
+      "properties": {
+        "premis_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "format_registry_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rights_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "migration_lineage_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payload_fixity_algorithms",
+        "tag_fixity_algorithms",
+        "manifest_self_check",
+        "independent_payload_digest_required"
+      ],
+      "properties": {
+        "payload_fixity_algorithms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "sha256",
+              "sha512"
+            ]
+          }
+        },
+        "tag_fixity_algorithms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "sha256",
+              "sha512"
+            ]
+          }
+        },
+        "manifest_self_check": {
+          "type": "boolean"
+        },
+        "independent_payload_digest_required": {
+          "const": true
+        }
+      }
+    },
+    "authenticity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "fixity_is_authenticity",
+        "signature_evidence"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "unsigned",
+            "signed",
+            "partially_verified",
+            "verified",
+            "not_applicable_synthetic"
+          ]
+        },
+        "fixity_is_authenticity": {
+          "const": false
+        },
+        "signature_evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "signature_id",
+              "algorithm",
+              "signer_identity_ref",
+              "signature_ref",
+              "certificate_or_key_ref",
+              "timestamp_or_attestation_ref",
+              "verification_status"
+            ],
+            "properties": {
+              "signature_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "algorithm": {
+                "type": "string",
+                "minLength": 1
+              },
+              "signer_identity_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "signature_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "certificate_or_key_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_or_attestation_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "verification_status": {
+                "enum": [
+                  "not_verified",
+                  "verified",
+                  "expired_or_untrusted",
+                  "invalid"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "reader_replacement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "independent_team",
+        "original_vendor_reader_withheld",
+        "network_disabled",
+        "exact_payload_match"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_performed",
+            "in_progress",
+            "passed",
+            "failed"
+          ]
+        },
+        "independent_team": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "original_vendor_reader_withheld": {
+          "type": "boolean"
+        },
+        "network_disabled": {
+          "type": "boolean"
+        },
+        "exact_payload_match": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "dependency_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "profile_ref"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "incomplete",
+            "unavailable"
+          ]
+        },
+        "profile_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "source_commit",
+        "creator_ref",
+        "capsule_descriptor_digest_sha256",
+        "notes"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "creator_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "capsule_descriptor_digest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-fA-F0-9]{64}$"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "qualification_status": {
+            "const": "qualified"
+          }
+        },
+        "required": [
+          "qualification_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_class": {
+            "const": "physical_measurement"
+          },
+          "independence_assessment": {
+            "properties": {
+              "status": {
+                "const": "qualified"
+              },
+              "common_code_reviewed": {
+                "const": true
+              },
+              "independent_builds_verified": {
+                "const": true
+              }
+            }
+          },
+          "reader_replacement": {
+            "properties": {
+              "status": {
+                "const": "passed"
+              },
+              "original_vendor_reader_withheld": {
+                "const": true
+              },
+              "network_disabled": {
+                "const": true
+              },
+              "exact_payload_match": {
+                "const": true
+              }
+            }
+          },
+          "authenticity": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "signed",
+                  "verified"
+                ]
+              },
+              "signature_evidence": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "qualification_status": {
+            "const": "fixture_only"
+          }
+        },
+        "required": [
+          "qualification_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_class": {
+            "const": "synthetic_fixture"
+          },
+          "reader_replacement": {
+            "properties": {
+              "status": {
+                "const": "not_performed"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
