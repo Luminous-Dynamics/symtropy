@@ -1227,6 +1227,7 @@ mod tests {
             decision_context_sha256: context_sha256,
             model_credibility_sha256: model_sha256,
             owner_evidence_cut_sha256: owner_sha256,
+            required_evidence_refs: required_evidence_refs.clone(),
             model_metric_id: "maximum_principal_stress".to_owned(),
             measurand_id: specification.measurand.measurand_id.clone(),
             metric_definition_ref: "aeroweift:metric:maximum-principal-stress".to_owned(),
