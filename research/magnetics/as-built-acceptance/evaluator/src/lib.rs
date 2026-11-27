@@ -21,6 +21,7 @@ pub enum EvidenceRole {
     Predicted,
     PhysicalObservation,
     IndependentReference,
+    ModelDiscrepancy,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -50,7 +51,6 @@ pub struct SolverEvidence {
     pub record: EvidenceRecord,
     pub scope: Scope,
     pub scope_supported: bool,
-    pub model_discrepancy_qualified: bool,
     pub geometry_digest: String,
     pub material_state_record_id: String,
     pub magnetization_record_id: String,
@@ -62,6 +62,17 @@ pub struct CalibrationEvidence {
     pub record_id: String,
     pub digest: String,
     pub instrument_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ModelDiscrepancyEvidence {
+    pub record: EvidenceRecord,
+    pub scope: Scope,
+    pub geometry_digest: String,
+    pub material_state_record_id: String,
+    pub solver_record_id: String,
+    pub observation_record_id: String,
+    pub qualified: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -115,6 +126,8 @@ pub struct SpatialCertificate {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UncertaintyEvidence {
+    pub record_id: String,
+    pub digest: String,
     pub scope_complete: bool,
     pub common_cause_source_ids: Vec<String>,
 }
@@ -131,6 +144,7 @@ pub struct AcceptanceCase {
     pub material_state: EvidenceRecord,
     pub post_magnetization: EvidenceRecord,
     pub solver: SolverEvidence,
+    pub model_discrepancy: ModelDiscrepancyEvidence,
     pub observation: ObservationEvidence,
     pub comparison: ComparisonEvidence,
     pub spatial_certificate: SpatialCertificate,
@@ -178,6 +192,8 @@ pub enum Blocker {
     IncompleteUncertainty,
     MissingCommonCauseEvidence,
     UnqualifiedModelDiscrepancy,
+    ModelDiscrepancyBindingMismatch,
+    MissingUncertaintyRecord,
     DefiniteHardRequirementFailure,
     UnresolvedHardRequirement,
     ComparisonFailure,
@@ -272,6 +288,12 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
         EvidenceRole::PhysicalObservation,
         &mut blockers,
     );
+    check_record(
+        &case.model_discrepancy.record,
+        &case.specimen_id,
+        EvidenceRole::ModelDiscrepancy,
+        &mut blockers,
+    );
 
     if case.manufacturing.material_lot_id != case.material_lot_id {
         blockers.push(Blocker::ManufacturingLotMismatch);
@@ -291,7 +313,10 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     if case.solver.manufacturing_record_id != case.manufacturing.record.id {
         blockers.push(Blocker::ManufacturingBindingMismatch);
     }
-    if case.solver.scope != case.scope || case.observation.scope != case.scope {
+    if case.solver.scope != case.scope
+        || case.model_discrepancy.scope != case.scope
+        || case.observation.scope != case.scope
+    {
         blockers.push(Blocker::WrongScope);
     }
     if case.observation.instrument_id.trim().is_empty()
@@ -306,6 +331,13 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     }
     if case.observation.background_field_treatment_id.trim().is_empty() {
         blockers.push(Blocker::MissingBackgroundFieldTreatment);
+    }
+    if case.model_discrepancy.geometry_digest != case.geometry.as_built_geometry_digest
+        || case.model_discrepancy.material_state_record_id != case.material_state.id
+        || case.model_discrepancy.solver_record_id != case.solver.record.id
+        || case.model_discrepancy.observation_record_id != case.observation.record.id
+    {
+        blockers.push(Blocker::ModelDiscrepancyBindingMismatch);
     }
 
     if case.comparison.record_id.trim().is_empty() {
@@ -380,11 +412,21 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     }
     if case.blind_holdout_record_ids.iter().any(|holdout_id| {
         holdout_id == &case.observation.calibration.record_id
+            || case
+                .fit_calibration_record_ids
+                .iter()
+                .any(|fit_id| fit_id == holdout_id)
     }) {
         blockers.push(Blocker::HoldoutLeakage);
     }
     if !case.uncertainty.scope_complete {
         blockers.push(Blocker::IncompleteUncertainty);
+    }
+    if case.uncertainty.record_id.trim().is_empty() {
+        blockers.push(Blocker::MissingUncertaintyRecord);
+    }
+    if !valid_sha256(&case.uncertainty.digest) {
+        blockers.push(Blocker::InvalidSha256Digest);
     }
     if case.uncertainty.common_cause_source_ids.is_empty()
         || case
@@ -395,7 +437,7 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     {
         blockers.push(Blocker::MissingCommonCauseEvidence);
     }
-    if !case.solver.model_discrepancy_qualified {
+    if !case.model_discrepancy.qualified {
         blockers.push(Blocker::UnqualifiedModelDiscrepancy);
     }
 
@@ -549,11 +591,19 @@ mod tests {
                 record: solver_record.clone(),
                 scope: scope.clone(),
                 scope_supported: true,
-                model_discrepancy_qualified: true,
                 geometry_digest: geometry.as_built_geometry_digest.clone(),
                 material_state_record_id: material_state.id.clone(),
                 magnetization_record_id: post_magnetization.id.clone(),
                 manufacturing_record_id: manufacturing.record.id.clone(),
+            },
+            model_discrepancy: ModelDiscrepancyEvidence {
+                record: record("MODEL-DIFF-001", &specimen, EvidenceRole::ModelDiscrepancy, '9'),
+                scope: scope.clone(),
+                geometry_digest: geometry.as_built_geometry_digest.clone(),
+                material_state_record_id: material_state.id.clone(),
+                solver_record_id: solver_record.id.clone(),
+                observation_record_id: observation_record.id.clone(),
+                qualified: true,
             },
             observation: ObservationEvidence {
                 record: observation_record.clone(),
@@ -593,6 +643,8 @@ mod tests {
             }],
             blind_holdout_record_ids: vec![observation_record_id_for_holdout()],
             uncertainty: UncertaintyEvidence {
+                record_id: "UNCERTAINTY-001".to_string(),
+                digest: digest('e'),
                 scope_complete: true,
                 common_cause_source_ids: vec!["COMMON-CAL-001".to_string()],
             },
@@ -693,6 +745,35 @@ mod tests {
         assert!(result
             .blockers
             .contains(&Blocker::MissingBlindHoldoutEvidence));
+    }
+
+    #[test]
+    fn model_discrepancy_must_bind_exact_prediction_and_observation() {
+        let mut case = valid_case();
+        case.model_discrepancy.observation_record_id = "OBS-OTHER".to_string();
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::ModelDiscrepancyBindingMismatch));
+    }
+
+    #[test]
+    fn model_fit_observation_cannot_leak_into_blind_holdout() {
+        let mut case = valid_case();
+        case.fit_calibration_record_ids.push("OBS-001".to_string());
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::HoldoutLeakage));
+    }
+
+    #[test]
+    fn uncertainty_budget_requires_digest_bound_record() {
+        let mut case = valid_case();
+        case.uncertainty.record_id.clear();
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingUncertaintyRecord));
     }
 
     #[test]
