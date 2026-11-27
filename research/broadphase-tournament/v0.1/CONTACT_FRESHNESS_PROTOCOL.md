@@ -45,8 +45,10 @@ The stamp must be written by the contact-producing side only after a successful 
 | motion-class revision | yes | no | yes | according to body/island state |
 | global collision-policy revision | yes / drop if disallowed | no | yes, global safe reconciliation unless a complete scoped journal exists | according to body/island state |
 | narrowphase config digest | yes | no | no, unless config changes eligibility | no |
-| material revision | no geometric rebuild required | no | no | no |
-| solver config digest | no geometric rebuild required | no | no | no |
+| material revision | no geometric rebuild required | reset affected warm-start state | no | no |
+| per-endpoint response-state revision | no geometric rebuild required | reset affected warm-start state | no | no |
+| global response-policy digest | no geometric rebuild required | reset affected warm-start state | no | no |
+| solver config digest | no geometric rebuild required | reset affected warm-start state | no | no |
 | wake epoch only | no | **yes** | no | **yes** |
 
 The matrix is conservative. A production integration may retain more state only when it can prove the relevant invariants. A mismatch never means “unchanged.”
@@ -236,7 +238,9 @@ The benchmark follow-on should measure receipt construction, independent replay 
 
 This revision is a version/digest of the response policy, not a license to skip current-step callback semantics. Geometry reuse must not suppress any per-step contact-response work required by the engine, including current material/friction modulation, impulse modulation, collision notifications, trauma/application hooks, or work recording. Event callbacks need their own event identity and delivery/commit receipts where exactly-once or replay semantics matter; a geometry lease is not a callback lease.
 
-The contact-response digest is currently caller-supplied metadata just like the other config digests. Production must bind it to an authoritative response-policy snapshot or configuration, and the #7699 observer must independently qualify the resulting contact payload bytes.
+The contact-response digest is currently caller-supplied metadata just like the other config digests. EndpointRevisions.response_state separately tracks per-body dynamic values consumed by that policy—for example, the state used by consciousness-dependent friction or impulse modulation. A changed response-state revision preserves geometry but invalidates warm starts; a regression is rejected. Production must bind both the global policy digest and endpoint response-state revision to authoritative snapshots.
+
+In the live Symtropy PhysicsCallback interface, modulate_impulse and friction_multiplier are evaluated inside contact resolution, while on_collision and apply_trauma are emitted after a nontrivial normal impulse. record_dissipation is emitted for frictional dissipation. Geometry reuse must not bypass these current-step semantic paths. A per-contact callback/response revision is not proof that a callback has been delivered; event delivery needs separate identity/commit evidence when replay or exactly-once semantics are required. The #7699 observer must independently qualify the resulting contact payload bytes.
 
 ### 8.2 Candidate topology is not exact contact topology
 
@@ -285,4 +289,13 @@ References:
 
 ### Qualification tests and targets
 
-The lease prototype has 18 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
+The lease prototype has 19 authored tests. The next acceptance corpus must add common rigid motion, rotation-dominant and long-lever-arm cases, thin/short feature switches, smooth/high-curvature shapes, normal drift, high-speed/teleport/CCD, feature-ID instability, deformation, and unsupported non-convex cases. Benchmark fresh narrowphase versus persistent-manifold lease by family; report lease checks/reuse/refresh/contact-end/unsupported counts, feature-margin and normal-bound distributions, GJK/EPA/SAT calls avoided, updated-separation work, manifold memory, and p50/p95/p99 including all checks. Require zero missed contact ends and zero false manifold reuse against an always-fresh narrowphase reference, plus bounded solver/trajectory error and stacking stability. Performance targets remain prospective until these correctness gates and matched engine runs pass.
+
+## 10. Current authored test inventory
+
+At the current research branch state, the authored test counts are:
+- contact freshness producer and commit barrier: 33 tests;
+- independent lifecycle/receipt verifier: 31 tests;
+- relative-motion geometric lease predicate: 19 tests.
+
+These counts describe source annotations only. They are not evidence that the tests have compiled or run. Exact-head Rust formatting, tests, strict Clippy and scale-campaign results must be read from the current GitHub Actions run before any pass claim.
