@@ -506,7 +506,7 @@ pub fn evaluate(input: &RuntimePoseReceipt) -> RegionResult {
         return empty_result(input, Disposition::InvalidCovariance, "COVARIANCE_NOT_FINITE_SYMMETRIC_POSITIVE_DEFINITE");
     }
 
-    let q = f64::from(profile.quantile_radius_q32_32) / Q32_SCALE;
+    let q = (profile.quantile_radius_q32_32 as f64) / Q32_SCALE;
     let translation_lambda = gershgorin_upper_3(&input.covariance_row_major, 0);
     let rotation_lambda = gershgorin_upper_3(&input.covariance_row_major, 3);
     let (Some(translation_lambda), Some(rotation_lambda)) = (translation_lambda, rotation_lambda) else {
@@ -576,8 +576,7 @@ pub fn evaluate_manifest(inputs: &[RuntimePoseReceipt]) -> Vec<RegionResult> {
 mod tests {
     use super::{
         ConformalProfile, Disposition, RuntimePoseReceipt, evaluate, evaluate_manifest,
-        GeometricOuterRegion, PERTURBATION_CONVENTION, SCORE_DEFINITION,
-        TANGENT_CONVENTION,
+        PERTURBATION_CONVENTION, SCORE_DEFINITION, TANGENT_CONVENTION,
     };
 
     fn profile() -> ConformalProfile {
@@ -756,11 +755,10 @@ mod tests {
 
     #[test]
     fn quaternion_sign_does_not_change_the_constructed_region() {
-        let mut positive = input();
+        let positive = input();
         let mut negative = input();
         negative.predicted_quaternion_xyzw = [0.0, 0.0, 0.0, -1.0];
         assert_eq!(evaluate(&positive).region, evaluate(&negative).region);
-        positive.predicted_quaternion_xyzw = [0.0, 0.0, 0.0, 1.0];
     }
 
     #[test]
