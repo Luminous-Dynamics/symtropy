@@ -33,6 +33,7 @@ pub enum ExclusionReason {
     MissingPrerequisiteEvidence,
     DestructiveAction,
     SourceNotPreserved,
+    MissingApprovalAuthority,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,6 +41,7 @@ pub struct PortfolioPolicy {
     pub target_id: String,
     pub unresolved_alert_ids: Vec<String>,
     pub available_evidence_ids: Vec<String>,
+    pub available_approval_ids: Vec<String>,
     pub currency_code: String,
     pub max_cost_microunits: u64,
     pub max_energy_millijoules: u64,
@@ -120,6 +122,8 @@ pub enum PortfolioContractError {
     DuplicateAlertId,
     EmptyEvidenceId,
     DuplicateEvidenceId,
+    EmptyApprovalId,
+    DuplicateAvailableApproval,
     EmptyActionId,
     DuplicateActionId,
     CurrencyMismatch,
@@ -219,6 +223,12 @@ fn validate_contract(
     }
     if policy.available_evidence_ids.iter().any(|id| id.trim().is_empty()) {
         return Err(PortfolioContractError::EmptyEvidenceId);
+    }
+    if has_duplicate(&policy.available_approval_ids) {
+        return Err(PortfolioContractError::DuplicateAvailableApproval);
+    }
+    if policy.available_approval_ids.iter().any(|id| id.trim().is_empty()) {
+        return Err(PortfolioContractError::EmptyApprovalId);
     }
     if actions.len() > MAX_CANDIDATE_ACTIONS {
         return Err(PortfolioContractError::TooManyCandidates);
@@ -329,6 +339,8 @@ pub fn plan_portfolio(
 
     let available: HashSet<&str> =
         policy.available_evidence_ids.iter().map(String::as_str).collect();
+    let available_approvals: HashSet<&str> =
+        policy.available_approval_ids.iter().map(String::as_str).collect();
     let mut eligible = vec![true; actions.len()];
     let mut excluded_candidates = Vec::new();
 
@@ -343,6 +355,11 @@ pub fn plan_portfolio(
             |id| !available.contains(id.as_str())
         ) {
             reasons.push(ExclusionReason::MissingPrerequisiteEvidence);
+        }
+        if action.required_approvals.iter().any(
+            |id| !available_approvals.contains(id.as_str())
+        ) {
+            reasons.push(ExclusionReason::MissingApprovalAuthority);
         }
         if action.destructive {
             reasons.push(ExclusionReason::DestructiveAction);
@@ -494,6 +511,7 @@ mod tests {
             target_id: "archive-A".into(),
             unresolved_alert_ids: alerts.iter().map(|id| (*id).to_string()).collect(),
             available_evidence_ids: vec!["evidence-fixity".into(), "evidence-trust".into()],
+            available_approval_ids: vec!["archive_owner".into(), "independent_reviewer".into()],
             currency_code: "USD".into(),
             max_cost_microunits: 20_000_000,
             max_energy_millijoules: 100_000,
@@ -591,6 +609,19 @@ mod tests {
         let result = plan_portfolio(&policy(&["alert-fixity"]), &[candidate]).unwrap();
         assert_eq!(result.disposition, PortfolioDisposition::EvidenceIncomplete);
         assert!(result.pareto_frontier.is_empty());
+    }
+
+    #[test]
+    fn unavailable_approval_authority_excludes_action_and_requires_evidence_completion() {
+        let mut p = policy(&["alert-fixity"]);
+        p.available_approval_ids = vec!["archive_owner".into()];
+        let candidate = action("verify-fixity", &["alert-fixity"], 1, 1, 1, 1);
+        let result = plan_portfolio(&p, &[candidate]).unwrap();
+        assert_eq!(result.disposition, PortfolioDisposition::EvidenceIncomplete);
+        assert_eq!(
+            result.excluded_candidates[0].reasons,
+            vec![ExclusionReason::MissingApprovalAuthority]
+        );
     }
 
     #[test]
