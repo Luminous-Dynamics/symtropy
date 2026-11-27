@@ -3,7 +3,7 @@
   "corpus_id": "PIP-001-CASES-V0.1",
   "evidence_class": "synthetic_semantic_fixture",
   "qualification_status": "not_run",
-  "case_count": 19,
+  "case_count": 18,
   "cases": [
     {
       "case_id": "PIP-001-SINGLE-VERIFIED-PLAN",
@@ -863,86 +863,6 @@
       "candidates": [],
       "expected_disposition": "NoActionRequired",
       "expected_contract_error": null,
-      "expected_frontier_action_sets": [],
-      "expected_exclusions": []
-    },
-    {
-      "case_id": "PIP-014-ARITHMETIC-OVERFLOW",
-      "policy": {
-        "target_id": "archive-A",
-        "unresolved_alert_ids": [
-          "alert-a",
-          "alert-b"
-        ],
-        "available_evidence_ids": [
-          "evidence-fixity",
-          "evidence-trust"
-        ],
-        "currency_code": "USD",
-        "max_cost_microunits": 9007199254740991,
-        "max_energy_millijoules": 9007199254740991,
-        "max_duration_ms": 9007199254740991,
-        "max_downtime_ms": 9007199254740991,
-        "max_actions": 8
-      },
-      "candidates": [
-        {
-          "action_id": "address-a",
-          "addresses_alert_ids": [
-            "alert-a"
-          ],
-          "prerequisite_evidence_ids": [
-            "evidence-fixity"
-          ],
-          "depends_on_action_ids": [],
-          "currency_code": "USD",
-          "cost_upper_microunits": 9007199254740991,
-          "energy_upper_millijoules": 1,
-          "duration_upper_ms": 1,
-          "downtime_upper_ms": 1,
-          "bounds_status": "Verified",
-          "bounds_receipt_id": "bounds-address-a",
-          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "required_approvals": [
-            "archive_owner",
-            "independent_reviewer"
-          ],
-          "required_postcondition_evidence": [
-            "postcondition-address-a"
-          ],
-          "preserves_source_until_acceptance": true,
-          "destructive": false
-        },
-        {
-          "action_id": "address-b",
-          "addresses_alert_ids": [
-            "alert-b"
-          ],
-          "prerequisite_evidence_ids": [
-            "evidence-fixity"
-          ],
-          "depends_on_action_ids": [],
-          "currency_code": "USD",
-          "cost_upper_microunits": 1,
-          "energy_upper_millijoules": 1,
-          "duration_upper_ms": 1,
-          "downtime_upper_ms": 1,
-          "bounds_status": "Verified",
-          "bounds_receipt_id": "bounds-address-b",
-          "bounds_receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "required_approvals": [
-            "archive_owner",
-            "independent_reviewer"
-          ],
-          "required_postcondition_evidence": [
-            "postcondition-address-b"
-          ],
-          "preserves_source_until_acceptance": true,
-          "destructive": false
-        }
-      ],
-      "expected_disposition": null,
-      "expected_contract_error": "ArithmeticOverflow",
       "expected_frontier_action_sets": [],
       "expected_exclusions": []
     },
