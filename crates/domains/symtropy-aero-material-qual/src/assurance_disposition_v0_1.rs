@@ -458,6 +458,10 @@ pub fn evaluate_assurance_state_case_v0_1(
                     local_reasons.insert("MANDATORY_EVIDENCE_CONFLICT".to_owned());
                 } else if obligation.proposition_evidence == PropositionEvidenceStateV0_1::Neither {
                     local_reasons.insert("MANDATORY_EVIDENCE_NOT_ESTABLISHED".to_owned());
+                } else if obligation.proposition_evidence
+                    == PropositionEvidenceStateV0_1::RefutedOnly
+                {
+                    local_reasons.insert("MANDATORY_EVIDENCE_REFUTED".to_owned());
                 }
                 if obligation.temporal_knowledge == TemporalKnowledgeStateV0_1::TemporalConflict {
                     local_reasons.insert("MANDATORY_TEMPORAL_CONFLICT".to_owned());
@@ -623,6 +627,98 @@ mod tests {
 
     fn disposition(case: &Case) -> Disposition {
         evaluate_assurance_state_case_v0_1(case).disposition
+    }
+
+    #[test]
+    fn exhaustive_product_state_never_compensates_for_a_failed_axis() {
+        let evidence_states = [
+            Evidence::Neither,
+            Evidence::SupportedOnly,
+            Evidence::RefutedOnly,
+            Evidence::Both,
+        ];
+        let applicability_states = [
+            Applicability::InScope,
+            Applicability::OutOfScope,
+            Applicability::Unknown,
+        ];
+        let authority_states = [
+            Authority::Authorized,
+            Authority::Denied,
+            Authority::Unknown,
+            Authority::NotRequired,
+        ];
+        let temporal_states = [
+            Temporal::KnownAtCutoff,
+            Temporal::NotKnownAtCutoff,
+            Temporal::TemporalConflict,
+            Temporal::NotTemporal,
+        ];
+        let observer_states = [
+            Observer::Complete,
+            Observer::Incomplete,
+            Observer::Unknown,
+            Observer::NotApplicable,
+        ];
+        let verification_states = [
+            Verification::Verified,
+            Verification::Failed,
+            Verification::Unverified,
+            Verification::NotRun,
+        ];
+        let effectivity_states = [
+            SubjectEffectivity::DefinitelyEffective,
+            SubjectEffectivity::DefinitelyNotYetEffective,
+            SubjectEffectivity::BoundaryAmbiguous,
+            SubjectEffectivity::InvalidInterval,
+        ];
+
+        for evidence in evidence_states {
+            for applicability in applicability_states {
+                for authority in authority_states {
+                    for temporal in temporal_states {
+                        for observer in observer_states {
+                            for verification in verification_states {
+                                for effectivity in effectivity_states {
+                                    let mut case = positive_case();
+                                    let obligation = &mut case.obligations[2];
+                                    obligation.proposition_evidence = evidence;
+                                    obligation.applicability = applicability;
+                                    obligation.authority = authority;
+                                    obligation.temporal_knowledge = temporal;
+                                    obligation.observer_coverage = observer;
+                                    obligation.verification = verification;
+                                    case.subject_time_effectivity = effectivity;
+
+                                    let should_be_reviewable = evidence == Evidence::SupportedOnly
+                                        && applicability == Applicability::InScope
+                                        && matches!(
+                                            authority,
+                                            Authority::Authorized | Authority::NotRequired
+                                        )
+                                        && matches!(
+                                            temporal,
+                                            Temporal::KnownAtCutoff | Temporal::NotTemporal
+                                        )
+                                        && matches!(
+                                            observer,
+                                            Observer::Complete | Observer::NotApplicable
+                                        )
+                                        && verification == Verification::Verified
+                                        && effectivity == SubjectEffectivity::DefinitelyEffective;
+                                    assert_eq!(
+                                        disposition(&case)
+                                            == Disposition::ReviewableForIndependentDecision,
+                                        should_be_reviewable,
+                                        "unexpected reviewability for evidence={evidence:?}, applicability={applicability:?}, authority={authority:?}, temporal={temporal:?}, observer={observer:?}, verification={verification:?}, effectivity={effectivity:?}"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]
