@@ -7,7 +7,7 @@ use std::error::Error;
 use std::fmt::Write as _;
 use std::fs;
 
-const HEADER: &str = "sample_id\tframe_id\ttarget_id\tmax_timestamp_skew_ms\tmax_translation_disagreement_um\tmax_orientation_chord_q30\trgb_timestamp_ms\tevent_timestamp_ms\tframe_convention\ttransform_direction\ttranslation_unit\tquaternion_order\trgb_tx_um\trgb_ty_um\trgb_tz_um\tevent_tx_um\tevent_ty_um\tevent_tz_um\trgb_qx_q30\trgb_qy_q30\trgb_qz_q30\trgb_qw_q30\tevent_qx_q30\tevent_qy_q30\tevent_qz_q30\tevent_qw_q30\trgb_status\tevent_status\trgb_ood\tevent_ood\trgb_low_observability\tevent_low_observability\trgb_dependencies_complete\tevent_dependencies_complete\trgb_clock_sha256\tevent_clock_sha256\trgb_optics_sha256\tevent_optics_sha256\trgb_extrinsics_sha256\tevent_extrinsics_sha256\trgb_model_sha256\tevent_model_sha256\trgb_training_data_sha256\tevent_training_data_sha256\trgb_target_geometry_sha256\tevent_target_geometry_sha256\trgb_renderer_sha256\tevent_renderer_sha256\trgb_annotation_sha256\tevent_annotation_sha256\trgb_translator_sha256\tevent_translator_sha256";
+const HEADER: &str = "rgb_sample_id\tevent_sample_id\trgb_frame_id\tevent_frame_id\trgb_target_id\tevent_target_id\tmax_timestamp_skew_ms\tmax_translation_disagreement_um\tmax_orientation_chord_q30\trgb_timestamp_ms\tevent_timestamp_ms\tframe_convention\ttransform_direction\ttranslation_unit\tquaternion_order\trgb_tx_um\trgb_ty_um\trgb_tz_um\tevent_tx_um\tevent_ty_um\tevent_tz_um\trgb_qx_q30\trgb_qy_q30\trgb_qz_q30\trgb_qw_q30\tevent_qx_q30\tevent_qy_q30\tevent_qz_q30\tevent_qw_q30\trgb_status\tevent_status\trgb_ood\tevent_ood\trgb_low_observability\tevent_low_observability\trgb_dependencies_complete\tevent_dependencies_complete\trgb_clock_sha256\tevent_clock_sha256\trgb_optics_sha256\tevent_optics_sha256\trgb_extrinsics_sha256\tevent_extrinsics_sha256\trgb_model_sha256\tevent_model_sha256\trgb_training_data_sha256\tevent_training_data_sha256\trgb_target_geometry_sha256\tevent_target_geometry_sha256\trgb_renderer_sha256\tevent_renderer_sha256\trgb_annotation_sha256\tevent_annotation_sha256\trgb_translator_sha256\tevent_translator_sha256";
 
 fn parse<T: std::str::FromStr>(value: &str, field: &str) -> Result<T, Box<dyn Error>>
 where
@@ -111,75 +111,75 @@ fn render_result(result: &ConsistencyReceipt) -> String {
 }
 
 fn parse_pair(fields: &[&str], line: usize) -> Result<(PoseEstimate, PoseEstimate, GatePolicy), Box<dyn Error>> {
-    if fields.len() != 52 {
-        return Err(format!("line {line}: expected 52 fields, got {}", fields.len()).into());
+    if fields.len() != 55 {
+        return Err(format!("line {line}: expected 55 fields, got {}", fields.len()).into());
     }
 
     let policy = GatePolicy {
-        maximum_timestamp_skew_ms: parse(fields[3], "maximum_timestamp_skew_ms")?,
-        maximum_translation_disagreement_um: parse(fields[4], "maximum_translation_disagreement_um")?,
-        maximum_orientation_chord_q30: parse(fields[5], "maximum_orientation_chord_q30")?,
+        maximum_timestamp_skew_ms: parse(fields[6], "maximum_timestamp_skew_ms")?,
+        maximum_translation_disagreement_um: parse(fields[7], "maximum_translation_disagreement_um")?,
+        maximum_orientation_chord_q30: parse(fields[8], "maximum_orientation_chord_q30")?,
         require_complete_dependency_declarations: true,
         shared_dependencies_fail_closed: true,
     };
-    let frame_convention = fields[8].to_owned();
-    let transform_direction = fields[9].to_owned();
-    let translation_unit = fields[10].to_owned();
-    let quaternion_order = fields[11].to_owned();
+    let frame_convention = fields[11].to_owned();
+    let transform_direction = fields[12].to_owned();
+    let translation_unit = fields[13].to_owned();
+    let quaternion_order = fields[14].to_owned();
 
-    let rgb_complete = parse_bool(fields[32], "rgb_dependencies_complete")?;
-    let event_complete = parse_bool(fields[33], "event_dependencies_complete")?;
+    let rgb_complete = parse_bool(fields[35], "rgb_dependencies_complete")?;
+    let event_complete = parse_bool(fields[36], "event_dependencies_complete")?;
     let rgb = PoseEstimate {
         modality: Modality::Rgb,
         sample_id: fields[0].to_owned(),
-        frame_id: fields[1].to_owned(),
-        target_id: fields[2].to_owned(),
-        timestamp_ms: parse(fields[6], "rgb_timestamp_ms")?,
+        frame_id: fields[2].to_owned(),
+        target_id: fields[4].to_owned(),
+        timestamp_ms: parse(fields[9], "rgb_timestamp_ms")?,
         frame_convention: frame_convention.clone(),
         transform_direction: transform_direction.clone(),
         translation_unit: translation_unit.clone(),
         quaternion_order: quaternion_order.clone(),
         translation_um: [
-            parse(fields[12], "rgb_tx_um")?,
-            parse(fields[13], "rgb_ty_um")?,
-            parse(fields[14], "rgb_tz_um")?,
+            parse(fields[15], "rgb_tx_um")?,
+            parse(fields[16], "rgb_ty_um")?,
+            parse(fields[17], "rgb_tz_um")?,
         ],
         quaternion_xyzw_q30: [
-            parse(fields[18], "rgb_qx_q30")?,
-            parse(fields[19], "rgb_qy_q30")?,
-            parse(fields[20], "rgb_qz_q30")?,
-            parse(fields[21], "rgb_qw_q30")?,
+            parse(fields[21], "rgb_qx_q30")?,
+            parse(fields[22], "rgb_qy_q30")?,
+            parse(fields[23], "rgb_qz_q30")?,
+            parse(fields[24], "rgb_qw_q30")?,
         ],
-        status: EstimateStatus::parse(fields[26])?,
-        ood: parse_bool(fields[28], "rgb_ood")?,
-        low_observability: parse_bool(fields[30], "rgb_low_observability")?,
-        dependencies: dependencies(fields, 34, 2, rgb_complete),
+        status: EstimateStatus::parse(fields[29])?,
+        ood: parse_bool(fields[31], "rgb_ood")?,
+        low_observability: parse_bool(fields[33], "rgb_low_observability")?,
+        dependencies: dependencies(fields, 37, 2, rgb_complete),
     };
     let event = PoseEstimate {
         modality: Modality::Event,
-        sample_id: fields[0].to_owned(),
-        frame_id: fields[1].to_owned(),
-        target_id: fields[2].to_owned(),
-        timestamp_ms: parse(fields[7], "event_timestamp_ms")?,
+        sample_id: fields[1].to_owned(),
+        frame_id: fields[3].to_owned(),
+        target_id: fields[5].to_owned(),
+        timestamp_ms: parse(fields[10], "event_timestamp_ms")?,
         frame_convention,
         transform_direction,
         translation_unit,
         quaternion_order,
         translation_um: [
-            parse(fields[15], "event_tx_um")?,
-            parse(fields[16], "event_ty_um")?,
-            parse(fields[17], "event_tz_um")?,
+            parse(fields[18], "event_tx_um")?,
+            parse(fields[19], "event_ty_um")?,
+            parse(fields[20], "event_tz_um")?,
         ],
         quaternion_xyzw_q30: [
-            parse(fields[22], "event_qx_q30")?,
-            parse(fields[23], "event_qy_q30")?,
-            parse(fields[24], "event_qz_q30")?,
-            parse(fields[25], "event_qw_q30")?,
+            parse(fields[25], "event_qx_q30")?,
+            parse(fields[26], "event_qy_q30")?,
+            parse(fields[27], "event_qz_q30")?,
+            parse(fields[28], "event_qw_q30")?,
         ],
-        status: EstimateStatus::parse(fields[27])?,
-        ood: parse_bool(fields[29], "event_ood")?,
-        low_observability: parse_bool(fields[31], "event_low_observability")?,
-        dependencies: dependencies(fields, 35, 2, event_complete),
+        status: EstimateStatus::parse(fields[30])?,
+        ood: parse_bool(fields[32], "event_ood")?,
+        low_observability: parse_bool(fields[34], "event_low_observability")?,
+        dependencies: dependencies(fields, 38, 2, event_complete),
     };
     Ok((rgb, event, policy))
 }
