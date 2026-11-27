@@ -196,10 +196,7 @@ fn source_evidence_preserves_units_statuses_and_claim_ceilings() {
         "ABSOLUTE_PEAK_UTILIZATION_MAX",
     );
     assert_eq!(ngqura_peak.value, "UNKNOWN");
-    assert_eq!(
-        ngqura_peak.evidence_class,
-        "NOT_REPORTED_FOR_PORT_PERIOD"
-    );
+    assert_eq!(ngqura_peak.evidence_class, "NOT_REPORTED_FOR_PORT_PERIOD");
 }
 
 #[test]
