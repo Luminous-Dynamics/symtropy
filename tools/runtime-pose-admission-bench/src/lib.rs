@@ -405,7 +405,7 @@ pub fn evaluate(input: &RuntimePosePrediction) -> AdmissionResult {
     }
 
     if profile.profile_state != "CURRENT"
-        || profile.source_bytes_authenticated.not()
+        || !profile.source_bytes_authenticated
         || profile.calibration_method != "SPLIT_CONFORMAL_SE3-v1"
         || profile.nominal_level_bps != input.nominal_level_bps
         || profile.nominal_level_bps != ADMISSION_LEVEL_BPS
@@ -492,16 +492,6 @@ pub fn evaluate_manifest(inputs: &[RuntimePosePrediction]) -> Vec<AdmissionResul
             }
         })
         .collect()
-}
-
-trait BoolNot {
-    fn not(self) -> bool;
-}
-
-impl BoolNot for bool {
-    fn not(self) -> bool {
-        !self
-    }
 }
 
 #[cfg(test)]
