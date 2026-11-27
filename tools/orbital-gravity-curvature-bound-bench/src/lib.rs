@@ -170,6 +170,8 @@ pub struct CurvatureResult {
     pub exact_total_denominator: Option<u128>,
     /// Outward upper bound on ||q''|| * 1e6 s^2.
     pub m_upper_scaled_per_s2: Option<u128>,
+    pub m_scale: u128,
+    pub m_unit: String,
     pub radial_slack_mm: Option<u64>,
     pub perturbation_inventory_id: String,
     pub perturbation_inventory_complete: bool,
@@ -208,6 +210,8 @@ fn base_result(input: &CurvatureInput, disposition: CurvatureDisposition, reason
         exact_total_numerator: None,
         exact_total_denominator: None,
         m_upper_scaled_per_s2: None,
+        m_scale: CURVATURE_SCALE,
+        m_unit: "s^-2".to_owned(),
         radial_slack_mm: None,
         perturbation_inventory_id: input.perturbation_inventory_id.clone(),
         perturbation_inventory_complete: input.perturbation_inventory_complete,
