@@ -1381,5 +1381,4 @@ mod tests {
         assert!(result.derivative_intervals[0].upper() >= 12.0);
         assert!(result.derivative_abs_supremum[0] >= 12.0);
     }
-
 }
