@@ -1,0 +1,126 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-REPM-RECOVERY-PASSPORT-001",
+  "fixture_class": "synthetic_semantic_control",
+  "claim_ceiling": "Every record and measurement is synthetic. The mass balance is a known-answer arithmetic fixture, not a demonstrated recovery yield, chemical process result, or environmental comparison.",
+  "passport": {
+    "passport_id": "PASS-001",
+    "feedstock": {
+      "component_id": "MOTOR-001",
+      "specimen_id": "MAG-001",
+      "lot_id": "LOT-001",
+      "magnet_family": "NdFeB",
+      "feedstock_form": "PolymerBondedMagnet",
+      "grade_or_composition_record": {
+        "record_id": "CHEM-001",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "provenance_record": {
+        "record_id": "ORIGIN-001",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "manufacturing_genealogy": {
+        "record_id": "GEN-001",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "process_history_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "modification_history_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "service_history_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+    },
+    "route_eligibility": {
+      "receipt": {
+        "record_id": "ELIGIBILITY-001",
+        "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "feedstock_lot_id": "LOT-001",
+      "magnet_family": "NdFeB",
+      "feedstock_form": "PolymerBondedMagnet",
+      "route": "PolymerHydrolysis",
+      "eligibility": "Qualified",
+      "scope_basis_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "stage": {
+      "stage_id": "STAGE-001",
+      "stage_record": {
+        "record_id": "STAGE-RECORD-001",
+        "digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "feedstock_lot_id": "LOT-001",
+      "route": "PolymerHydrolysis",
+      "method_id": "LAB-METHOD-001",
+      "input_mass": {
+        "value_mg": 1000,
+        "uncertainty_mg": 0
+      },
+      "outputs": [
+        {
+          "output_id": "MAGNET-FEED",
+          "record": {
+            "record_id": "REC-MAGNET-FEED",
+            "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+          },
+          "form": "MagnetFeedstock",
+          "mass": {
+            "value_mg": 700,
+            "uncertainty_mg": 0
+          },
+          "composition_record": {
+            "record_id": "COMP-MAGNET-FEED",
+            "digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+          },
+          "quality_record": {
+            "record_id": "QUALITY-MAGNET-FEED",
+            "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          "magnetic_characterization_record": {
+            "record_id": "MAGCHAR-MAGNET-FEED",
+            "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+          }
+        },
+        {
+          "output_id": "POLYMER-RESIDUE",
+          "record": {
+            "record_id": "REC-POLYMER-RESIDUE",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "form": "Residue",
+          "mass": {
+            "value_mg": 300,
+            "uncertainty_mg": 0
+          },
+          "waste_classification_record": {
+            "record_id": "WASTE-POLYMER-RESIDUE",
+            "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "disposition_record": {
+            "record_id": "DISP-POLYMER-RESIDUE",
+            "digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          }
+        }
+      ],
+      "closure_tolerance_mg": 5
+    },
+    "downstream_use": {
+      "recovered_output_id": "MAGNET-FEED",
+      "new_material_lot_id": "RECYCLED-LOT-001",
+      "manufacturing_genealogy": {
+        "record_id": "NEW-GENEALOGY-001",
+        "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "as_built_acceptance_receipt": {
+        "record_id": "NEW-ACCEPTANCE-001",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "downstream_disposition": "Qualified"
+    }
+  },
+  "expected": {
+    "disposition": "Qualified",
+    "mass_balance_status": "ExactNumericClosure",
+    "recovered_magnet_feedstock_mg": 700,
+    "recovered_elemental_product_mg": 0,
+    "qualified_closed_loop_product_ids": [
+      "MAGNET-FEED"
+    ]
+  }
+}
