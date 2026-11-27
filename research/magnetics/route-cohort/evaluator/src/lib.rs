@@ -269,7 +269,9 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
 
     let mut build_id_counts = BTreeMap::new();
     for build in &cohort.builds {
-        *build_id_counts.entry(build.build_id.as_str()).or_insert(0usize) += 1;
+        *build_id_counts
+            .entry(build.build_id.as_str())
+            .or_insert(0usize) += 1;
     }
     counts.initiated_builds = cohort.builds.len() as u64;
 
@@ -279,8 +281,11 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
     for build in &cohort.builds {
         let build_valid =
             validate_build_record(cohort, build, &lot_by_id, &valid_lot_ids, &mut blockers);
-        let unique_build_id =
-            build_id_counts.get(build.build_id.as_str()).copied().unwrap_or(0) == 1;
+        let unique_build_id = build_id_counts
+            .get(build.build_id.as_str())
+            .copied()
+            .unwrap_or(0)
+            == 1;
         if build_valid && unique_build_id {
             valid_build_ids.insert(build.build_id.as_str());
             used_valid_lot_ids.insert(build.material_lot_id.as_str());
@@ -1084,9 +1089,11 @@ mod tests {
         cohort.specimens[1].qualification_receipt_id =
             cohort.specimens[0].qualification_receipt_id.clone();
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::DuplicateQualificationReceiptId));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::DuplicateQualificationReceiptId)
+        );
         assert_eq!(
             result.summary.generalization_status,
             GeneralizationStatus::GeneralizationUnavailable
@@ -1098,13 +1105,10 @@ mod tests {
         let mut cohort = valid_cohort();
         cohort.specimens[0].first_pass_disposition = SpecimenDisposition::Fail;
         cohort.specimens[0].rework_attempts = 1;
-        cohort.specimens[0].rework_receipt_id =
-            cohort.specimens[1].rework_receipt_id.clone();
+        cohort.specimens[0].rework_receipt_id = cohort.specimens[1].rework_receipt_id.clone();
         cohort.specimens[0].rework_receipt_digest = Some(digest('3'));
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::DuplicateReworkReceiptId));
+        assert!(result.blockers.contains(&Blocker::DuplicateReworkReceiptId));
         assert_eq!(
             result.summary.generalization_status,
             GeneralizationStatus::GeneralizationUnavailable
@@ -1120,9 +1124,7 @@ mod tests {
             specimen.scrap_receipt_digest = Some(digest('4'));
         }
         let result = evaluate_cohort(&cohort);
-        assert!(result
-            .blockers
-            .contains(&Blocker::DuplicateScrapReceiptId));
+        assert!(result.blockers.contains(&Blocker::DuplicateScrapReceiptId));
         assert_eq!(result.summary.counts.final_accepted_specimens, 0);
     }
 
