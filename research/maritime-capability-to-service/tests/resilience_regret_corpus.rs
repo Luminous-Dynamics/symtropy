@@ -112,7 +112,11 @@ fn lifecycle_and_recovery_edge_cases_keep_service_and_knowledge_bounds() {
 
     let unknown = find("CC20_DEPENDENCY_INVENTORY_UNKNOWN_REMAINDER");
     assert_eq!(unknown.expected, "INDETERMINATE_NO_NUMERIC_RESULT");
-    assert!(unknown.dependencies.contains(&"DEPENDENCY:UNKNOWN-REMAINDER".to_owned()));
+    assert!(
+        unknown
+            .dependencies
+            .contains(&"DEPENDENCY:UNKNOWN-REMAINDER".to_owned())
+    );
 
     let partial = find("RC16_PARTIAL_RESTORE_THEN_SECOND_RESOURCE_BLOCK");
     assert_eq!(partial.expected, "PARTIAL_SERVICE_RETAIN_DENOMINATOR");
