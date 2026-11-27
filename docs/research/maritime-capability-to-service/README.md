@@ -177,3 +177,8 @@ A passing fixture is evidence of this model's arithmetic and declared topology o
 The one-epoch finite R1 implementation is specified in [same-information-oracle-protocol.md](same-information-oracle-protocol.md) and tracked in [MCSC-SAME-INFO-ORACLE-001 #7834](https://github.com/Luminous-Dynamics/symtropy/issues/7834). It composes KITE's as-of evidence snapshots and enforces one common action across scenarios with identical observable information. It enumerates bounded action policies and reports component-wise adverse bounds with scenario witnesses and a Pareto frontier without probabilities or scalar weights.
 
 The first executable slice solves one decision epoch only. It is not a multistage optimizer or deployable recovery policy. R0 clairvoyant bounds, R1 same-information oracle results, and R2 compute-budget-matched operational policies remain separate.
+## Decision-time conformal contract
+
+The follow-on [conformal decision protocol](conformal-decision-contract-v0.1.md) is tracked in [MCSC-CONFORMAL-ACTION-001 #7855](https://github.com/Luminous-Dynamics/symtropy/issues/7855). The new Rust module implements exact finite-sample absolute-residual split-conformal rank arithmetic, calibration/model/decision chronology, explicit unbounded output for insufficient samples, applicability-aware coverage claims and a conservative single-deadline interval gate.
+
+This is a calibration and decision-gate primitive, not a predictive model, full berth/crane optimizer or evidence that a Durban deployment achieves nominal coverage. Conditional coverage and distribution shift remain explicit research questions.
