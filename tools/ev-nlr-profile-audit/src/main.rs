@@ -59,7 +59,6 @@ impl ProfileKey {
             self.fleet_id, self.fleet_size, self.profile_kind, self.strategy
         )
     }
-
 }
 
 #[derive(Debug, Clone)]
