@@ -79,10 +79,9 @@ The denominator is 10 for all five alternatives. Only LOCAL-C reaches the receiv
 
 The fixture `fixtures/mycelix-mpcb-tiny-v0.receipt.tsv` is a frozen transcript of the deterministic receipt emitted by Mycelix #6774's dedicated Maritime Productive Capability Reference workflow (run #5, source commit `877716f9be9cbdf56f9c4b8be67349b9bca97a43`). Source extraction details and claim ceiling are recorded in `fixtures/mycelix-mpcb-tiny-v0.receipt-source.md`.
 
-The receipt carries the owner-computed four sourcing plans, work-package selections, shared regional plate/welding/NDT capacities, Pareto classifications and exact blocking reasons. A new integration test independently parses that owner receipt, verifies its summary/resource blockers, translates the *owner's feasibility and lead-time outputs* into a synthetic service obligation, and confirms:
-- the faster all-local plan remains unavailable because Mycelix marks it infeasible (4 t plate demand > 3 t capacity; 16 h welding demand > 12 h capacity);
-- the A-local/B-import hybrid can complete inspection, commissioning and handoff by the synthetic day-20 receiver deadline;
-- the other two owner-feasible portfolios miss that deadline after the downstream stages are included.
+The receipt carries the owner-computed four sourcing plans, work-package selections, shared regional plate/welding/NDT capacities, Pareto classifications and exact blocking reasons. A new integration test independently parses that owner receipt, verifies its summary/resource blockers, and joins only the owner's **FEASIBLE** plans to a synthetic receiver-service case. The resource-infeasible all-local plan remains visible in the owner receipt and is excluded before any receiver completion time is calculated (4 t plate demand > 3 t capacity; 16 h welding demand > 12 h capacity).
+
+For the three feasible plans, the test adds the same explicit synthetic downstream assumptions—inspection PASS for 10 units and receiver ACCEPTED for 10 units—then composes the owner's max lead time with one day each for inspection, commissioning and handoff. The A-local/B-import hybrid meets the synthetic day-20 deadline; the two other owner-feasible portfolios are accepted but late. **Those downstream PASS/ACCEPTED records are assumptions authored by the integration test, not facts emitted by Mycelix and not inferred from capability feasibility.**
 
 This test composes the owner receipt; it does not re-run Mycelix's source enumeration or resource feasibility engine. It is not yet a production adapter, and the receipt is a log-extracted snapshot rather than a downloaded signed artifact. The future adapter must bind exact digests, freshness, authority and rights before consuming live owner outputs.
 
