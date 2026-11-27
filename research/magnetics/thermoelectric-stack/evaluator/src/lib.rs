@@ -10,6 +10,11 @@ use std::collections::{BTreeMap, BTreeSet};
 pub enum Family {
     ConventionalWindingCooling,
     ConventionalHighPerformanceCooling,
+    ConventionalDirectOilCooling,
+    ConventionalMultiNozzleOilJetCooling,
+    ConventionalHairpinOilSprayCooling,
+    ConventionalSlotEmbeddedCooling,
+    ConventionalHollowConductorCooling,
     AmIntegratedWindingCooling,
     HybridThermalSubassembly,
     ReferenceControl,
@@ -1132,7 +1137,7 @@ mod tests {
             "CONVENTIONAL-HIGH",
             Family::ConventionalHighPerformanceCooling,
             Role::RequiredBaseline,
-            [132.0, 1550.0, 1.9, 33.0, 120.0, 0.0, 1350.0, 0.07, 7.5],
+            [132.0, 1470.0, 1.8, 33.0, 128.0, 0.0, 1280.0, 0.075, 7.8],
         ));
         let result = evaluate(&benchmark, &trials);
         assert_eq!(result[0].decision, Decision::NonInferiorNoStackBenefit);
