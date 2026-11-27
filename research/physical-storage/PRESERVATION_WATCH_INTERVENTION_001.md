@@ -127,7 +127,13 @@ Each proposal has explicit required evidence and approval categories. The `auto_
 12. attempted clear without remediation evidence;
 13. contradictory copy-count claim;
 14. future-dated observation;
-15. invalid provenance on an optional signal (must still block).
+15. invalid provenance on an optional signal (must still block);
+16. later Unknown cannot downgrade an unresolved alert;
+17. multiple alerts require separate receipt-backed clears;
+18. unknown alert reference is rejected;
+19. remediation receipt digest is mandatory;
+20. Alert cannot itself supersede another Alert;
+21. remediation receipt ID reuse is rejected.
 
 Contract-error cases are negative controls. All other cases have frozen dispositions and action IDs. The corpus is synthetic and is not a probability sample of real archives.
 
@@ -171,3 +177,5 @@ A state of Watch is not a probability of failure. A threshold crossing is not a 
 A previous Alert is a durable state transition, not a transient level reading. A later Unknown, absent or expired observation cannot downgrade it. The receipt preserves every unresolved alert ID and emits proposals against the alert that created the condition.
 
 Only a fresh Verified Healthy observation can clear an alert. It must name exactly one existing alert ID and reference a distinct remediation receipt ID plus the SHA-256 digest of that receipt. A receipt ID can be used for only one alert clear in the evaluated history. Unknown references, missing receipt IDs/digests, receipt reuse and non-Healthy supersession are rejected. External evidence adapters must independently retrieve/authenticate the remediation receipt and establish its provenance; the Rust kernel checks only its binding shape and the verifier-supplied provenance status.
+
+The Rust reference currently has 22 authored unit tests. All are pending local execution because Cargo/rustc/rustfmt are absent in the authoring environment.
