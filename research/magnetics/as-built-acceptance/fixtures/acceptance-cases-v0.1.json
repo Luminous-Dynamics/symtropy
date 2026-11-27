@@ -1,0 +1,151 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-ASBUILT-FUNCTION-QUAL-001",
+  "fixture_class": "synthetic_semantic_controls",
+  "claim_ceiling": "These records test identity, role and disposition semantics only. They are not physical measurements, process simulations, solver results or evidence of material performance.",
+  "cases": [
+    {
+      "case_id": "ASB-001",
+      "name": "complete_scope_matched_safe_chain",
+      "expected_disposition": "QUALIFIED",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-001",
+        "material_lot_id": "LOT-SYN-001",
+        "build_run_id": "BUILD-SYN-001",
+        "as_built_geometry_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "solver_geometry_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "magnetization_specimen_id": "SPEC-SYN-001",
+        "material_state_specimen_id": "SPEC-SYN-001",
+        "physical_observation_specimen_id": "SPEC-SYN-001",
+        "comparison_binds_prediction_and_observation": true,
+        "spatial_certificate_complete": true,
+        "all_hard_requirements": "SAFE",
+        "blind_holdout_leakage": false,
+        "uncertainty_scope_complete": true
+      },
+      "purpose": "Positive control for complete and scope-matched semantic closure."
+    },
+    {
+      "case_id": "ASB-002",
+      "name": "missing_post_build_magnetization_history",
+      "expected_disposition": "INDETERMINATE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-002",
+        "post_magnetization_ref": null,
+        "solver_claims_current_magnetization_state": true,
+        "all_hard_requirements": "SAFE"
+      },
+      "purpose": "A solver cannot claim the actual specimen state when the required magnetization history is absent."
+    },
+    {
+      "case_id": "ASB-003",
+      "name": "nominal_geometry_used_instead_of_inspected_geometry",
+      "expected_disposition": "INDETERMINATE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-003",
+        "nominal_geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "as_built_geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "solver_geometry_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "all_hard_requirements": "SAFE"
+      },
+      "purpose": "A nominal-model pass cannot qualify a specimen whose inspected geometry differs."
+    },
+    {
+      "case_id": "ASB-004",
+      "name": "wrong_specimen_observation",
+      "expected_disposition": "INDETERMINATE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-004",
+        "physical_observation_specimen_id": "SPEC-SYN-OTHER",
+        "comparison_binds_prediction_and_observation": true,
+        "all_hard_requirements": "SAFE"
+      },
+      "purpose": "A field map from a neighbouring specimen must not be joined by proximity or matching dimensions."
+    },
+    {
+      "case_id": "ASB-005",
+      "name": "definite_hard_requirement_violation",
+      "expected_disposition": "FAIL",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-005",
+        "all_identity_joins_complete": true,
+        "evidence_roles_admissible": true,
+        "violated_requirement_id": "REQ-SYN-MIN-FIELD",
+        "violation_is_definite_under_frozen_uncertainty": true
+      },
+      "purpose": "An admissible, definite hard-limit violation is not diluted by other passing metrics."
+    },
+    {
+      "case_id": "ASB-006",
+      "name": "incomplete_spatial_partition",
+      "expected_disposition": "INDETERMINATE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-006",
+        "all_point_samples_pass": true,
+        "spatial_certificate_complete": false,
+        "unresolved_domain_fraction": 0.02
+      },
+      "purpose": "Passing sampled points do not establish safety throughout an incompletely covered domain."
+    },
+    {
+      "case_id": "ASB-007",
+      "name": "calibration_data_reused_as_blind_holdout",
+      "expected_disposition": "INDETERMINATE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-007",
+        "calibration_observation_ids": ["OBS-SYN-007-A", "OBS-SYN-007-B"],
+        "blind_holdout_observation_ids": ["OBS-SYN-007-B"],
+        "blind_holdout_leakage": true
+      },
+      "purpose": "The same physical observation cannot support fitting and an independent blind-holdout claim."
+    },
+    {
+      "case_id": "ASB-008",
+      "name": "unsupported_material_or_measurement_regime",
+      "expected_disposition": "NOT_EVALUABLE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-008",
+        "material_model_scope": "UNSUPPORTED",
+        "measurement_method_scope": "UNSUPPORTED",
+        "all_hard_requirements": "UNKNOWN"
+      },
+      "purpose": "Out-of-scope material or measurement behaviour is not assigned a pass or an invented failure."
+    },
+    {
+      "case_id": "ASB-009",
+      "name": "unknown_common_cause_uncertainty",
+      "expected_disposition": "INDETERMINATE",
+      "evidence": {
+        "specimen_id": "SPEC-SYN-009",
+        "shared_calibration_source_id": "CAL-SYN-SHARED",
+        "dependence_model": "UNKNOWN",
+        "uncertainty_scope_complete": false,
+        "all_hard_requirements": "SAFE"
+      },
+      "purpose": "Unknown dependence cannot be silently converted to independent Gaussian components."
+    }
+  ],
+  "metamorphic_relations": [
+    {
+      "relation_id": "ASB-META-001",
+      "source_case": "ASB-001",
+      "mutation": "widen_relevant_uncertainty_without_changing_other_evidence",
+      "expected_invariant": "disposition_must_not_upgrade",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "relation_id": "ASB-META-002",
+      "source_case": "ASB-001",
+      "mutation": "replace_physical_observation_role_with_predicted_role",
+      "expected_invariant": "cannot_remain_qualified",
+      "expected_disposition": "INDETERMINATE"
+    },
+    {
+      "relation_id": "ASB-META-003",
+      "source_case": "ASB-001",
+      "mutation": "change_only_specimen_id_on_one_required_record",
+      "expected_invariant": "identity_join_must_fail",
+      "expected_disposition": "INDETERMINATE"
+    }
+  ]
+}
