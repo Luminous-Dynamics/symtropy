@@ -77,7 +77,7 @@ The separate `coherent_scenarios` module evaluates each supplied operating scena
 
 It deliberately does not create an optimistic network by combining per-resource maxima from different scenarios. The adversarial fixture has two mutually exclusive route modes: each coherent mode supports 10 L, while a component-wise splice of both route maxima supports 15 L through the shared 15 L handling gate. The 15 L result is an outer mathematical relaxation and is not reported as a coherent scenario result.
 
-The report is deterministic under scenario input reordering and is independently reverified against the supplied scenario profiles. Its range is descriptive only; it is not a mandatory-beneficiary-floor allocation, robust guarantee, probability estimate, evidence-authority assertion or proof that the scenario set is complete. Those limits are explicit in the report claim ceiling.
+The report is deterministic under scenario input reordering and is independently reverified against the supplied scenario profiles. A typed CoherentScenarioSetInput provides a strict serialized input envelope. A 200-seed corpus varies two route capacities across two to four mutually distinct scenarios per set and compares the reported minimum/maximum with an independent physical upper-bound calculation. Its range is descriptive only; it is not a mandatory-beneficiary-floor allocation, robust guarantee, probability estimate, evidence-authority assertion or proof that the scenario set is complete. Those limits are explicit in the report claim ceiling.
 
 ### Portable contracts
 
