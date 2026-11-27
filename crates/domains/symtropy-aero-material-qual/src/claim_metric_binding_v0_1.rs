@@ -193,49 +193,60 @@ impl ClaimMetricSemanticBindingV0_1 {
         if self.schema != CLAIM_METRIC_BINDING_SCHEMA_V0_1 {
             errors.push("CLAIM_METRIC_BINDING_SCHEMA_UNSUPPORTED".to_owned());
         }
-        if !valid_identifier(&self.binding_ref) || !valid_identifier(&self.claim_id) {
-            errors.push("CLAIM_METRIC_BINDING_IDENTITY_INVALID".to_owned());
-        }
-        for value in [
-            self.claim_specification_payload_sha256.as_str(),
-            self.claim_specification_semantic_sha256.as_str(),
-            self.decision_context_sha256.as_str(),
-            self.model_credibility_sha256.as_str(),
-            self.owner_evidence_cut_sha256.as_str(),
-            self.metric_definition_sha256.as_str(),
-            self.semantic_mapping_basis_sha256.as_str(),
-            self.population_manifest_sha256.as_str(),
-            self.uncertainty_profile_sha256.as_str(),
-            self.metric_semantics_record_sha256.as_str(),
-            self.model_report_record_sha256.as_str(),
-            self.owner_attestation_record_sha256.as_str(),
-            self.producer_authority_receipt_sha256.as_str(),
-            self.semantic_validation_receipt_sha256.as_str(),
-            self.receiver_first_seen_record_sha256.as_str(),
+        for (field, value) in [
+            ("BINDING_REF", self.binding_ref.as_str()),
+            ("CLAIM_ID", self.claim_id.as_str()),
         ] {
-            if !valid_sha256(value) {
-                errors.push("CLAIM_METRIC_BINDING_DIGEST_INVALID".to_owned());
-                break;
+            if value.trim().is_empty() {
+                errors.push(format!("CLAIM_METRIC_BINDING_{field}_MISSING"));
+            } else if !valid_identifier(value) {
+                errors.push(format!("CLAIM_METRIC_BINDING_{field}_NONCANONICAL"));
             }
         }
-        let identifiers = [
-            self.model_metric_id.as_str(),
-            self.measurand_id.as_str(),
-            self.metric_definition_ref.as_str(),
-            self.semantic_mapping_ref.as_str(),
-            self.population_ref.as_str(),
-            self.sampling_unit_ref.as_str(),
-            self.uncertainty_method_ref.as_str(),
-            self.owner_namespace.as_str(),
-            self.metric_semantics_evidence_ref.as_str(),
-            self.model_report_evidence_ref.as_str(),
-            self.owner_attestation_evidence_ref.as_str(),
-            self.producer_authority_receipt_ref.as_str(),
-            self.semantic_validation_receipt_ref.as_str(),
-            self.receiver_first_seen_receipt_ref.as_str(),
-        ];
-        if identifiers.iter().any(|value| !valid_identifier(value)) {
-            errors.push("CLAIM_METRIC_BINDING_REFERENCE_INVALID".to_owned());
+        for (field, value) in [
+            ("SPECIFICATION_PAYLOAD", self.claim_specification_payload_sha256.as_str()),
+            ("SPECIFICATION_SEMANTIC", self.claim_specification_semantic_sha256.as_str()),
+            ("DECISION_CONTEXT", self.decision_context_sha256.as_str()),
+            ("MODEL_CREDIBILITY", self.model_credibility_sha256.as_str()),
+            ("OWNER_EVIDENCE_CUT", self.owner_evidence_cut_sha256.as_str()),
+            ("METRIC_DEFINITION", self.metric_definition_sha256.as_str()),
+            ("MAPPING_BASIS", self.semantic_mapping_basis_sha256.as_str()),
+            ("POPULATION_MANIFEST", self.population_manifest_sha256.as_str()),
+            ("UNCERTAINTY_PROFILE", self.uncertainty_profile_sha256.as_str()),
+            ("METRIC_SEMANTICS_RECORD", self.metric_semantics_record_sha256.as_str()),
+            ("MODEL_REPORT_RECORD", self.model_report_record_sha256.as_str()),
+            ("OWNER_ATTESTATION_RECORD", self.owner_attestation_record_sha256.as_str()),
+            ("PRODUCER_AUTHORITY_RECORD", self.producer_authority_receipt_sha256.as_str()),
+            ("SEMANTIC_VALIDATION_RECORD", self.semantic_validation_receipt_sha256.as_str()),
+            ("RECEIVER_FIRST_SEEN_RECORD", self.receiver_first_seen_record_sha256.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                errors.push(format!("CLAIM_METRIC_BINDING_{field}_DIGEST_MISSING"));
+            } else if !valid_sha256(value) {
+                errors.push(format!("CLAIM_METRIC_BINDING_{field}_DIGEST_INVALID"));
+            }
+        }
+        for (field, value) in [
+            ("MODEL_METRIC_ID", self.model_metric_id.as_str()),
+            ("MEASURAND_ID", self.measurand_id.as_str()),
+            ("METRIC_DEFINITION_REF", self.metric_definition_ref.as_str()),
+            ("SEMANTIC_MAPPING_REF", self.semantic_mapping_ref.as_str()),
+            ("POPULATION_REF", self.population_ref.as_str()),
+            ("SAMPLING_UNIT_REF", self.sampling_unit_ref.as_str()),
+            ("UNCERTAINTY_METHOD_REF", self.uncertainty_method_ref.as_str()),
+            ("OWNER_NAMESPACE", self.owner_namespace.as_str()),
+            ("METRIC_SEMANTICS_REF", self.metric_semantics_evidence_ref.as_str()),
+            ("MODEL_REPORT_REF", self.model_report_evidence_ref.as_str()),
+            ("OWNER_ATTESTATION_REF", self.owner_attestation_evidence_ref.as_str()),
+            ("PRODUCER_AUTHORITY_REF", self.producer_authority_receipt_ref.as_str()),
+            ("SEMANTIC_VALIDATION_REF", self.semantic_validation_receipt_ref.as_str()),
+            ("RECEIVER_FIRST_SEEN_REF", self.receiver_first_seen_receipt_ref.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                errors.push(format!("CLAIM_METRIC_BINDING_{field}_MISSING"));
+            } else if !valid_identifier(value) {
+                errors.push(format!("CLAIM_METRIC_BINDING_{field}_NONCANONICAL"));
+            }
         }
         if !self.predicate_threshold.is_canonical() {
             errors.push("CLAIM_METRIC_BINDING_THRESHOLD_NONCANONICAL".to_owned());
@@ -246,10 +257,15 @@ impl ClaimMetricSemanticBindingV0_1 {
         let mut claim_strata = BTreeSet::new();
         let mut model_strata = BTreeSet::new();
         for item in &self.required_strata {
-            if !valid_identifier(&item.claim_stratum_id)
-                || !valid_identifier(&item.model_stratum_ref)
-            {
-                errors.push("CLAIM_METRIC_BINDING_STRATUM_REFERENCE_INVALID".to_owned());
+            for (field, value) in [
+                ("CLAIM_STRATUM", item.claim_stratum_id.as_str()),
+                ("MODEL_STRATUM", item.model_stratum_ref.as_str()),
+            ] {
+                if value.trim().is_empty() {
+                    errors.push(format!("CLAIM_METRIC_BINDING_{field}_MISSING"));
+                } else if !valid_identifier(value) {
+                    errors.push(format!("CLAIM_METRIC_BINDING_{field}_NONCANONICAL"));
+                }
             }
             if !claim_strata.insert(item.claim_stratum_id.as_str())
                 || !model_strata.insert(item.model_stratum_ref.as_str())
@@ -267,8 +283,10 @@ impl ClaimMetricSemanticBindingV0_1 {
         }
         let mut required_refs = BTreeSet::new();
         for evidence_ref in &self.required_evidence_refs {
-            if !valid_identifier(evidence_ref) {
-                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_INVALID".to_owned());
+            if evidence_ref.trim().is_empty() {
+                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_MISSING".to_owned());
+            } else if !valid_identifier(evidence_ref) {
+                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_NONCANONICAL".to_owned());
             }
             if !required_refs.insert(evidence_ref.as_str()) {
                 errors
@@ -323,8 +341,16 @@ impl ClaimMetricSemanticBindingV0_1 {
         let binding_digest = match self.compute_sha256() {
             Ok(value) => value,
             Err(errors) => {
-                rejected = true;
-                reasons.extend(errors);
+                for reason in errors {
+                    if reason.ends_with("_MISSING") || reason.ends_with("_EMPTY") {
+                        incomplete = true;
+                    } else if reason.ends_with("_UNSUPPORTED") {
+                        unsupported = true;
+                    } else {
+                        rejected = true;
+                    }
+                    reasons.insert(reason);
+                }
                 String::new()
             }
         };
@@ -678,11 +704,14 @@ impl ClaimMetricSemanticBindingV0_1 {
         }
         let mut distinct_refs = BTreeSet::new();
         for (role, evidence_ref, expected_record_sha256) in required_owner_records {
-            if !valid_identifier(evidence_ref) || !valid_sha256(expected_record_sha256) {
+            if evidence_ref.trim().is_empty() || expected_record_sha256.trim().is_empty() {
                 incomplete = true;
-                reasons.insert(format!(
-                    "CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_MISSING"
-                ));
+                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_MISSING"));
+                continue;
+            }
+            if !valid_identifier(evidence_ref) || !valid_sha256(expected_record_sha256) {
+                rejected = true;
+                reasons.insert(format!("CLAIM_METRIC_BINDING_{role}_REFERENCE_OR_DIGEST_INVALID"));
                 continue;
             }
             if !distinct_refs.insert(evidence_ref) {
