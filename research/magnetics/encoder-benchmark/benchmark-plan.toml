@@ -1,0 +1,169 @@
+[protocol]
+id = "MAG-ENCODER-BENCH-001"
+revision = "0.1-draft"
+status = "provisional_preregistration"
+date = "2026-11-27"
+units = "SI; angles in degrees unless stated"
+
+[baseline]
+manufacturer = "RLS"
+family = "AksIM-2"
+ring_part = "MRA080"
+readhead_part = "MB080"
+datasheet = "MBD01 Issue 15"
+datasheet_date = "2026-05-13"
+resolution_bits_max = 20
+system_accuracy_deg = 0.004
+typical_calibrated_installed_accuracy_deg = 0.009
+typical_uncalibrated_installed_accuracy_deg = 0.029
+maximum_speed_rpm = 4700
+bandwidth_hz = 9000
+sampling_hz = 18000
+refresh_hz_max = 54000
+temperature_min_c = -40
+temperature_max_c = 105
+self_calibration_supported = true
+two_readhead_supported = true
+external_field_temporary_malfunction_threshold_mt = 20
+external_field_possible_permanent_damage_threshold_mt = 50
+
+[comparator]
+manufacturer = "RLS"
+family = "AksIM-4 HIPERFACE DSL"
+variant = "MC080"
+ring_size_class_mm = 80
+datasheet_revision_status = "MCD06 listing conflicts with opened HDSL page linking legacy MCD05 PDF"
+ordering_code_status = "unconfirmed"
+resolution_bits_status = "exact MCD06 HDSL datasheet required; do not inherit separate AksIM-4 BiSS 22-bit specification"
+system_accuracy_deg = 0.004
+system_accuracy_source_status = "provisional indexed RLS product-listing figure; opened HDSL page body differs"
+calibrated_installed_accuracy_status = "not_published_in_verified_current_MCD06_pdf"
+uncalibrated_installed_accuracy_status = "not_published_in_verified_current_MCD06_pdf"
+maximum_speed_status = "not_published_in_verified_current_MCD06_pdf"
+bandwidth_status = "not_published_in_verified_current_MCD06_pdf"
+datasheet_temperature_readhead_c = [-40, 115]
+datasheet_temperature_ring_c = [-40, 125]
+common_comparison_temperature_c = [-40, 105]
+notes = "Do not treat legacy MCD05 product-page PDF as current MCD06 documentation."
+
+[common_test_envelope]
+ring_size_class_mm = 80
+temperature_min_c = -40
+temperature_max_c = 105
+rotation_span_deg = 360
+directions = ["clockwise", "counterclockwise"]
+nominal_angle_step_deg = 1.0
+minimum_engineering_specimens_per_configuration = 5
+speed_points_rpm = [300, 1000, 3000]
+include_4700_rpm_only_if_all_exact_variants_are_rated = true
+temperature_setpoints_c = [-40, 23, 85, 105]
+require_steady_state_soak_record = true
+randomize_test_order = true
+
+[metrology]
+reference_instrument_id_status = "unselected"
+calibration_certificate_id_status = "unselected"
+expanded_uncertainty_coverage_factor = 2.0
+expanded_uncertainty_target_deg = 0.001
+uncertainty_target_status = "engineering_goal_not_yet_demonstrated"
+require_timestamp_synchronization = true
+require_raw_reference_samples = true
+
+[calibration]
+modes = ["uncalibrated_single_head", "calibrated_or_self_calibrated_single_head", "two_head_180deg_if_supported"]
+freeze_calibration_data_digest = true
+freeze_calibration_procedure_digest = true
+seal_blind_holdout_before_fit = true
+blind_data_may_not_drive_calibration = true
+blind_data_may_not_drive_active_sampling = true
+
+[metrics]
+separate_vendor_system_accuracy = true
+separate_uncalibrated_installed_accuracy = true
+separate_calibrated_installed_accuracy = true
+report_max_absolute_error = true
+report_rms_error = true
+report_repeatability = true
+report_hysteresis = true
+report_sde_and_noise = true
+report_harmonic_spectrum = true
+report_thermal_drift = true
+report_bandwidth_sample_rate_refresh_latency_jitter = true
+report_runout_eccentricity_airgap_sensitivity = true
+report_external_field_susceptibility = true
+report_power_diagnostics_calibration_installation_cost = true
+
+[research_targets]
+system_accuracy_parity_deg = 0.004
+system_accuracy_stretch_deg = 0.003
+calibrated_installed_target_deg = 0.007
+uncalibrated_installed_stretch_deg = 0.020
+zero_false_safe_spatial_classifications = true
+targets_are_achieved_results = false
+
+[protocol_gates]
+current_mcd06_datasheet_received = false
+mcd06_ordering_code_frozen = false
+metrology_chain_selected = false
+uncertainty_budget_approved = false
+test_fixture_drawings_frozen = false
+test_sequence_preregistered = false
+blind_holdout_partition_frozen = false
+hardware_specimens_received = false
+
+[solver_comparator]
+magpylib_version = "0.15.0"
+magpylib_release_date = "2026-11-25"
+magpylib_kernel_reference_arm = true
+magpylib_autodiff_arm = true
+analytic_point_dipole_arm = true
+analytic_finite_cuboid_arm = true
+independent_fem_arm = true
+sealed_measured_field_map_arm = true
+solver_metrics_separate_from_encoder_accuracy = true
+
+[optical_metrology_ceiling]
+manufacturer = "Renishaw"
+family = "RESOLUTE"
+ring_52mm_typical_installed_accuracy_arcsec = 12.7
+ring_200mm_typical_installed_accuracy_arcsec = 4.3
+ring_550mm_typical_installed_accuracy_arcsec = 1.9
+is_like_for_like_80mm_magnetic_comparator = false
+resolution_below_noise_floor_warning = true
+rexa30_two_head_reference_candidate = true
+reference_instrument_and_calibration_frozen = false
+
+[incremental_hall_comparator]
+manufacturer = "Texas Instruments"
+part = "TMAG5111"
+channels = 2
+bandwidth_hz = 40000
+typical_operate_point_variants_mt = [1.4, 3.0]
+is_absolute_angle_encoder = false
+benchmark_scope = ["quadrature_edge_integrity", "speed_direction", "dropout", "threshold_margin"]
+
+[metrology_uncertainty]
+include_test_encoder_resolution = true
+include_reference_resolution = true
+include_reference_calibration = true
+include_reference_interpolation_error = true
+include_alignment_and_eccentricity = true
+include_repeatability = true
+type_a_and_type_b_components_separate = true
+euramet_guide_23_method_reference = true
+
+[external_comparator_gates]
+exact_mcd06_ordering_code_received = false
+exact_mcd06_datasheet_digest_frozen = false
+renishaw_reference_configuration_frozen = false
+tmag5111_exact_frontend_and_magnet_geometry_frozen = false
+magpylib_015_artifact_digest_frozen = false
+independent_fem_solver_and_material_model_frozen = false
+
+[reference_resolution_gate]
+expanded_reference_uncertainty_target_arcsec = 3.6
+resolute_200mm_typical_installed_accuracy_arcsec = 4.3
+resolute_550mm_typical_installed_accuracy_arcsec = 1.9
+installed_accuracy_equals_expanded_uncertainty = false
+reference_calibration_certificate_required = true
+full_uncertainty_budget_required = true
