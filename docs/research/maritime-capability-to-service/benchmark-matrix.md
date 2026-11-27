@@ -250,6 +250,16 @@ Compose the canonical causal owners:
 
 The detailed [causal evaluation protocol](causal-evaluation-protocol.md) freezes interference-aware estimands, cluster/network exposure, randomized and phased rollouts, target-trial emulation, falsification controls, and the paired-site limitations. In particular, Ngqura and Durban are evidence-acquisition environments; two non-randomized sites alone cannot identify a causal regional-development effect.
 
+## Common-cause recovery and decision regret
+
+The next MCSC lane is tracked in [#7747](https://github.com/Luminous-Dynamics/symtropy/issues/7747). It composes Mycelix #5762's transitive common-cause dependencies, Mycelix #6533 offer lifecycle and Symtropy #5710 requalification outputs with canonical #7554 receiver-service results.
+
+A 20-case frozen synthetic manifest covers shared feeder/substation, mill, NDT/calibration, specialist workforce, rail, fibre, common water intake, heat sink loss, firmware/material/skill/calibration expiry, revoked execution authority, post-deadline qualification, partial restoration, sequential events during recovery, late evidence and unknown dependency remainder.
+
+The research question is **decision regret under correlated recovery**, not provider diversity. Compare no-build, deterministic nominal, independence-assumption (negative control), common-cause-aware, lifecycle-aware, robust finite-scenario and clairvoyant per-scenario upper-bound policies. Report a vector of accepted-service loss, unit-hours below floor, recovery latency, requalification time/cost, emissions and common-cause false-independence. Do not assign probabilities without source-grounded incident data and do not create a scalar winner.
+
+The initial manifest and protocol qualify only scenario coverage and claim ceilings; they do not yet implement a recovery optimizer or numeric regret engine.
+
 ## Capability lifecycle, qualification decay and offer authority
 
 MCSC's next paradigm shift is from a static capability graph to a **time-bounded, configuration-bound capability option**. Reuse:
