@@ -57,9 +57,12 @@ It computes candidate-minus-reference deltas separately for:
 - service deficit unit-hours;
 - time to minimum viable service and full service;
 - recovery cost and emissions;
-- requalification action count.
+- requalification action count;
+- replan invocation count;
+- assignment/slot/resource plan-churn changes;
+- event-to-admissible-plan decision latency in milliseconds.
 
-Positive deltas are worse for the candidate. This vector is not scalarized. The reference may be a clairvoyant per-scenario admissible upper bound, but is not an implementable policy and has no probability weight. Validation rejects receiver acceptance above inspection-qualified quantity, inconsistent accepted/on-time/unresolved quantities and impossible recovery times. Unit tests cover an eleven-dimensional known answer, context mismatches, invalid inputs and zero-regret equality.
+Positive deltas are worse for the candidate. This vector is not scalarized. The reference may be a clairvoyant per-scenario admissible upper bound, but is not an implementable policy and has no probability weight. Validation rejects receiver acceptance above inspection-qualified quantity, inconsistent accepted/on-time/unresolved quantities and impossible recovery times. Unit tests cover a fourteen-dimensional known answer, context mismatches, invalid inputs, zero-regret equality and a component-wise worst-case envelope across distinct scenarios.
 
 This API is only a comparison primitive. The 20-case corpus currently validates scenario coverage and claim ceilings; no full recovery optimizer, scenario probability model or empirical regret result is claimed.
 
@@ -80,15 +83,31 @@ Partial restoration keeps the original expected-service denominator. Report 60% 
 
 Historical replay uses only evidence first available at the original decision cutoff. A subsequently discovered revocation changes current admissibility but does not rewrite what was knowable at the earlier time.
 
+## 4A. Recovery strategy classes and operational-efficiency comparison
+
+A 2026 systematic review of disrupted seaside planning identifies three recurring recovery paradigms: **disruption management** (bounded local adjustments that preserve the existing plan), **full rescheduling** (regenerate a feasible plan after a severe disruption), and **proactive–reactive hybrid** strategies (robust baseline plus controlled event-triggered replanning). It identifies a gap in systematic comparison across performance, computational efficiency and practical applicability. [Recovery strategies for disrupted seaside planning in container terminals: a systematic review](https://doi.org/10.1080/00207543.2026.2719841).
+
+The MCSC benchmark freezes these three policy classes as matched alternatives. It must report:
+- receiver-service and qualification regret;
+- replanning invocation count;
+- assignments/resources/time slots changed from the previous committed plan (plan churn);
+- event receipt to admissible replacement-plan publication latency;
+- service lost or delayed while the new decision is computed and authorized.
+
+The micro-benchmark currently uses three synthetic disruptions and a common clairvoyant reference to expose the trade-off. It is not an empirical ranking: bounded local repair has lower replanning burden but leaves more service unmet; full rescheduling achieves lower service shortfall but higher churn/latency; the hybrid occupies a distinct intermediate vector. No scalar winner is declared.
+
 ## 5. Policy comparison
 
 At minimum, reproduce:
 1. deterministic/no-build current portfolio;
-2. nominal optimizer with independent-failure assumptions;
-3. common-cause-aware portfolio using #5762 closure;
-4. lifecycle-aware portfolio using #6533 and #5710;
-5. finite-scenario robust/adversarial policy with no invented probabilities;
-6. clairvoyant per-scenario admissible oracle as an information upper bound.
+2. disruption-management policy using bounded local adjustments;
+3. full rescheduling policy after hard disruptions;
+4. proactive–reactive hybrid with a robust baseline and event-triggered replanning;
+5. nominal optimizer with independent-failure assumptions;
+6. common-cause-aware portfolio using #5762 closure;
+7. lifecycle-aware portfolio using #6533 and #5710;
+8. finite-scenario robust/adversarial policy with no invented probabilities;
+9. clairvoyant per-scenario admissible oracle as an information upper bound.
 
 All policies share exact service IDs, expected-unit denominators, deadlines, quality constraints, time windows and decision-time evidence. A policy cannot improve by dropping demand, weakening quality, changing the denominator, using future forecasts or treating an offer as reserved capacity.
 
