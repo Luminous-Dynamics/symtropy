@@ -260,6 +260,19 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
         );
     }
 
+    if input.sample_id
+        != format!(
+            "{}/{}/{}",
+            input.spacecraft_id, input.trajectory_id, input.capture_timestamp
+        )
+    {
+        return result(
+            input,
+            BundleDisposition::OutOfScope,
+            "SAMPLE_ID_DOES_NOT_BIND_SPACECRAFT_TRAJECTORY_AND_TIMESTAMP",
+        );
+    }
+
     if !valid_timestamp(&input.capture_timestamp) {
         return result(
             input,
@@ -287,6 +300,19 @@ pub fn evaluate(input: &BundleInput) -> BundleResult {
                 input,
                 BundleDisposition::InvalidInput,
                 "MODALITY_PATH_OR_DIGEST_INVALID",
+            );
+        }
+        let required_path_scope = format!(
+            "{}/{}/",
+            input.spacecraft_id, input.trajectory_id
+        );
+        if !record.path.contains(&required_path_scope)
+            || !record.path.contains(&input.capture_timestamp)
+        {
+            return result(
+                input,
+                BundleDisposition::OutOfScope,
+                "MODALITY_PATH_DOES_NOT_BIND_TRAJECTORY_AND_FRAME_TIME",
             );
         }
         if !valid_text(&record.sensor_id)
@@ -471,6 +497,26 @@ mod tests {
         let mut wrong_sensor = input();
         wrong_sensor.depth.sensor_id = "cam1".to_owned();
         assert_eq!(evaluate(&wrong_sensor).disposition, BundleDisposition::OutOfScope);
+    }
+
+    #[test]
+    fn wrong_trajectory_path_is_out_of_scope() {
+        let mut value = input();
+        value.pose.path = "raw/another-spacecraft/other-trajectory/pose/20260120165126242".to_owned();
+        assert_eq!(
+            evaluate(&value).disposition,
+            BundleDisposition::OutOfScope
+        );
+    }
+
+    #[test]
+    fn sample_id_must_bind_exact_frame_key() {
+        let mut value = input();
+        value.sample_id = "ACE/approach_front/another-timestamp".to_owned();
+        assert_eq!(
+            evaluate(&value).disposition,
+            BundleDisposition::OutOfScope
+        );
     }
 
     #[test]
