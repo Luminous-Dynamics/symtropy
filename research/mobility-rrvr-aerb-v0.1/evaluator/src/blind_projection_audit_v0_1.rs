@@ -16,13 +16,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
+use super::{CandidateEpisode, Observation, sha256_hex, SCHEMA_VERSION, BENCHMARK, OPEN_WORLD_RESIDUAL};
+
+#[cfg(test)]
 use super::{
-    AcknowledgementState, CandidateEpisode, CandidateSubmission, ClockStamp,
-    CommandContext, DecisionLoss, DispatchState, Disposition, EffectState,
-    EvaluatorWorld, EvaluatorWorldPack, EvidenceDomain, Observation,
-    ObservationQuality, PermittedProbe, ProbeOutcomeSupport, ProbeSupport,
-    SourceRole, canonical_sorted_json_sha256, sha256_hex,
-    SCHEMA_VERSION, BENCHMARK, WORLD_VOCABULARY_VERSION, OPEN_WORLD_RESIDUAL,
+    ClockStamp, CommandContext, EvidenceDomain, ObservationQuality, PermittedProbe, SourceRole,
 };
 
 const PROJECTION_DOMAIN: &[u8] = b"AERB-BLIND-CANDIDATE-PROJECTION-V0.1\0";
@@ -213,6 +211,7 @@ pub struct BlindProjectionReceipt {
     pub projected_episode_sha256: String,
     pub projection_profile_sha256: String,
     pub original_clock_minima_ns: BTreeMap<String, i64>,
+    pub forbidden_raw_values: Vec<String>,
     pub original_ingest_sequence_minimum: u64,
     pub original_current_step: u64,
     pub projection_receipt_sha256: String,
@@ -412,6 +411,7 @@ pub fn project_candidate_episode(
         projected_episode_sha256,
         projection_profile_sha256: projection_profile_sha256(),
         original_clock_minima_ns: clock_minima,
+        forbidden_raw_values: collect_forbidden_raw_values(original),
         original_ingest_sequence_minimum: original_minimum,
         original_current_step,
         projection_receipt_sha256: String::new(),
@@ -445,6 +445,209 @@ pub fn verify_projected_episode(
         return Err(ProjectionError::InvalidProjectionReceipt("unredacted metadata"));
     }
     Ok(())
+}
+
+fn collect_forbidden_raw_values(episode: &CandidateEpisode) -> Vec<String> {
+    let mut values = BTreeSet::new();
+    for value in [
+        episode.episode_id.as_str(),
+        episode.scenario_id.as_str(),
+        episode.attempt_id.as_str(),
+        episode.trajectory_cluster_id.as_str(),
+        episode.command_context.command_id.as_str(),
+        episode.command_context.operation_id.as_str(),
+        episode.command_context.payload_sha256.as_str(),
+        episode.command_context.action_prefix_sha256.as_str(),
+        episode.command_context.endpoint_id.as_str(),
+        episode.command_context.endpoint_profile_sha256.as_str(),
+        episode.command_context.execution_scope_id.as_str(),
+        episode.command_context.system_boundary_manifest_sha256.as_str(),
+        episode.command_context.effect_producing_inventory_profile_sha256.as_str(),
+    ] {
+        if !value.is_empty() {
+            values.insert(value.to_owned());
+        }
+    }
+    for observation in &episode.observations {
+        for value in [
+            observation.observation_id.as_str(),
+            observation.source_id.as_str(),
+            observation.event_time.clock_domain_id.as_str(),
+            observation.acquired_time.clock_domain_id.as_str(),
+            observation.artifact_sha256.as_str(),
+        ] {
+            if !value.is_empty() {
+                values.insert(value.to_owned());
+            }
+        }
+        values.insert(observation.event_time.ticks_ns.to_string());
+        values.insert(observation.acquired_time.ticks_ns.to_string());
+        values.insert(observation.ingest_sequence.to_string());
+    }
+    values.into_iter().collect()
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateSurfaceFinding {
+    pub location: String,
+    pub finding_kind: String,
+    pub token_sha256: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CandidateSurfaceAudit {
+    pub schema_version: String,
+    pub candidate_episode_n: usize,
+    pub projection_receipt_n: usize,
+    pub finding_n: usize,
+    pub passed: bool,
+    pub findings: Vec<CandidateSurfaceFinding>,
+    pub interpretation: String,
+}
+
+fn json_string_leaves(value: &serde_json::Value, path: &str, output: &mut Vec<(String, String)>) {
+    match value {
+        serde_json::Value::String(text) => output.push((path.to_owned(), text.clone())),
+        serde_json::Value::Array(items) => {
+            for (index, item) in items.iter().enumerate() {
+                json_string_leaves(item, &format!("{path}[{index}]"), output);
+            }
+        }
+        serde_json::Value::Object(fields) => {
+            for (key, item) in fields {
+                json_string_leaves(item, &format!("{path}.{key}"), output);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn forbidden_field_names() -> [&'static str; 9] {
+    [
+        "hidden_truth_world_id",
+        "manifest_salt_hex",
+        "evaluator_seed",
+        "hidden_truth_by_episode",
+        "scenario_count",
+        "world-pack",
+        "evaluator_manifest",
+        "evaluator_world_pack",
+        "assignments",
+    ]
+}
+
+/// Scan candidate manifest and episode JSON against hidden labels and raw
+/// evaluator identifiers recorded in the evaluator-only projection receipts.
+pub fn audit_candidate_surface(
+    candidate_manifest_json: &str,
+    candidate_episode_jsons: &[String],
+    receipts: &[BlindProjectionReceipt],
+    hidden_world_ids: &[String],
+    candidate_file_names: &[String],
+) -> Result<CandidateSurfaceAudit, ProjectionError> {
+    if candidate_episode_jsons.len() != receipts.len()
+        || candidate_file_names.len() != receipts.len()
+    {
+        return Err(ProjectionError::InvalidMetadataAudit("candidate file/receipt count mismatch"));
+    }
+    let manifest: serde_json::Value = serde_json::from_str(candidate_manifest_json)
+        .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate manifest JSON"))?;
+    let manifest_ids = manifest
+        .get("episode_ids")
+        .and_then(serde_json::Value::as_array)
+        .ok_or(ProjectionError::InvalidMetadataAudit("candidate manifest episode_ids"))?
+        .iter()
+        .map(|item| item.as_str().ok_or(ProjectionError::InvalidMetadataAudit("manifest episode ID type")))
+        .collect::<Result<Vec<_>, _>>()?;
+    if manifest_ids.len() != receipts.len() {
+        return Err(ProjectionError::InvalidMetadataAudit("manifest/receipt count mismatch"));
+    }
+    let mut findings = Vec::new();
+    let mut expected_ids = receipts.iter().map(|receipt| receipt.candidate_episode_id.as_str()).collect::<Vec<_>>();
+    expected_ids.sort_unstable();
+    let mut observed_ids = manifest_ids.clone();
+    observed_ids.sort_unstable();
+    if expected_ids != observed_ids {
+        findings.push(CandidateSurfaceFinding {
+            location: "candidate_manifest.episode_ids".to_owned(),
+            finding_kind: "projection_identity_set_mismatch".to_owned(),
+            token_sha256: sha256_hex(b"projection-identity-set-mismatch"),
+        });
+    }
+
+    let mut leaves = Vec::new();
+    json_string_leaves(&manifest, "$manifest", &mut leaves);
+    for (index, raw) in candidate_episode_jsons.iter().enumerate() {
+        let value: serde_json::Value = serde_json::from_str(raw)
+            .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate episode JSON"))?;
+        json_string_leaves(&value, &format!("$episode[{index}]"), &mut leaves);
+    }
+    for file_name in candidate_file_names {
+        leaves.push(("$candidate_file_name".to_owned(), file_name.clone()));
+    }
+
+    // Field-name checks include nested objects and arrays.
+    fn scan_keys(value: &serde_json::Value, path: &str, forbidden: &[&str], findings: &mut Vec<CandidateSurfaceFinding>) {
+        match value {
+            serde_json::Value::Object(fields) => {
+                for (key, item) in fields {
+                    if forbidden.contains(&key.as_str()) {
+                        findings.push(CandidateSurfaceFinding {
+                            location: format!("{path}.{key}"),
+                            finding_kind: "forbidden_evaluator_field".to_owned(),
+                            token_sha256: sha256_hex(key.as_bytes()),
+                        });
+                    }
+                    scan_keys(item, &format!("{path}.{key}"), forbidden, findings);
+                }
+            }
+            serde_json::Value::Array(items) => {
+                for (index, item) in items.iter().enumerate() {
+                    scan_keys(item, &format!("{path}[{index}]"), forbidden, findings);
+                }
+            }
+            _ => {}
+        }
+    }
+    scan_keys(&manifest, "$manifest", &forbidden_field_names(), &mut findings);
+    for (index, raw) in candidate_episode_jsons.iter().enumerate() {
+        let value: serde_json::Value = serde_json::from_str(raw)
+            .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate episode JSON"))?;
+        scan_keys(&value, &format!("$episode[{index}]"), &forbidden_field_names(), &mut findings);
+    }
+
+    let forbidden_values = receipts
+        .iter()
+        .flat_map(|receipt| receipt.forbidden_raw_values.iter().cloned())
+        .chain(hidden_world_ids.iter().cloned())
+        .filter(|value| value.len() >= 8)
+        .collect::<BTreeSet<_>>();
+    for (location, value) in leaves {
+        for forbidden in &forbidden_values {
+            if value == *forbidden || value.contains(forbidden) {
+                findings.push(CandidateSurfaceFinding {
+                    location: location.clone(),
+                    finding_kind: "raw_evaluator_value_leak".to_owned(),
+                    token_sha256: sha256_hex(forbidden.as_bytes()),
+                });
+            }
+        }
+    }
+
+    findings.sort_by(|left, right| {
+        (&left.location, &left.finding_kind, &left.token_sha256)
+            .cmp(&(&right.location, &right.finding_kind, &right.token_sha256))
+    });
+    findings.dedup();
+    Ok(CandidateSurfaceAudit {
+        schema_version: "aerb-candidate-surface-audit-v0.1".to_owned(),
+        candidate_episode_n: candidate_episode_jsons.len(),
+        projection_receipt_n: receipts.len(),
+        finding_n: findings.len(),
+        passed: findings.is_empty(),
+        findings,
+        interpretation: "Candidate-surface scan detects known forbidden field names and known raw evaluator tokens; it does not prove resistance to statistical, semantic, temporal, adaptive or stateful metadata inference.".to_owned(),
+    })
 }
 
 /// Candidate-visible feature map for evaluator-side metadata-only attacks.
