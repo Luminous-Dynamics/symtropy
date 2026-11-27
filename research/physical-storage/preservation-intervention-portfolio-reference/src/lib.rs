@@ -23,6 +23,7 @@ pub enum PortfolioDisposition {
     Feasible,
     Infeasible,
     EvidenceIncomplete,
+    InvalidEvidence,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -179,11 +180,13 @@ fn dominates(left: &PortfolioPlan, right: &PortfolioPlan) -> bool {
     let no_worse = left.cost_upper_microunits <= right.cost_upper_microunits
         && left.energy_upper_millijoules <= right.energy_upper_millijoules
         && left.duration_upper_ms <= right.duration_upper_ms
-        && left.downtime_upper_ms <= right.downtime_upper_ms;
+        && left.downtime_upper_ms <= right.downtime_upper_ms
+        && left.action_ids.len() <= right.action_ids.len();
     let strictly_better = left.cost_upper_microunits < right.cost_upper_microunits
         || left.energy_upper_millijoules < right.energy_upper_millijoules
         || left.duration_upper_ms < right.duration_upper_ms
-        || left.downtime_upper_ms < right.downtime_upper_ms;
+        || left.downtime_upper_ms < right.downtime_upper_ms
+        || left.action_ids.len() < right.action_ids.len();
     no_worse && strictly_better
 }
 
@@ -313,7 +316,7 @@ pub fn plan_portfolio(
     policy: &PortfolioPolicy,
     actions: &[ActionCandidate],
 ) -> Result<PortfolioReceipt, PortfolioContractError> {
-    let by_id = validate_contract(policy, actions)?;
+    validate_contract(policy, actions)?;
     if policy.unresolved_alert_ids.is_empty() {
         return Ok(PortfolioReceipt {
             target_id: policy.target_id.clone(),
@@ -458,12 +461,14 @@ pub fn plan_portfolio(
 
     let disposition = if !pareto_frontier.is_empty() {
         PortfolioDisposition::Feasible
+    } else if excluded_candidates.iter().any(|candidate| {
+        candidate.reasons.contains(&ExclusionReason::BoundsInvalid)
+    }) {
+        PortfolioDisposition::InvalidEvidence
     } else if excluded_candidates.iter().any(|candidate| candidate.reasons.iter().any(
         |reason| matches!(
             reason,
-            ExclusionReason::BoundsUnverified
-                | ExclusionReason::BoundsInvalid
-                | ExclusionReason::MissingPrerequisiteEvidence
+            ExclusionReason::BoundsUnverified | ExclusionReason::MissingPrerequisiteEvidence
         )
     )) {
         PortfolioDisposition::EvidenceIncomplete
@@ -701,6 +706,36 @@ mod tests {
             plan_portfolio(&policy(&["alert-a", "alert-b"]), &candidates),
             Err(PortfolioContractError::ArithmeticOverflow)
         );
+    }
+
+    #[test]
+    fn invalid_bounds_evidence_is_distinct_from_missing_evidence() {
+        let mut candidate = action("create-copy", &["alert-redundancy"], 1, 1, 1, 1);
+        candidate.bounds_status = BoundsEvidenceStatus::Invalid;
+        let result = plan_portfolio(&policy(&["alert-redundancy"]), &[candidate]).unwrap();
+        assert_eq!(result.disposition, PortfolioDisposition::InvalidEvidence);
+        assert_eq!(result.excluded_candidates[0].reasons, vec![ExclusionReason::BoundsInvalid]);
+    }
+
+    #[test]
+    fn equal_resource_portfolio_with_more_actions_is_dominated() {
+        let mut direct = action("direct", &["alert-a"], 1_000, 1_000, 1_000, 100);
+        direct.addresses_alert_ids = vec!["alert-a".into()];
+        let helper = action("helper", &[], 0, 0, 0, 0);
+        let mut combined = direct.clone();
+        combined.action_id = "combined".into();
+        combined.addresses_alert_ids = vec!["alert-a".into()];
+        let mut helper = helper;
+        helper.action_id = "helper".into();
+        let mut dependent = combined;
+        dependent.depends_on_action_ids = vec!["helper".into()];
+        let result = plan_portfolio(
+            &policy(&["alert-a"]),
+            &[direct, helper, dependent],
+        ).unwrap();
+        assert!(result.pareto_frontier.iter().all(|plan| {
+            plan.action_ids != vec!["helper", "combined"]
+        }));
     }
 
     #[test]
