@@ -205,3 +205,21 @@ The protocol now separates **observational equivalence** (what worlds can be dis
 The registry now includes [scenario-matrix-active-exploration-v0.tsv](./scenario-matrix-active-exploration-v0.tsv): four paired counterfactuals / eight cases for targeted versus random views, falsification-seeking versus confirmation, stopping at decision sufficiency versus over-acquisition, and uncertain-3D fallback versus corrupted-3D commitment.
 
 The research crosswalk adds [ESI-Bench](https://esi-bench.github.io/) as the active perception-action reference (3,081 tasks, 10 categories, 29 subcategories, with passive-single, random multi-view, active exploration and oracle-trajectory arms) and [THUD++](https://www.nature.com/articles/s41597-026-07993-8) as a dynamic indoor RGB-D/navigation reference. Their native task and ground-truth protocols are kept separate from OVO-S, metric SLAM and the metadata-only twin-world matrices.
+
+
+## Evaluator-side world-pair binding registry
+
+The child implementation [AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) has a stacked draft contribution adding:
+
+- [world-pair binding schema](./observability-world-pair-binding-v0.schema.json), a strict Draft 2020-12 evaluator-side envelope referencing existing WorldManifestV1 and AV observation replay artifacts;
+- [nine-pair registry](./observability-world-pair-binding-v0.registry.json), containing nine identifiability pairs with two world slots each;
+- [binding audit protocol](./observability-world-pair-binding-audit-v0.md), defining manifest, candidate-prefix equivalence, first-distinguishing-observation and readiness gates.
+
+All nine pairs remain explicitly **unbound**. Manifest, truth-crosswalk, candidate-prefix and replay digests are null; null is not a wildcard or pass. Exact artifacts from #1587/#1589 and #6201 must be bound before prefix equality can be tested from candidate-visible bytes/transcripts.
+
+The world-pair binding workflow fetches the pinned base source-matrix branch history before resolving the recorded source commit. A shallow candidate-head checkout alone is insufficient to prove that the pinned commit exists in the local object database.
+
+### Evidence-gated readiness promotion
+
+The binding schema requires stage-specific receipts: manifest validation before manifest binding; candidate-input/transcript and shared-contract digests plus an audit receipt before prefix commitment; a causal replay receipt before rendered-replay verification; and rights, split-integrity, custody and frozen candidate/model identities before blind readiness. The CI job includes five invalid-promotion negative controls. The registry itself remains all-unbound until real source artifacts exist.
+
