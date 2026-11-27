@@ -16,6 +16,12 @@ fn interval(point: u64, radius: u64, alpha: u32) -> ConformalInterval {
             .div_ceil(1_000_000) as u64,
         coverage_claim: CoverageClaim::MarginalSplitConformalUnderDeclaredExchangeability,
         nominal_coverage_claim_ppm: Some(1_000_000 - alpha),
+        model_fit_cutoff: 10,
+        calibration_window_start: 11,
+        calibration_window_end: 40,
+        model_sha256: "a".repeat(64),
+        feature_schema_sha256: "b".repeat(64),
+        calibration_data_sha256: "c".repeat(64),
         decision_cutoff: 50,
     }
 }
