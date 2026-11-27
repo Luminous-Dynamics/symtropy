@@ -12,6 +12,7 @@
     "source_record_url",
     "source_repository",
     "source_version",
+    "count_basis_asset",
     "source_published_on",
     "metadata_retrieved_on",
     "license_spdx",
@@ -236,6 +237,10 @@
       ]
     },
     "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "count_basis_asset": {
       "type": "string",
       "minLength": 1
     }
