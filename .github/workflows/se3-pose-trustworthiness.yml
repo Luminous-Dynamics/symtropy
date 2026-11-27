@@ -71,6 +71,9 @@ jobs:
           assert cases["ST039"]["disposition"] == "DUPLICATE_SAMPLE"
           assert cases["ST041"]["disposition"] == "SPLIT_LEAKAGE"
           assert rust["summary"]["risk_coverage"]
+          assert rust["summary"]["accepted_pose_coverage_fraction"] is not None
+          assert rust["summary"]["accepted_covariance_logdet_median"] is not None
+          assert rust["summary"]["accepted_95_region_log_volume_median"] is not None
           print("42 SE3 trust cases: exact Rust/Python receipt equality")
           PY
       - name: Retain exact-head evidence
