@@ -158,5 +158,7 @@ unit_tests_authored = 27
 unit_tests_executed = false
 local_toolchain_available = false
 exact_head_ci_pass = false
+workflow = ".github/workflows/magnetic-asbuilt-acceptance.yml"
+test_command = "cargo test --manifest-path research/magnetics/as-built-acceptance/evaluator/Cargo.toml"
 schema = "acceptance-cases-v0.1.schema.json"
 semantic_fixtures = "fixtures/acceptance-cases-v0.1.json"
