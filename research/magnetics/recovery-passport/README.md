@@ -39,3 +39,6 @@ The recovery stage input mass is now bound to the exact feedstock-lot mass recor
 
 
 The route-source register distinguishes paper/review evidence from local specimen receipts. A literature source establishes neither route eligibility nor downstream product quality for a specific source lot.
+
+
+Source-lot and recovery-stage input weights each carry their own digest-bound measurement record. The evaluator requires the source and stage-input mass uncertainty intervals to overlap; identical point values are not required, and disjoint intervals remain indeterminate.
