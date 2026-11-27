@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/magnetics/route-cohort/evaluator/cohort-fixture-v0.1.schema.json",
+  "title": "Magnetic route cohort fixture v0.1",
+  "description": "Structural schema for synthetic build/lot/specimen cohort accounting. It is not physical yield evidence.",
+  "type": "object",
+  "required": ["schema_version", "program_id", "fixture_class", "claim_ceiling", "cohort", "expected_summary"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "program_id": { "const": "MAG-AM-ROUTE-COHORT-001" },
+    "fixture_class": { "const": "synthetic_semantic_controls" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "cohort": { "$ref": "#/$defs/cohort" },
+    "expected_summary": { "$ref": "#/$defs/summary" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "scope": {
+      "type": "object",
+      "required": ["application_id", "target_function_digest", "measurement_setup_digest", "acceptance_policy_digest"],
+      "properties": {
+        "application_id": { "type": "string", "minLength": 1 },
+        "target_function_digest": { "$ref": "#/$defs/digest" },
+        "measurement_setup_digest": { "$ref": "#/$defs/digest" },
+        "acceptance_policy_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "lot": {
+      "type": "object",
+      "required": ["lot_id", "feedstock_family", "material_grade", "recycled_mass_fraction", "lot_record_digest", "source_provenance_digest"],
+      "properties": {
+        "lot_id": { "type": "string", "minLength": 1 },
+        "feedstock_family": { "type": "string", "minLength": 1 },
+        "material_grade": { "type": "string", "minLength": 1 },
+        "recycled_mass_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "lot_record_digest": { "$ref": "#/$defs/digest" },
+        "source_provenance_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "required": ["build_id", "material_lot_id", "route_revision", "machine_tool_revision", "recipe_digest", "build_record_digest", "genealogy_digest", "status", "initiated_specimen_ids"],
+      "properties": {
+        "build_id": { "type": "string", "minLength": 1 },
+        "material_lot_id": { "type": "string", "minLength": 1 },
+        "route_revision": { "type": "string", "minLength": 1 },
+        "machine_tool_revision": { "type": "string", "minLength": 1 },
+        "recipe_digest": { "$ref": "#/$defs/digest" },
+        "build_record_digest": { "$ref": "#/$defs/digest" },
+        "genealogy_digest": { "$ref": "#/$defs/digest" },
+        "status": { "enum": ["Completed", "FailedBeforeInspection", "Incomplete", "Aborted"] },
+        "initiated_specimen_ids": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+      },
+      "additionalProperties": false
+    },
+    "specimen": {
+      "type": "object",
+      "required": ["specimen_id", "build_id", "material_lot_id", "scope", "manufacturing_complete", "inspection_completed", "first_pass_disposition", "rework_attempts", "final_disposition", "scrapped"],
+      "properties": {
+        "specimen_id": { "type": "string", "minLength": 1 },
+        "build_id": { "type": "string", "minLength": 1 },
+        "material_lot_id": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "manufacturing_complete": { "type": "boolean" },
+        "inspection_completed": { "type": "boolean" },
+        "first_pass_disposition": { "enum": ["Qualified", "Fail", "Indeterminate", "NotEvaluable", "Missing"] },
+        "qualification_receipt_id": { "type": "string", "minLength": 1 },
+        "qualification_receipt_digest": { "$ref": "#/$defs/digest" },
+        "rework_attempts": { "type": "integer", "minimum": 0 },
+        "rework_receipt_id": { "type": "string", "minLength": 1 },
+        "rework_receipt_digest": { "$ref": "#/$defs/digest" },
+        "final_disposition": { "enum": ["Qualified", "Fail", "Indeterminate", "NotEvaluable", "Missing"] },
+        "scrapped": { "type": "boolean" },
+        "scrap_receipt_id": { "type": "string", "minLength": 1 },
+        "scrap_receipt_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "cohort": {
+      "type": "object",
+      "required": ["cohort_id", "route_family", "route_revision", "machine_tool_revision", "process_recipe_digest", "feedstock_family", "material_grade", "scope", "replication_policy", "lots", "builds", "specimens", "campaign_cost"],
+      "properties": {
+        "cohort_id": { "type": "string", "minLength": 1 },
+        "route_family": { "enum": ["Mex", "LpbfSlm", "Sls", "BinderJet", "LcmPhotopolymer", "PemAdjacent", "ConventionalBonded", "SinteredOrAssembled"] },
+        "route_revision": { "type": "string", "minLength": 1 },
+        "machine_tool_revision": { "type": "string", "minLength": 1 },
+        "process_recipe_digest": { "$ref": "#/$defs/digest" },
+        "feedstock_family": { "type": "string", "minLength": 1 },
+        "material_grade": { "type": "string", "minLength": 1 },
+        "scope": { "$ref": "#/$defs/scope" },
+        "replication_policy": {
+          "type": "object",
+          "required": ["minimum_independent_builds", "minimum_distinct_material_lots", "policy_id", "policy_digest"],
+          "properties": {
+            "minimum_independent_builds": { "type": "integer", "minimum": 1 },
+            "minimum_distinct_material_lots": { "type": "integer", "minimum": 1 },
+            "policy_id": { "type": "string", "minLength": 1 },
+            "policy_digest": { "$ref": "#/$defs/digest" }
+          },
+          "additionalProperties": false
+        },
+        "lots": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/lot" } },
+        "builds": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/build" } },
+        "specimens": { "type": "array", "items": { "$ref": "#/$defs/specimen" } },
+        "campaign_cost": {
+          "type": "object",
+          "required": ["receipt_id", "digest", "currency", "total_campaign_cost_minor"],
+          "properties": {
+            "receipt_id": { "type": "string", "minLength": 1 },
+            "digest": { "$ref": "#/$defs/digest" },
+            "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+            "total_campaign_cost_minor": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "count": { "type": "integer", "minimum": 0 },
+    "rate": {
+      "type": "object",
+      "required": ["numerator", "denominator", "ratio_ppm"],
+      "properties": {
+        "numerator": { "$ref": "#/$defs/count" },
+        "denominator": { "$ref": "#/$defs/count" },
+        "ratio_ppm": { "type": ["integer", "null"], "minimum": 0, "maximum": 1000000 }
+      },
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "required": ["initiated_builds", "completed_builds", "pre_inspection_build_failures", "initiated_specimens", "completed_specimens", "inspected_specimens", "first_pass_qualified", "first_pass_fail", "first_pass_indeterminate", "first_pass_not_evaluable", "missing_specimen_outcomes", "reworked_specimens", "rework_recovered", "scrapped_specimens", "final_accepted_specimens", "distinct_material_lots", "first_pass_acceptance", "confirmed_failure", "unresolved", "inspection_coverage", "build_completion", "rework_recovery", "final_accepted_fraction", "generalization_status", "inferential_yield_claim_available"],
+      "properties": {
+        "initiated_builds": { "$ref": "#/$defs/count" },
+        "completed_builds": { "$ref": "#/$defs/count" },
+        "pre_inspection_build_failures": { "$ref": "#/$defs/count" },
+        "initiated_specimens": { "$ref": "#/$defs/count" },
+        "completed_specimens": { "$ref": "#/$defs/count" },
+        "inspected_specimens": { "$ref": "#/$defs/count" },
+        "first_pass_qualified": { "$ref": "#/$defs/count" },
+        "first_pass_fail": { "$ref": "#/$defs/count" },
+        "first_pass_indeterminate": { "$ref": "#/$defs/count" },
+        "first_pass_not_evaluable": { "$ref": "#/$defs/count" },
+        "missing_specimen_outcomes": { "$ref": "#/$defs/count" },
+        "reworked_specimens": { "$ref": "#/$defs/count" },
+        "rework_recovered": { "$ref": "#/$defs/count" },
+        "scrapped_specimens": { "$ref": "#/$defs/count" },
+        "final_accepted_specimens": { "$ref": "#/$defs/count" },
+        "distinct_material_lots": { "$ref": "#/$defs/count" },
+        "first_pass_acceptance": { "$ref": "#/$defs/rate" },
+        "confirmed_failure": { "$ref": "#/$defs/rate" },
+        "unresolved": { "$ref": "#/$defs/rate" },
+        "inspection_coverage": { "$ref": "#/$defs/rate" },
+        "build_completion": { "$ref": "#/$defs/rate" },
+        "rework_recovery": { "$ref": "#/$defs/rate" },
+        "final_accepted_fraction": { "$ref": "#/$defs/rate" },
+        "generalization_status": { "enum": ["GeneralizationUnavailable", "ReplicationCoverageMeetsPolicy"] },
+        "inferential_yield_claim_available": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  }
+}
