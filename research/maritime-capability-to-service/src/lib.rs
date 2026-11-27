@@ -321,8 +321,8 @@ fn parse_instance(input: &str) -> Result<Instance, String> {
 
     let (id, version) = identity.ok_or_else(|| "missing INSTANCE record".to_owned())?;
     let service = service.ok_or_else(|| "missing SERVICE record".to_owned())?;
-    if dependencies.is_empty() || options.is_empty() {
-        return Err("fixture requires dependencies and portfolio options".to_owned());
+    if options.is_empty() {
+        return Err("fixture requires portfolio options".to_owned());
     }
 
     for option in options.values() {
@@ -836,6 +836,13 @@ mod tests {
                 .unwrap_err()
                 .contains("must begin at day 0")
         );
+    }
+
+    #[test]
+    fn capability_receipt_can_supply_the_only_admitted_plan_evidence() {
+        let fixture = "INSTANCE\\tMCSC-NO-DEPENDENCY\\tv0.4\\nSERVICE\\tS\\t10\\tcargo_unit\\t10\\nOPTION\\tO\\tIMPORT\\t1\\t1\\t1\\t1\\t1\\t1\\t0\\t-\\tREV-001\\nINSPECTION\\tO\\tPASS\\t10\\tREV-001\\nRECEIVER_ACCEPTANCE\\tO\\tACCEPTED\\t10\\tREV-001\\n";
+        let receipt = run_audit(fixture).expect("an option can be sourced through an external capability receipt");
+        assert!(receipt.contains("OUTCOME\\tO\\tIMPORT\\t4\\t4\\t10\\t10\\t10\\t10"));
     }
 
     #[test]
