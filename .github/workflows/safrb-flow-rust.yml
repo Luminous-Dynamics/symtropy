@@ -28,6 +28,7 @@ on:
       - "tools/single-commodity-flow-kernel/**"
       - "tools/wpt-exact-service-oracle/**"
       - "tools/safrb-time-expanded-adapter/**"
+      - "tools/dimacs-mcf-input/**"
       - ".github/workflows/safrb-flow-rust.yml"
 
 permissions:
