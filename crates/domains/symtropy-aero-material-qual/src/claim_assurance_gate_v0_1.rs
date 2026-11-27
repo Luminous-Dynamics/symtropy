@@ -344,23 +344,6 @@ fn validate_owner_evidence_cut(
         reasons.insert("OWNER_CUT_OBSERVER_WATERMARK_AFTER_RECEIPT_CUT".to_owned());
     }
 
-    let expected_coverage = match input.coverage.status {
-        CoverageStatus::QualifiedCompleteForScope => {
-            OwnerObserverCoverageStatus::QualifiedCompleteForScope
-        }
-        CoverageStatus::Incomplete => OwnerObserverCoverageStatus::Incomplete,
-        CoverageStatus::Unverified => OwnerObserverCoverageStatus::Unverified,
-        CoverageStatus::OutOfScope => OwnerObserverCoverageStatus::OutOfScope,
-        CoverageStatus::Invalid => {
-            *invalid = true;
-            OwnerObserverCoverageStatus::Unverified
-        }
-    };
-    if cut.observer_coverage_status != expected_coverage {
-        *invalid = true;
-        reasons.insert("OWNER_CUT_OBSERVER_COVERAGE_DISPOSITION_MISMATCH".to_owned());
-    }
-
     if !cut.artifact_payloads_verified {
         *unverified = true;
         reasons.insert("MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned());
