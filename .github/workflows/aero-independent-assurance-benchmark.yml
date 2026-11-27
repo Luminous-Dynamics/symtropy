@@ -5,9 +5,13 @@ on:
     branches:
       - research/aero-independent-assurance-benchmark-v0.3
       - research/aero-assurance-disposition-semantics-v0.1
+      - research/aero-assurance-disposition-evaluator-v0.1
     paths:
       - ".github/workflows/aero-independent-assurance-benchmark.yml"
       - "tools/aero/validate_independent_assurance_benchmark.py"
+      - "crates/domains/symtropy-aero-material-qual/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
       - "docs/research/aviation/AERO_ASSURANCE_DISPOSITION_SEMANTICS_V0_1.md"
       - "docs/research/aviation/schemas/aero_assurance_state_vector_v0_1.schema.json"
       - "docs/research/aviation/examples/aero_assurance_state_vectors_v0_1.json"
@@ -43,3 +47,14 @@ jobs:
         run: python -m pip install --disable-pip-version-check "jsonschema==4.23.0"
       - name: Validate v0.3 registry and challenge corpus
         run: python tools/aero/validate_independent_assurance_benchmark.py
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check AERO evaluator formatting
+        run: cargo fmt --manifest-path Cargo.toml --package symtropy-aero-material-qual -- --check
+      - name: Test AERO disposition evaluator
+        run: cargo test --manifest-path Cargo.toml --package symtropy-aero-material-qual assurance_disposition_v0_1
+      - name: Clippy AERO evaluator
+        run: cargo clippy --manifest-path Cargo.toml --package symtropy-aero-material-qual --all-targets -- -D warnings
