@@ -625,8 +625,7 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
     if matches!(
         receipt.kind,
         EvidenceKind::MaterialPropertyMeasurement | EvidenceKind::MicrostructureCharacterization
-    ) && (receipt.specimen_id.as_deref()
-        != Some(candidate.qualification_specimen_id.as_str())
+    ) && (receipt.specimen_id.as_deref() != Some(candidate.qualification_specimen_id.as_str())
         || receipt.material_lot_id.as_deref()
             != Some(candidate.qualification_material_lot_id.as_str())
         || receipt.build_id.as_deref() != Some(candidate.qualification_build_id.as_str()))
