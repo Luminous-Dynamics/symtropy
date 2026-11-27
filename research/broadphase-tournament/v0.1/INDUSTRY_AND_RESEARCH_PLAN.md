@@ -299,3 +299,21 @@ References:
 - [Box2D 3.2 release notes: callback/material behavior](https://box2d.org/documentation/md_release__notes__v320.html)
 - [Box2D simulation guide: recycling distance and skipped updates](https://box2d.org/documentation/md_simulation.html)
 - [Box2D 3.2 performance breakdown](https://box2d.org/posts/2026/10/box2d-3.2/)
+
+### 7.9 Current CPU/GPU engine state and matched target ladder
+
+**PhysX 5.5** is a workload portfolio, not a single baseline: SAP performs well with many sleeping objects but degrades when all move or insertion/removal is heavy; MBP is an alternative for all-moving/insertion-heavy scenes; ABP often gives a strong average performance/memory trade-off; PABP adds threading and pays more memory, especially benefitting larger scenes; GPU broadphase is designed for parallel moving/insertion-heavy cases. These are vendor-documented trade-offs and should define separate scene families rather than one global result. [PhysX 5.5 collision docs](https://nvidia-omniverse.github.io/PhysX/physx/5.5.0/docs/RigidBodyCollision.html)
+
+**Rapier / Nexus (Dimforge Q3 2026)** are particularly important performance competitors. Rapier added intra-island parallelism, persistent graph coloring and a parallelized broadphase; Dimforge reports up to 2× single-thread and 4× multi-thread speedup versus its previous version on an M4 Max with eight worker threads. Nexus reports a 505K-body rigid-body pyramid at about 14 ms/frame on an RTX 5080, without sleeping-island optimization. These are vendor engineering measurements on their own scenes and devices, not directly comparable to Symtropy's AABB microbenchmark. [Dimforge Q3 2026 report](https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/)
+
+**MuJoCo Warp 3.17** offers an incremental sleeping pass that emits only pairs involving newly awakened bodies, as well as SAP_TILE and SAP_SEGMENTED sorting. Benchmark no-wake frames, wake-frontier size, island propagation and sort/scan overhead. [MuJoCo Warp API](https://mujoco.readthedocs.io/en/3.17.0/mjwarp/api.html)
+
+**Jolt 5.4** uses a lockless quadtree update path that widens parent bounds during object changes and later tightens/rebuilds the tree in prepare/finalize phases. Benchmark concurrent updates, query consistency, bound-expansion debt and rebuild cost. [Jolt QuadTree 5.4](https://jrouwe.github.io/JoltPhysicsDocs/5.4.0/class_quad_tree.html)
+
+**Box2D 3.2** is now a direct manifold-recycling comparator. Its contact recycle default skips material updates and pre-solve callbacks until about 5 cm relative motion or 11 degrees rotation. The 3.2 announcement reports roughly 3× overall performance vs 3.1 and attributes about 40% of the gain to contact recycling; preserve this as vendor-reported and mark the callback/material semantic trade-off. [Box2D 3.2 release notes](https://box2d.org/documentation/md_release__notes__v320.html), [performance write-up](https://box2d.org/posts/2026/10/box2d-3.2/)
+
+### 7.10 Denominator and completeness policy
+
+Dimforge's Q3 2026 Physmark report says timeouts are detected and the corresponding datapoints are ignored. Symtropy's formal benchmark should not copy that survivor-only denominator: freeze all requested cases before execution, retain timeout/OOM/crash/unsupported/not-run outcomes, count zero qualified horizon ticks for incomplete runs, and publish completed throughput together with requested-case coverage. [Physmark timeout behavior](https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/)
+
+The current target is not to claim an aggregate win over PhysX/Rapier/Nexus immediately. First win the matched algorithm-stage and contact-stage lanes with zero false negatives, then compare full-engine temporal scenes on exactly matched hardware, scene artifacts, solver settings and semantic callbacks. CPU/GPU and candidate-only/contact-complete results stay in separate ledgers.
