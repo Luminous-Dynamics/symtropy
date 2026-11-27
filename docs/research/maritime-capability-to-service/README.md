@@ -120,4 +120,18 @@ The result is conditional on the exact declared synthetic dependency topology, i
 6. Consume owner-native outputs from #6773, #5762 and #3683 by exact version/digest.
 7. Reproduce the strongest matched port-energy, shipyard and service-chain baselines before making any performance claim.
 
+## Canonical receiver-service owner composition
+
+Symtropy [#7554 / draft PR #7557](https://github.com/Luminous-Dynamics/symtropy/pull/7557) owns receiver-level service adjudication and protected service floors. MCSC does not create a competing receiver evaluator. The owner PR now includes a direct cross-owner integration test that:
+
+- consumes the pinned Mycelix #6774 sourcing/capacity receipt;
+- excludes the all-local resource-infeasible plan before any receiver completion time is calculated;
+- sends only the three Mycelix-marked feasible alternatives to #7554's canonical `evaluate_receiver_service` function;
+- labels the additional inspection/commissioning/handoff time and verified receiver-acceptance records as synthetic test assumptions, not Mycelix facts;
+- exercises accepted/on-time vs accepted/late outcomes and a 6/10 observed + 4/10 censored case, which must yield UNKNOWN against an 80% protected floor.
+
+The frozen #7554 service receipt is also consumed by `tests/canonical_receiver_service_receipt.rs` as a bounded conformance test for cohort arithmetic, conservative lower/upper bounds and PASS/FAIL/UNKNOWN/INVALID_EVIDENCE dispositions. That receipt is not a substitute for real custody: cargo identity/lineage and custody remain with Symtropy #6631/#6662 and Mycelix's participant-authorized evidence.
+
+**Qualification status:** the base #7554 owner implementation passed its earlier exact-head workflow. The new Mycelix composition integration is in #7557's branch and its exact-head run #28 is still queued; no pass is claimed for that new join until formatting, tests, strict Clippy and receipt generation complete.
+
 A passing fixture is evidence of this model's arithmetic and declared topology only. It is not a physical or industry qualification.
