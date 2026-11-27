@@ -40,12 +40,19 @@ jobs:
             | .observations as $observations
             | $snapshot.schema_version == "0.2"
             and $snapshot.benchmark == "AERB"
-            and .decision_cut_sequence == .ledger_frontier_sequence
-            and (.observations | length == 3)
-            and ([.observations[].evidence_id] | length == (unique | length))
+            and $snapshot.decision_cut_sequence == $snapshot.ledger_frontier_sequence
+            and ($observations | length == 3)
+            and ([$observations[].evidence_id] | length == (unique | length))
+            and ([$observations[].ingest_sequence] | length == (unique | length))
             and all($observations[]; .ingest_sequence <= $snapshot.decision_cut_sequence)
-            and all(.observations[]; .evidence_domain == "process_model" and .source.source_role == "model_oracle")
-            and all(.observations[]; (.parent_evidence_ids | length == (unique | length)))
+            and all($observations[]; .attempt_id == $snapshot.attempt_id and .command_id == $snapshot.command_id and .execution_scope_id == $snapshot.execution_scope_id)
+            and all($observations[]; .evidence_domain == "process_model" and .source.source_role == "model_oracle")
+            and all($observations[]; (.parent_evidence_ids | length == (unique | length)))
+            and all($observations[]; .event_time.earliest_ticks_ns <= .event_time.latest_ticks_ns and .observation_time.earliest_ticks_ns <= .observation_time.latest_ticks_ns)
+            and all($observations[] | select(.quality != "admitted"); (.reason_codes | length) > 0)
+            and all($observations[] | select(.payload.kind == "effect_observation" and (.payload.finding == "effect_absent" or .payload.finding == "fault_absent")); .payload.coverage != null and .payload.coverage.complete == true)
+            and all($observations[] | select(.payload.kind == "temporal_closure_receipt" and .payload.closure_disposition == "closed"); .payload.proof_path != "none" and .payload.hold_reason == null)
+            and all($observations[] | select(.payload.kind == "temporal_closure_receipt" and .payload.closure_disposition != "closed"); .payload.hold_reason != null)
             and all($observations[];
               . as $row
               | all($row.parent_evidence_ids[];
