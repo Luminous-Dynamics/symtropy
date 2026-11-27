@@ -52,7 +52,7 @@ The separate Python oracle hashes raw bytes, parses the TSV independently, recom
 
 ## Frozen cases
 
-The v0.1 corpus covers distinct dependencies and consistent pose; shared clock; shared training and target-geometry provenance; common-mode biased but mutually agreeing pose; explicit translation conflict; q/-q equivalent rotation; stale timestamp; frame identity mismatch; coordinate-frame convention mismatch; event OOD; low event observability; incomplete dependency declarations.
+The v0.1 corpus covers distinct dependencies and consistent pose; shared clock; shared training and target-geometry provenance; common-mode biased but mutually agreeing pose; explicit translation conflict; orientation-only chord conflict; q/-q equivalent rotation; stale timestamp; frame identity mismatch; coordinate-frame convention mismatch; event OOD; low event observability; incomplete dependency declarations.
 
 These are synthetic contract cases, not measured spacecraft results.
 
