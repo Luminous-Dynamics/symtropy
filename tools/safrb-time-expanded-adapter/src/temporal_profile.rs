@@ -563,7 +563,7 @@ mod tests {
         // beneficiary's delivered quantity. Their sum is constrained by the
         // source stock and one shared origin handling limit.
         for seed in 0..250_u64 {
-            let mut state = 0x5AFB_2026_D15C_A11_u64 ^ seed;
+            let mut state = 0x05AF_B202_6D15_CA11_u64 ^ seed;
             let beneficiary_count = 2 + next_small(&mut state, 3) as usize;
             let supply = next_small(&mut state, 7);
             let handling = next_small(&mut state, 7);
