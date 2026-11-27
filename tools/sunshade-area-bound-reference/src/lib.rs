@@ -96,14 +96,30 @@ pub fn evaluate_projected_mask_area_bound(
     let mean_target_attenuation_fraction =
         input.integrated_target_attenuation_area_m2 / input.target_domain_area_m2;
     let transmission_loss_fraction = 1.0 - input.module_transmittance_fraction;
-    let projected_mask_union_area_lower_bound_m2 = source_to_shade_fraction.powi(2)
-        * input.integrated_target_attenuation_area_m2
-        / transmission_loss_fraction;
+    let projected_mask_union_area_lower_bound_m2 =
+        if input.integrated_target_attenuation_area_m2 == 0.0 {
+            0.0
+        } else {
+            // Evaluate in log space so alpha^2 does not underflow before a
+            // large attenuation integral can restore the representable scale.
+            let log_bound = input.integrated_target_attenuation_area_m2.ln()
+                + 2.0 * source_to_shade_fraction.ln()
+                - transmission_loss_fraction.ln();
+            if !log_bound.is_finite()
+                || log_bound > f64::MAX.ln()
+                || log_bound < f64::MIN_POSITIVE.ln()
+            {
+                return Err("projected mask area bound is outside the normal finite f64 domain");
+            }
+            log_bound.exp()
+        };
 
     if !source_to_shade_fraction.is_finite()
         || source_to_shade_fraction <= 0.0
         || source_to_shade_fraction >= 1.0
         || !mean_target_attenuation_fraction.is_finite()
+        || (input.integrated_target_attenuation_area_m2 > 0.0
+            && mean_target_attenuation_fraction == 0.0)
         || !projected_mask_union_area_lower_bound_m2.is_finite()
     {
         return Err("projected mask area bound overflowed its finite domain");
@@ -424,14 +440,23 @@ mod tests {
     }
 
     #[test]
-    fn unrepresentable_bound_is_rejected() {
-        let estimate = evaluate_projected_mask_area_bound(AreaBoundInput {
-            source_to_shade_distance_m: 1.0e-200,
+    fn unrepresentable_bound_is_rejected_without_intermediate_overflow() {
+        let overflow = evaluate_projected_mask_area_bound(AreaBoundInput {
+            source_to_shade_distance_m: 1.0,
             shade_to_target_distance_m: 1.0,
             target_domain_area_m2: f64::MAX,
             integrated_target_attenuation_area_m2: f64::MAX,
+            module_transmittance_fraction: 1.0 - 2.0 * f64::EPSILON,
+        });
+        assert!(overflow.is_err());
+
+        let underflow = evaluate_projected_mask_area_bound(AreaBoundInput {
+            source_to_shade_distance_m: 1.0e-200,
+            shade_to_target_distance_m: 1.0,
+            target_domain_area_m2: 1.0,
+            integrated_target_attenuation_area_m2: f64::MIN_POSITIVE,
             module_transmittance_fraction: 0.0,
         });
-        assert!(estimate.is_err());
+        assert!(underflow.is_err());
     }
 }
