@@ -34,3 +34,6 @@ The authoring environment has no Cargo, rustc or rustfmt; 22 tests are authored 
 The fixture is not a physical observation dataset, failure-probability model or lifetime study.
 
 Alert history is monotonic until remediated: an expired or later Unknown observation cannot downgrade a previously verified alert. Each active alert ID is preserved in the receipt. A Healthy observation clears exactly one named alert and must reference a unique remediation receipt ID plus its SHA-256 digest; the same remediation receipt ID cannot clear multiple alerts. The watch kernel validates receipt binding shape and provenance claims but does not authenticate or hash the external receipt itself.
+
+
+**CI qualification:** `.github/workflows/preservation-watch-reference.yml` runs this standalone crate with Rust 1.96.0, rustfmt, strict Clippy and its unit tests. The workflow formats/commits only this crate's source on the research PR branch before checking it; push-to-main qualification is check-only.
