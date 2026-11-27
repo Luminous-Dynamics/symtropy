@@ -241,6 +241,25 @@ A denominator of zero is \`NOT_ESTIMABLE\`, not zero and not a pass. When advers
 
 The registry now gives every hard-gate metric a critical threshold, including receipt replay and missing required model strata. CI recomputes the zero-event sample sizes and rejects a registry that silently drops a hard-gate threshold.
 
+## 7.4 Matched baseline protocol
+
+The baseline registry intentionally includes different classes of systems. They must not be compared on claims outside their role:
+
+| Baseline family | Fair comparison task | Do not claim |
+|---|---|---|
+| Expert review | Independent disposition, time, error, escalation and correction cost | That experts are infallible or have a single universal workflow |
+| Checklist / PLM / QMS / digital thread | Traceability, configuration identity, change propagation and review effort | That a PLM suite performs owner-independent evidence adjudication unless demonstrated |
+| Structured assurance-case tooling | Argument structure, traceability, defeater handling and review navigation | That GSN/CAE authoring alone proves evidence validity or source authority |
+| Owner-native VVUQ workflow | Context-of-use, model credibility, uncertainty and validation evidence | That AERO replaces domain VVUQ or model-owner accountability |
+| Hierarchical validation / measurement workflow | Measurement provenance, benchmark coverage and model-to-experiment traceability | That a benchmark dataset is itself a claim-level assurance decision engine |
+| Rules-only validator | Deterministic policy and schema gate coverage | That rules-only systems are incapable of richer semantics |
+| Single-LLM / multi-agent LLM | Evidence extraction, defeater discovery and action planning | That fluency or retrieval scores establish critical-use fitness |
+| AERO ablations | Incremental value of temporal replay, observer qualification, owner authority and capsule replay | That an ablation proves industry superiority |
+
+For direct comparisons, freeze the same claim episodes, source artefacts, configuration snapshots, evidence disclosure, completion criteria and reviewer pool. Give each baseline its normal integration boundary and report any adapter work separately. Include tool setup, human correction, abstentions and escalation in total cost. AERO must not receive richer evidence or a more favourable time cutoff than a baseline.
+
+CM4QC, NIST AM Bench and owner-native model qualification packages are **domain evidence comparators**, not competing software agents. ASCE/GSN-style tools and PLM/digital-thread systems are **software/workflow comparators**. Report these categories separately.
+
 ## 8. Statistical qualification
 
 For zero observed failures in n independent Bernoulli trials, the approximate one-sided 95% upper bound is 3/n (rule of three). Thus:
