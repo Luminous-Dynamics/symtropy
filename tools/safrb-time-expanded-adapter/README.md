@@ -97,6 +97,20 @@ The verifier reconstructs the auxiliary graph from the original temporal graph a
 
 This is a synthetic joint-feasibility proof for the declared graph only. It does not prove that the beneficiary identity is authenticated, that the physical capacity evidence is true or current, that legal authority exists, that a dispatch is authorized, or that service was actually delivered. Priority allocation and cost optimization are separate stages and must preserve all mandatory floors; no arbitrary Big-M scalarization is admitted.
 
+## DIMACS minimum-cost-flow importer v0.1
+
+The separate `dimacs_mcf` module implements a strict parser/validator for the DIMACS MCF ASCII format. It preserves signed 64-bit lower/upper arc bounds, signed 32-bit unit costs, signed 64-bit node supplies and every parallel arc as an independent ordered record. It rejects malformed field counts, unknown/case-mismatched records, duplicate or zero node-supply records, invalid one-based node IDs, lower bounds above upper bounds, declared-count mismatches, non-ASCII input, and configured node/arc/input/memory budget violations.
+
+Each import records two different digests:
+- `raw_sha256`: exact uploaded bytes, including comments and whitespace;
+- `canonical_sha256`: the versioned semantic representation, independent of comments, whitespace and node-supply record ordering, while preserving distinct arc ordinals and input record order.
+
+The importer records total node supply as a diagnostic. An unbalanced total is not silently treated as a parse error or as solver infeasibility: feasibility remains a separate solver/admission result. The importer does not solve the graph or claim any SOTA performance.
+
+Default importer ceilings are 1,000,000 nodes, 8,000,000 arcs, 1 GiB input and a 512 MiB estimated primary allocation. These are proposed benchmark admission limits, not measured capacity; they can be overridden explicitly per run. Resource preflight occurs before node/arc vector allocation.
+
+Reference: DIMACS Network Flows 2.0 MCF format, including signed node supplies and arc bounds, signed unit costs and preserved parallel arcs: https://coral.ise.lehigh.edu/flow-challenge-2-0/minimum-cost-flow-input-format/.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
