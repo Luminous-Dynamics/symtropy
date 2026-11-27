@@ -349,7 +349,7 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         .filter(|receipt| {
             receipt.class == EvidenceClass::PhysicalMeasurement
                 && receipt.component_id.as_deref() == Some(candidate.component_id.as_str())
-                && receipt.conditions_digest.as_ref().is_some_and(valid_sha256)
+                && receipt.conditions_digest.as_ref().is_some_and(|digest| valid_sha256(digest.as_str()))
                 && method_evidence_complete(receipt)
         })
         .collect::<Vec<_>>();
@@ -888,7 +888,7 @@ fn method_evidence_complete(receipt: &EvidenceReceipt) -> bool {
         && receipt
             .calibration_digest
             .as_ref()
-            .is_some_and(valid_sha256)
+            .is_some_and(|digest| valid_sha256(digest.as_str()))
         && receipt
             .uncertainty_record_id
             .as_deref()
@@ -896,8 +896,8 @@ fn method_evidence_complete(receipt: &EvidenceReceipt) -> bool {
         && receipt
             .uncertainty_digest
             .as_ref()
-            .is_some_and(valid_sha256)
-        && receipt.conditions_digest.as_ref().is_some_and(valid_sha256)
+            .is_some_and(|digest| valid_sha256(digest.as_str()))
+        && receipt.conditions_digest.as_ref().is_some_and(|digest| valid_sha256(digest.as_str()))
 }
 
 fn is_physical_kind(kind: EvidenceKind) -> bool {
