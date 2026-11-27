@@ -152,7 +152,8 @@ fn later_observable_histories_may_choose_different_actions() {
             ),
         ],
         16,
-    ).expect("R1 finite solve");
+    )
+    .expect("R1 finite solve");
 
     assert_eq!(result.candidate_policy_count, 4);
     assert_eq!(result.pareto_frontier.len(), 1);
@@ -190,11 +191,20 @@ fn distinct_observation_commitments_prevent_same_id_false_grouping() {
 fn adverse_envelope_names_dimension_witnesses() {
     let result = solve_r1_finite(
         &[
-            decision("SCENARIO-A", snapshot("GRID-V1", 60), vec![action("A", 10, 20)]),
-            decision("SCENARIO-B", snapshot("GRID-V2", 70), vec![action("A", 8, 10)]),
+            decision(
+                "SCENARIO-A",
+                snapshot("GRID-V1", 60),
+                vec![action("A", 10, 20)],
+            ),
+            decision(
+                "SCENARIO-B",
+                snapshot("GRID-V2", 70),
+                vec![action("A", 8, 10)],
+            ),
         ],
         4,
-    ).expect("finite oracle");
+    )
+    .expect("finite oracle");
 
     let policy = &result.pareto_frontier[0];
     assert_eq!(
