@@ -146,7 +146,7 @@ fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
         expected_regions.insert(plan_id.clone(), region);
     }
     assert_eq!(expected_regions.len(), 3);
-    assert!(!expected_regions.contains_key(&all_local.0));
+    assert!(!expected_regions.contains_key(all_local.0.as_str()));
 
     let report = evaluate_receiver_service(&records, &floors, 30)
         .expect("canonical receiver service evaluator accepts synthetic evidence");
