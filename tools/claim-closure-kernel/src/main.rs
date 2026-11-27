@@ -1,4 +1,6 @@
-use engineering_claim_closure::{ClosureDisposition, ClaimClosureInput, ClosureReport, evaluate, verify_report};
+use engineering_claim_closure::{
+    ClaimClosureInput, ClosureDisposition, ClosureReport, evaluate, verify_report,
+};
 use std::env;
 use std::fs;
 use std::process::ExitCode;
