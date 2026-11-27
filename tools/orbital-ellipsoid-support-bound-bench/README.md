@@ -1,8 +1,11 @@
 # Orbital directional ellipsoid support bound v0.1
 
-This component computes an outward fixed-point upper bound for the along-track support radius of a keep-out ellipsoid:
+This component computes an outward fixed-point upper bound for the along-track **radial boundary distance** of the keep-out ellipsoid:
 
     rho_y = (y_hat^T K y_hat)^(-1/2)
+
+
+> **Terminology guard:** the `rho_y` in Stephenson & Schaub's passive-safety derivation is the distance from the ellipsoid centre to its boundary along the unit ray `y_hat` (a radial function). It is **not** the convex-analytic support function of the ellipsoid. For the ellipsoid `x^T K x <= 1`, the latter is `sqrt(y_hat^T K^{-1} y_hat)`, a different quantity. This component implements only the paper's radial threshold `1 / sqrt(y_hat^T K y_hat)`; do not substitute one for the other.
 
 It is a narrow adapter for the first-order eccentric passive-safety branch. It does not duplicate the generic SPD, matrix conditioning, SVD or operator-norm implementation owned by Symtropy #4818.
 
