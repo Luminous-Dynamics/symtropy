@@ -18,7 +18,8 @@
     "statistical_notes",
     "baselines",
     "release_gates",
-    "metric_definitions"
+    "metric_definitions",
+    "statistical_protocol"
   ],
   "properties": {
     "schema": {
@@ -119,6 +120,7 @@
     },
     "statistical_notes": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "zero_failure_upper_95_approx",
         "n_for_1_percent",
@@ -128,22 +130,21 @@
       ],
       "properties": {
         "zero_failure_upper_95_approx": {
-          "type": "string"
+          "type": "string",
+          "minLength": 10
         },
         "n_for_1_percent": {
-          "type": "integer",
-          "minimum": 1
+          "const": 299
         },
         "n_for_0_1_percent": {
-          "type": "integer",
-          "minimum": 1
+          "const": 2995
         },
         "n_for_0_01_percent": {
-          "type": "integer",
-          "minimum": 1
+          "const": 29956
         },
         "caveat": {
-          "type": "string"
+          "type": "string",
+          "minLength": 20
         }
       }
     },
@@ -229,6 +230,93 @@
             "type": "string",
             "minLength": 10
           }
+        }
+      }
+    },
+    "statistical_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "confidence_level",
+        "alpha",
+        "zero_adverse_event_upper_bound_formula",
+        "sample_size_for_zero_adverse_events_formula",
+        "required_independent_units_for_zero_adverse_events",
+        "statistical_unit",
+        "cluster_policy",
+        "stratum_policy",
+        "confidence_reporting",
+        "zero_denominator",
+        "nonzero_events",
+        "status"
+      ],
+      "properties": {
+        "method": {
+          "const": "one_sided_exact_binomial_clopper_pearson"
+        },
+        "confidence_level": {
+          "const": 0.95
+        },
+        "alpha": {
+          "const": 0.05
+        },
+        "zero_adverse_event_upper_bound_formula": {
+          "const": "1 - alpha^(1/n)"
+        },
+        "sample_size_for_zero_adverse_events_formula": {
+          "const": "ceil(log(alpha) / log(1 - target_adverse_event_probability))"
+        },
+        "required_independent_units_for_zero_adverse_events": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target_upper_adverse_event_probability",
+              "required_independent_units"
+            ],
+            "properties": {
+              "target_upper_adverse_event_probability": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "exclusiveMaximum": 1
+              },
+              "required_independent_units": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "statistical_unit": {
+          "type": "string",
+          "minLength": 20
+        },
+        "cluster_policy": {
+          "type": "string",
+          "minLength": 20
+        },
+        "stratum_policy": {
+          "type": "string",
+          "minLength": 20
+        },
+        "confidence_reporting": {
+          "type": "string",
+          "minLength": 20
+        },
+        "zero_denominator": {
+          "type": "string",
+          "minLength": 10
+        },
+        "nonzero_events": {
+          "type": "string",
+          "minLength": 10
+        },
+        "status": {
+          "const": "PROSPECTIVE_PREREGISTERED_NOT_EXECUTED"
         }
       }
     }
