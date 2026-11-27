@@ -315,3 +315,48 @@ Rules:
 This construct makes the central research question measurable: **what does one additional qualified regional capability buy in accepted service and recoverability, under which shocks, at what whole-life cost, and for whom?**
 
 A synthetic PASS validates only the frozen model and reference calculations. It does not prove actual regional industrial capability, economic additionality, employment impact, physical safety, port performance or causal impact.
+
+
+## 10. Information-set, online-recovery and port-reliability benchmark (KITE)
+
+KITE is specified in [information-set-regret-protocol.md](information-set-regret-protocol.md) and tracked in [#7775](https://github.com/Luminous-Dynamics/symtropy/issues/7775). It addresses a fairness defect in common offline comparisons: a hindsight optimizer can consume events and corrected data that were not available when an online policy had to decide.
+
+The comparator hierarchy is explicit:
+- **R0 perfect-information bound:** knows the realized scenario; useful only as an information upper/lower bound.
+- **R1 same-information decision oracle:** sees exactly the evidence vintage available at each decision cutoff and obeys the same hard constraints. It is an offline decision-quality reference; report its compute time and do not imply deployability.
+- **R2 compute-budget-matched policies:** receive the same as-of evidence and cutoffs, with the same declared wall-clock/resource/authority envelope.
+
+Report the information gap (R0→R1) separately from the decision gap (R1→R2), with vector outcomes and execution/authorization delay shown independently. The synthetic 20-case negative-control manifest in `fixtures/information-set-replay-v0.tsv` covers late observation, late ingestion/validation, backfill, correction, authority revocation, expiry, rights, conflict, censoring, future-derived features, clock uncertainty, plan publication and authorization latency. The manifest is not yet wired to an executable replay parser.
+
+### Strong 2026 comparison targets
+
+| Research comparator | Published scope/result | What MCSC should reproduce or add |
+|---|---|---|
+| [Wang et al., two-stage rolling port scheduling (2026)](https://doi.org/10.1016/j.cie.2026.112035) | Real-data Huanghua Coal Port case; hybrid rolling strategies for uncertain arrival/departure and vessel/berth/equipment coordination; compares a tailored method with GA, FCFS and CPLEX and reports case-study cost gaps of 5.7–89.1%. | Reproduce the same problem and objective before comparing. Add common-cause and lifecycle evidence only as explicit extensions; publish feasibility, objective gap, runtime, disruption-event response and receiver-service outcomes. The paper's study-specific range is not a transferable MCSC target. |
+| [Zhang et al., data-driven liner schedule recovery (2026)](https://doi.org/10.1016/j.tre.2026.105009) | AIS-based recovery-behaviour data covering 3,559 container vessels and 700+ ports from 2018–2023; identifies port skipping, port swapping and speed-up behaviours and predicts suitable strategies. | Treat observed carrier behaviour and model prediction as separate baselines. Extend the outcome contract to accepted downstream service, substitution feasibility, common causes, authority, carbon/energy and post-action outcomes. A predicted strategy is not automatically a beneficial intervention. |
+| [Chhetri et al., port time variability (2026)](https://doi.org/10.1186/s12544-026-00862-w) | Published 13 November 2026; derives a coefficient-of-variation port-time reliability measure from AIS for 401 ports in 119 countries; explains why a mean-only benchmark can conceal operational variability. | Preserve mean/median and tail delay, and report variability with censoring and vessel/cargo segmentation. Include anchorage waiting consistently; never collapse congestion, delay and schedule reliability into one measure. |
+| [Disrupted seaside-planning systematic review (2026)](https://doi.org/10.1080/00207543.2026.2719841) | Reviews 45 studies (2007–2025); identifies disruption management, rescheduling and proactive–reactive hybrid policies, and gaps in propagation effects, integrated recovery and broad operational evaluation. | Retain all three as mandatory matched policy classes. Add common-cause propagation, dynamic qualification, decision-time information, schedule stability and service-floor outcomes. |
+| [European port digital-twin benchmark (2026)](https://doi.org/10.1016/j.rineng.2026.110485) | Reviews seven port/logistics digital-twin initiatives; identifies interoperability/modularity patterns and persistent gaps in data availability, model transparency, operational reporting and synchronization mechanisms. | Measure evidence-vintage synchronization, source coverage, model/receipt version drift, first-available-to-ingestion delay, and event-to-admissible-plan latency. “Connected” is not the same as synchronized or operationally credible. |
+
+### MCSC benchmark ladder
+
+1. **Contract conformance:** owner identity, rights, authority, time/version binding, unit preservation, expected denominator and fail-closed UNKNOWN behavior.
+2. **Synthetic known answers:** exact reproducibility, adversarial mutations, common-cause and lifecycle cases, and zero no-lookahead violations.
+3. **Owner-native historical replay:** signed or digest-bound source receipts with evidence-vintage replay and no post-cutoff leakage.
+4. **Held-out retrospective benchmark:** temporal, facility, supplier, corridor and event-family holdouts; publish all policy baselines and uncertainty.
+5. **Shadow-mode operation:** prospective decisions are computed but not executed; measure data latency, override, admissibility, compute budget and forecast drift.
+6. **Controlled operational pilot:** only after safety, authority and independent review; compare on predeclared outcomes with a valid control/comparison strategy and preserve all service denominators.
+
+### What “better than SOTA” would mean
+
+A credible claim requires a matched, reproducible result, not a larger architecture diagram or one attractive percentage. MCSC should aim to demonstrate a *joint frontier*:
+
+- no false admission of stale, expired, revoked, wrong-configuration or unauthorized capability;
+- no future-information leakage and deterministic replay of identical evidence vintages;
+- no protected-service denominator deletion and no conversion of UNKNOWN to zero;
+- at least matched baseline feasibility and objective quality, with exact runtimes and compute budgets;
+- lower service regret or faster admissible recovery without unacceptable churn, emissions, lifecycle cost or safety trade-offs;
+- better tail reliability and receiver-accepted service while retaining CPPI/PPS-compatible port indicators;
+- generalization to held-out facilities and unseen disruption families.
+
+These are qualification targets. Until the R2 methods are run on source-qualified and held-out port data, MCSC has not demonstrated superiority to any published method or industry KPI.
