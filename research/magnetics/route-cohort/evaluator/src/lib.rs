@@ -158,7 +158,10 @@ pub enum Blocker {
     InvalidReworkReceipt,
     InvalidReworkState,
     InvalidScrapReceipt,
-    FailedBuildHasInspectedSpecimen,
+    FailedBuildHasCompletedSpecimen,
+    DuplicateQualificationReceiptId,
+    DuplicateReworkReceiptId,
+    DuplicateScrapReceiptId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -209,6 +212,7 @@ pub struct CohortCounts {
     pub scrapped_specimens: u64,
     pub final_accepted_specimens: u64,
     pub distinct_material_lots: u64,
+    pub replication_eligible_builds: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -249,32 +253,45 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
 
     let mut lot_by_id = BTreeMap::new();
     let mut valid_lot_ids = BTreeSet::new();
+    let mut duplicate_lot_ids = BTreeSet::new();
     for lot in &cohort.lots {
         if lot_by_id.insert(lot.lot_id.as_str(), lot).is_some() {
             blockers.push(Blocker::DuplicateLotId);
+            duplicate_lot_ids.insert(lot.lot_id.as_str());
         }
         if validate_lot_record(lot, cohort, &mut blockers) {
             valid_lot_ids.insert(lot.lot_id.as_str());
         }
     }
-    counts.distinct_material_lots = valid_lot_ids.len() as u64;
-
-    let mut build_by_id = BTreeMap::new();
-    for build in &cohort.builds {
-        if build_by_id.insert(build.build_id.as_str(), build).is_some() {
-            blockers.push(Blocker::DuplicateBuildId);
-        }
+    for duplicate_id in &duplicate_lot_ids {
+        valid_lot_ids.remove(duplicate_id);
     }
-    counts.initiated_builds = build_by_id.len() as u64;
 
+    let mut build_id_counts = BTreeMap::new();
+    for build in &cohort.builds {
+        *build_id_counts.entry(build.build_id.as_str()).or_insert(0usize) += 1;
+    }
+    counts.initiated_builds = cohort.builds.len() as u64;
+
+    let mut used_valid_lot_ids = BTreeSet::new();
+    let mut valid_build_ids = BTreeSet::new();
     let mut declared_specimen_to_build = BTreeMap::new();
-    for build in build_by_id.values() {
-        validate_build_record(cohort, build, &lot_by_id, &valid_lot_ids, &mut blockers);
-        if build.status == BuildStatus::Completed {
-            counts.completed_builds += 1;
-        }
-        if build.status == BuildStatus::FailedBeforeInspection {
-            counts.pre_inspection_build_failures += 1;
+    for build in &cohort.builds {
+        let build_valid =
+            validate_build_record(cohort, build, &lot_by_id, &valid_lot_ids, &mut blockers);
+        let unique_build_id =
+            build_id_counts.get(build.build_id.as_str()).copied().unwrap_or(0) == 1;
+        if build_valid && unique_build_id {
+            valid_build_ids.insert(build.build_id.as_str());
+            used_valid_lot_ids.insert(build.material_lot_id.as_str());
+            if build.status == BuildStatus::Completed {
+                counts.completed_builds += 1;
+            }
+            if build.status == BuildStatus::FailedBeforeInspection {
+                counts.pre_inspection_build_failures += 1;
+            }
+        } else {
+            blockers.push(Blocker::InvalidBuildRecord);
         }
 
         let mut local_ids = BTreeSet::new();
@@ -283,17 +300,42 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
                 blockers.push(Blocker::MissingIdentity);
                 continue;
             }
-            if !local_ids.insert(specimen_id.as_str())
-                || declared_specimen_to_build
-                    .insert(specimen_id.as_str(), build)
-                    .is_some()
+            if !local_ids.insert(specimen_id.as_str()) {
+                blockers.push(Blocker::DuplicateInitiatedSpecimenId);
+            }
+            if declared_specimen_to_build
+                .insert(specimen_id.as_str(), build)
+                .is_some()
             {
                 blockers.push(Blocker::DuplicateInitiatedSpecimenId);
             }
         }
     }
+    counts.distinct_material_lots = used_valid_lot_ids.len() as u64;
+    counts.replication_eligible_builds = valid_build_ids.len() as u64;
 
     let mut specimen_records_by_id: BTreeMap<&str, Vec<&SpecimenRecord>> = BTreeMap::new();
+    let mut qualification_receipt_ids = BTreeSet::new();
+    let mut rework_receipt_ids = BTreeSet::new();
+    let mut scrap_receipt_ids = BTreeSet::new();
+    for specimen in &cohort.specimens {
+        if let Some(id) = &specimen.qualification_receipt_id
+            && !qualification_receipt_ids.insert(id.as_str())
+        {
+            blockers.push(Blocker::DuplicateQualificationReceiptId);
+        }
+        if let Some(id) = &specimen.rework_receipt_id
+            && !rework_receipt_ids.insert(id.as_str())
+        {
+            blockers.push(Blocker::DuplicateReworkReceiptId);
+        }
+        if let Some(id) = &specimen.scrap_receipt_id
+            && !scrap_receipt_ids.insert(id.as_str())
+        {
+            blockers.push(Blocker::DuplicateScrapReceiptId);
+        }
+    }
+
     for specimen in &cohort.specimens {
         specimen_records_by_id
             .entry(specimen.specimen_id.as_str())
@@ -356,7 +398,8 @@ pub fn evaluate_cohort(cohort: &RouteCohort) -> CohortEvaluation {
         + counts.missing_specimen_outcomes;
 
     let generalization_status = if !blockers.is_empty()
-        || counts.initiated_builds < u64::from(cohort.replication_policy.minimum_independent_builds)
+        || counts.replication_eligible_builds
+            < u64::from(cohort.replication_policy.minimum_independent_builds)
         || counts.distinct_material_lots
             < u64::from(cohort.replication_policy.minimum_distinct_material_lots)
     {
@@ -482,41 +525,50 @@ fn validate_build_record(
     lot_by_id: &BTreeMap<&str, &FeedstockLot>,
     valid_lot_ids: &BTreeSet<&str>,
     blockers: &mut Vec<Blocker>,
-) {
+) -> bool {
+    let mut valid = true;
     if build.build_id.trim().is_empty()
         || build.material_lot_id.trim().is_empty()
         || build.route_revision.trim().is_empty()
         || build.machine_tool_revision.trim().is_empty()
     {
         blockers.push(Blocker::MissingIdentity);
+        valid = false;
     }
     if !valid_sha256(&build.recipe_digest)
         || !valid_sha256(&build.build_record_digest)
         || !valid_sha256(&build.genealogy_digest)
     {
         blockers.push(Blocker::InvalidDigest);
+        valid = false;
     }
     if build.route_revision != cohort.route_revision {
         blockers.push(Blocker::BuildRouteRevisionMismatch);
+        valid = false;
     }
     if build.machine_tool_revision != cohort.machine_tool_revision {
         blockers.push(Blocker::BuildMachineRevisionMismatch);
+        valid = false;
     }
     if build.recipe_digest != cohort.process_recipe_digest {
         blockers.push(Blocker::BuildRecipeMismatch);
+        valid = false;
     }
     let Some(lot) = lot_by_id.get(build.material_lot_id.as_str()) else {
         blockers.push(Blocker::MissingLotRecord);
-        return;
+        return false;
     };
     if !valid_lot_ids.contains(build.material_lot_id.as_str()) {
         blockers.push(Blocker::MissingLotRecord);
+        valid = false;
     }
     if lot.feedstock_family != cohort.feedstock_family
         || lot.material_grade != cohort.material_grade
     {
         blockers.push(Blocker::BuildLotMismatch);
+        valid = false;
     }
+    valid
 }
 
 fn validate_specimen_record(
@@ -578,7 +630,7 @@ fn validate_specimen_record(
         valid = false;
     }
     if specimen.manufacturing_complete && build.status == BuildStatus::FailedBeforeInspection {
-        blockers.push(Blocker::FailedBuildHasInspectedSpecimen);
+        blockers.push(Blocker::FailedBuildHasCompletedSpecimen);
         valid = false;
     }
     if specimen.rework_attempts == 0 {
@@ -797,6 +849,7 @@ mod tests {
     fn multiple_parts_in_one_build_count_as_one_build_replication() {
         let result = evaluate_cohort(&valid_cohort());
         assert_eq!(result.summary.counts.initiated_builds, 2);
+        assert_eq!(result.summary.counts.replication_eligible_builds, 2);
         assert_eq!(result.summary.counts.distinct_material_lots, 2);
         assert_eq!(
             result.summary.generalization_status,
@@ -982,6 +1035,34 @@ mod tests {
             result
                 .blockers
                 .contains(&Blocker::FailedBuildHasInspectedSpecimen)
+        );
+    }
+
+    #[test]
+    fn unused_material_lot_does_not_count_toward_replication() {
+        let mut cohort = valid_cohort();
+        cohort.lots.push(lot("LOT-UNUSED", '9'));
+        cohort.replication_policy.minimum_distinct_material_lots = 3;
+        let result = evaluate_cohort(&cohort);
+        assert_eq!(result.summary.counts.distinct_material_lots, 2);
+        assert_eq!(
+            result.summary.generalization_status,
+            GeneralizationStatus::GeneralizationUnavailable
+        );
+    }
+
+    #[test]
+    fn duplicate_specimen_receipt_ids_invalidate_cohort() {
+        let mut cohort = valid_cohort();
+        cohort.specimens[1].qualification_receipt_id =
+            cohort.specimens[0].qualification_receipt_id.clone();
+        let result = evaluate_cohort(&cohort);
+        assert!(result
+            .blockers
+            .contains(&Blocker::DuplicateQualificationReceiptId));
+        assert_eq!(
+            result.summary.generalization_status,
+            GeneralizationStatus::GeneralizationUnavailable
         );
     }
 
