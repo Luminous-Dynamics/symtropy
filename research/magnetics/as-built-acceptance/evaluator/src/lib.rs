@@ -149,6 +149,7 @@ pub struct AcceptanceCase {
     pub comparison: ComparisonEvidence,
     pub spatial_certificate: SpatialCertificate,
     pub hard_requirements: Vec<RequirementEvidence>,
+    pub fit_calibration_record_ids: Vec<String>,
     pub blind_holdout_record_ids: Vec<String>,
     pub uncertainty: UncertaintyEvidence,
     pub measurement_scope_supported: bool,
@@ -641,6 +642,7 @@ mod tests {
                 verdict: Verdict::Safe,
                 uncertainty_resolved: true,
             }],
+            fit_calibration_record_ids: vec!["FIT-OBS-001".to_string()],
             blind_holdout_record_ids: vec![observation_record_id_for_holdout()],
             uncertainty: UncertaintyEvidence {
                 record_id: "UNCERTAINTY-001".to_string(),
