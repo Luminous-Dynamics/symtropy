@@ -1,0 +1,85 @@
+{
+  "manifest_version": "ev-bms-generated-reference/v0.1",
+  "dataset_id": "ch-batterygen-iclr-2026-v1",
+  "title": "CAERI-Huawei AI-Generated Power Battery Dataset for New Energy Vehicles (CH-BatteryGen)",
+  "paper_url": "https://proceedings.iclr.cc/paper_files/paper/2026/file/0d781fa5f639bf2caf728a68e9678362-Paper-Conference.pdf",
+  "source_repository_url": "https://github.com/CH-BatteryGen/dataset-warehouse",
+  "release_url": "https://github.com/CH-BatteryGen/dataset-warehouse/releases/tag/v1.0.0",
+  "release_tag": "v1.0.0",
+  "release_published_on": "2025-09-15",
+  "metadata_retrieved_on": "2026-11-27",
+  "license_spdx": "CC-BY-NC-SA-4.0",
+  "permitted_use": "academic_research_non_commercial_only",
+  "redistribution_allowed": false,
+  "commercial_use_allowed": false,
+  "evidence_class": "mechanism_constrained_generated",
+  "generation_method": "mechanism_constrained_generated_from_real_fleet_distribution",
+  "raw_fault_labelled_field_telemetry_released": false,
+  "generated_pack_instance_count": 1000,
+  "chemistry_counts": [
+    {
+      "chemistry": "LFP",
+      "generated_pack_instance_count": 500
+    },
+    {
+      "chemistry": "NCM",
+      "generated_pack_instance_count": 500
+    }
+  ],
+  "charge_segments_per_pack": 10,
+  "discharge_segments_per_pack": 10,
+  "sample_interval_seconds": 10,
+  "segment_duration_minutes_min": 30,
+  "segment_duration_minutes_max": 60,
+  "pack_topologies_cell_count": [
+    28,
+    92,
+    96,
+    124
+  ],
+  "ambient_temperature_c_min": -10,
+  "ambient_temperature_c_max": 45,
+  "fault_classes": [
+    "normal",
+    "high_resistance",
+    "low_capacity",
+    "self_discharge"
+  ],
+  "severity_levels": [
+    "mild",
+    "moderate",
+    "severe"
+  ],
+  "fault_counts_by_chemistry": [
+    {
+      "chemistry": "LFP",
+      "normal": 400,
+      "high_resistance": 30,
+      "low_capacity": 30,
+      "self_discharge": 40
+    },
+    {
+      "chemistry": "NCM",
+      "normal": 400,
+      "high_resistance": 30,
+      "low_capacity": 30,
+      "self_discharge": 40
+    }
+  ],
+  "assets": [
+    {
+      "name": "V1.0.7z",
+      "size_bytes": 386457534,
+      "publisher_sha256": "2bce2a26720519833f8a0b73e7af95bb6ab8ac997cc62afc3d320c67fd02be21",
+      "local_sha256": null
+    },
+    {
+      "name": "faults.details.-.LFP.batteries.xlsx",
+      "size_bytes": 13437,
+      "publisher_sha256": "583411788a3c5b90d43d27de87493d36dfff93da01493e69f503e6c0a84e3e6b",
+      "local_sha256": null
+    }
+  ],
+  "admission_state": "metadata_only",
+  "claim_ceiling": "Metadata-only registration of the CH-BatteryGen generated benchmark. The released records are mechanism-constrained generated from real-fleet distributions; they are not 1,000 raw observed vehicles. The source licence permits academic non-commercial use only; commercial use and redistribution are not authorized."
+}
