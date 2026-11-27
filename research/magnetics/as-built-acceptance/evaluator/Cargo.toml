@@ -7,3 +7,5 @@ description = "Evidence-gated specimen-level magnetic functional acceptance refe
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
