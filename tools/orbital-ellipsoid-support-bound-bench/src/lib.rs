@@ -463,6 +463,23 @@ mod tests {
     }
 
     #[test]
+    fn unsupported_units_and_direction_conventions_are_invalid() {
+        let mut wrong_unit = input(1, 1);
+        wrong_unit.scope.length_unit = "millimetre".to_owned();
+        assert_eq!(
+            derive(&wrong_unit).disposition,
+            SupportDisposition::InvalidInput
+        );
+
+        let mut wrong_direction = input(1, 1);
+        wrong_direction.scope.direction_convention = "camera-x-forward".to_owned();
+        assert_eq!(
+            derive(&wrong_direction).disposition,
+            SupportDisposition::InvalidInput
+        );
+    }
+
+    #[test]
     fn upper_scale_product_overflow_is_nonpass() {
         let result = derive(&input(1, u128::MAX));
         assert_eq!(result.disposition, SupportDisposition::Overflow);
