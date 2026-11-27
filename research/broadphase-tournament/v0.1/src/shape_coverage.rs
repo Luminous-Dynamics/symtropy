@@ -38,13 +38,6 @@ impl ShapeCoverageAudit {
         (self.exact_shape_contacts > 0)
             .then(|| self.aabb_candidates as f64 / self.exact_shape_contacts as f64)
     }
-
-    fn merge(&mut self, other: Self) {
-        self.exact_shape_contacts += other.exact_shape_contacts;
-        self.aabb_candidates += other.aabb_candidates;
-        self.candidate_only_false_positives += other.candidate_only_false_positives;
-        self.missed_shape_contacts += other.missed_shape_contacts;
-    }
 }
 
 /// Audit the shape-contact subset property for two canonical pair relations.
@@ -65,6 +58,76 @@ pub fn audit_shape_contact_coverage(
     }
 }
 
+fn multiply_upper_nonnegative(
+    left: f64,
+    right: f64,
+) -> Result<f64, TournamentError> {
+    if !left.is_finite() || !right.is_finite() || left < 0.0 || right < 0.0 {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let product = left * right;
+    if !product.is_finite() {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let upper = product.next_up();
+    if upper.is_finite() {
+        Ok(upper)
+    } else {
+        Err(TournamentError::InvalidBounds)
+    }
+}
+
+fn add_upper_nonnegative(
+    left: f64,
+    right: f64,
+) -> Result<f64, TournamentError> {
+    if !left.is_finite() || !right.is_finite() || left < 0.0 || right < 0.0 {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let sum = left + right;
+    if !sum.is_finite() {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let upper = sum.next_up();
+    if upper.is_finite() {
+        Ok(upper)
+    } else {
+        Err(TournamentError::InvalidBounds)
+    }
+}
+
+fn lower_bound(center: f64, radius_upper: f64) -> Result<f64, TournamentError> {
+    if !center.is_finite() || !radius_upper.is_finite() || radius_upper < 0.0 {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let value = center - radius_upper;
+    if !value.is_finite() {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let lower = value.next_down();
+    if lower.is_finite() {
+        Ok(lower)
+    } else {
+        Err(TournamentError::InvalidBounds)
+    }
+}
+
+fn upper_bound(center: f64, radius_upper: f64) -> Result<f64, TournamentError> {
+    if !center.is_finite() || !radius_upper.is_finite() || radius_upper < 0.0 {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let value = center + radius_upper;
+    if !value.is_finite() {
+        return Err(TournamentError::InvalidBounds);
+    }
+    let upper = value.next_up();
+    if upper.is_finite() {
+        Ok(upper)
+    } else {
+        Err(TournamentError::InvalidBounds)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Obb2 {
     center: [f64; 2],
@@ -80,18 +143,22 @@ impl Obb2 {
 
     fn world_aabb(self) -> Result<Aabb<2>, TournamentError> {
         let axes = self.axes();
-        let radius_x =
-            self.half[0] * axes[0][0].abs() + self.half[1] * axes[1][0].abs();
-        let radius_y =
-            self.half[0] * axes[0][1].abs() + self.half[1] * axes[1][1].abs();
+        let radius_x = add_upper_nonnegative(
+            multiply_upper_nonnegative(self.half[0], axes[0][0].abs())?,
+            multiply_upper_nonnegative(self.half[1], axes[1][0].abs())?,
+        )?;
+        let radius_y = add_upper_nonnegative(
+            multiply_upper_nonnegative(self.half[0], axes[0][1].abs())?,
+            multiply_upper_nonnegative(self.half[1], axes[1][1].abs())?,
+        )?;
         Aabb::new(
             [
-                (self.center[0] - radius_x).next_down(),
-                (self.center[1] - radius_y).next_down(),
+                lower_bound(self.center[0], radius_x)?,
+                lower_bound(self.center[1], radius_y)?,
             ],
             [
-                (self.center[0] + radius_x).next_up(),
-                (self.center[1] + radius_y).next_up(),
+                upper_bound(self.center[0], radius_x)?,
+                upper_bound(self.center[1], radius_y)?,
             ],
         )
         .map_err(TournamentError::from)
@@ -166,20 +233,23 @@ impl Obb3 {
         let mut radius = [0.0; 3];
         for world_axis in 0..3 {
             for local_axis in 0..3 {
-                radius[world_axis] +=
-                    self.half[local_axis] * rotation[world_axis][local_axis].abs();
+                let term = multiply_upper_nonnegative(
+                    self.half[local_axis],
+                    rotation[world_axis][local_axis].abs(),
+                )?;
+                radius[world_axis] = add_upper_nonnegative(radius[world_axis], term)?;
             }
         }
         Aabb::new(
             [
-                (self.center[0] - radius[0]).next_down(),
-                (self.center[1] - radius[1]).next_down(),
-                (self.center[2] - radius[2]).next_down(),
+                lower_bound(self.center[0], radius[0])?,
+                lower_bound(self.center[1], radius[1])?,
+                lower_bound(self.center[2], radius[2])?,
             ],
             [
-                (self.center[0] + radius[0]).next_up(),
-                (self.center[1] + radius[1]).next_up(),
-                (self.center[2] + radius[2]).next_up(),
+                upper_bound(self.center[0], radius[0])?,
+                upper_bound(self.center[1], radius[1])?,
+                upper_bound(self.center[2], radius[2])?,
             ],
         )
         .map_err(TournamentError::from)
@@ -277,7 +347,6 @@ impl ShapeCoverageRow {
 
 fn update_pair_audit(
     audit: &mut ShapeCoverageAudit,
-    pair: ProxyPair,
     exact_contact: bool,
     aabb_candidate: bool,
 ) {
@@ -292,10 +361,14 @@ fn update_pair_audit(
         (false, true) => audit.candidate_only_false_positives += 1,
         _ => {}
     }
-    let _ = pair;
 }
 
-fn row_from_audit(dimension: u8, requested_pairs: u64, seed: u64, audit: ShapeCoverageAudit) -> ShapeCoverageRow {
+fn row_from_audit(
+    dimension: u8,
+    requested_pairs: u64,
+    seed: u64,
+    audit: ShapeCoverageAudit,
+) -> ShapeCoverageRow {
     ShapeCoverageRow {
         dimension,
         requested_pairs,
@@ -322,7 +395,6 @@ pub fn run_shape_coverage_campaign(
     if cases_per_dimension == 0 {
         return Err(TournamentError::EmptyScene);
     }
-    let cases = u64::try_from(cases_per_dimension).map_err(|_| TournamentError::CounterOverflow)?;
     Ok(vec![
         run_2d(cases_per_dimension, seed)?,
         run_3d(cases_per_dimension, seed ^ 0x3344_4f42_4256_5655)?,
@@ -352,7 +424,9 @@ fn run_2d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
             angle: super::next_between(&mut state, -std::f64::consts::PI, std::f64::consts::PI),
         };
         let id = u64::try_from(index).map_err(|_| TournamentError::CounterOverflow)?;
-        let pair = ProxyPair::new(ProxyId(id.saturating_mul(2)), ProxyId(id.saturating_mul(2).saturating_add(1)))
+        let left_id = id.checked_mul(2).ok_or(TournamentError::CounterOverflow)?;
+        let right_id = left_id.checked_add(1).ok_or(TournamentError::CounterOverflow)?;
+        let pair = ProxyPair::new(ProxyId(left_id), ProxyId(right_id))
             .ok_or(TournamentError::DuplicateProxyId)?;
         let frame = [
             ProxyFrame { id: pair.0, bounds: left.world_aabb()? },
@@ -361,7 +435,7 @@ fn run_2d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
         let aabb_pairs = oracle_pairs(&frame)?;
         let exact_contact = obb2_intersects(left, right);
         let aabb_candidate = aabb_pairs.contains(&pair);
-        update_pair_audit(&mut audit, pair, exact_contact, aabb_candidate);
+        update_pair_audit(&mut audit, exact_contact, aabb_candidate);
     }
 
     Ok(row_from_audit(2, cases as u64, seed, audit))
@@ -399,7 +473,9 @@ fn run_3d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
             ],
         };
         let id = u64::try_from(index).map_err(|_| TournamentError::CounterOverflow)?;
-        let pair = ProxyPair::new(ProxyId(id.saturating_mul(2)), ProxyId(id.saturating_mul(2).saturating_add(1)))
+        let left_id = id.checked_mul(2).ok_or(TournamentError::CounterOverflow)?;
+        let right_id = left_id.checked_add(1).ok_or(TournamentError::CounterOverflow)?;
+        let pair = ProxyPair::new(ProxyId(left_id), ProxyId(right_id))
             .ok_or(TournamentError::DuplicateProxyId)?;
         let frame = [
             ProxyFrame { id: pair.0, bounds: left.world_aabb()? },
@@ -408,7 +484,7 @@ fn run_3d(cases: usize, seed: u64) -> Result<ShapeCoverageRow, TournamentError> 
         let aabb_pairs = oracle_pairs(&frame)?;
         let exact_contact = obb3_intersects(left, right);
         let aabb_candidate = aabb_pairs.contains(&pair);
-        update_pair_audit(&mut audit, pair, exact_contact, aabb_candidate);
+        update_pair_audit(&mut audit, exact_contact, aabb_candidate);
     }
 
     Ok(row_from_audit(3, cases as u64, seed, audit))
