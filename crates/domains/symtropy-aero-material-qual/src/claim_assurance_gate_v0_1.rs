@@ -1008,9 +1008,9 @@ mod tests {
                 !reference.trim().is_empty() && reference.as_str() == reference.trim()
             })
             .cloned()
-            .collect::<BTreeSet<_>>()
-            .into_iter()
             .collect::<Vec<_>>();
+        refs.sort();
+        refs.dedup();
         if !refs.iter().any(|item| item == &model.evidence_ref) {
             refs.push(model.evidence_ref.clone());
         }
