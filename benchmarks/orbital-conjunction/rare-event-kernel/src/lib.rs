@@ -145,7 +145,7 @@ pub use paired_objective_pareto::{
     PairedObjectiveDominanceWitness, PairedObjectiveOutcome, PairedObjectiveParetoCampaign,
     PairedObjectiveParetoError, PairedObjectiveParetoReport, PairedObjectivePortfolioBound,
     PairedObjectiveSpec, PairedPortfolioDominanceWitness, ScenarioAtomUniverse,
-    ScenarioObjectiveContrastWitness,
+    ScenarioModelBinding, ScenarioObjectiveContrastWitness,
 };
 pub use paired_counterfactual::{
     MAX_PAIRED_COUNTERFACTUAL_ATOMS, MAX_PAIRED_COUNTERFACTUAL_PORTFOLIOS,
