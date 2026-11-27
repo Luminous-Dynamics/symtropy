@@ -1309,8 +1309,7 @@ mod tests {
         let original_problem = problem();
         let original_bindings = bindings();
         let original_truth = truth();
-        let original_result =
-            select_decision_sufficient_probe_v0(&original_problem).unwrap();
+        let original_result = select_decision_sufficient_probe_v0(&original_problem).unwrap();
         let original = evaluate_decision_disambiguation_claim_v0(
             &original_problem,
             &original_result,
@@ -1367,8 +1366,7 @@ mod tests {
         renamed_truth.admissible_hypotheses.reverse();
         renamed_truth.probe_outcome_supports.reverse();
 
-        let renamed_result =
-            select_decision_sufficient_probe_v0(&renamed_problem).unwrap();
+        let renamed_result = select_decision_sufficient_probe_v0(&renamed_problem).unwrap();
         let renamed = evaluate_decision_disambiguation_claim_v0(
             &renamed_problem,
             &renamed_result,
@@ -1442,6 +1440,9 @@ mod tests {
             renamed.claimed_probe_overstates_improvement,
             original.claimed_probe_overstates_improvement
         );
-        assert_eq!(renamed.unnecessary_abstention, original.unnecessary_abstention);
+        assert_eq!(
+            renamed.unnecessary_abstention,
+            original.unnecessary_abstention
+        );
     }
 }
