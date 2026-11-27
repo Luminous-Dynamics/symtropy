@@ -856,32 +856,51 @@ jobs:
                   print(f"{list(error.absolute_path)}: {error.message}", file=sys.stderr)
               raise SystemExit(f"model-evidence attestation example failed schema validation ({len(errors)} errors)")
 
-          context = example["claim_context"]
-          if context["applicability_profile_sha256"] != example["applicability"]["applicability_profile_sha256"]:
-              raise SystemExit("attestation applicability profile differs from the claim context")
-          receiver = example["receiver_time"]
-          if receiver["first_seen_earliest_unix_ms"] > receiver["first_seen_latest_unix_ms"]:
-              raise SystemExit("receiver first-seen interval is reversed")
+          def cross_field_valid(candidate):
+              if not validator.is_valid(candidate):
+                  return False
+              context = candidate["claim_context"]
+              applicability = candidate["applicability"]
+              receiver = candidate["receiver_time"]
+              return (
+                  context["applicability_profile_sha256"]
+                  == applicability["applicability_profile_sha256"]
+                  and receiver["first_seen_earliest_unix_ms"]
+                  <= receiver["first_seen_latest_unix_ms"]
+              )
+
+          if not cross_field_valid(example):
+              raise SystemExit("synthetic positive violates attestation cross-field invariants")
 
           hostile = []
           changed_bytes = copy.deepcopy(example)
           changed_bytes["artifact"]["sha256"] = "not-a-sha256"
           hostile.append(("malformed artifact digest", changed_bytes))
+          missing_integrity = copy.deepcopy(example)
+          missing_integrity["integrity"]["verification_receipt"] = None
+          hostile.append(("verified byte integrity without owner receipt", missing_integrity))
           missing_authority = copy.deepcopy(example)
           missing_authority["producer_authority"]["verification_receipt"] = None
           hostile.append(("verified producer authority without receipt", missing_authority))
           missing_semantics = copy.deepcopy(example)
           missing_semantics["semantic_validation"]["verification_receipt"] = None
           hostile.append(("passed semantic validation without receipt", missing_semantics))
+          mismatched_applicability = copy.deepcopy(example)
+          mismatched_applicability["applicability"]["applicability_profile_sha256"] = "abababababababababababababababababababababababababababababababab"
+          hostile.append(("applicability profile differs from claim context", mismatched_applicability))
+          reversed_receiver_time = copy.deepcopy(example)
+          reversed_receiver_time["receiver_time"]["first_seen_earliest_unix_ms"] += 1
+          reversed_receiver_time["receiver_time"]["first_seen_latest_unix_ms"] -= 1
+          hostile.append(("reversed receiver-first-seen interval", reversed_receiver_time))
           unknown_field = copy.deepcopy(example)
           unknown_field["integrity"]["caller_supplied_trust"] = True
           hostile.append(("unknown integrity field", unknown_field))
 
           for label, candidate in hostile:
-              if validator.is_valid(candidate):
+              if cross_field_valid(candidate):
                   raise SystemExit(f"hostile control unexpectedly validated: {label}")
 
-          print("Model-evidence attestation Draft 2020-12 schema, synthetic positive and four hostile controls passed.")
+          print("Model-evidence attestation Draft 2020-12 schema, synthetic positive and seven hostile controls passed.")
           PY
 
       - name: Validate AERO model-evidence challenge seed corpus
