@@ -356,9 +356,13 @@ fn validate_inputs(
         .iter()
         .flatten()
         .any(|bound| !bound.is_finite() || *bound < 0.0)
+        || physical
+            .residual_variation_radius_t
+            .iter()
+            .any(|radius| !radius.is_finite() || *radius < 0.0)
     {
         return Err(FunctionalTransferError::InvalidInterval {
-            field: "physical_residual_jacobian",
+            field: "physical_residual_jacobian_or_radius",
         });
     }
     for intervals in [
@@ -371,6 +375,34 @@ fn validate_inputs(
         if intervals.iter().any(|interval| !valid_interval(*interval)) {
             return Err(FunctionalTransferError::InvalidInterval {
                 field: "physical_field_certificate",
+            });
+        }
+    }
+    for component in 0..3 {
+        let measured_minus_model =
+            physical.measured_field_at_centre_t[component]
+                - physical.model_field_at_centre_t[component];
+        let radius = physical.residual_variation_radius_t[component];
+        let radius_interval = Interval::new(-radius, radius).map_err(|_| {
+            FunctionalTransferError::InvalidInterval {
+                field: "physical_residual_radius",
+            }
+        })?;
+        let expected_residual_over_cell =
+            physical.centre_residual_t[component] + radius_interval;
+        let expected_physical_field =
+            physical.model_field_over_cell_t[component]
+                + physical.residual_field_over_cell_t[component];
+        let model_centre = physical.model_field_at_centre_t[component];
+        let model_cell = physical.model_field_over_cell_t[component];
+        if measured_minus_model != physical.centre_residual_t[component]
+            || expected_residual_over_cell != physical.residual_field_over_cell_t[component]
+            || expected_physical_field != physical.physical_field_over_cell_t[component]
+            || model_centre.lower() < model_cell.lower()
+            || model_centre.upper() > model_cell.upper()
+        {
+            return Err(FunctionalTransferError::ScopeMismatch {
+                field: "physical_field_certificate_internal_consistency",
             });
         }
     }
