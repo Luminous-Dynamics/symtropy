@@ -78,6 +78,7 @@ pub struct FeedstockLot {
     pub process_history_digest: String,
     pub modification_history_digest: String,
     pub service_history_digest: Option<String>,
+    pub feedstock_mass: MassMeasurement,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -145,6 +146,8 @@ pub enum Blocker {
     MissingIdentity,
     InvalidDigest,
     InvalidFeedstockScope,
+    StageFeedstockMismatch,
+    StageInputMassMismatch,
     InvalidRouteEligibilityScope,
     RouteNotEligible,
     RouteEligibilityUnresolved,
@@ -161,6 +164,7 @@ pub enum Blocker {
     MassBalanceOutputExceedsInput,
     MassBalanceUnresolved,
     DownstreamOutputMismatch,
+    DownstreamOutputNotReusableForm,
     MissingDownstreamEvidence,
     DownstreamAcceptanceNotQualified,
 }
@@ -194,8 +198,17 @@ pub struct RecoveryEvaluation {
 
 pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
     let mut blockers = Vec::new();
+    if passport.passport_id.trim().is_empty() {
+        blockers.push(Blocker::MissingIdentity);
+    }
     validate_feedstock(&passport.feedstock, &mut blockers);
     validate_route_eligibility(passport, &mut blockers);
+    if passport.stage.feedstock_lot_id != passport.feedstock.lot_id {
+        blockers.push(Blocker::StageFeedstockMismatch);
+    }
+    if passport.stage.input_mass != passport.feedstock.feedstock_mass {
+        blockers.push(Blocker::StageInputMassMismatch);
+    }
     let mass_balance = evaluate_mass_balance(&passport.stage, &mut blockers);
     validate_outputs(&passport.stage, &mut blockers);
 
@@ -217,13 +230,18 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
 
     let mut qualified_closed_loop_product_ids = Vec::new();
     if let Some(use_receipt) = &passport.downstream_use {
-        let output_exists = passport
+        let recovered_output = passport
             .stage
             .outputs
             .iter()
-            .any(|output| output.output_id == use_receipt.recovered_output_id);
-        if !output_exists {
+            .find(|output| output.output_id == use_receipt.recovered_output_id);
+        if recovered_output.is_none() {
             blockers.push(Blocker::DownstreamOutputMismatch);
+        } else if !matches!(
+            recovered_output.map(|output| output.form),
+            Some(ProductForm::MagnetFeedstock | ProductForm::RemanufacturableAlloy)
+        ) {
+            blockers.push(Blocker::DownstreamOutputNotReusableForm);
         }
         if use_receipt.new_material_lot_id.trim().is_empty()
             || !valid_record(&use_receipt.manufacturing_genealogy)
@@ -234,8 +252,12 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
         if use_receipt.downstream_disposition != Disposition::Qualified {
             blockers.push(Blocker::DownstreamAcceptanceNotQualified);
         }
-        if output_exists
+        if recovered_output.is_some_and(|output| matches!(
+            output.form,
+            ProductForm::MagnetFeedstock | ProductForm::RemanufacturableAlloy
+        ))
             && !blockers.contains(&Blocker::DownstreamOutputMismatch)
+            && !blockers.contains(&Blocker::DownstreamOutputNotReusableForm)
             && use_receipt.downstream_disposition == Disposition::Qualified
             && valid_record(&use_receipt.manufacturing_genealogy)
             && valid_record(&use_receipt.as_built_acceptance_receipt)
@@ -247,8 +269,17 @@ pub fn evaluate(passport: &RecoveryPassport) -> RecoveryEvaluation {
 
     let disposition = if blockers.is_empty() {
         Disposition::Qualified
-    } else if blockers.contains(&Blocker::RouteNotEligible) {
+    } else if blockers.iter().any(|blocker| {
+        matches!(
+            blocker,
+            Blocker::RouteNotEligible
+                | Blocker::MassBalanceUnaccountedInput
+                | Blocker::MassBalanceOutputExceedsInput
+        )
+    }) {
         Disposition::Fail
+    } else if blockers.contains(&Blocker::UnsupportedRouteForm) {
+        Disposition::NotEvaluable
     } else {
         Disposition::Indeterminate
     };
@@ -291,6 +322,9 @@ fn validate_feedstock(feedstock: &FeedstockLot, blockers: &mut Vec<Blocker>) {
         .is_some_and(|digest| !valid_sha256(digest))
     {
         blockers.push(Blocker::InvalidDigest);
+    }
+    if feedstock.feedstock_mass.uncertainty_mg > feedstock.feedstock_mass.value_mg {
+        blockers.push(Blocker::InvalidMassUncertainty);
     }
 }
 
@@ -509,6 +543,10 @@ mod tests {
             process_history_digest: digest('4'),
             modification_history_digest: digest('5'),
             service_history_digest: Some(digest('6')),
+            feedstock_mass: MassMeasurement {
+                value_mg: 1000,
+                uncertainty_mg: 0,
+            },
         }
     }
 
@@ -591,7 +629,7 @@ mod tests {
         let mut passport = valid_passport();
         passport.feedstock.feedstock_form = FeedstockForm::SinteredMagnet;
         let result = evaluate(&passport);
-        assert_eq!(result.disposition, Disposition::Fail);
+        assert_eq!(result.disposition, Disposition::NotEvaluable);
         assert!(result.blockers.contains(&Blocker::UnsupportedRouteForm));
     }
 
@@ -702,6 +740,48 @@ mod tests {
         let result = evaluate(&passport);
         assert!(result.blockers.contains(&Blocker::DownstreamOutputMismatch));
         assert!(result.qualified_closed_loop_product_ids.is_empty());
+    }
+
+    #[test]
+    fn recovery_stage_must_bind_the_exact_source_lot() {
+        let mut passport = valid_passport();
+        passport.stage.feedstock_lot_id = "LOT-OTHER".to_string();
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::StageFeedstockMismatch));
+    }
+
+    #[test]
+    fn recovery_stage_input_mass_must_bind_the_lot_measurement() {
+        let mut passport = valid_passport();
+        passport.stage.input_mass.value_mg = 900;
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::StageInputMassMismatch));
+    }
+
+    #[test]
+    fn residue_cannot_be_promoted_to_reused_magnet_feedstock() {
+        let mut passport = valid_passport();
+        passport.downstream_use.as_mut().unwrap().recovered_output_id =
+            "POLYMER-RESIDUE".to_string();
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::DownstreamOutputNotReusableForm));
+        assert!(result.qualified_closed_loop_product_ids.is_empty());
+    }
+
+    #[test]
+    fn mass_balance_failure_is_a_noncompensatory_fail() {
+        let mut passport = valid_passport();
+        passport.stage.outputs[0].mass.value_mg = 900;
+        let result = evaluate(&passport);
+        assert_eq!(result.disposition, Disposition::Fail);
+        assert!(result
+            .blockers
+            .contains(&Blocker::MassBalanceOutputExceedsInput));
     }
 
     #[test]
