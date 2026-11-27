@@ -47,6 +47,18 @@ cargo test --locked -p symtropy-physics --test vvuq_reference -- --nocapture
 
 The focused workflow pins the repository Rust toolchain, runs formatting and this integration test on the exact triggering revision, and preserves the test log plus source revision as a CI artifact.
 
+## GJK separation-tolerance finding
+
+The first exact-head boundary run found a real false-positive at a 1e-6 separation in both 2D and 3D. The original GJK code compared a support projection (length², because the direction is not normalized) with a fixed scalar threshold of -1e-10. For a 1e-6 gap, the projection magnitude is approximately 1e-12, so the routine incorrectly continued as if the origin might be enclosed.
+
+The follow-on patch changes the comparison to a dimensionally consistent threshold:
+
+`support_projection < -epsilon_distance * ||direction||`
+
+with `epsilon_distance = 1e-10` in world-length units. The direction-zero classification uses the same spatial tolerance. This makes the threshold scale with the unnormalized search direction instead of silently widening the effective distance tolerance to approximately 1e-5 for this case.
+
+**Qualification status:** regression suite exposed the false-positive; the algorithm correction is now on the boundary PR branch. It remains unqualified until the exact-head randomized, metamorphic and boundary tests pass after the change. This is a specific narrowphase fix, not a claim of general robust predicates or all-scale numerical conditioning.
+
 ## Track C — Contact-boundary and argument-order controls
 
 The two randomized OBB corpora are complemented by deliberately constructed contact cases. For each fixed rotation, the second box is translated along the shared local x-axis by the sum of the boxes' x half-extents plus a signed margin:
