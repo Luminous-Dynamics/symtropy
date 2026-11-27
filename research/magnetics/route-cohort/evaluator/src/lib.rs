@@ -973,7 +973,11 @@ mod tests {
         cohort.builds[0].route_revision = "MEX-v2".to_string();
 
         let result = evaluate_cohort(&cohort);
-        assert!(result.blockers.contains(&Blocker::BuildRouteRevisionMismatch));
+        assert!(
+            result
+                .blockers
+                .contains(&Blocker::BuildRouteRevisionMismatch)
+        );
         assert_eq!(result.summary.counts.initiated_specimens, 3);
         assert_eq!(result.summary.counts.completed_specimens, 2);
         assert_eq!(result.summary.counts.inspected_specimens, 2);
