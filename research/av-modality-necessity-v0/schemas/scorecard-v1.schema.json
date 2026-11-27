@@ -1,0 +1,53 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/av-modality-scorecard-v1.schema.json",
+  "title":"AV Modality Necessity Scorecard v1",
+  "description":"Unweighted per-dimension report. Hard evidence violations cannot be traded against accuracy.",
+  "type":"object","additionalProperties":false,
+  "required":["schema_version","benchmark_id","policy_id","run_id","interpretation","totals","per_necessity","paired_groups","hard_violations","per_episode"],
+  "properties":{
+    "schema_version":{"const":1},"benchmark_id":{"const":"av-modality-necessity-v0"},
+    "policy_id":{"type":"string"},"run_id":{"type":"string"},
+    "interpretation":{"type":"object","required":["status","limitations"],"properties":{
+      "status":{"const":"offline_candidate_submission_score"},"limitations":{"type":"array","items":{"type":"string"}}
+    }},
+    "totals":{"$ref":"#/$defs/metric"},
+    "per_necessity":{"type":"object","additionalProperties":{"$ref":"#/$defs/metric"}},
+    "paired_groups":{"type":"array","items":{"type":"object","additionalProperties":false,
+      "required":["pair_id","episode_ids","episode_count","all_decisions_correct","counterfactual_discrimination_required","counterfactual_discrimination_observed"],
+      "properties":{
+        "pair_id":{"type":"string"},"episode_ids":{"type":"array","items":{"type":"string"}},
+        "episode_count":{"type":"integer","minimum":1},"all_decisions_correct":{"type":"boolean"},
+        "counterfactual_discrimination_required":{"type":"boolean"},"counterfactual_discrimination_observed":{"type":"boolean"}
+      }
+    }},
+    "hard_violations":{"type":"array","items":{"type":"object","additionalProperties":false,
+      "required":["episode_id","violations"],"properties":{
+        "episode_id":{"type":"string"},"violations":{"type":"array","minItems":1,"items":{"type":"string"}}
+      }
+    }},
+    "per_episode":{"type":"array","items":{"type":"object","additionalProperties":false,
+      "required":["episode_id","necessity","answer_correct","decision_correct","abstained","confidence","evidence_compliant","violations","deadline_miss"],
+      "properties":{
+        "episode_id":{"type":"string"},"necessity":{"type":"string"},"answer_correct":{"type":"boolean"},
+        "decision_correct":{"type":"boolean"},"abstained":{"type":"boolean"},
+        "confidence":{"type":"number","minimum":0,"maximum":1},"evidence_compliant":{"type":"boolean"},
+        "violations":{"type":"array","items":{"type":"string"}},"deadline_miss":{"type":"boolean"}
+      }
+    }}
+  },
+  "$defs":{"metric":{"type":"object","additionalProperties":false,
+    "required":["episode_count","decision_correct_count","answered_count","answered_correct_count","decision_accuracy","coverage","selective_accuracy","answered_brier_score","evidence_compliant_count","evidence_compliance_rate","hard_violation_count","deadline_miss_count"],
+    "properties":{
+      "episode_count":{"type":"integer","minimum":0},"decision_correct_count":{"type":"integer","minimum":0},
+      "answered_count":{"type":"integer","minimum":0},"answered_correct_count":{"type":"integer","minimum":0},
+      "decision_accuracy":{"type":["number","null"],"minimum":0,"maximum":1},
+      "coverage":{"type":["number","null"],"minimum":0,"maximum":1},
+      "selective_accuracy":{"type":["number","null"],"minimum":0,"maximum":1},
+      "answered_brier_score":{"type":["number","null"],"minimum":0,"maximum":1},
+      "evidence_compliant_count":{"type":"integer","minimum":0},
+      "evidence_compliance_rate":{"type":["number","null"],"minimum":0,"maximum":1},
+      "hard_violation_count":{"type":"integer","minimum":0},"deadline_miss_count":{"type":"integer","minimum":0}
+    }
+  }}
+}
