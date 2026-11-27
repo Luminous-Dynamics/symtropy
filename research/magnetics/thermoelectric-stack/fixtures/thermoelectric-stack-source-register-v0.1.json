@@ -1,0 +1,44 @@
+{
+  "schema_version": "0.1",
+  "sources": [
+    {
+      "id": "IEEE-ACCESS-2026-EM-AM-REVIEW",
+      "citation": "Recent Advances in Additive Manufacturing for High-Power-Density Electrical Machines: A Topical Review of Winding Architectures, Integrated Cooling, and System-Level Technology Readiness",
+      "doi": "10.1109/ACCESS.2026.3726145",
+      "url": "https://doi.org/10.1109/ACCESS.2026.3726145",
+      "published": "2026-08-24",
+      "supports": ["AM winding opportunity", "integrated cooling", "system-level net-benefit boundary", "technology maturity caveats"],
+      "claim_ceiling": "review synthesis; not a matched performance experiment"
+    },
+    {
+      "id": "FODOR-2026-MATERIALS-DRIVEN-AM-EM",
+      "citation": "Materials-Driven Additive Manufacturing for Electrical Machines: Qualification-Oriented Design Beyond Geometric Freedom",
+      "doi": "10.1002/adem.71259",
+      "url": "https://doi.org/10.1002/adem.71259",
+      "published": "2026-09-09",
+      "supports": ["conductor conductivity and AC loss", "dielectric reliability", "coolant pressure drop and pump power", "leak tightness", "thermal cycles", "M1-M5 evidence maturity"],
+      "claim_ceiling": "perspective / evidence review; not a product performance comparison"
+    },
+    {
+      "id": "ISO-ASTM-52951-2026",
+      "title": "AM part data packages",
+      "url": "https://www.iso.org/standard/76828.html",
+      "published": "2026-06",
+      "scope_note": "PBF-LB/M-based requirements with generalized workflow requirements that can relate to other AM processes"
+    },
+    {
+      "id": "ISO-ASTM-52953-2025",
+      "title": "Registration of process-monitoring and quality-control data",
+      "url": "https://www.iso.org/standard/84117.html",
+      "published": "2025-08",
+      "scope_note": "metallic PBF-LB; registration requirements; not data cleansing, sensor calibration or image processing"
+    },
+    {
+      "id": "ISO-ASTM-52948-2026",
+      "title": "Classification of imperfections in metallic PBF",
+      "url": "https://www.iso.org/standard/84919.html",
+      "published": "2026-01",
+      "scope_note": "PBF-LB/PBF-EB imperfection classification; does not include acceptance criteria or dimensional scale"
+    }
+  ]
+}
