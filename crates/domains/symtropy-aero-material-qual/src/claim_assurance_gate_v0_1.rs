@@ -18,8 +18,8 @@ use super::model_credibility_cut_v0_1::{
 };
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
 use super::owner_evidence_cut_v0_1::{
-    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
-    OwnerEvidenceLifecycle, OwnerObserverCoverageStatus,
+    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness, OwnerEvidenceLifecycle,
+    OwnerObserverCoverageStatus,
 };
 use super::vector_watermark_v0_1::{CutAssessment, CutStatus};
 use serde::Serialize;
@@ -803,7 +803,10 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         model_credibility_sha256,
         model_ref: input.model_credibility_cut.model_ref.clone(),
         model_artifact_sha256: input.model_credibility_cut.model_artifact_sha256.clone(),
-        solver_configuration_sha256: input.model_credibility_cut.solver_configuration_sha256.clone(),
+        solver_configuration_sha256: input
+            .model_credibility_cut
+            .solver_configuration_sha256
+            .clone(),
         model_applicability_profile_sha256: input
             .model_credibility_cut
             .applicability_profile_sha256
@@ -812,8 +815,14 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
             .model_credibility_cut
             .risk_classification_sha256
             .clone(),
-        model_validation_package_sha256: input.model_credibility_cut.validation_package_sha256.clone(),
-        model_validation_protocol_sha256: input.model_credibility_cut.validation_protocol_sha256.clone(),
+        model_validation_package_sha256: input
+            .model_credibility_cut
+            .validation_package_sha256
+            .clone(),
+        model_validation_protocol_sha256: input
+            .model_credibility_cut
+            .validation_protocol_sha256
+            .clone(),
         model_confirmatory_manifest_sha256: input
             .model_credibility_cut
             .confirmatory_manifest_sha256
@@ -981,17 +990,13 @@ mod tests {
         }
     }
 
-    fn model_cut_for_context(
-        context: &DecisionContextV0_1,
-    ) -> ModelCredibilityCutV0_1 {
+    fn model_cut_for_context(context: &DecisionContextV0_1) -> ModelCredibilityCutV0_1 {
         let mut model = crate::model_credibility_cut_v0_1::tests::fixture();
         model.claim_id = context.claim_id.clone();
         model.configuration_ref = context.configuration_ref.clone();
         model.operating_envelope_ref = context.operating_envelope_ref.clone();
-        model.applicability_profile_sha256 =
-            context.model_applicability_profile_sha256.clone();
-        model.risk_classification_sha256 =
-            context.risk_classification_sha256.clone();
+        model.applicability_profile_sha256 = context.model_applicability_profile_sha256.clone();
+        model.risk_classification_sha256 = context.risk_classification_sha256.clone();
         model
     }
 
@@ -1021,7 +1026,10 @@ mod tests {
             component_packet_sha256: "2".repeat(64),
             component_packet_byte_length: 4096,
             artifact_payloads_verified: true,
-            evidence_records: refs.iter().map(|reference| owner_record(reference)).collect(),
+            evidence_records: refs
+                .iter()
+                .map(|reference| owner_record(reference))
+                .collect(),
             basalt_run_id: "basalt:run-001".to_owned(),
             basalt_report_version: 1,
             basalt_timeline_input_sha256: "3".repeat(64),
@@ -1048,18 +1056,25 @@ mod tests {
     fn decision_context_for_refs(evidence_refs: &[String]) -> DecisionContextV0_1 {
         let owner_cut = owner_cut_for_refs(evidence_refs, &"c".repeat(64));
         let mut context = context_template(evidence_refs);
-        context.evidence_knowledge_cut_sha256 =
-            owner_cut.compute_sha256().expect("owner evidence cut serializes");
+        context.evidence_knowledge_cut_sha256 = owner_cut
+            .compute_sha256()
+            .expect("owner evidence cut serializes");
         context
     }
 
     fn owner_cut_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> OwnerEvidenceCutV0_1 {
-        let refs = evidence.iter().map(|item| item.evidence_ref.clone()).collect::<Vec<_>>();
+        let refs = evidence
+            .iter()
+            .map(|item| item.evidence_ref.clone())
+            .collect::<Vec<_>>();
         owner_cut_for_refs(&refs, &"c".repeat(64))
     }
 
     fn context_for_evidence(evidence: &[RequiredEvidenceAdmission]) -> DecisionContextV0_1 {
-        let refs = evidence.iter().map(|item| item.evidence_ref.clone()).collect::<Vec<_>>();
+        let refs = evidence
+            .iter()
+            .map(|item| item.evidence_ref.clone())
+            .collect::<Vec<_>>();
         decision_context_for_refs(&refs)
     }
 
@@ -1675,9 +1690,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Unverified);
-        assert!(result.reason_codes.contains(
-            &"BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned())
+        );
     }
 
     #[test]
@@ -1693,9 +1710,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Unverified);
-        assert!(result.reason_codes.contains(
-            &"MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned())
+        );
     }
 
     #[test]
@@ -1714,15 +1733,21 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned()
-        ));
-        assert!(result.reason_codes.contains(
-            &"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()
-        ));
-        assert!(result.reason_codes.contains(
-            &"BASALT_EVIDENCE_REVERIFICATION_REQUIRED:receipt:inspection-01".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"BASALT_EVIDENCE_STALE_TRANSITIVE:receipt:inspection-01".to_owned())
+        );
+        assert!(
+            result.reason_codes.contains(
+                &"BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:receipt:inspection-01".to_owned()
+            )
+        );
+        assert!(
+            result.reason_codes.contains(
+                &"BASALT_EVIDENCE_REVERIFICATION_REQUIRED:receipt:inspection-01".to_owned()
+            )
+        );
     }
 
     #[test]
@@ -1758,9 +1783,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Incomplete);
-        assert!(result.reason_codes.contains(
-            &"OWNER_EVIDENCE_REFERENCE_NOT_IN_CUT:receipt:inspection-01".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_EVIDENCE_REFERENCE_NOT_IN_CUT:receipt:inspection-01".to_owned())
+        );
     }
 
     #[test]
@@ -1776,9 +1803,11 @@ mod tests {
             &wrong_subject,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_PHYSICAL_UNIT_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_PHYSICAL_UNIT_MISMATCH".to_owned())
+        );
 
         let mut wrong_configuration = owner_cut_for_evidence(&evidence);
         wrong_configuration.configuration_ref = "configuration:wing-r18".to_owned();
@@ -1790,9 +1819,11 @@ mod tests {
             &wrong_configuration,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_CONFIGURATION_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_CONFIGURATION_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1808,9 +1839,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -1826,9 +1859,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::OutOfScope);
-        assert!(result.reason_codes.contains(
-            &"BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned())
+        );
     }
 
     #[test]
@@ -1844,9 +1879,11 @@ mod tests {
             &owner_cut,
         );
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"OWNER_CUT_RECEIPT_WATERMARK_AFTER_CONTEXT_SNAPSHOT".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"OWNER_CUT_RECEIPT_WATERMARK_AFTER_CONTEXT_SNAPSHOT".to_owned())
+        );
     }
 
     #[test]
@@ -1888,9 +1925,11 @@ mod tests {
             required_evidence: &bound_evidence,
         });
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"MODEL_CONFIRMATORY_SPLIT_LEAKAGE".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MODEL_CONFIRMATORY_SPLIT_LEAKAGE".to_owned())
+        );
     }
 
     #[test]
@@ -1932,9 +1971,11 @@ mod tests {
             required_evidence: &bound_evidence,
         });
         assert_eq!(result.status, ClaimGateStatus::OutOfScope);
-        assert!(result.reason_codes.contains(
-            &"MODEL_CLAIM_OUTSIDE_VALIDATED_DOMAIN".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MODEL_CLAIM_OUTSIDE_VALIDATED_DOMAIN".to_owned())
+        );
     }
 
     #[test]
@@ -1975,9 +2016,11 @@ mod tests {
             required_evidence: &bound_evidence,
         });
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned())
+        );
     }
 
     #[test]
@@ -2007,9 +2050,11 @@ mod tests {
             required_evidence: &evidence,
         });
         assert_eq!(result.status, ClaimGateStatus::Rejected);
-        assert!(result.reason_codes.contains(
-            &"MODEL_CREDIBILITY_RISK_CLASSIFICATION_MISMATCH".to_owned()
-        ));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"MODEL_CREDIBILITY_RISK_CLASSIFICATION_MISMATCH".to_owned())
+        );
     }
 
     #[test]
