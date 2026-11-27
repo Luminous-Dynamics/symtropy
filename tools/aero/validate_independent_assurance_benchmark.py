@@ -147,6 +147,8 @@ def main() -> int:
             raise SystemExit(f"FAIL: unknown blocking obligation in {case['case_id']}")
         mandatory = [item for item in obligations if item["mandatory"]]
         disposition = case["expected_disposition"]
+        subject_effectivity = case["subject_time_effectivity"]
+
         if disposition == "REVIEWABLE_FOR_INDEPENDENT_DECISION":
             for item in mandatory:
                 if (
@@ -156,55 +158,112 @@ def main() -> int:
                     or item["temporal_knowledge"] not in {"KNOWN_AT_CUTOFF", "NOT_TEMPORAL"}
                     or item["observer_coverage"] not in {"COMPLETE", "NOT_APPLICABLE"}
                     or item["verification"] != "VERIFIED"
+                    or not item["evidence_refs"]
                 ):
                     raise SystemExit(
                         f"FAIL: reviewable fixture has a blocking axis in {case['case_id']}"
                     )
             if any(
-                item["status"] == "UNRESOLVED" and item["materiality"] == "BLOCKING"
+                item["status"] in {"UNRESOLVED", "CONFIRMED"}
+                and item["materiality"] == "BLOCKING"
                 for item in case["defeaters"]
             ):
-                raise SystemExit(f"FAIL: reviewable fixture has unresolved blocking defeater in {case['case_id']}")
+                raise SystemExit(
+                    f"FAIL: reviewable fixture has unresolved blocking defeater in {case['case_id']}"
+                )
+            if subject_effectivity != "DEFINITELY_EFFECTIVE":
+                raise SystemExit(
+                    f"FAIL: reviewable fixture has non-effective subject-time state in {case['case_id']}"
+                )
         elif disposition == "REJECTED":
-            if not any(
-                (item["hard_gate"] and (
-                    (item["proposition_evidence"] == "REFUTED_ONLY"
-                     and item["verification"] == "VERIFIED")
-                    or item["verification"] == "FAILED"
-                ))
-                or (item["authority"] == "DENIED" and item["verification"] == "VERIFIED")
+            has_verified_hard_blocker = any(
+                (
+                    item["hard_gate"]
+                    and (
+                        (
+                            item["proposition_evidence"] == "REFUTED_ONLY"
+                            and item["verification"] == "VERIFIED"
+                            and bool(item["evidence_refs"])
+                        )
+                        or (
+                            item["verification"] == "FAILED"
+                            and bool(item["evidence_refs"])
+                        )
+                    )
+                )
+                or (
+                    item["hard_gate"]
+                    and item["authority"] == "DENIED"
+                    and item["verification"] == "VERIFIED"
+                )
                 for item in mandatory
-            ) and case["subject_time_effectivity"] != "INVALID_INTERVAL":
-                raise SystemExit(f"FAIL: rejected fixture has no verified hard blocker in {case['case_id']}")
+            )
+            if not has_verified_hard_blocker and subject_effectivity != "INVALID_INTERVAL":
+                raise SystemExit(
+                    f"FAIL: rejected fixture has no verified hard blocker in {case['case_id']}"
+                )
         elif disposition == "OUT_OF_SCOPE":
-            if not any(item["applicability"] == "OUT_OF_SCOPE" for item in mandatory):
-                raise SystemExit(f"FAIL: out-of-scope fixture has no out-of-scope obligation in {case['case_id']}")
+            if not any(
+                item["applicability"] == "OUT_OF_SCOPE"
+                and item["verification"] == "VERIFIED"
+                for item in mandatory
+            ):
+                raise SystemExit(
+                    f"FAIL: out-of-scope fixture has no verified out-of-scope obligation in {case['case_id']}"
+                )
         elif disposition == "NOT_KNOWN_AT_SNAPSHOT":
-            if not any(item["temporal_knowledge"] == "NOT_KNOWN_AT_CUTOFF" for item in mandatory):
-                raise SystemExit(f"FAIL: historical fixture has no late evidence in {case['case_id']}")
+            if not any(
+                item["temporal_knowledge"] == "NOT_KNOWN_AT_CUTOFF"
+                for item in mandatory
+            ):
+                raise SystemExit(
+                    f"FAIL: historical fixture has no late evidence in {case['case_id']}"
+                )
         elif disposition == "UNVERIFIED":
             if not any(
-                item["authority"] == "UNKNOWN" or item["verification"] == "UNVERIFIED"
+                item["authority"] == "UNKNOWN"
+                or item["verification"] in {"UNVERIFIED", "NOT_RUN"}
                 for item in mandatory
             ):
-                raise SystemExit(f"FAIL: unverified fixture has no unverified axis in {case['case_id']}")
+                raise SystemExit(
+                    f"FAIL: unverified fixture has no unverified axis in {case['case_id']}"
+                )
         elif disposition == "NOT_EFFECTIVE_AT_SUBJECT_TIME":
-            if case["subject_time_effectivity"] != "DEFINITELY_NOT_YET_EFFECTIVE":
-                raise SystemExit(f"FAIL: subject-time disposition mismatch in {case['case_id']}")
-        if case["subject_time_effectivity"] == "INVALID_INTERVAL" and disposition != "REJECTED":
-            raise SystemExit(f"FAIL: invalid subject-time interval was not rejected in {case['case_id']}")
-        if case["subject_time_effectivity"] == "BOUNDARY_AMBIGUOUS" and disposition != "INCOMPLETE":
-            raise SystemExit(f"FAIL: ambiguous subject-time interval did not abstain in {case['case_id']}")
+            if subject_effectivity != "DEFINITELY_NOT_YET_EFFECTIVE":
+                raise SystemExit(
+                    f"FAIL: subject-time disposition mismatch in {case['case_id']}"
+                )
         elif disposition == "INCOMPLETE":
-            if not any(
+            has_incomplete_obligation = any(
                 item["proposition_evidence"] in {"NEITHER", "BOTH"}
+                or item["applicability"] == "UNKNOWN"
+                or item["temporal_knowledge"] == "TEMPORAL_CONFLICT"
                 or item["observer_coverage"] in {"UNKNOWN", "INCOMPLETE"}
+                or item["verification"] == "FAILED"
                 for item in mandatory
-            ) and not any(
-                item["status"] == "UNRESOLVED" and item["materiality"] == "BLOCKING"
+            )
+            has_blocking_defeater = any(
+                item["status"] in {"UNRESOLVED", "CONFIRMED"}
+                and item["materiality"] == "BLOCKING"
                 for item in case["defeaters"]
-            ) and case["subject_time_effectivity"] != "BOUNDARY_AMBIGUOUS":
-                raise SystemExit(f"FAIL: incomplete fixture has no missing/conflicting obligation in {case['case_id']}")
+            )
+            if not (
+                has_incomplete_obligation
+                or has_blocking_defeater
+                or subject_effectivity == "BOUNDARY_AMBIGUOUS"
+            ):
+                raise SystemExit(
+                    f"FAIL: incomplete fixture has no incomplete axis in {case['case_id']}"
+                )
+
+        if subject_effectivity == "INVALID_INTERVAL" and disposition != "REJECTED":
+            raise SystemExit(
+                f"FAIL: invalid subject-time interval was not rejected in {case['case_id']}"
+            )
+        if subject_effectivity == "BOUNDARY_AMBIGUOUS" and disposition != "INCOMPLETE":
+            raise SystemExit(
+                f"FAIL: ambiguous subject-time interval did not abstain in {case['case_id']}"
+            )
 
     print(
         "PASS: AERO IAB v0.3 structural validation "
