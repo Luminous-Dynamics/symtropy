@@ -178,6 +178,7 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
         input.residual_jacobian_cell_id.as_str(),
         input.coordinate_frame_id.as_str(),
         input.operating_condition_id.as_str(),
+        input.requirement_id.as_str(),
         input.solver_run_id.as_str(),
         input.field_unit.as_str(),
     ];
@@ -583,6 +584,17 @@ mod tests {
                 field: "measured_field_at_centre_t",
                 component: 1
             }
+        );
+    }
+
+    #[test]
+    fn functional_requirement_identity_is_required() {
+        let mut evidence = input();
+        evidence.requirement_id.clear();
+        assert_eq!(
+            certify_physical_field_discrepancy(&evidence)
+                .expect_err("functional requirement identity"),
+            DiscrepancyError::InvalidIdentity
         );
     }
 
