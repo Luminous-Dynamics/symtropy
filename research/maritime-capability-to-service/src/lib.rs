@@ -605,6 +605,13 @@ pub struct RecoveryRegretVector {
     pub requalification_actions_delta: i128,
 }
 
+const RECOVERY_UNITS_ERROR: &str =
+    "recovery outcome has inconsistent expected/accepted/on-time/unresolved units";
+const RECOVERY_TIME_ERROR: &str =
+    "recovery outcome has inconsistent minimum/full recovery times or horizon";
+const RECOVERY_CONTEXT_ERROR: &str =
+    "recovery regret comparison context does not match the frozen scenario and service obligation";
+
 fn validate_recovery_outcome(outcome: &RecoveryServiceOutcome) -> Result<(), String> {
     if outcome.instance_id.is_empty()
         || outcome.instance_version.is_empty()
@@ -619,12 +626,12 @@ fn validate_recovery_outcome(outcome: &RecoveryServiceOutcome) -> Result<(), Str
         || outcome.on_time_accepted_units > outcome.receiver_accepted_units
         || outcome.unresolved_units > outcome.expected_units - outcome.receiver_accepted_units
     {
-        return Err("recovery outcome has inconsistent expected/accepted/on-time/unresolved units".to_owned());
+        return Err(RECOVERY_UNITS_ERROR.to_owned());
     }
     if outcome.time_to_minimum_viable_service_day > outcome.time_to_full_service_day
         || outcome.time_to_full_service_day > outcome.horizon_day
     {
-        return Err("recovery outcome has inconsistent minimum/full recovery times or horizon".to_owned());
+        return Err(RECOVERY_TIME_ERROR.to_owned());
     }
     Ok(())
 }
@@ -643,10 +650,7 @@ pub fn compare_recovery_regret(
         || candidate.horizon_day != reference.horizon_day
         || candidate.expected_units != reference.expected_units
     {
-        return Err(
-            "recovery regret comparison context does not match the frozen scenario and service obligation"
-                .to_owned(),
-        );
+        return Err(RECOVERY_CONTEXT_ERROR.to_owned());
     }
 
     let candidate_late =
