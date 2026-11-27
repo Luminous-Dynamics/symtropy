@@ -204,10 +204,10 @@ fn build_service_case(owner: &OwnerReport) -> (String, BTreeMap<String, String>)
         // applied equally to every owner-feasible plan. They are not emitted by Mycelix
         // and must never be inferred from a FEASIBLE sourcing receipt.
         rows.push(format!(
-            "INSPECTION\\t{option_id}\\tPASS\\t10\\tREV-MPCB-001"
+            "INSPECTION\t{option_id}\tPASS\t10\tREV-MPCB-001"
         ));
         rows.push(format!(
-            "RECEIVER_ACCEPTANCE\\t{option_id}\\tACCEPTED\\t10\\tREV-MPCB-001"
+            "RECEIVER_ACCEPTANCE\t{option_id}\tACCEPTED\t10\tREV-MPCB-001"
         ));
         option_to_plan.insert(option_id, plan_id.clone());
     }
@@ -253,6 +253,8 @@ fn owner_capacity_receipt_is_composed_with_receiver_service_without_reoptimizing
     );
 
     let (service_case, option_to_plan) = build_service_case(&owner);
+    let receipt = run_audit(&service_case)
+        .expect("owner-feasible plans produce a canonical receiver-service receipt");
     assert_eq!(
         option_to_plan.len(),
         3,
