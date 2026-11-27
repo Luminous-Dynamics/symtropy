@@ -8,10 +8,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::kite::Gate;
-use crate::kite_oracle::{
-    AdverseEnvelope, DecisionContext, OutcomeDimension, OutcomeVector, adverse_envelope,
-    dominates,
-};
+use crate::kite_oracle::{AdverseEnvelope, DecisionContext, OutcomeVector, adverse_envelope};
 use crate::policy_tree::PolicyInformationSetKey;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -710,7 +707,9 @@ pub fn solve_extensive_form_r1(
         });
     }
 
-    let mut all_policies = Vec::with_capacity(candidate_policy_count as usize);
+    let policy_capacity = usize::try_from(candidate_policy_count)
+        .map_err(|_| "candidate policy count exceeds addressable memory capacity".to_owned())?;
+    let mut all_policies = Vec::with_capacity(policy_capacity);
     let mut choices = BTreeMap::new();
     enumerate(
         0,
