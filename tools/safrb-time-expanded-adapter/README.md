@@ -67,7 +67,7 @@ A certificate is only meaningful together with the exact profile used to interpr
 
 ### Tests and qualification
 
-The temporal tests cover cross-dock throughput above end-of-period storage, carried inventory bounded by storage, shared handling across parallel departures, route arrival ordering, zero-transit rejection, opening stock, overflow and expansion-budget checks, deterministic graph encoding, and mutations of receipt capacity and timebase. Existing adapter tests cover shared-pump aliases, stale evidence, half-open time intervals, and joint-versus-individual maxima.
+The temporal tests cover cross-dock throughput above end-of-period storage, carried inventory bounded by storage, shared handling across parallel departures, route arrival ordering, zero-transit rejection, opening-stock drawdown, overflow and expansion-budget checks, deterministic graph encoding, and mutations of receipt capacity and timebase. A 250-seed bounded multi-beneficiary corpus is checked against an exhaustive physical-quantity oracle that does not rebuild the compiled graph; every positive result also passes the independent temporal verifier. The corpus tests aggregate requested delivery only, not mandatory beneficiary floors or priority allocation. Existing adapter tests cover shared-pump aliases, stale evidence, half-open time intervals, and joint-versus-individual maxima.
 
 The Rust exact-head workflow is `.github/workflows/safrb-flow-rust.yml`. It pins the repository Rust toolchain and checks exact checkout, formatting, Clippy, Rust tests, and independent portable certificate conformance. A green run qualifies only the exact commit recorded by that run; later commits require fresh receipts. Repository tests do not establish evidence authenticity, legal access, physical asset qualification, dispatch authority, or actual beneficiary service.
 
@@ -76,6 +76,7 @@ The Rust exact-head workflow is `.github/workflows/safrb-flow-rust.yml`. It pins
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
 - [#7751](https://github.com/Luminous-Dynamics/symtropy/issues/7751): dynamic evidence-bound capacity windows, receipt admission modes, shared cross-node resources, and finer event ordering.
 - [#7710](https://github.com/Luminous-Dynamics/symtropy/issues/7710): independent min-cost-flow optimality certificates and LEMON/OR-Tools comparison.
+- [#7760](https://github.com/Luminous-Dynamics/symtropy/issues/7760): explicit beneficiary minimum floors, priority tiers and independent allocation feasibility.
 - [#7647](https://github.com/Luminous-Dynamics/symtropy/issues/7647): scale and resource-budget qualification.
 
 The solver comparison must use equivalent objectives, graph models, integer ranges, units, hardware and budgets. DIMACS Network Flows 2.0 instances and generators provide a shared basis; LEMON CostScaling/NetworkSimplex and OR-Tools are solver comparators, not a substitute for semantic validation. No SOTA performance advantage is claimed by this adapter or its current small conformance corpus.
