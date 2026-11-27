@@ -17,7 +17,8 @@
     "thresholds",
     "statistical_notes",
     "baselines",
-    "release_gates"
+    "release_gates",
+    "metric_definitions"
   ],
   "properties": {
     "schema": {
@@ -87,11 +88,13 @@
           "metric",
           "target",
           "unit",
-          "critical"
+          "critical",
+          "operator"
         ],
         "properties": {
           "metric": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
           },
           "target": {
             "type": "number"
@@ -101,6 +104,15 @@
           },
           "critical": {
             "type": "boolean"
+          },
+          "operator": {
+            "enum": [
+              "minimum",
+              "maximum"
+            ]
+          },
+          "applies_after": {
+            "type": "string"
           }
         }
       }
@@ -149,6 +161,75 @@
       "uniqueItems": true,
       "items": {
         "type": "string"
+      }
+    },
+    "metric_definitions": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "numerator",
+          "denominator",
+          "unit",
+          "optimization",
+          "population",
+          "independence_unit",
+          "gating",
+          "notes"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "numerator": {
+            "type": "string",
+            "minLength": 10
+          },
+          "denominator": {
+            "type": "string",
+            "minLength": 10
+          },
+          "unit": {
+            "enum": [
+              "proportion",
+              "ratio",
+              "normalized_utility_per_cost",
+              "seconds",
+              "minutes",
+              "currency"
+            ]
+          },
+          "optimization": {
+            "enum": [
+              "minimize",
+              "maximize"
+            ]
+          },
+          "population": {
+            "type": "string",
+            "minLength": 3
+          },
+          "independence_unit": {
+            "type": "string",
+            "minLength": 3
+          },
+          "gating": {
+            "enum": [
+              "hard_gate",
+              "qualification",
+              "economic",
+              "diagnostic"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "minLength": 10
+          }
+        }
       }
     }
   }
