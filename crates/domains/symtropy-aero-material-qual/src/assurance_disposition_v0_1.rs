@@ -286,11 +286,8 @@ fn nonempty_canonical(value: &str) -> bool {
 }
 
 fn valid_sha256_reference(value: &str) -> bool {
-    let Some(digest) = value.strip_prefix("sha256:") else {
-        return false;
-    };
-    digest.len() == 64
-        && digest
+    value.len() == 64
+        && value
             .bytes()
             .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
 }
@@ -633,7 +630,7 @@ mod tests {
                 configuration_ref: "CONFIG-A".to_owned(),
                 as_known_cutoff: "2026-11-01T00:00:00Z".to_owned(),
                 trust_policy_snapshot_digest:
-                    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
                         .to_owned(),
             },
             obligations: vec![
