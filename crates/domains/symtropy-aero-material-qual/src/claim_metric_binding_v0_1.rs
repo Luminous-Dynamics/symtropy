@@ -1234,6 +1234,14 @@ mod tests {
         let mut fixture = fixture();
         fixture.specification.validity.effective_until_unix_ms =
             fixture.context.acquisition_time_latest_unix_ms;
+        let payload = serde_json::to_vec(&fixture.specification).unwrap();
+        fixture.payload_sha256 = sha256_hex(&payload);
+        let semantic = fixture.specification.compute_semantic_sha256().unwrap();
+        fixture.binding.claim_specification_payload_sha256 = fixture.payload_sha256.clone();
+        fixture.binding.claim_specification_semantic_sha256 = semantic.clone();
+        fixture.context.claim_specification_sha256 = semantic;
+        fixture.binding.decision_context_sha256 =
+            fixture.context.compute_sha256().unwrap();
         let result = assess(&fixture);
         assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::OutOfScope);
     }
