@@ -747,3 +747,60 @@ The dataset card indicates code and dataset pages but its linked GitHub reposito
 ### 26.9 Claim ceiling
 
 MemAct is a recent arXiv paper and prepared mixed-rights dataset. Paper numbers are not independent reproduction results. Its Action lane is simulator-only and its fixed commands are not physical robot validation. The Timing lane is not a full memory/action-loop timing test.
+
+
+
+## 27. Statistical observability equivalence for stochastic sensors
+
+### 27.1 Deterministic and stochastic prefixes are different contracts
+
+- For deterministic render/replay fixtures such as ROOM-TWIN-01, require exact decoded-frame and candidate-transcript byte equality through the frozen decision cutoff. Do not replace a failed exact comparison with a post-hoc perceptual threshold.
+- For stochastic sensors or environments, byte equality is usually the wrong null: the same world can generate different noise realizations. The target becomes equivalence of a preregistered set of candidate-visible observables or distributions under controlled, matched acquisition conditions.
+- For each pair, report both observational equivalence and decision equivalence. Sensor indistinguishability does not automatically mean the same decision, and a decision-equivalent result does not establish a unique map.
+
+### 27.2 Equivalence is not failure to reject a difference
+
+A conventional non-significant difference test cannot establish that two observation processes are equivalent. Before any stochastic run, preregister:
+- the primary observable/statistic and any diagnostic observables;
+- lower and upper equivalence margins, in raw calibrated units where possible;
+- the margin's operational justification (sensor calibration/noise envelope, smallest consequential observation shift, or decision-loss threshold);
+- the independent sampling unit (scene, episode, recording session, sensor run or calibration block);
+- the paired/randomization design, nuisance factors, seed schedule and replicate policy;
+- alpha, confidence level, multiplicity family/adjustment and target power;
+- the analysis code, sample-size plan, raw-result retention and failure/exclusion rules.
+
+For a scalar estimand, use a two one-sided tests (TOST) equivalence test. With alpha 0.05, the corresponding 90% confidence interval must lie entirely inside the prespecified lower/upper equivalence bounds. Both one-sided tests must pass. A p-value above 0.05 on an ordinary difference test is **not** an equivalence result.
+
+For multivariate or distribution-valued observations (e.g. RGBD residuals, pose deltas, acoustic feature distributions), preregister a justified distance/statistic such as energy distance, MMD or Wasserstein distance and an upper equivalence threshold. Declare equivalence only when the uncertainty bound on that distance lies below the threshold under the frozen analysis. Do not choose embeddings, distance metrics, feature subsets or thresholds after inspecting the pair outcomes.
+
+Reference: Lakens, *Equivalence Tests: A Practical Primer for t Tests, Correlations, and Meta-Analyses* (2017), https://doi.org/10.1177/1948550617697177; Lakens et al., *Equivalence Testing for Psychological Research: A Tutorial* (2018), https://doi.org/10.1177/2515245918770963. Their TOST guidance explicitly warns against interpreting non-significance as evidence of no meaningful effect.
+
+### 27.3 Independent units, power and uncertainty
+
+Frames within a video, sensor samples within a run, and repeated actions within one episode are correlated. They are not independent samples. The independent unit must be the scene/session/episode/calibration block justified by the data-generating process; repeated frames are nested replicates.
+
+- Estimate sample size from the declared margins, variance/correlation structure and target power (minimum prospective target 0.90), not a fixed arbitrary frame count.
+- Use paired seeds/common random numbers where the same nuisance realization is valid across A/B; otherwise use independent but matched seed strata.
+- Bootstrap or otherwise estimate uncertainty at the independent-cluster level; never bootstrap individual frames as though independent.
+- Report number of independent clusters, within-cluster replicates, effective sample size, exclusions and failed acquisition attempts.
+- If the available cluster count cannot reach the registered power, return `UNDERPOWERED` / `NOT_EVALUATED`, not equivalent.
+- Correct or hierarchically control the declared multiplicity family. The two one-sided tests within one TOST are a single equivalence procedure; searching across many features, time cutoffs, view subsets or distances creates a separate multiplicity problem.
+
+### 27.4 First distinguishing observation under stochastic sensing
+
+For each pair, define the earliest availability tick at which the preregistered distinguishability criterion passes. Report:
+- false-split rate: claiming separability before the first valid distinguishing observation;
+- false-merge rate: failing to distinguish after the registered power and margin conditions are met;
+- time-to-distinguish / observations-to-distinguish;
+- probability of detection at registered effect sizes and false alarm rate under equivalent controls;
+- decision-partition agreement and worst-case regret after the split;
+- robustness across scene/session clusters and sensor-noise strata.
+
+Do not label one lucky noisy frame as the first distinguishing observation. The criterion must pass the registered evidence threshold and retain its uncertainty/power statement.
+
+### 27.5 Registry promotion contract
+
+The world-pair schema now permits `distributionally_equivalent` only with an evaluator-side `equivalence_evidence` record: method/statistic, margins, alpha/confidence, power, independent-unit and cluster counts, replicate policy, paired design/seed digest, preregistration plan, sample-size plan, raw results, analysis implementation and multiplicity rule. The exact-head CI rejects a distributional promotion without this record. A `byte_exact` deterministic prefix instead requires no statistical equivalence record.
+
+All nine existing world pairs remain `unbound`; the schema capability is not evidence that any real sensor pair has passed.
+
