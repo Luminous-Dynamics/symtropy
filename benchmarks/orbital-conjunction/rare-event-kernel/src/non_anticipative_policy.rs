@@ -972,25 +972,37 @@ mod tests {
     }
 
     #[test]
-    fn future_observations_do_not_change_the_current_policy_history() {
-        let before = vec![measurement(7, 1, 1, 50, 101)];
-        let after = vec![
-            measurement(7, 1, 1, 50, 101),
-            measurement(7, 2, 3, 90, 102),
-        ];
-        let visible_before = before
-            .iter()
-            .filter(|measurement| measurement.available_at_epoch <= 2)
-            .copied()
-            .collect::<Vec<_>>();
-        let visible_after = after
-            .iter()
-            .filter(|measurement| measurement.available_at_epoch <= 2)
-            .copied()
-            .collect::<Vec<_>>();
+    fn future_observations_do_not_change_the_current_policy_action() {
+        let mut traces = complete_traces(false);
+        traces[1].measurements.push(measurement(7, 2, 3, 90, 102));
+        traces[1].measurements.sort_unstable_by_key(|measurement| {
+            (
+                measurement.available_at_epoch,
+                measurement.sensor_id,
+                measurement.sample_sequence,
+            )
+        });
+        traces[1].observation_inventory_digest =
+            digest_observation_inventory(&traces[1].measurements);
+        let plan = NonAnticipativePolicyPlan {
+            policy_id: [194; 32],
+            policy_code_digest: [195; 32],
+            nodes: vec![policy_node(&traces[0].measurements, PORTFOLIO_A)],
+        };
+        let report = campaign().evaluate(&plan, &traces).unwrap();
+        assert!(
+            report
+                .world_decisions
+                .iter()
+                .all(|decision| decision.selected_portfolio_id == PORTFOLIO_A)
+        );
         assert_eq!(
-            digest_observable_history(2, &visible_before),
-            digest_observable_history(2, &visible_after)
+            report
+                .world_decisions
+                .iter()
+                .filter(|decision| decision.future_measurement_count > 0)
+                .count(),
+            1
         );
     }
 
@@ -1031,6 +1043,31 @@ mod tests {
         assert_eq!(
             campaign().evaluate(&plan, &traces),
             Err(NonAnticipativePolicyError::DuplicateOrInvalidPolicyBranch)
+        );
+    }
+
+    #[test]
+    fn policy_cannot_add_a_branch_for_a_hidden_world_without_an_observable_history() {
+        let traces = complete_traces(false);
+        let digest = policy_node(&traces[0].measurements, PORTFOLIO_A)
+            .observable_history_digest;
+        let plan = NonAnticipativePolicyPlan {
+            policy_id: [196; 32],
+            policy_code_digest: [197; 32],
+            nodes: vec![
+                NonAnticipativePolicyNode {
+                    observable_history_digest: digest,
+                    selected_portfolio_id: PORTFOLIO_A,
+                },
+                NonAnticipativePolicyNode {
+                    observable_history_digest: [198; 32],
+                    selected_portfolio_id: PORTFOLIO_C,
+                },
+            ],
+        };
+        assert_eq!(
+            campaign().evaluate(&plan, &traces),
+            Err(NonAnticipativePolicyError::UnusedPolicyBranch)
         );
     }
 
@@ -1087,6 +1124,24 @@ mod tests {
         assert_eq!(
             campaign().evaluate(&plan, &traces),
             Err(NonAnticipativePolicyError::ObservationInventoryDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn missing_world_trace_is_not_interpreted_as_a_safe_policy_result() {
+        let mut traces = complete_traces(false);
+        traces.pop();
+        let plan = NonAnticipativePolicyPlan {
+            policy_id: [199; 32],
+            policy_code_digest: [200; 32],
+            nodes: vec![policy_node(
+                &complete_traces(false)[0].measurements,
+                PORTFOLIO_A,
+            )],
+        };
+        assert_eq!(
+            campaign().evaluate(&plan, &traces),
+            Err(NonAnticipativePolicyError::IncompleteWorldObservationMatrix)
         );
     }
 
