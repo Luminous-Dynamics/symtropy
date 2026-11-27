@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-assurance-capsule-challenge-v0.1.schema.json",
+  "title": "AERO Assurance Capsule Structural Challenge Seed v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "corpus_id",
+    "oracle_status",
+    "execution_status",
+    "cases"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroAssuranceCapsuleChallengeV0_1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "oracle_status": {
+      "const": "NOT_INDEPENDENTLY_REVIEWED"
+    },
+    "execution_status": {
+      "const": "NOT_EXECUTED"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 24,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "case_class",
+          "mutation",
+          "expected_validator_result",
+          "expected_reason_codes"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_-]+$"
+          },
+          "case_class": {
+            "enum": [
+              "positive_control",
+              "single_fault",
+              "coupled_fault",
+              "metamorphic"
+            ]
+          },
+          "mutation": {
+            "type": "string",
+            "minLength": 10
+          },
+          "expected_validator_result": {
+            "enum": [
+              "STRUCTURALLY_VALID",
+              "INCOMPLETE",
+              "REJECTED",
+              "UNVERIFIED",
+              "NOT_KNOWN_AT_SNAPSHOT",
+              "OUT_OF_SCOPE"
+            ]
+          },
+          "expected_reason_codes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,802 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-assurance-capsule-v0.1.schema.json",
+  "title": "AERO Portable Assurance Capsule v0.1",
+  "description": "A portable, evidence-governed engineering assurance-case report. Structural validity does not establish argument soundness, evidence authenticity or physical truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "capsule_id",
+    "capsule_version",
+    "created_at_unix_ms",
+    "canonicalization_profile",
+    "claim_context",
+    "claim",
+    "argument_graph",
+    "evidence_manifest",
+    "component_results",
+    "decision",
+    "verifier_manifest",
+    "reproduction",
+    "disclosure",
+    "limitations",
+    "non_claims",
+    "detached_integrity"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroPortableAssuranceCapsuleV0_1"
+    },
+    "capsule_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "capsule_version": {
+      "const": "0.1"
+    },
+    "created_at_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "canonicalization_profile": {
+      "const": "RFC8785_JCS"
+    },
+    "claim_context": {
+      "$ref": "#/$defs/claimContext"
+    },
+    "claim": {
+      "$ref": "#/$defs/claim"
+    },
+    "argument_graph": {
+      "$ref": "#/$defs/argumentGraph"
+    },
+    "evidence_manifest": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidence"
+      },
+      "minItems": 1
+    },
+    "component_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/componentResult"
+      },
+      "minItems": 1
+    },
+    "decision": {
+      "$ref": "#/$defs/decision"
+    },
+    "verifier_manifest": {
+      "$ref": "#/$defs/verifier"
+    },
+    "reproduction": {
+      "$ref": "#/$defs/reproduction"
+    },
+    "disclosure": {
+      "$ref": "#/$defs/disclosure"
+    },
+    "limitations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "non_claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "physical_truth_established",
+        "engineering_acceptance_granted",
+        "execution_authority_granted",
+        "certification_granted"
+      ],
+      "properties": {
+        "physical_truth_established": {
+          "const": false
+        },
+        "engineering_acceptance_granted": {
+          "const": false
+        },
+        "execution_authority_granted": {
+          "const": false
+        },
+        "certification_granted": {
+          "const": false
+        }
+      }
+    },
+    "detached_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_envelope_id",
+        "detached_receipt_ref",
+        "detached_receipt_locator",
+        "digest_algorithm",
+        "signature_verification_owner"
+      ],
+      "properties": {
+        "package_envelope_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "detached_receipt_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "detached_receipt_locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest_algorithm": {
+          "const": "SHA-256"
+        },
+        "signature_verification_owner": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9:._/-]+$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timeInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "earliest_unix_ms",
+        "latest_unix_ms"
+      ],
+      "properties": {
+        "earliest_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latest_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "claimContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "subject_ref",
+        "configuration_ref",
+        "operating_envelope_ref",
+        "intended_use_ref",
+        "specification_payload_sha256",
+        "specification_semantic_sha256",
+        "decision_context_sha256",
+        "acquisition_interval",
+        "as_known_at_unix_ms",
+        "trust_policy_sha256",
+        "model_applicability_profile_sha256"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "subject_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "configuration_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "operating_envelope_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "intended_use_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "specification_payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "specification_semantic_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "decision_context_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "acquisition_interval": {
+          "$ref": "#/$defs/timeInterval"
+        },
+        "as_known_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "trust_policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_applicability_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_ref",
+        "proposition",
+        "property_kind",
+        "normative_specification_ref",
+        "normative_specification_sha256",
+        "claim_boundary",
+        "claim_authority_role_ref"
+      ],
+      "properties": {
+        "claim_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "proposition": {
+          "type": "string",
+          "minLength": 20
+        },
+        "property_kind": {
+          "enum": [
+            "safety",
+            "structural_strength",
+            "fatigue",
+            "performance",
+            "reliability",
+            "maintainability",
+            "security",
+            "environmental",
+            "other"
+          ]
+        },
+        "normative_specification_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "normative_specification_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "claim_boundary": {
+          "type": "string",
+          "minLength": 20
+        },
+        "claim_authority_role_ref": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "argumentGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "graph_id",
+        "root_node_id",
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "graph_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "root_node_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/argumentNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/argumentEdge"
+          }
+        }
+      }
+    },
+    "argumentNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_kind",
+        "statement",
+        "status",
+        "reason_codes",
+        "limitations"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "node_kind": {
+          "enum": [
+            "claim",
+            "strategy",
+            "context",
+            "assumption",
+            "evidence",
+            "defeater",
+            "rebuttal",
+            "judgement"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 10
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "not_supported",
+            "indeterminate",
+            "not_assessed",
+            "defeated",
+            "superseded"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "evidence_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "argumentEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_node_id",
+        "to_node_id",
+        "relation"
+      ],
+      "properties": {
+        "from_node_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "to_node_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "relation": {
+          "enum": [
+            "decomposes",
+            "supports",
+            "contextualizes",
+            "assumes",
+            "evidenced_by",
+            "attacks",
+            "rebuts",
+            "qualifies"
+          ]
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "owner_namespace",
+        "evidence_role",
+        "raw_payload_sha256",
+        "owner_record_sha256",
+        "media_type",
+        "byte_length",
+        "availability",
+        "receiver_first_seen_interval",
+        "owner_receipt_ref",
+        "owner_receipt_sha256",
+        "required_for_claim"
+      ],
+      "properties": {
+        "evidence_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_namespace": {
+          "$ref": "#/$defs/identifier"
+        },
+        "evidence_role": {
+          "enum": [
+            "claim_specification",
+            "model_report",
+            "metric_semantics",
+            "physical_inspection",
+            "physical_test",
+            "material_record",
+            "calibration",
+            "producer_authority",
+            "semantic_validation",
+            "receiver_first_seen",
+            "trust_policy",
+            "other"
+          ]
+        },
+        "raw_payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "owner_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 3
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "availability": {
+          "enum": [
+            "included",
+            "authorized_access_required",
+            "digest_only",
+            "withheld",
+            "unavailable"
+          ]
+        },
+        "storage_locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receiver_first_seen_interval": {
+          "$ref": "#/$defs/timeInterval"
+        },
+        "owner_receipt_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "required_for_claim": {
+          "type": "boolean"
+        },
+        "redaction_note": {
+          "type": "string"
+        }
+      }
+    },
+    "componentResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "component_id",
+        "owner_namespace",
+        "component_kind",
+        "disposition",
+        "reason_codes",
+        "input_sha256",
+        "output_sha256",
+        "receipt_ref",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "component_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "owner_namespace": {
+          "$ref": "#/$defs/identifier"
+        },
+        "component_kind": {
+          "enum": [
+            "specification",
+            "model_credibility",
+            "claim_metric_binding",
+            "owner_evidence",
+            "trust_authority",
+            "observer_coverage",
+            "temporal_replay",
+            "change_impact",
+            "independent_review",
+            "other"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "reviewable_for_independent_decision",
+            "semantics_bound",
+            "incomplete",
+            "unverified",
+            "rejected",
+            "out_of_scope",
+            "not_known_at_snapshot",
+            "unsupported_profile"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "input_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "output_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "receipt_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "reason_codes",
+        "evaluated_at_unix_ms",
+        "decision_record_ref",
+        "decision_record_sha256"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "reviewable_for_independent_decision",
+            "incomplete",
+            "unverified",
+            "rejected",
+            "out_of_scope",
+            "not_known_at_snapshot",
+            "unsupported_profile"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "evaluated_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "decision_record_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "decision_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verifier_id",
+        "version",
+        "source_commit",
+        "source_tree_sha256",
+        "build_artifact_sha256",
+        "dependency_lock_sha256",
+        "invocation",
+        "runtime",
+        "network_policy",
+        "input_manifest_sha256",
+        "output_manifest_sha256",
+        "execution_receipt_ref",
+        "execution_receipt_sha256"
+      ],
+      "properties": {
+        "verifier_id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit": {
+          "type": "string",
+          "minLength": 7
+        },
+        "source_tree_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "build_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "dependency_lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "invocation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "runtime": {
+          "type": "string",
+          "minLength": 5
+        },
+        "network_policy": {
+          "enum": [
+            "hermetic_no_network",
+            "pinned_external_dependencies",
+            "network_required_unqualified"
+          ]
+        },
+        "input_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "output_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "execution_receipt_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "execution_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "reproduction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "required_evidence_refs",
+        "included_evidence_refs",
+        "verification_steps",
+        "expected_decision_record_sha256",
+        "unresolved_prerequisites",
+        "independent_replay_status"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "fully_reproducible",
+            "digest_only",
+            "authorized_access_required",
+            "incomplete"
+          ]
+        },
+        "required_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "included_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "verification_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 10
+          }
+        },
+        "expected_decision_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "unresolved_prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "independent_replay_status": {
+          "enum": [
+            "not_attempted",
+            "reproduced",
+            "disagreed",
+            "blocked"
+          ]
+        }
+      }
+    },
+    "disclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "policy_ref",
+        "redacted_evidence_refs",
+        "authorized_access_requirements"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "public",
+            "restricted",
+            "redacted",
+            "authorized_access_only"
+          ]
+        },
+        "policy_ref": {
+          "$ref": "#/$defs/identifier"
+        },
+        "redacted_evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "authorized_access_requirements": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "reproduction": {
+            "properties": {
+              "classification": {
+                "const": "fully_reproducible"
+              }
+            },
+            "required": [
+              "classification"
+            ]
+          }
+        },
+        "required": [
+          "reproduction"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reproduction": {
+            "properties": {
+              "unresolved_prerequisites": {
+                "maxItems": 0
+              },
+              "independent_replay_status": {
+                "enum": [
+                  "not_attempted",
+                  "reproduced"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

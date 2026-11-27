@@ -1,0 +1,417 @@
+{
+  "schema": "AeroPortableAssuranceCapsuleV0_1",
+  "capsule_id": "aero:capsule:synthetic-wing-panel-strength-001",
+  "capsule_version": "0.1",
+  "created_at_unix_ms": 1795781000000,
+  "canonicalization_profile": "RFC8785_JCS",
+  "claim_context": {
+    "claim_id": "claim-wing-panel-001",
+    "subject_ref": "part:wing-panel-001",
+    "configuration_ref": "configuration:wing-r17",
+    "operating_envelope_ref": "envelope:transport-normal",
+    "intended_use_ref": "intended-use:structural-strength-screening",
+    "specification_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "specification_semantic_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "decision_context_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "acquisition_interval": {
+      "earliest_unix_ms": 1795514399900,
+      "latest_unix_ms": 1795514400100
+    },
+    "as_known_at_unix_ms": 1795516800000,
+    "trust_policy_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "model_applicability_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "claim": {
+    "claim_ref": "claim:wing-panel-strength",
+    "proposition": "The synthetic wing-panel configuration satisfies the declared maximum-principal-stress predicate within the stated operating envelope.",
+    "property_kind": "structural_strength",
+    "normative_specification_ref": "aero:claim-spec:wing-panel-strength-001",
+    "normative_specification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "claim_boundary": "This capsule demonstrates the evidence and argument structure only; it contains no actual aircraft article qualification.",
+    "claim_authority_role_ref": "authority-role:independent-structural-review"
+  },
+  "argument_graph": {
+    "graph_id": "argument:wing-panel-strength-001",
+    "root_node_id": "node:root-claim",
+    "nodes": [
+      {
+        "node_id": "node:root-claim",
+        "node_kind": "claim",
+        "statement": "The declared wing-panel strength claim is suitable for independent engineering review.",
+        "status": "indeterminate",
+        "reason_codes": [
+          "SYNTHETIC_EVIDENCE_ONLY"
+        ],
+        "limitations": [
+          "The capsule is synthetic and has no physical qualification authority."
+        ]
+      },
+      {
+        "node_id": "node:strategy",
+        "node_kind": "strategy",
+        "statement": "Decompose the claim into identity, model credibility, physical evidence, owner authority and temporal completeness subclaims.",
+        "status": "supported",
+        "reason_codes": [],
+        "limitations": []
+      },
+      {
+        "node_id": "node:context",
+        "node_kind": "context",
+        "statement": "The subject, configuration, operating envelope, intended use and acquisition interval are fixed by the decision context.",
+        "status": "supported",
+        "reason_codes": [],
+        "limitations": []
+      },
+      {
+        "node_id": "node:assumption",
+        "node_kind": "assumption",
+        "statement": "The synthetic population manifest is complete for the purpose of schema and graph validation only.",
+        "status": "not_assessed",
+        "reason_codes": [
+          "SYNTHETIC_ASSUMPTION_NOT_PHYSICALLY_VERIFIED"
+        ],
+        "limitations": [
+          "Population completeness is not established by this example."
+        ]
+      },
+      {
+        "node_id": "node:model",
+        "node_kind": "evidence",
+        "statement": "The model report and its metric/stratum links are represented by synthetic receipt placeholders.",
+        "status": "not_assessed",
+        "reason_codes": [
+          "MODEL_EVIDENCE_NOT_AUTHENTICATED"
+        ],
+        "evidence_ref": "evidence:model-report",
+        "owner_ref": "owner:aeroweift",
+        "limitations": [
+          "No actual AeroWeft report bytes or producer signature are supplied."
+        ]
+      },
+      {
+        "node_id": "node:owner",
+        "node_kind": "evidence",
+        "statement": "The owner evidence cut and receiver-time receipts are placeholders for synthetic schema testing.",
+        "status": "not_assessed",
+        "reason_codes": [
+          "OWNER_RECEIPTS_NOT_AUTHENTICATED"
+        ],
+        "evidence_ref": "evidence:owner-receipts",
+        "owner_ref": "owner:mycelix",
+        "limitations": [
+          "No owner-native trust verification was performed."
+        ]
+      },
+      {
+        "node_id": "node:defeater",
+        "node_kind": "defeater",
+        "statement": "A different measurand or configuration could invalidate the model report mapping.",
+        "status": "indeterminate",
+        "reason_codes": [
+          "SEMANTIC_MAPPING_REQUIRES_OWNER_REVIEW"
+        ],
+        "limitations": [
+          "The example does not establish semantic equivalence."
+        ]
+      },
+      {
+        "node_id": "node:rebuttal",
+        "node_kind": "rebuttal",
+        "statement": "The explicit metric mapping and exact context digests make the proposed substitution detectable when actual owner artifacts are admitted.",
+        "status": "not_assessed",
+        "reason_codes": [
+          "REBUTTAL_NOT_INDEPENDENTLY_REVIEWED"
+        ],
+        "limitations": [
+          "No independent rebuttal review has occurred."
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from_node_id": "node:root-claim",
+        "to_node_id": "node:strategy",
+        "relation": "decomposes"
+      },
+      {
+        "from_node_id": "node:strategy",
+        "to_node_id": "node:context",
+        "relation": "supports"
+      },
+      {
+        "from_node_id": "node:strategy",
+        "to_node_id": "node:assumption",
+        "relation": "assumes"
+      },
+      {
+        "from_node_id": "node:strategy",
+        "to_node_id": "node:model",
+        "relation": "evidenced_by"
+      },
+      {
+        "from_node_id": "node:strategy",
+        "to_node_id": "node:owner",
+        "relation": "evidenced_by"
+      },
+      {
+        "from_node_id": "node:defeater",
+        "to_node_id": "node:root-claim",
+        "relation": "attacks"
+      },
+      {
+        "from_node_id": "node:rebuttal",
+        "to_node_id": "node:defeater",
+        "relation": "rebuts"
+      }
+    ]
+  },
+  "evidence_manifest": [
+    {
+      "evidence_ref": "evidence:model-report",
+      "owner_namespace": "aeroweift:owner",
+      "evidence_role": "model_report",
+      "raw_payload_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "owner_record_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "media_type": "application/json",
+      "byte_length": 1024,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:model-owner",
+      "owner_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "required_for_claim": true
+    },
+    {
+      "evidence_ref": "evidence:owner-receipts",
+      "owner_namespace": "mycelix:aerocommons",
+      "evidence_role": "producer_authority",
+      "raw_payload_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "owner_record_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "media_type": "application/json",
+      "byte_length": 2048,
+      "availability": "authorized_access_required",
+      "storage_locator": "owner://mycelix/aerocommons/receipt-set/001",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-cut",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true
+    },
+    {
+      "evidence_ref": "receipt:spec-check",
+      "owner_namespace": "aero:specification-validator",
+      "evidence_role": "semantic_validation",
+      "raw_payload_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "owner_record_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "receipt:binding",
+      "owner_namespace": "aero:claim-metric-binding",
+      "evidence_role": "semantic_validation",
+      "raw_payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "owner_record_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "receipt:trust",
+      "owner_namespace": "mycelix:aerocommons",
+      "evidence_role": "producer_authority",
+      "raw_payload_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "owner_record_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "receipt:verifier-execution",
+      "owner_namespace": "aero:verifier",
+      "evidence_role": "other",
+      "raw_payload_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "owner_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    },
+    {
+      "evidence_ref": "decision:aero-capsule-synthetic-001",
+      "owner_namespace": "aero:decision-recorder",
+      "evidence_role": "other",
+      "raw_payload_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "owner_record_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "media_type": "application/json",
+      "byte_length": 512,
+      "availability": "digest_only",
+      "receiver_first_seen_interval": {
+        "earliest_unix_ms": 1795516500000,
+        "latest_unix_ms": 1795516600000
+      },
+      "owner_receipt_ref": "receipt:owner-manifest",
+      "owner_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "required_for_claim": true,
+      "redaction_note": "Synthetic placeholder; source bytes are not included."
+    }
+  ],
+  "component_results": [
+    {
+      "component_id": "component:specification",
+      "owner_namespace": "aero:specification-validator",
+      "component_kind": "specification",
+      "disposition": "incomplete",
+      "reason_codes": [
+        "SYNTHETIC_FIXTURE_ONLY"
+      ],
+      "input_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "output_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "receipt_ref": "receipt:spec-check",
+      "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+    },
+    {
+      "component_id": "component:model-binding",
+      "owner_namespace": "aero:claim-metric-binding",
+      "component_kind": "claim_metric_binding",
+      "disposition": "unverified",
+      "reason_codes": [
+        "OWNER_SIGNATURE_NOT_VERIFIED"
+      ],
+      "input_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "output_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "receipt_ref": "receipt:binding",
+      "receipt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "component_id": "component:owner-trust",
+      "owner_namespace": "mycelix:aerocommons",
+      "component_kind": "trust_authority",
+      "disposition": "unverified",
+      "reason_codes": [
+        "SYNTHETIC_RECEIPT_PLACEHOLDER"
+      ],
+      "input_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "output_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "receipt_ref": "receipt:trust",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ],
+  "decision": {
+    "disposition": "unverified",
+    "reason_codes": [
+      "SYNTHETIC_EVIDENCE_ONLY",
+      "OWNER_SIGNATURE_NOT_VERIFIED",
+      "PHYSICAL_TRUTH_NOT_ESTABLISHED"
+    ],
+    "evaluated_at_unix_ms": 1795781000000,
+    "decision_record_ref": "decision:aero-capsule-synthetic-001",
+    "decision_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "verifier_manifest": {
+    "verifier_id": "aero:verifier:schema-and-graph-check",
+    "version": "0.1.0",
+    "source_commit": "0123456789abcdef0123456789abcdef01234567",
+    "source_tree_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "build_artifact_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "dependency_lock_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "invocation": [
+      "aero-capsule-validator",
+      "--input",
+      "capsule.json",
+      "--offline"
+    ],
+    "runtime": "Rust 1.96.0 / Linux x86_64",
+    "network_policy": "hermetic_no_network",
+    "input_manifest_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "output_manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "execution_receipt_ref": "receipt:verifier-execution",
+    "execution_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "reproduction": {
+    "classification": "authorized_access_required",
+    "required_evidence_refs": [
+      "evidence:model-report",
+      "evidence:owner-receipts",
+      "receipt:spec-check",
+      "receipt:binding",
+      "receipt:trust",
+      "receipt:verifier-execution",
+      "decision:aero-capsule-synthetic-001"
+    ],
+    "included_evidence_refs": [],
+    "verification_steps": [
+      "Verify exact capsule and evidence-manifest source bytes against detached receipt references.",
+      "Resolve owner-native evidence bytes only under the declared authorization policy.",
+      "Verify owner receipt signatures and trust-policy snapshots with the owner trust verifier.",
+      "Re-run the pinned verifier in a no-network environment and compare the decision record digest."
+    ],
+    "expected_decision_record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "unresolved_prerequisites": [
+      "Owner access to model-report bytes and native receipts is not supplied in this synthetic example."
+    ],
+    "independent_replay_status": "not_attempted"
+  },
+  "disclosure": {
+    "classification": "authorized_access_only",
+    "policy_ref": "policy:synthetic-owner-disclosure",
+    "redacted_evidence_refs": [],
+    "authorized_access_requirements": [
+      "This example uses placeholders only; real owner records require authorization from their owning organization."
+    ]
+  },
+  "limitations": [
+    "Synthetic example only; none of the referenced report or receipt digests resolve to physical engineering evidence.",
+    "The argument graph expresses review structure but does not prove that the engineering proposition is true or that the argument is sound.",
+    "The in-capsule canonicalization profile describes content serialization; the exact capsule-byte digest and signature must be carried by a detached owner receipt to avoid self-referential hashing."
+  ],
+  "non_claims": {
+    "physical_truth_established": false,
+    "engineering_acceptance_granted": false,
+    "execution_authority_granted": false,
+    "certification_granted": false
+  },
+  "detached_integrity": {
+    "package_envelope_id": "package-envelope:aero-capsule-synthetic-001",
+    "detached_receipt_ref": "receipt:capsule-detached-package",
+    "detached_receipt_locator": "authorized-package://aero/capsules/synthetic-wing-panel-strength-001/integrity-envelope.json",
+    "digest_algorithm": "SHA-256",
+    "signature_verification_owner": "owner:mycelix-aerocommons"
+  }
+}
