@@ -197,7 +197,9 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
     let mut global_blockers = validate_candidate(candidate);
     let mut receipt_counts = BTreeMap::<&str, usize>::new();
     for receipt in receipts {
-        *receipt_counts.entry(receipt.evidence_id.as_str()).or_default() += 1;
+        *receipt_counts
+            .entry(receipt.evidence_id.as_str())
+            .or_default() += 1;
     }
 
     let mut valid_receipts = Vec::new();
@@ -205,7 +207,12 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
     let mut evidence_by_id = BTreeMap::new();
     for receipt in receipts {
         let mut blockers = validate_receipt(candidate, receipt);
-        if receipt_counts.get(receipt.evidence_id.as_str()).copied().unwrap_or(0) > 1 {
+        if receipt_counts
+            .get(receipt.evidence_id.as_str())
+            .copied()
+            .unwrap_or(0)
+            > 1
+        {
             blockers.push(Blocker::DuplicateEvidenceId);
         }
         if !blockers.is_empty() {
@@ -242,7 +249,9 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                 && receipt.specimen_id.is_some()
                 && receipt.material_lot_id.is_some()
                 && receipt.measurands.contains(&"remanence_br".to_string())
-                && receipt.measurands.contains(&"intrinsic_coercivity_hcj".to_string())
+                && receipt
+                    .measurands
+                    .contains(&"intrinsic_coercivity_hcj".to_string())
                 && method_evidence_complete(receipt)
         })
         .collect::<Vec<_>>();
@@ -270,7 +279,9 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                 && receipt.specimen_id.is_some()
                 && receipt.material_lot_id.is_some()
                 && receipt.measurands.contains(&"phase".to_string())
-                && receipt.measurands.contains(&"texture_orientation".to_string())
+                && receipt
+                    .measurands
+                    .contains(&"texture_orientation".to_string())
                 && receipt.measurands.contains(&"porosity_defects".to_string())
                 && method_evidence_complete(receipt)
         })
@@ -280,7 +291,10 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         .filter(|receipt| {
             receipt.class == EvidenceClass::ProductionRecord
                 && receipt.linked_evidence_ids.len() == 3
-                && receipt.linked_evidence_ids.iter().all(|id| evidence_by_id.contains_key(id.as_str()))
+                && receipt
+                    .linked_evidence_ids
+                    .iter()
+                    .all(|id| evidence_by_id.contains_key(id.as_str()))
         })
         .collect::<Vec<_>>();
     let m3_lab_scope_ok = microstructure
@@ -296,13 +310,19 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         && m3_lab_scope_ok
         && links.iter().any(|link| {
             let linked_process = link.linked_evidence_ids.iter().find_map(|id| {
-                process_records.iter().find(|receipt| receipt.evidence_id == *id)
+                process_records
+                    .iter()
+                    .find(|receipt| receipt.evidence_id == *id)
             });
             let linked_microstructure = link.linked_evidence_ids.iter().find_map(|id| {
-                microstructure.iter().find(|receipt| receipt.evidence_id == *id)
+                microstructure
+                    .iter()
+                    .find(|receipt| receipt.evidence_id == *id)
             });
             let linked_property = link.linked_evidence_ids.iter().find_map(|id| {
-                m2_measurements.iter().find(|receipt| receipt.evidence_id == *id)
+                m2_measurements
+                    .iter()
+                    .find(|receipt| receipt.evidence_id == *id)
             });
             matches!(
                 (linked_process, linked_microstructure, linked_property),
@@ -355,9 +375,13 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
                     && function.specimen_id == inspection.specimen_id
             }) && component_acceptance.iter().any(|acceptance| {
                 acceptance.component_id == function.component_id
-                    && acceptance.linked_evidence_ids.contains(&function.evidence_id)
+                    && acceptance
+                        .linked_evidence_ids
+                        .contains(&function.evidence_id)
                     && acceptance.linked_evidence_ids.iter().any(|id| {
-                        as_built.iter().any(|inspection| inspection.evidence_id == *id)
+                        as_built
+                            .iter()
+                            .any(|inspection| inspection.evidence_id == *id)
                     })
             })
         });
@@ -440,7 +464,11 @@ pub fn evaluate(candidate: &Candidate, receipts: &[EvidenceReceipt]) -> Maturity
         && !lab_scopes.is_empty();
 
     let findings = build_findings(
-        &m1, m2, m3, m4, m5,
+        &m1,
+        m2,
+        m3,
+        m4,
+        m5,
         !process_records.is_empty(),
         !microstructure.is_empty(),
         !links.is_empty(),
@@ -554,7 +582,10 @@ fn validate_candidate(candidate: &Candidate) -> Vec<Blocker> {
         }
     }
     if candidate.pbf_lb_equipment_qualification_required
-        && candidate.equipment_id.as_ref().is_none_or(|id| id.trim().is_empty())
+        && candidate
+            .equipment_id
+            .as_ref()
+            .is_none_or(|id| id.trim().is_empty())
     {
         blockers.push(Blocker::MissingEquipmentIdentity);
     }
@@ -614,17 +645,36 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
     }
     if matches!(
         receipt.kind,
-        EvidenceKind::MaterialPropertyMeasurement
-            | EvidenceKind::MicrostructureCharacterization
+        EvidenceKind::MaterialPropertyMeasurement | EvidenceKind::MicrostructureCharacterization
     ) {
-        require(receipt.specimen_id.as_deref(), Blocker::MissingSpecimenBinding, &mut blockers);
-        require(receipt.material_lot_id.as_deref(), Blocker::MissingLotBinding, &mut blockers);
-        require(receipt.build_id.as_deref(), Blocker::MissingBuildBinding, &mut blockers);
+        require(
+            receipt.specimen_id.as_deref(),
+            Blocker::MissingSpecimenBinding,
+            &mut blockers,
+        );
+        require(
+            receipt.material_lot_id.as_deref(),
+            Blocker::MissingLotBinding,
+            &mut blockers,
+        );
+        require(
+            receipt.build_id.as_deref(),
+            Blocker::MissingBuildBinding,
+            &mut blockers,
+        );
         validate_method(receipt, &mut blockers);
     }
     if receipt.kind == EvidenceKind::ProcessRecord {
-        require(receipt.build_id.as_deref(), Blocker::MissingBuildBinding, &mut blockers);
-        require(receipt.material_lot_id.as_deref(), Blocker::MissingLotBinding, &mut blockers);
+        require(
+            receipt.build_id.as_deref(),
+            Blocker::MissingBuildBinding,
+            &mut blockers,
+        );
+        require(
+            receipt.material_lot_id.as_deref(),
+            Blocker::MissingLotBinding,
+            &mut blockers,
+        );
     }
     if receipt.kind == EvidenceKind::MicrostructureCharacterization
         && receipt.build_id.as_deref().is_none_or(str::is_empty)
@@ -633,13 +683,17 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
     }
     if receipt.kind == EvidenceKind::MaterialPropertyMeasurement
         && (!receipt.measurands.contains(&"remanence_br".to_string())
-            || !receipt.measurands.contains(&"intrinsic_coercivity_hcj".to_string()))
+            || !receipt
+                .measurands
+                .contains(&"intrinsic_coercivity_hcj".to_string()))
     {
         blockers.push(Blocker::MissingRequiredMeasurand);
     }
     if receipt.kind == EvidenceKind::MicrostructureCharacterization
         && (!receipt.measurands.contains(&"phase".to_string())
-            || !receipt.measurands.contains(&"texture_orientation".to_string())
+            || !receipt
+                .measurands
+                .contains(&"texture_orientation".to_string())
             || !receipt.measurands.contains(&"porosity_defects".to_string()))
     {
         blockers.push(Blocker::MissingRequiredMeasurand);
@@ -649,7 +703,9 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
     }
     if matches!(
         receipt.kind,
-        EvidenceKind::AsBuiltInspection | EvidenceKind::ComponentFunctionalTest | EvidenceKind::ComponentAcceptance
+        EvidenceKind::AsBuiltInspection
+            | EvidenceKind::ComponentFunctionalTest
+            | EvidenceKind::ComponentAcceptance
     ) {
         require(
             receipt.component_id.as_deref(),
@@ -669,12 +725,18 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
         validate_method(receipt, &mut blockers);
     }
     if receipt.kind == EvidenceKind::AsBuiltInspection
-        && receipt.geometry_digest.as_ref().is_none_or(|d| !valid_sha256(d))
+        && receipt
+            .geometry_digest
+            .as_ref()
+            .is_none_or(|d| !valid_sha256(d))
     {
         blockers.push(Blocker::MissingGeometryBinding);
     }
     if receipt.kind == EvidenceKind::ComponentFunctionalTest
-        && receipt.conditions_digest.as_ref().is_none_or(|d| !valid_sha256(d))
+        && receipt
+            .conditions_digest
+            .as_ref()
+            .is_none_or(|d| !valid_sha256(d))
     {
         blockers.push(Blocker::MissingConditions);
     }
@@ -686,13 +748,25 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
         );
     }
     if receipt.kind == EvidenceKind::CohortSummary {
-        require(receipt.cohort_id.as_deref(), Blocker::MissingCohortIdentity, &mut blockers);
-        if receipt.replication.as_ref().is_none_or(|r| !valid_sha256(&r.cohort_policy_digest)) {
+        require(
+            receipt.cohort_id.as_deref(),
+            Blocker::MissingCohortIdentity,
+            &mut blockers,
+        );
+        if receipt
+            .replication
+            .as_ref()
+            .is_none_or(|r| !valid_sha256(&r.cohort_policy_digest))
+        {
             blockers.push(Blocker::WrongCohortPolicy);
         }
     }
     if receipt.kind == EvidenceKind::SiteQualitySystem {
-        require(receipt.site_id.as_deref(), Blocker::MissingProductionSiteIdentity, &mut blockers);
+        require(
+            receipt.site_id.as_deref(),
+            Blocker::MissingProductionSiteIdentity,
+            &mut blockers,
+        );
         if receipt.site_id.as_deref() != Some(candidate.production_site_id.as_str()) {
             blockers.push(Blocker::ScopeMismatch);
         }
@@ -701,17 +775,33 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
         receipt.kind,
         EvidenceKind::EquipmentIq | EvidenceKind::EquipmentOq | EvidenceKind::EquipmentPq
     ) {
-        require(receipt.equipment_id.as_deref(), Blocker::MissingEquipmentIdentity, &mut blockers);
+        require(
+            receipt.equipment_id.as_deref(),
+            Blocker::MissingEquipmentIdentity,
+            &mut blockers,
+        );
         if receipt.equipment_id != candidate.equipment_id {
             blockers.push(Blocker::ScopeMismatch);
         }
     }
     if receipt.kind == EvidenceKind::VariabilityAnalysis {
-        require(receipt.cohort_id.as_deref(), Blocker::MissingCohortIdentity, &mut blockers);
+        require(
+            receipt.cohort_id.as_deref(),
+            Blocker::MissingCohortIdentity,
+            &mut blockers,
+        );
     }
     if receipt.kind == EvidenceKind::LaboratoryMethodScope {
-        require(receipt.laboratory_id.as_deref(), Blocker::MissingLaboratoryBinding, &mut blockers);
-        require(receipt.method_scope_id.as_deref(), Blocker::MissingMethodScope, &mut blockers);
+        require(
+            receipt.laboratory_id.as_deref(),
+            Blocker::MissingLaboratoryBinding,
+            &mut blockers,
+        );
+        require(
+            receipt.method_scope_id.as_deref(),
+            Blocker::MissingMethodScope,
+            &mut blockers,
+        );
         if receipt.standard_reference.as_deref() != Some("ISO/IEC 17025:2017") {
             blockers.push(Blocker::MissingLaboratoryScopeEvidence);
         }
@@ -720,41 +810,93 @@ fn validate_receipt(candidate: &Candidate, receipt: &EvidenceReceipt) -> Vec<Blo
 }
 
 fn validate_method(receipt: &EvidenceReceipt, blockers: &mut Vec<Blocker>) {
-    require(receipt.method_id.as_deref(), Blocker::MissingMethodBinding, blockers);
-    require(receipt.method_scope_id.as_deref(), Blocker::MissingMethodScope, blockers);
-    require(receipt.laboratory_id.as_deref(), Blocker::MissingLaboratoryBinding, blockers);
-    if receipt.calibration_record_id.as_deref().is_none_or(str::is_empty)
-        || receipt.calibration_digest.as_ref().is_none_or(|d| !valid_sha256(d))
+    require(
+        receipt.method_id.as_deref(),
+        Blocker::MissingMethodBinding,
+        blockers,
+    );
+    require(
+        receipt.method_scope_id.as_deref(),
+        Blocker::MissingMethodScope,
+        blockers,
+    );
+    require(
+        receipt.laboratory_id.as_deref(),
+        Blocker::MissingLaboratoryBinding,
+        blockers,
+    );
+    if receipt
+        .calibration_record_id
+        .as_deref()
+        .is_none_or(str::is_empty)
+        || receipt
+            .calibration_digest
+            .as_ref()
+            .is_none_or(|d| !valid_sha256(d))
     {
         blockers.push(Blocker::MissingCalibration);
     }
-    if receipt.uncertainty_record_id.as_deref().is_none_or(str::is_empty)
-        || receipt.uncertainty_digest.as_ref().is_none_or(|d| !valid_sha256(d))
+    if receipt
+        .uncertainty_record_id
+        .as_deref()
+        .is_none_or(str::is_empty)
+        || receipt
+            .uncertainty_digest
+            .as_ref()
+            .is_none_or(|d| !valid_sha256(d))
     {
         blockers.push(Blocker::MissingUncertainty);
     }
-    if receipt.conditions_digest.as_ref().is_none_or(|d| !valid_sha256(d)) {
+    if receipt
+        .conditions_digest
+        .as_ref()
+        .is_none_or(|d| !valid_sha256(d))
+    {
         blockers.push(Blocker::MissingConditions);
     }
 }
 
 fn lab_scope_covers(receipt: &EvidenceReceipt, lab_scopes: &[&EvidenceReceipt]) -> bool {
-    receipt.method_scope_id.as_deref().is_some_and(|method_scope| {
-        lab_scopes.iter().any(|scope| {
-            scope.method_scope_id.as_deref() == Some(method_scope)
-                && scope.laboratory_id == receipt.laboratory_id
+    receipt
+        .method_scope_id
+        .as_deref()
+        .is_some_and(|method_scope| {
+            lab_scopes.iter().any(|scope| {
+                scope.method_scope_id.as_deref() == Some(method_scope)
+                    && scope.laboratory_id == receipt.laboratory_id
+            })
         })
-    })
 }
 
 fn method_evidence_complete(receipt: &EvidenceReceipt) -> bool {
-    receipt.method_id.as_deref().is_some_and(|v| !v.trim().is_empty())
-        && receipt.method_scope_id.as_deref().is_some_and(|v| !v.trim().is_empty())
-        && receipt.laboratory_id.as_deref().is_some_and(|v| !v.trim().is_empty())
-        && receipt.calibration_record_id.as_deref().is_some_and(|v| !v.trim().is_empty())
-        && receipt.calibration_digest.as_ref().is_some_and(valid_sha256)
-        && receipt.uncertainty_record_id.as_deref().is_some_and(|v| !v.trim().is_empty())
-        && receipt.uncertainty_digest.as_ref().is_some_and(valid_sha256)
+    receipt
+        .method_id
+        .as_deref()
+        .is_some_and(|v| !v.trim().is_empty())
+        && receipt
+            .method_scope_id
+            .as_deref()
+            .is_some_and(|v| !v.trim().is_empty())
+        && receipt
+            .laboratory_id
+            .as_deref()
+            .is_some_and(|v| !v.trim().is_empty())
+        && receipt
+            .calibration_record_id
+            .as_deref()
+            .is_some_and(|v| !v.trim().is_empty())
+        && receipt
+            .calibration_digest
+            .as_ref()
+            .is_some_and(valid_sha256)
+        && receipt
+            .uncertainty_record_id
+            .as_deref()
+            .is_some_and(|v| !v.trim().is_empty())
+        && receipt
+            .uncertainty_digest
+            .as_ref()
+            .is_some_and(valid_sha256)
         && receipt.conditions_digest.as_ref().is_some_and(valid_sha256)
 }
 
@@ -814,53 +956,110 @@ fn build_findings(
             level: MaturityLevel::M1,
             supported: !m1.is_empty(),
             required_capabilities: vec![Capability::ConceptModel],
-            missing_capabilities: if m1.is_empty() { vec![Capability::ConceptModel] } else { vec![] },
+            missing_capabilities: if m1.is_empty() {
+                vec![Capability::ConceptModel]
+            } else {
+                vec![]
+            },
             blockers: vec![],
             evidence_ids: m1.iter().map(|r| r.evidence_id.clone()).collect(),
         },
         LevelFinding {
             level: MaturityLevel::M2,
             supported: m2,
-            required_capabilities: vec![Capability::CouponMaterialProperties, Capability::LaboratoryMethodScope],
+            required_capabilities: vec![
+                Capability::CouponMaterialProperties,
+                Capability::LaboratoryMethodScope,
+            ],
             missing_capabilities: if m2 {
                 vec![]
             } else {
-                vec![Capability::CouponMaterialProperties, Capability::LaboratoryMethodScope]
+                vec![
+                    Capability::CouponMaterialProperties,
+                    Capability::LaboratoryMethodScope,
+                ]
             },
-            blockers: if m2 { vec![] } else { vec![Blocker::LiteratureCannotPromotePhysicalLevel] },
-            evidence_ids: ids(&[EvidenceKind::MaterialPropertyMeasurement, EvidenceKind::LaboratoryMethodScope]),
+            blockers: if m2 {
+                vec![]
+            } else {
+                vec![Blocker::LiteratureCannotPromotePhysicalLevel]
+            },
+            evidence_ids: ids(&[
+                EvidenceKind::MaterialPropertyMeasurement,
+                EvidenceKind::LaboratoryMethodScope,
+            ]),
         },
         LevelFinding {
             level: MaturityLevel::M3,
             supported: m3,
             required_capabilities: vec![Capability::ProcessStructureProperty],
-            missing_capabilities: if m3 { vec![] } else {
+            missing_capabilities: if m3 {
+                vec![]
+            } else {
                 let mut missing = Vec::new();
-                if !process { missing.push(Capability::ProcessStructureProperty); }
-                if !microstructure { missing.push(Capability::ProcessStructureProperty); }
-                if !link { missing.push(Capability::ProcessStructureProperty); }
-                if !m2 { missing.push(Capability::CouponMaterialProperties); }
+                if !process {
+                    missing.push(Capability::ProcessStructureProperty);
+                }
+                if !microstructure {
+                    missing.push(Capability::ProcessStructureProperty);
+                }
+                if !link {
+                    missing.push(Capability::ProcessStructureProperty);
+                }
+                if !m2 {
+                    missing.push(Capability::CouponMaterialProperties);
+                }
                 missing
             },
-            blockers: if m3 { vec![] } else { vec![Blocker::MissingPspPLink] },
-            evidence_ids: ids(&[EvidenceKind::ProcessRecord, EvidenceKind::MicrostructureCharacterization, EvidenceKind::PspPLink]),
+            blockers: if m3 {
+                vec![]
+            } else {
+                vec![Blocker::MissingPspPLink]
+            },
+            evidence_ids: ids(&[
+                EvidenceKind::ProcessRecord,
+                EvidenceKind::MicrostructureCharacterization,
+                EvidenceKind::PspPLink,
+            ]),
         },
         LevelFinding {
             level: MaturityLevel::M4,
             supported: m4,
-            required_capabilities: vec![Capability::AsBuiltGeometry, Capability::ComponentFunction, Capability::ComponentAcceptance],
+            required_capabilities: vec![
+                Capability::AsBuiltGeometry,
+                Capability::ComponentFunction,
+                Capability::ComponentAcceptance,
+            ],
             missing_capabilities: [
                 (as_built, Capability::AsBuiltGeometry),
                 (function, Capability::ComponentFunction),
                 (acceptance, Capability::ComponentAcceptance),
-            ].into_iter().filter_map(|(present, capability)| if present { None } else { Some(capability) }).collect(),
-            blockers: if m4 { vec![] } else { vec![Blocker::MissingComponentAcceptance] },
-            evidence_ids: ids(&[EvidenceKind::AsBuiltInspection, EvidenceKind::ComponentFunctionalTest, EvidenceKind::ComponentAcceptance]),
+            ]
+            .into_iter()
+            .filter_map(|(present, capability)| if present { None } else { Some(capability) })
+            .collect(),
+            blockers: if m4 {
+                vec![]
+            } else {
+                vec![Blocker::MissingComponentAcceptance]
+            },
+            evidence_ids: ids(&[
+                EvidenceKind::AsBuiltInspection,
+                EvidenceKind::ComponentFunctionalTest,
+                EvidenceKind::ComponentAcceptance,
+            ]),
         },
         LevelFinding {
             level: MaturityLevel::M5,
             supported: m5,
-            required_capabilities: vec![Capability::ReplicatedBuildLotCohort, Capability::VariabilityControl, Capability::Durability, Capability::ProductionSiteQuality, Capability::EquipmentIqOqPq, Capability::LaboratoryMethodScope],
+            required_capabilities: vec![
+                Capability::ReplicatedBuildLotCohort,
+                Capability::VariabilityControl,
+                Capability::Durability,
+                Capability::ProductionSiteQuality,
+                Capability::EquipmentIqOqPq,
+                Capability::LaboratoryMethodScope,
+            ],
             missing_capabilities: [
                 (cohort_missing, Capability::ReplicatedBuildLotCohort),
                 (variability_missing, Capability::VariabilityControl),
@@ -868,13 +1067,30 @@ fn build_findings(
                 (site_missing, Capability::ProductionSiteQuality),
                 (equipment_missing, Capability::EquipmentIqOqPq),
                 (lab_missing, Capability::LaboratoryMethodScope),
-            ].into_iter().filter_map(|(missing, capability)| if missing { Some(capability) } else { None }).collect(),
-            blockers: [cohort_missing, variability_missing, durability_missing, site_missing, equipment_missing, lab_missing]
-                .into_iter().filter(|missing| *missing).map(|_| Blocker::InsufficientIndependentBuilds).collect(),
+            ]
+            .into_iter()
+            .filter_map(|(missing, capability)| if missing { Some(capability) } else { None })
+            .collect(),
+            blockers: [
+                cohort_missing,
+                variability_missing,
+                durability_missing,
+                site_missing,
+                equipment_missing,
+                lab_missing,
+            ]
+            .into_iter()
+            .filter(|missing| *missing)
+            .map(|_| Blocker::InsufficientIndependentBuilds)
+            .collect(),
             evidence_ids: ids(&[
-                EvidenceKind::CohortSummary, EvidenceKind::VariabilityAnalysis,
-                EvidenceKind::DurabilityTest, EvidenceKind::SiteQualitySystem,
-                EvidenceKind::EquipmentIq, EvidenceKind::EquipmentOq, EvidenceKind::EquipmentPq,
+                EvidenceKind::CohortSummary,
+                EvidenceKind::VariabilityAnalysis,
+                EvidenceKind::DurabilityTest,
+                EvidenceKind::SiteQualitySystem,
+                EvidenceKind::EquipmentIq,
+                EvidenceKind::EquipmentOq,
+                EvidenceKind::EquipmentPq,
                 EvidenceKind::LaboratoryMethodScope,
             ]),
         },
@@ -930,13 +1146,25 @@ mod tests {
             specimen_id: method.then(|| "SPEC-001".to_string()),
             material_lot_id: Some("LOT-001".to_string()),
             build_id: Some("BUILD-001".to_string()),
-            component_id: matches!(kind, EvidenceKind::AsBuiltInspection | EvidenceKind::ComponentFunctionalTest | EvidenceKind::ComponentAcceptance | EvidenceKind::DurabilityTest)
-                .then(|| "COMP-001".to_string()),
+            component_id: matches!(
+                kind,
+                EvidenceKind::AsBuiltInspection
+                    | EvidenceKind::ComponentFunctionalTest
+                    | EvidenceKind::ComponentAcceptance
+                    | EvidenceKind::DurabilityTest
+            )
+            .then(|| "COMP-001".to_string()),
             site_id: (kind == EvidenceKind::SiteQualitySystem).then(|| "SITE-001".to_string()),
-            equipment_id: matches!(kind, EvidenceKind::EquipmentIq | EvidenceKind::EquipmentOq | EvidenceKind::EquipmentPq)
-                .then(|| "MACHINE-001".to_string()),
-            cohort_id: matches!(kind, EvidenceKind::CohortSummary | EvidenceKind::VariabilityAnalysis)
-                .then(|| "COHORT-001".to_string()),
+            equipment_id: matches!(
+                kind,
+                EvidenceKind::EquipmentIq | EvidenceKind::EquipmentOq | EvidenceKind::EquipmentPq
+            )
+            .then(|| "MACHINE-001".to_string()),
+            cohort_id: matches!(
+                kind,
+                EvidenceKind::CohortSummary | EvidenceKind::VariabilityAnalysis
+            )
+            .then(|| "COHORT-001".to_string()),
             measurands: match kind {
                 EvidenceKind::MaterialPropertyMeasurement => vec![
                     "remanence_br".to_string(),
@@ -957,7 +1185,9 @@ mod tests {
             uncertainty_record_id: method.then(|| format!("UNC-{id}")),
             uncertainty_digest: method.then(|| digest('1')),
             conditions_digest: method.then(|| digest('2')),
-            geometry_digest: (kind == EvidenceKind::AsBuiltInspection || kind == EvidenceKind::ComponentFunctionalTest).then(|| digest('3')),
+            geometry_digest: (kind == EvidenceKind::AsBuiltInspection
+                || kind == EvidenceKind::ComponentFunctionalTest)
+                .then(|| digest('3')),
             standard_reference: (kind == EvidenceKind::LaboratoryMethodScope)
                 .then(|| "ISO/IEC 17025:2017".to_string()),
             linked_evidence_ids: vec![],
@@ -971,9 +1201,21 @@ mod tests {
 
     fn m2_receipts() -> Vec<EvidenceReceipt> {
         let mut receipts = vec![
-            receipt("MODEL-001", EvidenceKind::DesignModel, EvidenceClass::PublishedLiterature),
-            receipt("PROPERTY-001", EvidenceKind::MaterialPropertyMeasurement, EvidenceClass::PhysicalMeasurement),
-            receipt("LAB-SCOPE-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation),
+            receipt(
+                "MODEL-001",
+                EvidenceKind::DesignModel,
+                EvidenceClass::PublishedLiterature,
+            ),
+            receipt(
+                "PROPERTY-001",
+                EvidenceKind::MaterialPropertyMeasurement,
+                EvidenceClass::PhysicalMeasurement,
+            ),
+            receipt(
+                "LAB-SCOPE-001",
+                EvidenceKind::LaboratoryMethodScope,
+                EvidenceClass::ExternalAttestation,
+            ),
         ];
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-PROPERTY-001".to_string());
         receipts[1].method_scope_id = Some("SCOPE-PROPERTY-001".to_string());
@@ -983,36 +1225,89 @@ mod tests {
 
     fn m3_receipts() -> Vec<EvidenceReceipt> {
         let mut receipts = m2_receipts();
-        receipts.push(receipt("PROCESS-001", EvidenceKind::ProcessRecord, EvidenceClass::ProductionRecord));
-        receipts.push(receipt("MICRO-001", EvidenceKind::MicrostructureCharacterization, EvidenceClass::PhysicalMeasurement));
-        receipts.push(receipt("LAB-MICRO-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation));
+        receipts.push(receipt(
+            "PROCESS-001",
+            EvidenceKind::ProcessRecord,
+            EvidenceClass::ProductionRecord,
+        ));
+        receipts.push(receipt(
+            "MICRO-001",
+            EvidenceKind::MicrostructureCharacterization,
+            EvidenceClass::PhysicalMeasurement,
+        ));
+        receipts.push(receipt(
+            "LAB-MICRO-001",
+            EvidenceKind::LaboratoryMethodScope,
+            EvidenceClass::ExternalAttestation,
+        ));
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-MICRO-001".to_string());
         receipts[4].method_scope_id = Some("SCOPE-MICRO-001".to_string());
-        let mut link = receipt("PSPP-001", EvidenceKind::PspPLink, EvidenceClass::ProductionRecord);
-        link.linked_evidence_ids = vec!["PROCESS-001".to_string(),"MICRO-001".to_string(),"PROPERTY-001".to_string()];
+        let mut link = receipt(
+            "PSPP-001",
+            EvidenceKind::PspPLink,
+            EvidenceClass::ProductionRecord,
+        );
+        link.linked_evidence_ids = vec![
+            "PROCESS-001".to_string(),
+            "MICRO-001".to_string(),
+            "PROPERTY-001".to_string(),
+        ];
         receipts.push(link);
         receipts
     }
 
     fn m4_receipts() -> Vec<EvidenceReceipt> {
         let mut receipts = m3_receipts();
-        receipts.push(receipt("GEOMETRY-001", EvidenceKind::AsBuiltInspection, EvidenceClass::PhysicalMeasurement));
-        receipts.push(receipt("FUNCTION-001", EvidenceKind::ComponentFunctionalTest, EvidenceClass::PhysicalMeasurement));
-        receipts.push(receipt("ACCEPT-001", EvidenceKind::ComponentAcceptance, EvidenceClass::ProductionRecord));
-        receipts.last_mut().unwrap().linked_evidence_ids = vec!["FUNCTION-001".to_string(),"GEOMETRY-001".to_string()];
+        receipts.push(receipt(
+            "GEOMETRY-001",
+            EvidenceKind::AsBuiltInspection,
+            EvidenceClass::PhysicalMeasurement,
+        ));
+        receipts.push(receipt(
+            "FUNCTION-001",
+            EvidenceKind::ComponentFunctionalTest,
+            EvidenceClass::PhysicalMeasurement,
+        ));
+        receipts.push(receipt(
+            "ACCEPT-001",
+            EvidenceKind::ComponentAcceptance,
+            EvidenceClass::ProductionRecord,
+        ));
+        receipts.last_mut().unwrap().linked_evidence_ids =
+            vec!["FUNCTION-001".to_string(), "GEOMETRY-001".to_string()];
         receipts
     }
 
     fn m5_receipts() -> Vec<EvidenceReceipt> {
         let mut receipts = m4_receipts();
-        receipts.push(receipt("COHORT-RECEIPT-001", EvidenceKind::CohortSummary, EvidenceClass::ProductionRecord));
-        let mut variability = receipt("VARIABILITY-001", EvidenceKind::VariabilityAnalysis, EvidenceClass::ProductionRecord);
+        receipts.push(receipt(
+            "COHORT-RECEIPT-001",
+            EvidenceKind::CohortSummary,
+            EvidenceClass::ProductionRecord,
+        ));
+        let mut variability = receipt(
+            "VARIABILITY-001",
+            EvidenceKind::VariabilityAnalysis,
+            EvidenceClass::ProductionRecord,
+        );
         variability.linked_evidence_ids = vec!["COHORT-RECEIPT-001".to_string()];
         receipts.push(variability);
-        receipts.push(receipt("DURABILITY-001", EvidenceKind::DurabilityTest, EvidenceClass::PhysicalMeasurement));
-        receipts.push(receipt("SITE-QMS-001", EvidenceKind::SiteQualitySystem, EvidenceClass::ProductionRecord));
+        receipts.push(receipt(
+            "DURABILITY-001",
+            EvidenceKind::DurabilityTest,
+            EvidenceClass::PhysicalMeasurement,
+        ));
+        receipts.push(receipt(
+            "SITE-QMS-001",
+            EvidenceKind::SiteQualitySystem,
+            EvidenceClass::ProductionRecord,
+        ));
         receipts.last_mut().unwrap().standard_reference = Some("ISO/ASTM 52920:2023".to_string());
-        let mut lab_scope = receipt("LAB-DURABILITY-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation);
+        let mut lab_scope = receipt(
+            "LAB-DURABILITY-001",
+            EvidenceKind::LaboratoryMethodScope,
+            EvidenceClass::ExternalAttestation,
+        );
         lab_scope.method_scope_id = Some("SCOPE-DURABILITY-001".to_string());
         lab_scope.laboratory_id = Some("LAB-001".to_string());
         receipts.push(lab_scope);
@@ -1032,7 +1327,11 @@ mod tests {
         receipts.retain(|receipt| receipt.kind != EvidenceKind::LaboratoryMethodScope);
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, MaturityLevel::M1);
-        assert!(result.global_blockers.contains(&Blocker::MissingLaboratoryScopeEvidence));
+        assert!(
+            result
+                .global_blockers
+                .contains(&Blocker::MissingLaboratoryScopeEvidence)
+        );
     }
 
     #[test]
@@ -1053,7 +1352,14 @@ mod tests {
 
     #[test]
     fn conceptual_design_supports_only_m1() {
-        let result = evaluate(&candidate(), &[receipt("MODEL", EvidenceKind::DesignModel, EvidenceClass::PublishedLiterature)]);
+        let result = evaluate(
+            &candidate(),
+            &[receipt(
+                "MODEL",
+                EvidenceKind::DesignModel,
+                EvidenceClass::PublishedLiterature,
+            )],
+        );
         assert_eq!(result.derived_level, MaturityLevel::M1);
         assert!(result.findings[0].supported);
     }
@@ -1077,7 +1383,11 @@ mod tests {
         receipts[1].class = EvidenceClass::PublishedLiterature;
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, M1);
-        assert!(result.invalid_evidence_ids.contains(&"PROPERTY-001".to_string()));
+        assert!(
+            result
+                .invalid_evidence_ids
+                .contains(&"PROPERTY-001".to_string())
+        );
     }
 
     #[test]
@@ -1108,19 +1418,31 @@ mod tests {
     #[test]
     fn m2_requires_remanence_and_intrinsic_coercivity_measurands() {
         let mut receipts = m2_receipts();
-        receipts[1].measurands.retain(|value| value != "intrinsic_coercivity_hcj");
+        receipts[1]
+            .measurands
+            .retain(|value| value != "intrinsic_coercivity_hcj");
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, MaturityLevel::M1);
-        assert!(result.global_blockers.contains(&Blocker::MissingRequiredMeasurand));
+        assert!(
+            result
+                .global_blockers
+                .contains(&Blocker::MissingRequiredMeasurand)
+        );
     }
 
     #[test]
     fn m3_requires_phase_texture_and_defect_characterization() {
         let mut receipts = m3_receipts();
-        receipts[4].measurands.retain(|value| value != "texture_orientation");
+        receipts[4]
+            .measurands
+            .retain(|value| value != "texture_orientation");
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, MaturityLevel::M2);
-        assert!(result.global_blockers.contains(&Blocker::MissingRequiredMeasurand));
+        assert!(
+            result
+                .global_blockers
+                .contains(&Blocker::MissingRequiredMeasurand)
+        );
     }
 
     #[test]
@@ -1139,14 +1461,22 @@ mod tests {
 
     #[test]
     fn machine_qualification_does_not_substitute_for_material_properties() {
-        let mut receipts = vec![receipt("MODEL", EvidenceKind::DesignModel, EvidenceClass::PublishedLiterature)];
-        for (id,kind) in [("IQ",EvidenceKind::EquipmentIq),("OQ",EvidenceKind::EquipmentOq),("PQ",EvidenceKind::EquipmentPq)] {
-            let mut r=receipt(id,kind,EvidenceClass::ProductionRecord);
-            r.standard_reference=Some("ISO/ASTM TS 52930:2021".to_string());
+        let mut receipts = vec![receipt(
+            "MODEL",
+            EvidenceKind::DesignModel,
+            EvidenceClass::PublishedLiterature,
+        )];
+        for (id, kind) in [
+            ("IQ", EvidenceKind::EquipmentIq),
+            ("OQ", EvidenceKind::EquipmentOq),
+            ("PQ", EvidenceKind::EquipmentPq),
+        ] {
+            let mut r = receipt(id, kind, EvidenceClass::ProductionRecord);
+            r.standard_reference = Some("ISO/ASTM TS 52930:2021".to_string());
             receipts.push(r);
         }
-        let result=evaluate(&candidate(),&receipts);
-        assert_eq!(result.derived_level,M1);
+        let result = evaluate(&candidate(), &receipts);
+        assert_eq!(result.derived_level, M1);
     }
 
     #[test]
@@ -1176,9 +1506,17 @@ mod tests {
         let mut candidate = candidate();
         candidate.pbf_lb_equipment_qualification_required = false;
         let mut receipts = m5_receipts();
-        receipts.push(receipt("LAB-FUNCTION-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation));
+        receipts.push(receipt(
+            "LAB-FUNCTION-001",
+            EvidenceKind::LaboratoryMethodScope,
+            EvidenceClass::ExternalAttestation,
+        ));
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-FUNCTION-001".to_string());
-        receipts.push(receipt("LAB-GEOMETRY-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation));
+        receipts.push(receipt(
+            "LAB-GEOMETRY-001",
+            EvidenceKind::LaboratoryMethodScope,
+            EvidenceClass::ExternalAttestation,
+        ));
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-GEOMETRY-001".to_string());
         let result = evaluate(&candidate, &receipts);
         assert_eq!(result.derived_level, M5);
@@ -1198,14 +1536,26 @@ mod tests {
         candidate.pbf_lb_equipment_qualification_required = true;
         candidate.equipment_id = Some("MACHINE-001".to_string());
         let mut receipts = m5_receipts();
-        for (id, kind) in [("IQ", EvidenceKind::EquipmentIq),("OQ", EvidenceKind::EquipmentOq),("PQ", EvidenceKind::EquipmentPq)] {
+        for (id, kind) in [
+            ("IQ", EvidenceKind::EquipmentIq),
+            ("OQ", EvidenceKind::EquipmentOq),
+            ("PQ", EvidenceKind::EquipmentPq),
+        ] {
             let mut r = receipt(id, kind, EvidenceClass::ProductionRecord);
             r.standard_reference = Some("ISO/ASTM TS 52930:2021".to_string());
             receipts.push(r);
         }
-        receipts.push(receipt("LAB-FUNCTION-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation));
+        receipts.push(receipt(
+            "LAB-FUNCTION-001",
+            EvidenceKind::LaboratoryMethodScope,
+            EvidenceClass::ExternalAttestation,
+        ));
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-FUNCTION-001".to_string());
-        receipts.push(receipt("LAB-GEOMETRY-001", EvidenceKind::LaboratoryMethodScope, EvidenceClass::ExternalAttestation));
+        receipts.push(receipt(
+            "LAB-GEOMETRY-001",
+            EvidenceKind::LaboratoryMethodScope,
+            EvidenceClass::ExternalAttestation,
+        ));
         receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-GEOMETRY-001".to_string());
         let result = evaluate(&candidate, &receipts);
         assert_eq!(result.derived_level, M5);
@@ -1214,7 +1564,10 @@ mod tests {
     #[test]
     fn insufficient_build_or_lot_replication_blocks_m5() {
         let mut receipts = m5_receipts();
-        let cohort = receipts.iter_mut().find(|r| r.kind == EvidenceKind::CohortSummary).unwrap();
+        let cohort = receipts
+            .iter_mut()
+            .find(|r| r.kind == EvidenceKind::CohortSummary)
+            .unwrap();
         cohort.replication.as_mut().unwrap().independent_builds = 1;
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, M4);
@@ -1226,7 +1579,11 @@ mod tests {
         receipts.push(receipts[1].clone());
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, M1);
-        assert!(result.global_blockers.contains(&Blocker::DuplicateEvidenceId));
+        assert!(
+            result
+                .global_blockers
+                .contains(&Blocker::DuplicateEvidenceId)
+        );
     }
 
     #[test]
@@ -1240,7 +1597,12 @@ mod tests {
     #[test]
     fn missing_variability_and_site_quality_keep_candidate_at_m4() {
         let mut receipts = m5_receipts();
-        receipts.retain(|r| !matches!(r.kind, EvidenceKind::VariabilityAnalysis | EvidenceKind::SiteQualitySystem));
+        receipts.retain(|r| {
+            !matches!(
+                r.kind,
+                EvidenceKind::VariabilityAnalysis | EvidenceKind::SiteQualitySystem
+            )
+        });
         let result = evaluate(&candidate(), &receipts);
         assert_eq!(result.derived_level, M4);
     }
