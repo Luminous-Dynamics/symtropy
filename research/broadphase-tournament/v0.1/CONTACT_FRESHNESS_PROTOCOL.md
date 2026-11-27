@@ -164,13 +164,32 @@ The intended contribution is not a new generic AABB tree or a claim that pair ca
 
 ## 7. Current evidence boundary
 
-Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, a post-action stamp commit barrier, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, immutable before/after receipt replay with post-stamp checks, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
+Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, manifold and warm-start payload revisions/digests, a post-action stamp commit barrier, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, immutable before/after receipt replay with post-stamp payload checks, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
 
 Not yet implemented or established: live world mutation journal integration; cryptographic receipt serialization; independent verifier/replay; real contact-manager or solver integration; matched external-engine runs; Rust formatting, tests, Clippy or release timings on this exact branch head.
 
 No speedup, correctness qualification or SOTA superiority claim is made until these gaps close.
 
 ## 8. Immutable transition receipt and independent replay
+
+### 8.1 Contact payload identity and commit discipline
+
+A revision vector alone says which inputs were current; it does not identify the actual cached contact data. The stamp now also carries `ContactPayloadRevisions`:
+
+- manifold revision + SHA-256 digest of the canonical manifold payload;
+- warm-start revision + SHA-256 digest of the canonical solver warm-start payload.
+
+Within an unchanged proxy generation:
+- If geometry refresh is required, the committed manifold revision must advance.
+- If geometry remains reusable, the manifold revision and digest must remain identical.
+- If warm-start reset is required, its revision must advance.
+- If warm-start is reusable, its revision and digest must remain identical.
+- A new proxy generation starts a new counter lifetime, but both digests must still be present.
+
+The independent receipt verifier checks these revision/digest relations between prior and post stamps. The hash values are supplied by the contact-state snapshot adapter: this crate does not serialize engine-private manifolds or impulses and does not recompute the hashes from payload bytes. Therefore a production verifier must independently read/hash the actual contact and warm-start buffers; it must not trust digest strings reported by the broadphase/contact producer.
+
+The caller-supplied completion flags in `commit_transition` are not an independent attestation. They are a local commit barrier. Production assurance still requires a world/contact-manager-owned action receipt and an independent observer that verifies the resulting payload bytes and solver activation.
+
 
 The branch now exports `contact_freshness_verifier` with two layers:
 
