@@ -65,11 +65,7 @@ fn split_group_value(row: &SampleRow) -> Option<&str> {
     }
 }
 
-fn add_partition(
-    values: &mut BTreeMap<String, BTreeSet<String>>,
-    identity: &str,
-    partition: &str,
-) {
+fn add_partition(values: &mut BTreeMap<String, BTreeSet<String>>, identity: &str, partition: &str) {
     values
         .entry(identity.to_owned())
         .or_default()
@@ -81,7 +77,10 @@ fn cross_partition_leaks(values: BTreeMap<String, BTreeSet<String>>) -> Vec<Stri
         .into_iter()
         .filter(|(_, partitions)| partitions.len() > 1)
         .map(|(identity, partitions)| {
-            format!("{identity}:{}", partitions.into_iter().collect::<Vec<_>>().join("|"))
+            format!(
+                "{identity}:{}",
+                partitions.into_iter().collect::<Vec<_>>().join("|")
+            )
         })
         .collect()
 }
@@ -132,7 +131,11 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
         }
 
         let Some(partition) = partition_index(&row.partition) else {
-            return Err(format!("row {} has unsupported partition {}", index + 2, row.partition));
+            return Err(format!(
+                "row {} has unsupported partition {}",
+                index + 2,
+                row.partition
+            ));
         };
         partition_counts[partition] += 1;
         *sample_counts.entry(row.sample_id.clone()).or_default() += 1;
@@ -168,14 +171,20 @@ pub fn audit_rows(rows: &[SampleRow]) -> Result<AuditReceipt, String> {
                     || !valid_sha256(&row.translated_sha256)
                     || !valid_sha256(&row.label_audit_sha256)
                 {
-                    return Err(format!("row {} has incomplete translation lineage", index + 2));
+                    return Err(format!(
+                        "row {} has incomplete translation lineage",
+                        index + 2
+                    ));
                 }
                 if row.label_audit_state != "PASS" {
                     unqualified_translation.insert(row.sample_id.clone());
                 }
             }
             other => {
-                return Err(format!("row {} has unsupported translation_kind {other}", index + 2));
+                return Err(format!(
+                    "row {} has unsupported translation_kind {other}",
+                    index + 2
+                ));
             }
         }
     }
@@ -346,7 +355,6 @@ mod tests {
         rows[1].split_group_id = rows[1].target_id.clone();
         assert!(audit_rows(&rows).is_err());
     }
-
 
     #[test]
     fn target_disjoint_mode_uses_target_identity() {
