@@ -1,5 +1,5 @@
 # Projection generated from Mycelix PORT_CITY_SERVICE_EQUIVALENCE_GOLDEN_TRACE_V0_1.json
-# Source commit 654d37bc1aac06ece189c8fb0c0a0202c69bf6eb; blob  ee9ecb7fc42009c6658e644b57e8f459aa68b979
+# Source commit 654d37bc1aac06ece189c8fb0c0a0202c69bf6eb; GitHub blob ee9ecb7fc42009c6658e644b57e8f459aa68b979
 # CASE\tcase_id\tcategory\texpected_disposition
 CASE	baseline-positive-control	Positive	PASS
 CASE	naive-objective-shift-new-peak	Negative	REJECT_PCC_LIMIT
@@ -49,10 +49,12 @@ CASE	pre_feasibility_grid_headroom_as_dr_capacity	Negative	REJECT_EVIDENCE_CLASS
 CASE	emergency_load_reduction_as_voluntary_dr	Negative	REJECT_AUTHORITY_AND_PRODUCT_CLASS
 CASE	adjacent_private_solar_bess_assumed_port_capacity	Negative	REJECT_UNPROVEN_RESOURCE_JOIN
 CASE	adjacent_private_bess_missing_commissioning_and_power	Unknown	DATA_INCOMPLETE_NO_RESERVE_CREDIT
-# POLICY\tpolicy_id\tpcc_import_kw[0..3]\tpeak_kw\tenergy_mwh\tcap_exceedance_kw\tcompute_energy_mwh\tcompute_work_units\tcooling_mwh\tshore_mwh\tterminal_mwh\tfixed_port_mwh\tro_mwh
-POLICY	baseline-inflexible	7200	7400	5100	4800	7400	6.125	0	3	100	0.6	1	0.95	0.8	0.7
-POLICY	naive-carbon-objective-only	5400	9200	5100	4800	9200	6.125	1000	3	100	0.6	1	0.95	0.8	0.7
-POLICY	no-new-peak-admitted	7200	5600	6900	4800	7200	6.125	0	3	100	0.6	1	0.95	0.8	0.7
+# POLICY\tpolicy_id\tpcc_import_kw[4]\tpeak_kw\tenergy_mwh\tcap_exceedance_kw\tcompute_energy_mwh\tcompute_work_units\tcooling_mwh\tshore_mwh\tterminal_mwh\tfixed_port_mwh\tro_mwh\tcompute_kw[4]\tcooling_kw[4]
+POLICY	baseline-inflexible	7200	7400	5100	4800	7400	6.125	0	3	100	0.6	1	0.95	0.8	0.7	3000	3000	3000	3000	600	600	600	600
+POLICY	naive-carbon-objective-only	5400	9200	5100	4800	9200	6.125	1000	3	100	0.6	1	0.95	0.8	0.7	1500	4500	3000	3000	300	900	600	600
+POLICY	no-new-peak-admitted	7200	5600	6900	4800	7200	6.125	0	3	100	0.6	1	0.95	0.8	0.7	3000	1500	4500	3000	600	300	900	600
+# PROFILE\tpcc_limit_kw\tfixed_port_kw[4]\tvessel_shore_kw[4]\tterminal_kw[4]\tro_kw[4]\trenewables_kw[4]
+PROFILE	8200	800	800	800	800	2000	2000	0	0	1000	1500	800	500	700	700	700	700	900	1200	800	800
 # HEAT\tpolicy_id\tit_heat_source_kw\trecovered_source_kw\tuseful_sink_kw\trecovery_loss_kw\tdirect_seawater_kw\trecovery_residual_kw\tit_residual_kw
 HEAT	baseline-inflexible	3000	312.5	250	62.5	2687.5	0	0
 HEAT	naive-carbon-objective-only	4500	312.5	250	62.5	4187.5	0	0
