@@ -163,8 +163,41 @@ The intended contribution is not a new generic AABB tree or a claim that pair ca
 
 ## 7. Current evidence boundary
 
-Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
+Implemented in this branch: typed revision structures, generation-aware identity checks, monotonicity errors including world-revision binding, separate geometry/warm-start/activation decisions, deterministic pair-delta-to-contact action planning, fail-closed unexplained-revalidation detection, an independently implemented action-plan verifier, immutable before/after receipt replay, and authored unit tests for mutation and event classes. The verifier is a separate algorithm boundary in the same crate, not yet a separately deployed trust anchor.
 
 Not yet implemented or established: live world mutation journal integration; cryptographic receipt serialization; independent verifier/replay; real contact-manager or solver integration; matched external-engine runs; Rust formatting, tests, Clippy or release timings on this exact branch head.
 
 No speedup, correctness qualification or SOTA superiority claim is made until these gaps close.
+
+## 8. Immutable transition receipt and independent replay
+
+The branch now exports `contact_freshness_verifier` with two layers:
+
+- `verify_contact_lifecycle_plan` independently reconstructs the expected `Added`, `Removed` and `Revalidated` actions from a supplied pair-delta frame, prior contact stamps, and current revision records. It does not call the producer planner or `ContactFreshnessStamp::assess`; the audit logic is separately implemented.
+- `verify_contact_lifecycle_receipt` starts from immutable before/after pair-relation snapshots, before/after endpoint-revision maps, prior contact stamps, and the producer's plan. It derives additions/removals by set difference and derives retained-pair revalidation from changed endpoint revisions, missing prior stamps, and global collision/narrowphase/solver configuration changes. It then invokes the separate action audit.
+
+Receipt checks include:
+- strictly advancing world-step revision and monotonic collision-policy revision;
+- canonical, sorted, unique pair relations;
+- endpoint-map key/identity consistency and endpoint presence for every pair;
+- prior contact stamps must belong to the prior pair relation and exactly match the prior endpoint snapshot;
+- prior stamps must not carry stale collision-policy or narrowphase/solver configuration digests;
+- endpoint revision monotonicity, with counter reset allowed only after proxy generation advances;
+- exact additions, removals and retained-pair revalidation;
+- exact contact action order and content, including geometry reuse, warm-start reuse, eligibility recheck and solver activation.
+
+A receipt replay is not yet a cryptographic proof and is not yet a separately deployed trust anchor. The verifier is a distinct implementation boundary in the same crate. Production assurance should build/run it separately against immutable world snapshots and a mutation log, and should sign/digest canonical serialized receipts with an established cryptographic implementation.
+
+The pair-relation snapshots are inputs to this contact-lifecycle verifier; they must already be independently qualified by the geometric broadphase oracle. This verifier does not derive collision geometry from shapes or AABBs, and it must not be described as proving geometric overlap.
+
+### Receipt qualification tests
+
+The verifier includes tests for:
+- accepting a valid wake-only revalidation while preserving geometry and warm starts;
+- rejecting an omitted wake revalidation;
+- rejecting a non-advancing world revision;
+- rejecting a prior stamp inconsistent with its authoritative endpoint snapshot;
+- rejecting missing pair endpoints;
+- reconstructing addition and removal events from before/after relation snapshots.
+
+The benchmark follow-on should measure receipt construction, independent replay CPU, serialization size, verifier memory and the ratio of safe-fallback transitions. These costs must be included in the end-to-end tick and in any speed claims.
