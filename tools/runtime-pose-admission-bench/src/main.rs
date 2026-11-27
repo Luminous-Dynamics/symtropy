@@ -167,7 +167,18 @@ fn json_escape(value: &str) -> String {
 fn render_numbers(values: &[f64]) -> String {
     values
         .iter()
-        .map(|value| format!("\"{value:.12}\""))
+        .map(|value| {
+            let rendered = if value.is_nan() {
+                "nan".to_owned()
+            } else if *value == f64::INFINITY {
+                "inf".to_owned()
+            } else if *value == f64::NEG_INFINITY {
+                "-inf".to_owned()
+            } else {
+                format!("{value:.12}")
+            };
+            format!("\"{rendered}\"")
+        })
         .collect::<Vec<_>>()
         .join(",")
 }
