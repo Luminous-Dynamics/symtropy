@@ -64,6 +64,44 @@ assert!(instance.is_supply_balanced());
 
 The original arc ordinal and exact endpoints, bounds and costs are retained. The source line is diagnostic metadata and is not part of semantic arc equality or the serialized representation. Reparse and compare to test semantic round trips.
 
+## Lower-bound transformation
+
+The separate transform module provides checked algebraic preprocessing for solvers that use residual capacities and adjusted node balances.
+
+Under the positive-supply convention
+
+sum(outflow) - sum(inflow) = supply,
+
+an original arc u -> v with lower bound l is replaced by residual capacity upper - lower. The adjusted supply at u is reduced by l and the adjusted supply at v is increased by l. The mandatory baseline cost l * unit_cost is accumulated as an i128 objective constant.
+
+For each arc:
+
+original_flow = lower_bound + residual_flow
+
+and:
+
+original_cost = lower_bound_cost_offset + sum(residual_flow * unit_cost).
+
+The transformation returns the adjusted i128 supply vector, one residual arc per original arc, the original lower-bound vector and objective constant. The original arc ordinal and source-line metadata are retained; parallel arcs are never merged. It validates the residual record shape, recomputes adjusted balances and lower-bound objective offset before flow restoration or objective reconstruction, and rejects out-of-range residual witnesses.
+
+Example:
+
+~~~rust
+use dimacs_mcf_input::{
+    parse_dimacs_mcf, remove_lower_bounds, restore_original_flows,
+    reconstruct_objective,
+};
+
+let instance = parse_dimacs_mcf(dimacs_text)?;
+let residual = remove_lower_bounds(&instance)?;
+
+// A solver adapter supplies exactly one residual flow per original arc.
+let original_flows = restore_original_flows(&residual, &residual_flows)?;
+let objective = reconstruct_objective(&residual, &residual_flows)?;
+~~~
+
+This stage does not establish residual feasibility, solve the cost-minimization problem, prove optimality or generate a dual certificate. The solver must still satisfy all adjusted node balances and residual capacities, and an independent verifier must check the primal witness and reduced-cost/dual proof. McfResidualInstance fields are public for solver adapters, so its downstream witness helpers revalidate the structure and objective constant rather than trusting mutated values.
+
 ## Deliberate boundaries
 
 This module does not:
