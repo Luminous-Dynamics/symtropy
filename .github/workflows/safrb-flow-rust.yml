@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - research/single-commodity-flow-kernel-v0
+      - research/dimacs-mcf-input-v0
       - research/safrb-time-expanded-adapter-v0
       - research/safrb-temporal-semantics-v0
       - research/dimacs-mcf-input-v0
+      - research/dimacs-lower-bound-transform-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
