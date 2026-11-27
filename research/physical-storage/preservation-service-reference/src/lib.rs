@@ -154,7 +154,10 @@ pub enum ContractError {
 }
 
 fn contains_duplicate_stages(stages: &[Stage]) -> bool {
-    stages.iter().enumerate().any(|(index, stage)| stages[..index].contains(stage))
+    stages
+        .iter()
+        .enumerate()
+        .any(|(index, stage)| stages[..index].contains(stage))
 }
 
 fn rate(bytes: u64, elapsed_ms: u64) -> u128 {
@@ -203,7 +206,10 @@ pub fn score(
         if reader_id.trim().is_empty() {
             return Err(ContractError::EmptyReaderPathId);
         }
-        if receipt.reader_path_ids[..index].iter().any(|seen| seen == reader_id) {
+        if receipt.reader_path_ids[..index]
+            .iter()
+            .any(|seen| seen == reader_id)
+        {
             return Err(ContractError::DuplicateReaderPathId);
         }
     }
@@ -221,13 +227,18 @@ pub fn score(
             Stage::MigrationReadback,
             Stage::DestinationVerify,
             Stage::ProvenanceAcceptance,
-        ].iter().any(|required| !contract.required_stages.contains(required))
+        ]
+        .iter()
+        .any(|required| !contract.required_stages.contains(required))
     {
         return Err(ContractError::MissingMigrationStage);
     }
 
-    let observed_stages: Vec<Stage> =
-        receipt.stage_observations.iter().map(|entry| entry.stage).collect();
+    let observed_stages: Vec<Stage> = receipt
+        .stage_observations
+        .iter()
+        .map(|entry| entry.stage)
+        .collect();
     if contains_duplicate_stages(&observed_stages) {
         return Err(ContractError::ObservedStageDuplicated);
     }
@@ -251,27 +262,31 @@ pub fn score(
     if receipt.independently_accepted_objects > contract.requested_objects {
         return Err(ContractError::AcceptedObjectsExceedRequested);
     }
-    if receipt.time_to_first_accepted_byte_ms.is_some_and(
-        |time| time > receipt.elapsed_ms
-    ) {
+    if receipt
+        .time_to_first_accepted_byte_ms
+        .is_some_and(|time| time > receipt.elapsed_ms)
+    {
         return Err(ContractError::TimeToFirstByteAfterCompletion);
     }
-    if receipt.stage_observations.iter().any(|stage| stage.elapsed_ms > receipt.elapsed_ms) {
+    if receipt
+        .stage_observations
+        .iter()
+        .any(|stage| stage.elapsed_ms > receipt.elapsed_ms)
+    {
         return Err(ContractError::StageDurationExceedsElapsed);
     }
-    if receipt.energy_millijoules.is_some()
-        && receipt.energy_meter_status != EvidenceStatus::Pass
-    {
+    if receipt.energy_millijoules.is_some() && receipt.energy_meter_status != EvidenceStatus::Pass {
         return Err(ContractError::EnergyValueWithoutMeterPass);
     }
-    if receipt.energy_meter_status == EvidenceStatus::Pass
-        && receipt.energy_millijoules.is_none()
-    {
+    if receipt.energy_meter_status == EvidenceStatus::Pass && receipt.energy_millijoules.is_none() {
         return Err(ContractError::MeterPassWithoutEnergyValue);
     }
     if receipt.energy_meter_status == EvidenceStatus::Pass {
         if receipt.energy_meter_id.as_deref().is_none_or(str::is_empty)
-            || receipt.energy_calibration_ref.as_deref().is_none_or(str::is_empty)
+            || receipt
+                .energy_calibration_ref
+                .as_deref()
+                .is_none_or(str::is_empty)
             || receipt.energy_evidence_sha256.is_none()
             || receipt.energy_boundary.is_none()
             || receipt.energy_sample_interval_ms.is_none()
@@ -294,9 +309,10 @@ pub fn score(
         .iter()
         .copied()
         .filter(|required| {
-            !receipt.stage_observations.iter().any(|observed| {
-                observed.stage == *required && observed.evidence_present
-            })
+            !receipt
+                .stage_observations
+                .iter()
+                .any(|observed| observed.stage == *required && observed.evidence_present)
         })
         .collect();
 
@@ -306,8 +322,7 @@ pub fn score(
         None
     };
 
-    let accepted_bytes_per_second =
-        rate(receipt.independently_accepted_bytes, receipt.elapsed_ms);
+    let accepted_bytes_per_second = rate(receipt.independently_accepted_bytes, receipt.elapsed_ms);
 
     let hard_evidence_failure = receipt.expected_digest_status == EvidenceStatus::Fail
         || (contract.manifest_required && receipt.manifest_status == EvidenceStatus::Fail)
@@ -337,8 +352,7 @@ pub fn score(
     }
 
     let all_not_evaluated = receipt.expected_digest_status == EvidenceStatus::NotEvaluated
-        && (!contract.manifest_required
-            || receipt.manifest_status == EvidenceStatus::NotEvaluated)
+        && (!contract.manifest_required || receipt.manifest_status == EvidenceStatus::NotEvaluated)
         && (!contract.provenance_required
             || receipt.provenance_status == EvidenceStatus::NotEvaluated)
         && (!contract.migration_required
@@ -487,9 +501,15 @@ mod tests {
             energy_boundary: Some(EnergyBoundary::WholeService),
             energy_sample_interval_ms: Some(1_000),
             candidate_claimed_full_success: true,
-            stage_observations: contract().required_stages.into_iter().map(|stage| {
-                StageObservation { stage, elapsed_ms: 100, evidence_present: true }
-            }).collect(),
+            stage_observations: contract()
+                .required_stages
+                .into_iter()
+                .map(|stage| StageObservation {
+                    stage,
+                    elapsed_ms: 100,
+                    evidence_present: true,
+                })
+                .collect(),
         }
     }
 
@@ -509,36 +529,46 @@ mod tests {
         value.source_digest_status = EvidenceStatus::Pass;
         value.destination_digest_status = EvidenceStatus::Pass;
         value.migration_lineage_status = EvidenceStatus::Pass;
-        value.stage_observations.extend([
-            Stage::MigrationWrite,
-            Stage::MigrationReadback,
-            Stage::DestinationVerify,
-        ].into_iter().map(|stage| StageObservation {
-            stage,
-            elapsed_ms: 250,
-            evidence_present: true,
-        }));
+        value.stage_observations.extend(
+            [
+                Stage::MigrationWrite,
+                Stage::MigrationReadback,
+                Stage::DestinationVerify,
+            ]
+            .into_iter()
+            .map(|stage| StageObservation {
+                stage,
+                elapsed_ms: 250,
+                evidence_present: true,
+            }),
+        );
         value
     }
 
     #[test]
     fn migration_requires_source_destination_and_lineage_evidence() {
         assert_eq!(
-            score(&migration_contract(), &migration_receipt()).unwrap().disposition,
+            score(&migration_contract(), &migration_receipt())
+                .unwrap()
+                .disposition,
             ServiceDisposition::Pass
         );
 
         let mut source_bad = migration_receipt();
         source_bad.source_digest_status = EvidenceStatus::Fail;
         assert_eq!(
-            score(&migration_contract(), &source_bad).unwrap().disposition,
+            score(&migration_contract(), &source_bad)
+                .unwrap()
+                .disposition,
             ServiceDisposition::Fail
         );
 
         let mut destination_bad = migration_receipt();
         destination_bad.destination_digest_status = EvidenceStatus::Fail;
         assert_eq!(
-            score(&migration_contract(), &destination_bad).unwrap().disposition,
+            score(&migration_contract(), &destination_bad)
+                .unwrap()
+                .disposition,
             ServiceDisposition::Fail
         );
 
@@ -546,7 +576,9 @@ mod tests {
         lineage_missing.migration_lineage_status = EvidenceStatus::Incomplete;
         lineage_missing.candidate_claimed_full_success = false;
         assert_eq!(
-            score(&migration_contract(), &lineage_missing).unwrap().disposition,
+            score(&migration_contract(), &lineage_missing)
+                .unwrap()
+                .disposition,
             ServiceDisposition::Incomplete
         );
     }
@@ -564,7 +596,9 @@ mod tests {
     #[test]
     fn migration_requires_source_read_fixity_and_provenance_stages() {
         let mut no_source_read = migration_contract();
-        no_source_read.required_stages.retain(|stage| *stage != Stage::PhysicalRead);
+        no_source_read
+            .required_stages
+            .retain(|stage| *stage != Stage::PhysicalRead);
         assert_eq!(
             score(&no_source_read, &migration_receipt()),
             Err(ContractError::MissingMigrationStage)
@@ -595,7 +629,10 @@ mod tests {
         receipt.reconstructed_bytes = 900_000;
         receipt.independently_accepted_objects = 9;
         receipt.missing_objects = 1;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
     }
 
     #[test]
@@ -608,7 +645,10 @@ mod tests {
         receipt.independently_accepted_objects = 9;
         receipt.missing_objects = 1;
         receipt.expected_digest_status = EvidenceStatus::Incomplete;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
     }
 
     #[test]
@@ -620,27 +660,38 @@ mod tests {
                 1 => receipt.manifest_status = EvidenceStatus::Fail,
                 _ => receipt.provenance_status = EvidenceStatus::Fail,
             }
-            assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+            assert_eq!(
+                score(&contract(), &receipt).unwrap().disposition,
+                ServiceDisposition::Fail
+            );
         }
     }
 
     #[test]
     fn missing_stage_evidence_is_incomplete_unless_candidate_claims_full_success() {
         let mut receipt = passing_receipt();
-        receipt.stage_observations.retain(|item| item.stage != Stage::MediaMount);
+        receipt
+            .stage_observations
+            .retain(|item| item.stage != Stage::MediaMount);
         let score = score(&contract(), &receipt).unwrap();
         assert_eq!(score.disposition, ServiceDisposition::Fail);
         assert_eq!(score.missing_required_stages, vec![Stage::MediaMount]);
 
         receipt.candidate_claimed_full_success = false;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
     }
 
     #[test]
     fn missed_deadline_fails_even_when_all_bytes_are_exact() {
         let mut receipt = passing_receipt();
         receipt.elapsed_ms = 10_001;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
     }
 
     #[test]
@@ -652,7 +703,10 @@ mod tests {
                 1 => receipt.extra_objects = 1,
                 _ => receipt.duplicate_objects = 1,
             }
-            assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+            assert_eq!(
+                score(&contract(), &receipt).unwrap().disposition,
+                ServiceDisposition::Fail
+            );
         }
     }
 
@@ -709,36 +763,53 @@ mod tests {
         let mut receipt = passing_receipt();
         receipt.energy_meter_status = EvidenceStatus::Incomplete;
         receipt.energy_millijoules = None;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
     }
 
     #[test]
     fn reader_independence_and_agreement_are_separate_hard_gates() {
         let mut disagreement = passing_receipt();
         disagreement.reader_agreement_status = EvidenceStatus::Fail;
-        assert_eq!(score(&contract(), &disagreement).unwrap().disposition, ServiceDisposition::Fail);
+        assert_eq!(
+            score(&contract(), &disagreement).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
 
         let mut shared_dependencies = passing_receipt();
         shared_dependencies.reader_independence_status = EvidenceStatus::Incomplete;
         shared_dependencies.candidate_claimed_full_success = false;
         assert_eq!(
-            score(&contract(), &shared_dependencies).unwrap().disposition,
+            score(&contract(), &shared_dependencies)
+                .unwrap()
+                .disposition,
             ServiceDisposition::Incomplete
         );
 
         let mut one_path = passing_receipt();
         one_path.reader_path_ids.pop();
         one_path.candidate_claimed_full_success = false;
-        assert_eq!(score(&contract(), &one_path).unwrap().disposition, ServiceDisposition::Incomplete);
+        assert_eq!(
+            score(&contract(), &one_path).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
     }
 
     #[test]
     fn unrecoverable_object_blocks_success() {
         let mut receipt = passing_receipt();
         receipt.unrecoverable_objects = 1;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
         receipt.candidate_claimed_full_success = false;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
     }
 
     #[test]
@@ -767,41 +838,64 @@ mod tests {
         receipt.independently_accepted_objects = 0;
         receipt.missing_objects = 10;
         receipt.candidate_claimed_full_success = false;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::NotEvaluated);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::NotEvaluated
+        );
     }
 
     #[test]
     fn duplicate_stage_and_inconsistent_accounting_are_rejected() {
         let mut duplicate = passing_receipt();
-        duplicate.stage_observations.push(duplicate.stage_observations[0].clone());
-        assert_eq!(score(&contract(), &duplicate), Err(ContractError::ObservedStageDuplicated));
+        duplicate
+            .stage_observations
+            .push(duplicate.stage_observations[0].clone());
+        assert_eq!(
+            score(&contract(), &duplicate),
+            Err(ContractError::ObservedStageDuplicated)
+        );
 
         let mut mismatch = passing_receipt();
         mismatch.missing_objects = 1;
-        assert_eq!(score(&contract(), &mismatch), Err(ContractError::ObjectAccountingMismatch));
+        assert_eq!(
+            score(&contract(), &mismatch),
+            Err(ContractError::ObjectAccountingMismatch)
+        );
     }
 
     #[test]
     fn delivered_or_accepted_bytes_cannot_exceed_prior_stage_bytes() {
         let mut delivered = passing_receipt();
         delivered.delivered_bytes += 1;
-        assert_eq!(score(&contract(), &delivered), Err(ContractError::DeliveredBytesExceedReconstructed));
+        assert_eq!(
+            score(&contract(), &delivered),
+            Err(ContractError::DeliveredBytesExceedReconstructed)
+        );
 
         let mut accepted = passing_receipt();
         accepted.independently_accepted_bytes += 1;
         accepted.delivered_bytes += 1;
         accepted.reconstructed_bytes += 1;
-        assert_eq!(score(&contract(), &accepted), Err(ContractError::AcceptedBytesExceedRequested));
+        assert_eq!(
+            score(&contract(), &accepted),
+            Err(ContractError::AcceptedBytesExceedRequested)
+        );
     }
 
     #[test]
     fn missing_first_accepted_byte_time_blocks_a_full_success_claim() {
         let mut receipt = passing_receipt();
         receipt.time_to_first_accepted_byte_ms = None;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Fail);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Fail
+        );
 
         receipt.candidate_claimed_full_success = false;
-        assert_eq!(score(&contract(), &receipt).unwrap().disposition, ServiceDisposition::Incomplete);
+        assert_eq!(
+            score(&contract(), &receipt).unwrap().disposition,
+            ServiceDisposition::Incomplete
+        );
     }
 
     #[test]
@@ -818,21 +912,33 @@ mod tests {
     fn malformed_reader_paths_and_empty_stage_contract_are_rejected() {
         let mut duplicate_paths = passing_receipt();
         duplicate_paths.reader_path_ids[1] = duplicate_paths.reader_path_ids[0].clone();
-        assert_eq!(score(&contract(), &duplicate_paths), Err(ContractError::DuplicateReaderPathId));
+        assert_eq!(
+            score(&contract(), &duplicate_paths),
+            Err(ContractError::DuplicateReaderPathId)
+        );
 
         let mut empty_stages = contract();
         empty_stages.required_stages.clear();
-        assert_eq!(score(&empty_stages, &passing_receipt()), Err(ContractError::NoRequiredStages));
+        assert_eq!(
+            score(&empty_stages, &passing_receipt()),
+            Err(ContractError::NoRequiredStages)
+        );
     }
 
     #[test]
     fn stage_and_time_receipts_must_be_well_formed() {
         let mut first_byte = passing_receipt();
         first_byte.time_to_first_accepted_byte_ms = Some(5_001);
-        assert_eq!(score(&contract(), &first_byte), Err(ContractError::TimeToFirstByteAfterCompletion));
+        assert_eq!(
+            score(&contract(), &first_byte),
+            Err(ContractError::TimeToFirstByteAfterCompletion)
+        );
 
         let mut no_energy = passing_receipt();
         no_energy.energy_millijoules = None;
-        assert_eq!(score(&contract(), &no_energy), Err(ContractError::MeterPassWithoutEnergyValue));
+        assert_eq!(
+            score(&contract(), &no_energy),
+            Err(ContractError::MeterPassWithoutEnergyValue)
+        );
     }
 }
