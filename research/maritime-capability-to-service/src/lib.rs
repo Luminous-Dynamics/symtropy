@@ -120,6 +120,7 @@ struct Instance {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Outcome {
     pub instance_id: String,
+    pub instance_version: String,
     pub service_id: String,
     pub deadline_day: u64,
     pub option_id: String,
@@ -482,6 +483,7 @@ fn evaluate(instance: &Instance) -> Result<Vec<Outcome>, String> {
 
             Ok(Outcome {
                 instance_id: instance.id.clone(),
+                instance_version: instance.version.clone(),
                 service_id: instance.service.id.clone(),
                 deadline_day: instance.service.deadline_day,
                 option_id: option.id.clone(),
@@ -527,6 +529,7 @@ pub fn compare_service_options(
     candidate: &Outcome,
 ) -> Result<ServiceOptionValue, String> {
     if baseline.instance_id != candidate.instance_id
+        || baseline.instance_version != candidate.instance_version
         || baseline.service_id != candidate.service_id
         || baseline.deadline_day != candidate.deadline_day
         || baseline.expected_units != candidate.expected_units
@@ -987,6 +990,22 @@ mod tests {
         let changed_deadline = FIXTURE.replace(
             "SERVICE-001\t10\tcargo_unit\t10",
             "SERVICE-001\t10\tcargo_unit\t11",
+        );
+
+        let changed_version =
+            FIXTURE.replace("MCSC-TINY-001\tv0.1", "MCSC-TINY-001\tv0.2");
+        let changed = parse_instance(&changed_version).unwrap();
+        let changed_outcomes = evaluate(&changed).unwrap();
+        assert!(
+            compare_service_options(
+                baseline,
+                changed_outcomes
+                    .iter()
+                    .find(|outcome| outcome.option_id == "IMPORT")
+                    .unwrap()
+            )
+            .unwrap_err()
+            .contains("same frozen instance")
         );
         let changed = parse_instance(&changed_deadline).unwrap();
         let changed_outcomes = evaluate(&changed).unwrap();
