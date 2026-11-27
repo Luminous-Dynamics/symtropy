@@ -1,0 +1,16 @@
+[package]
+name = "magnetic-certified-search"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Interval branch-and-bound reference for robust magnetic design search"
+
+[dependencies]
+magnetic-interval-ad = { path = "../interval-ad" }
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
