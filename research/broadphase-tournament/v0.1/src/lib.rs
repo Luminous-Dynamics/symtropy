@@ -500,8 +500,7 @@ fn oracle_pairs_sweep<const D: usize>(
     validate_frame(frame)?;
     let mut ordered: Vec<_> = frame.iter().collect();
     ordered.sort_by(|left, right| {
-        left.bounds
-            .min()[0]
+        left.bounds.min()[0]
             .total_cmp(&right.bounds.min()[0])
             .then_with(|| left.id.cmp(&right.id))
     });
@@ -701,9 +700,7 @@ impl<const D: usize> PairDeltaCache<D> {
             }
             previous = Some(*id);
         }
-        Ok(expected
-            .iter()
-            .all(|id| supplied.binary_search(id).is_ok()))
+        Ok(expected.iter().all(|id| supplied.binary_search(id).is_ok()))
     }
 
     /// Safe default: detect changed identities from the complete snapshots.
@@ -712,13 +709,11 @@ impl<const D: usize> PairDeltaCache<D> {
         let mut snapshot_entries_visited = u64::try_from(self.previous_bounds.len())
             .ok()
             .and_then(|previous| {
-                u64::try_from(frame.len())
-                    .ok()
-                    .and_then(|current| {
-                        current
-                            .checked_mul(2)
-                            .and_then(|current| previous.checked_add(current))
-                    })
+                u64::try_from(frame.len()).ok().and_then(|current| {
+                    current
+                        .checked_mul(2)
+                        .and_then(|current| previous.checked_add(current))
+                })
             })
             .ok_or(TournamentError::CounterOverflow)?;
         if self.force_dirty {
@@ -796,8 +791,7 @@ impl<const D: usize> PairDeltaCache<D> {
                 return Err(TournamentError::InvalidDirtyJournal);
             }
             let exists_before = self.previous_bounds.contains_key(dirty_id);
-            let current_index =
-                frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
+            let current_index = frame.binary_search_by_key(dirty_id, |proxy| proxy.id).ok();
             let exists_now = current_index.is_some();
             if !exists_before && !exists_now {
                 return Err(TournamentError::InvalidDirtyJournal);
@@ -1341,7 +1335,10 @@ fn run_backend<const D: usize>(
         let mut pair_cache =
             (backend == BackendKind::PairDeltaCache).then(PairDeltaCache::<D>::new);
         let mut indexed_pair_cache = if backend == BackendKind::IndexedPairDeltaCache {
-            Some(IndexedPairDeltaCache::<D>::new(0.5, BalancePolicy::HeightRotations)?)
+            Some(IndexedPairDeltaCache::<D>::new(
+                0.5,
+                BalancePolicy::HeightRotations,
+            )?)
         } else {
             None
         };
@@ -1521,28 +1518,36 @@ fn run_backend<const D: usize>(
                     .frame_validation_entries_visited
                     .checked_add(delta.frame_validation_entries_visited)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_proxy_visits = counters.frontier_proxy_visits
+                counters.frontier_proxy_visits = counters
+                    .frontier_proxy_visits
                     .checked_add(delta.frontier_proxy_visits)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_pair_candidates = counters.frontier_pair_candidates
+                counters.frontier_pair_candidates = counters
+                    .frontier_pair_candidates
                     .checked_add(delta.frontier_pair_candidates)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_unique_pairs = counters.frontier_unique_pairs
+                counters.frontier_unique_pairs = counters
+                    .frontier_unique_pairs
                     .checked_add(delta.frontier_unique_pairs)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_node_visits = counters.frontier_node_visits
+                counters.frontier_node_visits = counters
+                    .frontier_node_visits
                     .checked_add(delta.frontier_node_visits)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_leaf_tests = counters.frontier_leaf_tests
+                counters.frontier_leaf_tests = counters
+                    .frontier_leaf_tests
                     .checked_add(delta.frontier_leaf_tests)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_aabb_tests = counters.frontier_aabb_tests
+                counters.frontier_aabb_tests = counters
+                    .frontier_aabb_tests
                     .checked_add(delta.frontier_aabb_tests)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_index_mutations = counters.frontier_index_mutations
+                counters.frontier_index_mutations = counters
+                    .frontier_index_mutations
                     .checked_add(delta.frontier_index_mutations)
                     .ok_or(TournamentError::CounterOverflow)?;
-                counters.frontier_index_reinsertions = counters.frontier_index_reinsertions
+                counters.frontier_index_reinsertions = counters
+                    .frontier_index_reinsertions
                     .checked_add(delta.frontier_index_reinsertions)
                     .ok_or(TournamentError::CounterOverflow)?;
                 if delta.full_relation_reconciliation {
@@ -1720,8 +1725,7 @@ pub fn run_scale_tournament<const D: usize>(
         .into_iter()
         .filter(|backend| {
             *backend != BackendKind::BruteForce
-                && (*backend != BackendKind::PairDeltaCache
-                    || scene.declared_proxy_count <= 4_096)
+                && (*backend != BackendKind::PairDeltaCache || scene.declared_proxy_count <= 4_096)
         })
         .collect::<Vec<_>>();
 
@@ -1961,16 +1965,22 @@ mod tests {
         let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
         assert_eq!(dirty, vec![ProxyId(1), ProxyId(2)]);
         assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
-        assert!(cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
-            .unwrap());
+        assert!(
+            cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
+                .unwrap()
+        );
         assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
-        assert!(!cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
-            .unwrap());
-        assert!(!cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
-            .unwrap());
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
+                .unwrap()
+        );
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
+                .unwrap()
+        );
         let moved = cache.step_with_dirty_ids(&next, &dirty).unwrap();
         assert_eq!(moved.revalidated.len(), 1);
         assert_eq!(moved.frontier_proxy_visits, 0);
@@ -1993,12 +2003,8 @@ mod tests {
 
         // A wake-only lifecycle event may mark a known collider dirty even
         // when its AABB is unchanged; retained pairs still require refresh.
-        assert!(cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(1)])
-            .unwrap());
-        let wake_only = cache
-            .step_with_dirty_ids(&next, &[ProxyId(1)])
-            .unwrap();
+        assert!(cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
+        let wake_only = cache.step_with_dirty_ids(&next, &[ProxyId(1)]).unwrap();
         assert_eq!(wake_only.revalidated.len(), 1);
         assert_eq!(wake_only.added.len(), 0);
         assert_eq!(wake_only.removed.len(), 0);
@@ -2014,10 +2020,7 @@ mod tests {
         let rebuilt = cache.step(&next).unwrap();
         assert_eq!(rebuilt.dirty_proxies, 3);
         assert_eq!(rebuilt.active_pairs, 1);
-        assert_eq!(
-            rebuilt.dirty_snapshot_entries_visited,
-            5 * next.len()
-        );
+        assert_eq!(rebuilt.dirty_snapshot_entries_visited, 5 * next.len());
         assert_eq!(rebuilt.frame_validation_entries_visited, 0);
     }
 
@@ -2037,19 +2040,28 @@ mod tests {
                 2 => {
                     let scene = generate_scene::<2>(family, 96, 12, 0x51ee_2026).unwrap();
                     for frame in &scene.frames {
-                        assert_eq!(oracle_pairs_sweep(frame).unwrap(), oracle_pairs(frame).unwrap());
+                        assert_eq!(
+                            oracle_pairs_sweep(frame).unwrap(),
+                            oracle_pairs(frame).unwrap()
+                        );
                     }
                 }
                 3 => {
                     let scene = generate_scene::<3>(family, 96, 12, 0x51ee_2026).unwrap();
                     for frame in &scene.frames {
-                        assert_eq!(oracle_pairs_sweep(frame).unwrap(), oracle_pairs(frame).unwrap());
+                        assert_eq!(
+                            oracle_pairs_sweep(frame).unwrap(),
+                            oracle_pairs(frame).unwrap()
+                        );
                     }
                 }
                 4 => {
                     let scene = generate_scene::<4>(family, 96, 12, 0x51ee_2026).unwrap();
                     for frame in &scene.frames {
-                        assert_eq!(oracle_pairs_sweep(frame).unwrap(), oracle_pairs(frame).unwrap());
+                        assert_eq!(
+                            oracle_pairs_sweep(frame).unwrap(),
+                            oracle_pairs(frame).unwrap()
+                        );
                     }
                 }
                 _ => unreachable!(),
@@ -2059,7 +2071,8 @@ mod tests {
 
     #[test]
     fn scale_grid_does_not_alias_sparse_proxies_and_sleeping_pairs_stay_linear() {
-        let sparse = generate_scene::<3>(SceneFamily::SparseCoherent, 10_000, 1, 0x5ca1_e000).unwrap();
+        let sparse =
+            generate_scene::<3>(SceneFamily::SparseCoherent, 10_000, 1, 0x5ca1_e000).unwrap();
         let sparse_pairs = oracle_pairs_sweep(&sparse.frames[0]).unwrap();
         assert!(sparse_pairs.is_empty());
 
@@ -2240,16 +2253,22 @@ mod tests {
         let dirty = cache.derive_dirty_proxy_ids(&next).unwrap();
         assert_eq!(dirty, vec![ProxyId(1), ProxyId(3)]);
         assert!(cache.verify_dirty_proxy_ids(&next, &dirty).unwrap());
-        assert!(cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
-            .unwrap());
+        assert!(
+            cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(2), ProxyId(3)])
+                .unwrap()
+        );
         assert!(!cache.verify_dirty_proxy_ids(&next, &[ProxyId(1)]).unwrap());
-        assert!(!cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
-            .unwrap());
-        assert!(!cache
-            .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
-            .unwrap());
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(1), ProxyId(3), ProxyId(99)])
+                .unwrap()
+        );
+        assert!(
+            !cache
+                .verify_dirty_proxy_ids(&next, &[ProxyId(3), ProxyId(1)])
+                .unwrap()
+        );
 
         assert_eq!(
             cache.step_with_dirty_ids(&next, &[ProxyId(3), ProxyId(1)]),
@@ -2266,9 +2285,7 @@ mod tests {
         assert_eq!(delta.added.len(), 1);
         assert_eq!(delta.dirty_snapshot_entries_visited, 0);
         assert_eq!(delta.frame_validation_entries_visited, 0);
-        assert!(
-            cache.verify_dirty_proxy_ids(&next, &[ProxyId(2)]).unwrap()
-        );
+        assert!(cache.verify_dirty_proxy_ids(&next, &[ProxyId(2)]).unwrap());
         let wake_only = cache.step_with_dirty_ids(&next, &[ProxyId(2)]).unwrap();
         assert_eq!(wake_only.revalidated.len(), 1);
         assert_eq!(wake_only.added.len(), 0);
