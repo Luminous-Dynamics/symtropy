@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "CFI-SPACE-SYNTHETIC-CONTRACT-001",
+  "predictions": [
+    {
+      "episode_id": "episode-a-clean",
+      "input_bundle_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "disposition": "qualified",
+      "detected_fault_families": []
+    },
+    {
+      "episode_id": "episode-a-clock",
+      "input_bundle_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "disposition": "out_of_scope",
+      "detected_fault_families": [
+        "timing"
+      ]
+    },
+    {
+      "episode_id": "episode-a-extrinsics",
+      "input_bundle_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "disposition": "disagreement",
+      "detected_fault_families": [
+        "extrinsics"
+      ]
+    },
+    {
+      "episode_id": "episode-a-common",
+      "input_bundle_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "disposition": "dependence_unknown",
+      "detected_fault_families": [
+        "common_cause"
+      ]
+    },
+    {
+      "episode_id": "episode-a-translation",
+      "input_bundle_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "disposition": "abstain",
+      "detected_fault_families": [
+        "translation"
+      ]
+    },
+    {
+      "episode_id": "episode-a-ood",
+      "input_bundle_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "disposition": "abstain",
+      "detected_fault_families": [
+        "observability"
+      ]
+    },
+    {
+      "episode_id": "episode-a-integrity",
+      "input_bundle_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+      "disposition": "missing_evidence",
+      "detected_fault_families": [
+        "integrity"
+      ]
+    },
+    {
+      "episode_id": "episode-a-interaction",
+      "input_bundle_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "disposition": "dependence_unknown",
+      "detected_fault_families": [
+        "timing",
+        "extrinsics"
+      ]
+    },
+    {
+      "episode_id": "episode-b-clean",
+      "input_bundle_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "disposition": "qualified",
+      "detected_fault_families": []
+    },
+    {
+      "episode_id": "episode-b-clock",
+      "input_bundle_sha256": "10101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010",
+      "disposition": "out_of_scope",
+      "detected_fault_families": [
+        "timing"
+      ]
+    }
+  ]
+}
