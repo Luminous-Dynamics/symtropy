@@ -1106,7 +1106,7 @@ mod tests {
     }
 
     #[test]
-    fn M2_requires_remanence_and_intrinsic_coercivity_measurands() {
+    fn m2_requires_remanence_and_intrinsic_coercivity_measurands() {
         let mut receipts = m2_receipts();
         receipts[1].measurands.retain(|value| value != "intrinsic_coercivity_hcj");
         let result = evaluate(&candidate(), &receipts);
@@ -1115,7 +1115,7 @@ mod tests {
     }
 
     #[test]
-    fn M3_requires_phase_texture_and_defect_characterization() {
+    fn m3_requires_phase_texture_and_defect_characterization() {
         let mut receipts = m3_receipts();
         receipts[4].measurands.retain(|value| value != "texture_orientation");
         let result = evaluate(&candidate(), &receipts);
