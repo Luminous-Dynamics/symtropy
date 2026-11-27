@@ -440,14 +440,25 @@ pub fn run_tournament(
         .map(|candidate| evaluate_candidate(cohort, candidate))
         .collect::<Vec<_>>();
 
-    let mut seen_ids = std::collections::BTreeSet::new();
-    let mut seen_specimens = std::collections::BTreeSet::new();
+    let mut id_counts = std::collections::BTreeMap::new();
+    let mut specimen_counts = std::collections::BTreeMap::new();
+    for candidate in candidates {
+        *id_counts.entry(candidate.candidate_id.as_str()).or_insert(0usize) += 1;
+        *specimen_counts
+            .entry(candidate.specimen_id.as_str())
+            .or_insert(0usize) += 1;
+    }
     for (candidate, evaluation) in candidates.iter().zip(evaluations.iter_mut()) {
-        if !seen_ids.insert(candidate.candidate_id.as_str()) {
+        if id_counts.get(candidate.candidate_id.as_str()).copied().unwrap_or(0) > 1 {
             evaluation.disposition = Disposition::Indeterminate;
             evaluation.blockers.push(Blocker::DuplicateCandidateId);
         }
-        if !seen_specimens.insert(candidate.specimen_id.as_str()) {
+        if specimen_counts
+            .get(candidate.specimen_id.as_str())
+            .copied()
+            .unwrap_or(0)
+            > 1
+        {
             evaluation.disposition = Disposition::Indeterminate;
             evaluation.blockers.push(Blocker::DuplicateSpecimen);
         }
