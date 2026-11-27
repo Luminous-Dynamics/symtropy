@@ -36,6 +36,8 @@ pub mod decision_gate;
 pub mod decision_refinement;
 /// Anytime-valid paired contrast sequence under a frozen defensive proposal.
 pub mod defensive_contrast_sequence;
+/// Minimax-regret decisions across explicit epistemic scenarios.
+pub mod epistemic_minimax_regret;
 pub mod hedged_capital_sequence;
 pub mod lebedev;
 /// Exact dependence-aware aggregation across a finite mission encounter set.
@@ -51,9 +53,9 @@ pub mod pathwise_proposal;
 pub mod pop_col_adjustment;
 pub mod pop_col_energy;
 pub mod pop_convergence;
-/// Simultaneous anytime-valid comparisons across paired portfolio arms.
 /// Defensive proposal mixtures across a frozen portfolio event-mode universe.
 pub mod portfolio_proposal;
+/// Simultaneous anytime-valid comparisons across paired portfolio arms.
 pub mod portfolio_selection;
 pub mod predictable_empirical_bernstein;
 pub mod proposal_execution_conformance;
@@ -95,6 +97,10 @@ pub use defensive_contrast_sequence::{
     DefensiveContrastConfidenceInterval, DefensiveContrastConfidenceSequence,
     DefensiveContrastDraw, DefensiveContrastObservation, DefensiveContrastSequenceError,
     MAX_DEFENSIVE_CONTRAST_DRAWS,
+};
+pub use epistemic_minimax_regret::{
+    EpistemicMinimaxRegret, EpistemicMinimaxRegretError, EpistemicMinimaxRegretReport,
+    EpistemicScenarioEvidence, PortfolioWorstCaseRegretInterval,
 };
 pub use hedged_capital_sequence::{
     AdaptiveImportanceSamplingHedgedSequence, DEFAULT_HEDGED_STAKE_CAP,
