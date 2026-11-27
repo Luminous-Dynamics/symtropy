@@ -90,6 +90,7 @@ pub struct PhysicalFieldDiscrepancyCertificate {
     pub residual_jacobian_record_id: String,
     pub residual_jacobian_component_record_ids: [String; 3],
     pub residual_jacobian_component_expression_ids: [String; 3],
+    pub residual_jacobian_component_input_sha256: [String; 3],
     pub residual_jacobian_source_revision: String,
     pub residual_jacobian_implementation_id: String,
     pub residual_jacobian_artifact_sha256: String,
