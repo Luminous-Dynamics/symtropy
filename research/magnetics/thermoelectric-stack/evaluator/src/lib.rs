@@ -481,18 +481,19 @@ fn validate_observations(
 ) -> BTreeMap<String, Interval> {
     let mut by_id = BTreeMap::new();
     let mut evidence_ids = BTreeSet::new();
+    let mut metric_ids = BTreeSet::new();
 
     for observation in &trial.observations {
-        if by_id
-            .insert(observation.metric_id.as_str(), observation)
-            .is_some()
-        {
+        let mut valid = true;
+        if !metric_ids.insert(observation.metric_id.as_str()) {
             blockers.push(Blocker::DuplicateObservation);
+            valid = false;
         }
         if observation.evidence_id.trim().is_empty()
             || !evidence_ids.insert(observation.evidence_id.as_str())
         {
             blockers.push(Blocker::DuplicateObservation);
+            valid = false;
         }
         if observation.component_id != trial.component_id
             || observation.specimen_id != trial.acceptance.specimen_id
@@ -500,9 +501,11 @@ fn validate_observations(
             || observation.material_lot_id.trim().is_empty()
         {
             blockers.push(Blocker::BrokenSpecimenBinding);
+            valid = false;
         }
         if observation.evidence_class != EvidenceClass::PhysicalMeasurement {
             blockers.push(Blocker::InadmissibleEvidenceClass);
+            valid = false;
         }
         if observation.method_id.trim().is_empty()
             || !valid_sha256(&observation.evidence_digest)
@@ -510,19 +513,26 @@ fn validate_observations(
             || !valid_sha256(&observation.uncertainty_digest)
         {
             blockers.push(Blocker::MissingMeasurementProvenance);
+            valid = false;
         }
         if !observation.value.is_finite()
             || !observation.uncertainty_radius.is_finite()
             || observation.uncertainty_radius < 0.0
         {
             blockers.push(Blocker::InvalidObservation);
+            valid = false;
         }
         if let Some(metric) = spec.metrics.iter().find(|m| m.metric_id == observation.metric_id) {
             if metric.unit != observation.unit {
                 blockers.push(Blocker::InvalidObservation);
+                valid = false;
             }
         } else {
             blockers.push(Blocker::InvalidObservation);
+            valid = false;
+        }
+        if valid {
+            by_id.insert(observation.metric_id.as_str(), observation);
         }
     }
 
@@ -532,12 +542,6 @@ fn validate_observations(
             blockers.push(Blocker::MissingObservation);
             continue;
         };
-        if !observation.value.is_finite()
-            || !observation.uncertainty_radius.is_finite()
-            || observation.uncertainty_radius < 0.0
-        {
-            continue;
-        }
         intervals.insert(
             metric.metric_id.clone(),
             Interval {
