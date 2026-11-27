@@ -88,7 +88,8 @@ fn owner_feasible_portfolios_use_the_canonical_receiver_service_evaluator() {
     assert_eq!(plans.values().filter(|plan| plan.feasible).count(), 3);
     assert_eq!(plans.values().filter(|plan| plan.pareto).count(), 3);
     assert_eq!(
-        plans.values()
+        plans
+            .values()
             .filter(|plan| plan.feasible)
             .map(|plan| plan.cost + plan.emissions + plan.regional_value)
             .sum::<u64>(),
