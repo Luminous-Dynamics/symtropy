@@ -17,7 +17,8 @@
       "fault_ids": [],
       "fault_families": [],
       "critical": false,
-      "expected_disposition": "qualified"
+      "expected_disposition": "qualified",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-clock",
@@ -38,7 +39,8 @@
         "timing"
       ],
       "critical": true,
-      "expected_disposition": "out_of_scope"
+      "expected_disposition": "out_of_scope",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-extrinsics",
@@ -59,7 +61,8 @@
         "extrinsics"
       ],
       "critical": true,
-      "expected_disposition": "disagreement"
+      "expected_disposition": "disagreement",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-common",
@@ -80,7 +83,8 @@
         "common_cause"
       ],
       "critical": true,
-      "expected_disposition": "dependence_unknown"
+      "expected_disposition": "dependence_unknown",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-translation",
@@ -101,7 +105,8 @@
         "translation"
       ],
       "critical": true,
-      "expected_disposition": "abstain"
+      "expected_disposition": "abstain",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-ood",
@@ -122,7 +127,8 @@
         "observability"
       ],
       "critical": false,
-      "expected_disposition": "abstain"
+      "expected_disposition": "abstain",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-integrity",
@@ -143,7 +149,8 @@
         "integrity"
       ],
       "critical": true,
-      "expected_disposition": "missing_evidence"
+      "expected_disposition": "missing_evidence",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-a-interaction",
@@ -166,7 +173,8 @@
         "extrinsics"
       ],
       "critical": true,
-      "expected_disposition": "dependence_unknown"
+      "expected_disposition": "dependence_unknown",
+      "generalization": "seen_target"
     },
     {
       "episode_id": "episode-b-clean",
@@ -183,7 +191,8 @@
       "fault_ids": [],
       "fault_families": [],
       "critical": false,
-      "expected_disposition": "qualified"
+      "expected_disposition": "qualified",
+      "generalization": "unseen_target"
     },
     {
       "episode_id": "episode-b-clock",
@@ -204,7 +213,8 @@
         "timing"
       ],
       "critical": true,
-      "expected_disposition": "out_of_scope"
+      "expected_disposition": "out_of_scope",
+      "generalization": "unseen_target"
     }
   ]
 }
