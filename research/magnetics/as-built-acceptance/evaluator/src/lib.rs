@@ -136,6 +136,8 @@ pub struct SpatialCertificate {
 pub struct UncertaintyEvidence {
     pub record_id: String,
     pub digest: String,
+    pub specimen_id: String,
+    pub scope: Scope,
     pub scope_complete: bool,
     pub common_cause_source_ids: Vec<String>,
 }
@@ -436,6 +438,12 @@ pub fn evaluate(case: &AcceptanceCase) -> Evaluation {
     }) {
         blockers.push(Blocker::HoldoutLeakage);
     }
+    if case.uncertainty.specimen_id != case.specimen_id {
+        blockers.push(Blocker::WrongSpecimen);
+    }
+    if case.uncertainty.scope != case.scope {
+        blockers.push(Blocker::WrongScope);
+    }
     if !case.uncertainty.scope_complete {
         blockers.push(Blocker::IncompleteUncertainty);
     }
@@ -681,6 +689,8 @@ mod tests {
             uncertainty: UncertaintyEvidence {
                 record_id: "UNCERTAINTY-001".to_string(),
                 digest: digest('e'),
+                specimen_id: specimen.clone(),
+                scope: scope.clone(),
                 scope_complete: true,
                 common_cause_source_ids: vec!["COMMON-CAL-001".to_string()],
             },
@@ -810,6 +820,26 @@ mod tests {
         let result = evaluate(&case);
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::MissingUncertaintyRecord));
+    }
+
+    #[test]
+    fn uncertainty_budget_must_bind_exact_specimen_and_scope() {
+        let mut case = valid_case();
+        case.uncertainty.specimen_id = "SPEC-OTHER".to_string();
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::WrongSpecimen));
+    }
+
+    #[test]
+    fn unqualified_model_discrepancy_cannot_support_acceptance() {
+        let mut case = valid_case();
+        case.model_discrepancy.qualified = false;
+        let result = evaluate(&case);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::UnqualifiedModelDiscrepancy));
     }
 
     #[test]
