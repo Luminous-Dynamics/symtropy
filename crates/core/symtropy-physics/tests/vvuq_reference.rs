@@ -316,10 +316,13 @@ fn transformed_obb_3d_gjk_matches_independent_fifteen_axis_sat() {
             sample_range(&mut state, -PI, PI),
             sample_range(&mut state, -PI, PI),
         );
+        // Concentrate cases inside the unrotated AABB-overlap band. The
+        // translation-only baseline therefore predicts overlap for every
+        // pair; any rotated SAT separation exposes the ignored orientation.
         let center_b = [
-            sample_range(&mut state, -3.5, 3.5),
-            sample_range(&mut state, -3.0, 3.0),
-            sample_range(&mut state, -2.5, 2.5),
+            sample_range(&mut state, -1.62, 1.62),
+            sample_range(&mut state, -0.90, 0.90),
+            sample_range(&mut state, -0.495, 0.495),
         ];
 
         let expected =
