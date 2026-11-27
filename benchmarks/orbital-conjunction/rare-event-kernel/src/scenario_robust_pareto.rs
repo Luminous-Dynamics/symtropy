@@ -826,7 +826,7 @@ fn digest_frozen_inputs(inputs: FrozenParetoDigestInputs<'_>) -> [u8; 32] {
     hash_ids(&mut hasher, eligible_portfolio_ids);
     hash_ids(&mut hasher, ineligible_portfolio_ids);
     hasher.update((objective_specs.len() as u64).to_be_bytes());
-    for spec in specs {
+    for spec in objective_specs {
         hasher.update(spec.objective_id);
         hasher.update(spec.unit_id);
         hasher.update(spec.scale_id);
