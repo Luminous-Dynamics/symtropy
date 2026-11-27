@@ -913,7 +913,7 @@ mod tests {
         assert!(
             result
                 .reason_codes
-                .contains(&"REQUIRED_EVIDENCE_REFERENCE_DUPLICATE".to_owned())
+                .contains(&"DUPLICATE_REQUIRED_EVIDENCE_REF".to_owned())
         );
     }
 
