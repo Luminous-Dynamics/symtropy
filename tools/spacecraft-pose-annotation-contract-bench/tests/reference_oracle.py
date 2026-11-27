@@ -173,10 +173,28 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
             None,
             None,
         )
+    if scale_i64(projected[0]) is None or scale_i64(projected[1]) is None:
+        return make_result(
+            row,
+            "INVALID_INPUT",
+            "PROJECTION_OUTPUT_OVERFLOW",
+            norm_error_scaled,
+            None,
+            None,
+        )
 
     error = math.hypot(projected[0] - observed[0], projected[1] - observed[1])
     error_scaled = scale_i64(error * PIXEL_SCALE)
     reprojection = None if error_scaled is None else error_scaled if error_scaled >= 0 else None
+    if reprojection is None:
+        return make_result(
+            row,
+            "INVALID_INPUT",
+            "REPROJECTION_OUTPUT_OVERFLOW",
+            norm_error_scaled,
+            projected,
+            None,
+        )
     if not math.isfinite(error) or error > tolerance:
         return make_result(
             row,
