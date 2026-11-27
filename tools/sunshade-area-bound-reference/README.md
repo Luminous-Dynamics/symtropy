@@ -4,9 +4,11 @@ A dependency-free Rust reference for one analytical lemma under the finite-sourc
 
 ## What it calculates
 
-The input is the spatial integral of measured or independently calculated fractional attenuation over a finite target-plane domain:
+The inputs are the target-plane area `A_T` and the spatial integral of measured or independently calculated fractional attenuation over that finite domain:
 
 `I_A = integral_T A(x) dA_target`
+
+The evaluator rejects `I_A > A_T`, since local fractional attenuation cannot exceed one, and reports the mean attenuation `I_A / A_T`.
 
 For source-to-shade distance `L_s`, shade-to-target distance `L_t`, and uniform scalar module transmittance `tau`, define:
 
