@@ -121,7 +121,7 @@ fn render_result(result: &BundleResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"license\":\"{}\",\"spacecraft_id\":\"{}\",\"trajectory_id\":\"{}\",\"sample_id\":\"{}\",\"frame_id\":\"{}\",\"split\":\"{}\",\"capture_timestamp\":\"{}\",\"pose_csv_revision\":\"{}\",\"camera_calibration_revision\":\"{}\",\"camera_calibration_sha256\":\"{}\",\"lidar_to_camera_revision\":\"{}\",\"lidar_to_camera_sha256\":\"{}\",\"lidar_coordinate_frame\":\"{}\",\"pose_semantics\":\"{}\",\"disposition\":\"{}\",\"modality_sha256\":{{{}}},\"modality_paths\":{{{}}},\"reason_codes\":[{}],\"bundle_admissible\":{},\"source_bytes_authenticated\":{},\"calibration_physically_validated\":{},\"authority_granted\":{}}}",
+        "{{\"case_id\":\"{}\",\"dataset_id\":\"{}\",\"dataset_revision\":\"{}\",\"license\":\"{}\",\"spacecraft_id\":\"{}\",\"trajectory_id\":\"{}\",\"sample_id\":\"{}\",\"frame_id\":\"{}\",\"split\":\"{}\",\"capture_timestamp\":\"{}\",\"pose_csv_revision\":\"{}\",\"corrected_pose_revision\":\"{}\",\"camera_calibration_revision\":\"{}\",\"camera_calibration_sha256\":\"{}\",\"lidar_to_camera_revision\":\"{}\",\"lidar_to_camera_sha256\":\"{}\",\"lidar_coordinate_frame\":\"{}\",\"pose_semantics\":\"{}\",\"disposition\":\"{}\",\"modality_sha256\":{{{}}},\"modality_paths\":{{{}}},\"reason_codes\":[{}],\"bundle_admissible\":{},\"source_bytes_authenticated\":{},\"calibration_physically_validated\":{},\"authority_granted\":{}}}",
         json_escape(&result.case_id),
         json_escape(&result.dataset_id),
         json_escape(&result.dataset_revision),
@@ -133,6 +133,7 @@ fn render_result(result: &BundleResult) -> String {
         json_escape(&result.split),
         json_escape(&result.capture_timestamp),
         json_escape(&result.pose_csv_revision),
+        json_escape(&result.corrected_pose_revision),
         json_escape(&result.camera_calibration_revision),
         json_escape(&result.camera_calibration_sha256),
         json_escape(&result.lidar_to_camera_revision),
