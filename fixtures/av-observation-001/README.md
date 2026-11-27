@@ -173,3 +173,10 @@ The spatial-state comparison protocol now adds two complementary geometry tracks
 - **EgoWitness / EgoClue:** recent long-horizon instance-level memory comparator. Keep its tool-using observer/controller results separate from geometric SLAM and OVO-S; verify access, rights and observer-model dependencies before using its dataset.
 
 Full metrics, roles, and caveats are in [spatial-state-construction-protocol-v0.md](./spatial-state-construction-protocol-v0.md), sections 7, 13, 18 and 19. These additions change the comparison protocol only; they do not claim a LaMAria/CROSS run or any benchmark result from Symthaea.
+
+
+### Benchmark-independence caveats
+
+LaMAria is distinct from the earlier **LaMAR** dataset. Its surveyed control points provide sparse independent metric anchors, while its dense pseudo-GT trajectory is produced by a joint optimization initialized from Aria's proprietary SLAM API on regular sequences; difficult moving-platform sections require special handling. The paper excludes Aria from its own pseudo-GT recall metric because Aria initializes that pseudo-GT. Keep CP-based scoring distinct from pseudo-GT R@5m.
+
+CROSS is a system-published benchmark. Its 93% T3 / 93% T2 / 0.35% T1 headline refers to the stereo-plus-odometry reference configuration and mixed dataset-specific odometry provenance. Reproduce the pinned protocol, sensor mode, session split and full failure denominators before using it as a comparative result; do not treat it as an independently audited universal SOTA ranking.
