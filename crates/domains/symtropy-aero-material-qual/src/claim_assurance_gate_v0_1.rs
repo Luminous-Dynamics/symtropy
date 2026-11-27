@@ -14,6 +14,10 @@ use super::decision_context_v0_1::{
 };
 use super::effectivity_interval_v0_1::EffectivityRelation;
 use super::observer_coverage_v0_1::{CoverageAssessment, CoverageStatus};
+use super::owner_evidence_cut_v0_1::{
+    OwnerDependencyCoverage, OwnerEvidenceCutV0_1, OwnerEvidenceFreshness,
+    OwnerEvidenceLifecycle, OwnerObserverCoverageStatus,
+};
 use super::vector_watermark_v0_1::{CutAssessment, CutStatus};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -124,6 +128,8 @@ pub struct ClaimGateInput<'a> {
     pub claim_id: &'a str,
     /// Typed decision context; the gate derives its own commitment from these fields.
     pub decision_context: &'a DecisionContextV0_1,
+    /// Exact owner-native Mycelix/AeroCommons and BASALT evidence cut.
+    pub owner_evidence_cut: &'a OwnerEvidenceCutV0_1,
     /// Exact identity/context/report bindings for all three component reports.
     pub bindings: &'a ClaimComponentBindings,
     /// Result of the separately-owned observer-coverage evaluator.
@@ -292,6 +298,156 @@ fn validate_component_bindings(
     valid
 }
 
+/// Validate the typed owner-native evidence cut and propagate its blockers.
+///
+/// The cut is a commitment to upstream declarations, not authentication of
+/// the underlying Mycelix/BASALT bytes or signatures.
+fn validate_owner_evidence_cut(
+    input: &ClaimGateInput<'_>,
+    expected_context_sha256: &str,
+    reasons: &mut BTreeSet<String>,
+    unverified: &mut bool,
+    incomplete: &mut bool,
+    invalid: &mut bool,
+) {
+    let cut = input.owner_evidence_cut;
+    match cut.compute_sha256() {
+        Ok(actual) if actual == input.decision_context.evidence_knowledge_cut_sha256 => {}
+        Ok(_) => {
+            *invalid = true;
+            reasons.insert("OWNER_EVIDENCE_CUT_DIGEST_MISMATCH".to_owned());
+        }
+        Err(errors) => {
+            *invalid = true;
+            reasons.extend(errors);
+        }
+    }
+
+    if cut.trust_policy_sha256 != input.decision_context.trust_policy_sha256 {
+        *invalid = true;
+        reasons.insert("OWNER_CUT_TRUST_POLICY_MISMATCH".to_owned());
+    }
+    if cut.physical_unit_ref != input.decision_context.subject_ref {
+        *invalid = true;
+        reasons.insert("OWNER_CUT_PHYSICAL_UNIT_MISMATCH".to_owned());
+    }
+    if cut.configuration_ref != input.decision_context.configuration_ref {
+        *invalid = true;
+        reasons.insert("OWNER_CUT_CONFIGURATION_MISMATCH".to_owned());
+    }
+    if cut.receiver_receipt_watermark_unix_ms > input.decision_context.as_known_at_unix_ms {
+        *invalid = true;
+        reasons.insert("OWNER_CUT_RECEIPT_WATERMARK_AFTER_CONTEXT_SNAPSHOT".to_owned());
+    }
+    if cut.observer_coverage_watermark_unix_ms > cut.receiver_receipt_watermark_unix_ms {
+        *invalid = true;
+        reasons.insert("OWNER_CUT_OBSERVER_WATERMARK_AFTER_RECEIPT_CUT".to_owned());
+    }
+
+    let expected_coverage = match input.coverage.status {
+        CoverageStatus::QualifiedCompleteForScope => {
+            OwnerObserverCoverageStatus::QualifiedCompleteForScope
+        }
+        CoverageStatus::Incomplete => OwnerObserverCoverageStatus::Incomplete,
+        CoverageStatus::Unverified => OwnerObserverCoverageStatus::Unverified,
+        CoverageStatus::OutOfScope => OwnerObserverCoverageStatus::OutOfScope,
+        CoverageStatus::Invalid => {
+            *invalid = true;
+            OwnerObserverCoverageStatus::Unverified
+        }
+    };
+    if cut.observer_coverage_status != expected_coverage {
+        *invalid = true;
+        reasons.insert("OWNER_CUT_OBSERVER_COVERAGE_DISPOSITION_MISMATCH".to_owned());
+    }
+
+    if !cut.artifact_payloads_verified {
+        *unverified = true;
+        reasons.insert("MYCELIX_ARTIFACT_PAYLOADS_NOT_VERIFIED".to_owned());
+    }
+    if !cut.basalt_confirmatory_eligible {
+        *unverified = true;
+        reasons.insert("BASALT_CONFIRMATORY_ELIGIBILITY_NOT_ESTABLISHED".to_owned());
+    }
+    match cut.observer_coverage_status {
+        OwnerObserverCoverageStatus::QualifiedCompleteForScope => {}
+        OwnerObserverCoverageStatus::Incomplete => {
+            *incomplete = true;
+            reasons.insert("BASALT_OBSERVER_COVERAGE_INCOMPLETE".to_owned());
+        }
+        OwnerObserverCoverageStatus::Unverified => {
+            *unverified = true;
+            reasons.insert("BASALT_OBSERVER_COVERAGE_UNVERIFIED".to_owned());
+        }
+        OwnerObserverCoverageStatus::OutOfScope => {
+            reasons.insert("BASALT_OBSERVER_COVERAGE_OUT_OF_SCOPE".to_owned());
+        }
+    }
+
+    for required in input.required_evidence {
+        let Some(record) = cut.find_evidence(&required.evidence_ref) else {
+            *incomplete = true;
+            reasons.insert(format!(
+                "OWNER_EVIDENCE_REFERENCE_NOT_IN_CUT:{}",
+                required.evidence_ref
+            ));
+            continue;
+        };
+        if record.lifecycle != OwnerEvidenceLifecycle::Active {
+            *unverified = true;
+            reasons.insert(format!(
+                "AEROCOMMONS_EVIDENCE_LIFECYCLE_NOT_ACTIVE:{}",
+                required.evidence_ref
+            ));
+        }
+        match record.freshness {
+            OwnerEvidenceFreshness::Fresh => {}
+            OwnerEvidenceFreshness::StaleDirect => {
+                *incomplete = true;
+                reasons.insert(format!(
+                    "BASALT_EVIDENCE_STALE_DIRECT:{}",
+                    required.evidence_ref
+                ));
+            }
+            OwnerEvidenceFreshness::StaleTransitive => {
+                *incomplete = true;
+                reasons.insert(format!(
+                    "BASALT_EVIDENCE_STALE_TRANSITIVE:{}",
+                    required.evidence_ref
+                ));
+            }
+        }
+        if record.dependency_coverage == OwnerDependencyCoverage::Incomplete {
+            *incomplete = true;
+            reasons.insert(format!(
+                "BASALT_DEPENDENCY_COVERAGE_INCOMPLETE:{}",
+                required.evidence_ref
+            ));
+        }
+        if record.requires_reverification {
+            *incomplete = true;
+            reasons.insert(format!(
+                "BASALT_EVIDENCE_REVERIFICATION_REQUIRED:{}",
+                required.evidence_ref
+            ));
+        }
+        if !record.eligible_under_declared_coverage {
+            *incomplete = true;
+            reasons.insert(format!(
+                "BASALT_EVIDENCE_NOT_ELIGIBLE_UNDER_DECLARED_COVERAGE:{}",
+                required.evidence_ref
+            ));
+        }
+    }
+
+    // The context's evidence-knowledge-cut digest is a derived commitment; the
+    // separate typed context digest must also bind the evidence cut itself.
+    if !valid_sha256(expected_context_sha256) {
+        *invalid = true;
+        reasons.insert("DECISION_CONTEXT_DIGEST_INVALID_FOR_OWNER_CUT".to_owned());
+    }
+}
+
 fn component_reasons(prefix: &str, reasons: &[String], target: &mut BTreeSet<String>) {
     for reason in reasons {
         target.insert(format!("{prefix}_{reason}"));
@@ -343,6 +499,15 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
     ) {
         invalid = true;
     }
+
+    validate_owner_evidence_cut(
+        &input,
+        &decision_context_sha256,
+        &mut reasons,
+        &mut unverified,
+        &mut incomplete,
+        &mut invalid,
+    );
 
     let evidence_refs_for_manifest = input
         .required_evidence
