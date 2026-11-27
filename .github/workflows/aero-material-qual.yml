@@ -196,7 +196,7 @@ jobs:
                   print(f"{list(error.absolute_path)}: {error.message}")
               raise SystemExit(f"decision-context fixture failed schema validation ({len(errors)} errors)")
 
-          refs = ["receipt:inspection-01", "receipt:calibration-02"]
+          refs = context["required_evidence_refs"]
           manifest = {
               "schema": "AeroRequiredEvidenceManifestV1",
               "canonicalization_profile": "rust-serde-json-struct-order-v1",
