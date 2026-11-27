@@ -12,5 +12,9 @@
   "claim_specification_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
   "required_evidence_manifest_sha256": "17656ee262a7455dfc652ba667379f8696160c7a567a559a5d8fb7bbced45032",
   "risk_classification_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-  "model_applicability_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  "model_applicability_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "required_evidence_refs": [
+    "receipt:calibration-02",
+    "receipt:inspection-01"
+  ]
 }
