@@ -268,7 +268,8 @@ def main() -> int:
     print(
         "PASS: AERO IAB v0.3 structural validation "
         f"({len(definitions)} metrics, {len(thresholds)} thresholds, "
-        f"{len(registry['families'])} families, {len(cases)} challenge cases)."
+        f"{len(registry['families'])} families, {len(cases)} challenge cases, "
+        f"{len(state_cases)} disposition cases)."
     )
     print("NOTE: schema/registry validity is not oracle adjudication or benchmark execution.")
     return 0
