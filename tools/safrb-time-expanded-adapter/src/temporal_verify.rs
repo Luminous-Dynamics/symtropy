@@ -393,7 +393,7 @@ pub fn verify_temporal_certificate(
             edge_id.clone(),
             issue_id(&service.node_id, service.period),
             VERIFY_SINK.to_string(),
-            service.required_quantity,
+            service.requested_quantity,
             "service",
         )?;
     }
