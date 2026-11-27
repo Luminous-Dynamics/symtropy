@@ -23,7 +23,11 @@ fn rows(input: &str) -> Vec<EvidenceRow<'_>> {
         .filter(|line| !line.is_empty() && !line.starts_with('#'))
         .map(|line| {
             let fields: Vec<&str> = line.split('\t').collect();
-            assert_eq!(fields.len(), 8, "every public evidence row has eight fields");
+            assert_eq!(
+                fields.len(),
+                8,
+                "every public evidence row has eight fields"
+            );
             EvidenceRow {
                 source_id: fields[0],
                 site: fields[1],
