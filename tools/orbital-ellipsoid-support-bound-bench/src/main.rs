@@ -1,6 +1,6 @@
 use orbital_ellipsoid_support_bound_bench::{
-    EvidenceSet, ProviderEvidence, ProviderState, SupportInput, SupportResult, SupportScope,
-    RECEIPT_SCHEMA, derive,
+    EvidenceSet, ProviderEvidence, ProviderState, RECEIPT_SCHEMA, SupportInput, SupportResult,
+    SupportScope, derive,
 };
 use std::collections::BTreeSet;
 use std::env;
@@ -28,7 +28,11 @@ fn parse_state(value: &str, field: &str) -> Result<ProviderState, Box<dyn Error>
     ProviderState::parse(value).ok_or_else(|| format!("invalid {field} state").into())
 }
 
-fn parse_provider(fields: &[&str], offset: usize, name: &str) -> Result<ProviderEvidence, Box<dyn Error>> {
+fn parse_provider(
+    fields: &[&str],
+    offset: usize,
+    name: &str,
+) -> Result<ProviderEvidence, Box<dyn Error>> {
     Ok(ProviderEvidence {
         provider_id: fields[offset].to_owned(),
         provider_revision: fields[offset + 1].to_owned(),
@@ -137,22 +141,18 @@ fn render_result(result: &SupportResult) -> String {
         .map(|reason| format!("\"{}\"", json_escape(reason)))
         .collect::<Vec<_>>()
         .join(",");
-    let rho = result.rho_y_upper_um.map_or_else(
-        || "null".to_owned(),
-        |value| value.to_string(),
-    );
-    let ceiling = result.q_scaled_ceiling.map_or_else(
-        || "null".to_owned(),
-        |value| value.to_string(),
-    );
-    let floor = result.floor_sqrt.map_or_else(
-        || "null".to_owned(),
-        |value| value.to_string(),
-    );
-    let perfect = result.perfect_square.map_or_else(
-        || "null".to_owned(),
-        |value| value.to_string(),
-    );
+    let rho = result
+        .rho_y_upper_um
+        .map_or_else(|| "null".to_owned(), |value| value.to_string());
+    let ceiling = result
+        .q_scaled_ceiling
+        .map_or_else(|| "null".to_owned(), |value| value.to_string());
+    let floor = result
+        .floor_sqrt
+        .map_or_else(|| "null".to_owned(), |value| value.to_string());
+    let perfect = result
+        .perfect_square
+        .map_or_else(|| "null".to_owned(), |value| value.to_string());
     format!(
         "{{\"case_id\":\"{}\",\"scope\":{},\"disposition\":\"{}\",\"q_lower_numerator\":{},\"q_lower_denominator\":{},\"q_unit\":\"{}\",\"rho_y_upper_um\":{},\"rho_unit\":\"{}\",\"scale_um_per_m\":{},\"q_scaled_ceiling\":{},\"floor_sqrt\":{},\"perfect_square\":{},\"evidence\":{{\"matrix_spd\":{},\"direction_unit\":{},\"quadratic_lower\":{}}},\"reason_codes\":[{}],\"bound_ready\":{},\"source_bytes_authenticated\":{},\"physical_geometry_validated\":{},\"authority_granted\":{}}}",
         json_escape(&result.case_id),
@@ -222,10 +222,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map(render_result)
         .collect::<Vec<_>>()
         .join(",");
-    let bound_ready_count = results
-        .iter()
-        .filter(|result| result.bound_ready)
-        .count();
+    let bound_ready_count = results.iter().filter(|result| result.bound_ready).count();
     println!(
         "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"case_count\":{},\"expected_disposition_matches\":{},\"expected_disposition_mismatches\":0,\"bound_ready_count\":{},\"claim_ready\":false,\"source_bytes_authenticated\":false,\"physical_geometry_validated\":false,\"authority_granted\":false,\"results\":[{}]}}",
         RECEIPT_SCHEMA,
