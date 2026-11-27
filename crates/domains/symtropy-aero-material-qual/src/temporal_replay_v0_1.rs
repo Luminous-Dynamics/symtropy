@@ -180,10 +180,10 @@ fn identity_label(event: &Value, colliding_local_ids: &BTreeSet<String>) -> Stri
     }
 }
 
-fn selected_snapshots<'a>(
-    case: &'a Value,
+fn selected_snapshots(
+    case: &Value,
     mode: TemporalQueryMode,
-) -> Option<(&'a Value, &'a Value)> {
+) -> Option<(&Value, &Value)> {
     let original = case.get("snapshot")?;
     let current = case.get("current_reassessment")?;
     if mode.current_evidence() {
@@ -517,7 +517,7 @@ fn check_signer_key(
 fn correction_cycles(events: &[Value]) -> BTreeSet<String> {
     let by_key = events
         .iter()
-        .filter_map(|event| Some((source_key(event), event)))
+        .map(|event| (source_key(event), event))
         .collect::<BTreeMap<_, _>>();
     let mut cycles = BTreeSet::new();
     for start in by_key.keys() {
@@ -575,12 +575,12 @@ pub fn evaluate_temporal_replay_case(case: &Value, mode: TemporalQueryMode) -> R
         findings.trust_unresolved = true;
         findings.reason("TRUST_POLICY_SNAPSHOT_TIME_UNRESOLVED");
     }
-    if let (Some(as_of), Some(evaluated_at)) = (trust_as_of, trust_evaluated_at) {
-        if as_of > evaluated_at {
-            findings.reject = true;
-            findings.reason("TRUST_POLICY_TIME_AFTER_EVALUATION");
-            return findings.finish(mode);
-        }
+    if let (Some(as_of), Some(evaluated_at)) = (trust_as_of, trust_evaluated_at)
+        && as_of > evaluated_at
+    {
+        findings.reject = true;
+        findings.reason("TRUST_POLICY_TIME_AFTER_EVALUATION");
+        return findings.finish(mode);
     }
     // Missing trust time remains non-positive through the unresolved flag;
     // zero is only a conservative sentinel for compromise-time comparison.
@@ -869,12 +869,9 @@ pub fn evaluate_temporal_replay_case(case: &Value, mode: TemporalQueryMode) -> R
     if effective_revocation_count == 1 && effective_suspension_count == 0 {
         findings.block = true;
         findings.reason("REVOCATION_EFFECTIVE_AND_KNOWN");
-    } else if effective_event_count > 1
-        && (effective_revocation_count > 0 || effective_suspension_count > 0)
+    } else if effective_suspension_count > 0
+        || (effective_event_count > 1 && effective_revocation_count > 0)
     {
-        findings.block = true;
-        findings.reason("CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE");
-    } else if effective_suspension_count > 0 {
         findings.block = true;
         findings.reason("CALIBRATION_EVENTS_KNOWN_AND_EFFECTIVE");
     }
