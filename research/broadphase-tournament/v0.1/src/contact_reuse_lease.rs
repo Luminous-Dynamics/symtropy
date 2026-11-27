@@ -303,3 +303,269 @@ pub fn evaluate_contact_geometry_lease<const D: usize>(
         motion_bound: Some(motion_bound),
     })
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pair() -> ProxyPair {
+        ProxyPair::new(ProxyId(1), ProxyId(2)).expect("distinct ids")
+    }
+
+    fn motion<const D: usize>(
+        translation: [f64; D],
+        angle: f64,
+        radius: f64,
+    ) -> RelativeMotionEnvelope<D> {
+        RelativeMotionEnvelope {
+            relative_translation_delta: translation,
+            max_point_rotation_angle_rad: angle,
+            maximum_lever_arm_radius: radius,
+            rounding_allowance: 1.0e-12,
+        }
+    }
+
+    fn lease() -> ContactGeometryLease {
+        ContactGeometryLease {
+            pair: pair(),
+            generations: [3, 4],
+            shape_revisions: [7, 8],
+            feature_identity: Some(ContactFeatureIdentity {
+                feature_a: 11,
+                feature_b: 21,
+            }),
+            feature_margin_lower_bound: 0.5,
+            normal_variation_upper_bound_rad: 0.01,
+            normal_variation_limit_rad: 0.05,
+            updated_gap: SeparationInterval {
+                lower: -0.005,
+                upper: 0.005,
+            },
+            contact_slop: 0.01,
+            maximum_penetration: 0.02,
+        }
+    }
+
+    fn evaluate(
+        witness: &ContactGeometryLease,
+        motion: &RelativeMotionEnvelope<3>,
+    ) -> Result<ContactLeaseDecision, ContactLeaseError> {
+        evaluate_contact_geometry_lease(witness, pair(), [3, 4], [7, 8], motion)
+    }
+
+    #[test]
+    fn zero_relative_motion_reuses_even_if_bodies_move_together() {
+        let decision = evaluate(&lease(), &motion([0.0; 3], 0.0, 5.0)).expect("motion");
+        assert_eq!(decision.disposition, ContactLeaseDisposition::ReuseCertified);
+    }
+
+    #[test]
+    fn translation_inside_feature_margin_reuses() {
+        let decision = evaluate(&lease(), &motion([0.1, 0.0, 0.0], 0.0, 5.0))
+            .expect("motion");
+        assert_eq!(decision.disposition, ContactLeaseDisposition::ReuseCertified);
+    }
+
+    #[test]
+    fn translation_beyond_feature_margin_refreshes() {
+        let decision = evaluate(&lease(), &motion([0.6, 0.0, 0.0], 0.0, 5.0))
+            .expect("motion");
+        assert_eq!(
+            decision.disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::RelativeMotionExceedsFeatureMargin
+            )
+        );
+    }
+
+    #[test]
+    fn relative_rotation_consumes_feature_margin() {
+        let decision = evaluate(&lease(), &motion([0.0; 3], 0.2, 3.0)).expect("motion");
+        assert_eq!(
+            decision.disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::RelativeMotionExceedsFeatureMargin
+            )
+        );
+    }
+
+    #[test]
+    fn generation_change_refreshes() {
+        let witness = lease();
+        let decision = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 5],
+            [7, 8],
+            &motion([0.0; 3], 0.0, 1.0),
+        )
+        .expect("generation change");
+        assert_eq!(
+            decision.disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::ProxyGenerationChanged
+            )
+        );
+    }
+
+    #[test]
+    fn shape_revision_change_refreshes() {
+        let witness = lease();
+        let decision = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 4],
+            [7, 9],
+            &motion([0.0; 3], 0.0, 1.0),
+        )
+        .expect("shape revision");
+        assert_eq!(
+            decision.disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::ShapeRevisionChanged
+            )
+        );
+    }
+
+    #[test]
+    fn featureless_geometry_is_unsupported() {
+        let mut witness = lease();
+        witness.feature_identity = None;
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0))
+                .expect("unsupported geometry")
+                .disposition,
+            ContactLeaseDisposition::UnsupportedGeometry
+        );
+    }
+
+    #[test]
+    fn normal_variation_over_limit_refreshes() {
+        let mut witness = lease();
+        witness.normal_variation_upper_bound_rad = 0.06;
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0))
+                .expect("normal interval")
+                .disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::NormalVariationExceedsLimit
+            )
+        );
+    }
+
+    #[test]
+    fn ambiguous_gap_interval_refreshes() {
+        let mut witness = lease();
+        witness.updated_gap.upper = 0.02;
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0))
+                .expect("gap interval")
+                .disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::GapIntervalStraddlesContactBoundary
+            )
+        );
+    }
+
+    #[test]
+    fn definitely_separated_contact_ends() {
+        let mut witness = lease();
+        witness.updated_gap = SeparationInterval {
+            lower: 0.02,
+            upper: 0.03,
+        };
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0))
+                .expect("separation interval")
+                .disposition,
+            ContactLeaseDisposition::ContactEnded
+        );
+    }
+
+    #[test]
+    fn excessive_penetration_refreshes() {
+        let mut witness = lease();
+        witness.updated_gap.lower = -0.03;
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0))
+                .expect("penetration interval")
+                .disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::PenetrationBoundExceeded
+            )
+        );
+    }
+
+    #[test]
+    fn feature_margin_boundary_fails_closed() {
+        let mut witness = lease();
+        witness.feature_margin_lower_bound = 0.1;
+        assert_eq!(
+            evaluate(&witness, &motion([0.1, 0.0, 0.0], 0.0, 1.0))
+                .expect("feature boundary")
+                .disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::RelativeMotionExceedsFeatureMargin
+            )
+        );
+    }
+
+    #[test]
+    fn nonfinite_motion_fails_closed() {
+        let witness = lease();
+        assert_eq!(
+            evaluate(
+                &witness,
+                &motion([f64::NAN, 0.0, 0.0], 0.0, 1.0)
+            ),
+            Err(ContactLeaseError::InvalidRelativeMotion)
+        );
+    }
+
+    #[test]
+    fn invalid_gap_interval_fails_closed() {
+        let mut witness = lease();
+        witness.updated_gap = SeparationInterval {
+            lower: 0.2,
+            upper: 0.1,
+        };
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 0.0, 1.0)),
+            Err(ContactLeaseError::InvalidGapInterval)
+        );
+    }
+
+    #[test]
+    fn invalid_rotation_angle_fails_closed() {
+        let witness = lease();
+        assert_eq!(
+            evaluate(&witness, &motion([0.0; 3], 4.0, 1.0)),
+            Err(ContactLeaseError::InvalidRelativeMotion)
+        );
+    }
+
+    #[test]
+    fn canonical_pair_mismatch_is_rejected() {
+        let witness = lease();
+        let reversed = ProxyPair(ProxyId(2), ProxyId(1));
+        assert_eq!(
+            evaluate_contact_geometry_lease(
+                &witness,
+                reversed,
+                [3, 4],
+                [7, 8],
+                &motion([0.0; 3], 0.0, 1.0),
+            ),
+            Err(ContactLeaseError::NonCanonicalPair)
+        );
+    }
+
+    #[test]
+    fn zero_lever_arm_has_no_rotation_displacement() {
+        let motion = motion([0.0; 3], std::f64::consts::PI, 0.0);
+        let bound = motion.displacement_upper_bound().expect("bound");
+        assert!(bound.rotation_displacement_upper > 0.0 || bound.rotation_displacement_upper == 0.0);
+        assert!(bound.total_displacement_upper < 1.0e-9);
+    }
+}
