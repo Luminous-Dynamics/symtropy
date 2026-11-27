@@ -1,4 +1,4 @@
-# EV NLR Profile Archive Audit v0.1
+# EV NLR Profile Archive Audit v0.2
 
 A standalone Rust validator and matched-output comparator for the National Laboratory of the Rockies (NLR) public 15-minute heavy-duty depot-charging profile archive.
 
@@ -43,7 +43,13 @@ Report schema: tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0
    - daily energy difference per profile;
    - signed and absolute net whole-archive daily-energy error;
    - sum of absolute per-profile daily-energy errors (so opposing errors cannot hide);
-   - maximum absolute profile peak-demand error.
+   - maximum absolute profile peak-demand error;
+   - load-duration-curve MAE, RMSE and P95 absolute error after sorting each 96-point daily profile from highest to lowest demand (shape/distribution error, independent of time ordering);
+   - 15-minute ramp MAE, RMSE, P95 absolute error and maximum error from the 95 consecutive within-day power differences (no artificial midnight wrap);
+   - ramp-direction disagreement fraction, treating changes within 1e-9 kW as flat;
+   - absolute peak-time displacement in minutes, selecting the earliest interval when a profile has tied maxima.
+
+The time-indexed interval metrics remain essential: a load-duration curve cannot distinguish two profiles that contain the same values in a different order. Ramp and peak-time metrics expose some of those chronology errors.
 
 All candidate files are revalidated against the same expected file set and time grid before metrics are computed.
 
@@ -55,7 +61,10 @@ The unit suite builds deterministic temporary archives containing all 81 profile
 - exact 0.5 kW MAE and bias for a candidate with a constant +0.5 kW offset;
 - a positive/negative cross-profile bias control proving that net daily-energy error can cancel while the sum of per-profile absolute errors remains non-zero;
 - rejection of timestamp drift, missing profiles, negative and non-finite power;
-- rejection when the average profile's peak exceeds the maximum-sample profile peak.
+- rejection when the average profile's peak exceeds the maximum-sample profile peak;
+- permutation invariance of load-duration curves alongside non-zero chronological ramp/peak displacement;
+- a hand-calculated fixture for load-duration and ramp error metrics;
+- constant +0.5 kW bias leaves ramp error at zero while load-duration error remains exactly 0.5 kW.
 
 ## Run
 
