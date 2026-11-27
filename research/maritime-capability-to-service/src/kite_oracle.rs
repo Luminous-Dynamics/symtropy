@@ -206,14 +206,25 @@ pub fn solve_r1_finite(
                     decision.scenario_id
                 ));
             }
-            if action.outcome.receiver_accepted_units > expected_context.expected_units
-                || action.outcome.on_time_accepted_units > action.outcome.receiver_accepted_units
-                || action.outcome.unmet_units > expected_context.expected_units
-                || action.outcome.unresolved_units > expected_context.expected_units
-                || action.outcome.late_accepted_units > action.outcome.receiver_accepted_units
+            let outcome = &action.outcome;
+            let classified_acceptances = outcome
+                .on_time_accepted_units
+                .checked_add(outcome.late_accepted_units)
+                .ok_or_else(|| "accepted-unit classification overflow".to_owned())?;
+            let classified_service = outcome
+                .receiver_accepted_units
+                .checked_add(outcome.unmet_units)
+                .and_then(|units| units.checked_add(outcome.unresolved_units))
+                .ok_or_else(|| "service denominator arithmetic overflow".to_owned())?;
+            if outcome.receiver_accepted_units > expected_context.expected_units
+                || classified_acceptances > outcome.receiver_accepted_units
+                || outcome.unmet_units > expected_context.expected_units
+                || outcome.unresolved_units > expected_context.expected_units
+                || classified_service > expected_context.expected_units
+                || outcome.time_to_minimum_viable_service > outcome.time_to_full_service
             {
                 return Err(format!(
-                    "{} / {}: outcome quantities violate the fixed service denominator",
+                    "{} / {}: service quantities or recovery times violate the frozen outcome contract",
                     decision.scenario_id, action.action_id
                 ));
             }
