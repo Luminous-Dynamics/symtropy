@@ -215,6 +215,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         };
         verify_artifact_bytes_v1(&artifact, &bytes)?;
         fs::write(output_dir.join(&relative_path), &bytes)?;
+        let reloaded = read_verified_artifact_under_root_v1(&output_dir, &artifact)?;
+        if reloaded != bytes {
+            return Err(format!("exported artifact failed root-confined verification: {relative_path}").into());
+        }
 
         let capture_ns = seconds_to_ns(EXPECTED_CAPTURE_SECS[index])?;
         let uncertainty_bound = BoundedTimeV1 {

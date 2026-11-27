@@ -80,3 +80,21 @@ Before this can be treated as a usable AV fixture adapter:
 6. the resulting agent observations are consumed causally by a Symthaea adapter with no future-data leakage.
 
 A pass here would establish a typed observation/replay contract only. It would not establish rendered audiovisual simulation fidelity, physical sensor accuracy, AV reasoning accuracy or SOTA performance.
+
+
+## ROOM-TWIN-01 typed raw-frame adapter
+
+The `room-twin-observation-import` binary imports the decoded `RGBA8` files produced by Symtropy [ROOM-TWIN-01 PR #7820](https://github.com/Luminous-Dynamics/symtropy/pull/7820):
+
+```sh
+cargo run --manifest-path research/av-observation-replay-v0/Cargo.toml --bin room-twin-observation-import -- \
+  target/room-twin/world-a/decoded-rgba8 \
+  benchmarks/render/ROOM-TWIN-01.camera-profile.json \
+  target/room-twin/candidate-bundle-a
+```
+
+Run once for each variant into a distinct, new output directory. The emitted `agent-observations-v1.json` uses only variant-neutral stream, observation and event IDs; it binds raw RGBA8 artifacts, exact camera-profile digest, typed frame dimensions/stride/color semantics, the declared clock generation and conservative capture-time bounds. The cursor test releases the two common observations at availability tick 2 and the final observation at tick 3.
+
+**Important isolation rule:** the output directory is a replay-fixture root, not a directory to mount into a candidate process. It contains all three frames and the complete bundle so the replay harness can validate them. A candidate must receive only the event/payload released by the #6201 replay mediator at each availability tick, without access to the bundle root, future frame files, other variant folders or the public truth crosswalk. This importer does not implement that OS/process isolation; #6754 remains the custody owner.
+
+The camera profile says capture time is bounded from scheduled request time to the capture-plugin timeout upper bound (23.5 s); it does not claim a hardware exposure timestamp. Calibration remains `synthetic_un-calibrated`. The imported bundle is synthetic visual replay input, not a physical camera measurement.
