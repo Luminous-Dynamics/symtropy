@@ -76,6 +76,7 @@ pub struct ContactGeometryLease {
 pub enum ContactLeaseRefreshReason {
     ProxyGenerationChanged,
     ShapeRevisionChanged,
+    FeatureIdentityChanged,
     RelativeMotionExceedsFeatureMargin,
     NormalVariationExceedsLimit,
     GapIntervalStraddlesContactBoundary,
@@ -206,6 +207,7 @@ pub fn evaluate_contact_geometry_lease<const D: usize>(
     current_pair: ProxyPair,
     current_generations: [u64; 2],
     current_shape_revisions: [u64; 2],
+    current_feature_identity: Option<ContactFeatureIdentity>,
     motion: &RelativeMotionEnvelope<D>,
 ) -> Result<ContactLeaseDecision, ContactLeaseError> {
     if lease.pair.0 >= lease.pair.1 || current_pair.0 >= current_pair.1 {
@@ -230,9 +232,23 @@ pub fn evaluate_contact_geometry_lease<const D: usize>(
             motion_bound: None,
         });
     }
-    if lease.feature_identity.is_none() {
+    let Some(cached_feature_identity) = lease.feature_identity else {
         return Ok(ContactLeaseDecision {
             disposition: ContactLeaseDisposition::UnsupportedGeometry,
+            motion_bound: None,
+        });
+    };
+    let Some(current_feature_identity) = current_feature_identity else {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::UnsupportedGeometry,
+            motion_bound: None,
+        });
+    };
+    if current_feature_identity != cached_feature_identity {
+        return Ok(ContactLeaseDecision {
+            disposition: ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::FeatureIdentityChanged,
+            ),
             motion_bound: None,
         });
     }
@@ -355,7 +371,14 @@ mod tests {
         witness: &ContactGeometryLease,
         motion: &RelativeMotionEnvelope<3>,
     ) -> Result<ContactLeaseDecision, ContactLeaseError> {
-        evaluate_contact_geometry_lease(witness, pair(), [3, 4], [7, 8], motion)
+        evaluate_contact_geometry_lease(
+            witness,
+            pair(),
+            [3, 4],
+            [7, 8],
+            witness.feature_identity,
+            motion,
+        )
     }
 
     #[test]
@@ -402,6 +425,7 @@ mod tests {
             pair(),
             [3, 5],
             [7, 8],
+            witness.feature_identity,
             &motion([0.0; 3], 0.0, 1.0),
         )
         .expect("generation change");
@@ -421,6 +445,7 @@ mod tests {
             pair(),
             [3, 4],
             [7, 9],
+            witness.feature_identity,
             &motion([0.0; 3], 0.0, 1.0),
         )
         .expect("shape revision");
@@ -559,6 +584,7 @@ mod tests {
                 reversed,
                 [3, 4],
                 [7, 8],
+                witness.feature_identity,
                 &motion([0.0; 3], 0.0, 1.0),
             ),
             Err(ContactLeaseError::NonCanonicalPair)
@@ -604,6 +630,49 @@ mod tests {
             bad_motion.displacement_upper_bound(),
             Err(ContactLeaseError::UnsupportedDimension)
         );
+    }
+
+
+
+    #[test]
+    fn changed_support_feature_forces_fresh_narrowphase() {
+        let witness = lease();
+        let decision = evaluate(
+            &witness,
+            &motion([0.0; 3], 0.0, 1.0),
+        );
+        let mut changed_feature = witness.feature_identity.expect("cached feature");
+        changed_feature.feature_b += 1;
+        let decision = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 4],
+            [7, 8],
+            Some(changed_feature),
+            &motion([0.0; 3], 0.0, 1.0),
+        )
+        .expect("feature transition");
+        assert_eq!(
+            decision.disposition,
+            ContactLeaseDisposition::RefreshRequired(
+                ContactLeaseRefreshReason::FeatureIdentityChanged
+            )
+        );
+    }
+
+    #[test]
+    fn missing_current_support_feature_is_unsupported() {
+        let witness = lease();
+        let decision = evaluate_contact_geometry_lease(
+            &witness,
+            pair(),
+            [3, 4],
+            [7, 8],
+            None,
+            &motion([0.0; 3], 0.0, 1.0),
+        )
+        .expect("missing feature witness");
+        assert_eq!(decision.disposition, ContactLeaseDisposition::UnsupportedGeometry);
     }
 
 
