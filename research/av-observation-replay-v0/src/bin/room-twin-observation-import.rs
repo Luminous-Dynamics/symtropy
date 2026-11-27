@@ -321,6 +321,62 @@ fn main() {
 mod tests {
     use super::*;
 
+
+    fn room_twin_rgb_profile() -> Value {
+        json!({
+            "schema_version": 1,
+            "fixture_id": "ROOM-TWIN-01",
+            "camera_profile_id": "room-twin-camera-v1",
+            "sensor_id": "camera-front",
+            "renderer": "Bevy 0.19.0",
+            "pose_delivery": {
+                "status": "not_agent_visible",
+                "pose_source": "renderer_evaluator_only"
+            },
+            "image": {
+                "width_px": 1280,
+                "height_px": 720,
+                "pixel_format": "rgba8",
+                "channel_order": "rgba",
+                "color_space": "srgb",
+                "color_range": "full"
+            },
+            "clock_domain": {
+                "domain_id": "room-twin-bevy-real-time",
+                "generation": 0,
+                "time_scale_id": "monotonic-seconds-since-app-start-v1"
+            },
+            "capture_time_bounds": {
+                "capture_schedule_secs": [1.5, 4.0, 7.0],
+                "upper_bound_secs": 23.5,
+                "exact_exposure_timestamp_available": false
+            },
+            "transport": {
+                "availability_ticks": [1, 2, 3],
+                "prefix_decision_cutoff_tick": 2,
+                "first_distinguishing_observation_tick": 3
+            },
+            "calibration": {
+                "calibration_profile_sha256": null,
+                "status": "synthetic_un-calibrated"
+            }
+        })
+    }
+
+    #[test]
+    fn camera_profile_is_rgb_only_and_rejects_renderer_pose_leakage() {
+        let profile = room_twin_rgb_profile();
+        let (width, height, stride, clock) =
+            validate_camera_profile(&profile).expect("valid RGB-only profile");
+        assert_eq!((width, height, stride), (1280, 720, 5_120));
+        assert_eq!(clock.domain_id, "room-twin-bevy-real-time");
+        assert_eq!(clock.generation, 0);
+
+        let mut leaked = profile;
+        leaked["camera_rail"] = json!([]);
+        assert!(validate_camera_profile(&leaked).is_err());
+    }
+
     #[test]
     fn capture_seconds_become_integer_nanoseconds_without_clock_guessing() {
         assert_eq!(seconds_to_ns(1.5).unwrap(), 1_500_000_000);
