@@ -186,3 +186,9 @@ The source audit now distinguishes three separate candidate movement sources: Vo
 ### Frozen South African terminal snapshot
 
 The BUSA/SAaff Cargo Movement Update #306 projection is frozen at [busa-cargo-movement-update-306-snapshot-v0.tsv](fixtures/busa-cargo-movement-update-306-snapshot-v0.tsv). It preserves eight MarineTraffic AIS-derived anchorage/berth averages and seven TPT-derived weekly TEU aggregate rows separately, including the 1 Nov report date versus 3 Nov dwell-table update marker. The Rust integration test `tests/busa_terminal_snapshot.rs` checks row counts, metric classes, exact weekly totals and the 14,347 vs 14,346 rounded daily-average discrepancy. This is aggregate conformance only, not KITE event replay.
+
+## Durban conformal scheduling reproduction target
+
+The 241-vessel-visit Durban conformal sequential scheduling study is tracked in [MCSC-DURBAN-CONFORMAL-REPRO-001 #7847](https://github.com/Luminous-Dynamics/symtropy/issues/7847). Its reproducibility and matched-comparison plan is in [durban-conformal-benchmark-protocol-v0.1.md](durban-conformal-benchmark-protocol-v0.1.md). This distinguishes the study's author-reported 13–31x speedup against a 50-scenario heuristic from any MCSC result; the vessel-level data and exact experiment artifacts have not been obtained.
+
+The protocol also catalogs public BAP/QCSP benchmark families, World Bank CPPI metric boundaries, conformal calibration stress tests and a separate MCSC extension scorecard. Public benchmark licensing and problem boundaries are retained; dry-bulk, container, synthetic QCSP and South African aggregate data are not treated as interchangeable.
