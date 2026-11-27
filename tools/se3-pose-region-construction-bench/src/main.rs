@@ -1,5 +1,5 @@
 use se3_pose_region_construction_bench::{
-    ConformalProfile, Disposition, RuntimePoseReceipt, RECEIPT_SCHEMA,
+    ConformalProfile, RuntimePoseReceipt, RECEIPT_SCHEMA,
     evaluate_manifest,
 };
 use std::error::Error;
