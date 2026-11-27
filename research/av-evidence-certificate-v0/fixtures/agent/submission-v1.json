@@ -1,0 +1,33 @@
+{
+  "benchmark_id": "av-evidence-certificate-v0",
+  "schema_version": 1,
+  "episode_id": "episode-001",
+  "transcript_head_sha256": "2aadfbadba86cbb9767993e2b1ea360698d31ccab9504e05f78a52d30e4e80f5",
+  "claims": [
+    {
+      "claim_id": "claim-door",
+      "answer_value": "door_opens",
+      "abstained": false,
+      "evidence": [
+        {
+          "observation_ref": "obs-video-01",
+          "start_ms": 120,
+          "end_ms": 280,
+          "frame_id": "frame-12",
+          "bbox_xyxy": [
+            0.1,
+            0.1,
+            0.5,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "claim_id": "claim-unknown",
+      "answer_value": null,
+      "abstained": true,
+      "evidence": []
+    }
+  ]
+}

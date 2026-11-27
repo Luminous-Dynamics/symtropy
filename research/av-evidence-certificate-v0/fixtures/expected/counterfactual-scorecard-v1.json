@@ -1,0 +1,15 @@
+{
+  "benchmark_id": "av-evidence-certificate-v0",
+  "schema_version": 1,
+  "episode_id": "episode-cf-01",
+  "variant_count": 3,
+  "passed_variant_count": 3,
+  "counterfactual_invariance_rate": 1,
+  "necessary_evidence_withdrawal_rate": 1,
+  "irrelevant_addition_resistance_rate": 1,
+  "variant_passes": {
+    "remove-irrelevant-audio": true,
+    "remove-all-sufficient-video": true,
+    "add-irrelevant-distractor": true
+  }
+}
