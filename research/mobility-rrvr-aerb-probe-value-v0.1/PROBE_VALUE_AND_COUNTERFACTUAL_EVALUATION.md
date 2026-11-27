@@ -238,3 +238,31 @@ p_upper = 1 - alpha^(1/n)
 At 95% one-sided confidence, approximately 2,995 independent clusters with zero observed events are required for this bound to fall below 0.1%. Three thousand frames or retries from one trajectory do not constitute three thousand independent clusters. When cluster independence is not defensible, use a justified cluster-level model or report descriptive outcomes without a population-risk claim.
 
 This calculation is a statistical planning aid only. It does not establish physical safety, cover out-of-distribution hazards, validate the world model, or replace a robot-cell risk assessment and independent safety review.
+
+
+## 15. Orthogonalize the actuation guard and probe request
+
+A second v0.1 contract limitation should be corrected explicitly in v0.2. The current submission uses one `Disposition` enum for both `request_observation` and decisions such as `abstain` / `recommend_fresh_attempt`. Its validator also requires abstention whenever any scheduled observation is stale, unknown or disputed. This cannot directly represent the operationally important combination:
+
+> Keep the next actuation blocked **and** request a fresh, independent observation to resolve the ambiguity.
+
+In v0.2, separate at least these dimensions:
+
+- `actuation_guard`: a non-authorizing current control posture such as `hold_no_new_effect` (the candidate cannot open the physical effect gate);
+- `probe_request`: optional permitted probe ID with explicit budget/deadline context;
+- `post_probe_policy`: candidate's bounded mapping from each predicted observation outcome to a future disposition;
+- `evidence_status`: admitted, stale, unknown, disputed or unavailable records with explicit reason codes.
+
+A probe request must not authorize motion or imply that the ambiguity is resolved. A stale record must be excluded from current positive evidence, but its presence should not prevent requesting a new observation. The external, independently enforced execution-finality/authority gate remains the only component able to permit a physical effect.
+
+This also gives the evaluator two separate metrics: unsafe actuation-gate recommendations and probe-selection quality. Do not reward a candidate for issuing no probe if it simply abstains forever; do not penalize a safe hold because it requests useful new evidence.
+
+## 16. Cross-language digest semantics
+
+The v0.1 Rust helper explicitly uses compact `serde_json::Value` serialization with sorted object keys and notes that it is **not general RFC 8785 JSON Canonicalization Scheme**. That is acceptable as a scoped implementation detail only while every producer and verifier uses precisely the same algorithm.
+
+Before v0.2 supports independent polyglot candidates/evaluators, either:
+- adopt a published canonicalization profile such as RFC 8785 and add cross-language byte-for-byte test vectors; or
+- hash the exact immutable raw snapshot bytes and make the wire contract preserve those bytes unambiguously.
+
+Do not call a bespoke sorted-JSON encoding “canonical JSON” without naming its exact implementation/profile. Keep digest equality separate from source authentication, clock validity and physical truth.
