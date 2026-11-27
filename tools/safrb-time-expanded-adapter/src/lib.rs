@@ -7,6 +7,9 @@ use single_commodity_flow_kernel::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod temporal_profile;
+pub mod temporal_verify;
+
 const SCHEMA: &str = "safrb-time-expanded-network-v0.1";
 const HYPOTHETICAL: &str = "hypothetical_counterfactual_not_admitted";
 const MAX_SERVICE_OBLIGATIONS: usize = 128;

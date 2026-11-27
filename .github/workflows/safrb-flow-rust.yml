@@ -5,6 +5,7 @@ on:
     branches:
       - research/single-commodity-flow-kernel-v0
       - research/safrb-time-expanded-adapter-v0
+      - research/safrb-temporal-semantics-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
