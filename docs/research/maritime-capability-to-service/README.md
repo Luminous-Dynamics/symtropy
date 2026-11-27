@@ -104,6 +104,14 @@ Twenty Rust unit tests and thirteen integration tests are authored. The unit sui
 
 **Qualification status:** the v0.1 code-bearing baseline passed dedicated exact-head workflow [run #17](https://github.com/Luminous-Dynamics/symtropy/actions/runs/45947986837), and the subsequent v0.1 branch head also passed the dedicated research workflow and repository CI (runs #18 and #22623). The current extension separates inspection qualification from receiver acceptance, adds a 30-case adversarial corpus, implements vector-valued service option comparison, and consumes frozen Mycelix/receiver-service owner receipts; this exact head has not yet completed its hosted qualification. The authoring environment has no Cargo/rustc, so no local Rust build/test/format/Clippy result is claimed.
 
+## Recovery decision regret: executable vector comparator
+
+The Rust reference now also exposes `compare_recovery_regret(candidate, reference)` over `RecoveryServiceOutcome`. It returns candidate-minus-reference deltas for unmet units at deadline, late accepted units, unresolved units, service-deficit unit-hours, time to minimum viable service, time to full service, recovery cost, recovery emissions and requalification-action count.
+
+The API requires the same frozen instance identity/version, scenario, service, deadline, horizon and expected-unit denominator. It rejects impossible accepted/on-time/unresolved quantities and inconsistent recovery times. The reference may be a clairvoyant per-scenario upper bound, but that bound is not an implementable policy and carries no probability weight. No scalar regret or expected-loss figure is produced.
+
+The synthetic unit tests exercise a nine-dimensional known answer, mismatched context, invalid recovery inputs and zero-regret replay. This qualifies only the comparator arithmetic/guards; the 20-case #7747 scenario manifest is not yet connected to an operational recovery optimizer.
+
 ## Service option value: vector comparison
 
 The Rust reference now exposes `compare_service_options(baseline, candidate)`. It only compares outcomes from the same frozen instance, service obligation, receiver deadline and expected-unit denominator. It returns a vector of signed deltas—receiver day, inspection-qualified units, receiver-accepted units, on-time accepted units, cost, embodied emissions and regional value added. It does not produce a weighted score.
