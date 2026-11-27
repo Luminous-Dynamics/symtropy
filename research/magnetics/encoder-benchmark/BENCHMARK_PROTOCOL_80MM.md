@@ -209,3 +209,51 @@ Report physical observations and acquisition time required to reach the same fal
 - ISO 230-7:2015 (confirmed current in 2026; rotary-axis error motion and speed-induced shifts): https://www.iso.org/standard/56624.html
 - ISO 230-3:2020 (confirmed current in 2026; environmental and rotary-motion thermal effects): https://www.iso.org/standard/73291.html
 - NIST metrological traceability: https://www.nist.gov/metrology/metrological-traceability
+
+
+## 16. Comparator taxonomy and current external frontier (reviewed 27 November 2026)
+
+Do not create one misleading leaderboard from products that solve different measurement problems.
+
+### A. Magnetic absolute-angle encoders — primary product comparison
+
+**RLS AksIM-2 MRA080 / MB080** is the frozen baseline. MBD01 Issue 15 (13 May 2026) reports ±0.004° system accuracy, typical ±0.009° installed accuracy after calibration and ±0.029° uncalibrated. Keep the three definitions separate and use the exact product/install/calibration configuration in the result.
+
+**RLS AksIM-4 HIPERFACE DSL MC080 / MCD06** remains a provisional, potentially stronger magnetic comparator. Current catalogue/product snippets list an MC080 ±0.004° system-accuracy variant, but the accessible product page has also served legacy MCD05 documentation. RLS's MCD05 document says that revision is not recommended for new designs and points new applications to MCD06. Until the supplier provides the exact MCD06 PDF revision and order code, record the public ±0.004° figure as a provisional catalogue claim only; do not assert datasheet-verified parity or substitute MCD05 limits for MCD06.
+
+### B. Optical absolute encoders — metrology ceiling, not a like-for-like product claim
+
+Renishaw RESOLUTE installed-accuracy examples vary with ring diameter: typical ±12.7 arcsec at 52 mm, ±4.3 arcsec at 200 mm and ±1.9 arcsec at 550 mm. The 200 mm and 550 mm figures are approximately ±0.00119° and ±0.00053°. These are optical installed-system figures with their own ring and installation assumptions; they are useful as a metrology ceiling and as candidates for the independent angular-reference chain, not as proof that an 80 mm magnetic assembly is directly comparable.
+
+The RESOLUTE documentation also states that 32-bit resolution is below the system noise floor. This is a useful reminder that count depth is not effective accuracy. If a two-readhead REXA30 optical arrangement is used as the reference, freeze its exact ring, readhead, calibration, mounting and uncertainty contribution; published variants can reach ±1 arcsec total installed accuracy for supported diameters.
+
+### C. Incremental Hall latches — separate digital edge-integrity benchmark
+
+TI TMAG5111 is a two-dimensional dual-channel Hall-effect latch for speed/direction sensing, with a published 40 kHz bandwidth and typical operate-point variants around 1.4 mT and 3 mT. It is an appropriate comparator for pole-edge detection, quadrature integrity, speed/direction and dropout/threshold margin. It is not an absolute-angle encoder and must not appear in the same absolute accuracy ranking as AksIM or RESOLUTE.
+
+### D. Magnetic field solvers and differentiation — computational comparison, not product accuracy
+
+Magpylib Material Response 0.15.0 (released 25 November 2026) expands the computational baseline: its release notes describe WebAssembly field kernels checked against shared high-precision reference files and JAX/PyTorch differentiation for its Python face-charge kernel, as well as cylinder far-field improvements. This makes kernel duplication an unconvincing differentiator.
+
+Freeze Magpylib 0.15.0 as one external computational arm, alongside:
+1. analytic point-dipole and finite-cuboid known answers;
+2. an independently configured FEM solver for challenge geometries/materials;
+3. validated interval-AD and physical-discrepancy enclosures;
+4. sealed measured field maps from the traceable metrology chain.
+
+Report field-vector residual, gradient agreement, interval containment/coverage on exact analytic cases, runtime and memory. Do not compare solver field error to encoder system accuracy. The competitive contribution of this programme is the verified transfer from model/physical field to installed sensor function and decision—not a claim to have invented magnetostatic kernels or automatic differentiation.
+
+### E. Measurement uncertainty and acceptance
+
+The independent angular-reference budget must separately account for test-encoder resolution, reference resolution, reference calibration uncertainty, reference interpolation error, alignment/eccentricity, repeatability and other Type A/Type B contributions. EURAMET's rotary-encoder calibration guide is a useful method reference. Report combined standard uncertainty and expanded uncertainty with stated coverage factor and assumptions; a calibration certificate alone does not prove adequate comparison uncertainty.
+
+### Sources to freeze with the preregistration
+
+- RLS AksIM-2 MBD01 Issue 15: https://www.rls.si/eng/fileuploader/download/download/?d=0&id=267&title=Data+sheet%3A+AksIM-2%E2%84%A2+off-axis+rotary+absolute+magnetic+encoder+%28MBD01%29
+- RLS current catalogue / MCD06 product family: https://www.rls.si/eng/products
+- TI TMAG5111 data sheet: https://www.ti.com/lit/ds/symlink/tmag5111.pdf
+- Renishaw RESOLUTE ETR data sheet: https://www.renishaw.com/resourcecentre/download/data-sheet-resolute-etr-extended-temperature-range-absolute-encoder--133590?userLanguage=en
+- Renishaw REXA30 data sheet: https://www.renishaw.com/resourcecentre/download/data-sheet-rexa-ultra-high-accuracy-absolute-angle-encoder--104086?userLanguage=en
+- Magpylib 0.15.0 release and artifact record: https://pypi.org/project/magpylib/0.15.0/
+- Magpylib changelog: https://magpylib.readthedocs.io/en/latest/changelog.html
+- EURAMET Calibration Guide No. 23, rotary encoders: https://www.euramet.org/publications-media-centre/calibration-guidelines
