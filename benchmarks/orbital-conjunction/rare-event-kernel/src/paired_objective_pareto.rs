@@ -1343,8 +1343,8 @@ mod tests {
             Err(PairedObjectiveParetoError::IncompleteScenarioAtomEvidence)
         );
 
-        let mut rows = contrast_atoms_shifted();
-        rows.push(rows[0].clone());
+        let mut rows = fuel_only_atoms();
+        rows[1] = rows[0].clone();
         assert_eq!(
             process.evaluate(&rows),
             Err(PairedObjectiveParetoError::InvalidScenarioAtomIdentity)
