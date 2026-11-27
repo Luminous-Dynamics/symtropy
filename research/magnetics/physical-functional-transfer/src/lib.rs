@@ -193,6 +193,19 @@ fn validate_inputs(
         physical.model_set_id.as_str(),
         physical.solver_run_id.as_str(),
         physical.requirement_id.as_str(),
+        physical.centre_measurement_id.as_str(),
+        physical.measurement_uncertainty_record_id.as_str(),
+        physical.probe_calibration_id.as_str(),
+        physical.registration_record_id.as_str(),
+        physical.background_control_record_id.as_str(),
+        physical.temperature_record_id.as_str(),
+        physical.residual_jacobian_record_id.as_str(),
+        physical.residual_jacobian_source_revision.as_str(),
+        physical.residual_jacobian_implementation_id.as_str(),
+        physical.residual_jacobian_cell_id.as_str(),
+        physical.model_run_id.as_str(),
+        physical.model_source_revision.as_str(),
+        physical.model_implementation_id.as_str(),
         transfer.cell_id.as_str(),
         transfer.coordinate_frame_id.as_str(),
         transfer.operating_condition_id.as_str(),
@@ -224,6 +237,15 @@ fn validate_inputs(
     }
 
     for (digest, field) in [
+        (&physical.centre_measurement_sha256, "centre_measurement_sha256"),
+        (&physical.residual_jacobian_artifact_sha256, "residual_jacobian_artifact_sha256"),
+        (
+            &physical.residual_jacobian_environment_sha256,
+            "residual_jacobian_environment_sha256",
+        ),
+        (&physical.model_artifact_sha256, "model_artifact_sha256"),
+        (&physical.model_environment_sha256, "model_environment_sha256"),
+        (&physical.model_input_sha256, "model_input_sha256"),
         (&physical.geometry_sha256, "physical_geometry_sha256"),
         (&physical.material_sha256, "physical_material_sha256"),
         (&transfer.geometry_sha256, "transfer_geometry_sha256"),
@@ -287,14 +309,67 @@ fn validate_inputs(
         }
     }
 
+    if physical.residual_jacobian_cell_id != physical.cell_id
+        || physical.residual_jacobian_unit != format!("{}/metre", physical.field_unit)
+    {
+        return Err(FunctionalTransferError::ScopeMismatch {
+            field: "physical_residual_jacobian_scope",
+        });
+    }
+
+    for digest in &physical.residual_jacobian_component_input_sha256 {
+        validate_digest(digest, "physical_residual_jacobian_component_input_sha256")?;
+    }
+    for record_id in &physical.residual_jacobian_component_record_ids {
+        if !nonempty(record_id) {
+            return Err(FunctionalTransferError::InvalidIdentity);
+        }
+    }
+    for expression_id in &physical.residual_jacobian_component_expression_ids {
+        if !nonempty(expression_id) {
+            return Err(FunctionalTransferError::InvalidIdentity);
+        }
+    }
+    for component in 0..3 {
+        for axis in 0..3 {
+            let bound = physical.residual_jacobian_abs_supremum_t_per_m[component][axis];
+            if !bound.is_finite() || bound < 0.0 {
+                return Err(FunctionalTransferError::InvalidInterval {
+                    field: "physical_residual_jacobian",
+                });
+            }
+        }
+    }
+    for intervals in [
+        physical.measured_field_at_centre_t,
+        physical.model_field_at_centre_t,
+        physical.centre_residual_t,
+        physical.residual_field_over_cell_t,
+        physical.model_field_over_cell_t,
+    ] {
+        if intervals.iter().any(|interval| !valid_interval(*interval)) {
+            return Err(FunctionalTransferError::InvalidInterval {
+                field: "physical_field_certificate",
+            });
+        }
+    }
+
     if transfer.calibration_evidence_role != EvidenceRole::Calibration {
         return Err(FunctionalTransferError::CalibrationMustUseCalibrationEvidence);
     }
 
-    for bounds in physical.cell_bounds_m {
-        if !valid_interval(bounds) || bounds.lower() >= bounds.upper() {
+    for (axis, bounds) in physical.cell_bounds_m.iter().enumerate() {
+        if !valid_interval(*bounds) || bounds.lower() >= bounds.upper() {
             return Err(FunctionalTransferError::InvalidInterval {
                 field: "cell_bounds_m",
+            });
+        }
+        if !physical.centre_position_m[axis].is_finite()
+            || physical.centre_position_m[axis] < bounds.lower()
+            || physical.centre_position_m[axis] > bounds.upper()
+        {
+            return Err(FunctionalTransferError::InvalidInterval {
+                field: "physical_centre_position",
             });
         }
     }
