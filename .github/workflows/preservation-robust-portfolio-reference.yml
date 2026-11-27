@@ -1,0 +1,64 @@
+name: preservation-robust-portfolio-reference
+
+on:
+  pull_request:
+    paths:
+      - 'research/physical-storage/preservation-robust-portfolio-reference/**'
+      - 'research/physical-storage/PRESERVATION_ROBUST_PORTFOLIO_001.md'
+      - 'research/physical-storage/preservation_robust_portfolio_cases_v0_1.schema.json'
+      - 'research/physical-storage/fixtures/preservation_robust_portfolio_cases_v0_1.json'
+      - '.github/workflows/preservation-robust-portfolio-reference.yml'
+  push:
+    branches: ["main"]
+    paths:
+      - 'research/physical-storage/preservation-robust-portfolio-reference/**'
+      - 'research/physical-storage/PRESERVATION_ROBUST_PORTFOLIO_001.md'
+      - 'research/physical-storage/preservation_robust_portfolio_cases_v0_1.schema.json'
+      - 'research/physical-storage/fixtures/preservation_robust_portfolio_cases_v0_1.json'
+      - '.github/workflows/preservation-robust-portfolio-reference.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    name: robust portfolio reference (Rust 1.96.0)
+    runs-on: ubuntu-latest
+    env:
+      MANIFEST: research/physical-storage/preservation-robust-portfolio-reference/Cargo.toml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path "$MANIFEST" -- --check
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Draft 2020-12 schema and fixtures
+        run: |
+          python -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          schema_path = Path("research/physical-storage/preservation_robust_portfolio_cases_v0_1.schema.json")
+          fixture_path = Path("research/physical-storage/fixtures/preservation_robust_portfolio_cases_v0_1.json")
+          schema = json.loads(schema_path.read_text())
+          fixture = json.loads(fixture_path.read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(Draft202012Validator(schema).iter_errors(fixture),
+                          key=lambda e: list(map(str, e.absolute_path)))
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          print(f"VALID Draft 2020-12: {len(fixture['cases'])} cases")
+          PY
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path "$MANIFEST" --all-targets -- -D warnings
+      - name: Run Rust tests
+        run: cargo test --manifest-path "$MANIFEST" --all-targets
