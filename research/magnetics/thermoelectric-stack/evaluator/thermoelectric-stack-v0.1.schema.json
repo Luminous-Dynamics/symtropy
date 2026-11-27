@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Thermo-electrical winding and cooling benchmark v0.1",
+  "type": "object",
+  "required": ["schema_version", "benchmark_id", "scope", "metrics", "required_baseline_families", "trials"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "benchmark_id": { "type": "string", "minLength": 1 },
+    "scope": {
+      "type": "object",
+      "required": ["application_id", "duty_digest", "waveform_digest", "coolant_digest", "thermal_boundary_digest", "insulation_policy_digest", "measurement_setup_digest", "acceptance_policy_digest", "objective_digest", "constraint_digest"],
+      "properties": {
+        "application_id": { "type": "string", "minLength": 1 },
+        "duty_digest": { "$ref": "#/$defs/digest" },
+        "waveform_digest": { "$ref": "#/$defs/digest" },
+        "coolant_digest": { "$ref": "#/$defs/digest" },
+        "thermal_boundary_digest": { "$ref": "#/$defs/digest" },
+        "insulation_policy_digest": { "$ref": "#/$defs/digest" },
+        "measurement_setup_digest": { "$ref": "#/$defs/digest" },
+        "acceptance_policy_digest": { "$ref": "#/$defs/digest" },
+        "objective_digest": { "$ref": "#/$defs/digest" },
+        "constraint_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "metrics": { "type": "array", "minItems": 1 },
+    "required_baseline_families": { "type": "array", "minItems": 1 },
+    "trials": { "type": "array", "minItems": 1 }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "observation": {
+      "type": "object",
+      "required": ["metric_id", "unit", "value", "uncertainty_radius", "evidence_id", "evidence_digest", "evidence_class", "method_id", "calibration_digest", "uncertainty_digest"],
+      "properties": {
+        "metric_id": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string", "minLength": 1 },
+        "value": { "type": "number" },
+        "uncertainty_radius": { "type": "number", "minimum": 0 },
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "evidence_digest": { "$ref": "#/$defs/digest" },
+        "evidence_class": { "const": "PhysicalMeasurement" },
+        "method_id": { "type": "string", "minLength": 1 },
+        "calibration_digest": { "$ref": "#/$defs/digest" },
+        "uncertainty_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "trial": {
+      "type": "object",
+      "required": ["architecture_id", "component_id", "family", "role", "scope", "acceptance", "observations"],
+      "properties": {
+        "architecture_id": { "type": "string", "minLength": 1 },
+        "component_id": { "type": "string", "minLength": 1 },
+        "family": { "enum": ["ConventionalWindingCooling", "ConventionalHighPerformanceCooling", "AmIntegratedWindingCooling", "HybridThermalSubassembly", "ReferenceControl"] },
+        "role": { "enum": ["Candidate", "RequiredBaseline", "SecondaryControl"] },
+        "scope": { "type": "object" },
+        "acceptance": { "type": "object" },
+        "optimization": { "type": "object" },
+        "observations": { "type": "array", "items": { "$ref": "#/$defs/observation" } }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
