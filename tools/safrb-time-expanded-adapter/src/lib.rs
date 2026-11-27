@@ -117,6 +117,7 @@ struct Edge {
 #[derive(Debug, Clone)]
 struct Obligation {
     id: String,
+    node_id: String,
     time: u64,
     interval: String,
     required: u64,
@@ -533,13 +534,20 @@ fn parse(value: &Value, allow_hypothetical: bool) -> Result<Parsed, String> {
         if matching.next().is_some() || service_edge.lower != required || service_edge.upper != required {
             return Err(err(&path, "sink edge must uniquely encode the declared service floor"));
         }
-        obligations.push(Obligation { id, time, interval, required, edge_id: service_edge.id.clone() });
+        obligations.push(Obligation {
+            id,
+            node_id,
+            time,
+            interval,
+            required,
+            edge_id: service_edge.id.clone(),
+        });
     }
     if obligations.is_empty() || edges.iter().filter(|e| e.to == sink).count() != obligations.len() {
         return Err(err("$.service_obligations", "sink edges and declared obligations must match exactly"));
     }
     let declared_service_nodes = obligations.iter()
-        .map(|obligation| obligation.node.clone())
+        .map(|obligation| obligation.node_id.clone())
         .collect::<BTreeSet<_>>();
     let actual_service_nodes = nodes.values()
         .filter(|node| node.kind == "beneficiary_service")
@@ -919,6 +927,7 @@ mod tests {
             obligations: vec![
                 Obligation {
                     id: "window-a".to_string(),
+                    node_id: "service-a".to_string(),
                     time: 0,
                     interval: "[0,1)".to_string(),
                     required: 5,
@@ -926,6 +935,7 @@ mod tests {
                 },
                 Obligation {
                     id: "window-b".to_string(),
+                    node_id: "service-b".to_string(),
                     time: 0,
                     interval: "[0,1)".to_string(),
                     required: 5,
