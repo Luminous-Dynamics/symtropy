@@ -1,6 +1,6 @@
 use se3_pose_trustworthiness_bench::{
-    ComputeState, EvaluationSummary, PoseDecision, PoseInput, PoseResult,
-    RECEIPT_SCHEMA, evaluate_manifest, summarize,
+    ComputeState, EvaluationSummary, PoseDecision, PoseInput, PoseResult, RECEIPT_SCHEMA,
+    evaluate_manifest, summarize,
 };
 use std::collections::BTreeSet;
 use std::env;
