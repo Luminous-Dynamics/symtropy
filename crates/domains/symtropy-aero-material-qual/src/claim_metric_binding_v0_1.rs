@@ -173,13 +173,7 @@ pub struct ClaimMetricSemanticBindingV0_1 {
 struct ClaimMetricBindingEnvelope<'a> {
     schema: &'static str,
     canonicalization_profile: &'static str,
-    binding: &'a ClaimMetricBindingDigestViewV0_1<'a>,
-}
-
-#[derive(Serialize)]
-struct ClaimMetricBindingDigestViewV0_1<'a> {
     binding: &'a ClaimMetricSemanticBindingV0_1,
-    required_evidence_refs: Vec<String>,
 }
 
 impl ClaimMetricSemanticBindingV0_1 {
@@ -263,15 +257,33 @@ impl ClaimMetricSemanticBindingV0_1 {
         if !errors.is_empty() {
             return Err(errors);
         }
-        let mut sorted_required_refs = self.required_evidence_refs.clone();
-        sorted_required_refs.sort();
+        let mut required_refs = BTreeSet::new();
+        for evidence_ref in &self.required_evidence_refs {
+            if !valid_identifier(evidence_ref) {
+                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_INVALID".to_owned());
+            }
+            if !required_refs.insert(evidence_ref.as_str()) {
+                errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_REFERENCE_DUPLICATE".to_owned());
+            }
+        }
+        if self.required_evidence_refs.is_empty() {
+            errors.push("CLAIM_METRIC_BINDING_REQUIRED_EVIDENCE_MANIFEST_EMPTY".to_owned());
+        }
+        errors.sort();
+        errors.dedup();
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+        let mut normalized = self.clone();
+        normalized.required_evidence_refs.sort();
+        normalized.required_strata.sort_by(|left, right| {
+            (&left.claim_stratum_id, &left.model_stratum_ref)
+                .cmp(&(&right.claim_stratum_id, &right.model_stratum_ref))
+        });
         let envelope = ClaimMetricBindingEnvelope {
             schema: "AeroClaimMetricBindingCommitmentV0_1",
             canonicalization_profile: "rust-serde-json-struct-order-v1",
-            binding: &ClaimMetricBindingDigestViewV0_1 {
-                binding: self,
-                required_evidence_refs: sorted_required_refs,
-            },
+            binding: &normalized,
         };
         let bytes = serde_json::to_vec(&envelope)
             .map_err(|_| vec!["CLAIM_METRIC_BINDING_SERIALIZATION_FAILED".to_owned()])?;
@@ -298,6 +310,14 @@ impl ClaimMetricSemanticBindingV0_1 {
         let mut out_of_scope = false;
         let mut not_known_at_snapshot = false;
         let mut unsupported = false;
+
+        match self.compute_sha256() {
+            Ok(_) => {}
+            Err(errors) => {
+                rejected = true;
+                reasons.extend(errors);
+            }
+        }
 
         let specification_assessment = specification.assess();
         match specification_assessment.disposition {
@@ -449,6 +469,10 @@ impl ClaimMetricSemanticBindingV0_1 {
         {
             rejected = true;
             reasons.insert("CLAIM_METRIC_BINDING_MODEL_APPLICABILITY_MISMATCH".to_owned());
+        }
+        if decision_context.risk_classification_sha256 != model_cut.risk_classification_sha256 {
+            rejected = true;
+            reasons.insert("CLAIM_METRIC_BINDING_MODEL_RISK_CLASSIFICATION_MISMATCH".to_owned());
         }
 
         let owner_digest = match owner_cut.compute_sha256() {
@@ -674,6 +698,11 @@ impl ClaimMetricSemanticBindingV0_1 {
             .filter(|item| item.metric_id == self.model_metric_id)
             .map(|item| (item.stratum_ref.as_str(), item))
             .collect::<BTreeMap<_, _>>();
+        let reported_strata = reports.keys().copied().collect::<BTreeSet<_>>();
+        if reported_strata != mapped_model_strata {
+            rejected = true;
+            reasons.insert("CLAIM_METRIC_BINDING_MODEL_REPORT_SET_MISMATCH".to_owned());
+        }
         for stratum_ref in mapped_model_strata {
             let Some(report) = reports.get(stratum_ref) else {
                 incomplete = true;
@@ -920,7 +949,6 @@ mod tests {
                 "receipt:calibration-02".to_owned(),
             ])
             .expect("required evidence manifest");
-        let context_sha256 = context.compute_sha256().expect("context digest");
         let model_sha256 = model_cut.compute_sha256().expect("model cut digest");
         let owner_sha256 = owner_cut.compute_sha256().expect("owner cut digest");
 
@@ -1238,7 +1266,7 @@ mod tests {
         let original = fixture.binding.compute_sha256().unwrap();
         let mut reversed = fixture.binding.clone();
         reversed.required_strata.reverse();
-        assert_ne!(original, reversed.compute_sha256().unwrap());
+        assert_eq!(original, reversed.compute_sha256().unwrap());
         let mut changed = fixture.binding.clone();
         changed.predicate_threshold.numerator += 1;
         assert_ne!(original, changed.compute_sha256().unwrap());
