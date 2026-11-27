@@ -55,3 +55,5 @@ The authoring environment has no Cargo, rustc or rustfmt; 22 Rust tests are auth
 - `../fixtures/preservation_intervention_portfolio_cases_v0_1.json`: 19 synthetic known-answer/adversarial cases.
 
 The reference Pareto filter compares feasible subsets pairwise. The 12-action cap limits the worst-case frontier comparison space to about 4,095² ≈ 16.8 million pair checks. Raising the cap requires a more scalable exact skyline algorithm and matching property tests.
+
+Solver comparison roadmap: [PRESERVATION_PORTFOLIO_SOLVER_TOURNAMENT_001.md](PRESERVATION_PORTFOLIO_SOLVER_TOURNAMENT_001.md), tracked by [issue #7676](https://github.com/Luminous-Dynamics/symtropy/issues/7676).
