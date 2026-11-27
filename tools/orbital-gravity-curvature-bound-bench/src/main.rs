@@ -177,15 +177,16 @@ fn render_result(result: &CurvatureResult) -> String {
         .collect::<Vec<_>>()
         .join(",");
     format!(
-        "{{\"case_id\":\"{}\",\"scope\":{},\"disposition\":\"{}\",\"central_gravity_numerator\":{},\"differential_acceleration_numerator\":{},\"radial_domain_denominator\":{},\"exact_total_numerator\":{},\"exact_total_denominator\":{},\"m_upper_scaled_per_s2\":{},\"m_scale\":{},\"m_unit\":\"{}\",\"radial_slack_mm\":{},\"perturbation_inventory_id\":\"{}\",\"perturbation_inventory_complete\":{},\"evidence\":{{\"mu\":{},\"chief_radius\":{},\"relative_separation\":{},\"differential_acceleration\":{},\"transform_norm\":{}}},\"reason_codes\":[{}],\"bound_ready\":{},\"source_bytes_authenticated\":{},\"authority_granted\":{},\"physical_validation\":\"{}\"}}",
+        "{{\"case_id\":\"{}\",\"scope\":{},\"disposition\":\"{}\",\"central_gravity_numerator\":{},\"radial_domain_denominator\":{},\"differential_acceleration_upper_mm_per_s2\":{},\"transform_operator_norm_upper_scaled\":{},\"scaled_central_numerator\":{},\"scaled_perturbation_term\":{},\"m_upper_scaled_per_s2\":{},\"m_scale\":{},\"m_unit\":\"{}\",\"radial_slack_mm\":{},\"perturbation_inventory_id\":\"{}\",\"perturbation_inventory_complete\":{},\"evidence\":{{\"mu\":{},\"chief_radius\":{},\"relative_separation\":{},\"differential_acceleration\":{},\"transform_norm\":{}}},\"reason_codes\":[{}],\"bound_ready\":{},\"source_bytes_authenticated\":{},\"authority_granted\":{},\"physical_validation\":\"{}\"}}",
         json_escape(&result.case_id),
         render_scope(&result.scope),
         result.disposition.as_str(),
         optional_u128(result.central_gravity_numerator),
-        optional_u128(result.differential_acceleration_numerator),
         optional_u128(result.radial_domain_denominator),
-        optional_u128(result.exact_total_numerator),
-        optional_u128(result.exact_total_denominator),
+        optional_u128(result.differential_acceleration_upper_mm_per_s2),
+        optional_u128(result.transform_operator_norm_upper_scaled),
+        optional_u128(result.scaled_central_numerator),
+        optional_u128(result.scaled_perturbation_term),
         optional_u128(result.m_upper_scaled_per_s2),
         result.m_scale,
         json_escape(&result.m_unit),
