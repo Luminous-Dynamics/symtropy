@@ -687,7 +687,7 @@ pub fn evaluate_scenario(value: &Value) -> Result<ServiceOracleReport, String> {
         } else {
             None
         };
-    let obligation_edge_ids = demand_edge_ids.values().collect::<BTreeSet<_>>();
+    let obligation_edge_ids = demand_edge_ids.values().cloned().collect::<BTreeSet<_>>();
     let mut receiver_allocations = Vec::with_capacity(scenario.receivers.len());
     for (receiver_id, receiver) in &scenario.receivers {
         let edge_id = demand_edge_ids
@@ -976,7 +976,10 @@ mod tests {
             report
                 .receiver_allocations
                 .iter()
-                .map(|row| row.individual_max_deliverable_mwh)
+                .map(|row| {
+                    row.individual_max_deliverable_mwh
+                        .expect("individual maximum should be present for each receiver")
+                })
                 .sum::<u64>(),
             10
         );
