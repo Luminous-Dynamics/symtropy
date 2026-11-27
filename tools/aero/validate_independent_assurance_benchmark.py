@@ -272,6 +272,73 @@ def main() -> int:
                 f"FAIL: ambiguous subject-time interval did not abstain in {case['case_id']}"
             )
 
+    source_schema_path = AVIATION / "schemas" / "aero_assurance_source_binding_v0_1.schema.json"
+    source_fixture_path = AVIATION / "examples" / "aero_assurance_source_binding_v0_1.json"
+    source_schema = load_json(source_schema_path)
+    source_fixture = load_json(source_fixture_path)
+    validate_instance(source_fixture, source_schema, "source-binding envelope")
+
+    specification = source_fixture["claim_specification"]
+    context = source_fixture["decision_context"]
+    if specification["claim_id"] != context["claim_id"]:
+        raise SystemExit("FAIL: source-binding claim specification/context IDs differ")
+    if source_fixture["owner_evidence_cut"]["receiver_receipt_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+        raise SystemExit("FAIL: owner receipt watermark does not cover the selected as-known cutoff")
+    if source_fixture["observer_coverage"]["watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+        raise SystemExit("FAIL: observer watermark does not cover the selected as-known cutoff")
+
+    acquisition = context["acquisition_interval"]
+    if acquisition["earliest_unix_ms"] > acquisition["latest_unix_ms"]:
+        raise SystemExit("FAIL: physical acquisition interval is malformed")
+    policy = source_fixture["trust_policy"]
+    if policy["effective_from_unix_ms"] > policy["effective_until_unix_ms"]:
+        raise SystemExit("FAIL: trust-policy effective interval is malformed")
+
+    required_intrinsic_kinds = {
+        "CLAIM_IDENTITY", "EVIDENCE_INTEGRITY", "PRODUCER_AUTHORITY"
+    }
+    source_obligations = source_fixture["obligations"]
+    source_ids = [item["obligation_id"] for item in source_obligations]
+    require_unique(source_ids, "source-bound obligation IDs")
+    for kind in required_intrinsic_kinds:
+        matches = [item for item in source_obligations if item["kind"] == kind]
+        if specification["assessment_disposition"] == "FORMALLY_WELL_SPECIFIED" and (
+            not matches or any(not item["mandatory"] or not item["hard_gate"] for item in matches)
+        ):
+            raise SystemExit(f"FAIL: source-bound intrinsic gate missing/downgraded: {kind}")
+
+    evidence_ids = []
+    for obligation in source_obligations:
+        for evidence in obligation["evidence_bindings"]:
+            evidence_ids.append(evidence["evidence_ref"])
+            if evidence["subject_ref"] != context["subject_ref"]:
+                raise SystemExit(f"FAIL: evidence subject mismatch: {evidence['evidence_ref']}")
+            if evidence["configuration_ref"] != context["configuration_ref"]:
+                raise SystemExit(f"FAIL: evidence configuration mismatch: {evidence['evidence_ref']}")
+            receiver_first_seen = evidence["receiver_first_seen_at_unix_ms"]
+            if evidence["admission_state"] == "ADMITTED":
+                if (
+                    receiver_first_seen is None
+                    or receiver_first_seen > source_fixture["owner_evidence_cut"]["receiver_receipt_watermark_unix_ms"]
+                    or evidence["owner_receipt_ref"] is None
+                    or evidence["owner_receipt_sha256"] is None
+                    or evidence["verification_state"] != "VERIFIED"
+                    or evidence["verification_report_sha256"] is None
+                ):
+                    raise SystemExit(
+                        f"FAIL: admitted evidence lacks a timely verified owner receipt: {evidence['evidence_ref']}"
+                    )
+            if evidence.get("event_effective_interval") is not None:
+                interval = evidence["event_effective_interval"]
+                if interval["earliest_unix_ms"] > interval["latest_unix_ms"]:
+                    raise SystemExit(f"FAIL: malformed event-effectivity interval: {evidence['evidence_ref']}")
+    require_unique(evidence_ids, "source-bound evidence references")
+
+    for event in policy["policy_events"]:
+        if event["receiver_first_seen_at_unix_ms"] < event["asserted_at_unix_ms"] and event["event_type"] not in {"KEY_ISSUED", "KEY_ROTATED"}:
+            # Issuer time is descriptive; receiver knowledge remains independently recorded.
+            pass
+
     print(
         "PASS: AERO IAB v0.3 structural validation "
         f"({len(definitions)} metrics, {len(thresholds)} thresholds, "
