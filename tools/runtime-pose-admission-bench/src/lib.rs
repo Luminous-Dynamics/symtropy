@@ -570,7 +570,7 @@ mod tests {
             frame_bundle_revision: "bundle-r1".to_owned(),
             frame_bundle_sha256: "3".repeat(64),
             frame_bundle_state: "SYNCHRONIZED".to_owned(),
-            frame_source_bytes_authenticated: false,
+            frame_source_bytes_authenticated: true,
             bundle_sample_id: "ACE/approach/0001".to_owned(),
             bundle_frame_id: "frame-0001".to_owned(),
             bundle_target_id: "ACE".to_owned(),
