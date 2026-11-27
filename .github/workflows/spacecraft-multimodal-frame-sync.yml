@@ -52,8 +52,8 @@ jobs:
           rust = json.loads(Path("/tmp/frame-sync-rust.json").read_text())
           oracle = json.loads(Path("/tmp/frame-sync-python.json").read_text())
           assert rust == oracle
-          assert rust["case_count"] == 36
-          assert rust["expected_disposition_matches"] == 36
+          assert rust["case_count"] == 40
+          assert rust["expected_disposition_matches"] == 40
           assert rust["expected_disposition_mismatches"] == 0
           assert rust["dataset_revision"] == "f8c4ee9c7c0f9a4037f4977f3ddc4e0610a8fb8e"
           assert rust["pose_correction_date"] == "2026-05-19"
@@ -68,7 +68,11 @@ jobs:
           assert cases["MB016"]["disposition"] == "INVALID_INPUT"
           assert cases["MB035"]["disposition"] == "SYNCHRONIZED"
           assert cases["MB036"]["disposition"] == "INVALID_INPUT"
-          print("36 multimodal bundles: exact Rust/Python receipt equality")
+          assert cases["MB037"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB038"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB039"]["disposition"] == "OUT_OF_SCOPE"
+          assert cases["MB040"]["disposition"] == "OUT_OF_SCOPE"
+          print("40 multimodal bundles: exact Rust/Python receipt equality")
           PY
       - name: Retain exact-head evidence
         if: success()
