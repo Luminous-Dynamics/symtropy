@@ -617,7 +617,10 @@ mod tests {
     fn profile_calibration_mismatch_is_out_of_scope() {
         let mut value = input();
         value.profile.camera_calibration_sha256 = "9".repeat(64);
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::OutOfScope
+        );
     }
 
     #[test]
@@ -634,28 +637,40 @@ mod tests {
     fn weak_profile_coverage_abstains() {
         let mut value = input();
         value.profile.coverage_lower_ci_ppm = 899_999;
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::AbstainUncalibrated
+        );
     }
 
     #[test]
     fn insufficient_calibration_sample_count_abstains() {
         let mut value = input();
         value.profile.sample_count = 99;
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::AbstainUncalibrated
+        );
     }
 
     #[test]
     fn unsynchronized_frame_bundle_abstains() {
         let mut value = input();
         value.frame_bundle_state = "UNSYNCHRONIZED".to_owned();
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::AbstainUncalibrated);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::AbstainUncalibrated
+        );
     }
 
     #[test]
     fn bundle_identity_mismatch_is_out_of_scope() {
         let mut value = input();
         value.bundle_frame_id = "frame-other".to_owned();
-        assert_eq!(evaluate(&value).disposition, AdmissionDisposition::OutOfScope);
+        assert_eq!(
+            evaluate(&value).disposition,
+            AdmissionDisposition::OutOfScope
+        );
     }
 
     #[test]
