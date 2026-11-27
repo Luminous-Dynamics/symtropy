@@ -134,6 +134,7 @@ pub struct PhysicalPathReceipt {
     pub attempt_id: String,
     pub probe_id: String,
     pub checkpoint_sequence: u64,
+    pub physical_plan_sha256: String,
     pub path_profile_sha256: String,
     pub receipt_sha256: String,
     pub required_duration_ns: u64,
@@ -152,6 +153,7 @@ pub struct ProbeCheckpoint {
     pub sequence: u64,
     pub previous_checkpoint_sha256: Option<String>,
     pub lifecycle: ProbeLifecycle,
+    pub physical_plan_sha256: String,
     pub requested_scope: EvidenceScope,
     pub evidence_prefix: Option<EvidencePrefix>,
     pub proposed_possible_world_support_ids: Vec<String>,
@@ -247,6 +249,31 @@ fn canonical_support(ids: &[String]) -> Result<Vec<String>, CheckpointError> {
         return Err(CheckpointError::InvalidSupport("duplicate world ID"));
     }
     Ok(canonical)
+}
+
+fn serialized_digest<T: Serialize>(value: &T, domain: &[u8]) -> Result<String, CheckpointError> {
+    let payload = serde_json::to_vec(value).map_err(|_| CheckpointError::SerializationFailed)?;
+    let mut preimage = domain.to_vec();
+    preimage.extend_from_slice(&payload);
+    Ok(super::sha256_hex(&preimage))
+}
+
+fn support_update_commitment(receipt: &SupportUpdateReceipt) -> Result<String, CheckpointError> {
+    let mut payload = receipt.clone();
+    payload.derivation_receipt_sha256.clear();
+    serialized_digest(&payload, b"AERB-SUPPORT-UPDATE-RECEIPT-V0.1\0")
+}
+
+fn decision_sufficiency_commitment(receipt: &DecisionSufficiencyReceipt) -> Result<String, CheckpointError> {
+    let mut payload = receipt.clone();
+    payload.receipt_sha256.clear();
+    serialized_digest(&payload, b"AERB-DECISION-SUFFICIENCY-RECEIPT-V0.1\0")
+}
+
+fn physical_path_commitment(receipt: &PhysicalPathReceipt) -> Result<String, CheckpointError> {
+    let mut payload = receipt.clone();
+    payload.receipt_sha256.clear();
+    serialized_digest(&payload, b"AERB-PHYSICAL-PATH-RECEIPT-V0.1\0")
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -362,6 +389,7 @@ fn validate_support_update(
     if receipt.base_support_sha256 != possible_world_support_sha256(&before)?
         || receipt.resulting_support_sha256 != possible_world_support_sha256(&after)?
         || receipt.evidence_artifact_sha256 != evidence.artifact_sha256
+        || receipt.derivation_receipt_sha256 != support_update_commitment(receipt)?
     {
         return Err(CheckpointError::InvalidSupportReceipt("receipt does not bind exact support and evidence"));
     }
@@ -382,7 +410,9 @@ fn validate_decision_sufficiency(
     validate_digest(&receipt.support_sha256, "decision_support")?;
     validate_digest(&receipt.oracle_profile_sha256, "decision_oracle_profile")?;
     validate_digest(&receipt.receipt_sha256, "decision_sufficiency")?;
-    if receipt.support_sha256 != possible_world_support_sha256(support)? {
+    if receipt.support_sha256 != possible_world_support_sha256(support)?
+        || receipt.receipt_sha256 != decision_sufficiency_commitment(receipt)?
+    {
         return Err(CheckpointError::InvalidDecisionReceipt("support digest mismatch"));
     }
     Ok(
@@ -397,12 +427,14 @@ fn path_is_qualified(
     attempt_id: &str,
     probe_id: &str,
     checkpoint_sequence: u64,
+    expected_physical_plan_sha256: &str,
 ) -> bool {
     receipts.iter().any(|receipt| {
         receipt.path_kind == kind
             && receipt.attempt_id == attempt_id
             && receipt.probe_id == probe_id
             && receipt.checkpoint_sequence == checkpoint_sequence
+            && receipt.physical_plan_sha256 == expected_physical_plan_sha256
             && receipt.qualification == SafetyQualification::Qualified
             && receipt.safe_horizon_ns.is_some_and(|horizon| horizon >= receipt.required_duration_ns)
             && receipt.required_duration_ns > 0
@@ -446,6 +478,7 @@ pub fn evaluate_checkpoint(
     if cursor.attempt_id != checkpoint.attempt_id || cursor.probe_id != checkpoint.probe_id {
         return Err(CheckpointError::InvalidIdentity("attempt/probe binding"));
     }
+    validate_digest(&checkpoint.physical_plan_sha256, "physical_plan")?;
     validate_digest(
         &checkpoint.requested_scope.clock_mapping_profile_sha256,
         "requested_clock_profile",
@@ -497,8 +530,14 @@ pub fn evaluate_checkpoint(
         if !nonempty(&receipt.attempt_id) || !nonempty(&receipt.probe_id) {
             return Err(CheckpointError::InvalidPathReceipt("empty path identity"));
         }
+        validate_digest(&receipt.physical_plan_sha256, "physical_plan")?;
         validate_digest(&receipt.path_profile_sha256, "physical_path_profile")?;
         validate_digest(&receipt.receipt_sha256, "physical_path_receipt")?;
+        if receipt.physical_plan_sha256 != checkpoint.physical_plan_sha256
+            || receipt.receipt_sha256 != physical_path_commitment(receipt)?
+        {
+            return Err(CheckpointError::InvalidPathReceipt("plan binding or receipt commitment mismatch"));
+        }
     }
 
     let action = if checkpoint.lifecycle == ProbeLifecycle::Completed {
@@ -513,6 +552,7 @@ pub fn evaluate_checkpoint(
                 &checkpoint.attempt_id,
                 &checkpoint.probe_id,
                 checkpoint.sequence,
+                &checkpoint.physical_plan_sha256,
             );
         let can_stop = path_is_qualified(
             &checkpoint.physical_path_receipts,
@@ -520,6 +560,7 @@ pub fn evaluate_checkpoint(
             &checkpoint.attempt_id,
             &checkpoint.probe_id,
             checkpoint.sequence,
+            &checkpoint.physical_plan_sha256,
         );
         let can_abort = path_is_qualified(
             &checkpoint.physical_path_receipts,
@@ -527,6 +568,7 @@ pub fn evaluate_checkpoint(
             &checkpoint.attempt_id,
             &checkpoint.probe_id,
             checkpoint.sequence,
+            &checkpoint.physical_plan_sha256,
         );
 
         if decision_sufficient && can_stop {
@@ -609,12 +651,15 @@ mod tests {
             attempt_id: "attempt-1".to_owned(),
             probe_id: "probe-1".to_owned(),
             checkpoint_sequence: 1,
+            physical_plan_sha256: digest('0'),
             path_profile_sha256: digest('e'),
-            receipt_sha256: digest('f'),
+            receipt_sha256: String::new(),
             required_duration_ns,
             safe_horizon_ns,
             qualification,
-        }
+        };
+        receipt.receipt_sha256 = physical_path_commitment(&receipt).expect("path commitment");
+        receipt
     }
 
     fn checkpoint() -> ProbeCheckpoint {
@@ -626,6 +671,7 @@ mod tests {
             sequence: 1,
             previous_checkpoint_sha256: None,
             lifecycle: ProbeLifecycle::Acquiring,
+            physical_plan_sha256: digest('0'),
             requested_scope: EvidenceScope {
                 proposition_id: "effect-presence-over-window".to_owned(),
                 clock_domain_id: "robot-clock".to_owned(),
@@ -658,7 +704,10 @@ mod tests {
             receipt_sha256: digest('2'),
             all_supported_worlds_share_terminal_recommendation: true,
             no_remaining_probe_strictly_reduces_worst_case_loss: true,
-        }
+            receipt_sha256: String::new(),
+        };
+        receipt.receipt_sha256 = decision_sufficiency_commitment(&receipt).expect("decision receipt commitment");
+        receipt
     }
 
     fn support_receipt(before: &[String], after: &[String], evidence: &EvidencePrefix) -> SupportUpdateReceipt {
@@ -668,8 +717,10 @@ mod tests {
             resulting_support_sha256: possible_world_support_sha256(after).expect("after digest"),
             evidence_artifact_sha256: evidence.artifact_sha256.clone(),
             oracle_profile_sha256: digest('3'),
-            derivation_receipt_sha256: digest('4'),
-        }
+            derivation_receipt_sha256: String::new(),
+        };
+        receipt.derivation_receipt_sha256 = support_update_commitment(&receipt).expect("support receipt commitment");
+        receipt
     }
 
     #[test]
