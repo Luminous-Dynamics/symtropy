@@ -44,30 +44,8 @@ impl SubjectTimeEffectivityV0_1 {
     }
 }
 
-impl From<super::effectivity_interval_v0_1::EffectivityRelation>
-    for SubjectTimeEffectivityV0_1
-{
-    fn from(relation: super::effectivity_interval_v0_1::EffectivityRelation) -> Self {
-        match relation {
-            super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyEffective => {
-                Self::DefinitelyEffective
-            }
-            super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyNotYetEffective => {
-                Self::DefinitelyNotYetEffective
-            }
-            super::effectivity_interval_v0_1::EffectivityRelation::BoundaryAmbiguous => {
-                Self::BoundaryAmbiguous
-            }
-            super::effectivity_interval_v0_1::EffectivityRelation::InvalidInterval => {
-                Self::InvalidInterval
-            }
-        }
-    }
-}
 
-impl From<super::effectivity_interval_v0_1::EffectivityRelation>
-    for SubjectTimeEffectivityV0_1
-{
+impl From<super::effectivity_interval_v0_1::EffectivityRelation> for SubjectTimeEffectivityV0_1 {
     fn from(relation: super::effectivity_interval_v0_1::EffectivityRelation) -> Self {
         match relation {
             super::effectivity_interval_v0_1::EffectivityRelation::DefinitelyEffective => {
@@ -599,13 +577,13 @@ mod tests {
     use super::{
         ApplicabilityStateV0_1 as Applicability, AssuranceDispositionV0_1 as Disposition,
         AssuranceObligationV0_1 as Obligation, AssuranceStateCaseV0_1 as Case,
-        SubjectTimeEffectivityV0_1 as SubjectEffectivity,
         AuthorityStateV0_1 as Authority, ClaimContextV0_1 as Context,
         DefeaterMaterialityV0_1 as Materiality, DefeaterStatusV0_1 as DefeaterStatus,
         DefeaterV0_1 as Defeater, ObligationKindV0_1 as Kind,
         ObserverCoverageStateV0_1 as Observer, PropositionEvidenceStateV0_1 as Evidence,
-        ReplayModeV0_1 as Replay, TemporalKnowledgeStateV0_1 as Temporal,
-        VerificationStateV0_1 as Verification, evaluate_assurance_state_case_v0_1,
+        ReplayModeV0_1 as Replay, SubjectTimeEffectivityV0_1 as SubjectEffectivity,
+        TemporalKnowledgeStateV0_1 as Temporal, VerificationStateV0_1 as Verification,
+        evaluate_assurance_state_case_v0_1,
     };
 
     fn obligation(id: &str, kind: Kind) -> Obligation {
@@ -915,7 +893,10 @@ mod tests {
             reason_codes: vec!["GENERATED_DEFEATER_HYPOTHESIS".to_owned()],
         });
         let result = evaluate_assurance_state_case_v0_1(&case);
-        assert_eq!(result.disposition, Disposition::ReviewableForIndependentDecision);
+        assert_eq!(
+            result.disposition,
+            Disposition::ReviewableForIndependentDecision
+        );
         assert!(
             result
                 .reason_codes
@@ -1034,10 +1015,7 @@ mod tests {
     fn definitely_not_yet_effective_is_distinct_from_late_receiver_knowledge() {
         let mut case = positive_case();
         case.subject_time_effectivity = SubjectEffectivity::DefinitelyNotYetEffective;
-        assert_eq!(
-            disposition(&case),
-            Disposition::NotEffectiveAtSubjectTime
-        );
+        assert_eq!(disposition(&case), Disposition::NotEffectiveAtSubjectTime);
         case.obligations[3].temporal_knowledge = Temporal::NotKnownAtCutoff;
         assert_eq!(disposition(&case), Disposition::NotKnownAtSnapshot);
     }
@@ -1068,9 +1046,12 @@ mod tests {
         identity.hard_gate = false;
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.disposition, Disposition::Unverified);
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "INTRINSIC_HARD_GATE_POLICY_MISSING_OR_DOWNGRADED"
-        }));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "INTRINSIC_HARD_GATE_POLICY_MISSING_OR_DOWNGRADED" })
+        );
     }
 
     #[test]
