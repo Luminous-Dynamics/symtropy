@@ -1244,20 +1244,28 @@ mod tests {
             total_mass_ticks: 100,
             post_action_horizon_digest: [57; 32],
             risk_policy_digest: [58; 32],
-            mission_union_mass: if within_budget {
-                ExactMass {
+            mission_union_mass: match (scenario_id, portfolio_id) {
+                (_, id) if id == PORTFOLIO_A => ExactMass {
+                    numerator: 3,
+                    denominator: 4,
+                },
+                (_, id) if id == PORTFOLIO_C => ExactMass {
                     numerator: 1,
-                    denominator: 100,
-                }
-            } else {
-                ExactMass {
-                    numerator: 2,
-                    denominator: 100,
-                }
+                    denominator: 4,
+                },
+                (SCENARIO_A, _) => ExactMass {
+                    numerator: 3,
+                    denominator: 4,
+                },
+                (SCENARIO_B, _) => ExactMass {
+                    numerator: 1,
+                    denominator: 1,
+                },
+                _ => unreachable!(),
             },
             mission_risk_budget: ExactMass {
-                numerator: 1,
-                denominator: 100,
+                numerator: 4,
+                denominator: 5,
             },
             within_declared_finite_support_budget: within_budget,
         }
@@ -1994,6 +2002,13 @@ mod tests {
                 let shared_world = SharedExogenousWorldReceipt {
                     scenario_id: support.scenario_id,
                     atom_id: *atom_id,
+                    atom_mass_ticks: match atom_id[0] {
+                        101 => 50,
+                        102 => 25,
+                        103 => 15,
+                        104 => 10,
+                        _ => unreachable!(),
+                    },
                     initial_state_digest: [120 + atom_id[0]; 32],
                     initial_covariance_digest: [121; 32],
                     latent_uncertainty_digest: [122 + atom_id[0]; 32],
@@ -2023,6 +2038,7 @@ mod tests {
                             portfolio_id,
                             shared_exogenous_receipt_digest: shared_digest,
                             maneuver_plan_digest: [130 + portfolio_id[0]; 32],
+                            maneuver_execution_noise_digest: [131 + portfolio_id[0]; 32],
                             post_action_initial_state_digest: [140 + portfolio_id[0]; 32],
                             scenario_physics_configuration_digest: contract
                                 .scenario_physics_configuration_digest,
@@ -2036,6 +2052,17 @@ mod tests {
                             post_action_horizon_digest: check.post_action_horizon_digest,
                             risk_policy_digest: check.risk_policy_digest,
                             risk_envelope_digest: check.risk_envelope_digest,
+                            mission_union_contact: if portfolio_id == PORTFOLIO_A {
+                                if *atom_id == [101; 32] || *atom_id == [102; 32] {
+                                    crate::counterfactual_trajectory_receipt::MissionUnionContactDisposition::DefiniteContact
+                                } else {
+                                    crate::counterfactual_trajectory_receipt::MissionUnionContactDisposition::DefiniteNoContact
+                                }
+                            } else if *atom_id == [103; 32] || *atom_id == [104; 32] {
+                                crate::counterfactual_trajectory_receipt::MissionUnionContactDisposition::DefiniteContact
+                            } else {
+                                crate::counterfactual_trajectory_receipt::MissionUnionContactDisposition::DefiniteNoContact
+                            },
                         }
                     })
                     .collect();

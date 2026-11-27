@@ -59,6 +59,8 @@ pub struct SharedExogenousWorldReceipt {
     pub scenario_id: [u8; 32],
     /// Latent uncertainty atom identity.
     pub atom_id: [u8; 32],
+    /// Exact integer target-measure mass assigned to this atom.
+    pub atom_mass_ticks: u64,
     /// Pre-manoeuvre state snapshot digest.
     pub initial_state_digest: [u8; 32],
     /// Pre-manoeuvre covariance snapshot digest.
@@ -88,6 +90,17 @@ impl SharedExogenousWorldReceipt {
     pub fn canonical_digest(&self) -> [u8; 32] {
         digest_shared_world(self)
     }
+}
+
+/// Definite pathwise result of the complete post-action mission event inventory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MissionUnionContactDisposition {
+    /// At least one declared mission event contacts on this trajectory.
+    DefiniteContact,
+    /// Every declared mission event is proven not to contact on this trajectory.
+    DefiniteNoContact,
+    /// The event inventory cannot classify this trajectory completely.
+    Ambiguous,
 }
 
 /// One portfolio's post-intervention trajectory and mission-risk binding.
@@ -131,6 +144,8 @@ pub struct PortfolioTrajectoryReceipt {
     pub risk_policy_digest: [u8; 32],
     /// Exact risk-envelope digest for this scenario/portfolio.
     pub risk_envelope_digest: [u8; 32],
+    /// Pathwise mission-wide union contact classification on this atom.
+    pub mission_union_contact: MissionUnionContactDisposition,
 }
 
 /// One complete shared-world row and its portfolio-specific interventions.
@@ -209,6 +224,12 @@ pub enum CounterfactualTrajectoryReceiptError {
     PortfolioTrajectoryContractMismatch,
     /// A required trajectory or intervention digest is zero.
     MissingTrajectoryEvidence,
+    /// The exact finite target mass assigned to a world is zero or inconsistent.
+    InvalidWorldMass,
+    /// Per-atom contact classifications do not reproduce the upstream portfolio risk.
+    MissionUnionMassMismatch,
+    /// A pathwise mission contact outcome is ambiguous.
+    AmbiguousMissionUnionClassification,
 }
 
 impl core::fmt::Display for CounterfactualTrajectoryReceiptError {
@@ -229,6 +250,10 @@ impl core::fmt::Display for CounterfactualTrajectoryReceiptError {
             Self::InvalidPortfolioTrajectoryIdentity => "portfolio receipt identity is unknown or duplicated",
             Self::PortfolioTrajectoryContractMismatch => "portfolio trajectory receipt differs from the hard-risk gate or scenario contract",
             Self::MissingTrajectoryEvidence => "required intervention or trajectory evidence digest is zero",
+            Self::InvalidWorldMass => "shared-world target mass is zero or inconsistent with the frozen support",
+            Self::MissionUnionMassMismatch => "per-atom mission contacts do not reproduce the hard-risk gate union mass",
+            Self::AmbiguousMissionUnionClassification => "ambiguous mission contact cannot be used for exact policy risk",
+
         };
         formatter.write_str(message)
     }
@@ -433,6 +458,7 @@ impl CounterfactualTrajectoryReceiptCampaign {
             let shared = atom.shared_world;
             if is_zero(&shared.scenario_id)
                 || is_zero(&shared.atom_id)
+                || shared.atom_mass_ticks == 0
                 || is_zero(&shared.initial_state_digest)
                 || is_zero(&shared.initial_covariance_digest)
                 || is_zero(&shared.latent_uncertainty_digest)
@@ -496,6 +522,11 @@ impl CounterfactualTrajectoryReceiptCampaign {
                 if receipt.shared_exogenous_receipt_digest != shared_digest {
                     return Err(CounterfactualTrajectoryReceiptError::SharedWorldReceiptMismatch);
                 }
+                if receipt.mission_union_contact == MissionUnionContactDisposition::Ambiguous {
+                    return Err(
+                        CounterfactualTrajectoryReceiptError::AmbiguousMissionUnionClassification,
+                    );
+                }
                 if receipt.scenario_physics_configuration_digest
                     != contract.scenario_physics_configuration_digest
                     || receipt.propagator_configuration_digest
@@ -558,6 +589,7 @@ impl CounterfactualTrajectoryReceiptCampaign {
         }
 
         let canonical_atoms = atom_map.into_values().collect::<Vec<_>>();
+        validate_pathwise_risk_masses(&self.scenario_contracts, &self.eligible_portfolio_ids, &self.gate_checks, &canonical_atoms)?;
         let scenario_atom_ids = expected_atom_ids;
         let mut report = CounterfactualTrajectoryReceiptReport {
             scenario_ids: self
@@ -612,6 +644,7 @@ fn digest_shared_world(shared: &SharedExogenousWorldReceipt) -> [u8; 32] {
     hasher.update(b"luminous.orbital.counterfactual-trajectory.shared-world.v0.1\0");
     hasher.update(shared.scenario_id);
     hasher.update(shared.atom_id);
+    hasher.update(shared.atom_mass_ticks.to_be_bytes());
     hasher.update(shared.initial_state_digest);
     hasher.update(shared.initial_covariance_digest);
     hasher.update(shared.latent_uncertainty_digest);
@@ -659,9 +692,80 @@ pub(crate) fn digest_receipt_report(report: &CounterfactualTrajectoryReceiptRepo
             hasher.update(receipt.post_action_horizon_digest);
             hasher.update(receipt.risk_policy_digest);
             hasher.update(receipt.risk_envelope_digest);
+            hasher.update([match receipt.mission_union_contact {
+                MissionUnionContactDisposition::DefiniteContact => 1,
+                MissionUnionContactDisposition::DefiniteNoContact => 0,
+                MissionUnionContactDisposition::Ambiguous => 2,
+            }]);
         }
     }
     hasher.finalize().into()
+}
+
+fn validate_pathwise_risk_masses(
+    scenario_contracts: &[ScenarioTrajectoryContract],
+    eligible_portfolio_ids: &[[u8; 32]],
+    gate_checks: &BTreeMap<
+        ([u8; 32], [u8; 32]),
+        crate::scenario_mission_risk_gate::PortfolioScenarioRiskCheck,
+    >,
+    atoms: &[CounterfactualTrajectoryAtom],
+) -> Result<(), CounterfactualTrajectoryReceiptError> {
+    for contract in scenario_contracts {
+        let scenario_atoms = atoms
+            .iter()
+            .filter(|atom| atom.shared_world.scenario_id == contract.scenario_id)
+            .collect::<Vec<_>>();
+        let total_mass_ticks = scenario_atoms.iter().try_fold(0_u128, |sum, atom| {
+            sum.checked_add(u128::from(atom.shared_world.atom_mass_ticks))
+        }).ok_or(CounterfactualTrajectoryReceiptError::InvalidWorldMass)?;
+        let total_mass_ticks = u64::try_from(total_mass_ticks)
+            .map_err(|_| CounterfactualTrajectoryReceiptError::InvalidWorldMass)?;
+        if scenario_atoms.len() != contract.atom_ids.len() || total_mass_ticks == 0 {
+            return Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass);
+        }
+        if gate_checks
+            .iter()
+            .filter(|((scenario_id, _), _)| *scenario_id == contract.scenario_id)
+            .any(|(_, check)| check.total_mass_ticks != total_mass_ticks)
+        {
+            return Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass);
+        }
+
+        for portfolio_id in eligible_portfolio_ids {
+            let check = gate_checks
+                .get(&(contract.scenario_id, *portfolio_id))
+                .ok_or(CounterfactualTrajectoryReceiptError::InvalidPortfolioTrajectoryIdentity)?;
+            if check.total_mass_ticks != total_mass_ticks {
+                return Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass);
+            }
+
+            let mut contacting_mass_ticks = 0_u128;
+            for atom in &scenario_atoms {
+                let receipt = atom
+                    .portfolio_trajectories
+                    .iter()
+                    .find(|receipt| receipt.portfolio_id == *portfolio_id)
+                    .ok_or(CounterfactualTrajectoryReceiptError::IncompletePortfolioTrajectoryMatrix)?;
+                if receipt.mission_union_contact == MissionUnionContactDisposition::DefiniteContact {
+                    contacting_mass_ticks = contacting_mass_ticks
+                        .checked_add(u128::from(atom.shared_world.atom_mass_ticks))
+                        .ok_or(CounterfactualTrajectoryReceiptError::InvalidWorldMass)?;
+                }
+            }
+
+            let numerator = contacting_mass_ticks
+                .checked_mul(u128::from(check.mission_union_mass.denominator))
+                .ok_or(CounterfactualTrajectoryReceiptError::MissionUnionMassMismatch)?;
+            let expected = u128::from(check.mission_union_mass.numerator)
+                .checked_mul(u128::from(total_mass_ticks))
+                .ok_or(CounterfactualTrajectoryReceiptError::MissionUnionMassMismatch)?;
+            if numerator != expected {
+                return Err(CounterfactualTrajectoryReceiptError::MissionUnionMassMismatch);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn hash_ids(hasher: &mut Sha256, ids: &[[u8; 32]]) {
@@ -690,8 +794,28 @@ mod tests {
     fn risk_check(
         scenario_id: [u8; 32],
         portfolio_id: [u8; 32],
-        eligible: bool,
     ) -> PortfolioScenarioRiskCheck {
+        let mission_union_mass = match (scenario_id, portfolio_id) {
+            (_, id) if id == PORTFOLIO_A => ExactMass {
+                numerator: 3,
+                denominator: 4,
+            },
+            (_, id) if id == PORTFOLIO_C => ExactMass {
+                numerator: 1,
+                denominator: 4,
+            },
+            (SCENARIO_A, _) => ExactMass {
+                numerator: 3,
+                denominator: 4,
+            },
+            (SCENARIO_B, _) => ExactMass {
+                numerator: 1,
+                denominator: 1,
+            },
+            _ => unreachable!(),
+        };
+        let within_budget = u128::from(mission_union_mass.numerator) * 5
+            <= 4 * u128::from(mission_union_mass.denominator);
         PortfolioScenarioRiskCheck {
             scenario_id,
             portfolio_id,
@@ -711,33 +835,23 @@ mod tests {
             total_mass_ticks: 100,
             post_action_horizon_digest: [111; 32],
             risk_policy_digest: [112; 32],
-            mission_union_mass: if eligible {
-                ExactMass {
-                    numerator: 1,
-                    denominator: 100,
-                }
-            } else {
-                ExactMass {
-                    numerator: 2,
-                    denominator: 100,
-                }
-            },
+            mission_union_mass,
             mission_risk_budget: ExactMass {
-                numerator: 1,
-                denominator: 100,
+                numerator: 4,
+                denominator: 5,
             },
-            within_declared_finite_support_budget: eligible,
+            within_declared_finite_support_budget: within_budget,
         }
     }
 
     fn gate() -> ScenarioMissionRiskGateReport {
         let checks = vec![
-            risk_check(SCENARIO_A, PORTFOLIO_A, true),
-            risk_check(SCENARIO_A, PORTFOLIO_B, true),
-            risk_check(SCENARIO_A, PORTFOLIO_C, true),
-            risk_check(SCENARIO_B, PORTFOLIO_A, true),
-            risk_check(SCENARIO_B, PORTFOLIO_B, false),
-            risk_check(SCENARIO_B, PORTFOLIO_C, true),
+            risk_check(SCENARIO_A, PORTFOLIO_A),
+            risk_check(SCENARIO_A, PORTFOLIO_B),
+            risk_check(SCENARIO_A, PORTFOLIO_C),
+            risk_check(SCENARIO_B, PORTFOLIO_A),
+            risk_check(SCENARIO_B, PORTFOLIO_B),
+            risk_check(SCENARIO_B, PORTFOLIO_C),
         ];
         ScenarioMissionRiskGateReport {
             total_family_alpha: 0.05,
@@ -797,6 +911,7 @@ mod tests {
         SharedExogenousWorldReceipt {
             scenario_id,
             atom_id,
+            atom_mass_ticks: if atom_id == [1; 32] { 75 } else { 25 },
             initial_state_digest: [120; 32],
             initial_covariance_digest: [121; 32],
             latent_uncertainty_digest: [122 + atom_id[0]; 32],
@@ -848,6 +963,17 @@ mod tests {
                     post_action_horizon_digest: check.post_action_horizon_digest,
                     risk_policy_digest: check.risk_policy_digest,
                     risk_envelope_digest: check.risk_envelope_digest,
+                    mission_union_contact: if portfolio_id == PORTFOLIO_A {
+                        if atom_id == [1; 32] {
+                            MissionUnionContactDisposition::DefiniteContact
+                        } else {
+                            MissionUnionContactDisposition::DefiniteNoContact
+                        }
+                    } else if atom_id == [2; 32] {
+                        MissionUnionContactDisposition::DefiniteContact
+                    } else {
+                        MissionUnionContactDisposition::DefiniteNoContact
+                    },
                 }
             })
             .collect()
@@ -1003,6 +1129,42 @@ mod tests {
     }
 
     #[test]
+    fn pathwise_contact_reclassification_cannot_forge_the_hard_risk_mass() {
+        let mut atoms = complete_atoms();
+        atoms[0].portfolio_trajectories[0].mission_union_contact =
+            MissionUnionContactDisposition::DefiniteNoContact;
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::MissionUnionMassMismatch)
+        );
+    }
+
+    #[test]
+    fn ambiguous_pathwise_contact_is_never_treated_as_no_contact() {
+        let mut atoms = complete_atoms();
+        atoms[0].portfolio_trajectories[0].mission_union_contact =
+            MissionUnionContactDisposition::Ambiguous;
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::AmbiguousMissionUnionClassification)
+        );
+    }
+
+    #[test]
+    fn total_target_mass_is_rechecked_after_shared_receipt_mutation() {
+        let mut atoms = complete_atoms();
+        atoms[0].shared_world.atom_mass_ticks = 74;
+        let shared_digest = digest_shared_world(&atoms[0].shared_world);
+        for receipt in &mut atoms[0].portfolio_trajectories {
+            receipt.shared_exogenous_receipt_digest = shared_digest;
+        }
+        assert_eq!(
+            campaign().validate(atoms),
+            Err(CounterfactualTrajectoryReceiptError::InvalidWorldMass)
+        );
+    }
+
+    #[test]
     fn action_execution_noise_is_portfolio_specific_and_bound_into_the_digest() {
         let atoms = complete_atoms();
         let first = campaign().validate(atoms.clone()).unwrap();
@@ -1038,8 +1200,8 @@ mod tests {
         for check in &mut hard_gate.scenario_portfolio_risk_checks {
             check.within_declared_finite_support_budget = false;
             check.mission_union_mass = ExactMass {
-                numerator: 2,
-                denominator: 100,
+                numerator: 1,
+                denominator: 1,
             };
         }
         hard_gate.eligible_portfolio_ids.clear();

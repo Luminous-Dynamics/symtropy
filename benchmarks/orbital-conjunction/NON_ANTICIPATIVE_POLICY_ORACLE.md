@@ -45,7 +45,9 @@ The verifier requires exactly one policy branch for every observable history in 
 
 The upstream hard-risk gate defines the eligible action universe before policy evaluation. A policy cannot select a portfolio that failed the gate in any required epistemic scenario.
 
-**Static action eligibility does not imply policy-conditioned mission-risk feasibility.** An observation-conditioned selector can choose different individually eligible portfolios in different latent worlds and combine their disjoint contact sets into a larger union than either static portfolio. The exact policy-specific mission-union mass must be recomputed after applying the policy to each world. That follow-on is tracked in [#7734](https://github.com/Luminous-Dynamics/symtropy/issues/7734). Until it exists, this verifier reports only non-anticipativity and trajectory identity; it does not certify the adaptive policy's mission-risk budget.
+**Static action eligibility does not imply policy-conditioned mission-risk feasibility.** An observation-conditioned selector can choose different individually eligible portfolios in different latent worlds and combine their disjoint contact sets into a larger union than either static portfolio.
+
+The follow-on in [#7734](https://github.com/Luminous-Dynamics/symtropy/issues/7734) is now implemented on the policy-risk branch: shared world receipts carry exact target mass ticks; portfolio trajectory receipts carry a definite pathwise mission-union contact classification; the receipt validator re-derives each eligible static action's exact mission union; and the policy report recomputes the selected union after applying the non-anticipative action mapping. Its per-scenario exact mass and unchanged budget are reported separately. A structurally valid policy can therefore be explicitly marked mission-risk infeasible rather than inheriting the static gate's pass.
 
 This prototype does **not** yet prove that:
 - the measurement inventory is complete relative to the physical tracking network;

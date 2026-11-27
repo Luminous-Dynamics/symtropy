@@ -95,8 +95,8 @@ pub use adaptive_importance_sampling::{
 pub use counterfactual_trajectory_receipt::{
     CounterfactualTrajectoryAtom, CounterfactualTrajectoryReceiptCampaign,
     CounterfactualTrajectoryReceiptError, CounterfactualTrajectoryReceiptReport,
-    PortfolioTrajectoryReceipt, ScenarioAtomIdentity, ScenarioTrajectoryContract,
-    SharedExogenousWorldReceipt,
+    MissionUnionContactDisposition, PortfolioTrajectoryReceipt, ScenarioAtomIdentity,
+    ScenarioTrajectoryContract, SharedExogenousWorldReceipt,
 };
 pub use conditional_velocity::{
     ConditionalDirectionReport, ConditionalVelocityConfig, ConditionalVelocityDiagnostics,
@@ -215,7 +215,7 @@ pub use residual::{
 pub use non_anticipative_policy::{
     NonAnticipativePolicyCampaign, NonAnticipativePolicyError, NonAnticipativePolicyNode,
     NonAnticipativePolicyPlan, NonAnticipativePolicyReport, ObservableMeasurement,
-    PolicyWorldObservationTrace, WorldPolicyDecision,
+    PolicyScenarioRiskAssessment, PolicyWorldObservationTrace, WorldPolicyDecision,
 };
 pub use scenario_mission_risk_gate::{
     EligiblePortfolioRegretInterval, PortfolioScenarioRiskCheck, PortfolioScenarioRiskContract,
