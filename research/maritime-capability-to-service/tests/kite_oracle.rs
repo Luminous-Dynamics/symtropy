@@ -41,6 +41,7 @@ fn outcome(accepted: u64, cost: u64) -> OutcomeVector {
     OutcomeVector {
         receiver_accepted_units: accepted,
         on_time_accepted_units: accepted,
+        acceptance_time_unknown_units: 0,
         unmet_units: 10 - accepted,
         late_accepted_units: 0,
         unresolved_units: 0,
@@ -67,10 +68,16 @@ fn action(id: &str, accepted: u64, cost: u64) -> ActionOutcome {
 }
 
 fn decision(id: &str, as_of: maritime_capability_to_service::kite::AsOfSnapshot, actions: Vec<ActionOutcome>) -> ScenarioDecision {
+    let digest_seed = as_of
+        .selected
+        .values()
+        .map(|item| item.vintage_id.bytes().map(u64::from).sum::<u64>())
+        .sum::<u64>();
     ScenarioDecision {
         scenario_id: id.to_owned(),
         decision_epoch: 1,
         context: context(),
+        observable_state_digest: format!("{digest_seed:064x}"),
         as_of,
         actions,
     }
@@ -99,8 +106,8 @@ fn public_r1_api_enforces_non_anticipativity_for_identical_information() {
         result.pareto_frontier[0].choices.values().next().map(String::as_str),
         Some("IMPORT")
     );
-    assert_eq!(result.pareto_frontier[0].worst_case.receiver_accepted_units, 9);
-    assert_eq!(result.pareto_frontier[0].worst_case.recovery_cost_units, 15);
+    assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.receiver_accepted_units, 9);
+    assert_eq!(result.pareto_frontier[0].adverse_envelope.bounds.recovery_cost_units, 15);
 }
 
 #[test]
@@ -127,4 +134,42 @@ fn later_observable_histories_may_choose_different_actions() {
         .map(String::as_str)
         .collect();
     assert_eq!(selected, std::collections::BTreeSet::from(["LOCAL", "IMPORT"]));
+}
+
+#[test]
+fn distinct_observation_commitments_prevent_same_id_false_grouping() {
+    let shared = snapshot("GRID-V1", 60);
+    let first = decision(
+        "SCENARIO-A",
+        shared.clone(),
+        vec![action("LOCAL", 10, 20), action("IMPORT", 9, 10)],
+    );
+    let mut second = decision(
+        "SCENARIO-B",
+        shared,
+        vec![action("LOCAL", 8, 30), action("IMPORT", 9, 15)],
+    );
+    second.observable_state_digest = "b".repeat(64);
+
+    let result = solve_r1_finite(&[first, second], 16).expect("distinct committed observations");
+    assert_eq!(result.candidate_policy_count, 4);
+}
+
+#[test]
+fn adverse_envelope_names_dimension_witnesses() {
+    let result = solve_r1_finite(
+        &[
+            decision("SCENARIO-A", snapshot("GRID-V1", 60), vec![action("A", 10, 20)]),
+            decision("SCENARIO-B", snapshot("GRID-V2", 70), vec![action("A", 8, 10)]),
+        ],
+        4,
+    ).expect("finite oracle");
+
+    let policy = &result.pareto_frontier[0];
+    assert_eq!(
+        policy.adverse_envelope.worst_scenario_by_dimension.get(
+            &maritime_capability_to_service::kite_oracle::OutcomeDimension::ReceiverAcceptedUnits
+        ).map(String::as_str),
+        Some("SCENARIO-B")
+    );
 }
