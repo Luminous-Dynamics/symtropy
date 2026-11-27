@@ -1,6 +1,4 @@
-use orbital_inspection_chord_tube_bench::{
-    CaseInput, CaseOutput, RECEIPT_SCHEMA, verify,
-};
+use orbital_inspection_chord_tube_bench::{CaseInput, CaseOutput, RECEIPT_SCHEMA, verify};
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -64,7 +62,9 @@ fn render_result(result: &CaseOutput) -> String {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let corpus_path = args.next().ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
+    let corpus_path = args
+        .next()
+        .ok_or("usage: bench <corpus.csv> <source_commit> <corpus_sha256>")?;
     let source_commit = args.next().ok_or("missing source_commit")?;
     let corpus_sha256 = args.next().ok_or("missing corpus_sha256")?;
 
@@ -79,7 +79,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         results.push(verify(&input));
     }
 
-    let rendered = results.iter().map(render_result).collect::<Vec<_>>().join(",");
+    let rendered = results
+        .iter()
+        .map(render_result)
+        .collect::<Vec<_>>()
+        .join(",");
     println!(
         "{{\"schema\":\"{}\",\"source_commit\":\"{}\",\"corpus_sha256\":\"{}\",\"case_count\":{},\"claim_ready\":false,\"source_bytes_authenticated\":false,\"authority_granted\":false,\"physical_validation\":\"NOT_ASSESSED\",\"results\":[{}]}}",
         RECEIPT_SCHEMA,
