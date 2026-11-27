@@ -5,8 +5,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MANIFEST_VERSION: &str = "ev-bms-event-evaluation/v0.1";
-const SCHEMA_ID: &str =
-    "https://luminousdynamics.io/schemas/transport/ev-bms-event-evaluation/0.1";
+const SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/transport/ev-bms-event-evaluation/0.1";
 const HOUR_MS: f64 = 3_600_000.0;
 
 #[derive(Debug, Deserialize)]
@@ -184,13 +183,15 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
         return Err("evaluation manifest version or identity is invalid".to_owned());
     }
     if manifest.split_partition != "test" {
-        return Err("event-level promotion metrics must be evaluated on the frozen test partition".to_owned());
+        return Err(
+            "event-level promotion metrics must be evaluated on the frozen test partition"
+                .to_owned(),
+        );
     }
     if !["onboard_bms", "charger_side"].contains(&manifest.dataset_domain.as_str()) {
         return Err("unsupported event evaluation dataset domain".to_owned());
     }
-    if !is_sha256(&manifest.dataset_manifest_sha256)
-        || !is_sha256(&manifest.split_manifest_sha256)
+    if !is_sha256(&manifest.dataset_manifest_sha256) || !is_sha256(&manifest.split_manifest_sha256)
     {
         return Err("dataset and split manifest digests must be lowercase SHA-256".to_owned());
     }
@@ -212,7 +213,9 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
                     .as_deref()
                     .is_none_or(|digest| !is_sha256(digest))
             {
-                return Err("field event evaluation requires an admitted snapshot digest".to_owned());
+                return Err(
+                    "field event evaluation requires an admitted snapshot digest".to_owned(),
+                );
             }
         }
         _ => return Err("unknown dataset admission state".to_owned()),
@@ -269,7 +272,9 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
         exposures.sort_by_key(|exposure| exposure.window_start_unix_ms);
         for pair in exposures.windows(2) {
             if pair[1].window_start_unix_ms < pair[0].window_end_unix_ms {
-                return Err(format!("monitoring exposure intervals overlap for asset {asset_id}"));
+                return Err(format!(
+                    "monitoring exposure intervals overlap for asset {asset_id}"
+                ));
             }
         }
     }
@@ -289,15 +294,25 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
             ]
             .contains(&event.event_time_semantics.as_str())
         {
-            return Err("fault event identity, label source or time semantics are invalid".to_owned());
+            return Err(
+                "fault event identity, label source or time semantics are invalid".to_owned(),
+            );
         }
         if asset_roles.get(&event.asset_id).map(String::as_str) != Some("event_monitoring") {
-            return Err(format!("event {} is not bound to event-monitoring exposure", event.event_id));
+            return Err(format!(
+                "event {} is not bound to event-monitoring exposure",
+                event.event_id
+            ));
         }
         let window_start = event
             .event_time_unix_ms
             .checked_sub(manifest.event_lookback_ms)
-            .ok_or_else(|| format!("event {} has insufficient timestamp range for lookback", event.event_id))?;
+            .ok_or_else(|| {
+                format!(
+                    "event {} has insufficient timestamp range for lookback",
+                    event.event_id
+                )
+            })?;
         let covers_horizon = exposure_by_asset
             .get(&event.asset_id)
             .is_some_and(|intervals| {
@@ -316,7 +331,11 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
         event_windows_by_asset
             .entry(event.asset_id.clone())
             .or_default()
-            .push((window_start, event.event_time_unix_ms, event.event_id.clone()));
+            .push((
+                window_start,
+                event.event_time_unix_ms,
+                event.event_id.clone(),
+            ));
         positive_assets.insert(event.asset_id.clone());
     }
 
@@ -340,7 +359,9 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
             || !alarm.threshold.is_finite()
             || alarm.score <= alarm.threshold
         {
-            return Err("alarm episode identity or emitted-score/threshold contract is invalid".to_owned());
+            return Err(
+                "alarm episode identity or emitted-score/threshold contract is invalid".to_owned(),
+            );
         }
         let covered = exposure_by_asset
             .get(&alarm.asset_id)
@@ -351,7 +372,10 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
                 })
             });
         if !covered {
-            return Err(format!("alarm {} falls outside declared monitoring exposure", alarm.alarm_id));
+            return Err(format!(
+                "alarm {} falls outside declared monitoring exposure",
+                alarm.alarm_id
+            ));
         }
         alarm_refs.push(alarm);
     }
@@ -378,9 +402,8 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
         if let Some(first) = matching.first() {
             event_warning_count += 1;
             primary_event_alarm_count += 1;
-            lead_times_hours.push(
-                (event.event_time_unix_ms - first.alarm_time_unix_ms) as f64 / HOUR_MS,
-            );
+            lead_times_hours
+                .push((event.event_time_unix_ms - first.alarm_time_unix_ms) as f64 / HOUR_MS);
             for alarm in &matching {
                 warning_window_by_alarm.insert(alarm.alarm_id.clone());
             }
@@ -398,7 +421,12 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
         match asset_roles.get(&alarm.asset_id).map(String::as_str) {
             Some("negative_control") => false_alarm_episode_count += 1,
             Some("event_monitoring") => unmatched_event_exposure_alarm_count += 1,
-            _ => return Err(format!("alarm {} has no declared asset exposure role", alarm.alarm_id)),
+            _ => {
+                return Err(format!(
+                    "alarm {} has no declared asset exposure role",
+                    alarm.alarm_id
+                ));
+            }
         }
     }
 
@@ -408,8 +436,7 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
     } else {
         None
     };
-    let event_warning_coverage_fraction =
-        event_warning_count as f64 / manifest.events.len() as f64;
+    let event_warning_coverage_fraction = event_warning_count as f64 / manifest.events.len() as f64;
     let total_alarms = alarm_refs.len();
 
     let mut report = EventEvaluationReport {
@@ -467,15 +494,17 @@ pub fn audit_event_evaluation(
         return Err("event evaluation schema identity does not match v0.1".to_owned());
     }
     if !draft202012::meta::is_valid(&schema) {
-        return Err("event evaluation schema fails Draft 2020-12 meta-schema validation".to_owned());
+        return Err(
+            "event evaluation schema fails Draft 2020-12 meta-schema validation".to_owned(),
+        );
     }
     let validator = draft202012::options()
         .should_validate_formats(true)
         .build(&schema)
         .map_err(|error| format!("event evaluation schema compilation: {error}"))?;
 
-    let mut value: Value =
-        serde_json::from_slice(manifest_bytes).map_err(|error| format!("evaluation JSON: {error}"))?;
+    let mut value: Value = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("evaluation JSON: {error}"))?;
     canonicalize(&mut value);
     if let Err(error) = validator.validate(&value) {
         return Err(format!("event evaluation schema validation: {error}"));
@@ -487,8 +516,8 @@ pub fn audit_event_evaluation(
     let mut report = validate_and_evaluate(&manifest)?;
     report.schema_sha256 = sha256(schema_bytes);
     report.canonical_manifest_sha256 = sha256(&canonical_bytes);
-    let report_bytes =
-        serde_json::to_vec(&report).map_err(|error| format!("event report serialization: {error}"))?;
+    let report_bytes = serde_json::to_vec(&report)
+        .map_err(|error| format!("event report serialization: {error}"))?;
     report.report_sha256 = sha256(&report_bytes);
     Ok(report)
 }
@@ -515,9 +544,7 @@ mod tests {
         assert!((report.event_warning_coverage_fraction - 0.5).abs() < 1e-12);
         assert_eq!(report.false_alarm_episode_count, 2);
         assert!((report.negative_control_exposure_hours - 10.0).abs() < 1e-12);
-        assert!(
-            (report.false_alarms_per_1000_negative_hours.unwrap() - 200.0).abs() < 1e-12
-        );
+        assert!((report.false_alarms_per_1000_negative_hours.unwrap() - 200.0).abs() < 1e-12);
         assert_eq!(report.primary_event_alarm_count, 1);
         assert_eq!(report.repeated_event_alarm_count, 1);
         assert_eq!(report.unmatched_event_exposure_alarm_count, 1);
@@ -568,7 +595,10 @@ mod tests {
         value["alarms"].as_array_mut().unwrap().reverse();
         let bytes = serde_json::to_vec(&value).expect("permuted evaluation");
         let second = audit_event_evaluation(SCHEMA, &bytes).expect("permuted evaluation");
-        assert_eq!(first.canonical_manifest_sha256, second.canonical_manifest_sha256);
+        assert_eq!(
+            first.canonical_manifest_sha256,
+            second.canonical_manifest_sha256
+        );
         assert_eq!(first.report_sha256, second.report_sha256);
     }
 }
