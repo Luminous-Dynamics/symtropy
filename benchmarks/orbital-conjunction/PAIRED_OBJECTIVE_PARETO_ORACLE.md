@@ -19,14 +19,15 @@ The new oracle evaluates both portfolio consequences on the same scenario/latent
 The campaign freezes:
 
 - the completed upstream hard mission-risk gate;
-- a scenario-specific physical-world/force-model manifest binding, separate from the objective-function configuration digest;
 - its eligible and ineligible portfolio partition;
-- the epistemic scenario universe and each scenario's physical-world/force-model manifest digest, which must match every upstream hard-risk check for that scenario;
+- the epistemic scenario universe, with a caller-supplied physical-world/force-model configuration digest for each scenario;
 - the complete finite latent-atom universe inside each scenario;
 - objective identity, unit, scale, objective-function model/configuration digest, and minimize/maximize direction;
 - per-portfolio/per-objective integer lower and upper bounds.
 
 The evaluator independently recomputes exact finite-support risk-budget classifications from the upstream gate's rational masses and rejects a forged or inconsistent eligibility partition. Only portfolios admitted by that gate enter the contrast matrix. Ineligible portfolio IDs remain in the report and cannot be reintroduced by objective performance.
+
+The scenario-physics configuration digest is a distinct caller-supplied binding. The current hard-risk report exposes a post-action mission-support manifest per scenario × portfolio, which may legitimately differ when candidate manoeuvres change the event inventory. The oracle therefore hashes each of those portfolio-specific manifests in the gate receipt, but does not incorrectly require them to be equal or compare them to the scenario-physics digest. This arithmetic layer cannot authenticate the caller-supplied scenario-physics identity; a future trajectory receipt must bind it to the propagator, force model, kernels and environment inputs.
 
 Every scenario/latent-atom row must contain exactly one directly evaluated value for every eligible portfolio × objective cell. Atom identity is unique within a scenario. All outcomes must satisfy their frozen arm bounds. The implementation canonicalizes row and objective order, and its result digest binds the exact supplied values.
 
