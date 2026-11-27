@@ -219,3 +219,21 @@ THUD++ data: [paper](https://www.nature.com/articles/s41597-026-07993-8) · [cod
 The spatial protocol now adopts a mandatory failure/coverage scorecard. Conditional ATE/RPE on successful trajectories must be reported beside the complete attempt denominator, sequence coverage, tracking loss, timeouts, crashes, abstentions and unsupported cases. It also defines risk–coverage and preregistered utility reporting so failed runs cannot disappear from a mean. This is informed by the [CROSS leaderboard's explicit rule](https://jiaming.im/CROSS/leaderboard/): tracking failures below 80% frame coverage, crashes and timeouts are excluded from mean ATE and leave rows unranked. Our comparisons must retain those failures rather than repeat that censoring as a single headline metric.
 
 The work composes existing [NAV-TRANSITION-001 #6434](https://github.com/Luminous-Dynamics/symtropy/issues/6434) for continuity across observability-regime changes and [NAV-ACTIVE-ACQUISITION-RELIABILITY-001 #7080](https://github.com/Luminous-Dynamics/symtropy/issues/7080) for acquisition success/failure/unknown-outcome branches. No new navigation controller or generic reliability engine is proposed.
+
+
+## Evaluator-side world-pair binding registry
+
+The child implementation [AV-MAP-OBSERVABILITY-WORLD-001 #7769](https://github.com/Luminous-Dynamics/symtropy/issues/7769) has a stacked draft contribution adding:
+
+- [world-pair binding schema](./observability-world-pair-binding-v0.schema.json), a strict Draft 2020-12 evaluator-side envelope referencing existing WorldManifestV1 and AV observation replay artifacts;
+- [nine-pair registry](./observability-world-pair-binding-v0.registry.json), containing nine identifiability pairs with two world slots each;
+- [binding audit protocol](./observability-world-pair-binding-audit-v0.md), defining manifest, candidate-prefix equivalence, first-distinguishing-observation and readiness gates.
+
+All nine pairs remain explicitly **unbound**. Manifest, truth-crosswalk, candidate-prefix and replay digests are null; null is not a wildcard or pass. Exact artifacts from #1587/#1589 and #6201 must be bound before prefix equality can be tested from candidate-visible bytes/transcripts.
+
+The world-pair binding workflow fetches the pinned base source-matrix branch history before resolving the recorded source commit. A shallow candidate-head checkout alone is insufficient to prove that the pinned commit exists in the local object database.
+
+### Evidence-gated readiness promotion
+
+The binding schema requires stage-specific receipts: manifest validation before manifest binding; candidate-input/transcript and shared-contract digests plus an audit receipt before prefix commitment; a causal replay receipt before rendered-replay verification; and rights, split-integrity, custody and frozen candidate/model identities before blind readiness. The CI job includes five invalid-promotion negative controls. The registry itself remains all-unbound until real source artifacts exist.
+
