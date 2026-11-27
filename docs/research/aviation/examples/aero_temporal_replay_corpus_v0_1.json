@@ -1610,7 +1610,7 @@
             "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
-            "lab-a:EV-REPEAT-1"
+            "EV-REPEAT-1"
           ],
           "excluded_event_ids": []
         },
@@ -1621,7 +1621,7 @@
             "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
-            "lab-a:EV-REPEAT-1"
+            "EV-REPEAT-1"
           ],
           "excluded_event_ids": []
         },
@@ -1632,7 +1632,7 @@
             "REVOCATION_EFFECTIVE_AND_KNOWN"
           ],
           "applied_event_ids": [
-            "lab-a:EV-REPEAT-1"
+            "EV-REPEAT-1"
           ],
           "excluded_event_ids": []
         }
