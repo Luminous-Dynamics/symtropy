@@ -61,6 +61,8 @@
         "modification_history_digest": { "$ref": "#/$defs/digest" },
         "feedstock_mass_record": { "$ref": "#/$defs/record" },
         "feedstock_mass": { "$ref": "#/$defs/mass" },
+        "feedstock_mass_record": { "$ref": "#/$defs/record" },
+        "feedstock_mass": { "$ref": "#/$defs/mass" },
         "service_history_digest": { "$ref": "#/$defs/digest" }
       },
       "additionalProperties": false
