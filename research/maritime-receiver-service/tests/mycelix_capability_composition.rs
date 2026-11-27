@@ -205,7 +205,10 @@ fn censored_receiver_units_produce_bounds_and_unknown_floor_not_assumed_success(
         (10, 6, 4)
     );
     assert_eq!(
-        (result.conservative_lower_numerator, result.conservative_lower_denominator),
+        (
+            result.conservative_lower_numerator,
+            result.conservative_lower_denominator
+        ),
         (6, 10)
     );
     assert_eq!(
