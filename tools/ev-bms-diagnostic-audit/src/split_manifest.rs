@@ -208,7 +208,10 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     }
     if manifest.dataset_domain == "onboard_bms"
         && manifest.group_key == "manufacturer_group"
-        && !manifest.temporal_exclusion_keys.iter().any(|key| key == "vehicle_id")
+        && !manifest
+            .temporal_exclusion_keys
+            .iter()
+            .any(|key| key == "vehicle_id")
     {
         return Err(
             "manufacturer holdouts must also prevent overlapping vehicle windows".to_owned(),
