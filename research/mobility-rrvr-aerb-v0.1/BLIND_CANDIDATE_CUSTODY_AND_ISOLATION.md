@@ -34,7 +34,7 @@ The pure builder validates:
 The builder emits a direct prlimit → bubblewrap → candidate argv chain, with no shell:
 - explicit --unshare-user, --unshare-pid, --unshare-ipc, --unshare-net and --unshare-uts (required namespaces fail closed);
 - --disable-userns plus --assert-userns-disabled after explicit --unshare-user, so nested user namespace creation is not best-effort;
-- --cap-drop ALL, --new-session, and --die-with-parent;
+- --cap-drop ALL, --new-session, and --die-with-parent; the canary verifies CapEff, CapPrm and CapBnd are all zero inside the candidate;
 - read-only mounts for /candidate/input and /runtime;
 - the sole writable host mount at /candidate/output;
 - private /proc, minimal /dev, and a size-bounded tmpfs at /tmp;
@@ -120,3 +120,10 @@ These are prospective gates, not achieved results. No confidential campaign, bli
 - #7814/#7788 and #6503 own support freshness / physical action admission, not sandboxing.
 
 This branch advances the process-boundary primitive only; it does not replace the materializer, evaluator custody service, attack harness or independent verifier.
+
+
+## Statistical power for leakage and safety claims
+
+Do not equate a successful canary or a zero observed leak count with zero leakage probability. For `n` independent trials and zero observed events, the exact one-sided upper confidence limit at confidence `1 - alpha` is `p_upper = 1 - alpha^(1/n)`. Zero leaks in 3,000 independent episodes gives an illustrative 95% upper bound of about 0.1% only for the measured population. If eight world classes need simultaneous 95% bounds under Bonferroni correction, approximately 5,073 zero-event trials per class are required to put each upper bound below 0.1%. These are statistical illustrations, not risk-acceptance criteria.
+
+Leakage and safety evaluations must publish counts by world, metadata family, robot/environment, campaign and candidate version. Treat episodes sharing a campaign, scene, controller or trajectory as clusters; do not count correlated frames or repeated observations as independent trials. Freeze the attack classifier, metadata fields, statistical test, multiple-comparison correction, exclusion policy and thresholds before the blind campaign. Any invalid, crashed, timed-out or unresolved episode remains in the campaign accounting, not silently dropped.
