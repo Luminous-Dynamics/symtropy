@@ -337,11 +337,31 @@ pub fn evaluate(input: &PoseInput) -> PoseResult {
             None,
         );
     };
+    if scaled_i64(projected[0]).is_none() || scaled_i64(projected[1]).is_none() {
+        return result(
+            input,
+            AnnotationDisposition::InvalidInput,
+            "PROJECTION_OUTPUT_OVERFLOW",
+            norm_error_scaled,
+            None,
+            None,
+        );
+    }
 
     let du = projected[0] - input.observed_pixel[0];
     let dv = projected[1] - input.observed_pixel[1];
     let error = du.hypot(dv);
     let error_scaled = scaled_i64(error * PIXEL_SCALE).and_then(|value| u64::try_from(value).ok());
+    if error_scaled.is_none() {
+        return result(
+            input,
+            AnnotationDisposition::InvalidInput,
+            "REPROJECTION_OUTPUT_OVERFLOW",
+            norm_error_scaled,
+            Some(projected),
+            None,
+        );
+    }
 
     if !error.is_finite() || error > input.reprojection_tolerance_px {
         return result(
