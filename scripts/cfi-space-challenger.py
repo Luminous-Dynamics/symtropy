@@ -44,10 +44,21 @@ def exact_keys(value: dict[str, Any], required: set[str], where: str) -> None:
     require(not extra, f"{where} has unknown fields: {sorted(extra)}")
 
 
+def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        require(key not in result, f"duplicate JSON object key: {key}")
+        result[key] = value
+    return result
+
+
 def read_json(path: Path) -> Any:
     size = path.stat().st_size
     require(size <= MAX_INPUT_BYTES, f"{path} exceeds {MAX_INPUT_BYTES} bytes")
-    return json.loads(path.read_text(encoding="utf-8"))
+    raw = path.read_bytes()
+    require(len(raw) <= MAX_INPUT_BYTES,
+            f"{path} exceeds {MAX_INPUT_BYTES} bytes after read")
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=unique_object)
 
 
 def is_string(value: Any) -> bool:
@@ -60,7 +71,8 @@ def is_int(value: Any) -> bool:
 
 def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict[str, Any]]:
     exact_keys(doc, {"schema_version", "benchmark_id", "episodes"}, "manifest")
-    require(doc["schema_version"] == 1, "unsupported manifest schema version")
+    require(is_int(doc["schema_version"]) and doc["schema_version"] == 1,
+            "unsupported manifest schema version")
     require(is_string(doc["benchmark_id"]), "manifest benchmark_id is empty")
     episodes = doc["episodes"]
     require(isinstance(episodes, list) and 0 < len(episodes) <= MAX_EPISODES,
@@ -167,7 +179,8 @@ def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict
 
 def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
     exact_keys(doc, {"schema_version", "benchmark_id", "episodes"}, "ledger")
-    require(doc["schema_version"] == 1, "unsupported ledger schema version")
+    require(is_int(doc["schema_version"]) and doc["schema_version"] == 1,
+            "unsupported ledger schema version")
     require(is_string(doc["benchmark_id"]), "ledger benchmark_id is empty")
     rows = doc["episodes"]
     require(isinstance(rows, list) and 0 < len(rows) <= MAX_EPISODES,
@@ -243,7 +256,8 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     truth_by_id = validate_ledger(ledger)
     exact_keys(prediction_doc, {"schema_version", "benchmark_id", "predictions"},
                "predictions")
-    require(prediction_doc["schema_version"] == 1,
+    require(is_int(prediction_doc["schema_version"])
+            and prediction_doc["schema_version"] == 1,
             "unsupported predictions schema version")
     benchmark_id = manifest["benchmark_id"]
     require(benchmark_id == ledger["benchmark_id"] == prediction_doc["benchmark_id"],
