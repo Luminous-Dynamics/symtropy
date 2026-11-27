@@ -98,9 +98,9 @@ pub struct DimacsMcfInstance {
     pub raw_input_bytes: usize,
     pub estimated_primary_allocation_bytes: u64,
     pub raw_sha256: String,
-    /// Canonical semantic digest excludes comments and whitespace; arc record
-    /// order remains significant because the assigned ordinal preserves edge
-    /// identity in the imported corpus.
+    /// Canonical semantic digest excludes comments, whitespace, node-supply
+    /// record order and arc record order. Parallel arc tuples remain separate
+    /// entries even when all their values are identical.
     pub canonical_sha256: String,
     /// Diagnostic only. An unbalanced total is not a parser error and no
     /// feasibility result is inferred by this importer.
@@ -134,8 +134,29 @@ impl DimacsMcfInstance {
             hasher.update(supply.to_be_bytes());
         }
 
-        for arc in &self.arcs {
-            hasher.update(arc.ordinal.to_be_bytes());
+        // Arc records have no intrinsic identifier in the DIMACS text
+        // format. Sort by the complete semantic tuple so record order does
+        // not perturb canonical identity, while retaining duplicate tuples
+        // as separate entries (parallel arcs must never be aggregated).
+        let mut arcs = self.arcs.iter().collect::<Vec<_>>();
+        arcs.sort_by(|left, right| {
+            (
+                left.tail,
+                left.head,
+                left.lower_bound,
+                left.upper_bound,
+                left.unit_cost,
+            )
+                .cmp(&(
+                    right.tail,
+                    right.head,
+                    right.lower_bound,
+                    right.upper_bound,
+                    right.unit_cost,
+                ))
+        });
+        for (ordinal, arc) in arcs.iter().enumerate() {
+            hasher.update((ordinal as u32).to_be_bytes());
             hasher.update(arc.tail.to_be_bytes());
             hasher.update(arc.head.to_be_bytes());
             hasher.update(arc.lower_bound.to_be_bytes());
@@ -498,6 +519,26 @@ mod tests {
         let b = parse(second).unwrap();
         assert_ne!(a.raw_sha256, b.raw_sha256);
         assert_eq!(a.canonical_sha256, b.canonical_sha256);
+    }
+
+    #[test]
+    fn canonical_identity_ignores_arc_record_order_without_merging_parallel_arcs() {
+        let first = "p min 2 3\nn 1 9\nn 2 -9\na 1 2 0 4 3\na 1 2 0 4 3\na 1 2 0 5 -1\n";
+        let second = "p min 2 3\nn 2 -9\nn 1 9\na 1 2 0 5 -1\na 1 2 0 4 3\na 1 2 0 4 3\n";
+        let a = parse(first).unwrap();
+        let b = parse(second).unwrap();
+        assert_ne!(a.raw_sha256, b.raw_sha256);
+        assert_eq!(a.canonical_sha256, b.canonical_sha256);
+        assert_eq!(a.arcs.len(), 3);
+        assert_eq!(b.arcs.len(), 3);
+        assert_eq!(
+            a.arcs.iter().filter(|arc| arc.upper_bound == 4).count(),
+            2
+        );
+        assert_eq!(
+            b.arcs.iter().filter(|arc| arc.upper_bound == 4).count(),
+            2
+        );
     }
 
     #[test]
