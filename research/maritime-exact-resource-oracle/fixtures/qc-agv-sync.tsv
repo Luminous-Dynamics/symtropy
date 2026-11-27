@@ -1,0 +1,14 @@
+# Synthetic QC–AGV event-synchronization instance v0.1
+# INSTANCE <id> <gamma> <qc_wait_weight> <agv_wait_weight>
+# TASK <id> <qc_id> <nominal_service> <service_deviation> <qc_predecessor|->
+# ROUTE <route_id>
+# STEP <route_id> <task_id> <travel_before>
+INSTANCE	SYNC-UNCERTAIN-QC-AGV	1	5	1
+TASK	A	QC-A	0	3	1	-
+TASK	B	QC-B	4	4	3	-
+ROUTE	AB
+STEP	AB	A	5
+STEP	AB	B	0
+ROUTE	BA
+STEP	BA	B	0
+STEP	BA	A	0

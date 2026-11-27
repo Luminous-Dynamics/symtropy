@@ -1,0 +1,57 @@
+name: maritime-exact-resource-oracle
+
+on:
+  push:
+    paths:
+      - "research/maritime-exact-resource-oracle/**"
+      - ".github/workflows/maritime-exact-resource-oracle.yml"
+  pull_request:
+    paths:
+      - "research/maritime-exact-resource-oracle/**"
+      - ".github/workflows/maritime-exact-resource-oracle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-head:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/maritime-exact-resource-oracle/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --all-targets -- -D warnings
+      - name: Emit exhaustive resource receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin resource-oracle-audit > resource-oracle-receipt.tsv
+      - name: Emit deterministic DGT recovery receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin dgt-recovery-audit > dgt-recovery-receipt.tsv
+      - name: Emit QC–AGV synchronization receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin qc-agv-sync-audit > qc-agv-sync-receipt.tsv
+      - name: Emit continuous QC–AGV active-region receipt
+        run: cargo run --locked --manifest-path research/maritime-exact-resource-oracle/Cargo.toml --bin continuous-qc-agv-audit > continuous-qc-agv-receipt.tsv
+      - name: Independent exact references
+        run: |
+          python3 research/maritime-exact-resource-oracle/scripts/independent_reference.py --receipt resource-oracle-receipt.tsv
+          python3 research/maritime-exact-resource-oracle/scripts/dgt_reference.py --receipt dgt-recovery-receipt.tsv
+          python3 research/maritime-exact-resource-oracle/scripts/qc_agv_sync_reference.py --receipt qc-agv-sync-receipt.tsv
+          python3 research/maritime-exact-resource-oracle/scripts/continuous_qc_agv_reference.py --receipt continuous-qc-agv-receipt.tsv
+      - name: Upload deterministic receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-exact-resource-oracle-receipts
+          path: |
+            resource-oracle-receipt.tsv
+            dgt-recovery-receipt.tsv
+            qc-agv-sync-receipt.tsv
+            continuous-qc-agv-receipt.tsv
+          if-no-files-found: error
+          retention-days: 30
