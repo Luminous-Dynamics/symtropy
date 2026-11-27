@@ -434,139 +434,174 @@ fn validate_record(record: &EvidenceRecord, claim: &Claim, findings: &mut BTreeS
     }
 }
 
-fn visit_dependency(
-    evidence_ref: &str,
-    depth: usize,
-    claim: &Claim,
-    by_ref: &BTreeMap<String, Vec<&EvidenceRecord>>,
-    states: &mut BTreeMap<String, u8>,
-    reached: &mut BTreeSet<String>,
-    findings: &mut BTreeSet<Finding>,
-) {
-    if depth > MAX_GRAPH_DEPTH {
-        add_finding(
-            findings,
-            "DEPENDENCY_GRAPH_DEPTH_LIMIT_EXCEEDED",
-            FindingClass::Indeterminate,
-            Some(evidence_ref),
-        );
-        return;
+enum TraversalAction {
+    Enter { evidence_ref: String, depth: usize },
+    Exit { evidence_ref: String },
+}
+
+struct GraphTraversal<'a> {
+    claim: &'a Claim,
+    by_ref: &'a BTreeMap<String, Vec<&'a EvidenceRecord>>,
+    states: BTreeMap<String, u8>,
+    reached: BTreeSet<String>,
+    findings: BTreeSet<Finding>,
+}
+
+impl<'a> GraphTraversal<'a> {
+    fn new(
+        claim: &'a Claim,
+        by_ref: &'a BTreeMap<String, Vec<&'a EvidenceRecord>>,
+    ) -> Self {
+        Self {
+            claim,
+            by_ref,
+            states: BTreeMap::new(),
+            reached: BTreeSet::new(),
+            findings: BTreeSet::new(),
+        }
     }
 
-    match states.get(evidence_ref).copied() {
-        Some(1) => {
-            add_finding(
-                findings,
-                "DEPENDENCY_CYCLE_DETECTED",
-                FindingClass::Invalid,
-                Some(evidence_ref),
-            );
-            return;
-        }
-        Some(2) => return,
-        _ => {}
-    }
+    fn visit_root(&mut self, evidence_ref: &str) {
+        let mut stack = vec![TraversalAction::Enter {
+            evidence_ref: evidence_ref.to_owned(),
+            depth: 0,
+        }];
 
-    let Some(records) = by_ref.get(evidence_ref) else {
-        add_finding(
-            findings,
-            "DEPENDENCY_EVIDENCE_MISSING",
-            FindingClass::Missing,
-            Some(evidence_ref),
-        );
-        return;
-    };
-    if records.len() != 1 {
-        add_finding(
-            findings,
-            "DUPLICATE_EVIDENCE_REFERENCE",
-            FindingClass::Invalid,
-            Some(evidence_ref),
-        );
-        return;
-    }
-
-    let record = records[0];
-    states.insert(evidence_ref.to_owned(), 1);
-    reached.insert(evidence_ref.to_owned());
-    validate_record(record, claim, findings);
-
-    let mut dependencies = record.dependencies.iter().collect::<Vec<_>>();
-    dependencies.sort_by(|left, right| {
-        (
-            left.evidence_ref.as_str(),
-            left.expected_record_sha256.as_str(),
-        )
-            .cmp(&(
-                right.evidence_ref.as_str(),
-                right.expected_record_sha256.as_str(),
-            ))
-    });
-
-    let mut dependency_refs = BTreeSet::new();
-    for dependency in dependencies {
-        if !dependency_refs.insert(dependency.evidence_ref.as_str()) {
-            add_finding(
-                findings,
-                "DUPLICATE_DEPENDENCY_EDGE",
-                FindingClass::Invalid,
-                Some(evidence_ref),
-            );
-            continue;
-        }
-
-        if !valid_identifier(&dependency.evidence_ref)
-            || !valid_sha256(&dependency.expected_record_sha256)
-        {
-            add_finding(
-                findings,
-                "DEPENDENCY_BINDING_INVALID",
-                FindingClass::Invalid,
-                Some(evidence_ref),
-            );
-            continue;
-        }
-
-        match by_ref.get(&dependency.evidence_ref) {
-            None => {
-                add_finding(
-                    findings,
-                    "DEPENDENCY_EVIDENCE_MISSING",
-                    FindingClass::Missing,
-                    Some(&dependency.evidence_ref),
-                );
-            }
-            Some(parent_records) if parent_records.len() != 1 => {
-                add_finding(
-                    findings,
-                    "DUPLICATE_EVIDENCE_REFERENCE",
-                    FindingClass::Invalid,
-                    Some(&dependency.evidence_ref),
-                );
-            }
-            Some(parent_records) => {
-                if parent_records[0].record_sha256 != dependency.expected_record_sha256 {
-                    add_finding(
-                        findings,
-                        "DEPENDENCY_RECORD_DIGEST_MISMATCH",
-                        FindingClass::Invalid,
-                        Some(&dependency.evidence_ref),
-                    );
+        while let Some(action) = stack.pop() {
+            match action {
+                TraversalAction::Exit { evidence_ref } => {
+                    self.states.insert(evidence_ref, 2);
                 }
-                visit_dependency(
-                    &dependency.evidence_ref,
-                    depth + 1,
-                    claim,
-                    by_ref,
-                    states,
-                    reached,
-                    findings,
-                );
+                TraversalAction::Enter { evidence_ref, depth } => {
+                    if depth > MAX_GRAPH_DEPTH {
+                        add_finding(
+                            &mut self.findings,
+                            "DEPENDENCY_GRAPH_DEPTH_LIMIT_EXCEEDED",
+                            FindingClass::Indeterminate,
+                            Some(&evidence_ref),
+                        );
+                        continue;
+                    }
+
+                    match self.states.get(&evidence_ref).copied() {
+                        Some(1) => {
+                            add_finding(
+                                &mut self.findings,
+                                "DEPENDENCY_CYCLE_DETECTED",
+                                FindingClass::Invalid,
+                                Some(&evidence_ref),
+                            );
+                            continue;
+                        }
+                        Some(2) => continue,
+                        _ => {}
+                    }
+
+                    let Some(records) = self.by_ref.get(&evidence_ref) else {
+                        add_finding(
+                            &mut self.findings,
+                            "DEPENDENCY_EVIDENCE_MISSING",
+                            FindingClass::Missing,
+                            Some(&evidence_ref),
+                        );
+                        continue;
+                    };
+                    if records.len() != 1 {
+                        add_finding(
+                            &mut self.findings,
+                            "DUPLICATE_EVIDENCE_REFERENCE",
+                            FindingClass::Invalid,
+                            Some(&evidence_ref),
+                        );
+                        continue;
+                    }
+
+                    let record = records[0];
+                    self.states.insert(evidence_ref.clone(), 1);
+                    self.reached.insert(evidence_ref.clone());
+                    validate_record(record, self.claim, &mut self.findings);
+
+                    let mut dependencies = record.dependencies.iter().collect::<Vec<_>>();
+                    dependencies.sort_by(|left, right| {
+                        (
+                            left.evidence_ref.as_str(),
+                            left.expected_record_sha256.as_str(),
+                        )
+                            .cmp(&(
+                                right.evidence_ref.as_str(),
+                                right.expected_record_sha256.as_str(),
+                            ))
+                    });
+
+                    let mut dependency_refs = BTreeSet::new();
+                    let mut descend = Vec::new();
+                    for dependency in dependencies {
+                        if !dependency_refs.insert(dependency.evidence_ref.as_str()) {
+                            add_finding(
+                                &mut self.findings,
+                                "DUPLICATE_DEPENDENCY_EDGE",
+                                FindingClass::Invalid,
+                                Some(&evidence_ref),
+                            );
+                            continue;
+                        }
+
+                        if !valid_identifier(&dependency.evidence_ref)
+                            || !valid_sha256(&dependency.expected_record_sha256)
+                        {
+                            add_finding(
+                                &mut self.findings,
+                                "DEPENDENCY_BINDING_INVALID",
+                                FindingClass::Invalid,
+                                Some(&evidence_ref),
+                            );
+                            continue;
+                        }
+
+                        match self.by_ref.get(&dependency.evidence_ref) {
+                            None => add_finding(
+                                &mut self.findings,
+                                "DEPENDENCY_EVIDENCE_MISSING",
+                                FindingClass::Missing,
+                                Some(&dependency.evidence_ref),
+                            ),
+                            Some(parent_records) if parent_records.len() != 1 => add_finding(
+                                &mut self.findings,
+                                "DUPLICATE_EVIDENCE_REFERENCE",
+                                FindingClass::Invalid,
+                                Some(&dependency.evidence_ref),
+                            ),
+                            Some(parent_records) => {
+                                if parent_records[0].record_sha256
+                                    != dependency.expected_record_sha256
+                                {
+                                    add_finding(
+                                        &mut self.findings,
+                                        "DEPENDENCY_RECORD_DIGEST_MISMATCH",
+                                        FindingClass::Invalid,
+                                        Some(&dependency.evidence_ref),
+                                    );
+                                }
+                                descend.push(dependency.evidence_ref.clone());
+                            }
+                        }
+                    }
+
+                    // Exit sits below all children; reverse push preserves the
+                    // canonical depth-first traversal order without recursion.
+                    stack.push(TraversalAction::Exit {
+                        evidence_ref: evidence_ref.clone(),
+                    });
+                    for child in descend.into_iter().rev() {
+                        stack.push(TraversalAction::Enter {
+                            evidence_ref: child,
+                            depth: depth + 1,
+                        });
+                    }
+                }
             }
         }
     }
-
-    states.insert(evidence_ref.to_owned(), 2);
 }
 
 pub fn evaluate(input: &ClaimClosureInput) -> Result<ClosureReport, String> {
@@ -613,8 +648,7 @@ pub fn evaluate(input: &ClaimClosureInput) -> Result<ClosureReport, String> {
     }
 
     let mut requirement_refs = BTreeSet::new();
-    let mut states = BTreeMap::new();
-    let mut reached = BTreeSet::new();
+    let mut traversal = GraphTraversal::new(&input.claim, &by_ref);
 
     for requirement in &input.claim.requirements {
         if !requirement_refs.insert(requirement.evidence_ref.as_str()) {
@@ -700,17 +734,10 @@ pub fn evaluate(input: &ClaimClosureInput) -> Result<ClosureReport, String> {
             );
         }
 
-        visit_dependency(
-            &requirement.evidence_ref,
-            0,
-            &input.claim,
-            &by_ref,
-            &mut states,
-            &mut reached,
-            &mut findings,
-        );
+        traversal.visit_root(&requirement.evidence_ref);
     }
 
+    findings.extend(traversal.findings);
     let findings = findings.into_iter().collect::<Vec<_>>();
     let disposition = if findings.is_empty() {
         ClosureDisposition::ClosedForIndependentReview
@@ -724,7 +751,7 @@ pub fn evaluate(input: &ClaimClosureInput) -> Result<ClosureReport, String> {
         claim_id: input.claim.claim_id.clone(),
         canonical_input_sha256,
         disposition,
-        reached_evidence_refs: reached.into_iter().collect(),
+        reached_evidence_refs: traversal.reached.into_iter().collect(),
         findings,
     })
 }
@@ -1192,7 +1219,9 @@ mod tests {
     #[test]
     fn non_overlapping_effective_interval_is_out_of_scope() {
         let mut input = sample_input();
-        record_mut(&mut input, "evidence:calibration").effective_from_unix_ms = 140;
+        let calibration = record_mut(&mut input, "evidence:calibration");
+        calibration.effective_from_unix_ms = 140;
+        calibration.effective_until_exclusive_unix_ms = Some(200);
         let report = evaluate(&input).unwrap();
         assert!(has_code(
             &report,
