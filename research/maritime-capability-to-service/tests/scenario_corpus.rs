@@ -151,9 +151,8 @@ fn independent_outcomes(
         shock_spec
             .split(',')
             .map(|item| {
-                let (dependency, end_day) = item
-                    .split_once(':')
-                    .expect("shock has dependency:end form");
+                let (dependency, end_day) =
+                    item.split_once(':').expect("shock has dependency:end form");
                 (
                     dependency.to_owned(),
                     end_day.parse().expect("shock end is numeric"),
@@ -188,8 +187,9 @@ fn independent_outcomes(
         let disrupted_day = disrupted_ready + duration;
         let (inspection_status, qualified_reported, inspection_revision) =
             inspections.get(&option[1]).expect("inspection exists");
-        let (receiver_status, accepted_reported, receiver_revision) =
-            receivers.get(&option[1]).expect("receiver disposition exists");
+        let (receiver_status, accepted_reported, receiver_revision) = receivers
+            .get(&option[1])
+            .expect("receiver disposition exists");
         assert_eq!(inspection_revision, &option[11]);
         assert_eq!(receiver_revision, &option[11]);
         assert!(qualified_reported <= &expected_units);
