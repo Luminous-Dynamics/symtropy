@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Family {
     ConventionalWindingCooling,
-    ConventionalHighPerformanceCooling,
+    ConventionalDirectOilCooling,
     ConventionalDirectOilCooling,
     ConventionalMultiNozzleOilJetCooling,
     ConventionalHairpinOilSprayCooling,
@@ -1131,11 +1131,11 @@ mod tests {
         let mut benchmark = spec();
         benchmark
             .required_baseline_families
-            .push(Family::ConventionalHighPerformanceCooling);
+            .push(Family::ConventionalDirectOilCooling);
         let mut trials = known_trials();
         trials.push(trial(
             "CONVENTIONAL-HIGH",
-            Family::ConventionalHighPerformanceCooling,
+            Family::ConventionalDirectOilCooling,
             Role::RequiredBaseline,
             [132.0, 1470.0, 1.8, 33.0, 128.0, 0.0, 1280.0, 0.075, 7.8],
         ));
