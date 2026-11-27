@@ -143,3 +143,8 @@ The [geometric-validation matrix](./scenario-matrix-geometric-validation-v0.tsv)
 ## Candidate spatial-state projection
 
 The separate [spatial-state-projection-v0.schema.json](./spatial-state-projection-v0.schema.json) and [example](./spatial-state-projection-v0.example.json) define the candidate-only map-state interchange. The schema keeps source observations, candidate frame/transform/geometry claims, entity hypotheses, relation claims and source-linked unresolved constraints separate from evaluator truth. Structural negative checks reject hidden-truth fields, malformed digests, missing candidate frame markers, source-free inferred entities and invalid quaternion arity. Runtime cross-reference and geometry validation are not implemented yet.
+
+
+## Canonical pose/time adapter contract
+
+The projection schema now follows Symthaea #498/#611/#621/#632/#633/#625 identity and evidence semantics. Frame/clock refs are namespace + local ID + generation. Capture, known-at and projection-created times each name their own clock domain. Symthaea Pose3 is T_reference_from_local with WXYZ quaternion; Symtropy #1589 FrameTransformV1 uses XYZW but the same child-to-parent direction. The conversion is an explicit component reorder, verified by a non-identity 90-degree Z test vector. See [validation protocol](./spatial-state-projection-validation-v0.md) and [transform vectors](./spatial-state-projection-v0.transform-vectors.json).
