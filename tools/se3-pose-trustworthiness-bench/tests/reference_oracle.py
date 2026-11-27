@@ -98,7 +98,11 @@ def rotate(q: list[float], v: list[float]) -> list[float]:
 
 def rotation_log(q: list[float]) -> list[float]:
     canonical = q[:]
-    if canonical[3] < 0.0:
+    negate = canonical[3] < 0.0
+    if canonical[3] == 0.0:
+        first_nonzero = next((value for value in canonical[:3] if abs(value) > 1.0e-15), None)
+        negate = first_nonzero is not None and first_nonzero < 0.0
+    if negate:
         canonical = [-value for value in canonical]
     vnorm = math.sqrt(sum(value * value for value in canonical[:3]))
     if vnorm <= 1.0e-12:
@@ -172,6 +176,7 @@ def base_result(row: dict[str, str], disposition: str, reason: str | None) -> di
         "calibration_revision": row["calibration_revision"],
         "calibration_sha256": row["calibration_sha256"],
         "sensor_mode": row["sensor_mode"],
+        "support_mode": row["support_mode"],
         "frame_convention": row["frame_convention"],
         "tangent_convention": row["tangent_convention"],
         "decision": decision,
@@ -229,6 +234,7 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if (
         row["dataset_id"] != "SYNTHETIC-SE3-TRUST-v0.1"
         or row["sensor_mode"] != "RGB"
+        or row["support_mode"] not in ("KEYPOINT_PNP", "DENSE_PNP", "EVENT_KEYPOINT_PNP", "DIRECT_REGRESSION")
         or row["frame_convention"] != "WORLD_RIGHT_HANDED_METRES"
         or row["quaternion_order"] != "XYZW"
         or row["tangent_convention"] != ORDER
@@ -244,7 +250,8 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     if (
         not finite([*pred_t, *gt_t, visible, condition])
         or not (0.0 <= visible <= 1.0)
-        or condition <= 0.0
+        or (row["support_mode"] != "DIRECT_REGRESSION" and condition <= 0.0)
+        or (row["support_mode"] == "DIRECT_REGRESSION" and condition < 0.0)
     ):
         return base_result(row, "OUT_OF_SCOPE", "FRAME_UNIT_OR_SENSOR_CONVENTION_UNSUPPORTED")
 
@@ -292,9 +299,15 @@ def evaluate(row: dict[str, str]) -> dict[str, object]:
     ood = row["ood_flag"] == "true"
     symmetry = row["symmetry_ambiguous"] == "true"
     corr = int(row["correspondence_count"])
+    requires_correspondence_geometry = row["support_mode"] in (
+        "KEYPOINT_PNP", "DENSE_PNP", "EVENT_KEYPOINT_PNP"
+    )
     observability = (
-        ood or symmetry or visible < MIN_VISIBLE or corr < MIN_CORRESPONDENCES
-        or condition > MAX_CONDITION
+        ood or symmetry or visible < MIN_VISIBLE
+        or (
+            requires_correspondence_geometry
+            and (corr < MIN_CORRESPONDENCES or condition > MAX_CONDITION)
+        )
     )
     accepted = row["decision"] == "ACCEPT"
     false_confident = accepted and (not coverages[3] or observability)
