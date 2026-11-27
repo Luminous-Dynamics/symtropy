@@ -86,7 +86,7 @@ pub enum FiniteAdaptivePortfolioError {
     InvalidFamilyAlpha,
     /// Scenario, density-space or consequence-unit identity is zero.
     InvalidCampaignIdentity,
-    /// Defensive proposal fraction must lie strictly in (0,1).
+    /// Defensive proposal fraction must lie in (0,1].
     InvalidDefensiveFraction,
     /// Portfolio universe is empty, duplicated, zero or too large.
     InvalidPortfolioUniverse,
@@ -124,7 +124,7 @@ impl core::fmt::Display for FiniteAdaptivePortfolioError {
                 "scenario, density-space or consequence identity is zero"
             }
             Self::InvalidDefensiveFraction => {
-                "defensive proposal fraction must lie strictly in (0,1)"
+                "defensive proposal fraction must lie in (0,1]"
             }
             Self::InvalidPortfolioUniverse => "portfolio universe is invalid",
             Self::InvalidConsequenceBound => "portfolio consequence bound is reversed",
@@ -374,7 +374,7 @@ impl FiniteAdaptivePortfolioSelection {
             f64::from(config.defensive_mixture_weight_ticks) / f64::from(TICKET_SPACE);
         if !effective_defensive_fraction.is_finite()
             || effective_defensive_fraction <= 0.0
-            || effective_defensive_fraction >= 1.0
+            || effective_defensive_fraction > 1.0
         {
             return Err(FiniteAdaptivePortfolioError::NumericalFailure);
         }
@@ -875,14 +875,14 @@ mod tests {
         .unwrap()
     }
 
-    fn receipt(
+    fn receipt_for_config(
+        c: &FiniteAdaptiveProposalConfig,
         sequence_index: u64,
         sample_id: u8,
         prior_event: bool,
         branch_ticket: u16,
         atom_ticket: u16,
     ) -> FiniteProposalExecutionReceipt {
-        let c = config();
         FiniteProposalExecutionReceipt {
             sequence_index,
             sample_id: [sample_id; 32],
@@ -911,6 +911,16 @@ mod tests {
             atom_ticket,
             selected_atom_id: ATOM_B,
         }
+    }
+
+    fn receipt(
+        sequence_index: u64,
+        sample_id: u8,
+        prior_event: bool,
+        branch_ticket: u16,
+        atom_ticket: u16,
+    ) -> FiniteProposalExecutionReceipt {
+        receipt_for_config(&config(), sequence_index, sample_id, prior_event, branch_ticket, atom_ticket)
     }
 
     #[test]
@@ -1084,6 +1094,7 @@ mod tests {
         target_only.residual_before_event_ticks = vec![0, 256];
         target_only.residual_after_event_ticks = vec![256, 0];
 
+        let target_only_receipt = receipt_for_config(&target_only, 0, 54, false, 255, 200);
         let mut process = FiniteAdaptivePortfolioSelection::new(
             target_only,
             0.05,
@@ -1094,7 +1105,7 @@ mod tests {
             outcomes(),
         )
         .unwrap();
-        let accepted = process.observe(receipt(0, 54, false, 255, 200)).unwrap();
+        let accepted = process.observe(target_only_receipt).unwrap();
 
         assert!(accepted.verified_draw.defensive_component_selected);
         assert_eq!(accepted.verified_draw.mixture_mass_numerator, 128 * 256);
