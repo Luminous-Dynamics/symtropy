@@ -1,0 +1,69 @@
+name: 3D OBB SAT Reference Qualification
+
+on:
+  push:
+    branches: [main, research/3d-obb-sat-reference-2026-11-27]
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - ".github/workflows/obb3-reference.yml"
+  pull_request:
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - ".github/workflows/obb3-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obb3-reference-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  obb3-reference:
+    name: 3D transformed GJK vs independent 15-axis OBB SAT
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+
+      - name: Format physics package
+        run: cargo fmt --manifest-path crates/core/symtropy-physics/Cargo.toml -- --check
+
+      - name: Run independent 3D reference and metamorphic tests
+        env:
+          SOURCE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/obb3-reference"
+          {
+            echo "source_head=$SOURCE_HEAD"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "seed_sat=0x3344534154563031"
+            echo "seed_metamorphic=0x33444d4554413031"
+            echo "sat_cases=8192"
+            echo "metamorphic_cases=1024"
+            echo "sat_reference=15-axis OBB separating axis theorem"
+          } | tee "$RUNNER_TEMP/obb3-reference/run-metadata.txt"
+
+          cargo test --locked -p symtropy-physics --test obb3_reference -- --nocapture \
+            2>&1 | tee "$RUNNER_TEMP/obb3-reference/test.log"
+
+      - name: Preserve exact-head evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: obb3-reference-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/obb3-reference/
+          if-no-files-found: error
+          retention-days: 90
