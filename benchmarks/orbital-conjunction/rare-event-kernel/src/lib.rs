@@ -65,6 +65,8 @@ pub mod refinement_scheduler;
 pub mod residual;
 /// Exact cross-scenario mission-risk feasibility gate before regret selection.
 pub mod scenario_mission_risk_gate;
+/// Conservative interval Pareto frontier after hard mission-risk feasibility.
+pub mod scenario_robust_pareto;
 pub mod sequential;
 /// Atomic simultaneous selection across portfolios under a defensive proposal.
 pub mod simultaneous_defensive_selection;
@@ -196,6 +198,12 @@ pub use scenario_mission_risk_gate::{
     PortfolioScenarioRiskEvidence, ScenarioMissionRiskGate, ScenarioMissionRiskGateError,
     ScenarioMissionRiskGateReport, mission_risk_envelope_digest,
     portfolio_scenario_risk_envelope_digest,
+};
+pub use scenario_robust_pareto::{
+    IneligiblePortfolioRiskReason, ObjectiveDirection, ObjectiveDominanceWitness,
+    PortfolioDominanceWitness, RobustParetoObjectiveSpec, RobustPortfolioObjectiveEnvelope,
+    ScenarioPortfolioObjectiveEvidence, ScenarioRobustParetoError, ScenarioRobustParetoFrontier,
+    ScenarioRobustParetoReport,
 };
 pub use sequential::{BernoulliConfidenceSequence, BernoulliMixtureEProcess};
 pub use simultaneous_defensive_selection::{
