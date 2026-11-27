@@ -48,7 +48,7 @@
     "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "owner_namespace": "mycelix:aerocommons",
     "receiver_receipt_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "receiver_receipt_watermark_unix_ms": 1795516700000
+    "receiver_receipt_watermark_unix_ms": 1795516800000
   },
   "model_credibility_cut": {
     "evidence_ref": "aeroweift:validation:wing-panel-001",
@@ -67,7 +67,7 @@
     "receipt_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "status": "QUALIFIED_COMPLETE_FOR_SCOPE",
     "scope_manifest_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "watermark_unix_ms": 1795516600000,
+    "watermark_unix_ms": 1795516800000,
     "covered_change_classes": [
       "MODEL_UPDATE",
       "CONFIGURATION_CHANGE",
