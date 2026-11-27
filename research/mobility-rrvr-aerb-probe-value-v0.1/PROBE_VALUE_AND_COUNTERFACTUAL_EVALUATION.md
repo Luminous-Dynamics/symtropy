@@ -266,3 +266,38 @@ Before v0.2 supports independent polyglot candidates/evaluators, either:
 - hash the exact immutable raw snapshot bytes and make the wire contract preserve those bytes unambiguously.
 
 Do not call a bespoke sorted-JSON encoding “canonical JSON” without naming its exact implementation/profile. Keep digest equality separate from source authentication, clock validity and physical truth.
+
+
+## 17. First candidate-visible v0.2 envelope (draft schema)
+
+A concrete candidate submission envelope now exists at:
+
+- `schemas/aerb_candidate_submission_v0_2.schema.json`
+- `fixtures/candidate_submission_adaptive_synthetic_v0_2.json`
+
+The fixture binds to the published AERB synthetic candidate episode `aerb-synthetic-0001` using snapshot digest `4ae21c204ec9b5f8b9e6f701c3f6305be7464162715ff27bde5e10f4aa83efc7`. The digest is over the exact v0.1 candidate episode JSON under the currently declared sorted compact-JSON profile; it is not a source-authentication claim.
+
+The candidate envelope introduces:
+- an explicit `actuation_guard = block_new_effect`;
+- candidate-owned initial possible-world support that must retain `open_world_residual`;
+- candidate-predicted outcome supports, separate from evaluator actual supports;
+- a flat, bounded policy-node graph with probe nodes and terminal non-actuating dispositions;
+- `counterfactual_only = true` on every policy node;
+- digests for the DecisionNeed, decision contract, probe catalogue, model and observer profile.
+
+The synthetic plan reads the endpoint journal first. It requests scope reconciliation only on the journal's NoEffect-plus-open-world branch; the other first-stage outcomes stop and hold. The closed NoEffect terminal is only a recommendation, not authorization: `block_new_effect` remains set and the independent RRVR finality/authority gate still owns any actual dispatch.
+
+### Evaluator obligations not expressible in JSON Schema alone
+
+The Rust evaluator must reject:
+- duplicate node IDs, missing root/reference IDs, unreachable nodes and cycles;
+- a probe node not present in the candidate-visible permitted probe menu;
+- a branch whose outcome ID is not in that candidate's predicted outcomes for the selected probe;
+- omitted/extra candidate branches relative to the predicted outcomes reachable under that node's current candidate support;
+- a terminal recommendation that is not consistent with the candidate's own support and declared decision contract;
+- predicted support that omits a world later shown possible by evaluator truth;
+- any policy branch or candidate artifact that attempts to act as a physical dispatch or claims an executed counterfactual.
+
+A schema pass proves only structural shape. It does not prove candidate/evaluator isolation, source authenticity, outcome-support correctness, policy optimality, a safe physical effect, or a correct command-holder inventory. The evaluator must independently check these properties against its owner-held evidence after candidate inference.
+
+This is a draft schema and synthetic fixture, not an implemented evaluator or hidden test.
