@@ -37,3 +37,10 @@ MEX, LPBF/SLM, SLS, binder jetting, LCM/photopolymer composites, and near-net-sh
 ## Claim boundary
 
 The initial tranche is a literature-stratified protocol. It does not claim matched route superiority, physical specimen manufacture, raw-data reproduction, solver qualification, or product certification.
+
+
+## Current performance envelope and industrial comparator
+
+The September 2026 NdFeB AM review reports literature remanence generally around 0.6–1.0 T; MEX is the most competitive surveyed printed route for bonded NdFeB; LPBF density is promising but magnetic texture remains a limiting gap; SLS/binder jet are porosity-limited. Conventional anisotropic sintered NdFeB is reported around 1.4–1.5 T. These are literature aggregates, not common-condition matched trials.
+
+The route tournament therefore compares functionally equivalent components against optimized conventional sintered-PM, bonded-PM and PM-assisted reluctance baselines. The AM hypothesis is architecture value—topology-specific placement, integrated retention, segmentation, lower PM mass/inertia/scrap or improved cost per torque—not a raw-Br contest. All hard constraints, including Hcj(T), demagnetization margin, retention and durability, remain non-compensatory.
