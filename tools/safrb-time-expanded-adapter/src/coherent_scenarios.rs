@@ -30,6 +30,13 @@ pub struct CoherentScenario {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct CoherentScenarioSetInput {
+    pub scenario_set_id: String,
+    pub scenarios: Vec<CoherentScenario>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CoherentScenarioOutcome {
     pub scenario_id: String,
     pub case_id: String,
@@ -160,6 +167,21 @@ pub fn evaluate_coherent_scenario_set(
         maximum_scenario_maximum,
         claim_ceiling: SCENARIO_SET_CLAIM_CEILING.to_string(),
     })
+}
+
+/// Evaluate a serialized-input envelope using the same whole-scenario path.
+pub fn evaluate_scenario_set_input(
+    input: &CoherentScenarioSetInput,
+) -> Result<CoherentScenarioSetReport, String> {
+    evaluate_coherent_scenario_set(&input.scenario_set_id, &input.scenarios)
+}
+
+/// Verify a serialized-input envelope and its scenario report.
+pub fn verify_scenario_set_input(
+    input: &CoherentScenarioSetInput,
+    report: &CoherentScenarioSetReport,
+) -> Result<(), String> {
+    verify_coherent_scenario_set(&input.scenario_set_id, &input.scenarios, report)
 }
 
 /// Independently verify all scenario receipts and the reported range.
@@ -437,6 +459,82 @@ mod tests {
             COHERENT_SCENARIO_SET_SCHEMA
         );
         assert_eq!(scenario_input["properties"]["scenarios"]["type"], "array");
+    }
+
+    fn next_small(state: &mut u64, bound: u64) -> u64 {
+        *state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        (*state >> 32) % bound
+    }
+
+    #[test]
+    fn seeded_coherent_scenario_sets_match_physical_upper_bound_oracle() {
+        for seed in 0..200_u64 {
+            let mut state = 0x05AF_B202_6D15_CA11_u64 ^ seed;
+            let scenario_count = 2 + next_small(&mut state, 3) as usize;
+            let mut scenarios = Vec::new();
+            let mut expected_maxima = Vec::new();
+
+            for index in 0..scenario_count {
+                let route_a = next_small(&mut state, 16);
+                let route_b = next_small(&mut state, 16);
+                let scenario_id = format!("mode-{seed}-{index}");
+                let case_id = format!("case-{seed}-{index}");
+                let per_route_upper = route_a.min(15) + route_b.min(15);
+                let expected = 15_u64.min(20_u64.min(per_route_upper));
+                expected_maxima.push(expected);
+                scenarios.push(CoherentScenario {
+                    scenario_id,
+                    profile: profile(&case_id, route_a, route_b),
+                });
+            }
+
+            let report =
+                evaluate_coherent_scenario_set(&format!("seeded-set-{seed}"), &scenarios)
+                    .unwrap();
+            verify_coherent_scenario_set(
+                &format!("seeded-set-{seed}"),
+                &scenarios,
+                &report,
+            )
+            .unwrap();
+
+            let expected_min = *expected_maxima.iter().min().unwrap();
+            let expected_max = *expected_maxima.iter().max().unwrap();
+            assert_eq!(
+                report.minimum_scenario_maximum,
+                expected_min,
+                "seed {seed}: minimum scenario maximum"
+            );
+            assert_eq!(
+                report.maximum_scenario_maximum,
+                expected_max,
+                "seed {seed}: maximum scenario maximum"
+            );
+            assert_eq!(report.outcomes.len(), scenario_count);
+        }
+    }
+
+    #[test]
+    fn scenario_input_envelope_round_trips_and_rejects_unknown_fields() {
+        let input = CoherentScenarioSetInput {
+            scenario_set_id: "portable-scenario-input-v1".to_string(),
+            scenarios: vec![CoherentScenario {
+                scenario_id: "mode-a".to_string(),
+                profile: profile("case-a", 10, 0),
+            }],
+        };
+        let encoded = serde_json::to_vec(&input).unwrap();
+        let decoded: CoherentScenarioSetInput = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(decoded, input);
+
+        let report = evaluate_scenario_set_input(&decoded).unwrap();
+        verify_scenario_set_input(&decoded, &report).unwrap();
+
+        let mut unknown = serde_json::to_value(&input).unwrap();
+        unknown["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<CoherentScenarioSetInput>(unknown).is_err());
     }
 
     #[test]
