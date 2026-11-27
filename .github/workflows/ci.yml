@@ -84,5 +84,17 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Check Magnetic Elementary Functions Formatting
+      if: ${{ hashFiles('research/magnetics/elementary-functions/Cargo.toml') != '' }}
+      run: cargo fmt --manifest-path research/magnetics/elementary-functions/Cargo.toml -- --check
+
+    - name: Run Clippy (Magnetic Elementary Functions)
+      if: ${{ hashFiles('research/magnetics/elementary-functions/Cargo.toml') != '' }}
+      run: cargo clippy --manifest-path research/magnetics/elementary-functions/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run Tests (Magnetic Elementary Functions)
+      if: ${{ hashFiles('research/magnetics/elementary-functions/Cargo.toml') != '' }}
+      run: cargo test --manifest-path research/magnetics/elementary-functions/Cargo.toml
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
