@@ -48,78 +48,17 @@
     "prefix_decision_cutoff_tick": 2,
     "first_distinguishing_observation_tick": 3
   },
-  "camera_rail": [
-    {
-      "at_secs": 0,
-      "position_m": [
-        0,
-        1.65,
-        -7
-      ],
-      "look_at_m": [
-        0,
-        1.65,
-        8
-      ]
-    },
-    {
-      "at_secs": 4.5,
-      "position_m": [
-        0,
-        1.65,
-        -7
-      ],
-      "look_at_m": [
-        0,
-        1.65,
-        8
-      ]
-    },
-    {
-      "at_secs": 5.7,
-      "position_m": [
-        0,
-        1.65,
-        2
-      ],
-      "look_at_m": [
-        0,
-        1.65,
-        8
-      ]
-    },
-    {
-      "at_secs": 6.4,
-      "position_m": [
-        5.2,
-        1.65,
-        2
-      ],
-      "look_at_m": [
-        5.2,
-        1.65,
-        8
-      ]
-    },
-    {
-      "at_secs": 6.8,
-      "position_m": [
-        5.2,
-        1.65,
-        2
-      ],
-      "look_at_m": [
-        13,
-        1.65,
-        2
-      ]
-    }
-  ],
   "calibration": {
     "calibration_profile_sha256": null,
     "status": "synthetic_un-calibrated",
     "claim": "no physical camera calibration or metric accuracy is implied"
   },
   "shadow_maps_enabled": false,
-  "claim_ceiling": "common synthetic camera/render profile and conservative source-time bounds; not physical calibration or exact exposure timestamps"
+  "claim_ceiling": "static synthetic sensor profile and capture schedule only; camera trajectory/pose remains evaluator-only; no physical camera calibration or metric accuracy implied",
+  "pose_delivery": {
+    "status": "not_agent_visible",
+    "pose_source": "renderer_evaluator_only",
+    "candidate_input": "RGB frames and static camera/sensor profile only",
+    "rationale": "V1 isolates image-only delayed topology identification; a pose-provided arm requires a separate, explicitly budgeted protocol"
+  }
 }
