@@ -40,7 +40,7 @@ The naive source timestamp is used only as a dataset-local exact join key. No cl
 
 ## Frozen corpus and oracle
 
-The 40 fixtures include exact synchronized positive controls, each modality timestamp shifted, pre-correction pose revision, wrong sensor/frame/path, missing streams, malformed/invalid dates, leap-year controls, wrong coordinate conventions/units/pose semantics, commercial intent, source revision mutation, invalid calibration/extrinsics digests, duplicate samples and train/test spacecraft leakage.
+The 44 fixtures include exact synchronized positive controls, each modality timestamp shifted, pre-correction pose revision, wrong sensor/frame/path, missing streams, malformed/invalid dates, leap-year controls, wrong coordinate conventions/units/pose semantics, commercial intent, source revision mutation, invalid calibration/extrinsics digests, two deliberate duplicate-sample pairs and one train/test spacecraft-identity leak pair.
 
 The independent Python oracle implements the calendar check, source profile, timestamp identity, modality registration and manifest leakage checks separately. Exact Rust/Python JSON receipt equality is required.
 
