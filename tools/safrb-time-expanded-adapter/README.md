@@ -71,6 +71,32 @@ The temporal tests cover cross-dock throughput above end-of-period storage, carr
 
 The Rust exact-head workflow is `.github/workflows/safrb-flow-rust.yml`. It pins the repository Rust toolchain and checks exact checkout, formatting, Clippy, Rust tests, and independent portable certificate conformance. A green run qualifies only the exact commit recorded by that run; later commits require fresh receipts. Repository tests do not establish evidence authenticity, legal access, physical asset qualification, dispatch authority, or actual beneficiary service.
 
+## Beneficiary minimum-floor feasibility v0.1
+
+The separate `beneficiary_floors` module proves whether a set of mandatory per-beneficiary minimum quantities can be met **jointly** in the supplied temporal single-commodity graph. It does not treat the graph's aggregate maximum requested delivery as a substitute for a floor-satisfying allocation, and it does not optimize priority tiers or operational cost.
+
+### Exact lower-bound circulation reduction
+
+For each declared service floor, the service edge receives a lower bound `l` and retains its request ceiling as upper bound `u`. The producer replaces each original capacity by `u - l`, applies the node-balance transformation, adds a sink-to-source return arc and super-source/super-sink arcs, and solves the resulting circulation-feasibility max-flow. All balances and capacity sums use checked arithmetic; graph expansion is checked against kernel node/edge ceilings before solving.
+
+- If the auxiliary maximum flow equals the total required super-source flow, every mandatory floor is jointly feasible. The report includes the recovered original edge-flow allocation and per-beneficiary reconciliation.
+- If the auxiliary maximum flow is smaller, the lower-bound circulation cannot be satisfied. The report retains the exact auxiliary graph-bound max-flow/min-cut certificate and exposes **no original allocation**.
+
+### Independent verifier
+
+The verifier reconstructs the auxiliary graph from the original temporal graph and submitted floors without calling the producer's reduction builder. It compares canonical graph bytes, verifies the kernel certificate, checks that the report's feasibility disposition matches the max-flow result, reconstructs the original flow, verifies node conservation and checks every beneficiary floor against its request ceiling. The report binds the exact base-graph digest, case ID, obligations and auxiliary graph.
+
+### Portable contracts
+
+- `schemas/beneficiary-floor-feasibility-input-v0.1.schema.json` defines the temporal profile plus mandatory-floor request envelope.
+- `schemas/beneficiary-floor-feasibility-v0.1.schema.json` defines the report, exact base graph, auxiliary certificate and optional allocation.
+- Rust types use strict Serde serialization/deserialization and reject unknown fields.
+- Tests cover joint feasibility, jointly impossible floors despite individual route possibility, request-ceiling violations, unknown/duplicate services, changed floors, forged allocations, strict JSON round-trip and schema-document parsing.
+
+### Claim boundary
+
+This is a synthetic joint-feasibility proof for the declared graph only. It does not prove that the beneficiary identity is authenticated, that the physical capacity evidence is true or current, that legal authority exists, that a dispatch is authorized, or that service was actually delivered. Priority allocation and cost optimization are separate stages and must preserve all mandatory floors; no arbitrary Big-M scalarization is admitted.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
