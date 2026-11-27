@@ -279,9 +279,10 @@ fn validate_spec(spec: &BenchmarkSpec, trials: &[ArchitectureTrial]) -> Vec<Bloc
         match metric.class {
             MetricClass::MandatoryFunction => {
                 mandatory_count += 1;
-                if metric.non_inferiority_margin.is_none_or(|margin| {
-                    !margin.is_finite() || margin < 0.0
-                }) {
+                if metric
+                    .non_inferiority_margin
+                    .is_none_or(|margin| !margin.is_finite() || margin < 0.0)
+                {
                     blockers.push(Blocker::MissingNonInferiorityMargin);
                 }
             }
@@ -313,8 +314,7 @@ fn validate_spec(spec: &BenchmarkSpec, trials: &[ArchitectureTrial]) -> Vec<Bloc
     }) {
         blockers.push(Blocker::NoConventionalPmBaseline);
     }
-    if spec.minimum_baseline_optimization_evaluations == 0
-        || spec.minimum_independent_restarts == 0
+    if spec.minimum_baseline_optimization_evaluations == 0 || spec.minimum_independent_restarts == 0
     {
         blockers.push(Blocker::InvalidMetricSet);
     }
@@ -486,12 +486,8 @@ fn evaluate_candidate(
             };
             let robust_benefit = metric.class == MetricClass::ArchitectureBenefit
                 && match metric.direction {
-                    Direction::Maximize => {
-                        candidate_interval.lower > baseline_interval.upper
-                    }
-                    Direction::Minimize => {
-                        candidate_interval.upper < baseline_interval.lower
-                    }
+                    Direction::Maximize => candidate_interval.lower > baseline_interval.upper,
+                    Direction::Minimize => candidate_interval.upper < baseline_interval.lower,
                 };
             if robust_benefit {
                 any_robust_benefit = true;
@@ -637,7 +633,10 @@ fn validate_observations(
 ) -> BTreeMap<String, Interval> {
     let mut by_id = BTreeMap::new();
     for observation in &trial.observations {
-        if by_id.insert(observation.metric_id.as_str(), observation).is_some() {
+        if by_id
+            .insert(observation.metric_id.as_str(), observation)
+            .is_some()
+        {
             blockers.push(Blocker::DuplicateMetricObservation);
         }
         if observation.metric_id.trim().is_empty() || observation.evidence_id.trim().is_empty() {
@@ -739,14 +738,78 @@ mod tests {
             benchmark_id: "ARCH-BENCH-001".to_string(),
             scope: scope(),
             metrics: vec![
-                MetricSpec { metric_id: "torque_density".to_string(), unit: "Nm/L".to_string(), class: MetricClass::MandatoryFunction, direction: Direction::Maximize, hard_min: Some(12.0), hard_max: None, non_inferiority_margin: Some(0.5) },
-                MetricSpec { metric_id: "efficiency".to_string(), unit: "fraction".to_string(), class: MetricClass::MandatoryFunction, direction: Direction::Maximize, hard_min: Some(0.90), hard_max: None, non_inferiority_margin: Some(0.005) },
-                MetricSpec { metric_id: "maximum_magnet_temperature".to_string(), unit: "degC".to_string(), class: MetricClass::MandatoryFunction, direction: Direction::Minimize, hard_min: None, hard_max: Some(120.0), non_inferiority_margin: Some(5.0) },
-                MetricSpec { metric_id: "demagnetization_margin".to_string(), unit: "ratio".to_string(), class: MetricClass::MandatoryFunction, direction: Direction::Maximize, hard_min: Some(1.3), hard_max: None, non_inferiority_margin: Some(0.1) },
-                MetricSpec { metric_id: "retention_margin".to_string(), unit: "ratio".to_string(), class: MetricClass::MandatoryFunction, direction: Direction::Maximize, hard_min: Some(2.0), hard_max: None, non_inferiority_margin: Some(0.1) },
-                MetricSpec { metric_id: "pm_mass".to_string(), unit: "kg".to_string(), class: MetricClass::ArchitectureBenefit, direction: Direction::Minimize, hard_min: None, hard_max: None, non_inferiority_margin: None },
-                MetricSpec { metric_id: "rotor_inertia".to_string(), unit: "kg*m2".to_string(), class: MetricClass::ArchitectureBenefit, direction: Direction::Minimize, hard_min: None, hard_max: None, non_inferiority_margin: None },
-                MetricSpec { metric_id: "cost_per_torque".to_string(), unit: "USD/Nm".to_string(), class: MetricClass::ArchitectureBenefit, direction: Direction::Minimize, hard_min: None, hard_max: None, non_inferiority_margin: None },
+                MetricSpec {
+                    metric_id: "torque_density".to_string(),
+                    unit: "Nm/L".to_string(),
+                    class: MetricClass::MandatoryFunction,
+                    direction: Direction::Maximize,
+                    hard_min: Some(12.0),
+                    hard_max: None,
+                    non_inferiority_margin: Some(0.5),
+                },
+                MetricSpec {
+                    metric_id: "efficiency".to_string(),
+                    unit: "fraction".to_string(),
+                    class: MetricClass::MandatoryFunction,
+                    direction: Direction::Maximize,
+                    hard_min: Some(0.90),
+                    hard_max: None,
+                    non_inferiority_margin: Some(0.005),
+                },
+                MetricSpec {
+                    metric_id: "maximum_magnet_temperature".to_string(),
+                    unit: "degC".to_string(),
+                    class: MetricClass::MandatoryFunction,
+                    direction: Direction::Minimize,
+                    hard_min: None,
+                    hard_max: Some(120.0),
+                    non_inferiority_margin: Some(5.0),
+                },
+                MetricSpec {
+                    metric_id: "demagnetization_margin".to_string(),
+                    unit: "ratio".to_string(),
+                    class: MetricClass::MandatoryFunction,
+                    direction: Direction::Maximize,
+                    hard_min: Some(1.3),
+                    hard_max: None,
+                    non_inferiority_margin: Some(0.1),
+                },
+                MetricSpec {
+                    metric_id: "retention_margin".to_string(),
+                    unit: "ratio".to_string(),
+                    class: MetricClass::MandatoryFunction,
+                    direction: Direction::Maximize,
+                    hard_min: Some(2.0),
+                    hard_max: None,
+                    non_inferiority_margin: Some(0.1),
+                },
+                MetricSpec {
+                    metric_id: "pm_mass".to_string(),
+                    unit: "kg".to_string(),
+                    class: MetricClass::ArchitectureBenefit,
+                    direction: Direction::Minimize,
+                    hard_min: None,
+                    hard_max: None,
+                    non_inferiority_margin: None,
+                },
+                MetricSpec {
+                    metric_id: "rotor_inertia".to_string(),
+                    unit: "kg*m2".to_string(),
+                    class: MetricClass::ArchitectureBenefit,
+                    direction: Direction::Minimize,
+                    hard_min: None,
+                    hard_max: None,
+                    non_inferiority_margin: None,
+                },
+                MetricSpec {
+                    metric_id: "cost_per_torque".to_string(),
+                    unit: "USD/Nm".to_string(),
+                    class: MetricClass::ArchitectureBenefit,
+                    direction: Direction::Minimize,
+                    hard_min: None,
+                    hard_max: None,
+                    non_inferiority_margin: None,
+                },
             ],
             required_baseline_families: vec![
                 ArchitectureFamily::ConventionalSinteredPm,
