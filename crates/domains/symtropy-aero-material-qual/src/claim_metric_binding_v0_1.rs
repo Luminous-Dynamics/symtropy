@@ -1094,6 +1094,7 @@ mod tests {
             "receipt:metric-owner-attestation".to_owned(),
             "receipt:metric-authority-verification".to_owned(),
             "receipt:metric-semantic-validation".to_owned(),
+            "receipt:receiver-first-seen-binding".to_owned(),
         ];
         context.required_evidence_manifest_sha256 =
             compute_required_evidence_manifest_sha256(&required_evidence_refs)
@@ -1365,6 +1366,17 @@ mod tests {
             result.disposition,
             ClaimMetricBindingDispositionV0_1::Unverified
         );
+    }
+
+    #[test]
+    fn receiver_first_seen_record_digest_must_match_owner_record() {
+        let mut fixture = fixture();
+        fixture.binding.receiver_first_seen_record_sha256 = "8".repeat(64);
+        let result = assess(&fixture);
+        assert_eq!(result.disposition, ClaimMetricBindingDispositionV0_1::Rejected);
+        assert!(result.reason_codes.contains(
+            &"CLAIM_METRIC_BINDING_RECEIVER_FIRST_SEEN_RECEIPT_OWNER_RECORD_DIGEST_MISMATCH".to_owned()
+        ));
     }
 
     #[test]
