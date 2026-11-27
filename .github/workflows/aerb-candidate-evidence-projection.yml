@@ -43,7 +43,7 @@ jobs:
             and .decision_cut_sequence == .ledger_frontier_sequence
             and (.observations | length == 3)
             and ([.observations[].evidence_id] | length == (unique | length))
-            and all(.observations[]; .ingest_sequence <= .decision_cut_sequence)
+            and all($observations[]; .ingest_sequence <= $snapshot.decision_cut_sequence)
             and all(.observations[]; .evidence_domain == "process_model" and .source.source_role == "model_oracle")
             and all(.observations[]; (.parent_evidence_ids | length == (unique | length)))
             and all($observations[];
