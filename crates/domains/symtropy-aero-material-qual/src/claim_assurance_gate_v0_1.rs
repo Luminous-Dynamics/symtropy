@@ -154,10 +154,21 @@ pub struct ClaimAssuranceAssessment {
     /// Mycelix/AeroCommons packet identity and digest.
     pub owner_component_packet_id: String,
     pub owner_component_packet_sha256: String,
-    /// BASALT run identity and exact audit report/final-state digests.
+    /// BASALT run identity, report version and exact audit report/final-state digests.
     pub owner_basalt_run_id: String,
+    pub owner_basalt_report_version: u32,
     pub owner_basalt_report_sha256: String,
     pub owner_basalt_final_state_sha256: String,
+    pub owner_basalt_confirmatory_eligible: bool,
+    /// Owner-declared artifact byte-verification disposition.
+    pub owner_artifact_payloads_verified: bool,
+    /// Exact owner receipt-manifest and pinned trust-policy commitments.
+    pub owner_receiver_receipt_manifest_sha256: String,
+    pub owner_trust_policy_sha256: String,
+    /// Exact observer coverage receipt identity and owner disposition.
+    pub owner_observer_coverage_profile_id: String,
+    pub owner_observer_coverage_receipt_sha256: String,
+    pub owner_observer_coverage_status: String,
     /// Selected receiver-evidence cutoff.
     pub owner_receiver_receipt_watermark_unix_ms: u64,
     /// Component report digests in coverage, causal-cut, effectivity order.
@@ -633,8 +644,29 @@ pub fn evaluate_claim_gate(input: ClaimGateInput<'_>) -> ClaimAssuranceAssessmen
         owner_component_packet_id: input.owner_evidence_cut.component_packet_id.clone(),
         owner_component_packet_sha256: input.owner_evidence_cut.component_packet_sha256.clone(),
         owner_basalt_run_id: input.owner_evidence_cut.basalt_run_id.clone(),
+        owner_basalt_report_version: input.owner_evidence_cut.basalt_report_version,
         owner_basalt_report_sha256: input.owner_evidence_cut.basalt_report_sha256.clone(),
         owner_basalt_final_state_sha256: input.owner_evidence_cut.basalt_final_state_sha256.clone(),
+        owner_basalt_confirmatory_eligible: input.owner_evidence_cut.basalt_confirmatory_eligible,
+        owner_artifact_payloads_verified: input.owner_evidence_cut.artifact_payloads_verified,
+        owner_receiver_receipt_manifest_sha256: input
+            .owner_evidence_cut
+            .receiver_receipt_manifest_sha256
+            .clone(),
+        owner_trust_policy_sha256: input.owner_evidence_cut.trust_policy_sha256.clone(),
+        owner_observer_coverage_profile_id: input
+            .owner_evidence_cut
+            .observer_coverage_profile_id
+            .clone(),
+        owner_observer_coverage_receipt_sha256: input
+            .owner_evidence_cut
+            .observer_coverage_receipt_sha256
+            .clone(),
+        owner_observer_coverage_status: input
+            .owner_evidence_cut
+            .observer_coverage_status
+            .as_str()
+            .to_owned(),
         owner_receiver_receipt_watermark_unix_ms: input
             .owner_evidence_cut
             .receiver_receipt_watermark_unix_ms,
