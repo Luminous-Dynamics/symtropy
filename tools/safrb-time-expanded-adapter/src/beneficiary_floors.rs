@@ -286,7 +286,7 @@ fn build_reduction(
                 .ok_or_else(|| "negative lower-bound total overflowed i128".to_string())?;
             residual_edges.push(FlowEdge::new(
                 format!("{SUPER_SINK_PREFIX}{}{node_id}", node_id.len()),
-                node_id,
+                node_id.clone(),
                 AUX_SINK,
                 capacity,
                 Some(format!("{FLOOR_FEASIBILITY_SCHEMA}/super-sink/{node_id}")),
