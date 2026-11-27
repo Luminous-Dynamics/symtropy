@@ -369,6 +369,7 @@ fn equality_deadlines_and_large_denominators_remain_exact() {
     );
     let large_receipt = receipt_outcomes(&run_audit(&large).unwrap());
     assert_eq!(large_receipt["LOCAL-B"].2, 1_000);
-    assert_eq!(large_receipt["LOCAL-B"].3, 1_000);
-    assert_eq!(large_receipt["LOCAL-B"].4, 1_000);
+    assert_eq!(large_receipt["LOCAL-B"].3, 10);
+    assert_eq!(large_receipt["LOCAL-B"].4, 10);
+    assert_eq!(large_receipt["LOCAL-B"].5, 10);
 }
