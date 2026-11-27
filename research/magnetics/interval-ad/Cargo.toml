@@ -1,0 +1,13 @@
+[package]
+name = "magnetic-interval-ad"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "MIT"
+publish = false
+description = "Outward-rounded interval forward-mode automatic differentiation for magnetic design"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
