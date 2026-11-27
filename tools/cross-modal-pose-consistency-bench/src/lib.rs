@@ -465,13 +465,12 @@ mod tests {
 
     #[test]
     fn shared_clock_dependency_blocks_consistency_promotion() {
-        let mut rgb = estimate(Modality::Rgb, 0);
+        let rgb = estimate(Modality::Rgb, 0);
         let mut event = estimate(Modality::Event, 0);
         event.dependencies.clock = rgb.dependencies.clock.clone();
         let receipt = evaluate_pair(&rgb, &event, &policy()).expect("valid pair");
         assert_eq!(receipt.disposition, "DEPENDENCE_UNKNOWN");
         assert_eq!(receipt.shared_dependency_kinds, ["clock"]);
-        rgb.dependencies.declarations_complete = false;
     }
 
     #[test]
@@ -487,13 +486,12 @@ mod tests {
 
     #[test]
     fn common_mode_bias_can_agree_without_being_promoted_as_independent() {
-        let mut rgb = estimate(Modality::Rgb, 100_000);
+        let rgb = estimate(Modality::Rgb, 100_000);
         let mut event = estimate(Modality::Event, 100_100);
         event.dependencies.target_geometry = rgb.dependencies.target_geometry.clone();
         let receipt = evaluate_pair(&rgb, &event, &policy()).expect("valid pair");
         assert_eq!(receipt.disposition, "DEPENDENCE_UNKNOWN");
         assert_eq!(receipt.translation_disagreement_um, Some(100));
-        rgb.translation_um[0] = 0;
     }
 
     #[test]
