@@ -243,3 +243,16 @@ The strongest contribution hypothesis is now an evidence-qualified state-mainten
 6. **Motion-budgeted bounds:** retain temporal envelopes only while conservative translational, angular and acceleration budgets remain valid; route teleports and uncertain motion to a safe full query.
 
 All six are falsifiable research hypotheses. Do not claim any is novel until the relevant prior art is checked and the matched experiments are published.
+
+### 7.6 Benchmark-denominator hardening
+
+The Dimforge Q3 2026 technical report says Physmark detects engine timeouts and ignores the corresponding datapoint. This is understandable for an exploratory display of engines that completed a scenario, but it creates a survivor-only comparison risk if adopted as the primary campaign denominator. Symtropy's formal campaign should improve on this:
+
+- Freeze the complete requested scenario/horizon set before running any backend.
+- Preserve every timeout, OOM, crash, invalid result, unsupported feature and not-run case.
+- Show completed throughput and coverage together; do not calculate the principal comparison from only completed rows.
+- Count zero qualified simulated ticks for a failed or incomplete horizon while retaining its raw elapsed time and failure category.
+- Publish both raw completed ticks/s and qualified ticks/s, plus the exact missing/failed denominator.
+- Keep every CPU/GPU/device comparison lane separate unless both hardware and semantic comparison groups are explicitly matched.
+
+This is a methodological differentiator, not an algorithmic speed result. It prevents a system from appearing faster by failing to finish difficult cases. See the [Dimforge Q3 2026 report](https://www.dimforge.com/blog/2026/10/25/dimforge-Q3-technical-report/), and compose with [#3822](https://github.com/Luminous-Dynamics/symtropy/issues/3822), [#3866](https://github.com/Luminous-Dynamics/symtropy/issues/3866) and [#4559](https://github.com/Luminous-Dynamics/symtropy/issues/4559).
