@@ -90,7 +90,10 @@ fn common_cause_identity_is_preserved_across_distinct_services_and_scenarios() {
         .count();
 
     assert!(mill_users >= 2, "shared mill root must recur across events");
-    assert!(calibration_users >= 2, "shared calibration root must recur across services");
+    assert!(
+        calibration_users >= 2,
+        "shared calibration root must recur across services"
+    );
     assert!(workforce_users >= 1);
 
     let transitive = rows
