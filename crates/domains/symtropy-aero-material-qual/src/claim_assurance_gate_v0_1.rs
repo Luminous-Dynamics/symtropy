@@ -1932,6 +1932,49 @@ mod tests {
     }
 
     #[test]
+    fn model_owner_record_subject_must_match_exact_model_identity() {
+        let evidence = all_admitted();
+        let mut owner_cut = owner_cut_for_evidence(&evidence);
+        let model_cut = model_cut_for_context(&context_for_evidence(&evidence));
+        let record = owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|item| item.evidence_ref == model_cut.evidence_ref)
+            .unwrap();
+        record.subject_ref = "instrument:unrelated-caliper".to_owned();
+        let mut context = context_for_evidence(&evidence);
+        context.evidence_knowledge_cut_sha256 = owner_cut.compute_sha256().unwrap();
+        let digest = context_digest(&context);
+        let mut bound_evidence = evidence.clone();
+        for item in &mut bound_evidence {
+            item.decision_context_sha256 = digest.clone();
+        }
+        let coverage_result = coverage(CoverageStatus::QualifiedCompleteForScope);
+        let cut_result = cut(CutStatus::Closed);
+        let bindings = bindings_for(
+            &coverage_result,
+            &cut_result,
+            EffectivityRelation::DefinitelyEffective,
+            &context,
+        );
+        let result = evaluate_claim_gate(ClaimGateInput {
+            claim_id: "claim-wing-panel-001",
+            decision_context: &context,
+            owner_evidence_cut: &owner_cut,
+            model_credibility_cut: &model_cut,
+            bindings: &bindings,
+            coverage: &coverage_result,
+            causal_cut: &cut_result,
+            effectivity: EffectivityRelation::DefinitelyEffective,
+            required_evidence: &bound_evidence,
+        });
+        assert_eq!(result.status, ClaimGateStatus::Rejected);
+        assert!(result.reason_codes.contains(
+            &"MODEL_CREDIBILITY_OWNER_RECORD_MODEL_IDENTITY_MISMATCH".to_owned()
+        ));
+    }
+
+    #[test]
     fn model_cut_risk_or_configuration_substitution_rejects_claim_binding() {
         let evidence = all_admitted();
         let context = context_for_evidence(&evidence);
