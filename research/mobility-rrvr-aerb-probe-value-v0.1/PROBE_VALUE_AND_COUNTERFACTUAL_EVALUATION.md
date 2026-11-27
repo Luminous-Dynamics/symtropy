@@ -191,3 +191,37 @@ Passing a lower tier never upgrades claims at a higher tier. This benchmark does
 ## 12. Explicit non-claims
 
 This document defines a proposed v0.2 research contract only. It does not claim that the adapter, v0.2 schemas, candidate model, blind test, simulator/HIL/physical campaigns or benchmark improvements have been implemented or passed.
+
+## 13. Critical modeling guard: probe acquisition is not a post-probe decision
+
+The action set (A) in the minimax calculation must contain **post-observation disposition choices**, not the act of acquiring the observation. In particular, AERB's current `Disposition::RequestObservation` is the pre-decision action used to select probe (p); it must not also be inserted into the response action set (A). That would be circular and can mask the value of acquiring a probe.
+
+Keep the decision stages explicit:
+
+- pre-observation: choose one permitted probe (p), or choose a non-probing safe disposition;
+- observation: the harness acquires one result (z), if feasible and admitted;
+- post-observation: choose among hold/no-new-actuation, abstain/abort, or a newly authorized attempt, subject to the independent effect-finality gates.
+
+### Worked audit of the v0.1 synthetic generator
+
+The published generator's synthetic loss table assigns (among other rows) hold losses of 0.35 for no-dispatch/no-effect, 0.05 for applied-once, 0.10 for partial, 0.15 for duplicate, 0.25 for stale/unresolved, and 0.30 for open-world residual. Abstention has loss 0.45; recommending a fresh attempt has loss 0 for no-effect, 0.95 for applied-once/partial, 1.0 for duplicate/stale/open-world, and 0.90 for unresolved-holder.
+
+For this diagnostic, the post-observation action set is `{hold, abstain, fresh_attempt}`; `RequestObservation` is excluded because it is the probe, not the post-probe response. With all eight worlds initially possible:
+
+- baseline minimax loss (R(S)=0.35);
+- endpoint-journal probe worst-case post-observation loss (R_p=0.35), so `Delta=0`;
+- independent-pose probe worst-case post-observation loss (R_p=0.35), so `Delta=0`;
+- holder-inventory probe worst-case post-observation loss (R_p=0.35), so `Delta=0`;
+- combined effect-and-scope reconciliation probe worst-case post-observation loss (R_p=0.30), so `Delta=0.05).
+
+These are deterministic calculations over the current synthetic fixture's declared supports/losses, not a benchmark measurement, learned observer result or claim about real sensors. They show two things: (a) a probe may separate several histories yet provide no guaranteed minimax decision improvement; and (b) the existing combined reconciliation probe is the only one of these four that reduces the frozen toy worst-case loss, because it admits closed-scope outcomes while retaining an unresolved outcome.
+
+If `RequestObservation` is incorrectly left in the post-observation action set with its current constant 0.30 loss, the baseline and every probe's worst-case loss become 0.30, making every `Delta` appear to be zero. This is a contract/modeling error, not evidence that every probe is useless.
+
+### Required regression tests
+
+1. Reject or structurally prevent a probe-acquisition action from appearing in the post-observation decision table.
+2. Recompute the four diagnostic values above in an independent brute-force reference test.
+3. Preserve the unresolved/open-world outcome in scope closure; do not force a positive `Delta` by deleting the hard case.
+4. Include a high-entropy, zero-`Delta` probe and a lower-entropy, positive-`Delta` probe as synthetic controls.
+5. Ensure candidate policy-tree scoring uses only post-observation dispositions and counts every compatible (outcome, world) pair.
