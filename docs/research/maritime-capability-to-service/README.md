@@ -106,7 +106,7 @@ Twenty-four Rust unit tests and seventeen integration tests are authored. The un
 
 ## Recovery decision regret: executable vector comparator
 
-The Rust reference now also exposes `compare_recovery_regret(candidate, reference)` over `RecoveryServiceOutcome`. It returns candidate-minus-reference deltas for unmet units at deadline, late accepted units, unresolved units, service-deficit unit-hours, time to minimum viable service, time to full service, recovery cost, recovery emissions and requalification-action count.
+The Rust reference now also exposes `compare_recovery_regret(candidate, reference)` over `RecoveryServiceOutcome`. It returns candidate-minus-reference deltas for unmet units at deadline, inspection-qualified units, receiver-accepted units, late accepted units, unresolved units, service-deficit unit-hours, time to minimum viable service, time to full service, recovery cost, recovery emissions and requalification-action count.
 
 The API requires the same frozen instance identity/version, scenario, service, deadline, horizon and expected-unit denominator. It rejects impossible accepted/on-time/unresolved quantities and inconsistent recovery times. The reference may be a clairvoyant per-scenario upper bound, but that bound is not an implementable policy and carries no probability weight. No scalar regret or expected-loss figure is produced.
 
