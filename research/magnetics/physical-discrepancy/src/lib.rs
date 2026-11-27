@@ -48,6 +48,7 @@ pub struct CellDiscrepancyInput {
     pub residual_jacobian_record_id: String,
     pub residual_jacobian_component_record_ids: [String; 3],
     pub residual_jacobian_component_expression_ids: [String; 3],
+    pub residual_jacobian_component_input_sha256: [String; 3],
     pub residual_jacobian_source_revision: String,
     pub residual_jacobian_implementation_id: String,
     pub residual_jacobian_artifact_sha256: String,
@@ -282,6 +283,8 @@ pub fn bind_interval_ad_residual_jacobian(
         std::array::from_fn(|index| records[index].record_id.clone());
     input.residual_jacobian_component_expression_ids =
         std::array::from_fn(|index| records[index].expression_id.clone());
+    input.residual_jacobian_component_input_sha256 =
+        std::array::from_fn(|index| records[index].input_sha256.clone());
     input.residual_jacobian_cell_id = input.cell_id.clone();
     input.residual_jacobian_abs_supremum_t_per_m = std::array::from_fn(|component| {
         mapped_records[component].derivative_abs_supremum_by_axis
@@ -315,6 +318,9 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
         input.residual_jacobian_component_expression_ids[0].as_str(),
         input.residual_jacobian_component_expression_ids[1].as_str(),
         input.residual_jacobian_component_expression_ids[2].as_str(),
+        input.residual_jacobian_component_input_sha256[0].as_str(),
+        input.residual_jacobian_component_input_sha256[1].as_str(),
+        input.residual_jacobian_component_input_sha256[2].as_str(),
         input.residual_jacobian_source_revision.as_str(),
         input.residual_jacobian_implementation_id.as_str(),
         input.residual_jacobian_cell_id.as_str(),
@@ -342,6 +348,9 @@ fn validate_input(input: &CellDiscrepancyInput) -> Result<(), DiscrepancyError> 
         &input.residual_jacobian_environment_sha256,
         "residual_jacobian_environment_sha256",
     )?;
+    for digest in &input.residual_jacobian_component_input_sha256 {
+        validate_digest(digest, "residual_jacobian_component_input_sha256")?;
+    }
     validate_digest(&input.geometry_sha256, "geometry_sha256")?;
     validate_digest(&input.material_sha256, "material_sha256")?;
 
@@ -469,6 +478,7 @@ pub fn certify_physical_field_discrepancy(
         residual_jacobian_record_id: input.residual_jacobian_record_id.clone(),
         residual_jacobian_component_record_ids: input.residual_jacobian_component_record_ids.clone(),
         residual_jacobian_component_expression_ids: input.residual_jacobian_component_expression_ids.clone(),
+        residual_jacobian_component_input_sha256: input.residual_jacobian_component_input_sha256.clone(),
         residual_jacobian_source_revision: input.residual_jacobian_source_revision.clone(),
         residual_jacobian_implementation_id: input.residual_jacobian_implementation_id.clone(),
         residual_jacobian_artifact_sha256: input.residual_jacobian_artifact_sha256.clone(),
@@ -556,6 +566,11 @@ mod tests {
                 "residual-bx-expression".to_owned(),
                 "residual-by-expression".to_owned(),
                 "residual-bz-expression".to_owned(),
+            ],
+            residual_jacobian_component_input_sha256: [
+                DIGEST_A.to_owned(),
+                DIGEST_B.to_owned(),
+                DIGEST_C.to_owned(),
             ],
             residual_jacobian_source_revision: "jacobian-source-v1".to_owned(),
             residual_jacobian_implementation_id: "interval-gradient-v1".to_owned(),
