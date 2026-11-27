@@ -746,13 +746,25 @@ mod tests {
         .expect("R1 result");
 
         assert_eq!(result.candidate_policy_count, 4);
-        assert_eq!(result.pareto_frontier.len(), 1);
-        let chosen: BTreeSet<&str> = result.pareto_frontier[0]
-            .choices
-            .values()
-            .map(String::as_str)
+        assert_eq!(result.pareto_frontier.len(), 2);
+
+        let tradeoffs: BTreeSet<(u64, u64)> = result
+            .pareto_frontier
+            .iter()
+            .map(|policy| {
+                (
+                    policy.adverse_envelope.bounds.receiver_accepted_units,
+                    policy.adverse_envelope.bounds.recovery_cost_units,
+                )
+            })
             .collect();
-        assert_eq!(chosen, BTreeSet::from(["LOCAL", "IMPORT"]));
+        assert_eq!(tradeoffs, BTreeSet::from([(7, 10), (10, 20)]));
+
+        for policy in &result.pareto_frontier {
+            let chosen: BTreeSet<&str> =
+                policy.choices.values().map(String::as_str).collect();
+            assert_eq!(chosen, BTreeSet::from(["LOCAL", "IMPORT"]));
+        }
     }
 
     #[test]
