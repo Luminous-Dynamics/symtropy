@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "fixture_id": "ROOM-TWIN-01",
+  "camera_profile_id": "room-twin-camera-v1",
+  "sensor_id": "camera-front",
+  "renderer": "Bevy 0.19.0",
+  "projection": {
+    "type": "perspective",
+    "component": "Camera3d::default()",
+    "parameterization": "Bevy 0.19 default PerspectiveProjection; exact implementation is bound by the renderer source commit"
+  },
+  "image": {
+    "width_px": 1280,
+    "height_px": 720,
+    "pixel_format": "rgba8",
+    "channel_order": "rgba",
+    "color_space": "srgb",
+    "color_range": "full",
+    "stride_rule": "width_px * 4"
+  },
+  "clock_domain": {
+    "domain_id": "room-twin-bevy-real-time",
+    "generation": 0,
+    "time_scale_id": "monotonic-seconds-since-app-start-v1"
+  },
+  "capture_time_bounds": {
+    "capture_schedule_secs": [
+      1.5,
+      4,
+      7
+    ],
+    "lower_bound_semantics": "scheduled screenshot request time",
+    "upper_bound_secs": 23.5,
+    "upper_bound_semantics": "capture plugin exit timeout upper bound; successful receipts imply each image was flushed before this bound",
+    "exact_exposure_timestamp_available": false
+  },
+  "transport": {
+    "delivery_order": [
+      1,
+      2,
+      3
+    ],
+    "availability_ticks": [
+      1,
+      2,
+      3
+    ],
+    "prefix_decision_cutoff_tick": 2,
+    "first_distinguishing_observation_tick": 3
+  },
+  "camera_rail": [
+    {
+      "at_secs": 0,
+      "position_m": [
+        0,
+        1.65,
+        -7
+      ],
+      "look_at_m": [
+        0,
+        1.65,
+        8
+      ]
+    },
+    {
+      "at_secs": 4.5,
+      "position_m": [
+        0,
+        1.65,
+        -7
+      ],
+      "look_at_m": [
+        0,
+        1.65,
+        8
+      ]
+    },
+    {
+      "at_secs": 5.7,
+      "position_m": [
+        0,
+        1.65,
+        2
+      ],
+      "look_at_m": [
+        0,
+        1.65,
+        8
+      ]
+    },
+    {
+      "at_secs": 6.4,
+      "position_m": [
+        5.2,
+        1.65,
+        2
+      ],
+      "look_at_m": [
+        5.2,
+        1.65,
+        8
+      ]
+    },
+    {
+      "at_secs": 6.8,
+      "position_m": [
+        5.2,
+        1.65,
+        2
+      ],
+      "look_at_m": [
+        13,
+        1.65,
+        2
+      ]
+    }
+  ],
+  "calibration": {
+    "calibration_profile_sha256": null,
+    "status": "synthetic_un-calibrated",
+    "claim": "no physical camera calibration or metric accuracy is implied"
+  },
+  "shadow_maps_enabled": false,
+  "claim_ceiling": "common synthetic camera/render profile and conservative source-time bounds; not physical calibration or exact exposure timestamps"
+}
