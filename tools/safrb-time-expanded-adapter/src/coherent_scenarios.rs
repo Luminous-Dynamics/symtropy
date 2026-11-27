@@ -505,10 +505,22 @@ mod tests {
         let reverse = scenario_set_digest("set-v1", &[b.clone(), a.clone()]).unwrap();
         assert_eq!(forward, reverse);
 
+        let mut reordered_a = a.clone();
+        reordered_a.profile.nodes.reverse();
+        reordered_a.profile.receipts.reverse();
+        reordered_a.profile.transfers.reverse();
+        reordered_a.profile.services.reverse();
+        let reordered = scenario_set_digest("set-v1", &[reordered_a, b.clone()]).unwrap();
+        assert_eq!(forward, reordered);
+
         let mut changed = b;
         changed.profile.transfers[0].route_capacity += 1;
         let mutated = scenario_set_digest("set-v1", &[a, changed]).unwrap();
         assert_ne!(forward, mutated);
+        assert_ne!(
+            forward,
+            scenario_set_digest("different-set-id", &[a.clone()]).unwrap()
+        );
     }
 
     #[test]
