@@ -41,12 +41,29 @@ Each input binds:
 - exact centre coordinate and measurement record ID/digest;
 - measured field intervals at the centre, already including declared probe/calibration/registration/background/temperature uncertainty;
 - model field intervals at the centre and over the complete cell;
-- residual-Jacobian supremum record ID and nine nonnegative finite component bounds;
+- residual-Jacobian aggregate record ID and nine nonnegative finite component bounds;
+- three component-level interval-AD record IDs, expression IDs and exact input digests for residual Bx, By and Bz;
+- the interval-AD source revision, implementation ID, artifact digest and environment digest that produced the three derivative enclosures;
 - probe calibration, registration, background and temperature evidence IDs;
 - solver run and model-set IDs;
 - geometry/material digests, coordinate frame, operating condition and field units.
 
 The crate checks identity consistency and interval arithmetic. It cannot authenticate source records or prove an upstream Jacobian supremum is physically correct.
+
+## Interval-AD-backed residual Jacobian derivation
+
+The crate now provides `bind_interval_ad_residual_jacobian`. It accepts three `ValidatedDerivativeEnclosure<3>` records—one each for the exact scalar residual components Bx, By and Bz—and maps their XYZ derivative absolute suprema into the 3×3 Jacobian matrix.
+
+The adapter requires:
+- exact expected expression IDs for Bx/By/Bz and three distinct component record IDs;
+- the same cell ID, exact XYZ box, axis identities and metre parameter units;
+- field output units matching the physical field units supplied to this crate;
+- matching frame, operating condition, model set, solver run, geometry/material, requirement and residual-expression provenance;
+- identical source revision, implementation ID, artifact digest and environment digest across the three component derivatives.
+
+The three interval-AD records' own input SHA-256 digests are retained individually in the resulting physical-discrepancy record. The residual Jacobian aggregate ID does not replace those component identities.
+
+This removes the need to manually transcribe the nine derivative suprema. It still does **not** authenticate that the supplied expressions really represent the physical model-minus-measurement residual, or that their input parameter boxes are physically correct. Expression IDs are checked against caller-supplied expected IDs; physical semantics remain a separate model-review obligation.
 
 ## Fail-closed rules
 
@@ -67,9 +84,11 @@ The public Rust reference is under `research/magnetics/physical-discrepancy/` on
 - adds each residual interval to the solver's full-cell field interval;
 - checks model-centre inclusion in the model's full-cell enclosure;
 - retains solver/model and Jacobian source, implementation, artifact and environment identities, along with calibration/registration/background/temperature IDs;
+- derives the 3×3 residual Jacobian from three scope-matched interval-AD certificates (Bx, By, Bz), retaining each component record ID, expression ID and input digest;
+- rejects component expression, cell-box, unit or source-scope mismatch;
 - preserves evidence role, including blind-holdout identity, without fitting or modifying the supplied model.
 
-The authored tests include an affine residual fixture checked at all eight cell corners, zero-width cells, measurement/Jacobian monotonicity, centre/cell identity, inconsistent model enclosures, missing calibration/registration identities, invalid Jacobian values and source-digest controls. Authored tests are not a test pass.
+The crate currently has 16 authored tests, including an affine residual fixture checked at all eight cell corners, zero-width cells, measurement/Jacobian monotonicity, centre/cell identity, inconsistent model enclosures, missing calibration/registration/requirement identities, invalid Jacobian values, component-wise interval-AD matrix construction, expression mismatch and cell-box mismatch. These tests are authored; do not treat them as a pass until the exact PR-head matrix completes.
 
 ## Benchmark plan
 
