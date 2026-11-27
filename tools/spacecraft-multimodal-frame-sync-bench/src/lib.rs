@@ -541,6 +541,7 @@ mod tests {
     fn unknown_timezone_is_not_inferred_or_needed_for_exact_key_match() {
         let mut value = input();
         value.capture_timestamp = "20260120165126243".to_owned();
+        value.sample_id = "ACE/approach_front/20260120165126243".to_owned();
         for record in [
             &mut value.rgb,
             &mut value.depth,
