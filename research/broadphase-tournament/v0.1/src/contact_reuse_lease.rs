@@ -101,6 +101,7 @@ pub enum ContactLeaseError {
     NonCanonicalPair,
     PairIdentityMismatch,
     InvalidRelativeMotion,
+    UnsupportedDimension,
     InvalidFeatureMargin,
     InvalidNormalBound,
     InvalidGapInterval,
@@ -168,6 +169,9 @@ impl<const D: usize> RelativeMotionEnvelope<D> {
     /// The adapter must supply the largest point-rotation angle of the
     /// canonical relative rotation, in [0, pi].
     pub fn displacement_upper_bound(&self) -> Result<MotionBound, ContactLeaseError> {
+        if !(2..=4).contains(&D) {
+            return Err(ContactLeaseError::UnsupportedDimension);
+        }
         if !self.max_point_rotation_angle_rad.is_finite()
             || !(0.0..=std::f64::consts::PI).contains(&self.max_point_rotation_angle_rad)
             || !self.maximum_lever_arm_radius.is_finite()
@@ -591,5 +595,16 @@ mod tests {
             }
         );
     }
+
+
+    #[test]
+    fn unsupported_dimensions_fail_closed() {
+        let bad_motion = motion([0.0; 1], 0.0, 1.0);
+        assert_eq!(
+            bad_motion.displacement_upper_bound(),
+            Err(ContactLeaseError::UnsupportedDimension)
+        );
+    }
+
 
 }
