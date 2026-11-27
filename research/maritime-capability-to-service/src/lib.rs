@@ -624,8 +624,8 @@ mod tests {
     #[test]
     fn inspection_cannot_accept_more_than_the_expected_service_quantity() {
         let changed = FIXTURE.replace(
-            "INSPECTION\\tLOCAL-C\\tPASS\\t10\\tREV-001",
-            "INSPECTION\\tLOCAL-C\\tPASS\\t11\\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t10\tREV-001",
+            "INSPECTION\tLOCAL-C\tPASS\t11\tREV-001",
         );
         assert!(
             parse_instance(&changed)
@@ -637,8 +637,8 @@ mod tests {
     #[test]
     fn receiver_day_overflow_is_reported_instead_of_wrapping() {
         let changed = FIXTURE.replace(
-            "OPTION\\tEXISTING\\tEXISTING\\t90\\t20",
-            "OPTION\\tEXISTING\\tEXISTING\\t90\\t18446744073709551615",
+            "OPTION\tEXISTING\tEXISTING\t90\t20",
+            "OPTION\tEXISTING\tEXISTING\t90\t18446744073709551615",
         );
         let instance = parse_instance(&changed).unwrap();
         assert!(
