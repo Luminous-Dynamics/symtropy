@@ -146,3 +146,5 @@ References:
 - PREMIS: https://www.loc.gov/standards/premis/
 
 The 12-action limit is deliberate: exhaustive enumeration is bounded to 4,095 non-empty subsets, while the reference pairwise Pareto filter can require up to about 16.8 million dominance checks. Increasing the candidate cap is gated on replacing this filter with a scalable exact skyline implementation and proving frontier equivalence on the frozen corpus and generated cases.
+
+Solver comparison roadmap: [PRESERVATION_PORTFOLIO_SOLVER_TOURNAMENT_001.md](PRESERVATION_PORTFOLIO_SOLVER_TOURNAMENT_001.md), tracked by [issue #7676](https://github.com/Luminous-Dynamics/symtropy/issues/7676).
