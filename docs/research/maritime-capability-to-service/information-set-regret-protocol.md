@@ -231,7 +231,7 @@ A synthetic replay suite proves that the evaluator enforces the declared informa
 Recommended sequence:
 
 1. Freeze event-vintage schema and the case manifest.
-2. Add a small Rust replay parser with exact timestamp/ordering checks and deterministic as-of selection.
+2. Extract the passing-or-pending conformance parser from `tests/information_set_replay.rs` into a reusable Rust module, then implement deterministic as-of selection over append-only evidence vintages.
 3. Implement no-lookahead negative controls before adding a recovery optimizer.
 4. Consume canonical Mycelix/Symtropy receipts by exact digest, authority, rights, freshness and version.
 5. Add the R0/R1/R2 benchmark harness and compute-budget capture.
