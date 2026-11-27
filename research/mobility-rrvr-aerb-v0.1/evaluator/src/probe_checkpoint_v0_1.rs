@@ -1288,4 +1288,156 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn finite_lifecycle_oracle_matches_all_48_path_and_decision_combinations() {
+        let path_kinds = [
+            PhysicalPathKind::ContinueProbe,
+            PhysicalPathKind::SafeStopHold,
+            PhysicalPathKind::AbortProbe,
+        ];
+        for lifecycle in [
+            ProbeLifecycle::Acquiring,
+            ProbeLifecycle::Interrupted,
+            ProbeLifecycle::Completed,
+        ] {
+            for decision_sufficient in [false, true] {
+                for mask in 0u8..8 {
+                    let mut input = checkpoint();
+                    input.lifecycle = lifecycle;
+                    input.physical_path_receipts.clear();
+                    for (bit, kind) in path_kinds.iter().enumerate() {
+                        if mask & (1 << bit) != 0 {
+                            input.physical_path_receipts.push(path(
+                                *kind,
+                                SafetyQualification::Qualified,
+                                10,
+                                Some(20),
+                            ));
+                        }
+                    }
+                    if decision_sufficient {
+                        let support = initial_cursor().possible_world_support_ids;
+                        input.decision_sufficiency_receipt =
+                            Some(decision_receipt(&support, 1));
+                    }
+
+                    let can_continue = mask & 0b001 != 0;
+                    let can_stop = mask & 0b010 != 0;
+                    let can_abort = mask & 0b100 != 0;
+                    let expected = if lifecycle == ProbeLifecycle::Completed {
+                        if can_stop {
+                            CheckpointAction::StopSensingHold
+                        } else {
+                            CheckpointAction::NoSafeContinuation
+                        }
+                    } else if decision_sufficient {
+                        if can_stop {
+                            CheckpointAction::StopSensingHold
+                        } else if can_abort {
+                            CheckpointAction::AbortProbe
+                        } else {
+                            CheckpointAction::NoSafeContinuation
+                        }
+                    } else if can_continue && lifecycle == ProbeLifecycle::Acquiring {
+                        CheckpointAction::ContinueProbe
+                    } else if can_stop {
+                        CheckpointAction::StopSensingHold
+                    } else if can_abort {
+                        CheckpointAction::AbortProbe
+                    } else {
+                        CheckpointAction::NoSafeContinuation
+                    };
+
+                    let result =
+                        evaluate_checkpoint(&initial_cursor(), &input).expect("finite oracle case");
+                    assert_eq!(
+                        result.action, expected,
+                        "lifecycle={lifecycle:?}, decision_sufficient={decision_sufficient}, path_mask={mask:03b}"
+                    );
+                    assert!(!result.new_effect_permitted);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn finite_partial_evidence_oracle_matches_all_48_scope_quality_combinations() {
+        for semantics in [
+            ClaimSemantics::PositiveEvent,
+            ClaimSemantics::GeneralMeasurement,
+            ClaimSemantics::AbsenceOverInterval,
+        ] {
+            for quality in [
+                EvidenceQuality::Admitted,
+                EvidenceQuality::Stale,
+                EvidenceQuality::Unknown,
+                EvidenceQuality::Disputed,
+            ] {
+                for coverage_complete in [false, true] {
+                    for full_scope in [false, true] {
+                        let mut evidence = prefix(
+                            semantics,
+                            quality,
+                            if full_scope { 20 } else { 15 },
+                        );
+                        evidence.coverage_complete = coverage_complete;
+                        let expected = if quality != EvidenceQuality::Admitted {
+                            PartialEvidenceDisposition::Unqualified
+                        } else if !coverage_complete {
+                            PartialEvidenceDisposition::InsufficientForDeclaredScope
+                        } else if full_scope {
+                            PartialEvidenceDisposition::AdmittedForDeclaredScope
+                        } else if semantics == ClaimSemantics::AbsenceOverInterval {
+                            PartialEvidenceDisposition::InsufficientForDeclaredScope
+                        } else {
+                            PartialEvidenceDisposition::AdmittedForSubscope
+                        };
+                        assert_eq!(
+                            classify_partial_evidence(&checkpoint().requested_scope, Some(&evidence))
+                                .expect("finite evidence oracle"),
+                            expected,
+                            "semantics={semantics:?}, quality={quality:?}, complete={coverage_complete}, full={full_scope}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn support_receipt_rejects_source_and_calibration_metadata_changes() {
+        for mutate in [
+            0_u8,
+            1_u8,
+        ] {
+            let cursor = initial_cursor();
+            let mut input = checkpoint();
+            let evidence = prefix(
+                ClaimSemantics::PositiveEvent,
+                EvidenceQuality::Admitted,
+                15,
+            );
+            input.evidence_prefix = Some(evidence.clone());
+            input.proposed_possible_world_support_ids = vec!["world-a".to_owned()];
+            input.support_update_receipt = Some(support_receipt(
+                &cursor.possible_world_support_ids,
+                &input.proposed_possible_world_support_ids,
+                &evidence,
+            ));
+            let prefix = input.evidence_prefix.as_mut().expect("prefix");
+            if mutate == 0 {
+                prefix.source_id = "substituted-sensor".to_owned();
+            } else {
+                prefix.calibration_profile_sha256 = digest('9');
+            }
+            assert_eq!(
+                evaluate_checkpoint(&cursor, &input),
+                Err(CheckpointError::InvalidSupportReceipt(
+                    "receipt does not bind exact support and evidence"
+                ))
+            );
+        }
+    }
+
 }
