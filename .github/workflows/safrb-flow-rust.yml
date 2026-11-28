@@ -9,6 +9,7 @@ on:
       - research/safrb-beneficiary-floor-feasibility-v0
       - research/safrb-robust-floor-scenarios-v0.2
       - research/safrb-capacity-admission-v0
+      - research/safrb-capacity-mobility-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -23,7 +24,7 @@ on:
       - research/single-commodity-flow-kernel-v0
       - research/safrb-temporal-semantics-v0
       - research/safrb-beneficiary-floor-feasibility-v0
-      - research/safrb-robust-floor-scenarios-v0.2
+      - research/safrb-capacity-admission-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"

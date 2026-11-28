@@ -8,8 +8,10 @@ use single_commodity_flow_kernel::{
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod beneficiary_floors;
-pub mod robust_floor_scenarios;
 pub mod capacity_admission;
+pub mod mobility_oracle;
+pub mod mobility_capacity;
+pub mod robust_floor_scenarios;
 pub mod temporal_profile;
 pub mod temporal_verify;
 

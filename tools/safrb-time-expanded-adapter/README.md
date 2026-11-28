@@ -166,5 +166,78 @@ The next mobility-policy work [#7876](https://github.com/Luminous-Dynamics/symtr
 - [#7710](https://github.com/Luminous-Dynamics/symtropy/issues/7710): independent min-cost-flow optimality certificates and LEMON/OR-Tools comparison.
 - [#7760](https://github.com/Luminous-Dynamics/symtropy/issues/7760): explicit beneficiary minimum floors, priority tiers and independent allocation feasibility.
 - [#7647](https://github.com/Luminous-Dynamics/symtropy/issues/7647): scale and resource-budget qualification.
+- [#7894](https://github.com/Luminous-Dynamics/symtropy/issues/7894): compile admitted route-capacity schedules into physical mobility policies.
 
 The solver comparison must use equivalent objectives, graph models, integer ranges, units, hardware and budgets. DIMACS Network Flows 2.0 instances and generators provide a shared basis; LEMON CostScaling/NetworkSimplex and OR-Tools are solver comparators, not a substitute for semantic validation. No SOTA performance advantage is claimed by this adapter or its current small conformance corpus.
+
+## Physical mobility recourse oracle v0.1
+
+The `mobility_oracle` module is a bounded exact reference for scenario-contingent movement of homogeneous mobile resources. It composes with the scenario/recourse model in [#7796](https://github.com/Luminous-Dynamics/symtropy/issues/7796) and the two-site zero-time reference in [#7831](https://github.com/Luminous-Dynamics/symtropy/pull/7831). Programme issue: [#7876](https://github.com/Luminous-Dynamics/symtropy/issues/7876).
+
+### Model and limits
+
+- 2–4 sites, 1–4 integer mobile units, at most 8 directed movement arcs, 1–8 finite scenarios and service boundaries 0–4.
+- Every movement arc has a positive integer travel duration, its own departure capacity, a canonical physical corridor identity/capacity and an explicit list of available departure periods.
+- Unit states are exclusive: at one site, or in transit on one arc until its checked arrival boundary. A travelling unit is unavailable at both endpoints.
+- Service floors are checked at the service boundary before the period's movement decisions. One unit supplies one declared service unit at one site in that period.
+- Route closures carry both the physical departure period and the period in which the closure is observed. Decisions use only observations revealed by their decision boundary; a closure still invalidates a movement at the physical departure time even when its report arrives later.
+- Here-and-now policies use one common information set. Adaptive policies may differ only after their observable histories differ. Scenario IDs are not part of the observable-history digest.
+- Per-arc and shared-corridor capacities are checked per departure period. Static capacities remain the legacy default; the capacity-envelope integration adds complete scenario-specific, evidence-bound departures without interpolating gaps. Reverse routes must be declared separately.
+
+These are exact-reference ceilings, not deployment-scale promises. The current profile does not model continuous travel, heterogeneous units, route costs, in-transit corridor occupancy beyond departure capacity, stochastic scenario probabilities, asset condition or dispatch authority.
+
+### Producer and independent reference
+
+The producer enumerates policy actions by current information set and physical state, with a hard search budget. Search-limit exhaustion is a distinct outcome and never becomes an infeasibility claim.
+
+The independent reference takes a different path: it enumerates physically legal trajectories per scenario, then joins those paths only where decision-time observable-history digests agree. Its verifier independently re-admits the input, replays a submitted policy, checks movement/arrival/service/corridor accounting and uses the trajectory oracle to challenge infeasibility dispositions.
+
+The seeded test lane uses 250 deterministic tiny scenario trees and compares the producer's disposition/witness with the independently enumerated policy paths. Frozen tests cover:
+- zero-time information relaxation versus late physical arrival;
+- arrival exactly at the required service boundary;
+- directed routes (no inferred reverse arc);
+- decisions that can/cannot branch before demand is revealed;
+- in-transit resource unavailability;
+- parallel route aliases sharing one physical corridor;
+- late-reported route closures;
+- insufficient total mobile units;
+- policy/history digest mutations and canonical ordering;
+- 250 deterministic tiny policy instances checked against independent scenario trajectories.
+
+### Result and claim boundary
+
+The report distinguishes `here_and_now_feasible`, `mobility_feasible_only_with_recourse`, `information_relaxation_only`, `not_feasible_within_supplied_tree` and `search_limit_exceeded`. A zero-time relaxation is an optimistic bound only; it does not establish that a resource can physically arrive before service is due.
+
+Portable schemas:
+- `schemas/mobility-instance-v0.1.schema.json`
+- `schemas/mobility-report-v0.1.schema.json`
+
+A passing synthetic contract establishes only the bounded model and supplied scenario set. It does not authenticate routes, travel times, source authority, asset condition, legal access, scenario completeness, field service or operational dispatch. No SOTA performance advantage is claimed.
+
+## Evidence-bound mobility capacity integration v0.1
+
+The separate `mobility_capacity` module consumes the Route-role schedule contract from `capacity_admission` and compiles it into the physical mobility oracle. It does not duplicate schedule admission.
+
+### Binding and compilation contract
+
+- Every directed movement arc has one distinct route-capacity subject and an explicit canonical route resource reference.
+- All logical aliases of one `corridor_ref` must share one corridor-capacity subject; splitting aliases across independently admitted subjects is rejected.
+- One complete schedule is required for every mobility scenario. Case, scenario, horizon, timebase, unit and quantity boundary must match the envelope exactly.
+- The required subject set must match the declared arc/corridor bindings exactly. Every admitted record must have Route role and the expected canonical resource identity.
+- Schedules cover the full half-open interval `[0, horizon_last_period + 1)`. The final boundary is retained for temporal completeness; departures occur only before the last service boundary.
+- Each scenario receives one capacity override for every arc and every departure period. A zero capacity is an explicit no-departure constraint, not missing evidence.
+- Dynamic evidence may tighten, but may not exceed, the structural per-arc or corridor ceiling declared by the source mobility graph. There is no static fallback for gaps, stale/revoked records, unknown subjects or scenario mismatches.
+
+### Independent verification
+
+The producer validates the schedule inputs and emits the admitted-schedule reports plus the compiled mobility instance. The independent verifier separately re-admits the source mobility instance, verifies every schedule receipt, reconstructs the subject/resource map from the original bindings, rebuilds every scenario-period capacity directly from the original evidence records, and compares the entire compiled model and digests. It does not call the producer compiler.
+
+The claim ceiling remains structural: the upstream capacity records are only marked externally admitted. This layer does not authenticate issuer signatures, prove issuer authority, validate measurement truth or route identity, establish scenario completeness, authorize dispatch or verify field service.
+
+Portable schemas:
+- `schemas/mobility-capacity-envelope-input-v0.1.schema.json`
+- `schemas/mobility-capacity-report-v0.1.schema.json`
+- `schemas/mobility-instance-v0.1.schema.json`
+- `schemas/mobility-report-v0.1.schema.json`
+
+Frozen tests exercise temporal capacity changes, shared corridor aliases, one low-capacity scenario among higher-capacity scenarios, coverage gaps, stale records, dimensional mismatch, subject/resource mismatch, alias splitting, forged compiled overrides and altered schedule receipts. They are model-contract tests; exact-head qualification remains the separate CI gate.
