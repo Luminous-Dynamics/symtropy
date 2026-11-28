@@ -32,9 +32,7 @@ fn evidence_refs_are_valid(obligation: &Value) -> bool {
         let Some(reference) = entry.as_str() else {
             return false;
         };
-        !reference.trim().is_empty()
-            && reference.trim() == reference
-            && distinct.insert(reference)
+        !reference.trim().is_empty() && reference.trim() == reference && distinct.insert(reference)
     })
 }
 
@@ -42,16 +40,15 @@ fn independent_disposition(case: &Value) -> &'static str {
     let mut reject = text_at(case, "subject_time_effectivity") == Some("INVALID_INTERVAL");
     let mut out_of_scope = false;
     let mut late_knowledge = false;
-    let not_effective = text_at(case, "subject_time_effectivity")
-        == Some("DEFINITELY_NOT_YET_EFFECTIVE");
+    let not_effective =
+        text_at(case, "subject_time_effectivity") == Some("DEFINITELY_NOT_YET_EFFECTIVE");
     let mut unverified = false;
     let mut incomplete = text_at(case, "subject_time_effectivity") == Some("BOUNDARY_AMBIGUOUS");
 
     let context = case.get("claim_context").unwrap_or(&Value::Null);
     let digest = text_at(context, "trust_policy_snapshot_digest").unwrap_or("");
-    let case_id_ok = text_at(case, "case_id").is_some_and(|id| {
-        !id.trim().is_empty() && id == id.trim()
-    });
+    let case_id_ok =
+        text_at(case, "case_id").is_some_and(|id| !id.trim().is_empty() && id == id.trim());
     let context_ok = [
         "claim_id",
         "physical_subject_ref",
@@ -63,14 +60,12 @@ fn independent_disposition(case: &Value) -> &'static str {
         text_at(context, field)
             .is_some_and(|value| !value.trim().is_empty() && value == value.trim())
     });
-    let digest_ok = digest
-        .strip_prefix("sha256:")
-        .is_some_and(|hex| {
-            hex.len() == 64
-                && hex
-                    .bytes()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-        });
+    let digest_ok = digest.strip_prefix("sha256:").is_some_and(|hex| {
+        hex.len() == 64
+            && hex
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    });
     let obligations = case
         .get("obligations")
         .and_then(Value::as_array)
@@ -85,11 +80,7 @@ fn independent_disposition(case: &Value) -> &'static str {
         incomplete = true;
     }
 
-    for required_kind in [
-        "CLAIM_IDENTITY",
-        "EVIDENCE_INTEGRITY",
-        "PRODUCER_AUTHORITY",
-    ] {
+    for required_kind in ["CLAIM_IDENTITY", "EVIDENCE_INTEGRITY", "PRODUCER_AUTHORITY"] {
         let matching: Vec<&Value> = obligations
             .iter()
             .filter(|item| text_at(item, "kind") == Some(required_kind))
@@ -132,8 +123,7 @@ fn independent_disposition(case: &Value) -> &'static str {
         if !refs_valid || (evidence_state != "NEITHER" && !has_reference) {
             incomplete = true;
         }
-        if text_at(obligation, "kind") == Some("PRODUCER_AUTHORITY")
-            && authority == "NOT_REQUIRED"
+        if text_at(obligation, "kind") == Some("PRODUCER_AUTHORITY") && authority == "NOT_REQUIRED"
         {
             incomplete = true;
         }
@@ -197,10 +187,7 @@ fn independent_disposition(case: &Value) -> &'static str {
         .is_some_and(|defeaters| {
             defeaters.iter().any(|item| {
                 text_at(item, "materiality") == Some("BLOCKING")
-                    && matches!(
-                        text_at(item, "status"),
-                        Some("UNRESOLVED" | "CONFIRMED")
-                    )
+                    && matches!(text_at(item, "status"), Some("UNRESOLVED" | "CONFIRMED"))
             })
         })
     {
@@ -249,7 +236,12 @@ fn independent_json_oracle_matches_all_published_state_vectors() {
 
         let oracle = independent_disposition(&value);
         let production = evaluate_assurance_state_case_v0_1(&typed_case(&value));
-        assert_eq!(oracle, expected, "oracle fixture case {}", source["case_id"]);
+        assert_eq!(
+            oracle, expected,
+            "oracle fixture case {}",
+            source["case_id"]
+        );
+        assert_eq!(
         assert_eq!(
             production.disposition.as_str(),
             oracle,
@@ -339,11 +331,15 @@ fn obligation_order_permutations_preserve_oracle_and_production_results() {
     remove_oracle_annotations(&mut original);
 
     let baseline_oracle = independent_disposition(&original);
-    let baseline_production =
-        evaluate_assurance_state_case_v0_1(&typed_case(&original)).disposition.as_str();
+    let baseline_production = evaluate_assurance_state_case_v0_1(&typed_case(&original))
+        .disposition
+        .as_str();
 
     let mut reordered = original.clone();
-    reordered["obligations"].as_array_mut().expect("obligations").reverse();
+    reordered["obligations"]
+        .as_array_mut()
+        .expect("obligations")
+        .reverse();
     let permuted_oracle = independent_disposition(&reordered);
     let permuted_production =
         evaluate_assurance_state_case_v0_1(&typed_case(&reordered)).disposition.as_str();
