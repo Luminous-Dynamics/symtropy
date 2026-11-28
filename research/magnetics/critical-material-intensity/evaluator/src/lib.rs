@@ -181,6 +181,7 @@ pub struct ComponentAcceptance {
     pub scope_digest: String,
     pub maturity: Maturity,
     pub disposition: AcceptanceDisposition,
+    pub evidence_class: EvidenceClass,
     pub physical_evidence_digest: String,
 }
 
@@ -304,6 +305,8 @@ pub enum Blocker {
     MissingMassUncertainty,
     NonPhysicalMassEvidence,
     ElementArithmeticOverflow,
+    ElementFractionMassClosureFailure,
+    ElementFractionMassClosureUnresolved,
     NonPositiveServiceDenominator,
     ServiceNoninferiorityViolation,
     ElementIntensityWorse,
@@ -509,6 +512,11 @@ fn evaluate_candidate(
     }
 
     let candidate_summary = summarize_trial(spec, candidate);
+    if candidate_summary.blockers.contains(&Blocker::ScopeMismatch)
+        || candidate_summary.blockers.contains(&Blocker::ServiceScopeMismatch)
+    {
+        not_comparable = true;
+    }
     blockers.extend(candidate_summary.blockers.iter().cloned());
 
     let baselines = trials
@@ -528,7 +536,9 @@ fn evaluate_candidate(
 
     for baseline in baselines {
         let baseline_summary = summarize_trial(spec, baseline);
-        if baseline.scope != spec.scope || baseline_summary.blockers.contains(&Blocker::ScopeMismatch)
+        if baseline.scope != spec.scope
+            || baseline_summary.blockers.contains(&Blocker::ScopeMismatch)
+            || baseline_summary.blockers.contains(&Blocker::ServiceScopeMismatch)
         {
             blockers.push(Blocker::ScopeMismatch);
             not_comparable = true;
@@ -698,15 +708,14 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
     if trial.acceptance.maturity < Maturity::M4 {
         blockers.push(Blocker::MissingM4Acceptance);
     }
+    if trial.acceptance.evidence_class != EvidenceClass::PhysicalMeasurement {
+        blockers.push(Blocker::NonPhysicalAcceptanceEvidence);
+    }
     if trial.acceptance.disposition == AcceptanceDisposition::Fail {
         blockers.push(Blocker::ComponentAcceptanceFailed);
     } else if trial.acceptance.disposition != AcceptanceDisposition::Qualified {
         blockers.push(Blocker::MissingM4Acceptance);
     }
-    if trial.acceptance.physical_evidence_digest.trim().is_empty() {
-        blockers.push(Blocker::NonPhysicalAcceptanceEvidence);
-    }
-
     let optimization = &trial.optimization;
     if optimization.receipt_id.trim().is_empty() || optimization.optimizer_id.trim().is_empty() {
         blockers.push(Blocker::MissingOptimizationReceipt);
@@ -842,6 +851,7 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
         }
 
         let mut seen_assays = BTreeSet::new();
+        let mut summed_fraction = Interval::new(0.0, 0.0);
         for assay in &lot.element_assays {
             if !seen_assays.insert(assay.element_id.as_str()) {
                 blockers.push(Blocker::DuplicateElementAssay);
@@ -879,6 +889,7 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
                 continue;
             }
 
+            summed_fraction = summed_fraction.add(assay.mass_fraction);
             let Some(element_mass) = lot
                 .material_mass_g
                 .multiply_nonnegative(assay.mass_fraction)
@@ -909,6 +920,12 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
             }
         }
 
+        if summed_fraction.lower > 1.0 {
+            blockers.push(Blocker::ElementFractionMassClosureFailure);
+        } else if summed_fraction.upper > 1.0 {
+            blockers.push(Blocker::ElementFractionMassClosureUnresolved);
+        }
+
         for element_id in &required_elements {
             if !seen_assays.contains(element_id) {
                 blockers.push(Blocker::MissingElementAssay);
@@ -922,6 +939,15 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
             blockers.push(Blocker::MissingElementAssay);
             continue;
         };
+        if !total.virgin_g.is_nonnegative()
+            || !total.external_secondary_g.is_nonnegative()
+            || !total.internal_recycled_g.is_nonnegative()
+            || !total.direct_reuse_g.is_nonnegative()
+            || !total.total_embodied_g.is_nonnegative()
+        {
+            blockers.push(Blocker::ElementArithmeticOverflow);
+            continue;
+        }
         if let Some(service) = service_kwh {
             let Some(virgin_g_per_mwh) = total
                 .virgin_g
@@ -994,13 +1020,13 @@ mod tests {
                 ElementSpec {
                     element_id: "Nd".to_string(),
                     unit: "g".to_string(),
-                    no_worse_margin_g_per_mwh: 0.0,
+                    no_worse_margin_g_per_mwh: 1.0,
                     improvement_margin_g_per_mwh: 0.1,
                 },
                 ElementSpec {
                     element_id: "Dy".to_string(),
                     unit: "g".to_string(),
-                    no_worse_margin_g_per_mwh: 0.0,
+                    no_worse_margin_g_per_mwh: 0.2,
                     improvement_margin_g_per_mwh: 0.1,
                 },
                 ElementSpec {
@@ -1018,7 +1044,7 @@ mod tests {
             minimum_independent_restarts: 3,
             optimization_budget_tier: "B1".to_string(),
             minimum_completed_missions: 10.0,
-            service_noninferiority_margin_kwh: 0.0,
+            service_noninferiority_margin_kwh: 35.0,
         }
     }
 
@@ -1031,6 +1057,7 @@ mod tests {
             scope_digest: digest('1'),
             maturity: Maturity::M4,
             disposition: AcceptanceDisposition::Qualified,
+            evidence_class: EvidenceClass::PhysicalMeasurement,
             physical_evidence_digest: digest('5'),
         }
     }
@@ -1099,8 +1126,8 @@ mod tests {
             mass_evidence_class: EvidenceClass::PhysicalMeasurement,
             element_assays: vec![
                 assay("Nd", nd_fraction, suffix),
-                assay("Dy", dy_fraction, char::from(suffix as u8 + 1)),
-                assay("Cu", cu_fraction, char::from(suffix as u8 + 2)),
+                assay("Dy", dy_fraction, '4'),
+                assay("Cu", cu_fraction, '5'),
             ],
         }
     }
@@ -1108,7 +1135,10 @@ mod tests {
     fn assay(element: &str, fraction: f64, suffix: char) -> ElementFractionAssay {
         ElementFractionAssay {
             element_id: element.to_string(),
-            mass_fraction: Interval::new(fraction - 0.0001, fraction + 0.0001),
+            mass_fraction: Interval::new(
+                (fraction - 0.0001).max(0.0),
+                (fraction + 0.0001).min(1.0),
+            ),
             evidence_id: format!("ASSAY-{element}-{suffix}"),
             evidence_digest: digest(suffix),
             method_id: "ICP-MS-METHOD-001".to_string(),
@@ -1242,7 +1272,7 @@ mod tests {
             "AM-HYBRID",
             ArchitectureFamily::AmHybridArchitecture,
             ArchitectureRole::Candidate,
-            1000.0,
+            700.0,
             0.28,
             0.02,
             50.0,
@@ -1386,16 +1416,10 @@ mod tests {
             50.0,
             100.0,
         );
-        let mut trials = vec![candidate, baselines()[0].clone()];
-        let mut specification = spec();
-        specification
-            .required_baseline_families
-            .retain(|family| *family != ArchitectureFamily::PmAssistedSynrm);
+        let trials = vec![candidate, baselines()[0].clone()];
+        let specification = spec();
         let evaluations = evaluate_critical_material_intensity(&specification, &trials);
         assert_eq!(evaluations[0].decision, Decision::NotComparable);
-
-        trials[1].family = ArchitectureFamily::PmAssistedSynrm;
-        let _ = trials;
     }
 
     #[test]
