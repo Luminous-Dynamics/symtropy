@@ -28,7 +28,7 @@ jobs:
         with:
           components: rustfmt, clippy
       - name: Validate report schema
-        run: jq empty tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json
+        run: jq empty tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_2.schema.json
       - name: Check formatting
         run: cargo fmt --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all -- --check
       - name: Run unit and adversarial contract tests
@@ -89,9 +89,9 @@ jobs:
             --candidate-dir "$RUNNER_TEMP/nlr-candidate-synthetic" \
             --candidate-id deterministic-half-kw-bias \
             --candidate-evidence-class simulated \
-            --source-revision synthetic-fixture-v0.1 \
+            --source-revision synthetic-fixture-v0.2 \
             --output nlr-profile-audit-report.json
-          jq -e '.report.reference_profile_count == 81 and .report.expected_intervals_per_profile == 96 and .report.reference_total_interval_count == 7776 and .report.candidate_comparison.profile_count == 81 and .report.candidate_comparison.interval_count == 7776 and (.report.candidate_comparison.mean_absolute_error_kw - 0.5 | fabs < 0.000001) and (.report.candidate_comparison.mean_bias_kw - 0.5 | fabs < 0.000001)' nlr-profile-audit-report.json
+          jq -e '.report.reference_profile_count == 81 and .report.expected_intervals_per_profile == 96 and .report.reference_total_interval_count == 7776 and .report.candidate_comparison.profile_count == 81 and .report.candidate_comparison.interval_count == 7776 and (.report.candidate_comparison.mean_absolute_error_kw - 0.5 | fabs < 0.000001) and (.report.candidate_comparison.mean_bias_kw - 0.5 | fabs < 0.000001) and (.report.candidate_comparison.load_duration_curve_mae_kw - 0.5 | fabs < 0.000001) and (.report.candidate_comparison.ramp_mae_kw_per_15min | fabs < 0.000001) and (.report.candidate_comparison.maximum_peak_time_absolute_error_minutes == 0)' nlr-profile-audit-report.json
           sha256sum nlr-profile-audit-report.json > nlr-profile-audit-report.sha256
       - name: Capture standalone lockfile digest
         run: |
@@ -107,6 +107,6 @@ jobs:
             nlr-profile-audit-report.sha256
             tools/ev-nlr-profile-audit/Cargo.lock
             nlr-profile-audit-cargo-lock.sha256
-            tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_1.schema.json
+            tools/ev-nlr-profile-audit/schemas/ev_nlr_profile_audit_report_v0_2.schema.json
           if-no-files-found: error
           retention-days: 14
