@@ -182,7 +182,8 @@
         "instrument_id": "SYNTHETIC-FLUXMETER",
         "calibration_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
         "uncertainty_record_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "evidence_class": "SyntheticControl"
+        "evidence_class": "SyntheticControl",
+        "measurement_id": "SYNTHETIC-BULK-FLUX-MEASUREMENT"
       },
       "flux_measurements": [
         {
