@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-claim-defeater-resolution-v0.1.schema.json",
+  "title": "AERO Claim Defeater Resolution v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "requirement_profile",
+    "claim_specification",
+    "decision_context",
+    "receipts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroClaimDefeaterResolutionV0_1"
+    },
+    "requirement_profile": {
+      "const": "AERO_SCALAR_ENGINEERING_CLAIM_V0_1"
+    },
+    "claim_specification": {
+      "type": "object"
+    },
+    "decision_context": {
+      "type": "object"
+    },
+    "receipts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "verification_status",
+          "reviewer_namespace",
+          "authority_holder_namespace",
+          "authority_role_ref",
+          "claim_id",
+          "configuration_ref",
+          "decision_context_sha256",
+          "claim_specification_semantic_sha256",
+          "obligation_profile_sha256",
+          "obligation_manifest_sha256",
+          "obligation_id",
+          "requirement_source_ref",
+          "defeater_kind",
+          "statement_sha256",
+          "state",
+          "supporting_evidence_refs",
+          "supporting_evidence_manifest_sha256",
+          "rationale_sha256",
+          "receiver_first_seen_at_unix_ms",
+          "effective_from_unix_ms",
+          "effective_until_unix_ms",
+          "receipt_sha256"
+        ],
+        "properties": {
+          "verification_status": {
+            "enum": [
+              "VERIFIED",
+              "UNVERIFIED",
+              "FAILED"
+            ]
+          },
+          "reviewer_namespace": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "authority_holder_namespace": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "authority_role_ref": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "claim_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "configuration_ref": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "decision_context_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "claim_specification_semantic_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "obligation_profile_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "obligation_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "obligation_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "requirement_source_ref": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          },
+          "defeater_kind": {
+            "enum": [
+              "ASSUMPTION",
+              "EXCLUSION"
+            ]
+          },
+          "statement_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "state": {
+            "enum": [
+              "OPEN",
+              "RESOLVED_WITH_EVIDENCE",
+              "ACCEPTED_AS_LIMITATION",
+              "NOT_APPLICABLE_WITH_JUSTIFICATION"
+            ]
+          },
+          "supporting_evidence_refs": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+            }
+          },
+          "supporting_evidence_manifest_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "rationale_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receiver_first_seen_at_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "effective_from_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "effective_until_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "receipt_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  }
+}
