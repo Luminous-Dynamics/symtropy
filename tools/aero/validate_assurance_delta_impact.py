@@ -29,7 +29,17 @@ def digest_json(value: Any) -> str:
 
 
 def graph_sha256(graph: dict[str, Any]) -> str:
-    nodes = sorted(graph["nodes"], key=lambda item: item["node_id"])
+    source_nodes = sorted(graph["nodes"], key=lambda item: item["node_id"])
+    nodes = [
+        {
+            "node_id": item["node_id"],
+            "owner_namespace": item["owner_namespace"],
+            "kind": item["kind"],
+            "content_sha256": item["content_sha256"],
+            "dependency_manifest_complete": item["dependency_manifest_complete"],
+        }
+        for item in source_nodes
+    ]
     edges = sorted(
         graph["edges"],
         key=lambda item: (item["dependent_node_id"], item["dependency_node_id"]),
