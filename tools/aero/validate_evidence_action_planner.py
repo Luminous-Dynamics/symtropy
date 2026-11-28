@@ -56,6 +56,16 @@ def validate_input(source: dict[str, Any]) -> None:
     if len(action_ids) != len(set(action_ids)):
         raise ValueError("action IDs are not unique")
     for action in source["actions"]:
+        authorization = action["authorization_receipt"]
+        if action["authorization_status"] == "VERIFIED_PERMITTED" and authorization is None:
+            raise ValueError(f"{action['action_id']}: verified action is missing its permission receipt")
+        if authorization is not None and authorization["effective_from_unix_ms"] >= authorization["effective_until_unix_ms"]:
+            raise ValueError(f"{action['action_id']}: malformed permission receipt interval")
+        calibration = action["calibration_receipt"]
+        if action["calibration_status"] == "QUALIFIED_FOR_DECLARED_PURPOSE" and calibration is None:
+            raise ValueError(f"{action['action_id']}: qualified outcome model is missing its receipt")
+        if calibration is not None and calibration["effective_from_unix_ms"] >= calibration["effective_until_unix_ms"]:
+            raise ValueError(f"{action['action_id']}: malformed calibration receipt interval")
         keys = [(item["state_id"], item["outcome_id"]) for item in action["outcome_likelihoods"]]
         outcome_ids = {item["outcome_id"] for item in action["outcome_likelihoods"]}
         expected = {(state, outcome) for state in states for outcome in outcome_ids}
@@ -89,27 +99,61 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
     for action in source["actions"]:
         auth = action["authorization_status"]
         calibration = action["calibration_status"]
+        authorization = action["authorization_receipt"]
+        calibration_receipt = action["calibration_receipt"]
+        authorization_reason = None
         if auth == "DENIED":
-            excluded.append({"action_id": action["action_id"], "reason_code": "ACTION_AUTHORITY_DENIED"})
-            continue
-        if auth == "UNKNOWN":
-            excluded.append({"action_id": action["action_id"], "reason_code": "ACTION_AUTHORITY_UNKNOWN"})
-            continue
-        if auth != "VERIFIED_PERMITTED":
+            authorization_reason = "ACTION_AUTHORITY_DENIED"
+        elif auth == "UNKNOWN":
+            authorization_reason = "ACTION_AUTHORITY_UNKNOWN"
+        elif auth != "VERIFIED_PERMITTED":
             raise ValueError(f"{action['action_id']}: unsupported authority state")
+        elif (
+            authorization["owner_namespace"] != action["owner_namespace"]
+            or authorization["claim_id"] != source["claim_id"]
+            or authorization["decision_context_sha256"] != source["decision_context_sha256"]
+            or authorization["configuration_ref"] != source["configuration_ref"]
+            or authorization["action_id"] != action["action_id"]
+            or authorization["action_catalogue_entry_sha256"] != action["action_catalogue_entry_sha256"]
+        ):
+            authorization_reason = "ACTION_AUTHORIZATION_SCOPE_MISMATCH"
+        elif authorization["receiver_first_seen_at_unix_ms"] > source["as_known_at_unix_ms"]:
+            authorization_reason = "ACTION_AUTHORIZATION_NOT_KNOWN_AT_CUTOFF"
+        elif (
+            authorization["effective_from_unix_ms"] > source["as_known_at_unix_ms"]
+            or authorization["effective_until_unix_ms"] <= source["as_known_at_unix_ms"]
+        ):
+            authorization_reason = "ACTION_AUTHORIZATION_NOT_EFFECTIVE_AT_CUTOFF"
+
+        calibration_reason = None
         if calibration == "UNVERIFIED":
-            excluded.append({"action_id": action["action_id"], "reason_code": "ACTION_OUTCOME_MODEL_UNVERIFIED"})
-            continue
-        if calibration == "OUT_OF_DOMAIN":
-            excluded.append({"action_id": action["action_id"], "reason_code": "ACTION_OUTCOME_MODEL_OUT_OF_DOMAIN"})
-            continue
-        if calibration == "NOT_ESTIMABLE":
-            excluded.append({"action_id": action["action_id"], "reason_code": "ACTION_OUTCOME_MODEL_NOT_ESTIMABLE"})
-            continue
-        if calibration != "QUALIFIED_FOR_DECLARED_PURPOSE":
+            calibration_reason = "ACTION_OUTCOME_MODEL_UNVERIFIED"
+        elif calibration == "OUT_OF_DOMAIN":
+            calibration_reason = "ACTION_OUTCOME_MODEL_OUT_OF_DOMAIN"
+        elif calibration == "NOT_ESTIMABLE":
+            calibration_reason = "ACTION_OUTCOME_MODEL_NOT_ESTIMABLE"
+        elif calibration != "QUALIFIED_FOR_DECLARED_PURPOSE":
             raise ValueError(f"{action['action_id']}: unsupported calibration state")
-        if not action.get("authorization_receipt_sha256"):
-            raise ValueError(f"{action['action_id']}: verified action has no receipt digest")
+        elif (
+            calibration_receipt["claim_id"] != source["claim_id"]
+            or calibration_receipt["decision_context_sha256"] != source["decision_context_sha256"]
+            or calibration_receipt["configuration_ref"] != source["configuration_ref"]
+            or calibration_receipt["action_id"] != action["action_id"]
+            or calibration_receipt["outcome_model_sha256"] != source["outcome_model_sha256"]
+        ):
+            calibration_reason = "ACTION_CALIBRATION_SCOPE_MISMATCH"
+        elif calibration_receipt["receiver_first_seen_at_unix_ms"] > source["as_known_at_unix_ms"]:
+            calibration_reason = "ACTION_CALIBRATION_NOT_KNOWN_AT_CUTOFF"
+        elif (
+            calibration_receipt["effective_from_unix_ms"] > source["as_known_at_unix_ms"]
+            or calibration_receipt["effective_until_unix_ms"] <= source["as_known_at_unix_ms"]
+        ):
+            calibration_reason = "ACTION_CALIBRATION_NOT_EFFECTIVE_AT_CUTOFF"
+
+        exclusion_reason = authorization_reason or calibration_reason
+        if exclusion_reason is not None:
+            excluded.append({"action_id": action["action_id"], "reason_code": exclusion_reason})
+            continue
 
         likelihoods = {
             (item["state_id"], item["outcome_id"]): item["likelihood_ppm"]
