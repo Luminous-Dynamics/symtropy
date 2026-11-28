@@ -752,46 +752,70 @@ fn validate_observations(
 }
 
 fn calculate_yield_summary(cohort: &PairedCohort) -> Option<YieldSummary> {
-    if cohort.builds.is_empty() {
+    if cohort.pair_blocks.is_empty() {
         return None;
     }
-    let virgin = cohort
+
+    // Pair blocks are the denominator manifest, not the subset of build
+    // receipts that happened to arrive.
+    let virgin_build_ids = cohort
+        .pair_blocks
+        .iter()
+        .map(|block| block.virgin_build_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let recovered_build_ids = cohort
+        .pair_blocks
+        .iter()
+        .map(|block| block.recovered_build_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let builds_by_id = cohort
         .builds
         .iter()
-        .filter(|build| build.condition == MaterialCondition::Virgin)
-        .collect::<Vec<_>>();
-    let recovered = cohort
-        .builds
+        .map(|build| (build.build_id.as_str(), build))
+        .collect::<BTreeMap<_, _>>();
+
+    let virgin_first_pass = virgin_build_ids
         .iter()
-        .filter(|build| build.condition == MaterialCondition::Recovered)
-        .collect::<Vec<_>>();
-    if virgin.is_empty() || recovered.is_empty() {
-        return None;
-    }
-    let virgin_first_pass = virgin
-        .iter()
-        .filter(|build| build.first_pass_disposition == BuildDisposition::Qualified)
+        .filter(|id| {
+            builds_by_id
+                .get(**id)
+                .is_some_and(|build| build.first_pass_disposition == BuildDisposition::Qualified)
+        })
         .count() as u32;
-    let recovered_first_pass = recovered
+    let recovered_first_pass = recovered_build_ids
         .iter()
-        .filter(|build| build.first_pass_disposition == BuildDisposition::Qualified)
+        .filter(|id| {
+            builds_by_id
+                .get(**id)
+                .is_some_and(|build| build.first_pass_disposition == BuildDisposition::Qualified)
+        })
         .count() as u32;
-    let virgin_final = virgin
+    let virgin_final = virgin_build_ids
         .iter()
-        .filter(|build| build.final_disposition == BuildDisposition::Qualified)
+        .filter(|id| {
+            builds_by_id
+                .get(**id)
+                .is_some_and(|build| build.final_disposition == BuildDisposition::Qualified)
+        })
         .count() as u32;
-    let recovered_final = recovered
+    let recovered_final = recovered_build_ids
         .iter()
-        .filter(|build| build.final_disposition == BuildDisposition::Qualified)
+        .filter(|id| {
+            builds_by_id
+                .get(**id)
+                .is_some_and(|build| build.final_disposition == BuildDisposition::Qualified)
+        })
         .count() as u32;
 
+    let virgin_initiated = cohort.pair_blocks.len() as u32;
+    let recovered_initiated = cohort.pair_blocks.len() as u32;
     Some(YieldSummary {
-        virgin_initiated: virgin.len() as u32,
-        recovered_initiated: recovered.len() as u32,
+        virgin_initiated,
+        recovered_initiated,
         virgin_first_pass_qualified: virgin_first_pass,
         recovered_first_pass_qualified: recovered_first_pass,
-        virgin_first_pass_yield: f64::from(virgin_first_pass) / virgin.len() as f64,
-        recovered_first_pass_yield: f64::from(recovered_first_pass) / recovered.len() as f64,
+        virgin_first_pass_yield: f64::from(virgin_first_pass) / f64::from(virgin_initiated),
+        recovered_first_pass_yield: f64::from(recovered_first_pass) / f64::from(recovered_initiated),
         virgin_final_qualified: virgin_final,
         recovered_final_qualified: recovered_final,
     })
@@ -1088,6 +1112,18 @@ mod tests {
         let result = evaluate_paired_cohort(&spec(), &data);
         assert_eq!(result.decision, Decision::Indeterminate);
         assert!(result.blockers.contains(&Blocker::MissingBuildEvidence));
+    }
+
+    #[test]
+    fn missing_build_record_remains_in_first_pass_yield_denominator() {
+        let mut data = cohort(0.89, 148.0, 2.1);
+        data.builds.retain(|build| build.build_id != "R-0-0");
+        let result = evaluate_paired_cohort(&spec(), &data);
+        let summary = result.yield_summary.unwrap();
+        assert_eq!(summary.recovered_initiated, 9);
+        assert_eq!(summary.recovered_first_pass_qualified, 8);
+        assert!((summary.recovered_first_pass_yield - (8.0 / 9.0)).abs() < 1e-12);
+        assert_eq!(result.decision, Decision::Indeterminate);
     }
 
     #[test]
