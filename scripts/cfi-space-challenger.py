@@ -233,7 +233,7 @@ def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict
 
 def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
     exact_keys(doc, {"schema_version", "benchmark_id", "episodes"}, "ledger")
-    require(is_int(doc["schema_version"]) and doc["schema_version"] == 1,
+    require(is_int(doc["schema_version"]) and doc["schema_version"] == 2,
             "unsupported ledger schema version")
     require(is_string(doc["benchmark_id"]), "ledger benchmark_id is empty")
     rows = doc["episodes"]
