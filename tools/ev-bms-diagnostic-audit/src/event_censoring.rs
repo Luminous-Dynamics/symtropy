@@ -33,6 +33,7 @@ struct EvaluationManifest {
     evidence_class: String,
     time_basis_id: String,
     time_alignment_id: String,
+    time_alignment_artifact_sha256: String,
     time_alignment_method: String,
     max_relative_clock_error_ms: u64,
     alignment_uncertainty_preapplied: bool,
@@ -94,6 +95,7 @@ pub struct EventCensoringReport {
     pub evidence_class: String,
     pub time_basis_id: String,
     pub time_alignment_id: String,
+    pub time_alignment_artifact_sha256: String,
     pub time_alignment_method: String,
     pub max_relative_clock_error_ms: u64,
     pub alignment_uncertainty_preapplied: bool,
@@ -295,6 +297,7 @@ fn validate_and_evaluate(
     }
     if !nonempty(&manifest.time_basis_id)
         || !nonempty(&manifest.time_alignment_id)
+        || !is_sha256(&manifest.time_alignment_artifact_sha256)
         || !["synthetic_shared_clock", "shared_hardware_clock", "ptp_ntp_verified", "reference_event_alignment", "operator_adjudicated_alignment"].contains(&manifest.time_alignment_method.as_str())
         || !manifest.alignment_uncertainty_preapplied
     {
@@ -723,6 +726,7 @@ fn validate_and_evaluate(
         evidence_class: manifest.evidence_class.clone(),
         time_basis_id: manifest.time_basis_id.clone(),
         time_alignment_id: manifest.time_alignment_id.clone(),
+        time_alignment_artifact_sha256: manifest.time_alignment_artifact_sha256.clone(),
         time_alignment_method: manifest.time_alignment_method.clone(),
         max_relative_clock_error_ms: manifest.max_relative_clock_error_ms,
         alignment_uncertainty_preapplied: manifest.alignment_uncertainty_preapplied,
