@@ -26,11 +26,14 @@ The CLI refuses input files larger than 32 MiB and refuses to overwrite existing
 ## Known-answer and negative controls
 
 - Diverse non-coplanar landmarks should produce full-rank information.
-- Repeated points on the optical axis leave a rotational mode unobservable.
+- Repeated points on the optical axis leave two local modes unobservable: translation along the viewing axis (range) and rotation about the optical axis (roll).
 - Collinear landmarks expose rank deficiency.
 - A common 2D correspondence bias can leave the FIM full-rank while producing very high reprojection residual. This proves that FIM is not a truth or correspondence-authentication certificate.
 - Invalid depth, noise, intrinsics, duplicate IDs and malformed values reject.
 - Translation scale changes the FIM and is explicitly committed to the request.
+- The analytic pinhole/SE(3) Jacobian matches finite differences under the declared left-perturbation and scaled-translation convention.
+
+An independent standard-library Python challenger recomputes the FIM, six eigenvalues, rank, weak mode and residual diagnostics for all four fixtures. The focused workflow compares the Rust CLI output to the independent implementation, allowing eigenvector sign ambiguity and skipping vector identity checks in degenerate eigenspaces.
 
 Run:
 
@@ -38,6 +41,7 @@ Run:
 cargo fmt --manifest-path tools/pose-observability-bench/Cargo.toml -- --check
 cargo test --manifest-path tools/pose-observability-bench/Cargo.toml
 cargo clippy --manifest-path tools/pose-observability-bench/Cargo.toml --all-targets -- -D warnings
+python3 scripts/pose-observability-challenger.py --input research/spacecraft/pose-observability/fixtures/diverse-full-rank-v0.1.json
 ```
 
 ## Limits
