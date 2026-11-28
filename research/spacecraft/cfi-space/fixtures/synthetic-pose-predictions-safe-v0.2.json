@@ -1,0 +1,191 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "CFI-SPACE-SYNTHETIC-CONTRACT-001",
+  "predictions": [
+    {
+      "episode_id": "episode-a-clean",
+      "input_bundle_sha256": "503479d00d58ef1e697e737c1bb9ccd4ebc75b5f46776122c6d3e9b50f58314a",
+      "disposition": "qualified",
+      "detected_fault_families": [],
+      "pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1.01,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "uncertainty_region": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_lower_m": [
+          0.9,
+          -0.1,
+          -0.1
+        ],
+        "translation_upper_m": [
+          1.1,
+          0.1,
+          0.1
+        ],
+        "orientation_center_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "orientation_half_angle_rad": 0.05
+      },
+      "orientation_method": "direct_orientation_v0",
+      "translation_method": "geometry_translation_v0"
+    },
+    {
+      "episode_id": "episode-a-clock",
+      "input_bundle_sha256": "74b11a087d58ccf8be2589c57ee2a0f9d75afd938a68dcff7625a7162c474943",
+      "disposition": "out_of_scope",
+      "detected_fault_families": [
+        "timing"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-a-extrinsics",
+      "input_bundle_sha256": "02d3a3afdbae85f799c08dd5928aa73c87080ef6f8c078f437ad4e1d9099dba2",
+      "disposition": "disagreement",
+      "detected_fault_families": [
+        "extrinsics"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-a-common",
+      "input_bundle_sha256": "60c6f78a662e62af9a7f171de20cd80f0c05fb94293d1cf7afcc33b2fc9db575",
+      "disposition": "dependence_unknown",
+      "detected_fault_families": [
+        "common_cause"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-a-translation",
+      "input_bundle_sha256": "2188209323921871c551b45d2cb933b0a41a3b5de779ef2b9c434537eda33ac1",
+      "disposition": "abstain",
+      "detected_fault_families": [
+        "translation"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-a-ood",
+      "input_bundle_sha256": "9760144fd5eac4c261e088b5431f249f3ac68333f05cd1153c6ec77f9e7a65ce",
+      "disposition": "abstain",
+      "detected_fault_families": [
+        "observability"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-a-integrity",
+      "input_bundle_sha256": "98571f6fc460ecb84c7428e1a8549b9acf35534bc527bcaef3e53ce89877af7b",
+      "disposition": "missing_evidence",
+      "detected_fault_families": [
+        "integrity"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-a-interaction",
+      "input_bundle_sha256": "38d824dda4d4ddce8c3493fc2b17b328ca7da96723310b78903a7f4340f71c99",
+      "disposition": "dependence_unknown",
+      "detected_fault_families": [
+        "timing",
+        "extrinsics"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    },
+    {
+      "episode_id": "episode-b-clean",
+      "input_bundle_sha256": "79a5d1d0ff7cdbd07f4cf747f16e5c1ba5c4a24ca51e5ee9a07514081e0f5fc3",
+      "disposition": "qualified",
+      "detected_fault_families": [],
+      "pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          2.01,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          -1
+        ]
+      },
+      "uncertainty_region": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_lower_m": [
+          1.9,
+          -0.1,
+          -0.1
+        ],
+        "translation_upper_m": [
+          2.1,
+          0.1,
+          0.1
+        ],
+        "orientation_center_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "orientation_half_angle_rad": 0.05
+      },
+      "orientation_method": "direct_orientation_v0",
+      "translation_method": "geometry_translation_v0"
+    },
+    {
+      "episode_id": "episode-b-clock",
+      "input_bundle_sha256": "f6e1219b21298dd1d637ff48b0f23261ad0909ad6444cd2297ead3f4a6c8cfb6",
+      "disposition": "out_of_scope",
+      "detected_fault_families": [
+        "timing"
+      ],
+      "pose": null,
+      "uncertainty_region": null,
+      "orientation_method": null,
+      "translation_method": null
+    }
+  ]
+}

@@ -73,6 +73,7 @@ struct LedgerEpisode {
     fault_families: Vec<FaultFamily>,
     critical: bool,
     expected_disposition: Disposition,
+    ground_truth_pose: PoseGroundTruth,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -144,6 +145,37 @@ struct PredictionFile {
     predictions: Vec<Prediction>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PoseGroundTruth {
+    coordinate_frame: String,
+    transform_direction: String,
+    translation_m: [f64; 3],
+    orientation_xyzw: [f64; 4],
+    annotation_sha256: String,
+    label_audit_sha256: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PoseEstimate {
+    coordinate_frame: String,
+    transform_direction: String,
+    translation_m: [f64; 3],
+    orientation_xyzw: [f64; 4],
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PoseRegion {
+    coordinate_frame: String,
+    transform_direction: String,
+    translation_lower_m: [f64; 3],
+    translation_upper_m: [f64; 3],
+    orientation_center_xyzw: [f64; 4],
+    orientation_half_angle_rad: f64,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Prediction {
@@ -151,6 +183,10 @@ struct Prediction {
     input_bundle_sha256: String,
     disposition: Disposition,
     detected_fault_families: Vec<FaultFamily>,
+    pose: Option<PoseEstimate>,
+    uncertainty_region: Option<PoseRegion>,
+    orientation_method: Option<String>,
+    translation_method: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -172,6 +208,11 @@ struct Score {
     false_positive_family_labels: usize,
     family_detection: Vec<FamilyMetric>,
     generalization: Vec<GeneralizationMetric>,
+    pose_estimates: usize,
+    pose_region_covered: usize,
+    pose_silent_misses: usize,
+    pose_metrics: Vec<PoseMetric>,
+    pose_summary: Option<PoseSummary>,
 }
 
 #[derive(Debug, Serialize)]
@@ -179,6 +220,32 @@ struct FamilyMetric {
     family: FaultFamily,
     episodes: usize,
     detected: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct PoseMetric {
+    episode_id: String,
+    translation_error_m: f64,
+    relative_translation_error: Option<f64>,
+    rotation_error_rad: f64,
+    rotation_error_deg: f64,
+    uncertainty_region_covered: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct PoseSummary {
+    estimates: usize,
+    region_coverage_denominator: usize,
+    region_covered: usize,
+    silent_misses: usize,
+    median_translation_error_m: f64,
+    p95_translation_error_m: f64,
+    median_relative_translation_error: Option<f64>,
+    p95_relative_translation_error: Option<f64>,
+    median_rotation_error_rad: f64,
+    p95_rotation_error_rad: f64,
+    median_rotation_error_deg: f64,
+    p95_rotation_error_deg: f64,
 }
 
 #[derive(Debug, Serialize)]
@@ -447,8 +514,189 @@ fn validate_candidate_manifest(
     Ok(())
 }
 
+fn finite_vec3(value: &[f64; 3], name: &str) -> Result<(), String> {
+    if value.iter().any(|component| !component.is_finite()) {
+        return Err(format!("{name} contains a non-finite value"));
+    }
+    Ok(())
+}
+
+fn quaternion_norm(value: &[f64; 4]) -> f64 {
+    value.iter().map(|component| component * component).sum::<f64>().sqrt()
+}
+
+fn validate_quaternion(value: &[f64; 4], name: &str) -> Result<(), String> {
+    if value.iter().any(|component| !component.is_finite()) {
+        return Err(format!("{name} contains a non-finite component"));
+    }
+    let norm = quaternion_norm(value);
+    if !norm.is_finite() || (norm - 1.0).abs() > 1e-3 {
+        return Err(format!("{name} must be a unit quaternion (norm tolerance 1e-3)"));
+    }
+    Ok(())
+}
+
+fn quaternion_geodesic_rad(left: &[f64; 4], right: &[f64; 4]) -> f64 {
+    let left_norm = quaternion_norm(left);
+    let right_norm = quaternion_norm(right);
+    let dot = left
+        .iter()
+        .zip(right.iter())
+        .map(|(a, b)| a * b)
+        .sum::<f64>()
+        / (left_norm * right_norm);
+    2.0 * dot.abs().clamp(0.0, 1.0).acos()
+}
+
+fn translation_distance(left: &[f64; 3], right: &[f64; 3]) -> f64 {
+    left.iter()
+        .zip(right.iter())
+        .map(|(a, b)| (a - b) * (a - b))
+        .sum::<f64>()
+        .sqrt()
+}
+
+fn validate_ground_truth_pose(pose: &PoseGroundTruth, episode_id: &str) -> Result<(), String> {
+    require_nonempty(&pose.coordinate_frame, "ground-truth coordinate_frame")?;
+    require_nonempty(&pose.transform_direction, "ground-truth transform_direction")?;
+    finite_vec3(&pose.translation_m, "ground-truth translation_m")?;
+    validate_quaternion(&pose.orientation_xyzw, "ground-truth orientation_xyzw")?;
+    if !is_sha256_hex(&pose.annotation_sha256) || !is_sha256_hex(&pose.label_audit_sha256) {
+        return Err(format!(
+            "episode {episode_id} ground-truth annotation/label-audit digest is malformed"
+        ));
+    }
+    Ok(())
+}
+
+fn validate_pose_prediction(
+    prediction: &Prediction,
+    truth: &LedgerEpisode,
+) -> Result<Option<PoseMetric>, String> {
+    let qualified = prediction.disposition == Disposition::Qualified;
+    match (
+        qualified,
+        prediction.pose.as_ref(),
+        prediction.uncertainty_region.as_ref(),
+        prediction.orientation_method.as_deref(),
+        prediction.translation_method.as_deref(),
+    ) {
+        (true, Some(pose), Some(region), Some(orientation_method), Some(translation_method)) => {
+            require_nonempty(orientation_method, "orientation_method")?;
+            require_nonempty(translation_method, "translation_method")?;
+            if pose.coordinate_frame != truth.ground_truth_pose.coordinate_frame
+                || pose.transform_direction != truth.ground_truth_pose.transform_direction
+                || region.coordinate_frame != truth.ground_truth_pose.coordinate_frame
+                || region.transform_direction != truth.ground_truth_pose.transform_direction
+            {
+                return Err(format!(
+                    "episode {} pose/region coordinate-frame or transform-direction mismatch",
+                    prediction.episode_id
+                ));
+            }
+            finite_vec3(&pose.translation_m, "pose translation_m")?;
+            validate_quaternion(&pose.orientation_xyzw, "pose orientation_xyzw")?;
+            finite_vec3(&region.translation_lower_m, "region translation_lower_m")?;
+            finite_vec3(&region.translation_upper_m, "region translation_upper_m")?;
+            validate_quaternion(
+                &region.orientation_center_xyzw,
+                "region orientation_center_xyzw",
+            )?;
+            if !region.orientation_half_angle_rad.is_finite()
+                || !(0.0..=std::f64::consts::PI).contains(&region.orientation_half_angle_rad)
+            {
+                return Err(format!(
+                    "episode {} region orientation half-angle must be in [0, pi]",
+                    prediction.episode_id
+                ));
+            }
+            for axis in 0..3 {
+                if region.translation_lower_m[axis] > region.translation_upper_m[axis] {
+                    return Err(format!(
+                        "episode {} uncertainty translation lower bound exceeds upper bound on axis {axis}",
+                        prediction.episode_id
+                    ));
+                }
+            }
+
+            let translation_error_m =
+                translation_distance(&pose.translation_m, &truth.ground_truth_pose.translation_m);
+            let ground_truth_range =
+                truth.ground_truth_pose.translation_m.iter().map(|v| v * v).sum::<f64>().sqrt();
+            let relative_translation_error = (ground_truth_range > 1e-9)
+                .then_some(translation_error_m / ground_truth_range);
+            let rotation_error_rad = quaternion_geodesic_rad(
+                &pose.orientation_xyzw,
+                &truth.ground_truth_pose.orientation_xyzw,
+            );
+            let translation_inside = (0..3).all(|axis| {
+                truth.ground_truth_pose.translation_m[axis] >= region.translation_lower_m[axis]
+                    && truth.ground_truth_pose.translation_m[axis]
+                        <= region.translation_upper_m[axis]
+            });
+            let orientation_inside = quaternion_geodesic_rad(
+                &region.orientation_center_xyzw,
+                &truth.ground_truth_pose.orientation_xyzw,
+            ) <= region.orientation_half_angle_rad + 1e-12;
+            Ok(Some(PoseMetric {
+                episode_id: prediction.episode_id.clone(),
+                translation_error_m,
+                relative_translation_error,
+                rotation_error_rad,
+                rotation_error_deg: rotation_error_rad.to_degrees(),
+                uncertainty_region_covered: translation_inside && orientation_inside,
+            }))
+        }
+        (false, None, None, None, None) => Ok(None),
+        _ => Err(format!(
+            "episode {} must emit a pose, region and both component method IDs iff disposition is qualified",
+            prediction.episode_id
+        )),
+    }
+}
+
+fn quantile(values: &mut [f64], probability: f64) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+    values.sort_by(f64::total_cmp);
+    if values.len() == 1 {
+        return Some(values[0]);
+    }
+    let position = probability * (values.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    let weight = position - lower as f64;
+    Some(values[lower] * (1.0 - weight) + values[upper] * weight)
+}
+
+fn summarize_pose_metrics(metrics: &[PoseMetric]) -> Option<PoseSummary> {
+    if metrics.is_empty() {
+        return None;
+    }
+    let mut translation: Vec<_> = metrics.iter().map(|row| row.translation_error_m).collect();
+    let mut relative: Vec<_> = metrics.iter().filter_map(|row| row.relative_translation_error).collect();
+    let mut rotation_rad: Vec<_> = metrics.iter().map(|row| row.rotation_error_rad).collect();
+    let mut rotation_deg: Vec<_> = metrics.iter().map(|row| row.rotation_error_deg).collect();
+    let region_covered = metrics.iter().filter(|row| row.uncertainty_region_covered).count();
+    Some(PoseSummary {
+        estimates: metrics.len(),
+        region_coverage_denominator: metrics.len(),
+        region_covered,
+        silent_misses: metrics.len() - region_covered,
+        median_translation_error_m: quantile(&mut translation, 0.5)?,
+        p95_translation_error_m: quantile(&mut translation, 0.95)?,
+        median_relative_translation_error: quantile(&mut relative, 0.5),
+        p95_relative_translation_error: quantile(&mut relative, 0.95),
+        median_rotation_error_rad: quantile(&mut rotation_rad, 0.5)?,
+        p95_rotation_error_rad: quantile(&mut rotation_rad, 0.95)?,
+        median_rotation_error_deg: quantile(&mut rotation_deg, 0.5)?,
+        p95_rotation_error_deg: quantile(&mut rotation_deg, 0.95)?,
+    })
+}
+
 fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
-    if ledger.schema_version != 1 {
+    if ledger.schema_version != 2 {
         return Err(format!(
             "unsupported evaluator ledger schema_version {}",
             ledger.schema_version
@@ -488,6 +736,7 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
         if !episode_ids.insert(&row.episode_id) {
             return Err(format!("duplicate evaluator episode_id {}", row.episode_id));
         }
+        validate_ground_truth_pose(&row.ground_truth_pose, &row.episode_id)?;
 
         let fault_ids: BTreeSet<_> = row.fault_ids.iter().collect();
         let fault_families: BTreeSet<_> = row.fault_families.iter().collect();
@@ -615,7 +864,7 @@ fn validate_and_score(
     validate_candidate_manifest(manifest, bundle_root)?;
     validate_ledger(ledger)?;
 
-    if predictions.schema_version != 1 {
+    if predictions.schema_version != 2 {
         return Err(format!(
             "unsupported predictions schema_version {}",
             predictions.schema_version
@@ -686,6 +935,7 @@ fn validate_and_score(
     let mut false_positive_family_labels = 0;
     let mut family_counts: BTreeMap<FaultFamily, (usize, usize)> = BTreeMap::new();
     let mut generalization_counts: BTreeMap<GeneralizationStratum, [usize; 7]> = BTreeMap::new();
+    let mut pose_metrics = Vec::new();
 
     for episode_id in &manifest_ids {
         let episode = candidate_by_id[episode_id];
@@ -710,6 +960,9 @@ fn validate_and_score(
             ));
         }
         let expected_families: BTreeSet<_> = truth.fault_families.iter().copied().collect();
+        if let Some(pose_metric) = validate_pose_prediction(prediction, truth)? {
+            pose_metrics.push(pose_metric);
+        }
 
         for family in &predicted_families {
             if !expected_families.contains(family) {
@@ -834,6 +1087,11 @@ fn validate_and_score(
         false_positive_family_labels,
         family_detection,
         generalization,
+        pose_estimates: pose_metrics.len(),
+        pose_region_covered: pose_metrics.iter().filter(|row| row.uncertainty_region_covered).count(),
+        pose_silent_misses: pose_metrics.iter().filter(|row| !row.uncertainty_region_covered).count(),
+        pose_summary: summarize_pose_metrics(&pose_metrics),
+        pose_metrics,
     })
 }
 
@@ -928,13 +1186,13 @@ mod tests {
         "../../../research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json"
     );
     const LEDGER: &str = include_str!(
-        "../../../research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json"
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json"
     );
     const SAFE_PREDICTIONS: &str = include_str!(
-        "../../../research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json"
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-safe-v0.2.json"
     );
     const UNSAFE_PREDICTIONS: &str = include_str!(
-        "../../../research/spacecraft/cfi-space/fixtures/synthetic-predictions-unsafe-v0.1.json"
+        "../../../research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-unsafe-v0.2.json"
     );
 
     fn parse<T: serde::de::DeserializeOwned>(source: &str) -> T {
@@ -958,6 +1216,11 @@ mod tests {
         assert_eq!(score.false_abstentions, 0);
         assert_eq!(score.correctly_contained_faults, 8);
         assert_eq!(score.exact_disposition_matches, 10);
+        assert_eq!(score.pose_estimates, 2);
+        assert_eq!(score.pose_region_covered, 2);
+        assert_eq!(score.pose_silent_misses, 0);
+        assert_eq!(score.pose_summary.as_ref().unwrap().silent_misses, 0);
+        assert_eq!(score.pose_metrics.len(), 2);
         assert_eq!(score.generalization.len(), 2);
         assert_eq!(
             score.generalization[0].stratum,
@@ -985,6 +1248,80 @@ mod tests {
         assert_eq!(score.unsafe_accepts, 1);
         assert_eq!(score.false_abstentions, 0);
         assert_eq!(score.exact_disposition_matches, 9);
+        assert_eq!(score.pose_estimates, 3);
+        assert_eq!(score.pose_region_covered, 2);
+        assert_eq!(score.pose_silent_misses, 1);
+        assert_eq!(score.pose_summary.as_ref().unwrap().silent_misses, 1);
+        let common = score.pose_metrics.iter().find(|row| row.episode_id == "episode-a-common").unwrap();
+        assert!((common.translation_error_m - 0.5).abs() < 1e-9);
+        assert!((common.rotation_error_deg - 45.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn antipodal_quaternions_have_zero_rotation_error() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        let score =
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
+
+        assert_eq!(score.pose_metrics.len(), 2);
+        assert!(score.pose_metrics.iter().all(|row| row.rotation_error_rad.abs() < 1e-12));
+    }
+
+    #[test]
+    fn qualified_pose_with_non_unit_quaternion_is_rejected() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[0].pose.as_mut().unwrap().orientation_xyzw = [0.0, 0.0, 0.0, 2.0];
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn pose_coordinate_frame_substitution_is_rejected() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[0].pose.as_mut().unwrap().coordinate_frame =
+            "world_inertial".to_string();
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn qualified_output_must_include_pose_and_region_and_abstention_must_not() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[0].uncertainty_region = None;
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[1].pose = Some(predictions.predictions[0].pose.clone().unwrap());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn invalid_ground_truth_annotation_digest_is_rejected() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let mut ledger: EvaluatorLedger = parse(LEDGER);
+        ledger.episodes[0].ground_truth_pose.annotation_sha256 = "not-a-digest".to_string();
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 
     #[test]
