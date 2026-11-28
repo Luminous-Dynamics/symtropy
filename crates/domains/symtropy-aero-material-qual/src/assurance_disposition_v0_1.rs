@@ -1135,7 +1135,7 @@ mod tests {
         let cases = fixture["cases"]
             .as_array()
             .expect("state-vector fixture contains cases");
-        assert_eq!(cases.len(), 10);
+        assert_eq!(cases.len(), 13);
 
         for value in cases {
             let mut value = value.clone();
