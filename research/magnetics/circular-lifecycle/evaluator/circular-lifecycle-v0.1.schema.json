@@ -157,7 +157,8 @@
             "Observation",
             "DisassemblyElapsedMinutes",
             "DisassemblyEnergyWh",
-            "QualifiedReuseFraction",
+            "DirectReuseFraction",
+            "RemanufacturedAcceptedFraction",
             "RecyclingFeedstockFraction"
           ]
         },
