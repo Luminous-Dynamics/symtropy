@@ -979,7 +979,8 @@ mod tests {
         let manifest: CandidateManifest = parse(MANIFEST);
         let ledger: EvaluatorLedger = parse(LEDGER);
         let predictions: PredictionFile = parse(UNSAFE_PREDICTIONS);
-        let score = validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
+        let score =
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
 
         assert_eq!(score.unsafe_accepts, 1);
         assert_eq!(score.false_abstentions, 0);
@@ -1005,7 +1006,9 @@ mod tests {
         ledger.episodes[1].split = Split::Calibration;
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 
     #[test]
