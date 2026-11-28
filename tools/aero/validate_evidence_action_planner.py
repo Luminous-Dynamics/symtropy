@@ -260,6 +260,7 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
             "action_catalogue_entry_sha256": action["action_catalogue_entry_sha256"],
             "authorization_receipt_sha256": authorization["receipt_sha256"],
             "calibration_receipt_sha256": calibration_receipt["calibration_report_sha256"],
+            "outcome_likelihoods_sha256": calibration_receipt["outcome_likelihoods_sha256"],
             "calibration_profile_sha256": calibration_receipt["calibration_profile_sha256"],
             "expected_artifact_contract_sha256": action["expected_artifact_contract_sha256"],
             "evsi_scaled_numerator": str(evsi_scaled),
