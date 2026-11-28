@@ -46,6 +46,110 @@ def require_unique(values: list[str], label: str) -> None:
         raise SystemExit(f"FAIL: duplicate {label}: {', '.join(duplicates)}")
 
 
+
+def source_binding_invariant_errors(source: dict[str, Any]) -> list[str]:
+    """Cross-check source bindings that JSON Schema cannot express."""
+    errors: list[str] = []
+    specification = source.get("claim_specification", {})
+    context = source.get("decision_context", {})
+    trust_policy = source.get("trust_policy", {})
+    observer = source.get("observer_coverage", {})
+    as_known = context.get("as_known_at_unix_ms")
+
+    if specification.get("claim_id") != context.get("claim_id"):
+        errors.append("claim ID mismatch")
+    if specification.get("sha256") != context.get("claim_specification_sha256"):
+        errors.append("claim specification digest mismatch")
+    if trust_policy.get("snapshot_sha256") != context.get("trust_policy_sha256"):
+        errors.append("trust-policy digest mismatch")
+    if context.get("acquisition_time_earliest_unix_ms", 0) > context.get("acquisition_time_latest_unix_ms", -1):
+        errors.append("malformed acquisition interval")
+    if observer.get("watermark_unix_ms", -1) < as_known:
+        errors.append("observer watermark does not cover as-known cutoff")
+
+    owner_cuts = source.get("owner_evidence_cuts", [])
+    owner_map: dict[str, dict[str, Any]] = {}
+    for cut in owner_cuts:
+        namespace = cut.get("owner_namespace")
+        if namespace in owner_map:
+            errors.append(f"duplicate owner cut: {namespace}")
+            continue
+        owner_map[namespace] = cut
+        if cut.get("receiver_receipt_watermark_unix_ms", -1) < as_known:
+            errors.append(f"owner receipt watermark below cutoff: {namespace}")
+        if cut.get("trust_policy_sha256") != context.get("trust_policy_sha256"):
+            errors.append(f"owner cut trust-policy mismatch: {namespace}")
+        if cut.get("observer_coverage_receipt_sha256") != observer.get("receipt_sha256"):
+            errors.append(f"owner cut observer receipt mismatch: {namespace}")
+        if cut.get("observer_coverage_profile_id") != observer.get("profile_id"):
+            errors.append(f"owner cut observer profile mismatch: {namespace}")
+        if cut.get("observer_coverage_watermark_unix_ms", -1) < as_known:
+            errors.append(f"owner cut observer watermark below cutoff: {namespace}")
+        if not cut.get("artifact_payloads_verified", False):
+            errors.append(f"owner payloads not verified: {namespace}")
+
+    intrinsic = {"CLAIM_IDENTITY", "EVIDENCE_INTEGRITY", "PRODUCER_AUTHORITY"}
+    obligations = source.get("obligations", [])
+    for kind in intrinsic:
+        matches = [item for item in obligations if item.get("kind") == kind]
+        if specification.get("assessment_disposition") == "FORMALLY_WELL_SPECIFIED" and (
+            not matches or any(not item.get("mandatory") or not item.get("hard_gate") for item in matches)
+        ):
+            errors.append(f"intrinsic gate missing or downgraded: {kind}")
+
+    seen_evidence: set[str] = set()
+    for obligation in obligations:
+        for evidence in obligation.get("evidence_bindings", []):
+            ref = evidence.get("evidence_ref")
+            if ref in seen_evidence:
+                errors.append(f"duplicate evidence reference: {ref}")
+            seen_evidence.add(ref)
+            namespace = evidence.get("owner_namespace")
+            cut = owner_map.get(namespace)
+            if cut is None:
+                errors.append(f"evidence has no matching owner cut: {ref}")
+                continue
+            record_map = {record.get("evidence_ref"): record for record in cut.get("evidence_records", [])}
+            record = record_map.get(ref)
+            if record is None:
+                errors.append(f"evidence missing from owner record manifest: {ref}")
+                continue
+            if record.get("record_sha256") != evidence.get("owner_record_sha256"):
+                errors.append(f"owner record digest mismatch: {ref}")
+            if (
+                evidence.get("subject_ref") != context.get("subject_ref")
+                or evidence.get("configuration_ref") != context.get("configuration_ref")
+                or record.get("subject_ref") != context.get("subject_ref")
+                or record.get("configuration_ref") != context.get("configuration_ref")
+            ):
+                errors.append(f"subject/configuration mismatch: {ref}")
+            interval = evidence.get("event_effective_interval")
+            if interval and interval.get("earliest_unix_ms", 0) > interval.get("latest_unix_ms", -1):
+                errors.append(f"malformed event interval: {ref}")
+            if evidence.get("admission_state") == "ADMITTED":
+                first_seen = evidence.get("receiver_first_seen_at_unix_ms")
+                if first_seen is None or first_seen > as_known:
+                    errors.append(f"admitted evidence was not known at cutoff: {ref}")
+                if first_seen is None or first_seen > cut.get("receiver_receipt_watermark_unix_ms", -1):
+                    errors.append(f"admitted evidence exceeds owner receipt watermark: {ref}")
+                if (
+                    evidence.get("owner_receipt_ref") is None
+                    or evidence.get("owner_receipt_sha256") is None
+                    or evidence.get("verification_state") != "VERIFIED"
+                    or evidence.get("verification_report_sha256") is None
+                    or evidence.get("lifecycle") != "active"
+                    or evidence.get("freshness") != "fresh"
+                    or evidence.get("dependency_coverage") != "complete"
+                    or record.get("lifecycle") != "active"
+                    or record.get("freshness") != "fresh"
+                    or record.get("dependency_coverage") != "complete"
+                    or record.get("requires_reverification")
+                    or not record.get("eligible_under_declared_coverage")
+                    or record.get("unresolved_inputs")
+                ):
+                    errors.append(f"admitted evidence fails owner/receipt/freshness/coverage contract: {ref}")
+    return errors
+
 def main() -> int:
     registry_schema_path = AVIATION / "schemas" / "aero_independent_assurance_benchmark_v0_3.schema.json"
     registry_path = AVIATION / "examples" / "aero_independent_assurance_benchmark_v0_3.json"
@@ -271,6 +375,174 @@ def main() -> int:
             raise SystemExit(
                 f"FAIL: ambiguous subject-time interval did not abstain in {case['case_id']}"
             )
+
+    source_schema_path = AVIATION / "schemas" / "aero_assurance_source_binding_v0_1.schema.json"
+    source_fixture_path = AVIATION / "examples" / "aero_assurance_source_binding_v0_1.json"
+    source_schema = load_json(source_schema_path)
+    source_fixture = load_json(source_fixture_path)
+    validate_instance(source_fixture, source_schema, "source-binding envelope")
+
+    specification = source_fixture["claim_specification"]
+    context = source_fixture["decision_context"]
+    if specification["claim_id"] != context["claim_id"]:
+        raise SystemExit("FAIL: source-binding claim specification/context IDs differ")
+    owner_cuts = source_fixture["owner_evidence_cuts"]
+    owner_watermarks = {}
+    owner_records = {}
+    for owner_cut in owner_cuts:
+        owner = owner_cut["owner_namespace"]
+        if owner in owner_watermarks:
+            raise SystemExit(f"FAIL: duplicate owner evidence cut: {owner}")
+        if owner_cut["receiver_receipt_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+            raise SystemExit(f"FAIL: owner receipt watermark does not cover as-known cutoff: {owner}")
+        if owner_cut["trust_policy_sha256"] != context["trust_policy_sha256"]:
+            raise SystemExit(f"FAIL: owner cut has a different trust-policy snapshot: {owner}")
+        if not owner_cut["artifact_payloads_verified"]:
+            raise SystemExit(f"FAIL: owner cut has unverified artifact payloads: {owner}")
+        if owner_cut["observer_coverage_receipt_sha256"] != source_fixture["observer_coverage"]["receipt_sha256"]:
+            raise SystemExit(f"FAIL: owner cut observer receipt mismatch: {owner}")
+        if owner_cut["observer_coverage_profile_id"] != source_fixture["observer_coverage"]["profile_id"]:
+            raise SystemExit(f"FAIL: owner cut observer profile mismatch: {owner}")
+        if owner_cut["observer_coverage_watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+            raise SystemExit(f"FAIL: owner-cut observer watermark does not cover as-known cutoff: {owner}")
+        owner_watermarks[owner] = owner_cut["receiver_receipt_watermark_unix_ms"]
+        records = {}
+        for record in owner_cut["evidence_records"]:
+            if record["evidence_ref"] in records:
+                raise SystemExit(f"FAIL: duplicate owner-cut evidence ref: {record['evidence_ref']}")
+            records[record["evidence_ref"]] = record
+        owner_records[owner] = records
+    if source_fixture["observer_coverage"]["watermark_unix_ms"] < context["as_known_at_unix_ms"]:
+        raise SystemExit("FAIL: observer watermark does not cover the selected as-known cutoff")
+
+    if context["acquisition_time_earliest_unix_ms"] > context["acquisition_time_latest_unix_ms"]:
+        raise SystemExit("FAIL: physical acquisition interval is malformed")
+    if specification["sha256"] != context["claim_specification_sha256"]:
+        raise SystemExit("FAIL: DecisionContext does not commit to the exact ClaimSpecification digest")
+    if source_fixture["trust_policy"]["snapshot_sha256"] != context["trust_policy_sha256"]:
+        raise SystemExit("FAIL: DecisionContext does not commit to the exact trust-policy snapshot")
+    policy = source_fixture["trust_policy"]
+    if policy["effective_from_unix_ms"] > policy["effective_until_unix_ms"]:
+        raise SystemExit("FAIL: trust-policy effective interval is malformed")
+
+    required_intrinsic_kinds = {
+        "CLAIM_IDENTITY", "EVIDENCE_INTEGRITY", "PRODUCER_AUTHORITY"
+    }
+    source_obligations = source_fixture["obligations"]
+    source_ids = [item["obligation_id"] for item in source_obligations]
+    require_unique(source_ids, "source-bound obligation IDs")
+    for kind in required_intrinsic_kinds:
+        matches = [item for item in source_obligations if item["kind"] == kind]
+        if specification["assessment_disposition"] == "FORMALLY_WELL_SPECIFIED" and (
+            not matches or any(not item["mandatory"] or not item["hard_gate"] for item in matches)
+        ):
+            raise SystemExit(f"FAIL: source-bound intrinsic gate missing/downgraded: {kind}")
+
+    evidence_ids = []
+    for obligation in source_obligations:
+        for evidence in obligation["evidence_bindings"]:
+            evidence_ids.append(evidence["evidence_ref"])
+            if evidence["subject_ref"] != context["subject_ref"]:
+                raise SystemExit(f"FAIL: evidence subject mismatch: {evidence['evidence_ref']}")
+            if evidence["configuration_ref"] != context["configuration_ref"]:
+                raise SystemExit(f"FAIL: evidence configuration mismatch: {evidence['evidence_ref']}")
+            receiver_first_seen = evidence["receiver_first_seen_at_unix_ms"]
+            owner_name = evidence["owner_namespace"]
+            owner_watermark = owner_watermarks.get(owner_name)
+            if owner_watermark is None:
+                raise SystemExit(f"FAIL: evidence has no matching owner cut: {evidence['evidence_ref']}")
+            owner_record = owner_records[owner_name].get(evidence["evidence_ref"])
+            if owner_record is None:
+                raise SystemExit(f"FAIL: evidence is absent from owner-cut record manifest: {evidence['evidence_ref']}")
+            if owner_record["record_sha256"] != evidence["owner_record_sha256"]:
+                raise SystemExit(f"FAIL: owner record digest mismatch: {evidence['evidence_ref']}")
+            if (
+                owner_record["subject_ref"] != context["subject_ref"]
+                or owner_record["configuration_ref"] != context["configuration_ref"]
+            ):
+                raise SystemExit(f"FAIL: owner-cut record context mismatch: {evidence['evidence_ref']}")
+            if evidence["admission_state"] == "ADMITTED":
+                if (
+                    receiver_first_seen is None
+                    or receiver_first_seen > context["as_known_at_unix_ms"]
+                    or receiver_first_seen > owner_watermark
+                    or evidence["owner_receipt_ref"] is None
+                    or evidence["owner_receipt_sha256"] is None
+                    or evidence["verification_state"] != "VERIFIED"
+                    or evidence["verification_report_sha256"] is None
+                    or evidence["lifecycle"] != "active"
+                    or evidence["freshness"] != "fresh"
+                    or evidence["dependency_coverage"] != "complete"
+                    or owner_record["lifecycle"] != "active"
+                    or owner_record["freshness"] != "fresh"
+                    or owner_record["dependency_coverage"] != "complete"
+                    or owner_record["requires_reverification"]
+                    or not owner_record["eligible_under_declared_coverage"]
+                    or owner_record["unresolved_inputs"]
+                ):
+                    raise SystemExit(
+                        f"FAIL: admitted evidence violates owner/receiver/freshness/coverage contract: {evidence['evidence_ref']}"
+                    )
+            if evidence.get("event_effective_interval") is not None:
+                interval = evidence["event_effective_interval"]
+                if interval["earliest_unix_ms"] > interval["latest_unix_ms"]:
+                    raise SystemExit(f"FAIL: malformed event-effectivity interval: {evidence['evidence_ref']}")
+    require_unique(evidence_ids, "source-bound evidence references")
+
+
+    source_errors = source_binding_invariant_errors(source_fixture)
+    if source_errors:
+        raise SystemExit("FAIL: source-binding invariants: " + "; ".join(source_errors))
+
+    from copy import deepcopy
+
+    mutations = []
+    mutant = deepcopy(source_fixture)
+    mutant["decision_context"]["claim_specification_sha256"] = "f" * 64
+    mutations.append(("claim-specification digest substitution", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["decision_context"]["trust_policy_sha256"] = "f" * 64
+    mutations.append(("trust-policy substitution", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["obligations"][0]["evidence_bindings"][0]["receiver_first_seen_at_unix_ms"] = (
+        mutant["decision_context"]["as_known_at_unix_ms"] + 1
+    )
+    mutations.append(("late receiver-first-seen evidence", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["owner_evidence_cuts"] = []
+    mutations.append(("missing owner cut", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["obligations"][0]["evidence_bindings"][0]["subject_ref"] = "wrong-subject"
+    mutations.append(("physical subject substitution", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["owner_evidence_cuts"][0]["evidence_records"].pop()
+    mutations.append(("missing owner evidence record", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["owner_evidence_cuts"][0]["observer_coverage_watermark_unix_ms"] = (
+        mutant["decision_context"]["as_known_at_unix_ms"] - 1
+    )
+    mutations.append(("observer watermark gap", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["obligations"][1]["mandatory"] = False
+    mutant["obligations"][1]["hard_gate"] = False
+    mutations.append(("intrinsic gate downgrade", mutant))
+
+    mutant = deepcopy(source_fixture)
+    mutant["obligations"][0]["evidence_bindings"][0]["event_effective_interval"] = {
+        "earliest_unix_ms": 10, "latest_unix_ms": 1
+    }
+    mutations.append(("malformed event interval", mutant))
+
+    for label, mutant in mutations:
+        if not source_binding_invariant_errors(mutant):
+            raise SystemExit(f"FAIL: source-binding negative control was not detected: {label}")
 
     print(
         "PASS: AERO IAB v0.3 structural validation "

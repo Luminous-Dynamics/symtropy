@@ -13,7 +13,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -144,7 +144,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -281,7 +281,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -416,7 +416,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -551,7 +551,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -686,7 +686,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -823,7 +823,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -960,7 +960,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -1097,7 +1097,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -1234,7 +1234,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -1375,7 +1375,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -1508,7 +1508,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
@@ -1641,7 +1641,7 @@
         "physical_subject_ref": "SYNTH-ARTICLE-001",
         "configuration_ref": "SYNTH-CONFIG-A",
         "as_known_cutoff": "2026-11-01T00:00:00Z",
-        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "trust_policy_snapshot_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "obligations": [
         {
