@@ -57,7 +57,9 @@ struct FaultEvent {
     asset_id: String,
     onset_type: String,
     onset_lower_unix_ms: Option<u64>,
+    onset_lower_semantics: String,
     onset_upper_unix_ms: u64,
+    onset_upper_semantics: String,
     event_time_semantics: String,
     onset_evidence_refs: Vec<String>,
     adjudication_revision: String,
@@ -369,7 +371,9 @@ fn validate_and_evaluate(
 
     for event in &manifest.events {
         let mut evidence_refs = BTreeSet::new();
-        if !nonempty(&event.event_id)
+        if !nonempty(&event.onset_lower_semantics)
+            || !nonempty(&event.onset_upper_semantics)
+            || !nonempty(&event.event_id)
             || !event_ids.insert(event.event_id.clone())
             || !nonempty(&event.asset_id)
             || !nonempty(&event.adjudication_revision)
@@ -384,13 +388,39 @@ fn validate_and_evaluate(
         }
         let lower = event.onset_lower_unix_ms;
         match event.onset_type.as_str() {
-            "exact_reported" if lower == Some(event.onset_upper_unix_ms) => exact_count += 1,
+            "exact_reported"
+                if lower == Some(event.onset_upper_unix_ms)
+                    && event.onset_lower_semantics == "exact_reported_instant"
+                    && event.onset_upper_semantics == "exact_reported_instant" =>
+            {
+                exact_count += 1;
+            }
             "interval_censored"
-                if lower.is_some_and(|value| value < event.onset_upper_unix_ms) =>
+                if lower.is_some_and(|value| value < event.onset_upper_unix_ms)
+                    && [
+                        "earliest_possible_instant_after_last_verified_normal",
+                        "other_adjudicated_lower_bound",
+                    ]
+                    .contains(&event.onset_lower_semantics.as_str())
+                    && [
+                        "first_verified_abnormal_sample",
+                        "other_adjudicated_upper_bound",
+                    ]
+                    .contains(&event.onset_upper_semantics.as_str()) =>
             {
                 interval_count += 1;
             }
-            "left_censored" if lower.is_none() => left_count += 1,
+            "left_censored"
+                if lower.is_none()
+                    && event.onset_lower_semantics == "not_available_left_censored"
+                    && [
+                        "first_verified_abnormal_sample",
+                        "other_adjudicated_upper_bound",
+                    ]
+                    .contains(&event.onset_upper_semantics.as_str()) =>
+            {
+                left_count += 1;
+            },
             _ => {
                 return Err(format!(
                     "event {} has inconsistent onset type and interval bounds",
