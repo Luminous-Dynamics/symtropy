@@ -57,6 +57,9 @@ def validate(request: dict[str, Any]) -> None:
     for key in ("fx_px", "fy_px", "cx_px", "cy_px"):
         camera[key] = finite(camera[key], f"camera.{key}")
     require(camera["fx_px"] > 0 and camera["fy_px"] > 0, "focal lengths must be positive")
+    require(0 <= camera["cx_px"] < camera["width"]
+            and 0 <= camera["cy_px"] < camera["height"],
+            "camera principal point must lie within image bounds")
 
     scale = finite(request["translation_scale_m"], "translation_scale_m")
     rel = finite(request["rank_relative_tolerance"], "rank_relative_tolerance")
@@ -82,10 +85,16 @@ def validate(request: dict[str, Any]) -> None:
         require(isinstance(pixel, list) and len(pixel) == 2, f"observation {index} pixel must be vec2")
         row["point_camera_m"] = [finite(v, f"observation {index} point") for v in point]
         row["measured_pixel_uv"] = [finite(v, f"observation {index} pixel") for v in pixel]
+        require(0 <= row["measured_pixel_uv"][0] < camera["width"]
+                and 0 <= row["measured_pixel_uv"][1] < camera["height"],
+                f"observation {index} pixel lies outside image bounds")
         require(row["point_camera_m"][2] > 1e-9, f"observation {index} has invalid depth")
         row["sigma_px"] = finite(row["sigma_px"], f"observation {index} sigma")
         row["weight"] = finite(row["weight"], f"observation {index} weight")
         require(row["sigma_px"] > 0, f"observation {index} sigma must be positive")
+        variance = row["sigma_px"] * row["sigma_px"]
+        require(math.isfinite(variance) and variance > 0,
+                f"observation {index} sigma variance is invalid")
         require(0 <= row["weight"] <= 1, f"observation {index} weight must be in [0, 1]")
         effective += int(row["weight"] > 0)
     require(effective >= 3, "at least three positive-weight observations are required")
@@ -174,7 +183,10 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
         v = camera["fy_px"] * y / z + camera["cy_px"]
         du = u - observation["measured_pixel_uv"][0]
         dv = v - observation["measured_pixel_uv"][1]
-        residuals.append(math.sqrt(du * du + dv * dv))
+        residual = math.sqrt(du * du + dv * dv)
+        require(math.isfinite(u) and math.isfinite(v) and math.isfinite(residual),
+                f"landmark {observation['landmark_id']} reprojection residual is non-finite")
+        residuals.append(residual)
 
         weight = observation["weight"]
         if weight == 0:
@@ -190,6 +202,8 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
         ]
         jacobian = matmul_2x3_3x6(projection_j, point_j)
         information_weight = weight / (observation["sigma_px"] ** 2)
+        require(math.isfinite(information_weight),
+                f"landmark {observation['landmark_id']} information weight is non-finite")
         for row in range(6):
             for col in range(6):
                 fim[row][col] += information_weight * (
@@ -267,9 +281,12 @@ def compare(rust: dict[str, Any], python: dict[str, Any]) -> list[str]:
     for key, expected in python.items():
         actual = rust.get(key, object())
         if key == "weakest_mode":
-            dot = sum(a * b for a, b in zip(actual, expected, strict=True)) if isinstance(actual, list) else 0.0
-            if abs(abs(dot) - 1.0) > 2e-6:
-                failures.append("weakest_mode differs beyond sign ambiguity")
+            gap = abs(python["eigenvalues_ascending"][1] - python["eigenvalues_ascending"][0])
+            scale = max(1.0, abs(python["eigenvalues_ascending"][-1]))
+            if gap > 1e-8 * scale:
+                dot = sum(a * b for a, b in zip(actual, expected, strict=True)) if isinstance(actual, list) else 0.0
+                if abs(abs(dot) - 1.0) > 2e-6:
+                    failures.append("weakest_mode differs beyond sign ambiguity or degeneracy")
         elif not close(actual, expected):
             failures.append(f"{key} mismatch")
     return failures
