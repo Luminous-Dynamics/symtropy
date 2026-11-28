@@ -669,16 +669,18 @@ pub fn rank_evidence_actions_v0_1(
         return invalid_assessment(input, validation_errors);
     }
 
-    let decisions = input
+    let mut decisions = input
         .decision_alternatives
         .iter()
         .map(|item| item.decision_id.as_str())
         .collect::<Vec<_>>();
-    let states = input
+    decisions.sort_unstable();
+    let mut states = input
         .world_states
         .iter()
         .map(|item| item.state_id.as_str())
         .collect::<Vec<_>>();
+    states.sort_unstable();
     let priors = input
         .world_states
         .iter()
@@ -708,18 +710,19 @@ pub fn rank_evidence_actions_v0_1(
         }
         prior_scores.insert(*decision, score);
     }
-    let current_best_decision = prior_scores
-        .iter()
-        .max_by(|(left_id, left_score), (right_id, right_score)| {
-            left_score.cmp(right_score).then_with(|| right_id.cmp(left_id))
-        })
-        .map(|(id, _)| *id);
-    let Some(current_best_decision) = current_best_decision else {
+    let Some(mut current_best_decision) = decisions.first().copied() else {
         return invalid_assessment(
             input,
             BTreeSet::from(["EVSI_CURRENT_DECISION_NOT_ESTIMABLE".to_owned()]),
         );
     };
+    for decision in decisions.iter().skip(1).copied() {
+        // Decisions are sorted by ID, so strict improvement preserves the
+        // lexicographically smallest ID on exact utility ties.
+        if prior_scores[decision] > prior_scores[current_best_decision] {
+            current_best_decision = decision;
+        }
+    }
     let current_best_score = prior_scores[current_best_decision];
 
     let mut excluded_actions = Vec::new();
@@ -1148,6 +1151,25 @@ mod tests {
             .expect("calibration receipt")
             .outcome_likelihoods_sha256 = likelihood_digest;
         input
+    }
+
+    #[test]
+    fn input_array_permutations_preserve_exact_evsi_assessment() {
+        let input = base_input();
+        let baseline = rank_evidence_actions_v0_1(&input);
+
+        let mut permuted = input.clone();
+        permuted.decision_alternatives.reverse();
+        permuted.world_states.reverse();
+        permuted.utilities.reverse();
+        permuted.actions.reverse();
+        for action in &mut permuted.actions {
+            action.target_obligation_ids.reverse();
+            action.outcome_likelihoods.reverse();
+        }
+
+        let result = rank_evidence_actions_v0_1(&permuted);
+        assert_eq!(baseline, result);
     }
 
     #[test]
