@@ -462,10 +462,22 @@ def main() -> int:
     else:
         raise SystemExit("FAIL: malformed prior probability mass was silently accepted")
 
+    # Mutation control 10: semantic input-array permutations preserve the full result.
+    permuted = copy.deepcopy(source)
+    permuted["decision_alternatives"].reverse()
+    permuted["world_states"].reverse()
+    permuted["utilities"].reverse()
+    permuted["actions"].reverse()
+    for action in permuted["actions"]:
+        action["target_obligation_ids"].reverse()
+        action["outcome_likelihoods"].reverse()
+    if calculate(permuted) != actual:
+        raise SystemExit("FAIL: semantically equivalent input permutations changed the EVSI result")
+
     print(
         "PASS: AERO EVSI v0.1 schema and independent integer oracle "
         "(2 states, 2 decisions, 1 permitted action, 1 excluded action, "
-        "9 mutation controls)."
+        "10 mutation controls)."
     )
     print("NOTE: synthetic decision arithmetic is not physical evidence or action authorization.")
     return 0
