@@ -29,7 +29,7 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          git add -- research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_assignment_v0_1.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_projection_audit_v0_1.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_metadata_audit.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_materialize.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_campaign_evaluate.rs
+          git add -- research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_assignment_v0_1.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_execution_sandbox_v0_1.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_projection_audit_v0_1.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_sandbox_canary.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_metadata_audit.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_materialize.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_campaign_evaluate.rs
           if git diff --cached --quiet; then
             echo "Projection sources already formatted."
             exit 0
