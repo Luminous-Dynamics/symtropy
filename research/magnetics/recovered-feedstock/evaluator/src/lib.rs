@@ -128,6 +128,8 @@ pub struct RouteSpec {
     pub process_revision_digest: String,
     pub feedstock_input_mass_mg: Interval,
     pub added_input_mass_mg: Interval,
+    /// Maximum permitted absolute process mass-balance residual, in mg.
+    pub maximum_mass_balance_error_mg: f64,
     pub required_output_kinds: Vec<OutputKind>,
     pub required_assays: Vec<AssaySpec>,
 }
@@ -260,6 +262,9 @@ pub struct FeedstockRouteEvaluation {
     pub observed_output_streams: usize,
     pub input_mass_mg: Option<Interval>,
     pub output_mass_mg: Option<Interval>,
+    /// Output minus input interval. A pass requires the entire residual interval
+    /// to remain within the preregistered absolute tolerance.
+    pub mass_balance_residual_mg: Option<Interval>,
     pub assay_results: Vec<AssayResult>,
     pub blockers: Vec<Blocker>,
     pub claim_ceiling: String,
@@ -450,19 +455,39 @@ pub fn evaluate_route(
         }
     }
 
-    if outputs_complete
+    let mass_balance_residual_mg = if outputs_complete
         && input_mass_scope_valid
         && input_mass.is_nonnegative()
         && output_mass.is_nonnegative()
     {
-        if !input_mass.overlaps(output_mass) {
+        let residual = Interval::new(
+            output_mass.lower - input_mass.upper,
+            output_mass.upper - input_mass.lower,
+        );
+        if !residual.is_valid() {
+            blockers.push(Blocker::UnresolvedMassBalance);
+            unresolved = true;
+            None
+        } else if residual.lower > spec.maximum_mass_balance_error_mg
+            || residual.upper < -spec.maximum_mass_balance_error_mg
+        {
             blockers.push(Blocker::DefiniteMassBalanceFailure);
             hard_failure = true;
+            Some(residual)
+        } else if residual.lower >= -spec.maximum_mass_balance_error_mg
+            && residual.upper <= spec.maximum_mass_balance_error_mg
+        {
+            Some(residual)
+        } else {
+            blockers.push(Blocker::UnresolvedMassBalance);
+            unresolved = true;
+            Some(residual)
         }
     } else {
         blockers.push(Blocker::UnresolvedMassBalance);
         unresolved = true;
-    }
+        None
+    };
 
     let mut assay_results = Vec::with_capacity(spec.required_assays.len());
     let mut seen_assays = BTreeSet::new();
@@ -623,6 +648,7 @@ pub fn evaluate_route(
         observed_output_streams: process.outputs.len(),
         input_mass_mg: input_mass.is_valid().then_some(input_mass),
         output_mass_mg: output_mass.is_valid().then_some(output_mass),
+        mass_balance_residual_mg,
         assay_results,
         blockers: dedupe(blockers),
         claim_ceiling: format!(
@@ -650,7 +676,11 @@ fn validate_spec(spec: &RouteSpec) -> Vec<Blocker> {
     {
         blockers.push(Blocker::InvalidInputMass);
     }
-    if spec.required_assays.is_empty() || spec.required_output_kinds.is_empty() {
+    if spec.required_assays.is_empty()
+        || spec.required_output_kinds.is_empty()
+        || !spec.maximum_mass_balance_error_mg.is_finite()
+        || spec.maximum_mass_balance_error_mg < 0.0
+    {
         blockers.push(Blocker::InvalidSpec);
     }
     let mut required_kinds = BTreeSet::new();
@@ -785,6 +815,7 @@ mod tests {
             process_revision_digest: digest('c'),
             feedstock_input_mass_mg: Interval::new(999.0, 1001.0),
             added_input_mass_mg: Interval::new(99.0, 101.0),
+            maximum_mass_balance_error_mg: 10.0,
             required_output_kinds: vec![
                 OutputKind::MagnetProduct,
                 OutputKind::BinderOrLubricantResidue,
@@ -1214,7 +1245,40 @@ mod tests {
             &process_evidence,
             &eligibility(&specification),
         );
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::UnresolvedMassBalance));
+        assert!(result.mass_balance_residual_mg.is_some());
+    }
+
+    #[test]
+    fn tight_mass_balance_interval_inside_tolerance_is_admissible() {
+        let specification = spec();
+        let mut process_evidence = process(&specification);
+        process_evidence.outputs[0].mass_mg = Interval::new(990.0, 992.0);
+        process_evidence.outputs[1].mass_mg = Interval::new(108.0, 110.0);
+        let result = evaluate(
+            &specification,
+            &process_evidence,
+            &eligibility(&specification),
+        );
         assert_eq!(result.disposition, Disposition::QualifiedFeedstockRoute);
+        let residual = result.mass_balance_residual_mg.unwrap();
+        assert!(residual.lower >= -specification.maximum_mass_balance_error_mg);
+        assert!(residual.upper <= specification.maximum_mass_balance_error_mg);
+    }
+
+    #[test]
+    fn wide_overlapping_mass_intervals_are_unresolved_not_qualified() {
+        let specification = spec();
+        let mut process_evidence = process(&specification);
+        process_evidence.outputs[1].mass_mg = Interval::new(70.0, 140.0);
+        let result = evaluate(
+            &specification,
+            &process_evidence,
+            &eligibility(&specification),
+        );
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::UnresolvedMassBalance));
     }
 
     #[test]
