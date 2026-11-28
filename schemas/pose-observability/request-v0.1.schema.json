@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/pose-observability/request-v0.1.schema.json",
+  "title": "Pose Observability Request v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "episode_id",
+    "frame_id",
+    "sensor_id",
+    "coordinate_frame",
+    "transform_direction",
+    "twist_order",
+    "camera_intrinsics_sha256",
+    "target_geometry_sha256",
+    "correspondence_ledger_sha256",
+    "linearization_pose_sha256",
+    "translation_scale_m",
+    "rank_relative_tolerance",
+    "rank_absolute_tolerance",
+    "camera",
+    "observations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "episode_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sensor_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coordinate_frame": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transform_direction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twist_order": {
+      "const": "left_camera_frame_scaled_xyz_then_rx_ry_rz"
+    },
+    "camera_intrinsics_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "target_geometry_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "correspondence_ledger_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "linearization_pose_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "translation_scale_m": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "rank_relative_tolerance": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "rank_absolute_tolerance": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "camera": {
+      "$ref": "#/$defs/camera"
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "fx_px",
+        "fy_px",
+        "cx_px",
+        "cy_px"
+      ],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fx_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fy_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cx_px": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cy_px": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "landmark_id",
+        "point_camera_m",
+        "measured_pixel_uv",
+        "sigma_px",
+        "weight"
+      ],
+      "properties": {
+        "landmark_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "point_camera_m": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "measured_pixel_uv": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "sigma_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
