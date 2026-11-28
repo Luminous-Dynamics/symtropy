@@ -386,3 +386,167 @@ The new stacked branch research/safrb-capacity-mobility-v0 now contains:
 - frozen tests for complete per-period compilation, low-vs-high scenario separation, zero capacity as an outage, schedule gaps/stale/dimensional mismatches, subject/resource mismatches, alias splitting, forged compiled capacity, receipt mutation and schema JSON parsing.
 
 **Qualification is pending.** These source files have not yet been confirmed by exact-head Rust formatting, Clippy or test runs. The tests and schema parse checks are authored, not recorded as passing CI evidence. No SOTA, runtime, field-service or operational dispatch result is claimed.
+
+## 13. Dual world-state / knowledge-state timing
+
+The next assurance step is not merely adding another scenario field. Model two synchronized state machines:
+
+1. **World state** — when a capacity, closure, asset state or service obligation physically applies.
+2. **Knowledge/authority state** — when a specific actor observes a fact, when it is admitted, when that actor becomes eligible to use it, when the source revokes it, and when the actor receives an admissible revocation notice.
+
+For a capacity fact, the actor-visible start is:
+
+visible_from = max(observed_at, admitted_at, actor_eligible_at)
+
+The observation history must not contain the fact before this boundary. The world-state capacity, however, constrains physical movement from its effective period in every scenario, whether or not the actor knows the fact.
+
+The actor-visible interval is half-open. A source fact can be withdrawn from the actor's observation history when its effective interval or freshness interval ends, or when an admissible revocation notice becomes eligible to that actor. The revocation notice retains the authority's distinct effective revocation period. Record IDs and scenario IDs must not split otherwise equivalent canonical facts into different information sets.
+
+**A crucial unresolved distinction remains:** the source's revocation can become effective before the actor receives an admissible notice. The observation-history adapter must not pretend the actor knew early; but it also must not authorize use of now-revoked evidence. During that gap the current v0.1 information adapter is not a permission gate. A future policy/certificate layer must either prove a current independent authority status at decision time or return UNSUPPORTED / INDETERMINATE and prevent the affected action from being called qualified. The evidence-time report now emits a typed revocation_notice_gaps array, independently reconstructed from the source timing rows, so this interval is machine-readable and mutation-tested. It must not infer a physical outage or zero capacity from missing authorization.
+
+### 13.1 Evidence-time acceptance suite
+
+| Case | Physical effective time | Actor observation | Admission | Actor eligible | Required result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Delayed observation | 4 | 6 | 6 | 6 | Physical capacity applies at 4; no policy split before 6 |
+| Delayed admission | 4 | 4 | 5 | 5 | No evidence-based policy split before 5 |
+| Delayed actor permission | 4 | 4 | 4 | 6 | No policy split before 6 |
+| Future schedule known early | 4 | 2 | 2 | 2 | Policy may plan for the future capacity at 2 |
+| Revocation notice delay | 4 | 4 | 4 | 4; notice eligible 6 | Actor learns revocation at 6; effective revocation remains 4 |
+| Equivalent facts | same | same | same | same | Different record IDs do not split policy histories |
+| Backdated metadata | 4 | 6 | 6 | 6 | Reordering or backdating cannot reveal at 4 |
+| Forged lifecycle receipt | any | tampered | tampered | tampered | Independent reconstruction rejects |
+
+Measure **pre-reveal leakage** (must be zero), **pre-admission leakage** (zero), **pre-eligibility leakage** (zero), **stale-evidence reliance after effective revocation** (zero once a permission/basis verifier is implemented), plus physical-capacity violations (zero). Do not combine these into one metric; they test different state machines.
+
+### 13.2 Value-of-information benchmark
+
+For each candidate observation/verification acquisition, measure:
+- expected service loss or decision regret without the evidence;
+- expected loss/regret with the evidence at the earliest legitimate availability period;
+- acquisition and validation cost;
+- change in feasible policy space;
+- delay introduced by admission and actor-eligibility gates;
+- independent verifier overhead.
+
+Report EVSI / acquisition_cost, absolute expected regret avoided, and service-floor failures avoided. Do not assume information is valuable just because it reduces uncertainty; only count the value of information when it changes an admissible decision with positive expected net benefit. The world-state oracle with perfect early information remains a non-operational upper bound, not a deployable policy.
+
+### 13.3 Current implementation ceiling
+
+Branch research/safrb-evidence-time-mobility-v0 adds half-open observation visibility windows and an actor-scoped compiler/verifier for externally supplied observation, admission, actor-eligibility and revocation-notice times. It does not yet enforce an evidence-basis/permission proof for a policy decision during the interval between effective revocation and actor-eligible notice. That missing permission layer remains an explicit blocker to live operational claims.
+
+## 14. Comparator discipline and data licensing (28 November 2026)
+
+### 14.1 Do not claim to beat routing SOTA with the tiny exact oracle
+
+The mobility reference oracle is deliberately small (2–4 sites, 1–4 homogeneous units, at most 8 arcs and 8 scenarios). It is a correctness instrument for exhaustive small instances, not a competitor to high-performance vehicle-routing heuristics. The Blauth et al. TDVRPTW family is a substantially more realistic routing benchmark: 10 cities and four size levels (10, 500, 1,000 and 2,000 customers), using OpenStreetMap road networks and time-dependent piecewise-linear arrival functions based on hourly Uber Movement speeds. Its current delivery-only instances assume an unlimited homogeneous uncapacitated fleet, so it still does not test the finite shared-corridor and evidence-authority semantics SAFRB is trying to qualify. Retain the unmodified original instances as routing baselines, then publish clearly versioned SAFRB extensions rather than silently changing the baseline. See the 2024 research paper and MAMUT benchmark documentation:
+- https://www.sciencedirect.com/science/article/pii/S1572528624000276
+- https://mamut-routing.univ-ubs.fr/docs/benchmarks/families/tdvrptw/blauth2024/
+
+**Licensing and reproducibility:** the MAMUT satellite describes this benchmark family as CC BY-NC 4.0 / non-commercial use, with distinct third-party data attribution. Check the actual dataset and source repository licenses before redistributing or incorporating it into any commercial offering. The Uber Movement source was discontinued in 2023; preserve the published data as a fixed historical benchmark and do not claim that its traffic matrix can be regenerated from the current public source. The new SAFRB benchmark tier should therefore have both (a) a licensed, frozen historical set and (b) a separately versioned, reproducible public-data generation recipe.
+
+### 14.2 PyPSA is a real recourse comparator, not a straw man
+
+PyPSA's current documentation describes two-stage stochastic optimization with common first-stage investment decisions, scenario-specific second-stage dispatch, scenario probabilities and CVaR risk aversion. Its documented current stage structure is fixed: investment is first-stage and dispatch is second-stage; it does not present arbitrary multi-stage actor-observation and permission timelines as a universal feature. Thus SAFRB must not claim stochastic recourse or nonanticipativity as novel. The fair experiment is to export equivalent physical cases into PyPSA where the energy-system formulation applies, preserve its first-stage/second-stage semantics and compare objective/feasibility under identical scenario information. Then isolate any incremental assurance contribution: source-bound temporal capacity records, independent reconstruction, cross-owner provenance, actor-specific evidence eligibility, decision-specific authority and beneficiary claim receipts.
+- https://docs.pypsa.org/latest/user-guide/optimization/stochastic/
+- https://docs.pypsa.org/latest/examples/stochastic-optimization/
+
+### 14.3 Industry systems should be integration baselines
+
+Public product descriptions position:
+- AVEVA PI System as operational data management: collecting, storing, normalizing, enriching and visualizing real-time operations data;
+- Siemens Gridscale X as an interoperable platform connecting grid planning, operations, asset management and metering through a common digital twin;
+- Schneider EcoStruxure Microgrid Advisor as microgrid/DER monitoring, forecasting and optimization, including model-predictive control for generation, storage and EV charging.
+
+These are substantial capabilities. The SAFRB experiment should connect to them as data/decision environments and test cross-system evidence continuity, independent claim verification and authority boundaries. It must not infer a vendor capability gap from marketing pages; ask vendors for matched technical evidence and operator-approved deployment access.
+- https://www.aveva.com/en/products/aveva-pi-system/
+- https://www.siemens.com/en-us/products/gridscale-x/
+- https://www.se.com/us/en/product-range/65896-ecostruxure-microgrid-advisor/
+
+### 14.4 NIST alignment is preferable to a competing assurance vocabulary
+
+NIST's 2026 SI for Manufacturing / TIDAL programme describes a layered, human-teamed, digital-twin-assured architecture, a shared integration test bench covering real equipment and simulators, VVUQ, context, latency, cost and grounding metrics, and benchmark-study/tooling work planned in FY28. This is a close metrology and interoperability neighbour, not evidence that a complete public benchmark suite is already available. Map SAFRB receipts and ablations to its VVUQ, context, integration and decision-assurance work; seek a compatible contribution to the shared testbench rather than asserting a parallel standard. NIST's 2026 IR 8536 traceability meta-framework is also a relevant manufacturing provenance comparator.
+- https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
+- https://csrc.nist.gov/pubs/ir/8536/final
+
+### 14.5 What would constitute a credible "better than SOTA" result?
+
+There are three distinct claims and they need three distinct scoreboards:
+
+1. **Optimizer performance:** on an unchanged routing/flow benchmark, match the best published feasible objective and report optimality gap, runtime, memory, hardware and solution quality. Be prepared for an established solver to win.
+2. **Model/decision correctness:** on the exact bounded suite, outperform baselines on false-feasibility, false-infeasibility, nonanticipativity, temporal-capacity leakage and correct indeterminate/unsupported handling. A zero false-guarantee result is more important than a small runtime gain.
+3. **Assurance under operations:** on matched cross-owner cases, show that evidence admission, independent proof reconstruction and current-authority checks reduce decision regret/service failures without unacceptable latency or loss of usable coverage. This is the plausible SAFRB differentiation.
+
+A legitimate research claim must report negative controls, all failed/timeout outcomes, external-oracle dependencies, confidence intervals, and the exact data/model/solver hashes. No headline "beats SOTA" result should combine performance on one benchmark with assurance on a different one.
+
+## 15. FSRE decision-grade monitoring alignment and cross-layer benchmark
+
+The mobility-recourse programme should reuse the existing Mycelix FSRE decision-grade monitoring framework rather than inventing a second, incompatible evidence-quality taxonomy. FSRE already treats the objective as decisions enabled by evidence, with source freshness, actor-availability time, sequential EVSI, service outcomes, equity, operations and independent as-of replay. SAFRB contributes a complementary physical service/policy model: it asks whether the proposed mobility/infrastructure action can physically satisfy declared service floors and whether its evidence basis is valid for the actor and decision cutoff.
+
+### 15.1 Shared metric vocabulary
+
+| FSRE metric family | SAFRB mobility extension | Required denominator / split |
+| --- | --- | --- |
+| Observation-to-availability latency | Source observation → admission/verification → actor-eligibility → decision cutoff | Report each latency separately; actor-eligible before deadline |
+| Freshness and data quality | Capacity/route evidence valid for the entire service decision interval | Evidence records by role, resource and scenario |
+| Sequential EVSI | Evidence acquisition that changes the admissible feasible-policy set or decision regret | Total acquisition, laboratory, travel, analyst and verification cost |
+| Decision regret | Difference between chosen admissible policy and matched information/decision oracle | Same world model, budget, authority and operator action constraints |
+| Service outcome | Safe service-hours preserved, floor-deficit hours, cumulative deficit, recovery and relapse | Each beneficiary/service cohort and geography; preserve unresolved denominators |
+| Independence/common cause | Shared issuer, calibration, upstream dataset, sensor, or derived source lineage | Count independent source roots, not record IDs |
+| Operations | Decision latency, dispatch workload, route feasibility, evidence turnaround, maintenance | P50/P95/P99, failures and timeouts included |
+| Reproducibility | World-state, knowledge-state, evidence-basis and authority-basis replay | Exact hashes, as-known-at-cutoff evidence, independent verifier |
+
+A record arriving before a decision cutoff is not necessarily usable: it may fail admission, be outside the actor's permission or have an effective revocation. A valid observation is not equivalent to a valid evidence basis. Keep the four timing facts (observed, admitted, actor eligible, decision cutoff) and source effective/freshness intervals distinct.
+
+### 15.2 Matched layered ablation
+
+Evaluate the same operator/case distribution under these arms:
+
+| Arm | System | What it isolates |
+| --- | --- | --- |
+| F0 | Existing operator practice and owner-native monitors | Real-world baseline |
+| F1 | Strong route/flow/microgrid planner only | Optimization contribution |
+| F2 | Planner + structurally admitted time-varying capacity | Model/evidence-window contribution |
+| F3 | F2 + independent physical model/certificate replay | False-feasibility reduction from independent verification |
+| F4 | F3 + actor-specific reveal/expiry history | Pre-reveal, pre-admission and pre-eligibility leakage |
+| F5 | F4 + current issuer authority/revocation checkpoint | Decision-specific evidence-basis validity |
+| F6 | F5 + sequential EVSI acquisition policy | Net information value and evidence-acquisition efficiency |
+| F7 | Perfect-information world-state oracle | Non-operational upper bound only |
+
+Use the same physical planner, scenarios, service floors, solver budget, evidence-acquisition budget and action authority across arms. Only add the stated assurance layer. Do not attribute optimizer improvements to the assurance layer or call the oracle deployable.
+
+### 15.3 Operational hard gates and proposed targets
+
+Hard gates:
+- Zero service guarantees based on evidence not actor-eligible at the decision cutoff.
+- Zero decisions relying on evidence whose authority was already effectively revoked.
+- Zero physical-capacity violations, even when the outage is not yet observed.
+- Zero unauthorized purpose/resource/scope/actor uses.
+- Zero false beneficiary-floor satisfaction claims.
+- 100% independent rejection of altered model, plan, source receipt, actor history, evidence basis, permission, revocation or provenance checkpoint.
+- 100% retention of UNSUPPORTED / INDETERMINATE where current authority/completeness cannot be established, without translating that uncertainty into physical zero capacity.
+
+Comparative hypotheses (not current results):
+- At least 10% lower decision regret than the strongest matched operator/planner baseline at equal lifecycle spend and action authority; 20% is a stretch target for controlled, fully frozen synthetic suites.
+- Or at least 10% lower lifecycle cost per independently verified safe service-hour preserved, without worsening any protected cohort floor.
+- No critical-event detection sensitivity regression beyond a pre-registered non-inferiority margin.
+- P95 evidence-basis and proof-verification overhead remains within 10% of the relevant decision-time budget, with admission, authority lookup and replay costs measured separately.
+
+Use held-out catchments/utilities, event families and time periods where available. Do not use random row splits as the only generalization test. Publish confidence intervals, base-case independence, failed/timeout outcomes and exact source/model/solver hashes.
+
+### 15.4 Mycelix checkpoint contract is a dependency, not a local shortcut
+
+Mycelix PR #6834 fixes local effective-time interpretation and differentiates RecordObserved from NoRecordObserved. It does not establish DHT-wide completeness or that a record-backed query is the newest globally committed issuer state. The follow-on [Mycelix #6840](https://github.com/Luminous-Dynamics/mycelix/issues/6840) specifies versioned issuer revocation checkpoints with scope, monotonic sequence, event digest/root, supersession and freshness.
+
+Until a current checkpoint covering the evidence issuer/scope and decision cutoff can be independently verified, SAFRB must not report that evidence basis as QUALIFIED. Missing, stale, out-of-scope, forked or incomplete checkpoint state yields UNSUPPORTED or INDETERMINATE; it does not imply revoked physical capacity, a route closure or mathematical infeasibility.
+
+### 15.5 Integration boundary and evaluation order
+
+- Mycelix: actor/issuer identity, signed authority, revocation checkpoints, provenance dependency closure and permission/purpose basis.
+- Symtropy: physical state, temporal capacity, mobility policy, service obligations, independent reconstruction and decision-proof binding.
+- Symthaea: hypotheses, policy proposals and evidence-acquisition candidates under EVSI; it cannot self-certify its observations or permissions.
+- Sol-Atlas: spatial/resource/beneficiary identity and access boundaries.
+- FSRE: monitoring deployment, operational workflows, service outcomes and equity measurement.
+- Operators/lawful authorities: retain procurement, sampling, dispatch and actuation authority.
+
+The order for a decision is: establish a bounded physical model; verify physical capacity and service policy; reconstruct actor-eligible knowledge at the decision cutoff; verify current authority/checkpoint coverage; verify the action and claim scope; then compare expected service outcome, regret and lifecycle cost. A failure at a later evidence/authority stage must not rewrite the earlier physical model.

@@ -48,6 +48,10 @@ pub struct MovementArc {
 #[serde(deny_unknown_fields)]
 pub struct ObservationEvent {
     pub reveal_period: u64,
+    /// Exclusive end of the period during which this observation remains
+    /// available to policy construction. None preserves legacy persistence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid_until_period_exclusive: Option<u64>,
     pub event_id: String,
     pub key: String,
     pub value: String,
@@ -279,10 +283,9 @@ fn validate_route_capacity_overrides(
                 scenario.scenario_id
             ));
         }
-        if let Some(previous) = corridor_caps.insert(
-            (corridor, item.departure_period),
-            item.corridor_capacity,
-        ) {
+        if let Some(previous) =
+            corridor_caps.insert((corridor, item.departure_period), item.corridor_capacity)
+        {
             if previous != item.corridor_capacity {
                 return Err(format!(
                     "scenario {} declares inconsistent shared-corridor capacity at period {}",
@@ -304,7 +307,10 @@ fn scenario_route_capacities(
         .iter()
         .find(|item| item.arc_id == arc.arc_id && item.departure_period == period)
         .map(|item| (item.arc_capacity, item.corridor_capacity))
-        .unwrap_or((arc.arc_capacity_per_departure, arc.corridor_capacity_per_departure))
+        .unwrap_or((
+            arc.arc_capacity_per_departure,
+            arc.corridor_capacity_per_departure,
+        ))
 }
 
 fn independent_scenario_route_capacities(
@@ -317,7 +323,10 @@ fn independent_scenario_route_capacities(
             return (item.arc_capacity, item.corridor_capacity);
         }
     }
-    (arc.arc_capacity_per_departure, arc.corridor_capacity_per_departure)
+    (
+        arc.arc_capacity_per_departure,
+        arc.corridor_capacity_per_departure,
+    )
 }
 
 fn hash_domain(domain: &[u8], bytes: &[u8]) -> String {
@@ -497,6 +506,17 @@ pub fn validate_mobility_instance(instance: &MobilityInstance) -> Result<(), Str
                     event.event_id
                 ));
             }
+            if let Some(valid_until) = event.valid_until_period_exclusive {
+                let horizon_end = instance.horizon_last_period
+                    .checked_add(1)
+                    .ok_or_else(|| "mobility horizon end overflows u64".to_string())?;
+                if valid_until <= event.reveal_period || valid_until > horizon_end {
+                    return Err(format!(
+                        "observation {} has an invalid exclusive visibility end",
+                        event.event_id
+                    ));
+                }
+            }
             if !event_ids.insert(event.event_id.as_str()) {
                 return Err(format!("duplicate observation event {}", event.event_id));
             }
@@ -562,7 +582,9 @@ fn information_set_digest(
     }
     let mut visible = Vec::<(u64, String, String)>::new();
     for event in &scenario.observations {
-        if event.reveal_period <= period {
+        if event.reveal_period <= period
+            && event.valid_until_period_exclusive.is_none_or(|until| period < until)
+        {
             visible.push((event.reveal_period, event.key.clone(), event.value.clone()));
         }
     }
@@ -579,6 +601,7 @@ fn information_set_digest(
         }
     }
     visible.sort();
+    visible.dedup();
     let bytes = serde_json::to_vec(&visible)
         .map_err(|error| format!("could not encode observable history: {error}"))?;
     Ok(hash_domain(
@@ -622,7 +645,9 @@ fn independent_information_set_digest(
     // producer helper. Event identifiers and scenario identifiers are excluded.
     let mut history = Vec::<(u64, String, String)>::new();
     for observation in &scenario.observations {
-        if observation.reveal_period <= period {
+        if observation.reveal_period <= period
+            && observation.valid_until_period_exclusive.is_none_or(|until| period < until)
+        {
             history.push((
                 observation.reveal_period,
                 observation.key.clone(),
@@ -643,6 +668,7 @@ fn independent_information_set_digest(
         }
     }
     history.sort();
+    history.dedup();
     let encoded = serde_json::to_vec(&history).map_err(|error| {
         format!("independent verifier could not encode visible history: {error}")
     })?;
@@ -1585,7 +1611,9 @@ fn enumerate_single_scenario_actions(
                 .arcs
                 .iter()
                 .find(|arc| arc.corridor_ref == *corridor)
-                .is_some_and(|arc| *count <= independent_scenario_route_capacities(scenario, arc, period).1)
+                .is_some_and(|arc| {
+                    *count <= independent_scenario_route_capacities(scenario, arc, period).1
+                })
         });
         let result = if capacity_ok {
             enumerate_one_scenario_period(
@@ -1951,6 +1979,10 @@ pub(crate) fn validate_mobility_instance_for_verification(
                     || event.key.trim().is_empty()
                     || event.value.trim().is_empty()
                     || event.reveal_period > instance.horizon_last_period
+                    || event.valid_until_period_exclusive.is_some_and(|until| {
+                        until <= event.reveal_period
+                            || until > instance.horizon_last_period.saturating_add(1)
+                    })
             })
         {
             return Err("independent verifier rejected observation event inventory".to_string());
@@ -1992,9 +2024,14 @@ pub(crate) fn validate_mobility_instance_for_verification(
         if !scenario.route_capacity_overrides.is_empty() {
             let expected = instance.arcs.len() * instance.horizon_last_period as usize;
             if scenario.route_capacity_overrides.len() != expected {
-                return Err("independent verifier found incomplete route-capacity override coverage".to_string());
+                return Err(
+                    "independent verifier found incomplete route-capacity override coverage"
+                        .to_string(),
+                );
             }
-            let arc_by_id = instance.arcs.iter()
+            let arc_by_id = instance
+                .arcs
+                .iter()
                 .map(|arc| (arc.arc_id.as_str(), arc))
                 .collect::<BTreeMap<_, _>>();
             let mut override_keys = BTreeSet::new();
@@ -2006,17 +2043,28 @@ pub(crate) fn validate_mobility_instance_for_verification(
                 if item.arc_capacity > arc.arc_capacity_per_departure
                     || item.corridor_capacity > arc.corridor_capacity_per_departure
                 {
-                    return Err("independent verifier found route capacity above its structural ceiling".to_string());
+                    return Err(
+                        "independent verifier found route capacity above its structural ceiling"
+                            .to_string(),
+                    );
                 }
                 let corridor = arc.corridor_ref.as_str();
                 if item.departure_period >= instance.horizon_last_period
                     || !override_keys.insert((item.arc_id.as_str(), item.departure_period))
                 {
-                    return Err("independent verifier found duplicate or out-of-range route override".to_string());
+                    return Err(
+                        "independent verifier found duplicate or out-of-range route override"
+                            .to_string(),
+                    );
                 }
-                if let Some(previous) = physical_caps.insert((corridor, item.departure_period), item.corridor_capacity) {
+                if let Some(previous) =
+                    physical_caps.insert((corridor, item.departure_period), item.corridor_capacity)
+                {
                     if previous != item.corridor_capacity {
-                        return Err("independent verifier found conflicting shared-corridor capacities".to_string());
+                        return Err(
+                            "independent verifier found conflicting shared-corridor capacities"
+                                .to_string(),
+                        );
                     }
                 }
             }
@@ -2130,6 +2178,86 @@ mod tests {
         }];
         let dynamic_digest = mobility_instance_digest(&model).unwrap();
         assert_ne!(static_digest, dynamic_digest);
+    }
+
+    #[test]
+    fn duplicate_canonical_evidence_records_do_not_split_information_sets() {
+        let mut candidate = scenario("world", vec![floor("site-a", 1, 1)]);
+        candidate.observations.push(ObservationEvent {
+            reveal_period: 0,
+            valid_until_period_exclusive: Some(3),
+            event_id: "record-1".to_string(),
+            key: "capacity:route:road-7".to_string(),
+            value: "sha256:canonical-fact".to_string(),
+        });
+        let one_record = information_set_digest(&candidate, 1, true).unwrap();
+        candidate.observations.push(ObservationEvent {
+            reveal_period: 0,
+            valid_until_period_exclusive: Some(3),
+            event_id: "different-record-id".to_string(),
+            key: "capacity:route:road-7".to_string(),
+            value: "sha256:canonical-fact".to_string(),
+        });
+        let two_records = information_set_digest(&candidate, 1, true).unwrap();
+        assert_eq!(one_record, two_records);
+        assert_eq!(
+            two_records,
+            independent_information_set_digest(&candidate, 1, true).unwrap()
+        );
+    }
+
+    #[test]
+    fn expiring_observations_are_visible_only_inside_their_half_open_window() {
+        let mut candidate = scenario("world", vec![floor("site-a", 1, 1)]);
+        let no_fact_at_zero = information_set_digest(&candidate, 0, true).unwrap();
+        candidate.observations.push(ObservationEvent {
+            reveal_period: 1,
+            valid_until_period_exclusive: Some(3),
+            event_id: "capacity-proof".to_string(),
+            key: "capacity:route:road-7".to_string(),
+            value: "sha256:capacity-fact".to_string(),
+        });
+        validate_mobility_instance(&instance(
+            3,
+            &["depot", "site-a"],
+            vec![unit("unit-1", "depot")],
+            vec![arc("road-7", "depot", "site-a", 1, "road-7", 1, &[0, 1, 2])],
+            vec![candidate.clone()],
+        ))
+        .unwrap();
+
+        assert_eq!(
+            information_set_digest(&candidate, 0, true).unwrap(),
+            no_fact_at_zero
+        );
+        let visible = information_set_digest(&candidate, 1, true).unwrap();
+        assert_ne!(visible, no_fact_at_zero);
+        assert_eq!(
+            information_set_digest(&candidate, 2, true).unwrap(),
+            visible
+        );
+        assert_eq!(
+            information_set_digest(&candidate, 3, true).unwrap(),
+            no_fact_at_zero
+        );
+        for period in 0..=3 {
+            assert_eq!(
+                information_set_digest(&candidate, period, true).unwrap(),
+                independent_information_set_digest(&candidate, period, true).unwrap()
+            );
+        }
+        let mut invalid = candidate;
+        invalid.observations[0].valid_until_period_exclusive = Some(1);
+        assert!(
+            validate_mobility_instance(&instance(
+                3,
+                &["depot", "site-a"],
+                vec![unit("unit-1", "depot")],
+                vec![arc("road-7", "depot", "site-a", 1, "road-7", 1, &[0, 1, 2])],
+                vec![invalid],
+            ))
+            .is_err()
+        );
     }
 
     #[test]
@@ -2307,7 +2435,10 @@ mod tests {
         );
         let report = solve_mobility_policy(&model).unwrap();
         assert!(report.zero_time_information_relaxation_feasible);
-        assert_eq!(report.disposition, MobilityDisposition::InformationRelaxationOnly);
+        assert_eq!(
+            report.disposition,
+            MobilityDisposition::InformationRelaxationOnly
+        );
         verify_mobility_report(&model, &report).unwrap();
     }
 
@@ -2361,7 +2492,10 @@ mod tests {
             vec![scenario("world", vec![floor("site-a", 1, 2)])],
         );
         let report = solve_mobility_policy(&model).unwrap();
-        assert_eq!(report.disposition, MobilityDisposition::InformationRelaxationOnly);
+        assert_eq!(
+            report.disposition,
+            MobilityDisposition::InformationRelaxationOnly
+        );
         verify_mobility_report(&model, &report).unwrap();
     }
 

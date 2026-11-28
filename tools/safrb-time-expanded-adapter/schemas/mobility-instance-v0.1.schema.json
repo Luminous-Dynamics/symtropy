@@ -159,6 +159,12 @@
         "value": {
           "type": "string",
           "minLength": 1
+        },
+        "valid_until_period_exclusive": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Optional exclusive end of this observation's visibility interval. When absent, legacy observations remain visible once revealed."
         }
       }
     },

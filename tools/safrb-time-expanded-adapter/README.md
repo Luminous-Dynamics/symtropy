@@ -241,3 +241,27 @@ Portable schemas:
 - `schemas/mobility-report-v0.1.schema.json`
 
 Frozen tests exercise temporal capacity changes, shared corridor aliases, one low-capacity scenario among higher-capacity scenarios, coverage gaps, stale records, dimensional mismatch, subject/resource mismatch, alias splitting, forged compiled overrides and altered schedule receipts. They are model-contract tests; exact-head qualification remains the separate CI gate.
+
+## Actor-specific evidence-time mobility v0.1
+
+The mobility_evidence_time module composes the evidence-bound physical capacity envelope with one actor's observation lifecycle. For each capacity record it keeps separate:
+- physical effective/freshness interval from the source schedule;
+- source observation period;
+- schedule admission/verification period;
+- externally declared actor eligibility period;
+- source revocation effective period;
+- actor's observation, admission and eligibility of the revocation notice.
+
+The capacity fact enters this actor's observable history at max(observed_at, admitted_at, actor_eligible_at). Its visible interval is half-open and ends at the earliest of the source fact's effective end, freshness end or the actor-eligible revocation notice. A revocation notice is a separate observation whose content retains the authority's effective revocation period. Evidence IDs and scenario IDs are excluded from the canonical policy value so equivalent facts can produce the same information set across scenarios.
+
+The world-state capacity overrides are compiled independently from the actor's knowledge. A capacity reduction or route outage constrains physical feasibility from its effective period even if the actor has not observed it. Conversely, its observation does not enter the policy history before the evidence and actor-eligibility gates.
+
+**Important boundary:** this adapter constructs an actor-specific observable history; it does not authenticate the actor, prove legal authority or enforce a use-permission decision during a gap between revocation effective time and the actor's revocation notice. A revocation can be legally effective before notice is available. The generated information history is therefore not a dispatch authorization or proof that a policy may lawfully rely on the prior fact throughout that gap. A separate permission/evidence-basis verifier remains required before operational use. The current Mycelix integration is tracked by [PR #6834](https://github.com/Luminous-Dynamics/mycelix/pull/6834); a complete, versioned issuer revocation checkpoint is a separate prerequisite tracked in [Mycelix #6840](https://github.com/Luminous-Dynamics/mycelix/issues/6840). The report also carries a verifier-reconstructed revocation_notice_gaps array with the exact half-open interval from source revocation effective time to actor notice eligibility; downstream consumers can use this to block affected decisions.
+
+The independent verifier re-admits the source capacity envelope, independently reconstructs canonical evidence facts and timing inventory, rebuilds every actor observation and revocation notice, validates half-open visibility and compares the full resulting mobility model.
+
+Portable schemas:
+- schemas/mobility-evidence-time-input-v0.1.schema.json
+- schemas/mobility-evidence-time-report-v0.1.schema.json
+
+Frozen tests cover delayed observation/admission/actor eligibility, revocation notice delay vs effective time, equivalent canonical facts under different record IDs, altered timelines, missing timing rows and portable schema JSON parsing. These are authored model-contract tests; exact-head CI remains pending.
