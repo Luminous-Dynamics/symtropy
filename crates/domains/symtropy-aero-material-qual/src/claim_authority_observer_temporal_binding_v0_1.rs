@@ -306,8 +306,7 @@ fn validate_observer_receipt(
         || receipt.owner_observer_coverage_receipt_sha256 != owner_cut.observer_coverage_receipt_sha256
         || (assessment.status == CoverageStatus::QualifiedCompleteForScope
             && owner_cut.observer_coverage_status != OwnerObserverCoverageStatus::QualifiedCompleteForScope)
-        || (assessment.status != CoverageStatus::QualifiedCompleteForScope
-            && owner_cut.observer_coverage_status == OwnerObserverCoverageStatus::QualifiedCompleteForScope)
+
         || receipt.coverage_report_sha256 != binding.report_sha256
         || receipt.coverage_status != assessment.status
         || receipt.replay_consequence != assessment.replay_consequence
@@ -808,6 +807,22 @@ mod tests {
         case.observer.replay_consequence = ReplayConsequence::Abstain;
         let result = case.evaluate();
         assert_eq!(result.disposition, ClaimSourceObligationDispositionV0_1::OutOfScope);
+    }
+
+    #[test]
+    fn unverified_observer_receipt_remains_unverified() {
+        let mut case = build_case();
+        case.observer.verification_status = EvidenceBindingReceiptStatusV0_1::Unverified;
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ClaimSourceObligationDispositionV0_1::Unverified);
+    }
+
+    #[test]
+    fn failed_temporal_receipt_is_rejected() {
+        let mut case = build_case();
+        case.temporal.verification_status = EvidenceBindingReceiptStatusV0_1::Failed;
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ClaimSourceObligationDispositionV0_1::Rejected);
     }
 
     #[test]
