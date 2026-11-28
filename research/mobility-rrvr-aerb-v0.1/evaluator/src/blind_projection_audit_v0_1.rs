@@ -900,7 +900,13 @@ pub fn audit_candidate_surface(
         .collect::<BTreeSet<_>>();
     for (location, value) in leaves {
         for forbidden in &forbidden_values {
-            if value == *forbidden || value.contains(forbidden) {
+            // The world vocabulary is a public type system for candidate support.
+            // Its labels are allowed only inside the explicit support set; a
+            // matching label in any other candidate-visible value remains a leak.
+            let public_support_label = location.contains(".possible_world_support_ids[")
+                && VALID_WORLD_IDS.contains(&value.as_str())
+                && value == *forbidden;
+            if !public_support_label && (value == *forbidden || value.contains(forbidden)) {
                 findings.push(CandidateSurfaceFinding {
                     location: location.clone(),
                     finding_kind: "raw_evaluator_value_leak".to_owned(),
