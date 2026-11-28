@@ -37,7 +37,8 @@ def validate(request: dict[str, Any]) -> None:
         "schema_version", "episode_id", "frame_id", "sensor_id",
         "coordinate_frame", "transform_direction", "twist_order",
         "camera_intrinsics_sha256", "target_geometry_sha256",
-        "correspondence_ledger_sha256", "translation_scale_m",
+        "correspondence_ledger_sha256", "linearization_pose_sha256",
+        "translation_scale_m",
         "rank_relative_tolerance", "rank_absolute_tolerance",
         "camera", "observations",
     }
@@ -46,7 +47,8 @@ def validate(request: dict[str, Any]) -> None:
     for key in ("episode_id", "frame_id", "sensor_id", "coordinate_frame", "transform_direction"):
         require(isinstance(request[key], str) and request[key].strip(), f"{key} must not be empty")
     require(request["twist_order"] == TWIST_ORDER, "unsupported twist convention")
-    for key in ("camera_intrinsics_sha256", "target_geometry_sha256", "correspondence_ledger_sha256"):
+    for key in ("camera_intrinsics_sha256", "target_geometry_sha256",
+                "correspondence_ledger_sha256", "linearization_pose_sha256"):
         sha256_shape(request[key], key)
 
     camera = request["camera"]
@@ -240,6 +242,12 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
         "coordinate_frame": request["coordinate_frame"],
         "transform_direction": request["transform_direction"],
         "twist_order": request["twist_order"],
+        "measurement_model": "ideal_pinhole_independent_isotropic_pixel_noise",
+        "camera_intrinsics": camera,
+        "camera_intrinsics_sha256": request["camera_intrinsics_sha256"],
+        "target_geometry_sha256": request["target_geometry_sha256"],
+        "correspondence_ledger_sha256": request["correspondence_ledger_sha256"],
+        "linearization_pose_sha256": request["linearization_pose_sha256"],
         "observation_count": len(request["observations"]),
         "effective_observation_count": effective,
         "translation_scale_m": length,
