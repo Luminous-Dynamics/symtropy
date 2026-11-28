@@ -794,10 +794,14 @@ fn insert_numeric_attack_features(
             value.div_euclid(width).to_string(),
         );
     }
-    features.insert(
-        format!("{name}_sign"),
-        if value < 0 { "negative" } else if value == 0 { "zero" } else { "positive" }.to_owned(),
-    );
+    let sign = if value < 0 {
+        "negative"
+    } else if value == 0 {
+        "zero"
+    } else {
+        "positive"
+    };
+    features.insert(format!("{name}_sign"), sign.to_owned());
     let magnitude = value.unsigned_abs();
     let log_bucket = if magnitude == 0 {
         0
@@ -1021,9 +1025,12 @@ impl<'a> NaiveBayesModel<'a> {
                 let denominator = *class_n as f64 + vocabulary_n as f64 + 1.0;
                 score += ((category_n as f64 + 1.0) / denominator).ln();
             }
-            if score > best_score || (score == best_score && (best_world.is_empty() || *world < &best_world)) {
+            let world_label = *world;
+            if score > best_score
+                || (score == best_score && (best_world.is_empty() || world_label < best_world))
+            {
                 best_score = score;
-                best_world = world;
+                best_world = world_label;
             }
         }
         best_world.to_owned()
