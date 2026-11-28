@@ -629,7 +629,12 @@ fn evaluate_source_record(
             {
                 reasons.insert("OWNER_EVIDENCE_RECORD_SUBJECT_OR_CONFIGURATION_MISMATCH".to_owned());
             }
-            if record.lifecycle != OwnerEvidenceLifecycle::Active {
+            if matches!(
+                record.lifecycle,
+                OwnerEvidenceLifecycle::Revoked | OwnerEvidenceLifecycle::Withdrawn
+            ) {
+                reasons.insert("OWNER_EVIDENCE_RECORD_REVOKED_OR_WITHDRAWN".to_owned());
+            } else if record.lifecycle != OwnerEvidenceLifecycle::Active {
                 reasons.insert("OWNER_EVIDENCE_RECORD_NOT_ACTIVE".to_owned());
             }
             if record.freshness != OwnerEvidenceFreshness::Fresh {
@@ -787,8 +792,7 @@ fn disposition_for_reasons(
             reason.contains("REJECTED")
                 || reason.contains("FAILED")
                 || reason.contains("MISMATCH")
-                || reason.contains("NOT_ACTIVE")
-                || reason.contains("STALE")
+                || reason.contains("REVOKED_OR_WITHDRAWN")
                 || reason.contains("AUTHORITY_DENIED")
                 || reason.contains("INVALID")
                 || reason.contains("DUPLICATE")
@@ -885,7 +889,7 @@ pub fn bind_claim_obligation_evidence_v0_1(
     if required_manifest != input.decision_context.required_evidence_manifest_sha256 {
         reasons.insert("EVIDENCE_BINDING_REQUIRED_EVIDENCE_MANIFEST_MISMATCH".to_owned());
     }
-    let admission_ids = required_refs.iter().collect::<BTreeSet<_>>();
+    let admission_ids = required_refs.iter().map(String::as_str).collect::<BTreeSet<_>>();
     if admission_ids.len() != required_refs.len() {
         reasons.insert("EVIDENCE_BINDING_REQUIRED_EVIDENCE_DUPLICATE".to_owned());
     }
@@ -1012,15 +1016,19 @@ pub fn bind_claim_obligation_evidence_v0_1(
             reason_codes: entry_reasons.into_iter().collect(),
         });
     }
-    if mapped_refs.len() != admission_ids.len()
-        || admission_ids.iter().any(|item| !mapped_refs.contains(item.as_str()))
-    {
-        reasons.insert("EVIDENCE_BINDING_MAPPING_DOES_NOT_COVER_REQUIRED_EVIDENCE_SET".to_owned());
+    if mapped_refs.difference(&admission_ids).next().is_some() {
+        reasons.insert("EVIDENCE_BINDING_MAPPING_CONTAINS_UNDECLARED_EVIDENCE".to_owned());
+    }
+    if admission_ids.difference(&mapped_refs).next().is_some() {
+        reasons.insert("EVIDENCE_BINDING_MAPPING_MISSING_REQUIRED_EVIDENCE".to_owned());
     }
 
     let source_receipt_ids = source_receipts.keys().copied().collect::<BTreeSet<_>>();
-    if source_receipt_ids != mapped_refs {
-        reasons.insert("EVIDENCE_BINDING_SOURCE_RECEIPT_SET_MISMATCH".to_owned());
+    if source_receipt_ids.difference(&mapped_refs).next().is_some() {
+        reasons.insert("EVIDENCE_BINDING_HAS_UNMAPPED_SOURCE_RECEIPT".to_owned());
+    }
+    if mapped_refs.difference(&source_receipt_ids).next().is_some() {
+        reasons.insert("EVIDENCE_BINDING_SOURCE_RECEIPT_MISSING".to_owned());
     }
     if !mapping_errors.is_empty() {
         reasons.insert("EVIDENCE_BINDING_MAPPING_CONTRACT_INVALID".to_owned());
