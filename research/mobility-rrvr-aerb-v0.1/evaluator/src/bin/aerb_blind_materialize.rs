@@ -19,7 +19,6 @@ use mobility_rrvr_aerb_evaluator::{
     blind_projection_audit_v0_1::{
         BlindProjectionContext, MetadataAttackRow,
         candidate_metadata_features, project_candidate_episode,
-        project_candidate_submission,
     },
     canonical_sorted_json_sha256, sha256_hex,
 };
@@ -164,9 +163,9 @@ struct OutputRootCleanup {
 }
 
 impl OutputRootCleanup {
-    fn new(candidate: PathBuf, evaluator: PathBuf) -> Self {
+    fn new(candidate_input: PathBuf, candidate_output: PathBuf, evaluator: PathBuf) -> Self {
         Self {
-            roots: vec![candidate, evaluator],
+            roots: vec![candidate_input, candidate_output, evaluator],
             armed: true,
         }
     }
@@ -424,6 +423,7 @@ fn validate_source_manifests(
 fn materialize(
     source_candidate_path: &Path,
     source_evaluator_path: &Path,
+    candidate_input_path: &Path,
     candidate_output_path: &Path,
     evaluator_output_path: &Path,
 ) -> Result<(), String> {
@@ -465,12 +465,14 @@ fn materialize(
         return Err("SOURCE_WORLD_SCHEDULE_INCOMPLETE".to_owned());
     }
 
-    let candidate_target = prospective_root_path(candidate_output_path)?;
+    let candidate_target = prospective_root_path(candidate_input_path)?;
+    let candidate_output_target = prospective_root_path(candidate_output_path)?;
     let evaluator_target = prospective_root_path(evaluator_output_path)?;
     let intended_roots = [
         &source_candidate_root,
         &source_evaluator_root,
         &candidate_target,
+        &candidate_output_target,
         &evaluator_target,
     ];
     for (index, root) in intended_roots.iter().enumerate() {
@@ -481,16 +483,27 @@ fn materialize(
         }
     }
 
-    let candidate_root = create_private_root(candidate_output_path)?;
-    let evaluator_root = match create_private_root(evaluator_output_path) {
+    let candidate_root = create_private_root(candidate_input_path)?;
+    let candidate_output_root = match create_private_root(candidate_output_path) {
         Ok(path) => path,
         Err(error) => {
             let _ = fs::remove_dir(&candidate_root);
             return Err(error);
         }
     };
-    let mut output_cleanup =
-        OutputRootCleanup::new(candidate_root.clone(), evaluator_root.clone());
+    let evaluator_root = match create_private_root(evaluator_output_path) {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = fs::remove_dir(&candidate_root);
+            let _ = fs::remove_dir(&candidate_output_root);
+            return Err(error);
+        }
+    };
+    let mut output_cleanup = OutputRootCleanup::new(
+        candidate_root.clone(),
+        candidate_output_root.clone(),
+        evaluator_root.clone(),
+    );
 
     let generated = generate_blind_campaign_from_worlds(&world_schedule)
         .map_err(|error| format!("BLIND_ASSIGNMENT_FAILED: {error}"))?;
@@ -500,7 +513,7 @@ fn materialize(
     let projection_secret_bytes =
         serialize_pretty(&projection_secret, "PROJECTION_SECRET")?;
 
-    let mut candidate_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len() * 2);
+    let mut candidate_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len());
     let mut evaluator_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len() * 4 + 2);
     let mut metadata_rows = Vec::with_capacity(generated.evaluator_manifest.assignments.len());
     let mut candidate_output_bytes = 0_u64;
@@ -555,25 +568,15 @@ fn materialize(
             &assignment.episode_id,
         )
         .map_err(|error| format!("CANDIDATE_EPISODE_PROJECTION_FAILED: {error}"))?;
-        let projected_submission = project_candidate_submission(
-            &projection_context,
-            &original_submission,
-            &original_episode,
-            &projected_episode,
-            &receipt,
-        )
-        .map_err(|error| format!("CANDIDATE_SUBMISSION_PROJECTION_FAILED: {error}"))?;
         world_pack.episode_id = assignment.episode_id.clone();
 
         let episode_name = format!("episode-{}.json", assignment.episode_id);
-        let submission_name = format!("submission-{}.json", assignment.episode_id);
         let world_pack_name = format!("world-pack-{}.json", assignment.episode_id);
         let receipt_name = format!("projection-receipt-{}.json", assignment.episode_id);
         let source_episode_name = format!("source-episode-{}.json", assignment.episode_id);
         let source_submission_name = format!("source-submission-{}.json", assignment.episode_id);
 
         let episode_output_bytes = serialize_pretty(&projected_episode, "PROJECTED_EPISODE")?;
-        let submission_output_bytes = serialize_pretty(&projected_submission, "PROJECTED_SUBMISSION")?;
         let world_pack_output_bytes = serialize_pretty(&world_pack, "EVALUATOR_WORLD_PACK")?;
         let receipt_output_bytes = serialize_pretty(&receipt, "PROJECTION_RECEIPT")?;
         let source_episode_output_bytes = serialize_pretty(&original_episode, "SOURCE_EPISODE_ARCHIVE")?;
@@ -607,12 +610,6 @@ fn materialize(
             &episode_output_bytes,
             &mut candidate_output_bytes,
         )?;
-        let submission_sha256 = write_private_file(
-            &candidate_root,
-            &submission_name,
-            &submission_output_bytes,
-            &mut candidate_output_bytes,
-        )?;
         let world_pack_sha256 = write_private_file(
             &evaluator_root,
             &world_pack_name,
@@ -630,11 +627,6 @@ fn materialize(
             episode_id: assignment.episode_id.clone(),
             relative_file_name: episode_name.clone(),
             sha256: episode_sha256,
-        });
-        candidate_artifacts.push(CandidateArtifactSeal {
-            episode_id: assignment.episode_id.clone(),
-            relative_file_name: submission_name,
-            sha256: submission_sha256,
         });
         evaluator_artifacts.push(EvaluatorArtifactSeal {
             relative_file_name: world_pack_name,
@@ -764,6 +756,7 @@ fn materialize(
         &mut evaluator_output_bytes,
     )?;
     sync_directory(&candidate_root)?;
+    sync_directory(&candidate_output_root)?;
     sync_directory(&evaluator_root)?;
 
     println!(
@@ -785,9 +778,9 @@ fn materialize(
 
 fn run() -> Result<(), String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    if args.len() != 4 {
+    if args.len() != 5 {
         return Err(
-            "usage: aerb_blind_materialize <source-candidate-dir> <source-evaluator-dir> <candidate-output-dir> <evaluator-output-dir>"
+            "usage: aerb_blind_materialize <source-candidate-dir> <source-evaluator-dir> <candidate-input-dir> <candidate-output-dir> <evaluator-output-dir>"
                 .to_owned(),
         );
     }
@@ -796,6 +789,7 @@ fn run() -> Result<(), String> {
         Path::new(&args[1]),
         Path::new(&args[2]),
         Path::new(&args[3]),
+        Path::new(&args[4]),
     )
 }
 
