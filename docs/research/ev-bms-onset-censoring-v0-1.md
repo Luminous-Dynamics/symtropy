@@ -40,6 +40,14 @@ For each event, store a time-bound object:
 
 The evaluator must not silently infer these bounds from a service note. If one side is unavailable, the event is censored; do not fabricate a point timestamp.
 
+### 2.1 Shared time basis and clock uncertainty
+
+Alarm times, event bounds, and monitoring exposures must be normalized to the same explicit time basis (for example, UTC Unix milliseconds). The evaluation manifest binds a time-basis ID, a clock-alignment artifact ID, the maximum relative clock error, and an explicit assertion that the uncertainty has already been applied.
+
+The onset interval must be widened conservatively to include source timestamp resolution and relative clock-alignment uncertainty. Monitoring exposure windows must be guard-banded so that only continuously valid, time-aligned coverage is represented. The evaluator fails closed when the time basis or alignment evidence is missing, or when the manifest does not assert that uncertainty was applied. A clock-alignment assumption is not itself proof: the alignment artifact and its validation method must be retained and independently reviewed.
+
+For a source with a verified one-millisecond clock resolution, if the last verified-normal sample is at t, the earliest possible onset bound is no earlier than t+1 ms; do not store the last-normal timestamp itself as an inclusive possible-onset lower bound. When resolution or clock uncertainty is larger, expand the interval accordingly.
+
 ### 2.1 Four states
 
 - **Exact reported time:** lower = upper, but retain what the timestamp actually represents. It may be an alarm, first positive sample, maintenance confirmation, or an independently adjudicated onset.
