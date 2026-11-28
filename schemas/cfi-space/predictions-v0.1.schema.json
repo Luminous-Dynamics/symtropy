@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/cfi-space/predictions-v0.1.schema.json",
+  "title": "CFI-Space Candidate Predictions v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "benchmark_id", "predictions"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "benchmark_id": { "type": "string", "minLength": 1 },
+    "predictions": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/prediction" } }
+  },
+  "$defs": {
+    "disposition": { "enum": ["qualified", "abstain", "out_of_scope", "disagreement", "dependence_unknown", "missing_evidence"] },
+    "fault_family": { "enum": ["rgb_local", "event_local", "timing", "extrinsics", "common_cause", "translation", "dynamics", "observability", "integrity"] },
+    "prediction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["episode_id", "input_bundle_sha256", "disposition", "detected_fault_families"],
+      "properties": {
+        "episode_id": { "type": "string", "minLength": 1 },
+        "input_bundle_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "disposition": { "$ref": "#/$defs/disposition" },
+        "detected_fault_families": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/fault_family" } }
+      }
+    }
+  }
+}

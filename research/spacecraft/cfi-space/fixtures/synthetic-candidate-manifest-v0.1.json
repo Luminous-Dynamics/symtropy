@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "CFI-SPACE-SYNTHETIC-CONTRACT-001",
+  "episodes": [
+    {
+      "episode_id": "episode-a-clean",
+      "input_bundle_sha256": "503479d00d58ef1e697e737c1bb9ccd4ebc75b5f46776122c6d3e9b50f58314a",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-clean-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-clean-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-clean.bin"
+    },
+    {
+      "episode_id": "episode-a-clock",
+      "input_bundle_sha256": "74b11a087d58ccf8be2589c57ee2a0f9d75afd938a68dcff7625a7162c474943",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-clock-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-clock-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-clock.bin"
+    },
+    {
+      "episode_id": "episode-a-extrinsics",
+      "input_bundle_sha256": "02d3a3afdbae85f799c08dd5928aa73c87080ef6f8c078f437ad4e1d9099dba2",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-extrinsics-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-extrinsics-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-extrinsics.bin"
+    },
+    {
+      "episode_id": "episode-a-common",
+      "input_bundle_sha256": "60c6f78a662e62af9a7f171de20cd80f0c05fb94293d1cf7afcc33b2fc9db575",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-common-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-common-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-common.bin"
+    },
+    {
+      "episode_id": "episode-a-translation",
+      "input_bundle_sha256": "2188209323921871c551b45d2cb933b0a41a3b5de779ef2b9c434537eda33ac1",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-translation-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-translation-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-translation.bin"
+    },
+    {
+      "episode_id": "episode-a-ood",
+      "input_bundle_sha256": "9760144fd5eac4c261e088b5431f249f3ac68333f05cd1153c6ec77f9e7a65ce",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-ood-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-ood-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-ood.bin"
+    },
+    {
+      "episode_id": "episode-a-integrity",
+      "input_bundle_sha256": "98571f6fc460ecb84c7428e1a8549b9acf35534bc527bcaef3e53ce89877af7b",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-integrity-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-integrity-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-integrity.bin"
+    },
+    {
+      "episode_id": "episode-a-interaction",
+      "input_bundle_sha256": "38d824dda4d4ddce8c3493fc2b17b328ca7da96723310b78903a7f4340f71c99",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-a-interaction-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-a-interaction-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-a-interaction.bin"
+    },
+    {
+      "episode_id": "episode-b-clean",
+      "input_bundle_sha256": "79a5d1d0ff7cdbd07f4cf747f16e5c1ba5c4a24ca51e5ee9a07514081e0f5fc3",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-b-clean-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-b-clean-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-b-clean.bin"
+    },
+    {
+      "episode_id": "episode-b-clock",
+      "input_bundle_sha256": "f6e1219b21298dd1d637ff48b0f23261ad0909ad6444cd2297ead3f4a6c8cfb6",
+      "frame_budget": 2,
+      "expected_frame_count": 2,
+      "first_sequence": 0,
+      "horizon_us": 50000,
+      "frames": [
+        {
+          "frame_id": "episode-b-clock-frame-0",
+          "sequence": 0,
+          "timestamp_us": 1000000,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        },
+        {
+          "frame_id": "episode-b-clock-frame-1",
+          "sequence": 1,
+          "timestamp_us": 1033333,
+          "modalities": [
+            "rgb",
+            "event"
+          ]
+        }
+      ],
+      "input_bundle_path": "research/spacecraft/cfi-space/fixtures/bundles/episode-b-clock.bin"
+    }
+  ]
+}
