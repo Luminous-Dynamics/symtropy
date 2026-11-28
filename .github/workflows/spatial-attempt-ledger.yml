@@ -1,0 +1,116 @@
+name: Spatial reliability attempt ledger
+
+on:
+  pull_request:
+    paths:
+      - "fixtures/av-observation-001/spatial-attempt-ledger-v0.schema.json"
+      - "fixtures/av-observation-001/spatial-attempt-ledger-v0.example.json"
+      - ".github/workflows/spatial-attempt-ledger.yml"
+  push:
+    branches:
+      - "research/spatial-reliability-scorecard-v0"
+    paths:
+      - "fixtures/av-observation-001/spatial-attempt-ledger-v0.schema.json"
+      - "fixtures/av-observation-001/spatial-attempt-ledger-v0.example.json"
+      - ".github/workflows/spatial-attempt-ledger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ledger:
+    name: Exact-head Draft 2020-12 and negative-control audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Assert exact candidate head
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Set up Python for schema validation only
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+
+      - name: Validate schema, example and fail-closed negative controls
+        shell: bash
+        run: |
+          python - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          schema_path = Path("fixtures/av-observation-001/spatial-attempt-ledger-v0.schema.json")
+          example_path = Path("fixtures/av-observation-001/spatial-attempt-ledger-v0.example.json")
+          schema = json.loads(schema_path.read_text())
+          example = json.loads(example_path.read_text())
+
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = sorted(validator.iter_errors(example), key=lambda e: list(e.path))
+          if errors:
+              raise SystemExit("example failed schema validation:\n" + "\n".join(str(e) for e in errors))
+          print("PASS: Draft 2020-12 schema and example")
+
+          mutations = []
+
+          bad = copy.deepcopy(example)
+          bad["attempts"][2]["pose_metric_status"] = "evaluated"
+          mutations.append(("zero valid poses cannot claim evaluated ATE", bad))
+
+          bad = copy.deepcopy(example)
+          del bad["attempts"][2]["not_evaluated_reason"]
+          mutations.append(("NOT_EVALUATED requires a reason", bad))
+
+          bad = copy.deepcopy(example)
+          bad["attempts"][1]["joint_success"] = True
+          mutations.append(("tracking-loss attempt cannot be joint success", bad))
+
+          bad = copy.deepcopy(example)
+          bad["evaluator_truth"] = {"world_id": "hidden"}
+          mutations.append(("unknown evaluator-truth field is rejected", bad))
+
+          bad = copy.deepcopy(example)
+          del bad["run_identity"]["scorer_sha256"]
+          mutations.append(("scoring code identity is required", bad))
+
+          bad = copy.deepcopy(example)
+          bad["run_identity"]["reference_source_independence"] = "assumed-independent"
+          mutations.append(("reference independence must use a declared enum", bad))
+
+          bad = copy.deepcopy(example)
+          bad["run_identity"]["qualification_criteria"]["minimum_pose_coverage"] = 1.4
+          mutations.append(("preregistered coverage threshold must be within [0,1]", bad))
+
+          for label, candidate in mutations:
+              if not list(validator.iter_errors(candidate)):
+                  raise SystemExit("negative control unexpectedly accepted: " + label)
+              print("PASS: rejected negative control — " + label)
+
+          # A correct abstention is a response disposition, not a process crash.
+          # A denied optional probe is an acquisition outcome, not a terminal failure.
+          safe_abstention = copy.deepcopy(example)
+          safe_abstention["attempts"][3]["answer_disposition"] = "abstained"
+          safe_abstention["attempts"][3]["acquisition_dispositions"] = [
+              {"action_id": "probe-1", "disposition": "permission_denied"}
+          ]
+          if list(validator.iter_errors(safe_abstention)):
+              raise SystemExit("safe abstention / denied probe must remain a valid completed attempt")
+          print("PASS: abstention and permission denial remain separate from execution failure")
+
+          bad = copy.deepcopy(example)
+          bad["attempts"][0]["terminal_disposition"] = "abstained"
+          if not list(validator.iter_errors(bad)):
+              raise SystemExit("abstention must not be accepted as terminal execution disposition")
+          print("PASS: abstention rejected as a terminal execution disposition")
+          PY
