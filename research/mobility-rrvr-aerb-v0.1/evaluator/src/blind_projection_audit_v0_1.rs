@@ -1263,10 +1263,10 @@ mod tests {
             schema_version: "aerb-blind-projection-secret-v0.1".to_owned(),
             projection_salt_hex: "not-hex".to_owned(),
         };
-        assert_eq!(
+        assert!(matches!(
             BlindProjectionContext::from_evaluator_secret(&secret),
             Err(ProjectionError::InvalidProjectionSecret("projection_salt_hex"))
-        );
+        ));
     }
 
     #[test]
