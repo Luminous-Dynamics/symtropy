@@ -1,0 +1,418 @@
+{
+  "schema": "AeroRobustEVSIAmbiguitySetV0_1",
+  "scenario_set_id": "ambiguity-set:wing-panel-synthetic-v0.1",
+  "scenario_set_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "approval_receipt": {
+    "verification_status": "VERIFIED",
+    "owner_namespace": "owner:approved-decision-model-board",
+    "claim_id": "claim:wing-panel-proof-load",
+    "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "configuration_ref": "configuration:wing-r17",
+    "scenario_set_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "scenario_count": 2,
+    "receipt_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "receiver_first_seen_at_unix_ms": 1795516999000,
+    "effective_from_unix_ms": 1795516990000,
+    "effective_until_unix_ms": 1795517010000
+  },
+  "scenarios": [
+    {
+      "scenario_id": "scenario:baseline",
+      "input": {
+        "claim_id": "claim:wing-panel-proof-load",
+        "frozen_claim_disposition": "INCOMPLETE",
+        "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
+        "decision_model_sha256": "58a6677f4b6ce980ef34d29a5d6d4239dd96b213fe1f417573f664310d7f654d",
+        "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "decision_alternatives": [
+          {
+            "decision_id": "decision:hold"
+          },
+          {
+            "decision_id": "decision:proceed"
+          }
+        ],
+        "world_states": [
+          {
+            "state_id": "state:bad",
+            "prior_probability_ppm": 500000
+          },
+          {
+            "state_id": "state:good",
+            "prior_probability_ppm": 500000
+          }
+        ],
+        "utilities": [
+          {
+            "decision_id": "decision:hold",
+            "state_id": "state:bad",
+            "utility_units": 0
+          },
+          {
+            "decision_id": "decision:hold",
+            "state_id": "state:good",
+            "utility_units": 0
+          },
+          {
+            "decision_id": "decision:proceed",
+            "state_id": "state:bad",
+            "utility_units": -100
+          },
+          {
+            "decision_id": "decision:proceed",
+            "state_id": "state:good",
+            "utility_units": 100
+          }
+        ],
+        "actions": [
+          {
+            "action_id": "action:request-calibration-report",
+            "owner_namespace": "owner:metrology-lab",
+            "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
+            "authorization_status": "VERIFIED_PERMITTED",
+            "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
+            "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "target_obligation_ids": [
+              "obligation:calibration"
+            ],
+            "expected_cost_units": 1,
+            "expected_delay_cost_units": 2,
+            "outcome_likelihoods": [
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 100000
+              },
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 900000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 900000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 100000
+              }
+            ],
+            "authorization_receipt": {
+              "owner_namespace": "owner:metrology-lab",
+              "claim_id": "claim:wing-panel-proof-load",
+              "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "configuration_ref": "configuration:wing-r17",
+              "action_id": "action:request-calibration-report",
+              "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
+              "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "receiver_first_seen_at_unix_ms": 1795516000000,
+              "effective_from_unix_ms": 1795500000000,
+              "effective_until_unix_ms": 1798000000000
+            },
+            "calibration_receipt": {
+              "owner_namespace": "owner:forecast-model-team",
+              "claim_id": "claim:wing-panel-proof-load",
+              "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "configuration_ref": "configuration:wing-r17",
+              "action_id": "action:request-calibration-report",
+              "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+              "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "receiver_first_seen_at_unix_ms": 1795516000000,
+              "effective_from_unix_ms": 1795500000000,
+              "effective_until_unix_ms": 1798000000000,
+              "outcome_likelihoods_sha256": "c5e35ea600a13eff92bba9abf807da83933096a20f1b4b017e70888dc0efa3a1"
+            },
+            "outcome_model_owner_namespace": "owner:forecast-model-team"
+          },
+          {
+            "action_id": "action:unauthorized-bench-test",
+            "owner_namespace": "owner:test-facility",
+            "action_catalogue_entry_sha256": "29cf6ad54be0bac3edee6e35798175133a6298246e7c6de5903f9609f3963b04",
+            "authorization_status": "UNKNOWN",
+            "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
+            "expected_artifact_contract_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "target_obligation_ids": [
+              "obligation:calibration"
+            ],
+            "expected_cost_units": 0,
+            "expected_delay_cost_units": 0,
+            "outcome_likelihoods": [
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 100000
+              },
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 900000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 900000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 100000
+              }
+            ],
+            "authorization_receipt": null,
+            "calibration_receipt": {
+              "owner_namespace": "owner:forecast-model-team",
+              "claim_id": "claim:wing-panel-proof-load",
+              "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "configuration_ref": "configuration:wing-r17",
+              "action_id": "action:unauthorized-bench-test",
+              "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+              "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+              "receiver_first_seen_at_unix_ms": 1795516000000,
+              "effective_from_unix_ms": 1795500000000,
+              "effective_until_unix_ms": 1798000000000,
+              "outcome_likelihoods_sha256": "80677e834200a879796018ffa201af87fd90f289a90e9902320750466d311257"
+            },
+            "outcome_model_owner_namespace": "owner:forecast-model-team"
+          }
+        ],
+        "configuration_ref": "configuration:wing-r17",
+        "as_known_at_unix_ms": 1795517000000,
+        "unresolved_obligation_ids": [
+          "obligation:calibration"
+        ],
+        "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309",
+        "assurance_state_receipt": {
+          "verification_status": "VERIFIED",
+          "owner_namespace": "owner:aero-assurance-adapter",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "frozen_claim_disposition": "INCOMPLETE",
+          "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309",
+          "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000000
+        },
+        "action_catalogue_receipt": {
+          "verification_status": "VERIFIED",
+          "owner_namespace": "owner:action-catalogue",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "configuration_ref": "configuration:wing-r17",
+          "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
+          "action_count": 2,
+          "receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000000
+        }
+      }
+    },
+    {
+      "scenario_id": "scenario:no-information",
+      "input": {
+        "claim_id": "claim:wing-panel-proof-load",
+        "frozen_claim_disposition": "INCOMPLETE",
+        "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
+        "decision_model_sha256": "58a6677f4b6ce980ef34d29a5d6d4239dd96b213fe1f417573f664310d7f654d",
+        "outcome_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "decision_alternatives": [
+          {
+            "decision_id": "decision:hold"
+          },
+          {
+            "decision_id": "decision:proceed"
+          }
+        ],
+        "world_states": [
+          {
+            "state_id": "state:bad",
+            "prior_probability_ppm": 500000
+          },
+          {
+            "state_id": "state:good",
+            "prior_probability_ppm": 500000
+          }
+        ],
+        "utilities": [
+          {
+            "decision_id": "decision:hold",
+            "state_id": "state:bad",
+            "utility_units": 0
+          },
+          {
+            "decision_id": "decision:hold",
+            "state_id": "state:good",
+            "utility_units": 0
+          },
+          {
+            "decision_id": "decision:proceed",
+            "state_id": "state:bad",
+            "utility_units": -100
+          },
+          {
+            "decision_id": "decision:proceed",
+            "state_id": "state:good",
+            "utility_units": 100
+          }
+        ],
+        "actions": [
+          {
+            "action_id": "action:request-calibration-report",
+            "owner_namespace": "owner:metrology-lab",
+            "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
+            "authorization_status": "VERIFIED_PERMITTED",
+            "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
+            "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "target_obligation_ids": [
+              "obligation:calibration"
+            ],
+            "expected_cost_units": 1,
+            "expected_delay_cost_units": 2,
+            "outcome_likelihoods": [
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 500000
+              },
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 500000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 500000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 500000
+              }
+            ],
+            "authorization_receipt": {
+              "owner_namespace": "owner:metrology-lab",
+              "claim_id": "claim:wing-panel-proof-load",
+              "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "configuration_ref": "configuration:wing-r17",
+              "action_id": "action:request-calibration-report",
+              "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
+              "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+              "receiver_first_seen_at_unix_ms": 1795516000000,
+              "effective_from_unix_ms": 1795500000000,
+              "effective_until_unix_ms": 1798000000000
+            },
+            "calibration_receipt": {
+              "owner_namespace": "owner:forecast-model-team",
+              "claim_id": "claim:wing-panel-proof-load",
+              "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "configuration_ref": "configuration:wing-r17",
+              "action_id": "action:request-calibration-report",
+              "outcome_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+              "calibration_report_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+              "receiver_first_seen_at_unix_ms": 1795516000000,
+              "effective_from_unix_ms": 1795500000000,
+              "effective_until_unix_ms": 1798000000000,
+              "outcome_likelihoods_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "outcome_model_owner_namespace": "owner:forecast-model-team"
+          },
+          {
+            "action_id": "action:unauthorized-bench-test",
+            "owner_namespace": "owner:test-facility",
+            "action_catalogue_entry_sha256": "29cf6ad54be0bac3edee6e35798175133a6298246e7c6de5903f9609f3963b04",
+            "authorization_status": "UNKNOWN",
+            "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
+            "expected_artifact_contract_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "target_obligation_ids": [
+              "obligation:calibration"
+            ],
+            "expected_cost_units": 0,
+            "expected_delay_cost_units": 0,
+            "outcome_likelihoods": [
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 100000
+              },
+              {
+                "state_id": "state:bad",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 900000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:positive",
+                "likelihood_ppm": 900000
+              },
+              {
+                "state_id": "state:good",
+                "outcome_id": "outcome:negative",
+                "likelihood_ppm": 100000
+              }
+            ],
+            "authorization_receipt": null,
+            "calibration_receipt": {
+              "owner_namespace": "owner:forecast-model-team",
+              "claim_id": "claim:wing-panel-proof-load",
+              "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "configuration_ref": "configuration:wing-r17",
+              "action_id": "action:unauthorized-bench-test",
+              "outcome_model_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+              "calibration_report_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+              "receiver_first_seen_at_unix_ms": 1795516000000,
+              "effective_from_unix_ms": 1795500000000,
+              "effective_until_unix_ms": 1798000000000,
+              "outcome_likelihoods_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+            },
+            "outcome_model_owner_namespace": "owner:forecast-model-team"
+          }
+        ],
+        "configuration_ref": "configuration:wing-r17",
+        "as_known_at_unix_ms": 1795517000000,
+        "unresolved_obligation_ids": [
+          "obligation:calibration"
+        ],
+        "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309",
+        "assurance_state_receipt": {
+          "verification_status": "VERIFIED",
+          "owner_namespace": "owner:aero-assurance-adapter",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "frozen_claim_disposition": "INCOMPLETE",
+          "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309",
+          "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000000
+        },
+        "action_catalogue_receipt": {
+          "verification_status": "VERIFIED",
+          "owner_namespace": "owner:action-catalogue",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "configuration_ref": "configuration:wing-r17",
+          "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
+          "action_count": 2,
+          "receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000000
+        }
+      }
+    }
+  ]
+}
