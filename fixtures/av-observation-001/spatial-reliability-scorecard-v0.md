@@ -115,6 +115,19 @@ Report task decision loss, policy regret, action count/cost, observations actual
 
 A request is not an acquired observation. A requested observation that is denied, dropped, stale or late remains a failed/undelivered action in the accounting. A retrieved historical frame is memory evidence, not a new measurement. No state update may be attributed to evidence before its availability tick.
 
+### Episodic instance-memory lane: EgoWitness / EgoClue
+
+Add a distinct long-horizon instance-memory cohort rather than pooling it with map construction or geometric SLAM. [EgoWitness (19 November 2026)](https://arxiv.org/abs/2611.25849) contains 8,453 human-verified questions over approximately 324 hours, covering seven abilities such as instance identity, latest-witness attribution, object history, room identity and visit reasoning. Its week-long split is task-group disjoint; all 787 short-horizon questions and their environments are reserved for cross-environment evaluation.
+
+Keep at least three reference conditions separate:
+- direct VLMs using the benchmark's shared timestamped-frame input condition;
+- tool-using controllers with the paper's separate perception/retrieval backends and declared decision/tool-call limits;
+- evidence-trace synthesis from already gathered traces, with no new visual calls.
+
+The paper reports direct VLM performance substantially below its trained EgoClue system, but EgoClue's result is an agent-stack result (Qwen3.5-4B controller, Gemini visual backend, GPT retrieval backend, SFT+GRPO), not a parameter-matched direct-VLM result. The paper's shortest-path query type uses a supplied room graph, so it is not a map-reconstruction or SLAM score.
+
+Report latest-witness accuracy, wearer attribution, instance merge/split, missed positive sighting windows, room identity, visit-count/duration and evidence-linked correctness separately. Cluster by source video / wearer / task group. Verify source-media rights, observer dependencies and exact tool limits before ingestion or comparison; the preprint does not itself establish commercial reuse rights for all underlying recordings.
+
 External protocol note: ActSpace-Bench (arXiv:2611.31215, 23 November 2026) compares a model's own exploration against both a same-step full-history random walk and a same-step random walk constrained to the same recent-view window. Its strongest models show much larger gains over the matched-window control than over full-history random, because observations discovered earlier may be evicted before the answer. Our adapters MUST preserve this two-control design where applicable; it is not fair to infer active-perception superiority from an unmatched memory condition. ActSpace's 40-step budget and start-plus-eight-recent-frame window are native to that benchmark; other benchmarks should preregister their own matched budget rather than blindly copy these values.
 
 ## 6. Dynamic-scene persistence
