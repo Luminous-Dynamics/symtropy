@@ -10,7 +10,7 @@
 //! kernel validates upstream receipt dispositions and exact scopes.
 
 use super::evidence_action_evsi_v0_1::{
-    EVSI_NUMERATOR_SCALE_V0_1, EvidenceActionPlannerDispositionV0_1,
+    ROBUST_EVSI_NUMERATOR_SCALE_V0_1, EvidenceActionPlannerDispositionV0_1,
     EvidenceActionPlannerInputV0_1, rank_evidence_actions_v0_1,
 };
 use serde::{Deserialize, Serialize};
@@ -18,6 +18,7 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const ROBUST_EVSI_AMBIGUITY_SCHEMA_V0_1: &str = "AeroRobustEVSIAmbiguitySetV0_1";
+pub const ROBUST_EVSI_NUMERATOR_SCALE_V0_1: i128 = 1_000_000_000_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum RobustEVSIReceiptVerificationStatusV0_1 {
