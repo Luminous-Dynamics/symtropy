@@ -40,3 +40,7 @@ path = "src/bin/aerb_metadata_audit.rs"
 [[bin]]
 name = "aerb_blind_materialize"
 path = "src/bin/aerb_blind_materialize.rs"
+
+[[bin]]
+name = "aerb_blind_campaign_evaluate"
+path = "src/bin/aerb_blind_campaign_evaluate.rs"
