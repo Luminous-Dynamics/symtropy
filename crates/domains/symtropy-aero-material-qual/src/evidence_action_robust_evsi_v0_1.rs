@@ -398,11 +398,11 @@ pub fn rank_robust_evidence_actions_v0_1(
                 BTreeSet::from(["ROBUST_EVSI_SCENARIO_INPUT_INVALID".to_owned()]),
             );
         }
-        for (action_id, reason_code) in &result.excluded_actions {
+        for excluded_action in &result.excluded_actions {
             scenario_exclusions.push(RobustEvidenceActionExclusionV0_1 {
                 scenario_id: scenario.scenario_id.clone(),
-                action_id: action_id.clone(),
-                reason_code: reason_code.clone(),
+                action_id: excluded_action.action_id.clone(),
+                reason_code: excluded_action.reason_code.clone(),
             });
         }
         let mut action_map = BTreeMap::new();
@@ -429,11 +429,11 @@ pub fn rank_robust_evidence_actions_v0_1(
             });
             action_map.insert(action.action_id.clone(), (action, evsi, net_benefit));
         }
-        evaluations.push((scenario.scenario_id.as_str(), result, action_map));
+        evaluations.push((scenario.scenario_id.as_str(), action_map));
     }
 
     let mut all_action_ids = BTreeSet::new();
-    for (_, _, action_map) in &evaluations {
+    for (_, action_map) in &evaluations {
         all_action_ids.extend(action_map.keys().cloned());
     }
 
@@ -442,7 +442,7 @@ pub fn rank_robust_evidence_actions_v0_1(
     for action_id in all_action_ids {
         let mut per_scenario = Vec::new();
         let mut missing = false;
-        for (scenario_id, _, action_map) in &evaluations {
+        for (scenario_id, action_map) in &evaluations {
             match action_map.get(&action_id) {
                 Some((action, evsi, net_benefit)) => {
                     per_scenario.push((*scenario_id, action, *evsi, *net_benefit));
@@ -453,11 +453,15 @@ pub fn rank_robust_evidence_actions_v0_1(
         if missing || per_scenario.len() != evaluations.len() {
             for (scenario_id, _, action_map) in &evaluations {
                 if !action_map.contains_key(&action_id) {
-                    excluded.push((
-                        scenario_id.to_string(),
-                        action_id.clone(),
-                        "ACTION_NOT_QUALIFIED_IN_EVERY_APPROVED_SCENARIO".to_owned(),
-                    ));
+                    if !excluded.iter().any(|item| {
+                        item.scenario_id == *scenario_id && item.action_id == action_id
+                    }) {
+                        excluded.push(RobustEvidenceActionExclusionV0_1 {
+                            scenario_id: scenario_id.to_string(),
+                            action_id: action_id.clone(),
+                            reason_code: "ACTION_NOT_QUALIFIED_IN_EVERY_APPROVED_SCENARIO".to_owned(),
+                        });
+                    }
                 }
             }
             continue;
