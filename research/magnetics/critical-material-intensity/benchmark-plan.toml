@@ -1,0 +1,93 @@
+schema_version = "0.1"
+program_id = "MAG-CRITICAL-ELEMENT-INTENSITY-001"
+revision = "0.1-draft"
+status = "synthetic_vector_accounting_evaluator"
+date = "2026-11-28"
+issue = 7912
+parents = [7791, 7776, 7792, 7802, 7887, 7870, 7911]
+
+[decision]
+metric = "element_specific_virgin_g_per_mwh_of_accepted_useful_shaft_service"
+vector_not_scalar = true
+universal_criticality_weight = false
+compare_every_required_element = true
+candidate_must_be_noninferior_on_every_required_element = true
+one_element_improvement_requires_no_unreported_increase_in_other_elements = true
+required_conventional_pm_baseline = true
+candidate_and_baselines_share_optimization_budget_tier = true
+
+[inventory]
+material_mass_unit = "g"
+element_fraction_unit = "dimensionless"
+output_intensity_unit = "g_per_MWh"
+required_elements_preregistered_from_complete_BOM_and_inventory_scope = true
+inventory_scope_digest_bound = true
+virgin_external_secondary_internal_recycled_direct_reuse_separate = true
+non_detects_require_method_detection_limit_intervals = true
+mass_fraction_interval_must_be_within_zero_and_one = true
+sum_of_measured_element_fraction_intervals_above_one = "Fail_or_Indeterminate_by_interval"
+no_unmeasured_or_omitted_element_defaults_to_zero = true
+end_of_life_credit_subtracted_from_virgin_input = false
+recycling_allocation_method = "outside_v0_1_no_double_counting"
+
+[service]
+denominator = "accepted_useful_mechanical_shaft_energy_kWh"
+completed_mission_count_is_integer = true
+physical_service_measurement_required = true
+durability_receipt_and_method_required = true
+projection_only_lifetime_claim_allowed = false
+minimum_completed_missions = 10
+service_noninferiority_required = true
+service_energy_per_mission_times_completed_mission_count = true
+
+[evidence]
+m4_component_acceptance_required = true
+physical_acceptance_evidence_required = true
+physical_material_mass_evidence_required = true
+physical_element_assay_evidence_required = true
+physical_service_and_durability_evidence_required = true
+method_calibration_uncertainty_and_lab_scope_required = true
+element_assay_receipt_ids_must_be_unique_across_lots = true
+candidate_and_baseline_optimization_receipts_required = true
+matching_optimization_budget_tier_required = true
+optimization_freeze_before_unseal_required = true
+
+[reporting]
+report_per_element_virgin_g_per_mwh = true
+report_per_element_external_secondary_g_per_mwh = true
+report_per_element_internal_recycled_g_per_mwh = true
+report_per_element_direct_reuse_g_per_mwh = true
+report_per_element_total_embodied_g_per_mwh = true
+report_total_element_inventory_by_accepted_component = true
+report_useful_service_energy = true
+report_replacement_and_durability_boundary = true
+cost_LCA_carbon_and_supply_risk_are_separate_evidence_lanes = true
+
+[proposed_targets]
+# Aspirational programme targets, not measured achievements or universal standards.
+initial_virgin_Nd_Pr_intensity_reduction_percent = 10
+stretch_virgin_rare_earth_vector_reduction_percent = 25
+no_worse_margin_required_for_Dy_Tb_Co_and_other_preregistered_elements = true
+complete_BOM_and_service_boundary_before_comparison = true
+
+[implementation]
+language = "Rust 2024"
+dependencies = []
+manifest = "evaluator/Cargo.toml"
+source = "evaluator/src/lib.rs"
+schema = "evaluator/critical-material-intensity-v0.1.schema.json"
+fixture = "evaluator/fixtures/critical-material-intensity-synthetic-v0.1.json"
+source_register = "source-register.json"
+workflow = ".github/workflows/magnetic-critical-material-intensity.yml"
+authored_unit_tests = 23
+tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_fixture_promotes_physical_advantage = false
+literature_material_content_promotes_component_acceptance = false
+magnet_mass_is_proxy_for_element_mass = false
+end_of_life_recycling_credit_is_deducted_in_v0_1 = false
+modelled_service_projection_supports_lifetime_claim = false
+criticality_weighted_score_emitted = false
+LCA_or_TEI_claimed = false
