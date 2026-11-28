@@ -701,6 +701,7 @@ fn search_period(
 }
 
 #[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments)]
 fn search_groups(
     instance: &MobilityInstance,
     period: u64,
@@ -1887,6 +1888,55 @@ mod tests {
         reordered.arcs.reverse();
         reordered.scenarios.reverse();
         assert_eq!(digest, mobility_instance_digest(&reordered).unwrap());
+    }
+
+    #[test]
+    fn seeded_tiny_policy_corpus_matches_independent_path_oracle() {
+        let mut rng = 0x0A11_CE55_5AFB_2026_u64;
+        for seed in 0..250_u64 {
+            rng = rng
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let scenario_count = 1 + ((rng >> 32) % 4) as usize;
+            let mut scenarios = Vec::with_capacity(scenario_count);
+            for index in 0..scenario_count {
+                rng = rng
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                let site = if (rng >> 32) % 2 == 0 { "site-a" } else { "site-b" };
+                rng = rng
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                let reveal_period = (rng >> 32) % 2;
+                let mut candidate = scenario(
+                    &format!("world-{index}"),
+                    vec![floor(site, 1, 1)],
+                );
+                candidate.observations.push(ObservationEvent {
+                    reveal_period,
+                    event_id: format!("observation-{index}"),
+                    key: "service-site".to_string(),
+                    value: site.to_string(),
+                });
+                scenarios.push(candidate);
+            }
+            let model = instance(
+                1,
+                &["hub", "site-a", "site-b"],
+                vec![unit("mobile-pump", "hub")],
+                vec![
+                    arc("hub-a", "hub", "site-a", 1, "corridor-a", 1, &[0]),
+                    arc("hub-b", "hub", "site-b", 1, "corridor-b", 1, &[0]),
+                ],
+                scenarios,
+            );
+            let report = solve_mobility_policy(&model).unwrap_or_else(|error| {
+                panic!("seed {seed}: producer rejected generated model: {error}")
+            });
+            verify_mobility_report(&model, &report).unwrap_or_else(|error| {
+                panic!("seed {seed}: independent policy oracle disagreed: {error}")
+            });
+        }
     }
 
     #[test]
