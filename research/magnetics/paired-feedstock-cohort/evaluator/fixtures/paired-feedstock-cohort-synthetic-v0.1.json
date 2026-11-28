@@ -1,0 +1,1515 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "SyntheticControl only; no physical recovered-vs-virgin route comparison.",
+  "spec": {
+    "campaign_id": "PAIRED-HPMS-PEM-001",
+    "scope": {
+      "application_id": "MAGNET-ROUTE-COMP-001",
+      "material_family_id": "NdFeB",
+      "feedstock_form_id": "Powder",
+      "route": "PowderExtrusionMouldingSintering",
+      "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "metrics": [
+      {
+        "metric_id": "absolute_br",
+        "unit": "T",
+        "direction": "Maximize",
+        "hard_min": 0.5,
+        "noninferiority_margin": 0.05,
+        "improvement_margin": 0.01
+      },
+      {
+        "metric_id": "intrinsic_hcj",
+        "unit": "kA_per_m",
+        "direction": "Maximize",
+        "hard_min": 100,
+        "noninferiority_margin": 10,
+        "improvement_margin": 2
+      },
+      {
+        "metric_id": "porosity",
+        "unit": "vol_percent",
+        "direction": "Minimize",
+        "hard_max": 5,
+        "noninferiority_margin": 1,
+        "improvement_margin": 0.2
+      }
+    ],
+    "minimum_independent_lot_pairs": 3,
+    "minimum_build_pairs_per_lot": 3,
+    "first_pass_yield_noninferiority_margin": 0.1
+  },
+  "cohort": {
+    "initiated_build_ids": [
+      "V-0-0",
+      "R-0-0",
+      "V-0-1",
+      "R-0-1",
+      "V-0-2",
+      "R-0-2",
+      "V-1-0",
+      "R-1-0",
+      "V-1-1",
+      "R-1-1",
+      "V-1-2",
+      "R-1-2",
+      "V-2-0",
+      "R-2-0",
+      "V-2-1",
+      "R-2-1",
+      "V-2-2",
+      "R-2-2"
+    ],
+    "source_lot_pairs": [
+      {
+        "lot_pair_id": "LOT-PAIR-0",
+        "virgin_source_lot_id": "VIRGIN-LOT-0",
+        "recovered_source_lot_id": "RECOVERED-LOT-0",
+        "virgin_eligibility_receipt_id": "SYNTHETIC-V-ELIG-0",
+        "virgin_eligibility_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "recovered_eligibility_receipt_id": "SYNTHETIC-R-ELIG-0",
+        "recovered_eligibility_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      {
+        "lot_pair_id": "LOT-PAIR-1",
+        "virgin_source_lot_id": "VIRGIN-LOT-1",
+        "recovered_source_lot_id": "RECOVERED-LOT-1",
+        "virgin_eligibility_receipt_id": "SYNTHETIC-V-ELIG-1",
+        "virgin_eligibility_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "recovered_eligibility_receipt_id": "SYNTHETIC-R-ELIG-1",
+        "recovered_eligibility_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      },
+      {
+        "lot_pair_id": "LOT-PAIR-2",
+        "virgin_source_lot_id": "VIRGIN-LOT-2",
+        "recovered_source_lot_id": "RECOVERED-LOT-2",
+        "virgin_eligibility_receipt_id": "SYNTHETIC-V-ELIG-2",
+        "virgin_eligibility_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "recovered_eligibility_receipt_id": "SYNTHETIC-R-ELIG-2",
+        "recovered_eligibility_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+      }
+    ],
+    "pair_blocks": [
+      {
+        "pair_block_id": "BLOCK-0-0",
+        "lot_pair_id": "LOT-PAIR-0",
+        "randomized_order": "VirginFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-0-0",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-0-0",
+        "recovered_build_id": "R-0-0"
+      },
+      {
+        "pair_block_id": "BLOCK-0-1",
+        "lot_pair_id": "LOT-PAIR-0",
+        "randomized_order": "RecoveredFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-0-1",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-0-1",
+        "recovered_build_id": "R-0-1"
+      },
+      {
+        "pair_block_id": "BLOCK-0-2",
+        "lot_pair_id": "LOT-PAIR-0",
+        "randomized_order": "VirginFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-0-2",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-0-2",
+        "recovered_build_id": "R-0-2"
+      },
+      {
+        "pair_block_id": "BLOCK-1-0",
+        "lot_pair_id": "LOT-PAIR-1",
+        "randomized_order": "VirginFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-1-0",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-1-0",
+        "recovered_build_id": "R-1-0"
+      },
+      {
+        "pair_block_id": "BLOCK-1-1",
+        "lot_pair_id": "LOT-PAIR-1",
+        "randomized_order": "RecoveredFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-1-1",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-1-1",
+        "recovered_build_id": "R-1-1"
+      },
+      {
+        "pair_block_id": "BLOCK-1-2",
+        "lot_pair_id": "LOT-PAIR-1",
+        "randomized_order": "VirginFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-1-2",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-1-2",
+        "recovered_build_id": "R-1-2"
+      },
+      {
+        "pair_block_id": "BLOCK-2-0",
+        "lot_pair_id": "LOT-PAIR-2",
+        "randomized_order": "VirginFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-2-0",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-2-0",
+        "recovered_build_id": "R-2-0"
+      },
+      {
+        "pair_block_id": "BLOCK-2-1",
+        "lot_pair_id": "LOT-PAIR-2",
+        "randomized_order": "RecoveredFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-2-1",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-2-1",
+        "recovered_build_id": "R-2-1"
+      },
+      {
+        "pair_block_id": "BLOCK-2-2",
+        "lot_pair_id": "LOT-PAIR-2",
+        "randomized_order": "VirginFirst",
+        "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-2-2",
+        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "virgin_build_id": "V-2-2",
+        "recovered_build_id": "R-2-2"
+      }
+    ],
+    "builds": [
+      {
+        "build_id": "V-0-0",
+        "pair_block_id": "BLOCK-0-0",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-0",
+        "specimen_id": "SPEC-V-0-0",
+        "blind_sample_id": "BLIND-V-0-0",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-0-0",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-a",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-b",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-c",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-0-0",
+        "pair_block_id": "BLOCK-0-0",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-0",
+        "specimen_id": "SPEC-R-0-0",
+        "blind_sample_id": "BLIND-R-0-0",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-0-0",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-d",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-e",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-f",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-0-1",
+        "pair_block_id": "BLOCK-0-1",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-0",
+        "specimen_id": "SPEC-V-0-1",
+        "blind_sample_id": "BLIND-V-0-1",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-0-1",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-g",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-h",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-i",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-0-1",
+        "pair_block_id": "BLOCK-0-1",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-0",
+        "specimen_id": "SPEC-R-0-1",
+        "blind_sample_id": "BLIND-R-0-1",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-0-1",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-j",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-k",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-l",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-0-2",
+        "pair_block_id": "BLOCK-0-2",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-0",
+        "specimen_id": "SPEC-V-0-2",
+        "blind_sample_id": "BLIND-V-0-2",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-0-2",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-m",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-n",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-o",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-0-2",
+        "pair_block_id": "BLOCK-0-2",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-0",
+        "specimen_id": "SPEC-R-0-2",
+        "blind_sample_id": "BLIND-R-0-2",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-0-2",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-p",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-q",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-r",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-1-0",
+        "pair_block_id": "BLOCK-1-0",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-1",
+        "specimen_id": "SPEC-V-1-0",
+        "blind_sample_id": "BLIND-V-1-0",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-1-0",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-s",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-t",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-u",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-1-0",
+        "pair_block_id": "BLOCK-1-0",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-1",
+        "specimen_id": "SPEC-R-1-0",
+        "blind_sample_id": "BLIND-R-1-0",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-1-0",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-v",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-w",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-x",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-1-1",
+        "pair_block_id": "BLOCK-1-1",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-1",
+        "specimen_id": "SPEC-V-1-1",
+        "blind_sample_id": "BLIND-V-1-1",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-1-1",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-y",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-z",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-{",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-1-1",
+        "pair_block_id": "BLOCK-1-1",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-1",
+        "specimen_id": "SPEC-R-1-1",
+        "blind_sample_id": "BLIND-R-1-1",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-1-1",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-|",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-}",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-~",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-1-2",
+        "pair_block_id": "BLOCK-1-2",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-1",
+        "specimen_id": "SPEC-V-1-2",
+        "blind_sample_id": "BLIND-V-1-2",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-1-2",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-1-2",
+        "pair_block_id": "BLOCK-1-2",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-1",
+        "specimen_id": "SPEC-R-1-2",
+        "blind_sample_id": "BLIND-R-1-2",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-1-2",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-2-0",
+        "pair_block_id": "BLOCK-2-0",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-2",
+        "specimen_id": "SPEC-V-2-0",
+        "blind_sample_id": "BLIND-V-2-0",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-2-0",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-2-0",
+        "pair_block_id": "BLOCK-2-0",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-2",
+        "specimen_id": "SPEC-R-2-0",
+        "blind_sample_id": "BLIND-R-2-0",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-2-0",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-2-1",
+        "pair_block_id": "BLOCK-2-1",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-2",
+        "specimen_id": "SPEC-V-2-1",
+        "blind_sample_id": "BLIND-V-2-1",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-2-1",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-2-1",
+        "pair_block_id": "BLOCK-2-1",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-2",
+        "specimen_id": "SPEC-R-2-1",
+        "blind_sample_id": "BLIND-R-2-1",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-2-1",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "V-2-2",
+        "pair_block_id": "BLOCK-2-2",
+        "condition": "Virgin",
+        "source_lot_id": "VIRGIN-LOT-2",
+        "specimen_id": "SPEC-V-2-2",
+        "blind_sample_id": "BLIND-V-2-2",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-V-2-2",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.895,
+              "upper": 0.905
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 149.995,
+              "upper": 150.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 1.995,
+              "upper": 2.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      },
+      {
+        "build_id": "R-2-2",
+        "pair_block_id": "BLOCK-2-2",
+        "condition": "Recovered",
+        "source_lot_id": "RECOVERED-LOT-2",
+        "specimen_id": "SPEC-R-2-2",
+        "blind_sample_id": "BLIND-R-2-2",
+        "scope": {
+          "application_id": "MAGNET-ROUTE-COMP-001",
+          "material_family_id": "NdFeB",
+          "feedstock_form_id": "Powder",
+          "route": "PowderExtrusionMouldingSintering",
+          "recipe_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "process_revision_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "orientation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "magnetization_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "first_pass_disposition": "Qualified",
+        "final_disposition": "Qualified",
+        "rework_count": 0,
+        "rework_receipt_id": null,
+        "rework_receipt_digest": null,
+        "build_receipt_id": "SYNTHETIC-BUILD-R-2-2",
+        "build_receipt_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "evidence_class": "SyntheticControl",
+        "observations": [
+          {
+            "metric_id": "absolute_br",
+            "unit": "T",
+            "value": {
+              "lower": 0.885,
+              "upper": 0.895
+            },
+            "evidence_id": "SYNTHETIC-OBS-absolute_br-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-absolute_br-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "intrinsic_hcj",
+            "unit": "kA_per_m",
+            "value": {
+              "lower": 147.995,
+              "upper": 148.005
+            },
+            "evidence_id": "SYNTHETIC-OBS-intrinsic_hcj-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-intrinsic_hcj-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          },
+          {
+            "metric_id": "porosity",
+            "unit": "vol_percent",
+            "value": {
+              "lower": 2.095,
+              "upper": 2.105
+            },
+            "evidence_id": "SYNTHETIC-OBS-porosity-",
+            "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "method_id": "SYNTHETIC-porosity-METHOD",
+            "calibration_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "uncertainty_record_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "evidence_class": "SyntheticControl"
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "decision": "Indeterminate",
+    "lot_pair_count": 3,
+    "pair_block_count": 9,
+    "virgin_build_count": 9,
+    "recovered_build_count": 9
+  }
+}
