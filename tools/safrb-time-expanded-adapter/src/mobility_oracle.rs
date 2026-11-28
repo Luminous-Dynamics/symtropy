@@ -458,6 +458,12 @@ fn information_set_digest(
     ))
 }
 
+fn checked_arrival_period(departure_period: u64, travel_time_periods: u64) -> Result<u64, String> {
+    departure_period
+        .checked_add(travel_time_periods)
+        .ok_or_else(|| "movement arrival period overflows u64".to_string())
+}
+
 fn arc_by_id<'a>(instance: &'a MobilityInstance, arc_id: &str) -> Option<&'a MovementArc> {
     instance.arcs.iter().find(|arc| arc.arc_id.as_str() == arc_id.as_str())
 }
@@ -990,9 +996,8 @@ fn enumerate_group_actions(
             if let MobilityAction::Move { arc_id } = action {
                 let arc = arc_by_id(instance, arc_id)
                     .ok_or_else(|| "producer selected an unknown movement arc".to_string())?;
-                let arrival_period = period
-                    .checked_add(arc.travel_time_periods)
-                    .ok_or_else(|| "movement arrival period overflows u64".to_string())?;
+                let arrival_period =
+                    checked_arrival_period(period, arc.travel_time_periods)?;
                 for scenario_index in scenario_indices {
                     next_states[*scenario_index][*unit_index] = Position::InTransit {
                         arc_id: arc_id.clone(),
@@ -1239,9 +1244,8 @@ fn replay_policy(
                                 "policy uses unavailable or closed route {arc_id} at period {period}"
                             ));
                         }
-                        let arrival_period = period
-                            .checked_add(arc.travel_time_periods)
-                            .ok_or_else(|| "policy arrival period overflows u64".to_string())?;
+                        let arrival_period =
+                            checked_arrival_period(period, arc.travel_time_periods)?;
                         for scenario_index in scenario_indices {
                             states[*scenario_index][unit_index] = Position::InTransit {
                                 arc_id: arc_id.clone(),
@@ -1402,9 +1406,9 @@ fn enumerate_single_scenario_actions(
             if let MobilityAction::Move { arc_id } = action {
                 let arc = arc_by_id(instance, arc_id)
                     .ok_or_else(|| "independent oracle selected unknown route".to_string())?;
-                let arrival_period = period
-                    .checked_add(arc.travel_time_periods)
-                    .ok_or_else(|| "independent oracle arrival overflows u64".to_string())?;
+                let arrival_period = period.checked_add(arc.travel_time_periods).ok_or_else(|| {
+                    "independent trajectory oracle arrival overflows u64".to_string()
+                })?;
                 next_positions[*unit_index] = Position::InTransit {
                     arc_id: arc_id.clone(),
                     arrival_period,
@@ -2312,9 +2316,8 @@ mod tests {
 
     #[test]
     fn checked_arrival_arithmetic_rejects_u64_overflow() {
-        let period = u64::MAX;
-        let duration = 1_u64;
-        assert!(period.checked_add(duration).is_none());
+        assert!(checked_arrival_period(u64::MAX, 1).is_err());
+        assert_eq!(checked_arrival_period(12, 3).unwrap(), 15);
     }
 
     #[test]
