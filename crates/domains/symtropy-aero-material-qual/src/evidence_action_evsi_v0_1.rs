@@ -1007,7 +1007,7 @@ mod tests {
                 },
             ],
         };
-        EvidenceActionPlannerInputV0_1 {
+        let mut input = EvidenceActionPlannerInputV0_1 {
             claim_id: "claim:wing-panel-proof-load".to_owned(),
             frozen_claim_disposition: "INCOMPLETE".to_owned(),
             configuration_ref: "configuration:wing-r17".to_owned(),
@@ -1060,7 +1060,25 @@ mod tests {
                 },
             ],
             actions: vec![action],
-        }
+        };
+        input.decision_model_sha256 =
+            compute_decision_model_sha256(&input).expect("decision model commitment");
+        input.action_catalogue_sha256 =
+            compute_action_catalogue_cut_sha256(&input).expect("action catalogue cut commitment");
+        input.unresolved_obligation_manifest_sha256 =
+            compute_unresolved_obligation_manifest_sha256(&input.unresolved_obligation_ids)
+                .expect("unresolved obligation commitment");
+        let likelihood_digest = compute_outcome_likelihoods_sha256(
+            &input.actions[0],
+            &input.outcome_model_sha256,
+        )
+        .expect("outcome likelihood commitment");
+        input.actions[0]
+            .calibration_receipt
+            .as_mut()
+            .expect("calibration receipt")
+            .outcome_likelihoods_sha256 = likelihood_digest;
+        input
     }
 
     #[test]
@@ -1203,6 +1221,50 @@ mod tests {
         assert!(result
             .reason_codes
             .contains(&"EVSI_VERIFIED_ACTION_MISSING_AUTHORIZATION_RECEIPT".to_owned()));
+    }
+
+    #[test]
+    fn changed_probability_table_invalidates_owner_calibration_receipt() {
+        let mut input = base_input();
+        input.actions[0].outcome_likelihoods[0].likelihood_ppm -= 1;
+        input.actions[0].outcome_likelihoods[1].likelihood_ppm += 1;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::AbstainNoQualifiedPermittedActions
+        );
+        assert_eq!(
+            result.excluded_actions[0].reason_code,
+            "ACTION_CALIBRATION_SCOPE_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn changed_utility_matrix_invalidates_decision_model_commitment() {
+        let mut input = base_input();
+        input.utilities[0].utility_units = 1;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result
+            .reason_codes
+            .contains(&"EVSI_DECISION_MODEL_COMMITMENT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn changed_candidate_action_set_invalidates_catalogue_cut_commitment() {
+        let mut input = base_input();
+        input.actions[0].action_id = "action:substituted".to_owned();
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result
+            .reason_codes
+            .contains(&"EVSI_ACTION_CATALOGUE_COMMITMENT_MISMATCH".to_owned()));
     }
 
     #[test]
