@@ -1728,6 +1728,18 @@ mod tests {
                 .expect("unresolved obligation manifest")
         );
         assert_eq!(
+            result.assurance_state_receipt_sha256,
+            expected["assurance_state_receipt_sha256"]
+                .as_str()
+                .expect("source-bound state receipt")
+        );
+        assert_eq!(
+            result.action_catalogue_receipt_sha256,
+            expected["action_catalogue_receipt_sha256"]
+                .as_str()
+                .expect("complete catalogue receipt")
+        );
+        assert_eq!(
             result.ranked_actions[0].outcome_model_owner_namespace,
             expected["ranked_actions"][0]["outcome_model_owner_namespace"]
                 .as_str()
