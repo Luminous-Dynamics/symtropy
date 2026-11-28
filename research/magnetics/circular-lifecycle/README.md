@@ -16,7 +16,7 @@ Co-design the rotor, magnet carrier, joining system, material passport and servi
 - Direct reuse, accepted remanufacture and recycling feedstock are separate fractions.
 - Material sent to a recycler is recycling feedstock, not recycled material or direct reuse.
 - Remanufactured output counts only after the remanufactured magnet passes acceptance.
-- Every mass stream is joined to one teardown, component, specimen, build and material lot.
+- Every mass stream is joined to one teardown, component, specimen, build and material lot. Direct reuse, accepted remanufacture and recycler intake each require their own output-path receipt, output-lot identity and digest in the M4 acceptance graph.
 - Missing mass, unbounded uncertainty, unlinked streams or mismatched genealogy produce Indeterminate.
 
 ## Comparators
