@@ -182,4 +182,10 @@ Never drop invalid, unresolved, aborted, timed-out or unscorable cases from deno
 
 ## 9. Current claim ceiling
 
-The current AERB public deterministic generator is a conformance fixture, not a blind benchmark. The new blind assignment primitive creates opaque IDs and a committed evaluator reveal, but it is not itself an isolated service. The new projection/audit code is authored; its Rust tests, formatter, Clippy and canary workflow must pass on the exact current head before it can be called qualified. No blind benchmark result, SOTA superiority, robot safety certification, HIL qualification or physical qualification is claimed here.
+The current AERB public deterministic generator is a conformance fixture, not a blind benchmark. The new blind assignment primitive creates opaque IDs and a committed evaluator reveal, but it is not itself an isolated service.
+
+**The v0.1 end-to-end materialization/replay fixture is not yet a blind candidate-execution run.** It carries a projected reference submission beside the projected episode so the evaluator can verify identity remapping, snapshot resealing, and evaluator replay. A candidate process must not receive that precomputed reference submission. This fixture tests projection/custody/replay integrity only; it does not measure a newly executed agent and cannot support an agent-performance result.
+
+The required v0.2 split is tracked in Symtropy issue #7886: candidate input root (manifest + episodes only), candidate output root (newly produced submissions), and evaluator custody root (truth, source archives, receipts, keys and score). The candidate is to execute through the typed Bubblewrap/prlimit launcher. The supervisor must seal outputs after termination; missing, duplicate, malformed, extra or unresolved outputs remain in the scheduled denominator and fail closed.
+
+The projection/audit code, schema checks and reference replay may be qualified independently, but none is proof of blind execution. No blind agent benchmark result, SOTA superiority, robot safety certification, HIL qualification or physical qualification is claimed here.
