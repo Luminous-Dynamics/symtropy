@@ -660,7 +660,7 @@ pub fn rank_robust_evidence_actions_v0_1(
             for (scenario_id, _, action_map) in &evaluations {
                 if !action_map.contains_key(&action_id) {
                     if !excluded.iter().any(|item| {
-                        item.scenario_id == *scenario_id && item.action_id == action_id
+                        item.scenario_id.as_str() == *scenario_id && item.action_id.as_str() == action_id.as_str()
                     }) {
                         excluded.push(RobustEvidenceActionExclusionV0_1 {
                             scenario_id: scenario_id.to_string(),
