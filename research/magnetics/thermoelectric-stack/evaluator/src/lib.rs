@@ -1247,9 +1247,11 @@ mod tests {
         trials[0].optimization.as_mut().unwrap().evaluations = 1;
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidOptimizationReceipt));
+        assert!(
+            result[0]
+                .blockers
+                .contains(&Blocker::InvalidOptimizationReceipt)
+        );
     }
 
     #[test]
@@ -1274,9 +1276,11 @@ mod tests {
         trials[0].observations[0].comparison_scope_digest = digest('f');
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(!result[0]
-            .blockers
-            .contains(&Blocker::DefiniteHardLimitViolation));
+        assert!(
+            !result[0]
+                .blockers
+                .contains(&Blocker::DefiniteHardLimitViolation)
+        );
         assert!(result[0].blockers.contains(&Blocker::BrokenSpecimenBinding));
     }
 
@@ -1287,12 +1291,12 @@ mod tests {
         trials[0].observations[0].specimen_id = "SPEC-OTHER".to_string();
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(!result[0]
-            .blockers
-            .contains(&Blocker::DefiniteHardLimitViolation));
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::BrokenSpecimenBinding));
+        assert!(
+            !result[0]
+                .blockers
+                .contains(&Blocker::DefiniteHardLimitViolation)
+        );
+        assert!(result[0].blockers.contains(&Blocker::BrokenSpecimenBinding));
     }
 
     #[test]
@@ -1310,9 +1314,7 @@ mod tests {
         trials[0].acceptance.linked_evidence_ids.pop();
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::BrokenSpecimenBinding));
+        assert!(result[0].blockers.contains(&Blocker::BrokenSpecimenBinding));
     }
 
     #[test]
@@ -1355,9 +1357,7 @@ mod tests {
             .retain(|record| record.family != Family::ConventionalDirectOilCooling);
         let result = evaluate(&benchmark, &known_trials());
         assert_eq!(result[0].decision, Decision::NotComparable);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidBenchmarkSpec));
+        assert!(result[0].blockers.contains(&Blocker::InvalidBenchmarkSpec));
     }
 
     #[test]
@@ -1371,9 +1371,7 @@ mod tests {
             .applicable = true;
         let result = evaluate(&benchmark, &known_trials());
         assert_eq!(result[0].decision, Decision::NotComparable);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidBenchmarkSpec));
+        assert!(result[0].blockers.contains(&Blocker::InvalidBenchmarkSpec));
     }
 
     #[test]
@@ -1388,9 +1386,7 @@ mod tests {
         record.supporting_evidence_ids.clear();
         let result = evaluate(&benchmark, &known_trials());
         assert_eq!(result[0].decision, Decision::NotComparable);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidBenchmarkSpec));
+        assert!(result[0].blockers.contains(&Blocker::InvalidBenchmarkSpec));
     }
 
     #[test]
