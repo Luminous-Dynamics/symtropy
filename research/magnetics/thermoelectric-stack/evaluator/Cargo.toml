@@ -1,0 +1,13 @@
+[package]
+name = "magnetic-thermoelectric-stack-evaluator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+# Keep this standalone research evaluator out of the repository root workspace.
+[workspace]

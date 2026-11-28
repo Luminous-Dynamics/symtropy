@@ -1,0 +1,456 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Thermo-electrical winding and cooling benchmark v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "scope",
+    "metrics",
+    "required_baseline_families",
+    "trials",
+    "baseline_applicability"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "application_id",
+        "duty_digest",
+        "waveform_digest",
+        "coolant_digest",
+        "thermal_boundary_digest",
+        "insulation_policy_digest",
+        "measurement_setup_digest",
+        "acceptance_policy_digest",
+        "objective_digest",
+        "constraint_digest",
+        "comparison_scope_digest"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duty_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "waveform_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "coolant_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "thermal_boundary_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "insulation_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "measurement_setup_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "objective_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "constraint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "comparison_scope_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "required_baseline_families": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "ConventionalWindingCooling",
+          "ConventionalHighPerformanceCooling",
+          "ConventionalDirectOilCooling",
+          "ConventionalMultiNozzleOilJetCooling",
+          "ConventionalHairpinOilSprayCooling",
+          "ConventionalSlotEmbeddedCooling",
+          "ConventionalHollowConductorCooling"
+        ]
+      }
+    },
+    "trials": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/trial"
+      }
+    },
+    "baseline_applicability": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "$ref": "#/$defs/baselineApplicability"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "component_id",
+        "specimen_id",
+        "build_id",
+        "material_lot_id",
+        "unit",
+        "value",
+        "uncertainty_radius",
+        "evidence_id",
+        "evidence_digest",
+        "evidence_class",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_digest",
+        "comparison_scope_digest"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "uncertainty_radius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "const": "PhysicalMeasurement"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "comparison_scope_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "acceptance": {
+      "type": "object",
+      "required": [
+        "component_id",
+        "specimen_id",
+        "build_id",
+        "functional_test_evidence_id",
+        "functional_test_digest",
+        "linked_evidence_ids",
+        "maturity",
+        "disposition",
+        "acceptance_policy_digest",
+        "receipt_digest",
+        "physical_evidence_digest",
+        "comparison_scope_digest"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_test_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_test_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "linked_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "maturity": {
+          "enum": [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "Qualified",
+            "Rejected",
+            "Indeterminate"
+          ]
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "physical_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "comparison_scope_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "optimization": {
+      "type": "object",
+      "required": [
+        "receipt_digest",
+        "search_space_digest",
+        "objective_digest",
+        "constraint_digest",
+        "evaluations",
+        "independent_restarts",
+        "frozen_before_comparison"
+      ],
+      "properties": {
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "search_space_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "objective_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "constraint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independent_restarts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frozen_before_comparison": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "trial": {
+      "type": "object",
+      "required": [
+        "architecture_id",
+        "component_id",
+        "family",
+        "role",
+        "scope",
+        "acceptance",
+        "optimization",
+        "observations"
+      ],
+      "properties": {
+        "architecture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "ConventionalWindingCooling",
+            "ConventionalHighPerformanceCooling",
+            "ConventionalDirectOilCooling",
+            "ConventionalMultiNozzleOilJetCooling",
+            "ConventionalHairpinOilSprayCooling",
+            "ConventionalSlotEmbeddedCooling",
+            "ConventionalHollowConductorCooling",
+            "AmIntegratedWindingCooling",
+            "HybridThermalSubassembly",
+            "ReferenceControl"
+          ]
+        },
+        "role": {
+          "enum": [
+            "Candidate",
+            "RequiredBaseline",
+            "SecondaryControl"
+          ]
+        },
+        "scope": {
+          "$ref": "#/properties/scope"
+        },
+        "acceptance": {
+          "$ref": "#/$defs/acceptance"
+        },
+        "optimization": {
+          "$ref": "#/$defs/optimization"
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "unit",
+        "class",
+        "direction"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "class": {
+          "enum": [
+            "MandatoryFunction",
+            "StackBenefit"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "Maximize",
+            "Minimize"
+          ]
+        },
+        "hard_min": {
+          "type": "number"
+        },
+        "hard_max": {
+          "type": "number"
+        },
+        "non_inferiority_margin": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "baselineApplicability": {
+      "type": "object",
+      "required": [
+        "family",
+        "applicable",
+        "rationale",
+        "supporting_evidence_ids",
+        "decision_digest"
+      ],
+      "properties": {
+        "family": {
+          "enum": [
+            "ConventionalWindingCooling",
+            "ConventionalHighPerformanceCooling",
+            "ConventionalDirectOilCooling",
+            "ConventionalMultiNozzleOilJetCooling",
+            "ConventionalHairpinOilSprayCooling",
+            "ConventionalSlotEmbeddedCooling",
+            "ConventionalHollowConductorCooling"
+          ]
+        },
+        "applicable": {
+          "type": "boolean"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        },
+        "supporting_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "decision_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,71 @@
+schema_version = "0.1"
+program_id = "MAG-AM-THERMO-ELECTRICAL-STACK-001"
+issue = 7824
+status = "research_protocol"
+protocol = "research/magnetics/MAG_AM_THERMOELECTRICAL_STACK_BENCHMARK_2026-11-27.md"
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+schema = "evaluator/thermoelectric-stack-v0.1.schema.json"
+fixture = "evaluator/fixtures/synthetic-thermoelectric-stack-v0.1.json"
+source_register = "fixtures/thermoelectric-stack-source-register-v0.1.json"
+workflow = ".github/workflows/magnetic-thermoelectric-stack-benchmark.yml"
+language = "Rust 2024"
+dependencies = []
+
+[scope]
+required = ["application_id", "comparison_scope_digest", "duty_digest", "waveform_digest", "coolant_digest", "thermal_boundary_digest", "insulation_policy_digest", "measurement_setup_digest", "acceptance_policy_digest", "objective_digest", "constraint_digest"]
+matching = "exact_digest_equality"
+
+[baseline]
+required_families = ["ConventionalWindingCooling"]
+application_dependent_required_families = [
+  "ConventionalDirectOilCooling",
+  "ConventionalMultiNozzleOilJetCooling",
+  "ConventionalHairpinOilSprayCooling",
+  "ConventionalSlotEmbeddedCooling",
+  "ConventionalHollowConductorCooling",
+]
+rule = "include every incumbent family applicable to the frozen application; these are not all universally mandatory"
+applicability_decisions_required_for_every_family = true
+non_applicable_requires_rationale_and_supporting_evidence = true
+applicability_decision_digest_required = true
+application_scope_owner_must_preregister_before_comparison = true
+minimum_optimization_evaluations = 100
+minimum_independent_restarts = 3
+frozen_before_comparison = true
+
+[mandatory_metrics]
+winding_hotspot_temperature = { unit = "degC", direction = "minimize", hard_max_required = true }
+ac_winding_loss = { unit = "W", direction = "minimize", hard_max_required = true }
+dielectric_margin = { unit = "ratio", direction = "maximize", hard_min_required = true }
+coolant_pressure_drop = { unit = "kPa", direction = "minimize", hard_max_required = true }
+pump_input_power = { unit = "W", direction = "minimize", hard_max_required = true }
+leak_rate = { unit = "mL/h", direction = "minimize", hard_max_required = true }
+thermal_cycle_survival = { unit = "cycles", direction = "maximize", hard_min_required = true }
+
+[benefit_metrics]
+effective_thermal_resistance = { unit = "K_per_W", direction = "minimize" }
+system_mass = { unit = "kg", direction = "minimize" }
+system_volume = { unit = "L", direction = "minimize" }
+accepted_part_cost = { unit = "USD", direction = "minimize" }
+auxiliary_energy_per_duty = { unit = "Wh", direction = "minimize" }
+
+[acceptance]
+minimum_component_maturity = "M4"
+evidence_class = "physical_measurement"
+require_method_calibration_uncertainty = true
+require_unique_evidence_ids = true
+require_exact_scope_and_component_binding = true
+synthetic_fixture_claim_ceiling = "evaluator semantics only"
+
+[exploratory_replication]
+minimum_independent_builds = 3
+minimum_distinct_material_lots = 2
+production_qualification_claimed = false
+
+[decision]
+outcomes = ["NotComparable", "Fail", "Indeterminate", "InferiorToBaseline", "NonInferiorNoStackBenefit", "StackAdvantage"]
+weighted_universal_score = false
+robust_improvement_requires_disjoint_intervals = true
+unknown_or_missing_evidence = "Indeterminate"
+hard_limits_are_non_compensatory = true
