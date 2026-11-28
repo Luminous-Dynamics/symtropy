@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FeedstockFamily {
     HpmsRecoveredNdFeB,
+    HddRecoveredNdFeB,
     BondedRecoveredNdFeB,
     VirginNdFeB,
     SmCo,
@@ -681,6 +682,10 @@ pub fn supported_family_form_route(
             FeedstockForm::Powder,
             ProcessRoute::PowderExtrusionMouldingSintering
         ) | (
+            FeedstockFamily::HddRecoveredNdFeB,
+            FeedstockForm::Powder,
+            ProcessRoute::MaterialExtrusionBonded
+        ) | (
             FeedstockFamily::BondedRecoveredNdFeB,
             FeedstockForm::CompositeFeedstock,
             ProcessRoute::MaterialExtrusionBonded
@@ -811,6 +816,7 @@ mod tests {
         unit: &str,
         value: Interval,
         product_lot_id: &str,
+        route: ProcessRoute,
         suffix: char,
     ) -> AssayObservation {
         AssayObservation {
@@ -818,7 +824,7 @@ mod tests {
             unit: unit.to_string(),
             value,
             product_lot_id: product_lot_id.to_string(),
-            route: ProcessRoute::PowderExtrusionMouldingSintering,
+            route,
             evidence_id: format!("ASSAY-{assay_id}"),
             evidence_digest: digest(suffix),
             method_id: format!("METHOD-{assay_id}"),
@@ -843,7 +849,7 @@ mod tests {
             route: specification.route,
             recipe_digest: specification.recipe_digest.clone(),
             process_revision_digest: specification.process_revision_digest.clone(),
-            equipment_id: "PEM-PRESS-001".to_string(),
+            equipment_id: "ROUTE-EQUIPMENT-001".to_string(),
             feedstock_input_mass_mg: specification.feedstock_input_mass_mg,
             added_input_mass_mg: specification.added_input_mass_mg,
             outputs: vec![
@@ -868,6 +874,7 @@ mod tests {
                     "wt%",
                     Interval::new(0.042, 0.048),
                     &specification.product_lot_id,
+                    specification.route,
                     '7',
                 ),
                 assay(
@@ -875,6 +882,7 @@ mod tests {
                     "wt%-points",
                     Interval::new(0.35, 0.45),
                     &specification.product_lot_id,
+                    specification.route,
                     '8',
                 ),
                 assay(
@@ -882,6 +890,7 @@ mod tests {
                     "ratio",
                     Interval::new(0.95, 0.97),
                     &specification.product_lot_id,
+                    specification.route,
                     '9',
                 ),
             ],
@@ -917,6 +926,31 @@ mod tests {
             FeedstockFamily::HpmsRecoveredNdFeB,
             FeedstockForm::Powder,
             ProcessRoute::LaserPowderBedFusion
+        ));
+    }
+
+    #[test]
+    fn recovered_hard_drive_ndfeb_powder_is_admitted_to_mex_only_with_exact_receipts() {
+        let mut specification = spec();
+        specification.campaign_id = "RECOVERED-HDD-NDFEB-MEX-001".to_string();
+        specification.source_lot_id = "HDD-SOURCE-LOT-001".to_string();
+        specification.product_lot_id = "HDD-MEX-PRODUCT-LOT-001".to_string();
+        specification.feedstock_family = FeedstockFamily::HddRecoveredNdFeB;
+        specification.route = ProcessRoute::MaterialExtrusionBonded;
+
+        let eligibility_receipt = eligibility(&specification);
+        let process_evidence = process(&specification);
+        let result = evaluate(
+            &specification,
+            &process_evidence,
+            &eligibility_receipt,
+        );
+        assert_eq!(result.disposition, Disposition::QualifiedFeedstockRoute);
+        assert_eq!(result.route, ProcessRoute::MaterialExtrusionBonded);
+        assert!(supported_family_form_route(
+            FeedstockFamily::HddRecoveredNdFeB,
+            FeedstockForm::Powder,
+            ProcessRoute::MaterialExtrusionBonded
         ));
     }
 
