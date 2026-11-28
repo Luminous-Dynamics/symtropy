@@ -1890,6 +1890,35 @@ mod tests {
     }
 
     #[test]
+    fn arrival_exactly_on_service_boundary_is_available() {
+        let model = instance(
+            2,
+            &["depot", "site-a"],
+            vec![unit("pump-1", "depot")],
+            vec![arc("depot-a", "depot", "site-a", 2, "road", 1, &[0])],
+            vec![scenario("world", vec![floor("site-a", 2, 1)])],
+        );
+        let report = solve_mobility_policy(&model).unwrap();
+        assert_eq!(report.disposition, MobilityDisposition::HereAndNowFeasible);
+        verify_mobility_report(&model, &report).unwrap();
+    }
+
+    #[test]
+    fn reverse_route_is_not_inferred_from_a_declared_forward_arc() {
+        let model = instance(
+            1,
+            &["depot", "site-a"],
+            vec![unit("pump-1", "site-a")],
+            vec![arc("depot-to-a", "depot", "site-a", 1, "road", 1, &[0])],
+            vec![scenario("world", vec![floor("depot", 1, 1)])],
+        );
+        let report = solve_mobility_policy(&model).unwrap();
+        assert!(report.zero_time_information_relaxation_feasible);
+        assert_eq!(report.disposition, MobilityDisposition::InformationRelaxationOnly);
+        verify_mobility_report(&model, &report).unwrap();
+    }
+
+    #[test]
     fn one_common_policy_is_feasible_when_all_scenarios_need_the_same_site() {
         let mut alpha = scenario("alpha", vec![floor("site-a", 1, 1)]);
         alpha.observations.push(ObservationEvent {
