@@ -2112,7 +2112,7 @@ mod tests {
 
     #[test]
     fn a_late_reported_closure_cannot_be_ignored_at_departure() {
-        let mut open = scenario("open", vec![floor("site-a", 1, 1)]);
+        let open = scenario("open", vec![floor("site-a", 1, 1)]);
         let mut closed = scenario("closed", vec![floor("site-a", 1, 1)]);
         closed.route_closures.push(RouteClosure {
             arc_id: "hub-a".to_string(),
