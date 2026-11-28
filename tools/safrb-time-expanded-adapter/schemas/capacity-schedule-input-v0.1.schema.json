@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/capacity-schedule-input-v0.1.schema.json",
+  "title": "SAFRB Evidence-bound Capacity Schedule Input v0.1",
+  "description": "A finite externally pre-admitted capacity schedule. Half-open records must exactly cover every required subject over [0,horizon_last_period+1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "scenario_id",
+    "timebase_ref",
+    "unit_ref",
+    "quantity_boundary_ref",
+    "horizon_last_period",
+    "required_subjects",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-evidence-bound-capacity-schedule-v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timebase_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantity_boundary_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "horizon_last_period": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "required_subjects": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/subject"
+      }
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_id",
+        "role"
+      ],
+      "properties": {
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "storage",
+            "handling",
+            "service_issue",
+            "route"
+          ]
+        }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "scenario_id",
+        "subject_id",
+        "role",
+        "canonical_resource_ref",
+        "effective_from_period",
+        "effective_until_period_exclusive",
+        "fresh_until_period_exclusive",
+        "capacity",
+        "unit_ref",
+        "quantity_boundary_ref",
+        "timebase_ref",
+        "evidence_class",
+        "admission_status",
+        "issuer_ref",
+        "authority_ref",
+        "source_bytes_sha256",
+        "admission_receipt_sha256"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "storage",
+            "handling",
+            "service_issue",
+            "route"
+          ]
+        },
+        "canonical_resource_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effective_from_period": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_period_exclusive": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fresh_until_period_exclusive": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unit_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity_boundary_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timebase_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "type": "string",
+          "enum": [
+            "conservative_operational_bound",
+            "demonstrated",
+            "nameplate",
+            "hypothetical"
+          ]
+        },
+        "admission_status": {
+          "type": "string",
+          "enum": [
+            "admitted",
+            "stale",
+            "revoked",
+            "unknown",
+            "conflicted"
+          ]
+        },
+        "issuer_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_bytes_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        },
+        "admission_receipt_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[A-Fa-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
