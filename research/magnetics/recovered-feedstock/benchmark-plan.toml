@@ -25,8 +25,10 @@ cross_family_transfer_allowed = false
 feedstock_input_and_added_inputs_separate = true
 every_output_stream_requires_receipt = true
 required_output_kinds_are_preregistered = true
-mass_balance = "conservative_interval_overlap"
-nonoverlap_disposition = "Fail"
+mass_balance = "output_minus_input_interval_entirely_within_preregistered_absolute_tolerance"
+definite_residual_outside_tolerance_disposition = "Fail"
+residual_interval_crosses_tolerance_disposition = "Indeterminate"
+overlapping_input_output_intervals_alone_prove_pass = false
 missing_or_invalid_stream_disposition = "Indeterminate"
 
 [assays]
