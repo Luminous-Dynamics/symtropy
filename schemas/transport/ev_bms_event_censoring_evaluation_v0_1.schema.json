@@ -17,6 +17,7 @@
     "evidence_class",
     "time_basis_id",
     "time_alignment_id",
+    "time_alignment_artifact_sha256",
     "time_alignment_method",
     "max_relative_clock_error_ms",
     "alignment_uncertainty_preapplied",
@@ -82,6 +83,10 @@
     "time_alignment_id": {
       "type": "string",
       "minLength": 1
+    },
+    "time_alignment_artifact_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
     },
     "time_alignment_method": {
       "enum": [
