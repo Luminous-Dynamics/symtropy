@@ -561,7 +561,8 @@
           "$ref": "#/$defs/interval"
         },
         "mission_completion_fraction": {
-          "$ref": "#/$defs/interval"
+          "$ref": "#/$defs/interval",
+          "maximum": 1
         },
         "minimum_torque_margin_percent": {
           "$ref": "#/$defs/interval"
@@ -594,6 +595,7 @@
         "build_id",
         "specimen_id",
         "source_material_lot_id",
+        "source_material_lot_digest",
         "exposure_steps",
         "bulk_flux_measurement",
         "flux_measurements",
@@ -662,6 +664,9 @@
         },
         "evidence_class": {
           "$ref": "#/$defs/evidence_class"
+        },
+        "source_material_lot_digest": {
+          "$ref": "#/$defs/digest"
         }
       },
       "additionalProperties": false
