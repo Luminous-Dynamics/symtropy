@@ -102,6 +102,20 @@
       "class": "CircularityBenefit",
       "source": "Observation",
       "direction": "Minimize"
+    },
+    {
+      "metric_id": "direct_reuse_fraction",
+      "unit": "fraction",
+      "class": "CircularityBenefit",
+      "source": "DirectReuseFraction",
+      "direction": "Maximize"
+    },
+    {
+      "metric_id": "accepted_remanufacture_fraction",
+      "unit": "fraction",
+      "class": "CircularityBenefit",
+      "source": "RemanufacturedAcceptedFraction",
+      "direction": "Maximize"
     }
   ],
   "trials": []
