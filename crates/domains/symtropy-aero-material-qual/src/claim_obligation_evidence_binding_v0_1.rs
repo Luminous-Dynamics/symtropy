@@ -699,7 +699,7 @@ fn evaluate_source_record(
             if receipt.receiver_first_seen_at_unix_ms
                 > owner_cut.receiver_receipt_watermark_unix_ms
             {
-                reasons.insert("OWNER_EVIDENCE_RECEIPT_AFTER_OWNER_CUT_WATERMARK".to_owned());
+                reasons.insert("OWNER_EVIDENCE_RECEIPT_AFTER_OWNER_CUT_WATERMARK_MISMATCH".to_owned());
             }
             temporal = if receipt.receiver_first_seen_at_unix_ms <= decision_context.as_known_at_unix_ms {
                 EvidenceTemporalStateV0_1::KnownAtCutoff
@@ -926,7 +926,7 @@ pub fn bind_claim_obligation_evidence_v0_1(
     if input.owner_evidence_cut.receiver_receipt_watermark_unix_ms
         > input.decision_context.as_known_at_unix_ms
     {
-        reasons.insert("EVIDENCE_BINDING_OWNER_WATERMARK_AFTER_AS_KNOWN".to_owned());
+        reasons.insert("EVIDENCE_BINDING_OWNER_CUT_NOT_KNOWN_AT_CUTOFF".to_owned());
     }
     if input.owner_evidence_cut.physical_unit_ref != input.decision_context.subject_ref
         || input.owner_evidence_cut.configuration_ref != input.decision_context.configuration_ref
@@ -1395,7 +1395,7 @@ mod tests {
     }
 
     #[test]
-    fn late_per_record_source_receipt_is_not_known_at_cutoff() {
+    fn late_per_record_source_receipt_cannot_be_inserted_into_an_older_owner_cut() {
         let (raw, spec, context, owner_cut, admissions, entries, receipt, mut source_receipts) =
             build_case();
         source_receipts[0].receiver_first_seen_at_unix_ms = CUTOFF + 1;
@@ -1409,10 +1409,68 @@ mod tests {
             Some(&receipt),
             &source_receipts,
         );
-        assert_eq!(result.disposition, ClaimObligationEvidenceBindingDispositionV0_1::Unverified);
+        assert_eq!(result.disposition, ClaimObligationEvidenceBindingDispositionV0_1::Rejected);
         assert!(result.evidence_class_obligations.iter().any(|entry| {
             entry.evidence_records.iter().any(|record| {
                 record.temporal_state == EvidenceTemporalStateV0_1::NotKnownAtCutoff
+                    && record.reason_codes.contains(
+                        &"OWNER_EVIDENCE_RECEIPT_AFTER_OWNER_CUT_WATERMARK_MISMATCH".to_owned()
+                    )
+            })
+        }));
+        assert!(result.reason_codes.contains(
+            &"EVIDENCE_BINDING_SOURCE_RECEIPT_MANIFEST_MISMATCH".to_owned()
+        ));
+    }
+
+    #[test]
+    fn late_mapping_approval_cannot_backfill_historical_knowledge() {
+        let (raw, spec, context, owner_cut, admissions, entries, mut receipt, source_receipts) =
+            build_case();
+        receipt.receiver_first_seen_at_unix_ms = CUTOFF + 1;
+        let result = run(
+            &raw,
+            &spec,
+            &context,
+            &owner_cut,
+            &admissions,
+            &entries,
+            Some(&receipt),
+            &source_receipts,
+        );
+        assert_eq!(
+            result.disposition,
+            ClaimObligationEvidenceBindingDispositionV0_1::Unverified
+        );
+        assert!(result.reason_codes.contains(
+            &"EVIDENCE_MAPPING_APPROVAL_NOT_KNOWN_AT_CUTOFF".to_owned()
+        ));
+    }
+
+    #[test]
+    fn not_received_admission_remains_incomplete_not_supported() {
+        let (raw, spec, context, owner_cut, mut admissions, entries, receipt, source_receipts) =
+            build_case();
+        admissions[0].state = EvidenceAdmissionState::NotReceived;
+        let result = run(
+            &raw,
+            &spec,
+            &context,
+            &owner_cut,
+            &admissions,
+            &entries,
+            Some(&receipt),
+            &source_receipts,
+        );
+        assert_eq!(
+            result.disposition,
+            ClaimObligationEvidenceBindingDispositionV0_1::Incomplete
+        );
+        assert!(result.evidence_class_obligations.iter().any(|entry| {
+            entry.evidence_records.iter().any(|record| {
+                record.reason_codes.contains(
+                    &"REQUIRED_EVIDENCE_ADMISSION_NOT_RECEIVED".to_owned()
+                )
             })
         }));
     }
