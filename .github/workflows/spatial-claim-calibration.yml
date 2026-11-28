@@ -1,0 +1,38 @@
+name: Spatial claim calibration matrix
+
+on:
+  pull_request:
+    paths:
+      - "fixtures/av-observation-001/spatial-claim-calibration-matrix-v0.tsv"
+      - "scripts/validate_spatial_claim_calibration_matrix.sh"
+      - ".github/workflows/spatial-claim-calibration.yml"
+  push:
+    branches:
+      - "research/spatial-claim-calibration-fixtures-v0"
+    paths:
+      - "fixtures/av-observation-001/spatial-claim-calibration-matrix-v0.tsv"
+      - "scripts/validate_spatial_claim_calibration_matrix.sh"
+      - ".github/workflows/spatial-claim-calibration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-fixture:
+    name: Exact-head fixture structure and candidate-plane leakage checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Assert exact candidate head
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Validate paired fixture matrix
+        shell: bash
+        run: bash scripts/validate_spatial_claim_calibration_matrix.sh
