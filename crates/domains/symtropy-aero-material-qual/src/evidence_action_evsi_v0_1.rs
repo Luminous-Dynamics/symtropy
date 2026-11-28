@@ -174,6 +174,7 @@ pub struct RankedEvidenceActionV0_1 {
     pub action_catalogue_entry_sha256: String,
     pub authorization_receipt_sha256: String,
     pub calibration_receipt_sha256: String,
+    pub outcome_likelihoods_sha256: String,
     pub calibration_profile_sha256: String,
     pub expected_artifact_contract_sha256: String,
     /// Exact numerator; divide by EVSI_NUMERATOR_SCALE_V0_1 for utility units.
@@ -885,6 +886,11 @@ pub fn rank_evidence_actions_v0_1(
                 .as_ref()
                 .map(|receipt| receipt.calibration_report_sha256.clone())
                 .unwrap_or_default(),
+            outcome_likelihoods_sha256: action
+                .calibration_receipt
+                .as_ref()
+                .map(|receipt| receipt.outcome_likelihoods_sha256.clone())
+                .unwrap_or_default(),
             calibration_profile_sha256: action
                 .calibration_receipt
                 .as_ref()
@@ -1387,6 +1393,12 @@ mod tests {
             expected["ranked_actions"][0]["calibration_receipt_sha256"]
                 .as_str()
                 .expect("calibration receipt")
+        );
+        assert_eq!(
+            result.ranked_actions[0].outcome_likelihoods_sha256,
+            expected["ranked_actions"][0]["outcome_likelihoods_sha256"]
+                .as_str()
+                .expect("outcome likelihood commitment")
         );
         assert!(!result.assurance_state_mutated);
         assert!(!result.physical_work_authorized);
