@@ -56,7 +56,7 @@ struct SourceEvaluatorManifest {
     benchmark: String,
     generator_profile_id: String,
     generator_profile_sha256: String,
-    seed: u64,
+    _seed: u64,
     scenario_count: usize,
     hidden_truth_by_episode: BTreeMap<String, String>,
     claim_ceiling: String,
@@ -369,32 +369,6 @@ fn materialize(
         return Err("SOURCE_CANDIDATE_AND_EVALUATOR_ROOTS_OVERLAP".to_owned());
     }
 
-    let candidate_root = create_private_root(candidate_output_path)?;
-    let evaluator_root = match create_private_root(evaluator_output_path) {
-        Ok(path) => path,
-        Err(error) => {
-            let _ = fs::remove_dir(&candidate_root);
-            return Err(error);
-        }
-    };
-    for path in [
-        &source_candidate_root,
-        &source_evaluator_root,
-        &candidate_root,
-        &evaluator_root,
-    ] {
-        for other in [
-            &source_candidate_root,
-            &source_evaluator_root,
-            &candidate_root,
-            &evaluator_root,
-        ] {
-            if path != other && path_overlaps(path, other) {
-                return Err("SOURCE_AND_BLIND_CAMPAIGN_ROOTS_MUST_BE_PAIRWISE_DISJOINT".to_owned());
-            }
-        }
-    }
-
     let mut total_read_bytes = 0_u64;
     let source_candidate_manifest_bytes =
         read_confined(&source_candidate_root, "candidate_manifest.json", &mut total_read_bytes)?;
@@ -423,6 +397,32 @@ fn materialize(
         return Err("SOURCE_WORLD_SCHEDULE_INCOMPLETE".to_owned());
     }
 
+    let candidate_root = create_private_root(candidate_output_path)?;
+    let evaluator_root = match create_private_root(evaluator_output_path) {
+        Ok(path) => path,
+        Err(error) => {
+            let _ = fs::remove_dir(&candidate_root);
+            return Err(error);
+        }
+    };
+    for path in [
+        &source_candidate_root,
+        &source_evaluator_root,
+        &candidate_root,
+        &evaluator_root,
+    ] {
+        for other in [
+            &source_candidate_root,
+            &source_evaluator_root,
+            &candidate_root,
+            &evaluator_root,
+        ] {
+            if path != other && path_overlaps(path, other) {
+                return Err("SOURCE_AND_BLIND_CAMPAIGN_ROOTS_MUST_BE_PAIRWISE_DISJOINT".to_owned());
+            }
+        }
+    }
+
     let generated = generate_blind_campaign_from_worlds(&world_schedule)
         .map_err(|error| format!("BLIND_ASSIGNMENT_FAILED: {error}"))?;
     let projection_context = BlindProjectionContext::generate()
@@ -438,7 +438,6 @@ fn materialize(
     let mut evaluator_output_bytes = 0_u64;
     let candidate_manifest_json = serialize_pretty(&generated.candidate_manifest, "CANDIDATE_MANIFEST")?;
     let evaluator_manifest_json = serialize_pretty(&generated.evaluator_manifest, "EVALUATOR_MANIFEST")?;
-    let mut receipts = Vec::<BlindProjectionReceipt>::with_capacity(generated.evaluator_manifest.assignments.len());
 
     for (file_order_index, assignment) in generated.evaluator_manifest.assignments.iter().enumerate() {
         let source_cases = source_by_world
@@ -551,8 +550,6 @@ fn materialize(
             sha256: receipt_sha256,
         });
 
-        let episode_text = String::from_utf8(episode_output_bytes.clone())
-            .map_err(|error| format!("PROJECTED_EPISODE_UTF8_FAILED: {error}"))?;
         let features = candidate_metadata_features(
             &projected_episode,
             file_order_index,
@@ -566,8 +563,7 @@ fn materialize(
             hidden_truth_world_id: assignment.hidden_truth_world_id.clone(),
             candidate_visible_features: features,
         });
-        receipts.push(receipt);
-        drop(episode_text);
+        let _ = receipt;
     }
 
     if source_by_world.values().any(|cases| !cases.is_empty()) {
