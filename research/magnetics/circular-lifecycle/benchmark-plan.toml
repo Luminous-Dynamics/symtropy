@@ -26,6 +26,7 @@ frozen_before_comparison = true
 
 [recovery]
 mutually_exclusive_outputs = ["reuse_grade_magnets", "remanufactured_magnets_after_acceptance", "recycling_feedstock", "reject_waste"]
+reported_benefits = ["direct_reuse_fraction", "accepted_remanufacture_fraction", "recycling_feedstock_fraction"]
 mass_balance = "full output-minus-input uncertainty interval must fit predeclared tolerance"
 default_relative_mass_balance_tolerance = 0.015
 default_absolute_mass_balance_tolerance_kg = 0.02
