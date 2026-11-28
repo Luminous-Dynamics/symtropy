@@ -438,7 +438,11 @@ pub fn evaluate(request: &ObservabilityRequest) -> Result<ObservabilityResult, S
         .filter(|value| **value > rank_threshold)
         .count();
     let condition_number = if numerical_rank == 6 && weakest > rank_threshold {
-        Some(strongest / weakest)
+        let value = strongest / weakest;
+        if !value.is_finite() {
+            return Err("FIM condition number overflowed".to_string());
+        }
+        Some(value)
     } else {
         None
     };
@@ -449,7 +453,16 @@ pub fn evaluate(request: &ObservabilityRequest) -> Result<ObservabilityResult, S
     };
     let trace = eigenvalues.iter().sum::<f64>();
     let square_sum = eigenvalues.iter().map(|value| value * value).sum::<f64>();
+    if !trace.is_finite() || !square_sum.is_finite() {
+        return Err("FIM spectrum aggregate overflowed".to_string());
+    }
     let participation_ratio = (square_sum > 0.0).then_some(trace * trace / square_sum);
+    if participation_ratio.is_some_and(|value| !value.is_finite()) {
+        return Err("FIM participation ratio overflowed".to_string());
+    }
+    if eigenvectors.iter().flatten().any(|value| !value.is_finite()) {
+        return Err("FIM eigensolver produced non-finite eigenvector".to_string());
+    }
     let weakest_mode = std::array::from_fn(|index| eigenvectors[index][0]);
     let translation_norm = weakest_mode[..3].iter().map(|value| value * value).sum::<f64>().sqrt();
     let rotation_norm = weakest_mode[3..].iter().map(|value| value * value).sum::<f64>().sqrt();
@@ -595,9 +608,9 @@ mod tests {
         assert!(result.condition_number.unwrap().is_finite());
         assert!(result.log_determinant.unwrap().is_finite());
         assert!((result.mean_reprojection_error_px).abs() < 1e-12);
-        assert_eq!(result.physical_truth_claim, false);
-        assert_eq!(result.pose_probability_claim, false);
-        assert_eq!(result.correspondence_authentication_claim, false);
+        assert!(!result.physical_truth_claim);
+        assert!(!result.pose_probability_claim);
+        assert!(!result.correspondence_authentication_claim);
     }
 
     #[test]
@@ -694,7 +707,7 @@ mod tests {
             [-0.8, -0.7, 7.0],
             [0.9, -0.6, 8.0],
         ];
-        let mut first = request(&points);
+        let first = request(&points);
         let mut second = first.clone();
         second.translation_scale_m = 2.0;
         let a = evaluate(&first).unwrap();
