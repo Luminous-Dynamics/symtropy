@@ -316,8 +316,13 @@ def expected_disposition(source: dict[str, Any]) -> tuple[list[str], str]:
         uncertainty_dispositions.append(component["status"])
 
     receipt_digests = mapping_digests(source, profile_sha, obligation_sha, model_sha)
+    receipt_unverified = receipt["verification_status"] == "UNVERIFIED"
+    receipt_failed = receipt["verification_status"] == "FAILED"
+    receipt_not_effective = not (
+        receipt["effective_from_unix_ms"] <= cutoff < receipt["effective_until_unix_ms"]
+    )
     if (
-        receipt["verification_status"] != "VERIFIED"
+        receipt_failed
         or receipt["owner_namespace"] != owner_cut["owner_namespace"]
         or receipt["claim_id"] != spec["claim_id"]
         or receipt["configuration_ref"] != spec["configuration_ref"]
@@ -338,8 +343,6 @@ def expected_disposition(source: dict[str, Any]) -> tuple[list[str], str]:
     ):
         errors.append("model mapping receipt scope or commitment mismatch")
     late_receipt = receipt["receiver_first_seen_at_unix_ms"] > cutoff
-    if not receipt["effective_from_unix_ms"] <= cutoff < receipt["effective_until_unix_ms"]:
-        errors.append("model mapping receipt is not effective at cutoff")
 
     # Reproduce the non-compensatory model cut blockers.
     blockers: list[str] = []
@@ -384,15 +387,25 @@ def expected_disposition(source: dict[str, Any]) -> tuple[list[str], str]:
         elif item["status"] == "unverified":
             blockers.append(f"MODEL_METRIC_STRATUM_UNVERIFIED:{metric}:{stratum}")
 
-    if errors:
+    if (
+        errors
+        or receipt_failed
+        or model["package_status"] == "rejected"
+        or model["split_integrity_status"] == "leakage_detected"
+    ):
         disposition = "REJECTED"
-    elif late_receipt:
-        disposition = "UNVERIFIED"
     elif model["domain_coverage_status"] == "not_covered" or "outside_declared_profile" in metric_dispositions:
         disposition = "OUT_OF_SCOPE"
-    elif any(x == "unverified" for x in uncertainty_dispositions + metric_dispositions) or model["split_integrity_status"] == "unverified" or model["domain_coverage_status"] == "unverified":
+    elif (
+        late_receipt
+        or receipt_unverified
+        or model["independent_reference_status"] == "unverified"
+        or any(x == "unverified" for x in uncertainty_dispositions + metric_dispositions)
+        or model["split_integrity_status"] == "unverified"
+        or model["domain_coverage_status"] == "unverified"
+    ):
         disposition = "UNVERIFIED"
-    elif blockers:
+    elif receipt_not_effective or blockers:
         disposition = "INCOMPLETE"
     else:
         disposition = "BOUND"
