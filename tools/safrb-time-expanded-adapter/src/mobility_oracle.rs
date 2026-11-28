@@ -459,7 +459,7 @@ fn information_set_digest(
 }
 
 fn arc_by_id<'a>(instance: &'a MobilityInstance, arc_id: &str) -> Option<&'a MovementArc> {
-    instance.arcs.iter().find(|arc| arc.arc_id == arc_id)
+    instance.arcs.iter().find(|arc| arc.arc_id.as_str() == arc_id.as_str())
 }
 
 fn closure_blocks(
@@ -596,7 +596,7 @@ fn independent_policy_capacity_valid(
         let MobilityAction::Move { arc_id } = &decision.action else {
             continue;
         };
-        let Some(arc) = instance.arcs.iter().find(|arc| arc.arc_id == *arc_id) else {
+        let Some(arc) = instance.arcs.iter().find(|arc| arc.arc_id.as_str() == arc_id.as_str()) else {
             return false;
         };
         let Some(next_arc) = arc_use
@@ -619,10 +619,10 @@ fn independent_policy_capacity_valid(
         corridor_use.insert(arc.corridor_ref.clone(), next_corridor);
     }
     arc_use.iter().all(|(arc_id, used)| {
-        instance.arcs.iter().find(|arc| arc.arc_id == *arc_id)
+        instance.arcs.iter().find(|arc| arc.arc_id.as_str() == arc_id.as_str())
             .is_some_and(|arc| *used <= arc.arc_capacity_per_departure)
     }) && corridor_use.iter().all(|(corridor_id, used)| {
-        instance.arcs.iter().find(|arc| arc.corridor_ref == *corridor_id)
+        instance.arcs.iter().find(|arc| arc.corridor_ref.as_str() == corridor_id.as_str())
             .is_some_and(|arc| *used <= arc.corridor_capacity_per_departure)
     })
 }
