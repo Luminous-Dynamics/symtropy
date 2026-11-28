@@ -1,0 +1,671 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Circular and second-life rotor benchmark v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "scope",
+    "metrics",
+    "required_baseline_families",
+    "mass_balance_policy",
+    "trials"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 9,
+      "items": {
+        "$ref": "#/$defs/metric"
+      }
+    },
+    "required_baseline_families": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "ConventionalBondedAdhesivePmRotor",
+          "ConventionalMechanicallyRetainedSegmentedPmRotor",
+          "ConventionalServiceablePmRotor"
+        ]
+      }
+    },
+    "mass_balance_policy": {
+      "type": "object",
+      "required": [
+        "max_mass_balance_error_kg",
+        "max_mass_balance_error_fraction"
+      ],
+      "properties": {
+        "max_mass_balance_error_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "max_mass_balance_error_fraction": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "trials": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/trial"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "application_id",
+        "duty_digest",
+        "lifetime_profile_digest",
+        "thermal_environment_digest",
+        "mechanical_envelope_digest",
+        "safety_policy_digest",
+        "measurement_setup_digest",
+        "acceptance_policy_digest",
+        "lifecycle_boundary_digest",
+        "objective_digest",
+        "constraint_digest"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duty_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "lifetime_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "thermal_environment_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mechanical_envelope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "safety_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "measurement_setup_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "lifecycle_boundary_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "objective_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "constraint_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "unit",
+        "class",
+        "source",
+        "direction"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "class": {
+          "enum": [
+            "MandatoryFunction",
+            "CircularityBenefit"
+          ]
+        },
+        "source": {
+          "enum": [
+            "Observation",
+            "DisassemblyElapsedMinutes",
+            "DisassemblyEnergyWh",
+            "QualifiedReuseFraction",
+            "RecyclingFeedstockFraction"
+          ]
+        },
+        "direction": {
+          "enum": [
+            "Maximize",
+            "Minimize"
+          ]
+        },
+        "hard_min": {
+          "type": "number"
+        },
+        "hard_max": {
+          "type": "number"
+        },
+        "non_inferiority_margin": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "class": {
+                "const": "MandatoryFunction"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "hard_min",
+              "non_inferiority_margin"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "class": {
+                "const": "CircularityBenefit"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "hard_min"
+                  ]
+                },
+                {
+                  "required": [
+                    "hard_max"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "acceptance": {
+      "type": "object",
+      "required": [
+        "component_id",
+        "specimen_id",
+        "build_id",
+        "material_lot_id",
+        "maturity",
+        "disposition",
+        "scope_digest",
+        "receipt_digest",
+        "functional_test_evidence_id",
+        "functional_test_digest",
+        "linked_evidence_ids"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maturity": {
+          "enum": [
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "Qualified",
+            "Rejected",
+            "Indeterminate"
+          ]
+        },
+        "scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "functional_test_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_test_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "linked_evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "optimization": {
+      "type": "object",
+      "required": [
+        "receipt_digest",
+        "search_space_digest",
+        "objective_digest",
+        "constraint_digest",
+        "evaluations",
+        "independent_restarts",
+        "frozen_before_comparison"
+      ],
+      "properties": {
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "search_space_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "objective_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "constraint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independent_restarts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frozen_before_comparison": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "component_id",
+        "specimen_id",
+        "build_id",
+        "material_lot_id",
+        "unit",
+        "value",
+        "uncertainty_radius",
+        "evidence_id",
+        "evidence_digest",
+        "evidence_class",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_digest"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "number"
+        },
+        "uncertainty_radius": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "enum": [
+            "PhysicalMeasurement",
+            "AuditedCostRecord",
+            "Simulation",
+            "Synthetic"
+          ]
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "disassembly": {
+      "type": "object",
+      "required": [
+        "component_id",
+        "specimen_id",
+        "build_id",
+        "material_lot_id",
+        "evidence_id",
+        "evidence_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_digest",
+        "elapsed_minutes",
+        "elapsed_uncertainty_minutes",
+        "energy_wh",
+        "energy_uncertainty_wh",
+        "safe_state_confirmed",
+        "worker_safety_confirmed",
+        "component_integrity_pass",
+        "critical_damage_events",
+        "recovery_receipt_id"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "elapsed_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "elapsed_uncertainty_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "energy_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "energy_uncertainty_wh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "safe_state_confirmed": {
+          "type": "boolean"
+        },
+        "worker_safety_confirmed": {
+          "type": "boolean"
+        },
+        "component_integrity_pass": {
+          "type": "boolean"
+        },
+        "critical_damage_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovery_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "recovery": {
+      "type": "object",
+      "required": [
+        "component_id",
+        "specimen_id",
+        "build_id",
+        "material_lot_id",
+        "evidence_id",
+        "evidence_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_digest",
+        "input_magnet_mass_kg",
+        "input_uncertainty_kg",
+        "reuse_grade_mass_kg",
+        "reuse_grade_uncertainty_kg",
+        "remanufactured_accepted_mass_kg",
+        "remanufactured_uncertainty_kg",
+        "recycling_feedstock_mass_kg",
+        "recycling_uncertainty_kg",
+        "reject_waste_mass_kg",
+        "reject_uncertainty_kg"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "input_magnet_mass_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "input_uncertainty_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reuse_grade_mass_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reuse_grade_uncertainty_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "remanufactured_accepted_mass_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "remanufactured_uncertainty_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "recycling_feedstock_mass_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "recycling_uncertainty_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reject_waste_mass_kg": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reject_uncertainty_kg": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "trial": {
+      "type": "object",
+      "required": [
+        "architecture_id",
+        "component_id",
+        "family",
+        "role",
+        "scope",
+        "acceptance",
+        "optimization",
+        "observations",
+        "disassembly",
+        "recovery"
+      ],
+      "properties": {
+        "architecture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "enum": [
+            "ConventionalBondedAdhesivePmRotor",
+            "ConventionalMechanicallyRetainedSegmentedPmRotor",
+            "ConventionalServiceablePmRotor",
+            "AmModularRecoverableRotor",
+            "MagnetFreeReferenceControl"
+          ]
+        },
+        "role": {
+          "enum": [
+            "Candidate",
+            "RequiredBaseline",
+            "SecondaryControl"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "acceptance": {
+          "$ref": "#/$defs/acceptance"
+        },
+        "optimization": {
+          "$ref": "#/$defs/optimization"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "disassembly": {
+          "$ref": "#/$defs/disassembly"
+        },
+        "recovery": {
+          "$ref": "#/$defs/recovery"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
