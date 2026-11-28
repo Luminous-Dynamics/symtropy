@@ -1020,7 +1020,9 @@ mod tests {
             .retain(|episode| episode.episode_id != "episode-a-clean");
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 
     #[test]
@@ -1030,7 +1032,9 @@ mod tests {
         let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
         predictions.predictions[0].input_bundle_sha256 = "f".repeat(64);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 
     #[test]
@@ -1088,6 +1092,8 @@ mod tests {
         let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
         predictions.predictions[1].episode_id = predictions.predictions[0].episode_id.clone();
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 }
