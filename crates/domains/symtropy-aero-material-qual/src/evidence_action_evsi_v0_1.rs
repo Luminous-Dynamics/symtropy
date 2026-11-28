@@ -955,6 +955,77 @@ mod tests {
     }
 
     #[test]
+    fn permission_for_another_configuration_is_not_reused() {
+        let mut input = base_input();
+        input.actions[0]
+            .authorization_receipt
+            .as_mut()
+            .expect("permission receipt")
+            .configuration_ref = "configuration:other-aircraft".to_owned();
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::AbstainNoQualifiedPermittedActions
+        );
+        assert_eq!(
+            result.excluded_actions[0].reason_code,
+            "ACTION_AUTHORIZATION_SCOPE_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn permission_received_after_the_selected_cutoff_is_not_used() {
+        let mut input = base_input();
+        input.actions[0]
+            .authorization_receipt
+            .as_mut()
+            .expect("permission receipt")
+            .receiver_first_seen_at_unix_ms = input.as_known_at_unix_ms + 1;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::AbstainNoQualifiedPermittedActions
+        );
+        assert_eq!(
+            result.excluded_actions[0].reason_code,
+            "ACTION_AUTHORIZATION_NOT_KNOWN_AT_CUTOFF"
+        );
+    }
+
+    #[test]
+    fn calibration_for_another_outcome_model_is_not_reused() {
+        let mut input = base_input();
+        input.actions[0]
+            .calibration_receipt
+            .as_mut()
+            .expect("calibration receipt")
+            .outcome_model_sha256 = digest('f');
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::AbstainNoQualifiedPermittedActions
+        );
+        assert_eq!(
+            result.excluded_actions[0].reason_code,
+            "ACTION_CALIBRATION_SCOPE_MISMATCH"
+        );
+    }
+
+    #[test]
+    fn verified_permission_without_receipt_is_invalid_input() {
+        let mut input = base_input();
+        input.actions[0].authorization_receipt = None;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result
+            .reason_codes
+            .contains(&"EVSI_VERIFIED_ACTION_MISSING_AUTHORIZATION_RECEIPT".to_owned()));
+    }
+
+    #[test]
     fn malformed_probability_table_is_rejected_not_normalized() {
         let mut input = base_input();
         input.world_states[0].prior_probability_ppm = 400_000;
