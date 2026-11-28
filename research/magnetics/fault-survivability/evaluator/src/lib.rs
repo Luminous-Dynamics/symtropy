@@ -234,6 +234,7 @@ pub struct FaultTest {
     pub build_id: String,
     pub specimen_id: String,
     pub source_material_lot_id: String,
+    pub source_material_lot_digest: String,
     pub exposure_steps: Vec<ExposureStep>,
     pub bulk_flux_measurement: Option<BulkFluxMeasurement>,
     pub flux_measurements: Vec<FluxMeasurement>,
@@ -438,6 +439,7 @@ fn validate_spec(spec: &QualificationSpec) -> Vec<Blocker> {
             || !case.minimum_degraded_mission_energy_kwh.is_finite()
             || case.minimum_degraded_mission_energy_kwh < 0.0
             || !case.minimum_degraded_torque_margin_percent.is_finite()
+            || case.minimum_degraded_torque_margin_percent < 0.0
             || !case.maximum_degraded_mission_temperature_c.is_finite()
             || !case.maximum_allowed_mechanical_stress_mpa.is_finite()
             || case.maximum_allowed_mechanical_stress_mpa <= 0.0
@@ -478,6 +480,12 @@ fn evaluate_fault_case(
     {
         blockers.push(Blocker::MissingIdentity);
         unresolved = true;
+    }
+    if !valid_digest(&test.source_material_lot_digest)
+        || test.source_material_lot_digest != spec.scope.magnet_material_lot_digest
+    {
+        blockers.push(Blocker::ScopeMismatch);
+        not_comparable = true;
     }
     if test.evidence_class != EvidenceClass::PhysicalMeasurement {
         blockers.push(Blocker::NonPhysicalFaultEvidence);
@@ -547,10 +555,12 @@ fn evaluate_fault_case(
                 unresolved = true;
             }
             total_duration_ms += step.duration_ms;
-            if !fault_receipts.insert(step.event_receipt_id.as_str()) {
-                blockers.push(Blocker::DuplicateFaultEventReceipt);
-                unresolved = true;
-            }
+        }
+        if !step.event_receipt_id.trim().is_empty()
+            && !fault_receipts.insert(step.event_receipt_id.as_str())
+        {
+            blockers.push(Blocker::DuplicateFaultEventReceipt);
+            unresolved = true;
         }
         if step.fault_active != step.fault_kind.is_some() {
             blockers.push(Blocker::FaultKindMismatch);
@@ -625,6 +635,9 @@ fn evaluate_fault_case(
 
     let mut flux_by_zone = BTreeMap::new();
     let mut flux_measurement_ids = BTreeSet::new();
+    if let Some(bulk) = &test.bulk_flux_measurement {
+        flux_measurement_ids.insert(bulk.measurement_id.as_str());
+    }
     for measurement in &test.flux_measurements {
         if !flux_measurement_ids.insert(measurement.measurement_id.as_str()) {
             blockers.push(Blocker::DuplicateFluxMeasurementId);
@@ -739,6 +752,7 @@ fn evaluate_fault_case(
         || !mission.completed_mission_energy_kwh.is_nonnegative()
         || !mission.required_mission_energy_kwh.is_positive()
         || !mission.mission_completion_fraction.is_nonnegative()
+        || mission.mission_completion_fraction.upper > 1.0
         || !mission.minimum_torque_margin_percent.is_valid()
         || !mission.maximum_temperature_c.is_valid()
     {
@@ -975,6 +989,7 @@ mod tests {
             build_id: "BUILD-001".to_string(),
             specimen_id: "SPECIMEN-001".to_string(),
             source_material_lot_id: "MAGNET-LOT-001".to_string(),
+            source_material_lot_digest: digest('b'),
             exposure_steps: vec![exposure(0, 0.0, false), exposure(1, 50.0, true), exposure(2, 250.0, false)],
             bulk_flux_measurement: Some(BulkFluxMeasurement {
                 measurement_id: "BULK-FLUX-MEASUREMENT-001".to_string(),
@@ -1211,6 +1226,34 @@ mod tests {
         let result = run(test);
         assert_eq!(result.decision, Decision::Indeterminate);
         assert!(result.blockers.contains(&Blocker::ExposureEnvelopeUnresolved));
+    }
+
+    #[test]
+    fn source_material_lot_digest_must_match_frozen_component_scope() {
+        let mut test = test_case();
+        test.source_material_lot_digest = digest('0');
+        let result = run(test);
+        assert_eq!(result.decision, Decision::NotComparable);
+        assert!(result.blockers.contains(&Blocker::ScopeMismatch));
+    }
+
+    #[test]
+    fn bulk_and_local_flux_measurement_ids_must_be_globally_unique() {
+        let mut test = test_case();
+        test.flux_measurements[0].measurement_id =
+            test.bulk_flux_measurement.as_ref().unwrap().measurement_id.clone();
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::DuplicateFluxMeasurementId));
+    }
+
+    #[test]
+    fn mission_completion_fraction_above_one_is_invalid() {
+        let mut test = test_case();
+        test.degraded_mission.mission_completion_fraction = Interval::new(1.0, 1.1);
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::InvalidDegradedMission));
     }
 
     #[test]
