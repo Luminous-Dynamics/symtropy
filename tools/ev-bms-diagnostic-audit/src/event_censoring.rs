@@ -490,13 +490,19 @@ fn validate_and_evaluate(
 
     for event in &manifest.events {
         let Some(lower) = event.onset_lower_unix_ms else {
-            for alarm in alarm_refs.iter().filter(|alarm| {
-                alarm.asset_id == event.asset_id
-                    && alarm.alarm_time_unix_ms < event.onset_upper_unix_ms
-                    && !assigned_alarm_ids.contains(&alarm.alarm_id)
-            }) {
-                assigned_alarm_ids.insert(alarm.alarm_id.clone());
-                left_ambiguous_alarm_count += 1;
+            let left_alarm_ids = alarm_refs
+                .iter()
+                .filter(|alarm| {
+                    alarm.asset_id == event.asset_id
+                        && alarm.alarm_time_unix_ms < event.onset_upper_unix_ms
+                        && !assigned_alarm_ids.contains(&alarm.alarm_id)
+                })
+                .map(|alarm| alarm.alarm_id.clone())
+                .collect::<Vec<_>>();
+            for alarm_id in left_alarm_ids {
+                if assigned_alarm_ids.insert(alarm_id) {
+                    left_ambiguous_alarm_count += 1;
+                }
             }
             continue;
         };
