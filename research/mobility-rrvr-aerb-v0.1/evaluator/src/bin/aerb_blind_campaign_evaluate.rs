@@ -269,6 +269,10 @@ fn inspect_output_directory(
             errors.push(format!("{name}:ARTIFACT_TOO_LARGE"));
             continue;
         }
+        if fs::read(entry.path()).is_err() {
+            errors.push(format!("{name}:ARTIFACT_READ_FAILED"));
+            continue;
+        }
         regular_files.insert(name);
     }
     errors.sort();
@@ -549,25 +553,6 @@ fn campaign_report(
         .difference(&expected_output_files)
         .cloned()
         .collect::<Vec<_>>();
-    let mut expected_missing_ids = missing_output_files
-        .iter()
-        .filter_map(|name| {
-            name.strip_prefix("submission-")
-                .and_then(|name| name.strip_suffix(".json"))
-                .map(str::to_owned)
-        })
-        .collect::<Vec<_>>();
-    expected_missing_ids.sort();
-
-    let mut expected_unexpected = output_entry_errors.clone();
-    expected_unexpected.extend(extra_output_files.iter().cloned());
-    expected_unexpected.sort();
-    if run_receipt.missing_episode_ids != expected_missing_ids
-        || run_receipt.unexpected_output_entries != expected_unexpected
-    {
-        return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_INVENTORY_MISMATCH".to_owned());
-    }
-
     let mut receipt_output_ids = BTreeSet::new();
     let mut output_seals = BTreeMap::<String, (String, u64)>::new();
     for artifact in &run_receipt.output_artifacts {
@@ -584,9 +569,36 @@ fn campaign_report(
             (artifact.sha256.clone(), artifact.byte_length),
         );
     }
-    if output_seals.len() != run_receipt.output_artifacts.len()
-        || output_seals.keys().cloned().collect::<BTreeSet<_>>() != actual_output_files
+    if output_seals.len() != run_receipt.output_artifacts.len() {
+        return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_DUPLICATE".to_owned());
+    }
+
+    let mut expected_missing_ids = expected_output_files
+        .iter()
+        .filter_map(|name| {
+            name.strip_prefix("submission-")
+                .and_then(|name| name.strip_suffix(".json"))
+                .map(str::to_owned)
+        })
+        .filter(|episode_id| !receipt_output_ids.contains(episode_id))
+        .collect::<Vec<_>>();
+    expected_missing_ids.sort();
+
+    let mut expected_unexpected = output_entry_errors.clone();
+    expected_unexpected.extend(extra_output_files.iter().cloned());
+    expected_unexpected.sort();
+    if run_receipt.missing_episode_ids != expected_missing_ids
+        || run_receipt.unexpected_output_entries != expected_unexpected
     {
+        return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_INVENTORY_MISMATCH".to_owned());
+    }
+
+    let expected_actual_files = output_seals
+        .keys()
+        .cloned()
+        .chain(extra_output_files.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    if expected_actual_files != actual_output_files {
         return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_INVENTORY_MISMATCH".to_owned());
     }
     let candidate_outputs_verified_n = output_seals.len();
