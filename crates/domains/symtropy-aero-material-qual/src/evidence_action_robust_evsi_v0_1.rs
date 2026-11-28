@@ -127,12 +127,20 @@ pub struct RobustEvidenceActionPlannerAssessmentV0_1 {
 }
 
 #[derive(Serialize)]
+struct ScenarioActionCalibrationCommitmentV0_1<'a> {
+    action_id: &'a str,
+    calibration_receipt_sha256: Option<&'a str>,
+    outcome_likelihoods_sha256: Option<&'a str>,
+}
+
+#[derive(Serialize)]
 struct ScenarioSetManifestEntryV0_1<'a> {
     scenario_id: &'a str,
     decision_model_sha256: &'a str,
     outcome_model_sha256: &'a str,
     action_catalogue_sha256: &'a str,
     unresolved_obligation_manifest_sha256: &'a str,
+    action_calibration_commitments: Vec<ScenarioActionCalibrationCommitmentV0_1<'a>>,
 }
 
 #[derive(Serialize)]
@@ -176,14 +184,30 @@ pub fn compute_scenario_set_sha256_v0_1(
     ordered.sort_by(|left, right| left.scenario_id.cmp(&right.scenario_id));
     let entries = ordered
         .iter()
-        .map(|scenario| ScenarioSetManifestEntryV0_1 {
-            scenario_id: &scenario.scenario_id,
-            decision_model_sha256: &scenario.input.decision_model_sha256,
-            outcome_model_sha256: &scenario.input.outcome_model_sha256,
-            action_catalogue_sha256: &scenario.input.action_catalogue_sha256,
-            unresolved_obligation_manifest_sha256: &scenario
-                .input
-                .unresolved_obligation_manifest_sha256,
+        .map(|scenario| {
+            let mut actions = scenario.input.actions.iter().collect::<Vec<_>>();
+            actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+            let action_calibration_commitments = actions
+                .iter()
+                .map(|action| {
+                    let receipt = action.calibration_receipt.as_ref();
+                    ScenarioActionCalibrationCommitmentV0_1 {
+                        action_id: &action.action_id,
+                        calibration_receipt_sha256: receipt.map(|item| item.calibration_report_sha256.as_str()),
+                        outcome_likelihoods_sha256: receipt.map(|item| item.outcome_likelihoods_sha256.as_str()),
+                    }
+                })
+                .collect();
+            ScenarioSetManifestEntryV0_1 {
+                scenario_id: &scenario.scenario_id,
+                decision_model_sha256: &scenario.input.decision_model_sha256,
+                outcome_model_sha256: &scenario.input.outcome_model_sha256,
+                action_catalogue_sha256: &scenario.input.action_catalogue_sha256,
+                unresolved_obligation_manifest_sha256: &scenario
+                    .input
+                    .unresolved_obligation_manifest_sha256,
+                action_calibration_commitments,
+            }
         })
         .collect();
     let envelope = ScenarioSetManifestEnvelopeV0_1 {
