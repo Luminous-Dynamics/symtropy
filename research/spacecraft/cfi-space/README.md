@@ -211,3 +211,43 @@ Synthetic known-answer counts:
 - Unsafe control: common-cause-corrupted episode incorrectly labelled qualified; scorer counts exactly 1 unsafe acceptance and 9/10 exact disposition matches.
 
 This qualifies the P1 scorer/fixture semantics only. Two independent units and ten synthetic episodes are intentionally far too few for generalization, rare-event safety-rate, or statistical confidence claims. The candidate bundles are synthetic non-image payloads; this run does not execute Symthaea or evaluate spacecraft imagery.
+
+## P2 factorized pose scorecard v0.2 (2026-11-28)
+
+CFI-Space now extends the disposition-only score into a component-wise 6-DoF pose and uncertainty-region contract, motivated by the complementary orientation/translation strengths observed in the 6 November 2026 SPARK 2026 event-pose comparison.
+
+New files:
+- `schemas/cfi-space/evaluator-ledger-v0.2.schema.json`: evaluator-only 6-DoF ground truth, annotation digest and label-audit digest.
+- `schemas/cfi-space/pose-predictions-v0.2.schema.json`: candidate pose, uncertainty region, and separate orientation/translation method identifiers.
+- `research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json`.
+- `research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-{safe,unsafe}-v0.2.json`.
+
+Candidate pose receipts use:
+- translation vector in metres;
+- XYZW unit quaternion, sign-invariant SO(3) geodesic scoring;
+- explicit coordinate frame and transform direction;
+- uncertainty translation box (metres) plus orientation geodesic cap (radians);
+- separate orientation and translation estimator method identifiers.
+
+The evaluator ledger contains the reference pose and label-audit digests. It must remain evaluator-only. The scorer rejects non-finite coordinates, non-unit quaternions, frame/direction mismatch, reversed region bounds, malformed ground-truth audit digests, qualified predictions without pose+region+component methods, and any pose emitted on an abstention/non-qualified disposition.
+
+Scorecard additions:
+- per-episode translation absolute error (m) and relative translation error;
+- SO(3) geodesic rotation error (rad and degrees), with quaternion antipodes treated as the same rotation;
+- translation-box + SO(3)-cap coverage, denominator and silent-miss count;
+- median and P95 component errors without collapsing metres and radians into an opaque single metric.
+
+Run locally with the v0.2 files:
+
+```sh
+cargo test --manifest-path tools/cfi-space-bench/Cargo.toml
+cargo clippy --manifest-path tools/cfi-space-bench/Cargo.toml --all-targets -- -D warnings
+
+cargo run --quiet --manifest-path tools/cfi-space-bench/Cargo.toml -- \
+  --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
+  --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json \
+  --predictions research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-safe-v0.2.json \
+  --expect-unsafe 0 --bundle-root .
+```
+
+The safe known-answer fixture has two qualified pose estimates, both regions covering the evaluator truth. The unsafe control also qualifies a common-cause-corrupted episode with a biased translation/orientation and a tight region around that incorrect estimate; the scorer should report one unsafe acceptance and one silent region miss. The fixture demonstrates scorer semantics only; it is not a real estimator result or a meaningful coverage estimate.
