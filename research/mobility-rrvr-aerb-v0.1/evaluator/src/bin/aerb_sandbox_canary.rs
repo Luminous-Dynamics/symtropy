@@ -7,7 +7,7 @@
 //! from inside the namespace and writes a small report only to candidate output.
 
 use mobility_rrvr_aerb_evaluator::blind_execution_sandbox_v0_1::{
-    SandboxLimits, SandboxPaths, build_candidate_sandbox_command,
+    CandidateSandboxArgument, SandboxLimits, SandboxPaths, build_candidate_sandbox_command,
 };
 use std::env;
 use std::fs::{self, File};
@@ -307,18 +307,11 @@ fn host_mode() -> Result<(), String> {
         tmpfs_bytes: 16_777_216,
     };
     let candidate_arguments = [
-        "--candidate".to_owned(),
-        format!("--network-port={network_port}"),
-        format!("--host-pid-ns={host_pid_namespace}"),
+        CandidateSandboxArgument::CanaryMode,
+        CandidateSandboxArgument::NetworkProbePort(network_port),
+        CandidateSandboxArgument::HostPidNamespace(host_pid_namespace),
     ];
-    let spec = build_candidate_sandbox_command(
-        &paths,
-        limits,
-        &candidate_arguments
-            .iter()
-            .map(Into::into)
-            .collect::<Vec<_>>(),
-    )
+    let spec = build_candidate_sandbox_command(&paths, limits, &candidate_arguments)
     .map_err(|error| error.to_string())?;
 
     let status = spec
