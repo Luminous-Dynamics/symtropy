@@ -122,6 +122,46 @@ def validate_input(source: dict[str, Any]) -> None:
         raise ValueError("decision model commitment mismatch")
     if action_catalogue_cut_sha256(source) != source["action_catalogue_sha256"]:
         raise ValueError("action catalogue cut commitment mismatch")
+
+    state_receipt = source["assurance_state_receipt"]
+    if state_receipt["verification_status"] != "VERIFIED":
+        raise ValueError("source assurance state receipt is not upstream-verified")
+    if (
+        state_receipt["claim_id"] != source["claim_id"]
+        or state_receipt["decision_context_sha256"] != source["decision_context_sha256"]
+        or state_receipt["assurance_state_sha256"] != source["assurance_state_sha256"]
+        or state_receipt["frozen_claim_disposition"] != source["frozen_claim_disposition"]
+        or state_receipt["unresolved_obligation_manifest_sha256"]
+            != source["unresolved_obligation_manifest_sha256"]
+    ):
+        raise ValueError("source assurance state receipt scope mismatch")
+    cutoff = source["as_known_at_unix_ms"]
+    if state_receipt["receiver_first_seen_at_unix_ms"] > cutoff:
+        raise ValueError("source assurance state receipt not known at cutoff")
+    if not (
+        state_receipt["effective_from_unix_ms"] <= cutoff
+        < state_receipt["effective_until_unix_ms"]
+    ):
+        raise ValueError("source assurance state receipt not effective at cutoff")
+
+    catalogue_receipt = source["action_catalogue_receipt"]
+    if catalogue_receipt["verification_status"] != "VERIFIED":
+        raise ValueError("action catalogue snapshot receipt is not upstream-verified")
+    if (
+        catalogue_receipt["claim_id"] != source["claim_id"]
+        or catalogue_receipt["decision_context_sha256"] != source["decision_context_sha256"]
+        or catalogue_receipt["configuration_ref"] != source["configuration_ref"]
+        or catalogue_receipt["action_catalogue_sha256"] != source["action_catalogue_sha256"]
+        or catalogue_receipt["action_count"] != len(source["actions"])
+    ):
+        raise ValueError("action catalogue snapshot receipt scope/completeness mismatch")
+    if catalogue_receipt["receiver_first_seen_at_unix_ms"] > cutoff:
+        raise ValueError("action catalogue snapshot receipt not known at cutoff")
+    if not (
+        catalogue_receipt["effective_from_unix_ms"] <= cutoff
+        < catalogue_receipt["effective_until_unix_ms"]
+    ):
+        raise ValueError("action catalogue snapshot receipt not effective at cutoff")
     if sum(state["prior_probability_ppm"] for state in source["world_states"]) != PPM:
         raise ValueError("prior probabilities do not sum to one")
     decisions = [item["decision_id"] for item in source["decision_alternatives"]]
@@ -324,8 +364,10 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
         "as_known_at_unix_ms": source["as_known_at_unix_ms"],
         "decision_context_sha256": source["decision_context_sha256"],
         "assurance_state_sha256": source["assurance_state_sha256"],
+        "assurance_state_receipt_sha256": state_receipt["receipt_sha256"],
         "unresolved_obligation_manifest_sha256": source["unresolved_obligation_manifest_sha256"],
         "action_catalogue_sha256": source["action_catalogue_sha256"],
+        "action_catalogue_receipt_sha256": catalogue_receipt["receipt_sha256"],
         "decision_model_sha256": source["decision_model_sha256"],
         "outcome_model_sha256": source["outcome_model_sha256"],
         "current_best_decision_id": current_best,
@@ -462,6 +504,40 @@ def main() -> int:
     else:
         raise SystemExit("FAIL: malformed prior probability mass was silently accepted")
 
+    # Mutation control 10: omitting a required source-state obligation cannot be self-certified.
+    omitted_obligation = copy.deepcopy(source)
+    omitted_obligation["unresolved_obligation_ids"] = ["obligation:unrelated"]
+    omitted_obligation["unresolved_obligation_manifest_sha256"] = unresolved_obligation_manifest_sha256(omitted_obligation)
+    try:
+        calculate(omitted_obligation)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: caller changed unresolved obligations without a new state receipt")
+
+    # Mutation control 11: an omitted catalogue candidate cannot retain the complete-snapshot receipt.
+    omitted_action = copy.deepcopy(source)
+    omitted_action["actions"].pop()
+    omitted_action["action_catalogue_sha256"] = action_catalogue_cut_sha256(omitted_action)
+    try:
+        calculate(omitted_action)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: incomplete action catalogue reused the old snapshot receipt")
+
+    # Mutation control 12: a state receipt arriving after the historical cutoff cannot be backfilled.
+    late_state = copy.deepcopy(source)
+    late_state["assurance_state_receipt"]["receiver_first_seen_at_unix_ms"] = (
+        late_state["as_known_at_unix_ms"] + 1
+    )
+    try:
+        calculate(late_state)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: late source-state receipt was used in a historical recommendation")
+
     # Mutation control 10: semantic input-array permutations preserve the full result.
     permuted = copy.deepcopy(source)
     permuted["decision_alternatives"].reverse()
@@ -477,7 +553,7 @@ def main() -> int:
     print(
         "PASS: AERO EVSI v0.1 schema and independent integer oracle "
         "(2 states, 2 decisions, 1 permitted action, 1 excluded action, "
-        "10 mutation controls)."
+        "13 mutation controls)."
     )
     print("NOTE: synthetic decision arithmetic is not physical evidence or action authorization.")
     return 0
