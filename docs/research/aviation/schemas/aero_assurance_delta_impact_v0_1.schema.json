@@ -81,6 +81,7 @@
             "additionalProperties": false,
             "required": [
               "node_id",
+              "owner_namespace",
               "kind",
               "content_sha256",
               "dependency_manifest_complete"
@@ -114,6 +115,11 @@
               },
               "dependency_manifest_complete": {
                 "type": "boolean"
+              },
+              "owner_namespace": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
               }
             }
           }
