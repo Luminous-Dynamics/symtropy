@@ -58,6 +58,7 @@ jobs:
             .interval_censored_event_count == 2 and
             .left_censored_event_count == 1 and
             .alignment_uncertainty_preapplied == true and
+            .time_alignment_method == "synthetic_shared_clock" and
             .max_relative_clock_error_ms == 0 and
             .eligible_event_count == 3 and
             .definite_warning_count == 1 and
