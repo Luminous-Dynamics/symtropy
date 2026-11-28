@@ -1,0 +1,658 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Element-specific virgin material intensity per accepted service v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "spec",
+    "trials",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "trials": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/trial"
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "candidate_decisions"
+      ],
+      "properties": {
+        "candidate_decisions": {
+          "type": "object",
+          "additionalProperties": {
+            "enum": [
+              "NotComparable",
+              "Fail",
+              "Indeterminate",
+              "InferiorToBaseline",
+              "NonInferiorNoMaterialAdvantage",
+              "CriticalMaterialAdvantage"
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "interval": {
+      "type": "object",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upper": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_class": {
+      "enum": [
+        "PhysicalMeasurement",
+        "ProductionRecord",
+        "Simulation",
+        "PublishedLiterature",
+        "SyntheticControl"
+      ]
+    },
+    "family": {
+      "enum": [
+        "ConventionalSinteredPm",
+        "ConventionalBondedPm",
+        "PmAssistedSynrm",
+        "WoundFieldSynchronous",
+        "Induction",
+        "SynchronousReluctance",
+        "AmShapedPmInsert",
+        "AmHybridArchitecture"
+      ]
+    },
+    "origin": {
+      "enum": [
+        "Virgin",
+        "ExternalSecondary",
+        "InternalRecycled",
+        "DirectReuse"
+      ]
+    },
+    "role": {
+      "enum": [
+        "Candidate",
+        "RequiredBaseline"
+      ]
+    },
+    "maturity": {
+      "enum": [
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5"
+      ]
+    },
+    "acceptance_disposition": {
+      "enum": [
+        "Qualified",
+        "Fail",
+        "Indeterminate"
+      ]
+    },
+    "service_basis": {
+      "enum": [
+        "ObservedService",
+        "DurabilityTestedService",
+        "ValidatedProjection"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "application_id",
+        "target_function_digest",
+        "duty_profile_digest",
+        "system_boundary_digest",
+        "inverter_control_digest",
+        "cooling_boundary_digest",
+        "measurement_setup_digest",
+        "acceptance_policy_digest",
+        "service_horizon_digest",
+        "element_inventory_scope_digest",
+        "objective_set_digest"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_function_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "duty_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "system_boundary_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "inverter_control_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "cooling_boundary_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "measurement_setup_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_policy_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "service_horizon_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "objective_set_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "element_inventory_scope_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "element_spec": {
+      "type": "object",
+      "required": [
+        "element_id",
+        "unit",
+        "no_worse_margin_g_per_mwh",
+        "improvement_margin_g_per_mwh"
+      ],
+      "properties": {
+        "element_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "const": "g"
+        },
+        "no_worse_margin_g_per_mwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "improvement_margin_g_per_mwh": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "benchmark_id",
+        "scope",
+        "required_elements",
+        "required_baseline_families",
+        "minimum_optimization_evaluations",
+        "minimum_independent_restarts",
+        "optimization_budget_tier",
+        "minimum_completed_missions",
+        "service_noninferiority_margin_kwh"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "required_elements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/element_spec"
+          }
+        },
+        "required_baseline_families": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "enum": [
+              "ConventionalSinteredPm",
+              "ConventionalBondedPm",
+              "PmAssistedSynrm",
+              "WoundFieldSynchronous",
+              "Induction",
+              "SynchronousReluctance"
+            ]
+          }
+        },
+        "minimum_optimization_evaluations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_independent_restarts": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "optimization_budget_tier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum_completed_missions": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "service_noninferiority_margin_kwh": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "acceptance": {
+      "type": "object",
+      "required": [
+        "component_id",
+        "specimen_id",
+        "receipt_id",
+        "receipt_digest",
+        "scope_digest",
+        "maturity",
+        "disposition",
+        "evidence_class",
+        "physical_evidence_digest"
+      ],
+      "properties": {
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "maturity": {
+          "$ref": "#/$defs/maturity"
+        },
+        "disposition": {
+          "$ref": "#/$defs/acceptance_disposition"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "physical_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "service": {
+      "type": "object",
+      "required": [
+        "receipt_id",
+        "receipt_digest",
+        "component_id",
+        "duty_profile_digest",
+        "system_boundary_digest",
+        "service_horizon_digest",
+        "evidence_class",
+        "service_basis",
+        "useful_shaft_energy_per_mission_kwh",
+        "completed_mission_count",
+        "durability_receipt_id",
+        "durability_receipt_digest",
+        "durability_evidence_class",
+        "durability_method_id",
+        "durability_calibration_digest",
+        "durability_uncertainty_record_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "instrument_id"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duty_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "system_boundary_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "service_horizon_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "service_basis": {
+          "$ref": "#/$defs/service_basis"
+        },
+        "useful_shaft_energy_per_mission_kwh": {
+          "$ref": "#/$defs/interval"
+        },
+        "completed_mission_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "durability_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durability_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durability_evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "durability_method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durability_calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "durability_uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "optimization": {
+      "type": "object",
+      "required": [
+        "receipt_id",
+        "digest",
+        "optimizer_id",
+        "search_space_digest",
+        "objective_digest",
+        "constraint_digest",
+        "protocol_digest",
+        "evaluations",
+        "independent_restarts",
+        "budget_tier",
+        "frozen_before_unseal"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "optimizer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "search_space_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "objective_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "constraint_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "protocol_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "independent_restarts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "budget_tier": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frozen_before_unseal": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "element_assay": {
+      "type": "object",
+      "required": [
+        "element_id",
+        "mass_fraction",
+        "evidence_id",
+        "evidence_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "laboratory_id",
+        "laboratory_method_scope_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "element_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mass_fraction": {
+          "$ref": "#/$defs/interval"
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "laboratory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_method_scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        }
+      },
+      "additionalProperties": false
+    },
+    "material_lot": {
+      "type": "object",
+      "required": [
+        "material_lot_id",
+        "component_id",
+        "material_family_id",
+        "origin",
+        "scope_digest",
+        "inventory_scope_digest",
+        "material_mass_g",
+        "mass_evidence_id",
+        "mass_evidence_digest",
+        "mass_method_id",
+        "mass_calibration_digest",
+        "mass_uncertainty_record_digest",
+        "mass_laboratory_id",
+        "mass_laboratory_method_scope_digest",
+        "mass_evidence_class",
+        "element_assays"
+      ],
+      "properties": {
+        "material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "$ref": "#/$defs/origin"
+        },
+        "scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "material_mass_g": {
+          "$ref": "#/$defs/interval"
+        },
+        "mass_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mass_evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mass_method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mass_calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mass_uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mass_laboratory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mass_laboratory_method_scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "mass_evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "element_assays": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/element_assay"
+          }
+        },
+        "inventory_scope_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "trial": {
+      "type": "object",
+      "required": [
+        "architecture_id",
+        "family",
+        "role",
+        "scope",
+        "acceptance",
+        "service",
+        "optimization",
+        "material_lots"
+      ],
+      "properties": {
+        "architecture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "$ref": "#/$defs/family"
+        },
+        "role": {
+          "$ref": "#/$defs/role"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "acceptance": {
+          "$ref": "#/$defs/acceptance"
+        },
+        "service": {
+          "$ref": "#/$defs/service"
+        },
+        "optimization": {
+          "$ref": "#/$defs/optimization"
+        },
+        "material_lots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/material_lot"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,31 @@
+name: Magnetic critical material intensity evaluator
+
+on:
+  pull_request:
+    paths:
+      - "research/magnetics/critical-material-intensity/**"
+      - "research/magnetics/MAG_CRITICAL_ELEMENT_INTENSITY_2026-11-28.md"
+      - ".github/workflows/magnetic-critical-material-intensity.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  critical-material-intensity:
+    name: critical material intensity / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@1.96.0
+      - name: Formatting
+        run: cargo fmt --manifest-path research/magnetics/critical-material-intensity/evaluator/Cargo.toml --all -- --check
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/magnetics/critical-material-intensity/evaluator/Cargo.toml --all-targets -- -D warnings
+      - name: Unit tests
+        run: cargo test --manifest-path research/magnetics/critical-material-intensity/evaluator/Cargo.toml --all-targets
