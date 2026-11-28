@@ -19,6 +19,27 @@ References:
 - ActiveArena: https://arxiv.org/abs/2609.24124
 - EmbodiedGovBench: https://arxiv.org/abs/2604.11174
 
+### Empirical comparison signals (2026 benchmark releases)
+
+These figures establish why AERB must preserve multiple denominators and separate task success from safety and recovery:
+
+| Benchmark / split | Published result | Interpretation for AERB |
+|---|---|---|
+| SafeVLA-Bench, LIBERO aggregate | VLA-Adapter: 97.6% native task success, 82.0% all-spec safety, 17.0% successful-but-unsafe (SBU), VSI 0.104 | Strong task completion does not imply spec-compliant execution |
+| SafeVLA-Bench, RoboCasa-365 | Xiaomi-Robotics-1: 81.9% native success, 50.1% all-spec safety, 37.7% SBU, VSI 0.233 | A success-only table can put a policy first while concealing a substantial unsafe-success rate |
+| RoboRecover, LIBERO fixed test split | UnifoLM: 98.83% initial-state success, 48.00% recovery; pi0.5: 94.17% initial-state success, 64.40% recovery | Clean-start ranking does not predict recovery ranking |
+| DiMuRe / LIBERO-Disturb | 801 scheduled development disturbances; Local DiMuRe 77.65% task success versus 58.68% for the original program at the same physical-step allowance; Full DiMuRe 81.90% with extra steps, terminal replanning and early handoff | Matched-budget and expanded-budget results must be reported separately |
+| ActiveArena | 35 tasks across five active-perception categories, with ID/OOD scenes and multi-round evidence acquisition | AERB probe policies should be evaluated under active information acquisition, not passive observation only |
+
+SafeVLA-Bench's leaderboard contains 24 policies, five suites, 22,500 episodes and eight safety specifications, and ranks by all-spec safety rather than task success. Its host verdicts are derived from rollout traces; AERB should preserve those native definitions and add its own ambiguity/effect-finality metrics rather than redefine them. RoboRecover contains 2,000 scenarios split equally between RoboTwin and LIBERO, with fixed 800/200 train/test splits on each platform. These results are simulation/benchmark evidence, not physical-robot qualification.
+
+Sources:
+- SafeVLA leaderboard and metric definitions: https://safevla.org/leaderboard.html
+- RoboRecover benchmark and fixed splits: https://arxiv.org/abs/2609.28952
+- RoboRecover recovery table and paired comparisons: https://www.alphaxiv.org/abs/2609.28952
+- DiMuRe / LIBERO-Disturb: https://arxiv.org/abs/2611.04226
+- ActiveArena: https://arxiv.org/abs/2609.24124
+
 ## 2. The paradigm shift
 
 AERB should be an **assurance benchmark that can be layered onto recovery benchmarks**, not a replacement for LIBERO, RoboTwin, RoboCasa, RoboRecover, LIBERO-Disturb, ActiveArena or SafeVLA-Bench.
