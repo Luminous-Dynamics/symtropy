@@ -602,13 +602,13 @@ pub fn rank_robust_evidence_actions_v0_1(
         }
         let mut action_map = BTreeMap::new();
         for action in result.ranked_actions {
-            let Ok(evsi) = action.evsi_scaled_numerator.parse::<i128>() else {
+            let Ok(evsi) = action.evsi_numerator.parse::<i128>() else {
                 return invalid_result(
                     input,
                     BTreeSet::from(["ROBUST_EVSI_EVSI_NUMERATOR_INVALID".to_owned()]),
                 );
             };
-            let Ok(net_benefit) = action.net_benefit_scaled_numerator.parse::<i128>() else {
+            let Ok(net_benefit) = action.net_benefit_numerator.parse::<i128>() else {
                 return invalid_result(
                     input,
                     BTreeSet::from(["ROBUST_EVSI_NET_BENEFIT_NUMERATOR_INVALID".to_owned()]),
