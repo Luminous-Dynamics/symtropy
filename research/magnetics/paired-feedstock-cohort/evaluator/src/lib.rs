@@ -201,6 +201,8 @@ pub enum Blocker {
     PairBlockLotMismatch,
     RandomizationReceiptMissing,
     InvalidRandomizationReceipt,
+    DuplicateRandomizationReceipt,
+    DuplicateRandomSeedCommitment,
     EligibilityReceiptMissing,
     InvalidEligibilityReceipt,
     ScopeMismatch,
@@ -563,6 +565,8 @@ fn validate_manifest_and_pairs(
     }
 
     let mut block_ids = BTreeSet::new();
+    let mut randomization_receipt_ids = BTreeSet::new();
+    let mut random_seed_commitments = BTreeSet::new();
     let mut paired_build_ids = BTreeSet::new();
     let mut block_counts: BTreeMap<&str, u32> = BTreeMap::new();
     for block in &cohort.pair_blocks {
@@ -583,6 +587,12 @@ fn validate_manifest_and_pairs(
         }
         if block.randomization_receipt_id.trim().is_empty() {
             blockers.push(Blocker::RandomizationReceiptMissing);
+        }
+        if !randomization_receipt_ids.insert(block.randomization_receipt_id.as_str()) {
+            blockers.push(Blocker::DuplicateRandomizationReceipt);
+        }
+        if !random_seed_commitments.insert(block.seed_commitment_digest.as_str()) {
+            blockers.push(Blocker::DuplicateRandomSeedCommitment);
         }
         if !valid_digest(&block.randomization_digest)
             || !valid_digest(&block.seed_commitment_digest)
@@ -859,11 +869,14 @@ fn is_evidence_blocker(blocker: &Blocker) -> bool {
             | Blocker::MissingPairBlock
             | Blocker::RandomizationReceiptMissing
             | Blocker::InvalidRandomizationReceipt
+            | Blocker::DuplicateRandomizationReceipt
+            | Blocker::DuplicateRandomSeedCommitment
             | Blocker::EligibilityReceiptMissing
             | Blocker::InvalidEligibilityReceipt
             | Blocker::NonPhysicalBuildEvidence
             | Blocker::MissingBuildReceipt
             | Blocker::MissingReworkReceipt
+            | Blocker::ReworkReceiptUnexpected
             | Blocker::MissingMetricObservation
             | Blocker::DuplicateMetricObservation
             | Blocker::ExtraMetricObservation
@@ -1215,6 +1228,16 @@ mod tests {
         let result = evaluate_paired_cohort(&spec(), &data);
         assert_eq!(result.decision, Decision::Indeterminate);
         assert!(result.blockers.contains(&Blocker::RandomizationReceiptMissing));
+    }
+
+    #[test]
+    fn randomization_receipt_cannot_be_replayed_across_pair_blocks() {
+        let mut data = cohort(0.89, 148.0, 2.1);
+        data.pair_blocks[1].randomization_receipt_id =
+            data.pair_blocks[0].randomization_receipt_id.clone();
+        let result = evaluate_paired_cohort(&spec(), &data);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::DuplicateRandomizationReceipt));
     }
 
     #[test]
