@@ -1052,7 +1052,7 @@ mod tests {
         assert_eq!(result.disposition, Disposition::QualifiedFeedstockRoute);
         assert_eq!(result.expected_output_streams, 2);
         assert_eq!(result.observed_output_streams, 2);
-        assert_eq!(result.assay_results.len(), 3);
+        assert_eq!(result.assay_results.len(), 8);
         assert!(result.input_mass_mg.unwrap().overlaps(result.output_mass_mg.unwrap()));
     }
 
