@@ -448,10 +448,10 @@ def validate(source: dict[str, Any]) -> tuple[list[str], str]:
             errors.append(f"admission context mismatch: {ref}")
         if admission["state"] != "ADMITTED":
             incomplete = True
-        if record["lifecycle"] != "Active":
-            if record["lifecycle"] == "Disputed":
+        if record["lifecycle"] != "active":
+            if record["lifecycle"] == "disputed":
                 unverified = True
-            elif record["lifecycle"] in ("Revoked", "Withdrawn"):
+            elif record["lifecycle"] in ("revoked", "withdrawn"):
                 errors.append(f"owner evidence record revoked/withdrawn: {ref}")
             else:
                 incomplete = True
