@@ -402,7 +402,7 @@ fn main() -> ExitCode {
         // outcomes must still reach the evaluator so scheduled denominators
         // are preserved and the evaluator can issue the final failing verdict.
         Ok(outcome) => {
-            if !matches!(outcome, RunnerOutcome::Completed { exit_code: 0 }) {
+            if !matches!(&outcome, RunnerOutcome::Completed { exit_code: 0 }) {
                 eprintln!("AERB_SANDBOX_RUN_NOT_QUALIFIED: {outcome:?}");
             }
             ExitCode::SUCCESS
