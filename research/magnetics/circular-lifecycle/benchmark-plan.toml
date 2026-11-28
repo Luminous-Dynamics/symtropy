@@ -1,0 +1,53 @@
+schema_version = "0.1"
+program_id = "MAG-AM-CIRCULAR-MOTOR-LIFECYCLE-001"
+issue = 7870
+status = "research_protocol"
+protocol = "research/magnetics/MAG_AM_CIRCULAR_MOTOR_LIFECYCLE_BENCHMARK_2026-11-28.md"
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+schema = "evaluator/circular-lifecycle-v0.1.schema.json"
+fixture = "evaluator/fixtures/synthetic-circular-lifecycle-v0.1.json"
+source_register = "fixtures/circular-lifecycle-source-register-v0.1.json"
+workflow = ".github/workflows/magnetic-circular-lifecycle-benchmark.yml"
+language = "Rust 2024"
+dependencies = []
+
+[scope]
+matching = "exact_digest_equality"
+required = ["application_id", "duty_digest", "lifetime_profile_digest", "thermal_environment_digest", "mechanical_envelope_digest", "safety_policy_digest", "measurement_setup_digest", "acceptance_policy_digest", "lifecycle_boundary_digest", "objective_digest", "constraint_digest"]
+
+[baseline]
+mandatory_family = "ConventionalBondedAdhesivePmRotor"
+application_dependent_families = ["ConventionalMechanicallyRetainedSegmentedPmRotor", "ConventionalServiceablePmRotor"]
+rule = "preregister each applicable conventional PM incumbent; magnet-free architectures are parallel controls"
+minimum_optimization_evaluations = 100
+minimum_independent_restarts = 3
+frozen_before_comparison = true
+
+[recovery]
+mutually_exclusive_outputs = ["reuse_grade_magnets", "remanufactured_magnets_after_acceptance", "recycling_feedstock", "reject_waste"]
+mass_balance = "full output-minus-input uncertainty interval must fit predeclared tolerance"
+default_relative_mass_balance_tolerance = 0.015
+default_absolute_mass_balance_tolerance_kg = 0.02
+unclosed_mass_balance = "Indeterminate"
+
+[acceptance]
+minimum_component_maturity = "M4"
+require_post_service_functional_test = true
+require_safe_teardown = true
+require_component_integrity_after_teardown = true
+require_exact_specimen_lot_build_binding = true
+require_exact_receipt_graph = true
+synthetic_claim_ceiling = "evaluator semantics only"
+
+[exploratory_replication]
+minimum_independent_builds = 3
+minimum_material_lots = 2
+production_qualification_claimed = false
+
+[decision]
+outcomes = ["NotComparable", "Fail", "Indeterminate", "InferiorToBaseline", "NonInferiorNoCircularityBenefit", "CircularityAdvantage"]
+weighted_score = false
+hard_limits_non_compensatory = true
+robust_benefit_requires_non_overlapping_intervals = true
+unknown_or_missing_evidence = "Indeterminate"
