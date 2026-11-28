@@ -617,69 +617,6 @@ fn write_profile_csv(
     })
 }
 
-#[derive(Debug, Serialize)]
-struct SourceInputDigest {
-    fleet_id: String,
-    operation_days_path: String,
-    operation_days_sha256: String,
-    operation_days_bytes: u64,
-    operation_day_count: usize,
-    schedules_path: String,
-    schedules_sha256: String,
-    schedules_bytes: u64,
-    schedule_segment_count: usize,
-}
-
-#[derive(Debug, Serialize)]
-struct ProfileOutput {
-    fleet_id: String,
-    fleet_size: usize,
-    strategy: String,
-    profile_kind: String,
-    file_name: String,
-    sha256: String,
-    interval_count: usize,
-    mean_power_kw: f64,
-    peak_power_kw: f64,
-    daily_energy_kwh: f64,
-}
-
-#[derive(Debug, Serialize)]
-struct ReplayReport {
-    schema_version: String,
-    tool: String,
-    source_repository: String,
-    source_revision: String,
-    source_script_sha256: String,
-    source_script_bytes: u64,
-    source_input_files: Vec<SourceInputDigest>,
-    python_master_seed: u64,
-    python_seed_list_sha256: String,
-    python_rng_protocol: String,
-    numpy_rng_protocol: String,
-    n_samples: usize,
-    fleet_sizes: Vec<usize>,
-    charging_strategies: Vec<String>,
-    profile_kinds: Vec<String>,
-    vehicle_energy_kwh_per_mile: f64,
-    constant_power_charger_kw: f64,
-    daily_source_seconds: usize,
-    output_intervals: usize,
-    output_interval_minutes: usize,
-    generated_profile_count: usize,
-    generated_total_interval_count: usize,
-    archive_comparison_state: String,
-    candidate_evidence_class: String,
-    profiles: Vec<ProfileOutput>,
-    claim_ceiling: String,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ReplayEnvelope {
-    pub report: ReplayReport,
-    pub report_sha256: String,
-}
-
 fn generate_candidate_profiles(
     inputs: &FleetInputs,
     fleet_size: usize,
