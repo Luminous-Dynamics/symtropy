@@ -94,6 +94,8 @@ def validate(source: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
     node_map = {node["node_id"]: node for node in nodes}
     if len(ids) != len(set(ids)):
         errors.append("node IDs are duplicated")
+    if any(not node.get("owner_namespace") for node in nodes):
+        errors.append("a dependency node has no owner namespace")
     claim_roots = [node for node in nodes if node["kind"] == "CLAIM"]
     if len(claim_roots) != 1 or claim_roots[0]["node_id"] != source["claim_id"]:
         errors.append("graph must have exactly one matching claim root")
@@ -136,6 +138,8 @@ def validate(source: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
         errors.append("changed node is not in the dependency graph")
     elif changed_node["content_sha256"] != change["previous_content_sha256"]:
         errors.append("previous content digest does not match the graph node")
+    elif changed_node["owner_namespace"] != change["owner_namespace"]:
+        errors.append("change receipt owner does not own the changed node")
 
     if errors:
         return errors, {
@@ -152,6 +156,7 @@ def validate(source: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
         deps.sort()
 
     claim_closure = closure(source["claim_id"], adjacency)
+    claim_root_complete = node_map[source["claim_id"]]["dependency_manifest_complete"]
     obligations = sorted(
         (node for node in nodes if node["kind"] == "OBLIGATION"),
         key=lambda item: item["node_id"],
@@ -173,6 +178,7 @@ def validate(source: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
         node_closure = closure(obligation_id, adjacency)
         is_complete = (
             graph["coverage_status"] == "COMPLETE"
+            and claim_root_complete
             and obligation_id in claim_closure
             and all(node_map[node_id]["dependency_manifest_complete"] for node_id in node_closure)
         )
@@ -260,6 +266,24 @@ def main() -> int:
     duplicate_errors, _ = validate(duplicate_edge)
     if not any("duplicated" in error for error in duplicate_errors):
         raise SystemExit("FAIL: duplicate dependency edge was accepted")
+
+    wrong_owner = copy.deepcopy(instance)
+    wrong_owner["change_receipt"]["owner_namespace"] = "owner:unrelated-authority"
+    owner_errors, _ = validate(wrong_owner)
+    if not any("does not own the changed node" in error for error in owner_errors):
+        raise SystemExit("FAIL: a different owner changed the source node")
+
+    incomplete_root = copy.deepcopy(instance)
+    root_node = next(
+        node for node in incomplete_root["graph"]["nodes"]
+        if node["kind"] == "CLAIM"
+    )
+    root_node["dependency_manifest_complete"] = False
+    incomplete_root["graph_snapshot_sha256"] = graph_sha256(incomplete_root["graph"])
+    incomplete_root["graph_approval_receipt"]["graph_snapshot_sha256"] = incomplete_root["graph_snapshot_sha256"]
+    root_errors, root_result = validate(incomplete_root)
+    if root_errors or root_result["disposition"] != "INCOMPLETE_IMPACT" or root_result["retained"]:
+        raise SystemExit("FAIL: incomplete claim-root dependency manifest allowed retained status")
 
     incomplete_graph = copy.deepcopy(instance)
     incomplete_graph["graph"]["coverage_status"] = "INCOMPLETE"
