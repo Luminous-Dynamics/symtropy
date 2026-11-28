@@ -497,7 +497,7 @@ mod tests {
     #[test]
     fn accepts_station_disjoint_charger_side_split_with_time_guard() {
         let report = audit_split_manifest(SCHEMA, SHENZHEN).expect("Shenzhen station split");
-        assert_eq!(report.record_count, 6);
+        assert_eq!(report.record_count, 5);
         assert_eq!(report.primary_group_count, 4);
         assert_eq!(report.group_key, "station_id");
         assert_eq!(report.partition_summaries.len(), 3);
@@ -547,7 +547,7 @@ mod tests {
     #[test]
     fn rejects_present_optional_event_id_cross_partition() {
         let mut value: Value = serde_json::from_slice(CAO).expect("Cao split JSON");
-        let train_event = value["partitions"][0]["records"][0]["group_values"]["event_id"]
+        let train_event = value["partitions"][0]["records"][1]["group_values"]["event_id"]
             .as_str()
             .unwrap()
             .to_owned();
