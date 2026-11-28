@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-metadata-audit-output-v0.1.schema.json",
+  "title": "AERB Evaluator-Only Metadata Leakage Audit Output v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "input_sha256",
+    "report"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-metadata-audit-output-v0.1"
+    },
+    "input_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "campaign_id",
+        "sample_n",
+        "world_class_n",
+        "independent_cluster_n",
+        "fold_n",
+        "majority_baseline_accuracy",
+        "combined_metadata_only_accuracy",
+        "combined_metadata_only_balanced_accuracy",
+        "per_feature_scores",
+        "interpretation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "aerb-metadata-leakage-audit-v0.1"
+        },
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "world_class_n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "independent_cluster_n": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "fold_n": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "majority_baseline_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "combined_metadata_only_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "combined_metadata_only_balanced_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "per_feature_scores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "feature_name",
+              "sample_n",
+              "heldout_accuracy",
+              "majority_baseline_accuracy"
+            ],
+            "properties": {
+              "feature_name": {
+                "type": "string"
+              },
+              "sample_n": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "heldout_accuracy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "majority_baseline_accuracy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
