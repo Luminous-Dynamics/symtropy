@@ -16,7 +16,9 @@ The literature now provides an important route distinction:
 
 - **Powder extrusion moulding (PEM):** metal / magnetic powder is compounded with a temporary binder system, shaped by extrusion moulding, debound and sintered. The relevant 2025 recovered-NdFeB study used in-situ magnetic particle alignment and subsequently sintered anisotropic magnets. It is a near-net-shape powder-processing route, not the same process as MEX bonded-magnet printing.
 - **Material extrusion (MEX):** a polymer-bonded magnetic composite is deposited as a printed geometry. Binder fraction, powder loading, alignment, inter-layer bonding and post-processing create a different process–structure–property problem.
+- **Recovered HDD NdFeB → MEX/FDM:** a June 2026 study used hard-drive magnet powder, milled/sieved below 50 μm, compounded with PBAT at up to 50 wt%, converted to filament and printed by FDM. A field applied during printing aligned particles and increased the reported remanence from 11 to 28 emu/g; the reduced-remanence ratio increased from 0.21 to 0.49. Coercivity fell from 1852 to 1310 Oe in the aligned 50 wt% specimen, so this is a multi-property trade-off, not a simple win.
 - **LPBF/PBF-LB:** uses a laser powder bed with its own powder, atmosphere, energy-density, cracking, phase-retention and texture constraints. HPMS powder is not automatically eligible.
+- **HDDR / dynamic-HDDR → DLP 4D:** a November 2026 study demonstrates magnetically programmed recycled powders in photopolymer composites and external-field actuation. This is an adjacent soft-actuator/robotics lane, not motor-grade magnet qualification.
 - **Conventional sintering/remanufacturing:** remains an industrial comparator when the feedstock and route are admissible.
 - **Direct reuse:** remains a separate service/second-life pathway; it is not conflated with powder conversion.
 
