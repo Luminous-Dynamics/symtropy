@@ -994,6 +994,14 @@ mod tests {
     }
 
     #[test]
+    fn rejects_malformed_clock_alignment_artifact_digest() {
+        let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
+        value["time_alignment_artifact_sha256"] = Value::from("not-a-digest");
+        let bytes = serde_json::to_vec(&value).expect("invalid alignment digest");
+        assert!(audit_event_censoring_evaluation(SCHEMA, &bytes).is_err());
+    }
+
+    #[test]
     fn metadata_only_fixture_cannot_claim_a_field_clock_alignment() {
         let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
         value["time_alignment_method"] = Value::from("ptp_ntp_verified");
