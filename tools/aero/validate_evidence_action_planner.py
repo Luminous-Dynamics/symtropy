@@ -538,7 +538,29 @@ def main() -> int:
     else:
         raise SystemExit("FAIL: late source-state receipt was used in a historical recommendation")
 
-    # Mutation control 10: semantic input-array permutations preserve the full result.
+    # Mutation control 13: an unverified source-state receipt cannot support a recommendation.
+    unverified_state = copy.deepcopy(source)
+    unverified_state["assurance_state_receipt"]["verification_status"] = "UNVERIFIED"
+    try:
+        calculate(unverified_state)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: unverified assurance-state receipt was accepted")
+
+    # Mutation control 14: a catalogue snapshot received after the cutoff cannot authorize a historical plan.
+    late_catalogue = copy.deepcopy(source)
+    late_catalogue["action_catalogue_receipt"]["receiver_first_seen_at_unix_ms"] = (
+        late_catalogue["as_known_at_unix_ms"] + 1
+    )
+    try:
+        calculate(late_catalogue)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: late catalogue snapshot receipt was used historically")
+
+    # Mutation control 15: semantic input-array permutations preserve the full result.
     permuted = copy.deepcopy(source)
     permuted["decision_alternatives"].reverse()
     permuted["world_states"].reverse()
@@ -553,7 +575,7 @@ def main() -> int:
     print(
         "PASS: AERO EVSI v0.1 schema and independent integer oracle "
         "(2 states, 2 decisions, 1 permitted action, 1 excluded action, "
-        "13 mutation controls)."
+        "15 mutation controls)."
     )
     print("NOTE: synthetic decision arithmetic is not physical evidence or action authorization.")
     return 0
