@@ -36,3 +36,7 @@ path = "src/bin/aerb_sandbox_canary.rs"
 [[bin]]
 name = "aerb_metadata_audit"
 path = "src/bin/aerb_metadata_audit.rs"
+
+[[bin]]
+name = "aerb_blind_materialize"
+path = "src/bin/aerb_blind_materialize.rs"
