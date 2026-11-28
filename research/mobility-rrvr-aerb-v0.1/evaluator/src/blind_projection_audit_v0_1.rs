@@ -47,6 +47,7 @@ pub enum ProjectionError {
     InvalidCandidateEpisode(&'static str),
     InvalidOpaqueEpisodeId,
     ClockRebaseOverflow,
+    CounterTranslationOverflow(&'static str),
     SequenceRebaseOverflow,
     SerializationFailed,
     InvalidProjectionReceipt(&'static str),
@@ -70,6 +71,7 @@ impl std::fmt::Display for ProjectionError {
                 "blind episode ID must match ep_ plus 32 lowercase hexadecimal characters",
             ),
             Self::ClockRebaseOverflow => formatter.write_str("clock rebasing overflow"),
+            Self::CounterTranslationOverflow(field) => write!(formatter, "counter translation overflow: {field}"),
             Self::SequenceRebaseOverflow => formatter.write_str("sequence rebasing overflow"),
             Self::SerializationFailed => {
                 formatter.write_str("blind projection serialization failed")
@@ -189,9 +191,21 @@ impl BlindProjectionContext {
         self.pseudonym_hex(namespace, raw_digest)
     }
 
-    fn pseudonym_u64(&self, namespace: &str, raw: u64) -> u64 {
-        let digest = self.pseudonym_hex(namespace, &raw.to_string());
-        u64::from_str_radix(&digest[..16], 16).unwrap_or(0)
+    /// Translate monotonic counters by a campaign-scoped secret offset.
+    /// Unlike hashing, this preserves equality, total order and exact deltas.
+    /// The high 32 bits of the offset are intentionally zero so ordinary
+    /// controller counters remain far from overflow; any overflow fails closed.
+    fn translated_counter(
+        &self,
+        namespace: &'static str,
+        raw: u64,
+    ) -> Result<u64, ProjectionError> {
+        let offset_digest = self.pseudonym_hex("counter-offset", namespace);
+        let offset = u32::from_str_radix(&offset_digest[..8], 16)
+            .map_err(|_| ProjectionError::CounterTranslationOverflow(namespace))?
+            as u64;
+        raw.checked_add(offset)
+            .ok_or(ProjectionError::CounterTranslationOverflow(namespace))
     }
 }
 
@@ -1792,6 +1806,57 @@ mod tests {
             submission.possible_world_support_ids,
             original_submission.possible_world_support_ids
         );
+    }
+
+    #[test]
+    fn counter_translation_preserves_order_equality_and_deltas_without_revealing_base() {
+        let context = BlindProjectionContext::from_secret([0x77; 32]);
+        let first = episode(1);
+        let second = episode(2);
+        let third = episode(3);
+        let (p1, _) = project_candidate_episode(
+            &context,
+            &first,
+            "ep_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+        .expect("first");
+        let (p2, _) = project_candidate_episode(
+            &context,
+            &second,
+            "ep_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        )
+        .expect("second");
+        let (p3, _) = project_candidate_episode(
+            &context,
+            &third,
+            "ep_cccccccccccccccccccccccccccccccc",
+        )
+        .expect("third");
+
+        assert_ne!(
+            p1.command_context.authority_epoch,
+            first.command_context.authority_epoch
+        );
+        assert_eq!(
+            p2.command_context.authority_epoch - p1.command_context.authority_epoch,
+            second.command_context.authority_epoch - first.command_context.authority_epoch
+        );
+        assert_eq!(
+            p3.command_context.authority_epoch - p2.command_context.authority_epoch,
+            third.command_context.authority_epoch - second.command_context.authority_epoch
+        );
+        assert!(p1.command_context.authority_epoch < p2.command_context.authority_epoch);
+        assert!(p2.command_context.authority_epoch < p3.command_context.authority_epoch);
+        assert!(p1.command_context.queue_generation < p2.command_context.queue_generation);
+    }
+
+    #[test]
+    fn counter_translation_overflow_fails_closed() {
+        let context = BlindProjectionContext::from_secret([0x88; 32]);
+        assert!(matches!(
+            context.translated_counter("authority-epoch", u64::MAX),
+            Err(ProjectionError::CounterTranslationOverflow("authority-epoch"))
+        ));
     }
 
     #[test]
