@@ -31,11 +31,10 @@ jobs:
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
-          git add -- \
-            research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_materialize.rs \
-            research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_campaign_evaluate.rs \
-            research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_reference_candidate.rs \
-            research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_sandbox_launch.rs
+          # cargo fmt formats the complete evaluator crate. Commit every Rust
+          # source it changed, including inherited v0.1 modules, so --check
+          # can pass on the resulting exact head.
+          git add -- research/mobility-rrvr-aerb-v0.1/evaluator/src
           if git diff --cached --quiet; then
             echo "Execution-path Rust sources already formatted."
             exit 0
