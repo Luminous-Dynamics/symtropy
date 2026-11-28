@@ -1233,7 +1233,7 @@ mod tests {
             ArchitectureRole::Candidate,
             650.0,
             0.28,
-            0.02,
+            0.0215,
             50.0,
             100.0,
         ));
