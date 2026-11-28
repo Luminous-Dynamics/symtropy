@@ -56,7 +56,6 @@
         "owner_namespace": "owner:metrology-lab",
         "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
         "authorization_status": "VERIFIED_PERMITTED",
-        "authorization_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
         "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
         "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
         "target_obligation_ids": [
@@ -110,14 +109,14 @@
           "receiver_first_seen_at_unix_ms": 1795516000000,
           "effective_from_unix_ms": 1795500000000,
           "effective_until_unix_ms": 1798000000000
-        }
+        },
+        "outcome_model_owner_namespace": "owner:forecast-model-team"
       },
       {
         "action_id": "action:unauthorized-bench-test",
         "owner_namespace": "owner:test-facility",
         "action_catalogue_entry_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
         "authorization_status": "UNKNOWN",
-        "authorization_receipt_sha256": null,
         "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
         "expected_artifact_contract_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
         "target_obligation_ids": [
@@ -159,8 +158,9 @@
           "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
           "receiver_first_seen_at_unix_ms": 1795516000000,
           "effective_from_unix_ms": 1795500000000,
-          "effective_until_unix_ms": 1798000000
-        }
+          "effective_until_unix_ms": 1798000000000
+        },
+        "outcome_model_owner_namespace": "owner:forecast-model-team"
       }
     ],
     "configuration_ref": "configuration:wing-r17",
