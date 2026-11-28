@@ -340,8 +340,9 @@ fn obligation_order_permutations_preserve_oracle_and_production_results() {
         .expect("obligations")
         .reverse();
     let permuted_oracle = independent_disposition(&reordered);
-    let permuted_production =
-        evaluate_assurance_state_case_v0_1(&typed_case(&reordered)).disposition.as_str();
+    let permuted_production = evaluate_assurance_state_case_v0_1(&typed_case(&reordered))
+        .disposition
+        .as_str();
 
     assert_eq!(baseline_oracle, permuted_oracle);
     assert_eq!(baseline_production, permuted_production);
