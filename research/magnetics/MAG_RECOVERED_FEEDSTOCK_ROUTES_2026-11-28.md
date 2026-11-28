@@ -52,7 +52,18 @@ This evaluator validates digest shapes and identity joins. It does not authentic
 
 ## Material acceptance
 
-Assays are specified by the exact campaign and route. Candidate dimensions may include:
+Assays are specified by the exact campaign and route. Every admitted magnetic feedstock route must preregister all seven minimum evidence roles; the evaluator rejects a specification that omits any role:
+- Absolute remanence Br;
+- coercivity (Hcj where applicable);
+- maximum energy product (BH)max;
+- magnetic alignment (e.g. Br/Js) as a separate quantity;
+- chemistry;
+- microstructure / phase / texture / defects;
+- density or porosity.
+
+These roles are deliberately non-substitutable. In particular, Br/Js is not absolute Br, and a density record cannot silently stand in for a microstructure characterization.
+
+Additional campaign-specific dimensions may include:
 - oxygen, carbon, chemistry and contamination;
 - particle-size distribution, morphology and flow properties;
 - phase constitution, grain size, texture and orientation distribution;
@@ -101,4 +112,4 @@ Compose with:
 - #7887 full-duty-cycle evidence aggregator;
 - #7870 second-life rotor architecture.
 
-The synthetic fixture and Rust tests validate software semantics only. No physical recovery yield, powder quality, absolute Br/Hcj, route superiority, accepted component, production capability, environmental advantage, cost advantage or certification is claimed.
+The synthetic fixture includes all seven minimum assay roles but every evidence record remains SyntheticControl; it must return Indeterminate and cannot qualify a physical lot. The Rust suite now includes a negative control showing that a policy omitting absolute magnetic and structure roles is NotComparable. No physical recovery yield, powder quality, absolute Br/Hcj, route superiority, accepted component, production capability, environmental advantage, cost advantage or certification is claimed.
