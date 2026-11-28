@@ -192,6 +192,197 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::evidence_action_evsi_v0_1::{
+        EvidenceActionPlannerInputV0_1, compute_outcome_likelihoods_sha256,
+    };
+    use serde_json::Value;
+
+    const FIXTURE: &str = include_str!(
+        "../../../../docs/research/aviation/examples/aero_evidence_action_planner_v0_1.json"
+    );
+
+    fn point_input() -> EvidenceActionPlannerInputV0_1 {
+        let fixture: Value = serde_json::from_str(FIXTURE).expect("EVSI fixture parses");
+        serde_json::from_value(fixture["input"].clone())
+            .expect("EVSI input matches the typed point-evaluator contract")
+    }
+
+    fn no_information_scenario() -> EvidenceActionPlannerInputV0_1 {
+        let mut input = point_input();
+        input.outcome_model_sha256 = "f".repeat(64);
+
+        for outcome in &mut input.actions[0].outcome_likelihoods {
+            outcome.likelihood_ppm = 500_000;
+        }
+
+        let model_sha = input.outcome_model_sha256.clone();
+        for (index, action) in input.actions.iter_mut().enumerate() {
+            let likelihood_sha = compute_outcome_likelihoods_sha256(action, &model_sha)
+                .expect("exact likelihood-table commitment");
+            let receipt = action
+                .calibration_receipt
+                .as_mut()
+                .expect("fixture action has calibration receipt");
+            receipt.outcome_model_sha256 = model_sha.clone();
+            receipt.outcome_likelihoods_sha256 = likelihood_sha;
+            receipt.calibration_report_sha256 = if index == 0 {
+                "c".repeat(64)
+            } else {
+                "d".repeat(64)
+            };
+        }
+        input
+    }
+
+    fn robust_input(
+        scenario_set_id: &str,
+        scenarios: Vec<EVSIAdmissibleScenarioV0_1>,
+    ) -> RobustEvidenceActionPlannerInputV0_1 {
+        let first = scenarios.first().expect("at least one scenario");
+        let anchor = &first.input;
+        let mut input = RobustEvidenceActionPlannerInputV0_1 {
+            schema: ROBUST_EVSI_AMBIGUITY_SCHEMA_V0_1.to_owned(),
+            scenario_set_id: scenario_set_id.to_owned(),
+            scenario_set_sha256: String::new(),
+            approval_receipt: None,
+            scenarios,
+        };
+        input.scenario_set_sha256 =
+            compute_scenario_set_sha256_v0_1(&input.scenario_set_id, &input.scenarios)
+                .expect("scenario-set commitment");
+        input.approval_receipt = Some(EVSIAmbiguitySetApprovalReceiptV0_1 {
+            verification_status: RobustEVSIReceiptVerificationStatusV0_1::Verified,
+            owner_namespace: "owner:approved-decision-model-board".to_owned(),
+            claim_id: anchor.input.claim_id.clone(),
+            decision_context_sha256: anchor.input.decision_context_sha256.clone(),
+            configuration_ref: anchor.input.configuration_ref.clone(),
+            scenario_set_sha256: input.scenario_set_sha256.clone(),
+            scenario_count: input.scenarios.len() as u32,
+            receipt_sha256: "a".repeat(64),
+            receiver_first_seen_at_unix_ms: anchor.input.as_known_at_unix_ms - 1_000,
+            effective_from_unix_ms: anchor.input.as_known_at_unix_ms - 10_000,
+            effective_until_unix_ms: anchor.input.as_known_at_unix_ms + 10_000,
+        });
+        input
+    }
+
+    fn scenario(id: &str, input: EvidenceActionPlannerInputV0_1) -> EVSIAdmissibleScenarioV0_1 {
+        EVSIAdmissibleScenarioV0_1 {
+            scenario_id: id.to_owned(),
+            input,
+        }
+    }
+
+    #[test]
+    fn positive_lower_envelope_produces_robust_recommendation() {
+        let base = point_input();
+        let input = robust_input(
+            "ambiguity-set:positive-control",
+            vec![
+                scenario("scenario:baseline-a", base.clone()),
+                scenario("scenario:baseline-b", base),
+            ],
+        );
+        let result = rank_robust_evidence_actions_v0_1(&input);
+        assert_eq!(result.disposition, RobustEVSIDispositionV0_1::RobustRankedActions);
+        assert_eq!(
+            result.selected_action_id.as_deref(),
+            Some("action:request-calibration-report")
+        );
+        assert!(result.ranked_actions[0].positive_net_benefit_in_all_scenarios);
+        assert!(result.scenario_action_results.len() >= 2);
+        assert!(!result.assurance_state_mutated);
+        assert!(!result.physical_work_authorized);
+        assert!(!result.engineering_acceptance_granted);
+    }
+
+    #[test]
+    fn point_positive_but_zero_information_scenario_forces_abstention() {
+        let base = point_input();
+        let no_information = no_information_scenario();
+        let input = robust_input(
+            "ambiguity-set:ranking-instability",
+            vec![
+                scenario("scenario:informative", base),
+                scenario("scenario:no-information", no_information),
+            ],
+        );
+        let result = rank_robust_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            RobustEVSIDispositionV0_1::NoRobustPositiveNetBenefit
+        );
+        assert_eq!(result.selected_action_id, None);
+        let lower = result.ranked_actions[0]
+            .net_benefit_lower_scaled_numerator
+            .parse::<i128>()
+            .expect("lower exact net-benefit bound");
+        assert!(lower <= 0);
+        assert!(!result.ranked_actions[0].positive_net_benefit_in_all_scenarios);
+    }
+
+    #[test]
+    fn late_ambiguity_set_approval_cannot_backfill_historical_knowledge() {
+        let base = point_input();
+        let mut input = robust_input(
+            "ambiguity-set:late-approval",
+            vec![
+                scenario("scenario:a", base.clone()),
+                scenario("scenario:b", base),
+            ],
+        );
+        let cutoff = input.scenarios[0].input.as_known_at_unix_ms;
+        input
+            .approval_receipt
+            .as_mut()
+            .expect("approval receipt")
+            .receiver_first_seen_at_unix_ms = cutoff + 1;
+        let result = rank_robust_evidence_actions_v0_1(&input);
+        assert_eq!(result.disposition, RobustEVSIDispositionV0_1::InvalidInput);
+        assert!(result
+            .reason_codes
+            .contains(&"ROBUST_EVSI_SCENARIO_SET_APPROVAL_NOT_KNOWN_AT_CUTOFF".to_owned()));
+    }
+
+    #[test]
+    fn scenario_manifest_mutation_requires_a_new_approval_commitment() {
+        let base = point_input();
+        let mut input = robust_input(
+            "ambiguity-set:manifest-substitution",
+            vec![
+                scenario("scenario:a", base.clone()),
+                scenario("scenario:b", base),
+            ],
+        );
+        input.scenarios[1].input.outcome_model_sha256 = "f".repeat(64);
+        let result = rank_robust_evidence_actions_v0_1(&input);
+        assert_eq!(result.disposition, RobustEVSIDispositionV0_1::InvalidInput);
+        assert!(result
+            .reason_codes
+            .contains(&"ROBUST_EVSI_SCENARIO_SET_COMMITMENT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn scenario_order_permutation_preserves_complete_robust_result() {
+        let base = point_input();
+        let input = robust_input(
+            "ambiguity-set:permutation",
+            vec![
+                scenario("scenario:a", base.clone()),
+                scenario("scenario:b", base),
+            ],
+        );
+        let baseline = rank_robust_evidence_actions_v0_1(&input);
+        let mut permuted = input.clone();
+        permuted.scenarios.reverse();
+        let result = rank_robust_evidence_actions_v0_1(&permuted);
+        assert_eq!(baseline, result);
+    }
+}
+
 /// Recompute the finite ambiguity-set manifest over the exact coherent
 /// scenario commitments. Scenario mutations remain inside their root-cause
 /// family for benchmark statistics; this digest is not an independence claim.
