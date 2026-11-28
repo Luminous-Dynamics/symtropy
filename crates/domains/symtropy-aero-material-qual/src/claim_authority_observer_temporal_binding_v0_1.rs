@@ -652,7 +652,7 @@ mod tests {
             .expect("source receipt manifest");
         let coverage = CoverageAssessment {
             status: CoverageStatus::QualifiedCompleteForScope,
-            replay_consequence: ReplayConsequence::AllowScopedAbsenceInference,
+            replay_consequence: coverage.replay_consequence.clone(),
             reason_codes: vec![],
         };
         let observer_binding = AssessmentBinding {
@@ -689,10 +689,10 @@ mod tests {
             acquisition_time_earliest_unix_ms: context.acquisition_time_earliest_unix_ms,
             acquisition_time_latest_unix_ms: context.acquisition_time_latest_unix_ms,
             observer_coverage_profile_id: owner_cut.observer_coverage_profile_id.clone(),
-            owner_observer_coverage_status: owner_cut.observer_coverage_status,
+            owner_observer_coverage_status: owner_cut.observer_coverage_status.clone(),
             owner_observer_coverage_receipt_sha256: owner_cut.observer_coverage_receipt_sha256.clone(),
             coverage_report_sha256: observer_binding.report_sha256.clone(),
-            coverage_status: CoverageStatus::QualifiedCompleteForScope,
+            coverage_status: coverage.status.clone(),
             replay_consequence: ReplayConsequence::AllowScopedAbsenceInference,
             source_roster_manifest_sha256: "b".repeat(64),
             required_capture_obligation_manifest_sha256: "c".repeat(64),
