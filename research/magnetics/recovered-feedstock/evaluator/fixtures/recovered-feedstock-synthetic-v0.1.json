@@ -28,11 +28,13 @@
         "assay_id": "carbon_wt_percent",
         "unit": "wt%",
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-        "maximum": 0.06
+        "maximum": 0.06,
+        "role": "Chemistry"
       },
       {
-        "assay_id": "oxygen_increase_wt_percent",
-        "unit": "wt%",
+        "assay_id": "oxygen_increase_wt_percent_points",
+        "role": "Chemistry",
+        "unit": "wt%-points",
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "maximum": 0.5
       },
@@ -41,7 +43,43 @@
         "unit": "ratio",
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "minimum": 0.9,
-        "maximum": 1
+        "maximum": 1,
+        "role": "MagneticAlignment"
+      },
+      {
+        "assay_id": "absolute_remanence_br",
+        "role": "AbsoluteRemanence",
+        "unit": "T",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "minimum": 0.1
+      },
+      {
+        "assay_id": "intrinsic_coercivity_hcj",
+        "role": "Coercivity",
+        "unit": "kA_per_m",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "minimum": 1
+      },
+      {
+        "assay_id": "maximum_energy_product_bhmax",
+        "role": "MaximumEnergyProduct",
+        "unit": "kJ_per_m3",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "minimum": 1
+      },
+      {
+        "assay_id": "porosity_volume_percent",
+        "role": "Microstructure",
+        "unit": "vol%",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "maximum": 10
+      },
+      {
+        "assay_id": "density_g_per_cm3",
+        "role": "DensityOrPorosity",
+        "unit": "g_per_cm3",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "minimum": 1
       }
     ]
   },
@@ -132,25 +170,27 @@
         "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "laboratory_id": "SYNTHETIC-LAB",
-        "evidence_class": "SyntheticControl"
+        "evidence_class": "SyntheticControl",
+        "role": "Chemistry"
       },
       {
-        "assay_id": "oxygen_increase_wt_percent",
-        "unit": "wt%",
+        "assay_id": "oxygen_increase_wt_percent_points",
+        "unit": "wt%-points",
         "value": {
           "lower": 0.35,
           "upper": 0.45
         },
         "product_lot_id": "PEM-MAGNET-LOT-001",
         "route": "PowderExtrusionMouldingSintering",
-        "evidence_id": "SYNTHETIC-ASSAY-oxygen_increase_wt_percent",
+        "evidence_id": "SYNTHETIC-ASSAY-oxygen_increase_wt_percent_points",
         "evidence_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "method_id": "SYNTHETIC-METHOD-oxygen_increase_wt_percent",
+        "method_id": "SYNTHETIC-METHOD-oxygen_increase_wt_percent_points",
         "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "laboratory_id": "SYNTHETIC-LAB",
-        "evidence_class": "SyntheticControl"
+        "evidence_class": "SyntheticControl",
+        "role": "Chemistry"
       },
       {
         "assay_id": "remanence_to_saturation_ratio",
@@ -164,6 +204,102 @@
         "evidence_id": "SYNTHETIC-ASSAY-remanence_to_saturation_ratio",
         "evidence_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
         "method_id": "SYNTHETIC-METHOD-remanence_to_saturation_ratio",
+        "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "laboratory_id": "SYNTHETIC-LAB",
+        "evidence_class": "SyntheticControl",
+        "role": "MagneticAlignment"
+      },
+      {
+        "assay_id": "absolute_remanence_br",
+        "role": "AbsoluteRemanence",
+        "unit": "T",
+        "value": {
+          "lower": 1,
+          "upper": 1.1
+        },
+        "product_lot_id": "PEM-MAGNET-LOT-001",
+        "route": "PowderExtrusionMouldingSintering",
+        "evidence_id": "SYNTHETIC-ASSAY-absolute_remanence_br",
+        "evidence_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "method_id": "SYNTHETIC-METHOD-absolute_remanence_br",
+        "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "laboratory_id": "SYNTHETIC-LAB",
+        "evidence_class": "SyntheticControl"
+      },
+      {
+        "assay_id": "intrinsic_coercivity_hcj",
+        "role": "Coercivity",
+        "unit": "kA_per_m",
+        "value": {
+          "lower": 100,
+          "upper": 120
+        },
+        "product_lot_id": "PEM-MAGNET-LOT-001",
+        "route": "PowderExtrusionMouldingSintering",
+        "evidence_id": "SYNTHETIC-ASSAY-intrinsic_coercivity_hcj",
+        "evidence_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "method_id": "SYNTHETIC-METHOD-intrinsic_coercivity_hcj",
+        "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "laboratory_id": "SYNTHETIC-LAB",
+        "evidence_class": "SyntheticControl"
+      },
+      {
+        "assay_id": "maximum_energy_product_bhmax",
+        "role": "MaximumEnergyProduct",
+        "unit": "kJ_per_m3",
+        "value": {
+          "lower": 10,
+          "upper": 12
+        },
+        "product_lot_id": "PEM-MAGNET-LOT-001",
+        "route": "PowderExtrusionMouldingSintering",
+        "evidence_id": "SYNTHETIC-ASSAY-maximum_energy_product_bhmax",
+        "evidence_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "method_id": "SYNTHETIC-METHOD-maximum_energy_product_bhmax",
+        "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "laboratory_id": "SYNTHETIC-LAB",
+        "evidence_class": "SyntheticControl"
+      },
+      {
+        "assay_id": "porosity_volume_percent",
+        "role": "Microstructure",
+        "unit": "vol%",
+        "value": {
+          "lower": 1,
+          "upper": 2
+        },
+        "product_lot_id": "PEM-MAGNET-LOT-001",
+        "route": "PowderExtrusionMouldingSintering",
+        "evidence_id": "SYNTHETIC-ASSAY-porosity_volume_percent",
+        "evidence_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "method_id": "SYNTHETIC-METHOD-porosity_volume_percent",
+        "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "laboratory_id": "SYNTHETIC-LAB",
+        "evidence_class": "SyntheticControl"
+      },
+      {
+        "assay_id": "density_g_per_cm3",
+        "role": "DensityOrPorosity",
+        "unit": "g_per_cm3",
+        "value": {
+          "lower": 5,
+          "upper": 6
+        },
+        "product_lot_id": "PEM-MAGNET-LOT-001",
+        "route": "PowderExtrusionMouldingSintering",
+        "evidence_id": "SYNTHETIC-ASSAY-density_g_per_cm3",
+        "evidence_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "method_id": "SYNTHETIC-METHOD-density_g_per_cm3",
         "calibration_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "uncertainty_record_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
