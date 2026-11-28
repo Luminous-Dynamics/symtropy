@@ -1,0 +1,59 @@
+schema_version = "0.1"
+program_id = "MAG-PAIRED-FEEDSTOCK-COHORTS-001"
+revision = "0.1-draft"
+status = "synthetic_paired_block_evaluator"
+date = "2026-11-28"
+issue = 7917
+parents = [7776, 7798, 7792, 7802, 7887, 7911, 7912]
+
+[comparison]
+pairing_unit = "independent_source_lot_pair_and_randomized_build_block"
+virgin_and_recovered_route_must_match = true
+route_families_pooled = false
+same_recipe_and_process_revision = true
+same_geometry_orientation_and_magnetization = true
+same_measurement_setup_and_acceptance_policy = true
+complete_initiated_build_manifest_required = true
+all_failed_scrapped_reworked_and_missing_outcomes_retained = true
+
+[randomization]
+randomization_receipt_per_pair_block = true
+committed_seed_digest_required = true
+run_order_recorded = true
+blind_sample_ids_unique = true
+measurement_method_and_calibration_bound = true
+
+[minimum_exploration_screen]
+independent_lot_pairs = 3
+paired_build_blocks_per_lot = 3
+statistical_population_inference_from_floor = false
+production_capability_claim_from_floor = false
+sample_size_for_confirmatory_trial = "pilot_variance_and_preregistered_power_analysis"
+
+[metrics]
+report_first_pass_yield_separately = true
+rework_does_not_change_first_pass_success = true
+hard_limits_noncompensatory = true
+per_metric_paired_intervals = true
+all_pairs_must_support_noninferiority = true
+robust_improvement_must_hold_across_all_preregistered_pairs = true
+universal_weighted_score = false
+
+[implementation]
+language = "Rust 2024"
+dependencies = []
+manifest = "evaluator/Cargo.toml"
+source = "evaluator/src/lib.rs"
+schema = "evaluator/paired-feedstock-cohort-v0.1.schema.json"
+fixture = "evaluator/fixtures/paired-feedstock-cohort-synthetic-v0.1.json"
+workflow = ".github/workflows/magnetic-paired-feedstock-cohort.yml"
+authored_unit_tests = 24
+tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_fixture_promotes_physical_route = false
+finite_paired_cohort_equals_M5 = false
+three_lot_three_block_floor_proves_population_superiority = false
+reworked_build_inflates_first_pass_yield = false
+literature_values_are_Luminous_measurements = false

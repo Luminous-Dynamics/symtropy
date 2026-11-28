@@ -1,0 +1,521 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Paired virgin/recovered feedstock cohort v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "spec",
+    "cohort",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "cohort": {
+      "$ref": "#/$defs/cohort"
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "decision",
+        "lot_pair_count",
+        "pair_block_count",
+        "virgin_build_count",
+        "recovered_build_count"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "NotComparable",
+            "Fail",
+            "Indeterminate",
+            "InferiorToVirgin",
+            "RecoveredRouteNonInferior",
+            "RecoveredRouteAdvantage"
+          ]
+        },
+        "lot_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pair_block_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "virgin_build_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovered_build_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "application_id",
+        "material_family_id",
+        "feedstock_form_id",
+        "route",
+        "recipe_digest",
+        "process_revision_digest",
+        "geometry_digest",
+        "orientation_digest",
+        "magnetization_digest",
+        "measurement_setup_digest",
+        "acceptance_policy_digest"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_family_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feedstock_form_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "enum": [
+            "PowderExtrusionMouldingSintering",
+            "MaterialExtrusionBonded",
+            "LaserPowderBedFusion"
+          ]
+        },
+        "recipe_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "geometry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "orientation_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "magnetization_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "measurement_setup_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "acceptance_policy_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "unit",
+        "direction",
+        "noninferiority_margin",
+        "improvement_margin"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "enum": [
+            "Minimize",
+            "Maximize"
+          ]
+        },
+        "hard_min": {
+          "type": "number"
+        },
+        "hard_max": {
+          "type": "number"
+        },
+        "noninferiority_margin": {
+          "type": "number",
+          "minimum": 0
+        },
+        "improvement_margin": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "campaign_id",
+        "scope",
+        "metrics",
+        "minimum_independent_lot_pairs",
+        "minimum_build_pairs_per_lot",
+        "first_pass_yield_noninferiority_margin"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/metric"
+          }
+        },
+        "minimum_independent_lot_pairs": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "minimum_build_pairs_per_lot": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "first_pass_yield_noninferiority_margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_lot_pair": {
+      "type": "object",
+      "required": [
+        "lot_pair_id",
+        "virgin_source_lot_id",
+        "recovered_source_lot_id",
+        "virgin_eligibility_receipt_id",
+        "virgin_eligibility_digest",
+        "recovered_eligibility_receipt_id",
+        "recovered_eligibility_digest"
+      ],
+      "properties": {
+        "lot_pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "virgin_source_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recovered_source_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "virgin_eligibility_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "virgin_eligibility_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "recovered_eligibility_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recovered_eligibility_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "pair_block": {
+      "type": "object",
+      "required": [
+        "pair_block_id",
+        "lot_pair_id",
+        "randomized_order",
+        "randomization_receipt_id",
+        "randomization_digest",
+        "seed_commitment_digest",
+        "virgin_build_id",
+        "recovered_build_id"
+      ],
+      "properties": {
+        "pair_block_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lot_pair_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "randomized_order": {
+          "enum": [
+            "VirginFirst",
+            "RecoveredFirst"
+          ]
+        },
+        "randomization_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "randomization_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "seed_commitment_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "virgin_build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recovered_build_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": [
+        "metric_id",
+        "unit",
+        "value",
+        "evidence_id",
+        "evidence_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "object",
+          "required": [
+            "lower",
+            "upper"
+          ],
+          "properties": {
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "enum": [
+            "PhysicalMeasurement",
+            "ProductionRecord",
+            "PublishedLiterature",
+            "Simulation",
+            "SyntheticControl"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "required": [
+        "build_id",
+        "pair_block_id",
+        "condition",
+        "source_lot_id",
+        "specimen_id",
+        "blind_sample_id",
+        "scope",
+        "first_pass_disposition",
+        "final_disposition",
+        "rework_count",
+        "build_receipt_id",
+        "build_receipt_digest",
+        "evidence_class",
+        "observations"
+      ],
+      "properties": {
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pair_block_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "enum": [
+            "Virgin",
+            "Recovered"
+          ]
+        },
+        "source_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blind_sample_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "first_pass_disposition": {
+          "enum": [
+            "Qualified",
+            "Fail",
+            "MissingInspection",
+            "NotEvaluable",
+            "Scrapped"
+          ]
+        },
+        "final_disposition": {
+          "enum": [
+            "Qualified",
+            "Fail",
+            "MissingInspection",
+            "NotEvaluable",
+            "Scrapped"
+          ]
+        },
+        "rework_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rework_receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rework_receipt_digest": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "build_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "build_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "enum": [
+            "PhysicalMeasurement",
+            "ProductionRecord",
+            "PublishedLiterature",
+            "Simulation",
+            "SyntheticControl"
+          ]
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cohort": {
+      "type": "object",
+      "required": [
+        "initiated_build_ids",
+        "source_lot_pairs",
+        "pair_blocks",
+        "builds"
+      ],
+      "properties": {
+        "initiated_build_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "source_lot_pairs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/source_lot_pair"
+          }
+        },
+        "pair_blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/pair_block"
+          }
+        },
+        "builds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/build"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
