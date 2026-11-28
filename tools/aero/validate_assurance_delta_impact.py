@@ -218,7 +218,10 @@ def validate(source: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
         else:
             incomplete.append(obligation_id)
 
-    if incomplete:
+    dependency_scope_incomplete = (
+        graph["coverage_status"] != "COMPLETE" or not claim_root_complete
+    )
+    if dependency_scope_incomplete or incomplete:
         disposition = "INCOMPLETE_IMPACT"
     elif affected:
         disposition = "IMPACT_IDENTIFIED"
@@ -313,6 +316,31 @@ def main() -> int:
     root_errors, root_result = validate(incomplete_root)
     if root_errors or root_result["disposition"] != "INCOMPLETE_IMPACT" or root_result["retained"]:
         raise SystemExit("FAIL: incomplete claim-root dependency manifest allowed retained status")
+
+    all_affected_incomplete_graph = copy.deepcopy(instance)
+    all_affected_incomplete_graph["graph"]["coverage_status"] = "INCOMPLETE"
+    all_affected_incomplete_graph["graph"]["nodes"] = [
+        node for node in all_affected_incomplete_graph["graph"]["nodes"]
+        if node["node_id"] not in {
+            "obligation:solver-validation",
+            "evidence:solver-report",
+            "source:solver-validation-record",
+        }
+    ]
+    all_affected_incomplete_graph["graph"]["edges"] = [
+        edge for edge in all_affected_incomplete_graph["graph"]["edges"]
+        if edge["dependent_node_id"] != "obligation:solver-validation"
+        and edge["dependent_node_id"] != "evidence:solver-report"
+        and not (
+            edge["dependent_node_id"] == all_affected_incomplete_graph["claim_id"]
+            and edge["dependency_node_id"] == "obligation:solver-validation"
+        )
+    ]
+    all_affected_incomplete_graph["graph_snapshot_sha256"] = graph_sha256(all_affected_incomplete_graph["graph"])
+    all_affected_incomplete_graph["graph_approval_receipt"]["graph_snapshot_sha256"] = all_affected_incomplete_graph["graph_snapshot_sha256"]
+    all_affected_errors, all_affected_result = validate(all_affected_incomplete_graph)
+    if all_affected_errors or all_affected_result["disposition"] != "INCOMPLETE_IMPACT":
+        raise SystemExit("FAIL: incomplete graph closed despite every listed obligation being affected")
 
     incomplete_graph = copy.deepcopy(instance)
     incomplete_graph["graph"]["coverage_status"] = "INCOMPLETE"
