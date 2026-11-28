@@ -56,6 +56,18 @@ Mandatory requirements are hard gates and are assigned by the closed code-level 
 
 **Boundary:** this is a derived requirement profile, not a normalized assurance state. It does not fill proposition support/rebuttal, authority, temporal, observer, verification or evidence-reference states; it does not authenticate owner receipts; and it does not change `evaluate_claim_gate`. The profile digest/manifest are returned separately and are not silently folded into the existing v0.1 `DecisionContextV0_1` hash. A future context version must bind the exact registered requirement-profile and obligation-manifest digests explicitly.
 
+## 1C. Implemented third adapter increment: preserve the existing ClaimGate result
+
+The additive `claim_gate_disposition_crosswalk_v0_1.rs` is a deliberately lossless compatibility projection from the current `evaluate_claim_gate` result into the assurance disposition vocabulary. It maps all six existing `ClaimGateStatus` variants one-to-one and copies the exact:
+- claim and decision-context identity;
+- owner evidence cut, trust-policy and observer receipt commitments;
+- model-credibility commitment;
+- three component report digests;
+- required evidence references and admitted/required counts;
+- complete reason-code vector.
+
+The crosswalk does not call or replace `evaluate_claim_gate`, infer per-obligation evidence states, or change the disposition. It always preserves the authority ceiling and no-absence-inference boundary. In particular, the current ClaimGate does not expose `NOT_KNOWN_AT_SNAPSHOT` as an independent status, so the crosswalk does not invent that value. A future normalized source adapter must derive that axis from receiver-first-seen receipts and chronology.
+
 ## 2. Normative adapter rule
 
 **No caller-authored obligation policy.** The adapter receives exact typed specifications and upstream assessments, validates their commitments and produces the state vector. It never accepts an unbound mandatory or hard-gate boolean from an external request.
