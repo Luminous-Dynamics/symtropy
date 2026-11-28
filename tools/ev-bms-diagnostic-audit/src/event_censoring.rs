@@ -31,6 +31,10 @@ struct EvaluationManifest {
     split_manifest_sha256: String,
     split_partition: String,
     evidence_class: String,
+    time_basis_id: String,
+    time_alignment_id: String,
+    max_relative_clock_error_ms: u64,
+    alignment_uncertainty_preapplied: bool,
     warning_horizon_ms: u64,
     minimum_action_lead_ms: u64,
     threshold_policy_id: String,
@@ -87,6 +91,10 @@ pub struct EventCensoringReport {
     pub split_manifest_sha256: String,
     pub split_partition: String,
     pub evidence_class: String,
+    pub time_basis_id: String,
+    pub time_alignment_id: String,
+    pub max_relative_clock_error_ms: u64,
+    pub alignment_uncertainty_preapplied: bool,
     pub warning_horizon_ms: u64,
     pub minimum_action_lead_ms: u64,
     pub threshold_policy_id: String,
@@ -282,6 +290,14 @@ fn validate_and_evaluate(
     }
     if manifest.warning_horizon_ms == 0 {
         return Err("warning horizon must be positive".to_owned());
+    }
+    if !nonempty(&manifest.time_basis_id)
+        || !nonempty(&manifest.time_alignment_id)
+        || !manifest.alignment_uncertainty_preapplied
+    {
+        return Err(
+            "time basis and alignment evidence are required; relative clock uncertainty must already be applied to event bounds and exposure guard bands".to_owned(),
+        );
     }
     match manifest.dataset_admission_state.as_str() {
         "metadata_only" => {
@@ -700,6 +716,10 @@ fn validate_and_evaluate(
         split_manifest_sha256: manifest.split_manifest_sha256.clone(),
         split_partition: manifest.split_partition.clone(),
         evidence_class: manifest.evidence_class.clone(),
+        time_basis_id: manifest.time_basis_id.clone(),
+        time_alignment_id: manifest.time_alignment_id.clone(),
+        max_relative_clock_error_ms: manifest.max_relative_clock_error_ms,
+        alignment_uncertainty_preapplied: manifest.alignment_uncertainty_preapplied,
         warning_horizon_ms: manifest.warning_horizon_ms,
         minimum_action_lead_ms: manifest.minimum_action_lead_ms,
         threshold_policy_id: manifest.threshold_policy_id.clone(),
