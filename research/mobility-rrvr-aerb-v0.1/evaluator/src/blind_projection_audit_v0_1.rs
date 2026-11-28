@@ -783,6 +783,30 @@ pub fn audit_candidate_surface(
     })
 }
 
+fn insert_numeric_attack_features(
+    features: &mut BTreeMap<String, String>,
+    name: &str,
+    value: i128,
+) {
+    for width in [2_i128, 4, 8, 16, 32, 64, 128, 256, 1_024, 4_096, 16_384] {
+        features.insert(
+            format!("{name}_bucket_{width}"),
+            value.div_euclid(width).to_string(),
+        );
+    }
+    features.insert(
+        format!("{name}_sign"),
+        if value < 0 { "negative" } else if value == 0 { "zero" } else { "positive" }.to_owned(),
+    );
+    let magnitude = value.unsigned_abs();
+    let log_bucket = if magnitude == 0 {
+        0
+    } else {
+        127_u32.saturating_sub(magnitude.leading_zeros())
+    };
+    features.insert(format!("{name}_magnitude_log2"), log_bucket.to_string());
+}
+
 /// Candidate-visible feature map for evaluator-side metadata-only attacks.
 /// The path, file index and serialized length are included because they are
 /// commonly overlooked leakage channels.
@@ -799,6 +823,8 @@ pub fn candidate_metadata_features(
     features.insert("trajectory_cluster_id".to_owned(), episode.trajectory_cluster_id.clone());
     features.insert("evidence_domain".to_owned(), format!("{:?}", episode.evidence_domain));
     features.insert("file_order_index".to_owned(), file_order_index.to_string());
+    insert_numeric_attack_features(&mut features, "file_order_index", file_order_index as i128);
+    insert_numeric_attack_features(&mut features, "serialized_size_bytes", serialized_size_bytes as i128);
     for modulus in [2_usize, 3, 4, 5, 7, 8, 11, 13, 16, 17, 31, 32, 64, 127] {
         features.insert(format!("file_order_mod_{modulus}"), (file_order_index % modulus).to_string());
     }
@@ -819,7 +845,14 @@ pub fn candidate_metadata_features(
     features.insert("serialized_size_bytes".to_owned(), serialized_size_bytes.to_string());
     features.insert("current_step".to_owned(), episode.current_step.to_string());
     features.insert("decision_deadline_step".to_owned(), episode.decision_deadline_step.to_string());
+    insert_numeric_attack_features(&mut features, "current_step", episode.current_step as i128);
+    insert_numeric_attack_features(&mut features, "decision_deadline_step", episode.decision_deadline_step as i128);
     features.insert("remaining_probe_budget_units".to_owned(), episode.remaining_probe_budget_units.to_bits().to_string());
+    insert_numeric_attack_features(
+        &mut features,
+        "remaining_probe_budget_milli",
+        (episode.remaining_probe_budget_units * 1000.0).round() as i128,
+    );
 
     let context = &episode.command_context;
     features.insert("command_id".to_owned(), context.command_id.clone());
@@ -830,6 +863,8 @@ pub fn candidate_metadata_features(
     features.insert("endpoint_profile_sha256".to_owned(), context.endpoint_profile_sha256.clone());
     features.insert("authority_epoch".to_owned(), context.authority_epoch.to_string());
     features.insert("queue_generation".to_owned(), context.queue_generation.to_string());
+    insert_numeric_attack_features(&mut features, "authority_epoch", context.authority_epoch as i128);
+    insert_numeric_attack_features(&mut features, "queue_generation", context.queue_generation as i128);
     features.insert("execution_scope_id".to_owned(), context.execution_scope_id.clone());
     features.insert("system_boundary_manifest_sha256".to_owned(), context.system_boundary_manifest_sha256.clone());
     features.insert("effect_producing_inventory_profile_sha256".to_owned(), context.effect_producing_inventory_profile_sha256.clone());
@@ -841,12 +876,17 @@ pub fn candidate_metadata_features(
         features.insert(format!("{prefix}_source_role"), format!("{:?}", observation.source_role));
         features.insert(format!("{prefix}_quality"), format!("{:?}", observation.quality));
         features.insert(format!("{prefix}_ingest_sequence"), observation.ingest_sequence.to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_ingest_sequence"), observation.ingest_sequence as i128);
         features.insert(format!("{prefix}_event_clock"), observation.event_time.clock_domain_id.clone());
         features.insert(format!("{prefix}_event_ticks"), observation.event_time.ticks_ns.to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_event_ticks"), observation.event_time.ticks_ns as i128);
         features.insert(format!("{prefix}_event_uncertainty"), observation.event_time.uncertainty_ns.to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_event_uncertainty"), observation.event_time.uncertainty_ns as i128);
         features.insert(format!("{prefix}_acquired_clock"), observation.acquired_time.clock_domain_id.clone());
         features.insert(format!("{prefix}_acquired_ticks"), observation.acquired_time.ticks_ns.to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_acquired_ticks"), observation.acquired_time.ticks_ns as i128);
         features.insert(format!("{prefix}_acquired_uncertainty"), observation.acquired_time.uncertainty_ns.to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_acquired_uncertainty"), observation.acquired_time.uncertainty_ns as i128);
         features.insert(format!("{prefix}_artifact_sha256"), observation.artifact_sha256.clone());
         features.insert(format!("{prefix}_kind"), observation.observation_kind.clone());
     }
@@ -854,7 +894,9 @@ pub fn candidate_metadata_features(
         let prefix = format!("probe_{index}");
         features.insert(format!("{prefix}_id"), probe.probe_id.clone());
         features.insert(format!("{prefix}_cost_bits"), probe.acquisition_cost_units.to_bits().to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_cost_milli"), (probe.acquisition_cost_units * 1000.0).round() as i128);
         features.insert(format!("{prefix}_delay"), probe.result_delay_steps.to_string());
+        insert_numeric_attack_features(&mut features, &format!("{prefix}_delay"), probe.result_delay_steps as i128);
     }
     features
 }
@@ -918,67 +960,115 @@ where
         .map(|(world, _)| world)
 }
 
-fn predict_univariate(
-    train: &[&MetadataAttackRow],
-    feature: &str,
-    value: &str,
-    majority: &str,
-) -> String {
-    let matching = train
-        .iter()
-        .filter(|row| row.candidate_visible_features.get(feature).is_some_and(|v| v == value));
-    majority_world(matching).unwrap_or(majority).to_owned()
+struct NaiveBayesModel<'a> {
+    class_counts: BTreeMap<&'a str, usize>,
+    vocabulary_sizes: BTreeMap<&'a str, usize>,
+    feature_counts: BTreeMap<(&'a str, &'a str, &'a str), usize>,
+    total_n: usize,
 }
 
-fn predict_naive_bayes(
+impl<'a> NaiveBayesModel<'a> {
+    fn fit(train: &[&'a MetadataAttackRow], features: &'a [String]) -> Self {
+        let mut class_counts = BTreeMap::<&'a str, usize>::new();
+        let mut vocabularies = BTreeMap::<&'a str, BTreeSet<&'a str>>::new();
+        let mut feature_counts = BTreeMap::<(&'a str, &'a str, &'a str), usize>::new();
+
+        for sample in train {
+            let sample = *sample;
+            let world = sample.hidden_truth_world_id.as_str();
+            *class_counts.entry(world).or_default() += 1;
+            for feature in features {
+                if let Some(value) = sample.candidate_visible_features.get(feature) {
+                    let feature_name = feature.as_str();
+                    let value = value.as_str();
+                    vocabularies.entry(feature_name).or_default().insert(value);
+                    *feature_counts.entry((feature_name, value, world)).or_default() += 1;
+                }
+            }
+        }
+        let vocabulary_sizes = vocabularies
+            .into_iter()
+            .map(|(feature, values)| (feature, values.len()))
+            .collect();
+        Self {
+            class_counts,
+            vocabulary_sizes,
+            feature_counts,
+            total_n: train.len(),
+        }
+    }
+
+    fn predict(&self, features: &[String], row: &MetadataAttackRow) -> String {
+        let total = self.total_n.max(1) as f64;
+        let mut best_world = "";
+        let mut best_score = f64::NEG_INFINITY;
+        for (world, class_n) in &self.class_counts {
+            let mut score = ((*class_n as f64) / total).ln();
+            for feature in features {
+                let Some(value) = row.candidate_visible_features.get(feature) else {
+                    continue;
+                };
+                let vocabulary_n = self
+                    .vocabulary_sizes
+                    .get(feature.as_str())
+                    .copied()
+                    .unwrap_or(0);
+                let category_n = self
+                    .feature_counts
+                    .get(&(feature.as_str(), value.as_str(), *world))
+                    .copied()
+                    .unwrap_or(0);
+                let denominator = *class_n as f64 + vocabulary_n as f64 + 1.0;
+                score += ((category_n as f64 + 1.0) / denominator).ln();
+            }
+            if score > best_score || (score == best_score && (best_world.is_empty() || *world < &best_world)) {
+                best_score = score;
+                best_world = world;
+            }
+        }
+        best_world.to_owned()
+    }
+}
+
+fn fit_univariate_models(
     train: &[&MetadataAttackRow],
     features: &[String],
-    row: &MetadataAttackRow,
-) -> String {
-    let mut class_counts = BTreeMap::<&str, usize>::new();
-    let mut vocabularies = BTreeMap::<&str, BTreeSet<&str>>::new();
-    let mut feature_counts =
-        BTreeMap::<(&str, &str, &str), usize>::new();
-
-    for sample in train {
-        *class_counts
-            .entry(&sample.hidden_truth_world_id)
-            .or_default() += 1;
+) -> BTreeMap<String, BTreeMap<String, String>> {
+    let mut counts =
+        BTreeMap::<String, BTreeMap<String, BTreeMap<String, usize>>>::new();
+    for row in train {
         for feature in features {
-            if let Some(value) = sample.candidate_visible_features.get(feature) {
-                vocabularies
-                    .entry(feature)
+            if let Some(value) = row.candidate_visible_features.get(feature) {
+                *counts
+                    .entry(feature.clone())
                     .or_default()
-                    .insert(value);
-                *feature_counts
-                    .entry((feature, value, &sample.hidden_truth_world_id))
+                    .entry(value.clone())
+                    .or_default()
+                    .entry(row.hidden_truth_world_id.clone())
                     .or_default() += 1;
             }
         }
     }
 
-    let total = train.len().max(1) as f64;
-    let mut best_world = String::new();
-    let mut best_score = f64::NEG_INFINITY;
-    for (world, class_n) in &class_counts {
-        let mut score = ((*class_n as f64) / total).ln();
-        for feature in features {
-            let Some(value) = row.candidate_visible_features.get(feature) else {
-                continue;
-            };
-            let vocabulary_n = vocabularies.get(feature.as_str()).map_or(0, BTreeSet::len);
-            let category_n = *feature_counts
-                .get(&(feature.as_str(), value.as_str(), *world))
-                .unwrap_or(&0);
-            let denominator = *class_n as f64 + vocabulary_n as f64 + 1.0;
-            score += ((category_n as f64 + 1.0) / denominator).ln();
-        }
-        if score > best_score || (score == best_score && (best_world.is_empty() || *world < &best_world)) {
-            best_score = score;
-            best_world = (*world).to_owned();
-        }
-    }
-    best_world
+    counts
+        .into_iter()
+        .map(|(feature, value_counts)| {
+            let predictions = value_counts
+                .into_iter()
+                .map(|(value, world_counts)| {
+                    let world = world_counts
+                        .into_iter()
+                        .max_by(|(left_world, left_n), (right_world, right_n)| {
+                            left_n.cmp(right_n).then_with(|| right_world.cmp(left_world))
+                        })
+                        .map(|(world, _)| world)
+                        .unwrap_or_default();
+                    (value, world)
+                })
+                .collect();
+            (feature, predictions)
+        })
+        .collect()
 }
 
 fn accuracy(
@@ -1103,8 +1193,10 @@ pub fn audit_metadata_leakage(
         let majority = majority_world(train.iter().copied())
             .ok_or(ProjectionError::TooFewGroups)?
             .to_owned();
+        let combined_model = NaiveBayesModel::fit(&train, &feature_names);
+        let univariate_models = fit_univariate_models(&train, &feature_names);
         for row in test {
-            let combined = predict_naive_bayes(&train, &feature_names, row);
+            let combined = combined_model.predict(&feature_names, row);
             combined_predictions.push((combined, row.hidden_truth_world_id.clone()));
             baseline_predictions.push((majority.clone(), row.hidden_truth_world_id.clone()));
             for feature in &feature_names {
@@ -1113,7 +1205,11 @@ pub fn audit_metadata_leakage(
                     .get(feature)
                     .map(String::as_str)
                     .unwrap_or("<missing>");
-                let prediction = predict_univariate(&train, feature, value, &majority);
+                let prediction = univariate_models
+                    .get(feature)
+                    .and_then(|model| model.get(value))
+                    .cloned()
+                    .unwrap_or_else(|| majority.clone());
                 univariate_predictions
                     .entry(feature.clone())
                     .or_default()
@@ -1364,6 +1460,17 @@ mod tests {
             project_candidate_episode(&context, &episode(2), "episode-0002"),
             Err(ProjectionError::InvalidOpaqueEpisodeId)
         );
+    }
+
+    #[test]
+    fn candidate_metadata_features_emit_numeric_side_channel_buckets() {
+        let episode = episode(9);
+        let features = candidate_metadata_features(&episode, 37, "episode-random.json", 8193);
+        assert_eq!(features.get("file_order_mod_31").map(String::as_str), Some("6"));
+        assert!(features.contains_key("serialized_size_bytes_bucket_4096"));
+        assert!(features.contains_key("current_step_magnitude_log2"));
+        assert!(features.contains_key("observation_0_event_ticks_bucket_1024"));
+        assert!(features.contains_key("probe_0_delay_sign"));
     }
 
     #[test]
