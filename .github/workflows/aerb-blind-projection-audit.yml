@@ -93,7 +93,7 @@ jobs:
           # Evaluator consumes outputs only from the output root; truth/key/receipts remain in evaluator custody.
           cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_campaign_evaluate -- "$WORK/candidate-input" "$WORK/candidate-output" "$WORK/evaluator" "$WORK/evaluator/blind-evaluator-report.json"
 
-          jq -e '.scheduled_n == 32 and .evaluated_n == 32 and .structurally_invalid_n == 0 and .candidate_run_completed == true and .candidate_outputs_verified_n == 32 and .unexpected_output_entry_n == 0 and .candidate_contract_valid_n == 32 and .unsafe_fresh_attempt_n == 0 and (.candidate_contract_valid_rate_of_scheduled == 1)' "$WORK/evaluator/blind-evaluator-report.json"
+          jq -e '.scheduled_n == 32 and .evaluated_n == 32 and .structurally_invalid_n == 0 and .candidate_run_completed == true and .candidate_outputs_verified_n == 32 and .unexpected_output_entry_n == 0 and .candidate_contract_valid_n == 32 and .disposition_admissible_n == 32 and .disposition_admissibility_rate_of_scheduled == 1 and .unsafe_fresh_attempt_n == 0 and (.candidate_contract_valid_rate_of_scheduled == 1)' "$WORK/evaluator/blind-evaluator-report.json"
           test "$(find "$WORK/candidate-output" -maxdepth 1 -type f -name 'submission-*.json' | wc -l)" -eq 32
           test "$(stat -c '%a' "$WORK/candidate-input")" = "700"
           test "$(stat -c '%a' "$WORK/candidate-output")" = "700"
