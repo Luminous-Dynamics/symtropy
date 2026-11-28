@@ -102,17 +102,20 @@ Required policy lanes:
 
 1. no additional observation / immediate decision;
 2. fixed-rate or uniform sampling;
-3. same-budget random exploration;
-4. matched-memory retrieval/sampling control;
-5. benchmark-native strongest active baseline;
-6. candidate active policy; and
-7. exact oracle route/policy as an evaluator-only diagnostic upper bound.
+3. same-step random walk with full-history retention (ActSpace-Bench RW-40 or the benchmark's exact equivalent);
+4. same-step random walk with the candidate-matched rolling evidence window (ActSpace-Bench RW-8 or the exact same retained-view budget);
+5. passive common-evidence reasoning control, where the candidate receives the same fixed evidence set without choosing it;
+6. benchmark-native strongest active baseline;
+7. candidate active policy; and
+8. exact oracle route/policy as an evaluator-only diagnostic upper bound.
 
-An oracle is not a model competitor and MUST NOT be included in the headline model ranking.
+The two random controls answer different questions. Full-history random measures the combined value of exploration plus retaining more evidence; matched-window random isolates purposeful exploration under the same memory constraint as the active candidate. Do not report only the full-history random comparison as an active-perception result, and do not report only the matched-window comparison as a memory result. The oracle is not a model competitor and MUST NOT be included in the headline model ranking.
 
-Report task decision loss, policy regret, action count/cost, observations actually delivered, bytes/frames/tokens, time-to-sufficient-evidence, deadline misses, memory retained/evicted, stale-certificate reuse, and reopening cost when a later DecisionNeed invalidates an earlier sufficiency certificate.
+Report task decision loss, policy regret, action count/cost, observations actually delivered, bytes/frames/tokens, time-to-sufficient-evidence, deadline misses, memory retained/evicted, stale-certificate reuse, and reopening cost when a later DecisionNeed invalidates an earlier sufficiency certificate. Also report separately: (a) evidence found by each policy, (b) evidence still retained and available at answer time, (c) evidence retention loss after eviction/truncation, and (d) reasoning accuracy when every method receives the same evidence. This separates finding, remembering and reasoning rather than assigning every failure to exploration.
 
 A request is not an acquired observation. A requested observation that is denied, dropped, stale or late remains a failed/undelivered action in the accounting. A retrieved historical frame is memory evidence, not a new measurement. No state update may be attributed to evidence before its availability tick.
+
+External protocol note: ActSpace-Bench (arXiv:2611.31215, 23 November 2026) compares a model's own exploration against both a same-step full-history random walk and a same-step random walk constrained to the same recent-view window. Its strongest models show much larger gains over the matched-window control than over full-history random, because observations discovered earlier may be evicted before the answer. Our adapters MUST preserve this two-control design where applicable; it is not fair to infer active-perception superiority from an unmatched memory condition. ActSpace's 40-step budget and start-plus-eight-recent-frame window are native to that benchmark; other benchmarks should preregister their own matched budget rather than blindly copy these values.
 
 ## 6. Dynamic-scene persistence
 
