@@ -18,7 +18,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::{CandidateEpisode, Observation, sha256_hex, SCHEMA_VERSION, BENCHMARK, OPEN_WORLD_RESIDUAL};
+use super::{
+    BENCHMARK, CandidateEpisode, OPEN_WORLD_RESIDUAL, Observation, SCHEMA_VERSION, sha256_hex,
+};
 
 #[cfg(test)]
 use super::{
@@ -56,17 +58,37 @@ pub enum ProjectionError {
 impl std::fmt::Display for ProjectionError {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::EntropyUnavailable(reason) => write!(formatter, "projection entropy unavailable: {reason}"),
-            Self::InvalidCandidateEpisode(field) => write!(formatter, "candidate episode invalid for blind projection: {field}"),
-            Self::InvalidOpaqueEpisodeId => formatter.write_str("blind episode ID must match ep_ plus 32 lowercase hexadecimal characters"),
+            Self::EntropyUnavailable(reason) => {
+                write!(formatter, "projection entropy unavailable: {reason}")
+            }
+            Self::InvalidCandidateEpisode(field) => write!(
+                formatter,
+                "candidate episode invalid for blind projection: {field}"
+            ),
+            Self::InvalidOpaqueEpisodeId => formatter.write_str(
+                "blind episode ID must match ep_ plus 32 lowercase hexadecimal characters",
+            ),
             Self::ClockRebaseOverflow => formatter.write_str("clock rebasing overflow"),
             Self::SequenceRebaseOverflow => formatter.write_str("sequence rebasing overflow"),
-            Self::SerializationFailed => formatter.write_str("blind projection serialization failed"),
-            Self::InvalidProjectionReceipt(field) => write!(formatter, "invalid evaluator projection receipt: {field}"),
-            Self::InvalidProjectionSecret(field) => write!(formatter, "invalid evaluator-only projection secret: {field}"),
-            Self::InvalidMetadataAudit(field) => write!(formatter, "invalid metadata audit input: {field}"),
-            Self::TooFewGroups => formatter.write_str("metadata audit requires at least two independent groups"),
-            Self::TooManyFolds => formatter.write_str("metadata audit fold count must be between two and the independent group count"),
+            Self::SerializationFailed => {
+                formatter.write_str("blind projection serialization failed")
+            }
+            Self::InvalidProjectionReceipt(field) => {
+                write!(formatter, "invalid evaluator projection receipt: {field}")
+            }
+            Self::InvalidProjectionSecret(field) => write!(
+                formatter,
+                "invalid evaluator-only projection secret: {field}"
+            ),
+            Self::InvalidMetadataAudit(field) => {
+                write!(formatter, "invalid metadata audit input: {field}")
+            }
+            Self::TooFewGroups => {
+                formatter.write_str("metadata audit requires at least two independent groups")
+            }
+            Self::TooManyFolds => formatter.write_str(
+                "metadata audit fold count must be between two and the independent group count",
+            ),
         }
     }
 }
@@ -106,8 +128,9 @@ impl BlindProjectionSecretV0_1 {
         if self.schema_version != "aerb-blind-projection-secret-v0.1" {
             return Err(ProjectionError::InvalidProjectionSecret("schema_version"));
         }
-        let decoded = decode_hex(&self.projection_salt_hex)
-            .ok_or(ProjectionError::InvalidProjectionSecret("projection_salt_hex"))?;
+        let decoded = decode_hex(&self.projection_salt_hex).ok_or(
+            ProjectionError::InvalidProjectionSecret("projection_salt_hex"),
+        )?;
         let salt: [u8; 32] = decoded
             .try_into()
             .map_err(|_| ProjectionError::InvalidProjectionSecret("projection_salt_length"))?;
@@ -266,10 +289,7 @@ fn rebase_clock_stamps(
         }
     }
     for observation in observations.iter_mut() {
-        for stamp in [
-            &mut observation.event_time,
-            &mut observation.acquired_time,
-        ] {
+        for stamp in [&mut observation.event_time, &mut observation.acquired_time] {
             let minimum = minima
                 .get(&stamp.clock_domain_id)
                 .ok_or(ProjectionError::InvalidCandidateEpisode("clock domain"))?;
@@ -282,10 +302,7 @@ fn rebase_clock_stamps(
     Ok(minima)
 }
 
-fn pseudonymize_clock_domains(
-    context: &BlindProjectionContext,
-    observations: &mut [Observation],
-) {
+fn pseudonymize_clock_domains(context: &BlindProjectionContext, observations: &mut [Observation]) {
     for observation in observations {
         observation.event_time.clock_domain_id = context.pseudonym_id(
             "clk",
@@ -334,14 +351,18 @@ impl BlindProjectionReceipt {
             return Err(ProjectionError::InvalidProjectionReceipt("schema_version"));
         }
         if !valid_blind_episode_id(&self.candidate_episode_id) {
-            return Err(ProjectionError::InvalidProjectionReceipt("candidate_episode_id"));
+            return Err(ProjectionError::InvalidProjectionReceipt(
+                "candidate_episode_id",
+            ));
         }
         if self.original_episode_id.trim().is_empty()
             || self.original_scenario_id.trim().is_empty()
             || self.original_attempt_id.trim().is_empty()
             || self.original_trajectory_cluster_id.trim().is_empty()
         {
-            return Err(ProjectionError::InvalidProjectionReceipt("original identity"));
+            return Err(ProjectionError::InvalidProjectionReceipt(
+                "original identity",
+            ));
         }
         for digest in [
             self.original_episode_sha256.as_str(),
@@ -360,9 +381,7 @@ impl BlindProjectionReceipt {
     }
 }
 
-fn receipt_commitment(
-    receipt: &BlindProjectionReceipt,
-) -> Result<String, ProjectionError> {
+fn receipt_commitment(receipt: &BlindProjectionReceipt) -> Result<String, ProjectionError> {
     let mut payload = receipt.clone();
     payload.projection_receipt_sha256.clear();
     let bytes = serde_json::to_vec(&payload).map_err(|_| ProjectionError::SerializationFailed)?;
@@ -396,8 +415,14 @@ pub fn project_candidate_episode(
         original.command_context.payload_sha256.as_str(),
         original.command_context.action_prefix_sha256.as_str(),
         original.command_context.endpoint_profile_sha256.as_str(),
-        original.command_context.system_boundary_manifest_sha256.as_str(),
-        original.command_context.effect_producing_inventory_profile_sha256.as_str(),
+        original
+            .command_context
+            .system_boundary_manifest_sha256
+            .as_str(),
+        original
+            .command_context
+            .effect_producing_inventory_profile_sha256
+            .as_str(),
     ] {
         if !valid_sha256(digest) {
             return Err(ProjectionError::InvalidCandidateEpisode("command digest"));
@@ -405,14 +430,18 @@ pub fn project_candidate_episode(
     }
     for observation in &original.observations {
         if !valid_sha256(&observation.artifact_sha256) {
-            return Err(ProjectionError::InvalidCandidateEpisode("observation artifact digest"));
+            return Err(ProjectionError::InvalidCandidateEpisode(
+                "observation artifact digest",
+            ));
         }
         if observation.observation_id.trim().is_empty()
             || observation.source_id.trim().is_empty()
             || observation.event_time.clock_domain_id.trim().is_empty()
             || observation.acquired_time.clock_domain_id.trim().is_empty()
         {
-            return Err(ProjectionError::InvalidCandidateEpisode("observation identity"));
+            return Err(ProjectionError::InvalidCandidateEpisode(
+                "observation identity",
+            ));
         }
     }
 
@@ -427,10 +456,8 @@ pub fn project_candidate_episode(
     projected.episode_id = candidate_episode_id.to_owned();
     // Scenario and trajectory group labels can act as lookup keys. Scenario
     // identity is intentionally per-episode; evaluator grouping stays private.
-    projected.scenario_id =
-        context.pseudonym_id("scn", "scenario-instance", &original.episode_id);
-    projected.attempt_id =
-        context.pseudonym_id("att", "attempt", &original.attempt_id);
+    projected.scenario_id = context.pseudonym_id("scn", "scenario-instance", &original.episode_id);
+    projected.attempt_id = context.pseudonym_id("att", "attempt", &original.attempt_id);
     projected.trajectory_cluster_id =
         context.pseudonym_id("trj", "trajectory-private", &original.episode_id);
 
@@ -438,10 +465,8 @@ pub fn project_candidate_episode(
         context.pseudonym_id("cmd", "command-id", &original.command_context.command_id);
     projected.command_context.operation_id =
         context.pseudonym_id("op", "operation-id", &original.command_context.operation_id);
-    projected.command_context.payload_sha256 = context.pseudonym_digest(
-        "payload-digest",
-        &original.command_context.payload_sha256,
-    );
+    projected.command_context.payload_sha256 =
+        context.pseudonym_digest("payload-digest", &original.command_context.payload_sha256);
     projected.command_context.action_prefix_sha256 = context.pseudonym_digest(
         "action-prefix-digest",
         &original.command_context.action_prefix_sha256,
@@ -454,8 +479,10 @@ pub fn project_candidate_episode(
     );
     projected.command_context.authority_epoch =
         context.pseudonym_u64("authority-epoch", original.command_context.authority_epoch);
-    projected.command_context.queue_generation =
-        context.pseudonym_u64("queue-generation", original.command_context.queue_generation);
+    projected.command_context.queue_generation = context.pseudonym_u64(
+        "queue-generation",
+        original.command_context.queue_generation,
+    );
     projected.command_context.execution_scope_id = context.pseudonym_id(
         "scp",
         "execution-scope",
@@ -465,27 +492,22 @@ pub fn project_candidate_episode(
         "system-boundary-profile",
         &original.command_context.system_boundary_manifest_sha256,
     );
-    projected.command_context.effect_producing_inventory_profile_sha256 =
-        context.pseudonym_digest(
-            "effect-inventory-profile",
-            &original
-                .command_context
-                .effect_producing_inventory_profile_sha256,
-        );
+    projected
+        .command_context
+        .effect_producing_inventory_profile_sha256 = context.pseudonym_digest(
+        "effect-inventory-profile",
+        &original
+            .command_context
+            .effect_producing_inventory_profile_sha256,
+    );
 
     let clock_minima = rebase_clock_stamps(&mut projected.observations)?;
     for observation in &mut projected.observations {
-        observation.observation_id = context.pseudonym_id(
-            "obs",
-            "observation-id",
-            &observation.observation_id,
-        );
-        observation.source_id =
-            context.pseudonym_id("src", "source-id", &observation.source_id);
-        observation.artifact_sha256 = context.pseudonym_digest(
-            "observation-artifact",
-            &observation.artifact_sha256,
-        );
+        observation.observation_id =
+            context.pseudonym_id("obs", "observation-id", &observation.observation_id);
+        observation.source_id = context.pseudonym_id("src", "source-id", &observation.source_id);
+        observation.artifact_sha256 =
+            context.pseudonym_digest("observation-artifact", &observation.artifact_sha256);
         observation.ingest_sequence = observation
             .ingest_sequence
             .checked_sub(original_minimum)
@@ -542,18 +564,24 @@ pub fn verify_projected_episode(
 ) -> Result<(), ProjectionError> {
     receipt.verify()?;
     if projected.episode_id != receipt.candidate_episode_id {
-        return Err(ProjectionError::InvalidProjectionReceipt("projected episode ID"));
+        return Err(ProjectionError::InvalidProjectionReceipt(
+            "projected episode ID",
+        ));
     }
     let projected_json =
         serde_json::to_vec(projected).map_err(|_| ProjectionError::SerializationFailed)?;
     if sha256_hex(&projected_json) != receipt.projected_episode_sha256 {
-        return Err(ProjectionError::InvalidProjectionReceipt("projected episode digest"));
+        return Err(ProjectionError::InvalidProjectionReceipt(
+            "projected episode digest",
+        ));
     }
     if projected.scenario_id == receipt.original_scenario_id
         || projected.attempt_id == receipt.original_attempt_id
         || projected.trajectory_cluster_id == receipt.original_trajectory_cluster_id
     {
-        return Err(ProjectionError::InvalidProjectionReceipt("unredacted metadata"));
+        return Err(ProjectionError::InvalidProjectionReceipt(
+            "unredacted metadata",
+        ));
     }
     Ok(())
 }
@@ -572,8 +600,14 @@ fn collect_forbidden_raw_values(episode: &CandidateEpisode) -> Vec<String> {
         episode.command_context.endpoint_id.as_str(),
         episode.command_context.endpoint_profile_sha256.as_str(),
         episode.command_context.execution_scope_id.as_str(),
-        episode.command_context.system_boundary_manifest_sha256.as_str(),
-        episode.command_context.effect_producing_inventory_profile_sha256.as_str(),
+        episode
+            .command_context
+            .system_boundary_manifest_sha256
+            .as_str(),
+        episode
+            .command_context
+            .effect_producing_inventory_profile_sha256
+            .as_str(),
     ] {
         if !value.is_empty() {
             values.insert(value.to_owned());
@@ -666,25 +700,38 @@ pub fn audit_candidate_surface(
     if candidate_episode_jsons.len() != receipts.len()
         || candidate_file_names.len() != receipts.len()
     {
-        return Err(ProjectionError::InvalidMetadataAudit("candidate file/receipt count mismatch"));
+        return Err(ProjectionError::InvalidMetadataAudit(
+            "candidate file/receipt count mismatch",
+        ));
     }
     let manifest: serde_json::Value = serde_json::from_str(candidate_manifest_json)
         .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate manifest JSON"))?;
     let manifest_ids = manifest
         .get("episode_ids")
         .and_then(serde_json::Value::as_array)
-        .ok_or(ProjectionError::InvalidMetadataAudit("candidate manifest episode_ids"))?
+        .ok_or(ProjectionError::InvalidMetadataAudit(
+            "candidate manifest episode_ids",
+        ))?
         .iter()
-        .map(|item| item.as_str().ok_or(ProjectionError::InvalidMetadataAudit("manifest episode ID type")))
+        .map(|item| {
+            item.as_str().ok_or(ProjectionError::InvalidMetadataAudit(
+                "manifest episode ID type",
+            ))
+        })
         .collect::<Result<Vec<_>, _>>()?;
     if manifest_ids.len() != receipts.len() {
-        return Err(ProjectionError::InvalidMetadataAudit("manifest/receipt count mismatch"));
+        return Err(ProjectionError::InvalidMetadataAudit(
+            "manifest/receipt count mismatch",
+        ));
     }
     for receipt in receipts {
         receipt.verify()?;
     }
     let mut findings = Vec::new();
-    let mut expected_ids = receipts.iter().map(|receipt| receipt.candidate_episode_id.as_str()).collect::<Vec<_>>();
+    let mut expected_ids = receipts
+        .iter()
+        .map(|receipt| receipt.candidate_episode_id.as_str())
+        .collect::<Vec<_>>();
     let unique_receipt_ids = expected_ids.iter().copied().collect::<BTreeSet<_>>();
     let unique_manifest_ids = manifest_ids.iter().copied().collect::<BTreeSet<_>>();
     if unique_receipt_ids.len() != expected_ids.len()
@@ -719,7 +766,12 @@ pub fn audit_candidate_surface(
     }
 
     // Field-name checks include nested objects and arrays.
-    fn scan_keys(value: &serde_json::Value, path: &str, forbidden: &[&str], findings: &mut Vec<CandidateSurfaceFinding>) {
+    fn scan_keys(
+        value: &serde_json::Value,
+        path: &str,
+        forbidden: &[&str],
+        findings: &mut Vec<CandidateSurfaceFinding>,
+    ) {
         match value {
             serde_json::Value::Object(fields) => {
                 for (key, item) in fields {
@@ -741,11 +793,21 @@ pub fn audit_candidate_surface(
             _ => {}
         }
     }
-    scan_keys(&manifest, "$manifest", &forbidden_field_names(), &mut findings);
+    scan_keys(
+        &manifest,
+        "$manifest",
+        &forbidden_field_names(),
+        &mut findings,
+    );
     for (index, raw) in candidate_episode_jsons.iter().enumerate() {
         let value: serde_json::Value = serde_json::from_str(raw)
             .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate episode JSON"))?;
-        scan_keys(&value, &format!("$episode[{index}]"), &forbidden_field_names(), &mut findings);
+        scan_keys(
+            &value,
+            &format!("$episode[{index}]"),
+            &forbidden_field_names(),
+            &mut findings,
+        );
     }
 
     let forbidden_values = receipts
@@ -768,8 +830,11 @@ pub fn audit_candidate_surface(
     }
 
     findings.sort_by(|left, right| {
-        (&left.location, &left.finding_kind, &left.token_sha256)
-            .cmp(&(&right.location, &right.finding_kind, &right.token_sha256))
+        (&left.location, &left.finding_kind, &left.token_sha256).cmp(&(
+            &right.location,
+            &right.finding_kind,
+            &right.token_sha256,
+        ))
     });
     findings.dedup();
     Ok(CandidateSurfaceAudit {
@@ -824,34 +889,67 @@ pub fn candidate_metadata_features(
     features.insert("episode_id".to_owned(), episode.episode_id.clone());
     features.insert("scenario_id".to_owned(), episode.scenario_id.clone());
     features.insert("attempt_id".to_owned(), episode.attempt_id.clone());
-    features.insert("trajectory_cluster_id".to_owned(), episode.trajectory_cluster_id.clone());
-    features.insert("evidence_domain".to_owned(), format!("{:?}", episode.evidence_domain));
+    features.insert(
+        "trajectory_cluster_id".to_owned(),
+        episode.trajectory_cluster_id.clone(),
+    );
+    features.insert(
+        "evidence_domain".to_owned(),
+        format!("{:?}", episode.evidence_domain),
+    );
     features.insert("file_order_index".to_owned(), file_order_index.to_string());
     insert_numeric_attack_features(&mut features, "file_order_index", file_order_index as i128);
-    insert_numeric_attack_features(&mut features, "serialized_size_bytes", serialized_size_bytes as i128);
+    insert_numeric_attack_features(
+        &mut features,
+        "serialized_size_bytes",
+        serialized_size_bytes as i128,
+    );
     for modulus in [2_usize, 3, 4, 5, 7, 8, 11, 13, 16, 17, 31, 32, 64, 127] {
-        features.insert(format!("file_order_mod_{modulus}"), (file_order_index % modulus).to_string());
+        features.insert(
+            format!("file_order_mod_{modulus}"),
+            (file_order_index % modulus).to_string(),
+        );
     }
     for (name, value) in [
         ("episode_id", episode.episode_id.as_str()),
         ("attempt_id", episode.attempt_id.as_str()),
     ] {
-        let suffix = value.chars().rev().take_while(|character| character.is_ascii_digit()).collect::<String>();
+        let suffix = value
+            .chars()
+            .rev()
+            .take_while(|character| character.is_ascii_digit())
+            .collect::<String>();
         if !suffix.is_empty() {
             if let Ok(number) = suffix.chars().rev().collect::<String>().parse::<u64>() {
                 for modulus in [2_u64, 3, 4, 5, 7, 8, 11, 13, 16, 17, 31, 32, 64, 127] {
-                    features.insert(format!("{name}_suffix_mod_{modulus}"), (number % modulus).to_string());
+                    features.insert(
+                        format!("{name}_suffix_mod_{modulus}"),
+                        (number % modulus).to_string(),
+                    );
                 }
             }
         }
     }
     features.insert("file_name".to_owned(), file_name.to_owned());
-    features.insert("serialized_size_bytes".to_owned(), serialized_size_bytes.to_string());
+    features.insert(
+        "serialized_size_bytes".to_owned(),
+        serialized_size_bytes.to_string(),
+    );
     features.insert("current_step".to_owned(), episode.current_step.to_string());
-    features.insert("decision_deadline_step".to_owned(), episode.decision_deadline_step.to_string());
+    features.insert(
+        "decision_deadline_step".to_owned(),
+        episode.decision_deadline_step.to_string(),
+    );
     insert_numeric_attack_features(&mut features, "current_step", episode.current_step as i128);
-    insert_numeric_attack_features(&mut features, "decision_deadline_step", episode.decision_deadline_step as i128);
-    features.insert("remaining_probe_budget_units".to_owned(), episode.remaining_probe_budget_units.to_bits().to_string());
+    insert_numeric_attack_features(
+        &mut features,
+        "decision_deadline_step",
+        episode.decision_deadline_step as i128,
+    );
+    features.insert(
+        "remaining_probe_budget_units".to_owned(),
+        episode.remaining_probe_budget_units.to_bits().to_string(),
+    );
     insert_numeric_attack_features(
         &mut features,
         "remaining_probe_budget_milli",
@@ -862,45 +960,141 @@ pub fn candidate_metadata_features(
     features.insert("command_id".to_owned(), context.command_id.clone());
     features.insert("operation_id".to_owned(), context.operation_id.clone());
     features.insert("payload_sha256".to_owned(), context.payload_sha256.clone());
-    features.insert("action_prefix_sha256".to_owned(), context.action_prefix_sha256.clone());
+    features.insert(
+        "action_prefix_sha256".to_owned(),
+        context.action_prefix_sha256.clone(),
+    );
     features.insert("endpoint_id".to_owned(), context.endpoint_id.clone());
-    features.insert("endpoint_profile_sha256".to_owned(), context.endpoint_profile_sha256.clone());
-    features.insert("authority_epoch".to_owned(), context.authority_epoch.to_string());
-    features.insert("queue_generation".to_owned(), context.queue_generation.to_string());
-    insert_numeric_attack_features(&mut features, "authority_epoch", context.authority_epoch as i128);
-    insert_numeric_attack_features(&mut features, "queue_generation", context.queue_generation as i128);
-    features.insert("execution_scope_id".to_owned(), context.execution_scope_id.clone());
-    features.insert("system_boundary_manifest_sha256".to_owned(), context.system_boundary_manifest_sha256.clone());
-    features.insert("effect_producing_inventory_profile_sha256".to_owned(), context.effect_producing_inventory_profile_sha256.clone());
+    features.insert(
+        "endpoint_profile_sha256".to_owned(),
+        context.endpoint_profile_sha256.clone(),
+    );
+    features.insert(
+        "authority_epoch".to_owned(),
+        context.authority_epoch.to_string(),
+    );
+    features.insert(
+        "queue_generation".to_owned(),
+        context.queue_generation.to_string(),
+    );
+    insert_numeric_attack_features(
+        &mut features,
+        "authority_epoch",
+        context.authority_epoch as i128,
+    );
+    insert_numeric_attack_features(
+        &mut features,
+        "queue_generation",
+        context.queue_generation as i128,
+    );
+    features.insert(
+        "execution_scope_id".to_owned(),
+        context.execution_scope_id.clone(),
+    );
+    features.insert(
+        "system_boundary_manifest_sha256".to_owned(),
+        context.system_boundary_manifest_sha256.clone(),
+    );
+    features.insert(
+        "effect_producing_inventory_profile_sha256".to_owned(),
+        context.effect_producing_inventory_profile_sha256.clone(),
+    );
 
     for (index, observation) in episode.observations.iter().enumerate() {
         let prefix = format!("observation_{index}");
         features.insert(format!("{prefix}_id"), observation.observation_id.clone());
         features.insert(format!("{prefix}_source_id"), observation.source_id.clone());
-        features.insert(format!("{prefix}_source_role"), format!("{:?}", observation.source_role));
-        features.insert(format!("{prefix}_quality"), format!("{:?}", observation.quality));
-        features.insert(format!("{prefix}_ingest_sequence"), observation.ingest_sequence.to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_ingest_sequence"), observation.ingest_sequence as i128);
-        features.insert(format!("{prefix}_event_clock"), observation.event_time.clock_domain_id.clone());
-        features.insert(format!("{prefix}_event_ticks"), observation.event_time.ticks_ns.to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_event_ticks"), observation.event_time.ticks_ns as i128);
-        features.insert(format!("{prefix}_event_uncertainty"), observation.event_time.uncertainty_ns.to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_event_uncertainty"), observation.event_time.uncertainty_ns as i128);
-        features.insert(format!("{prefix}_acquired_clock"), observation.acquired_time.clock_domain_id.clone());
-        features.insert(format!("{prefix}_acquired_ticks"), observation.acquired_time.ticks_ns.to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_acquired_ticks"), observation.acquired_time.ticks_ns as i128);
-        features.insert(format!("{prefix}_acquired_uncertainty"), observation.acquired_time.uncertainty_ns.to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_acquired_uncertainty"), observation.acquired_time.uncertainty_ns as i128);
-        features.insert(format!("{prefix}_artifact_sha256"), observation.artifact_sha256.clone());
-        features.insert(format!("{prefix}_kind"), observation.observation_kind.clone());
+        features.insert(
+            format!("{prefix}_source_role"),
+            format!("{:?}", observation.source_role),
+        );
+        features.insert(
+            format!("{prefix}_quality"),
+            format!("{:?}", observation.quality),
+        );
+        features.insert(
+            format!("{prefix}_ingest_sequence"),
+            observation.ingest_sequence.to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_ingest_sequence"),
+            observation.ingest_sequence as i128,
+        );
+        features.insert(
+            format!("{prefix}_event_clock"),
+            observation.event_time.clock_domain_id.clone(),
+        );
+        features.insert(
+            format!("{prefix}_event_ticks"),
+            observation.event_time.ticks_ns.to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_event_ticks"),
+            observation.event_time.ticks_ns as i128,
+        );
+        features.insert(
+            format!("{prefix}_event_uncertainty"),
+            observation.event_time.uncertainty_ns.to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_event_uncertainty"),
+            observation.event_time.uncertainty_ns as i128,
+        );
+        features.insert(
+            format!("{prefix}_acquired_clock"),
+            observation.acquired_time.clock_domain_id.clone(),
+        );
+        features.insert(
+            format!("{prefix}_acquired_ticks"),
+            observation.acquired_time.ticks_ns.to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_acquired_ticks"),
+            observation.acquired_time.ticks_ns as i128,
+        );
+        features.insert(
+            format!("{prefix}_acquired_uncertainty"),
+            observation.acquired_time.uncertainty_ns.to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_acquired_uncertainty"),
+            observation.acquired_time.uncertainty_ns as i128,
+        );
+        features.insert(
+            format!("{prefix}_artifact_sha256"),
+            observation.artifact_sha256.clone(),
+        );
+        features.insert(
+            format!("{prefix}_kind"),
+            observation.observation_kind.clone(),
+        );
     }
     for (index, probe) in episode.permitted_probes.iter().enumerate() {
         let prefix = format!("probe_{index}");
         features.insert(format!("{prefix}_id"), probe.probe_id.clone());
-        features.insert(format!("{prefix}_cost_bits"), probe.acquisition_cost_units.to_bits().to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_cost_milli"), (probe.acquisition_cost_units * 1000.0).round() as i128);
-        features.insert(format!("{prefix}_delay"), probe.result_delay_steps.to_string());
-        insert_numeric_attack_features(&mut features, &format!("{prefix}_delay"), probe.result_delay_steps as i128);
+        features.insert(
+            format!("{prefix}_cost_bits"),
+            probe.acquisition_cost_units.to_bits().to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_cost_milli"),
+            (probe.acquisition_cost_units * 1000.0).round() as i128,
+        );
+        features.insert(
+            format!("{prefix}_delay"),
+            probe.result_delay_steps.to_string(),
+        );
+        insert_numeric_attack_features(
+            &mut features,
+            &format!("{prefix}_delay"),
+            probe.result_delay_steps as i128,
+        );
     }
     features
 }
@@ -959,7 +1153,9 @@ where
     counts
         .into_iter()
         .max_by(|(left_world, left_n), (right_world, right_n)| {
-            left_n.cmp(right_n).then_with(|| right_world.cmp(left_world))
+            left_n
+                .cmp(right_n)
+                .then_with(|| right_world.cmp(left_world))
         })
         .map(|(world, _)| world)
 }
@@ -986,7 +1182,9 @@ impl<'a> NaiveBayesModel<'a> {
                     let feature_name = feature.as_str();
                     let value = value.as_str();
                     vocabularies.entry(feature_name).or_default().insert(value);
-                    *feature_counts.entry((feature_name, value, world)).or_default() += 1;
+                    *feature_counts
+                        .entry((feature_name, value, world))
+                        .or_default() += 1;
                 }
             }
         }
@@ -1041,8 +1239,7 @@ fn fit_univariate_models(
     train: &[&MetadataAttackRow],
     features: &[String],
 ) -> BTreeMap<String, BTreeMap<String, String>> {
-    let mut counts =
-        BTreeMap::<String, BTreeMap<String, BTreeMap<String, usize>>>::new();
+    let mut counts = BTreeMap::<String, BTreeMap<String, BTreeMap<String, usize>>>::new();
     for row in train {
         for feature in features {
             if let Some(value) = row.candidate_visible_features.get(feature) {
@@ -1066,7 +1263,9 @@ fn fit_univariate_models(
                     let world = world_counts
                         .into_iter()
                         .max_by(|(left_world, left_n), (right_world, right_n)| {
-                            left_n.cmp(right_n).then_with(|| right_world.cmp(left_world))
+                            left_n
+                                .cmp(right_n)
+                                .then_with(|| right_world.cmp(left_world))
                         })
                         .map(|(world, _)| world)
                         .unwrap_or_default();
@@ -1078,10 +1277,7 @@ fn fit_univariate_models(
         .collect()
 }
 
-fn accuracy(
-    predictions: &[(String, String)],
-    world_classes: &[String],
-) -> (f64, f64) {
+fn accuracy(predictions: &[(String, String)], world_classes: &[String]) -> (f64, f64) {
     if predictions.is_empty() {
         return (0.0, 0.0);
     }
@@ -1093,7 +1289,10 @@ fn accuracy(
     let recalls = world_classes
         .iter()
         .map(|world| {
-            let class_rows = predictions.iter().filter(|(_, truth)| truth == world).collect::<Vec<_>>();
+            let class_rows = predictions
+                .iter()
+                .filter(|(_, truth)| truth == world)
+                .collect::<Vec<_>>();
             if class_rows.is_empty() {
                 0.0
             } else {
@@ -1120,14 +1319,18 @@ pub fn audit_metadata_leakage(
     requested_folds: usize,
 ) -> Result<MetadataLeakageReport, ProjectionError> {
     if rows.len() < 2 {
-        return Err(ProjectionError::InvalidMetadataAudit("at least two rows required"));
+        return Err(ProjectionError::InvalidMetadataAudit(
+            "at least two rows required",
+        ));
     }
     let campaign_ids = rows
         .iter()
         .map(|row| row.campaign_id.as_str())
         .collect::<BTreeSet<_>>();
     if campaign_ids.len() != 1 || campaign_ids.first().is_none_or(|id| id.trim().is_empty()) {
-        return Err(ProjectionError::InvalidMetadataAudit("one non-empty campaign ID required"));
+        return Err(ProjectionError::InvalidMetadataAudit(
+            "one non-empty campaign ID required",
+        ));
     }
     let mut episode_ids = BTreeSet::new();
     let mut clusters = BTreeSet::new();
@@ -1137,16 +1340,24 @@ pub fn audit_metadata_leakage(
             || row.evaluator_cluster_id.trim().is_empty()
             || row.hidden_truth_world_id.trim().is_empty()
         {
-            return Err(ProjectionError::InvalidMetadataAudit("empty audit identity"));
+            return Err(ProjectionError::InvalidMetadataAudit(
+                "empty audit identity",
+            ));
         }
         if !episode_ids.insert(row.episode_id.as_str()) {
-            return Err(ProjectionError::InvalidMetadataAudit("duplicate episode ID"));
+            return Err(ProjectionError::InvalidMetadataAudit(
+                "duplicate episode ID",
+            ));
         }
         if !VALID_WORLD_IDS.contains(&row.hidden_truth_world_id.as_str()) {
-            return Err(ProjectionError::InvalidMetadataAudit("unknown hidden world"));
+            return Err(ProjectionError::InvalidMetadataAudit(
+                "unknown hidden world",
+            ));
         }
         if row.candidate_visible_features.is_empty() {
-            return Err(ProjectionError::InvalidMetadataAudit("empty candidate feature map"));
+            return Err(ProjectionError::InvalidMetadataAudit(
+                "empty candidate feature map",
+            ));
         }
         clusters.insert(row.evaluator_cluster_id.as_str());
         worlds.insert(row.hidden_truth_world_id.as_str());
@@ -1178,11 +1389,13 @@ pub fn audit_metadata_leakage(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
-    let world_classes = worlds.iter().map(|world| (*world).to_owned()).collect::<Vec<_>>();
+    let world_classes = worlds
+        .iter()
+        .map(|world| (*world).to_owned())
+        .collect::<Vec<_>>();
 
     let mut combined_predictions = Vec::new();
-    let mut univariate_predictions =
-        BTreeMap::<String, Vec<(String, String)>>::new();
+    let mut univariate_predictions = BTreeMap::<String, Vec<(String, String)>>::new();
     let mut baseline_predictions = Vec::new();
 
     for fold in 0..requested_folds {
@@ -1228,8 +1441,7 @@ pub fn audit_metadata_leakage(
         return Err(ProjectionError::TooFewGroups);
     }
 
-    let (combined_accuracy, combined_balanced) =
-        accuracy(&combined_predictions, &world_classes);
+    let (combined_accuracy, combined_balanced) = accuracy(&combined_predictions, &world_classes);
     let (majority_accuracy, _) = accuracy(&baseline_predictions, &world_classes);
     let per_feature_scores = univariate_predictions
         .into_iter()
@@ -1348,7 +1560,10 @@ mod tests {
     fn evaluator_projection_secret_roundtrips_without_debug_disclosure() {
         let original = BlindProjectionContext::from_secret([0x91; 32]);
         let secret = original.export_evaluator_secret();
-        assert_eq!(format!("{secret:?}"), "BlindProjectionSecretV0_1([REDACTED])");
+        assert_eq!(
+            format!("{secret:?}"),
+            "BlindProjectionSecretV0_1([REDACTED])"
+        );
         let serialized = serde_json::to_string(&secret).expect("secret serialization");
         let decoded: BlindProjectionSecretV0_1 =
             serde_json::from_str(&serialized).expect("secret deserialization");
@@ -1368,7 +1583,9 @@ mod tests {
         };
         assert!(matches!(
             BlindProjectionContext::from_evaluator_secret(&secret),
-            Err(ProjectionError::InvalidProjectionSecret("projection_salt_hex"))
+            Err(ProjectionError::InvalidProjectionSecret(
+                "projection_salt_hex"
+            ))
         ));
     }
 
@@ -1404,9 +1621,17 @@ mod tests {
             "clock-a",
             "clock-b",
         ] {
-            assert!(!serialized.contains(forbidden), "projection leaked {forbidden}");
+            assert!(
+                !serialized.contains(forbidden),
+                "projection leaked {forbidden}"
+            );
         }
-        assert!(projected.observations.iter().all(|observation| observation.event_time.ticks_ns >= 0));
+        assert!(
+            projected
+                .observations
+                .iter()
+                .all(|observation| observation.event_time.ticks_ns >= 0)
+        );
         assert_eq!(projected.current_step, 0);
         assert_eq!(projected.decision_cut_sequence, 4);
         assert_eq!(projected.observations[0].ingest_sequence, 0);
@@ -1443,8 +1668,13 @@ mod tests {
         let projected_interval = projected.observations[0].acquired_time.ticks_ns
             - projected.observations[0].event_time.ticks_ns;
         assert_eq!(projected_interval, original_interval);
-        assert!(projected.observations[0].ingest_sequence < projected.observations[1].ingest_sequence);
-        assert_eq!(projected.decision_cut_sequence, projected.ledger_frontier_sequence);
+        assert!(
+            projected.observations[0].ingest_sequence < projected.observations[1].ingest_sequence
+        );
+        assert_eq!(
+            projected.decision_cut_sequence,
+            projected.ledger_frontier_sequence
+        );
     }
 
     #[test]
@@ -1456,7 +1686,9 @@ mod tests {
         projected.observations[0].quality = ObservationQuality::Disputed;
         assert_eq!(
             verify_projected_episode(&projected, &receipt),
-            Err(ProjectionError::InvalidProjectionReceipt("projected episode digest"))
+            Err(ProjectionError::InvalidProjectionReceipt(
+                "projected episode digest"
+            ))
         );
     }
 
@@ -1473,7 +1705,10 @@ mod tests {
     fn candidate_metadata_features_emit_numeric_side_channel_buckets() {
         let episode = episode(9);
         let features = candidate_metadata_features(&episode, 37, "episode-random.json", 8193);
-        assert_eq!(features.get("file_order_mod_31").map(String::as_str), Some("6"));
+        assert_eq!(
+            features.get("file_order_mod_31").map(String::as_str),
+            Some("6")
+        );
         assert!(features.contains_key("serialized_size_bytes_bucket_4096"));
         assert!(features.contains_key("current_step_magnitude_log2"));
         assert!(features.contains_key("observation_0_event_ticks_bucket_1024"));
@@ -1487,7 +1722,10 @@ mod tests {
             let world = VALID_WORLD_IDS[index % VALID_WORLD_IDS.len()];
             let mut features = BTreeMap::new();
             features.insert("scenario_alias".to_owned(), world.to_owned());
-            features.insert("independent_noise".to_owned(), (index * 13 % 17).to_string());
+            features.insert(
+                "independent_noise".to_owned(),
+                (index * 13 % 17).to_string(),
+            );
             rows.push(MetadataAttackRow {
                 campaign_id: "camp_test".to_owned(),
                 episode_id: format!("ep_{index:032x}"),
@@ -1520,11 +1758,23 @@ mod tests {
                 candidate_visible_features: features,
             });
         }
-        let clusters = rows.iter().map(|row| row.evaluator_cluster_id.as_str()).collect::<BTreeSet<_>>();
-        let assignments = clusters.iter().map(|cluster| (*cluster, stable_fold("camp_grouped", cluster, 5))).collect::<BTreeMap<_,_>>();
+        let clusters = rows
+            .iter()
+            .map(|row| row.evaluator_cluster_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let assignments = clusters
+            .iter()
+            .map(|cluster| (*cluster, stable_fold("camp_grouped", cluster, 5)))
+            .collect::<BTreeMap<_, _>>();
         for cluster in clusters {
-            let members = rows.iter().filter(|row| row.evaluator_cluster_id == cluster).collect::<Vec<_>>();
-            let folds = members.iter().map(|row| assignments[row.evaluator_cluster_id.as_str()]).collect::<BTreeSet<_>>();
+            let members = rows
+                .iter()
+                .filter(|row| row.evaluator_cluster_id == cluster)
+                .collect::<Vec<_>>();
+            let folds = members
+                .iter()
+                .map(|row| assignments[row.evaluator_cluster_id.as_str()])
+                .collect::<BTreeSet<_>>();
             assert_eq!(folds.len(), 1);
         }
     }
@@ -1540,7 +1790,9 @@ mod tests {
         };
         assert_eq!(
             audit_metadata_leakage(&[row.clone(), row], 2),
-            Err(ProjectionError::InvalidMetadataAudit("duplicate episode ID"))
+            Err(ProjectionError::InvalidMetadataAudit(
+                "duplicate episode ID"
+            ))
         );
     }
 
@@ -1567,13 +1819,11 @@ mod tests {
             &[],
             &["private-evaluator-salt-should-not-appear".to_owned()],
             &["ep_11111111111111111111111111111111.json".to_owned()],
-        ).expect("safe surface audit");
+        )
+        .expect("safe surface audit");
         assert!(safe.passed, "{safe:?}");
 
-        let leaked_json = projected_json.replace(
-            &projected.episode_id,
-            &original.episode_id,
-        );
+        let leaked_json = projected_json.replace(&projected.episode_id, &original.episode_id);
         let unsafe_audit = audit_candidate_surface(
             &raw_manifest,
             &[leaked_json],
@@ -1581,7 +1831,8 @@ mod tests {
             &[VALID_WORLD_IDS[4].to_owned()],
             &["private-evaluator-salt-should-not-appear".to_owned()],
             &["raw-episode-0011.json".to_owned()],
-        ).expect("unsafe surface audit is reportable");
+        )
+        .expect("unsafe surface audit is reportable");
         assert!(!unsafe_audit.passed);
         assert!(unsafe_audit.finding_n >= 3);
     }
@@ -1606,9 +1857,14 @@ mod tests {
             &[],
             &["evaluator-secret-token-opaque-abcdef".to_owned()],
             &["ep_33333333333333333333333333333333.json".to_owned()],
-        ).expect("audit");
+        )
+        .expect("audit");
         assert!(!report.passed);
-        assert!(report.findings.iter().any(|finding| finding.finding_kind == "raw_evaluator_value_leak"));
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|finding| finding.finding_kind == "raw_evaluator_value_leak")
+        );
     }
-
 }

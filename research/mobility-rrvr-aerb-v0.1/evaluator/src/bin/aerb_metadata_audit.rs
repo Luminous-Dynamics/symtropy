@@ -106,8 +106,8 @@ fn run() -> Result<(), String> {
 
     let input_path = PathBuf::from(&args[0]);
     let output_path = PathBuf::from(&args[1]);
-    let input_metadata = fs::symlink_metadata(&input_path)
-        .map_err(|error| format!("INPUT_UNAVAILABLE: {error}"))?;
+    let input_metadata =
+        fs::symlink_metadata(&input_path).map_err(|error| format!("INPUT_UNAVAILABLE: {error}"))?;
     if input_metadata.file_type().is_symlink() || !input_metadata.is_file() {
         return Err("INPUT_MUST_BE_A_REGULAR_NON_SYMLINK_FILE".to_owned());
     }
@@ -126,7 +126,9 @@ fn run() -> Result<(), String> {
         .canonicalize()
         .map_err(|error| format!("OUTPUT_PARENT_UNAVAILABLE: {error}"))?;
     if input_parent != output_parent {
-        return Err("INPUT_AND_REPORT_MUST_REMAIN_IN_THE_SAME_EVALUATOR_CUSTODY_DIRECTORY".to_owned());
+        return Err(
+            "INPUT_AND_REPORT_MUST_REMAIN_IN_THE_SAME_EVALUATOR_CUSTODY_DIRECTORY".to_owned(),
+        );
     }
     if fs::symlink_metadata(&output_path).is_ok() {
         return Err("OUTPUT_ALREADY_EXISTS_OR_IS_SYMLINK".to_owned());
@@ -139,7 +141,11 @@ fn run() -> Result<(), String> {
     if input.schema_version != INPUT_SCHEMA || input.campaign_id.trim().is_empty() {
         return Err("INPUT_SCHEMA_VERSION_OR_CAMPAIGN_ID_INVALID".to_owned());
     }
-    if input.rows.iter().any(|row| row.campaign_id != input.campaign_id) {
+    if input
+        .rows
+        .iter()
+        .any(|row| row.campaign_id != input.campaign_id)
+    {
         return Err("INPUT_CAMPAIGN_ID_MISMATCH".to_owned());
     }
 
