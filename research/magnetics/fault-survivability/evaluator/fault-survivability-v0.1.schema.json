@@ -1,0 +1,657 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fault-survivable magnetic architecture evidence v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "spec",
+    "tests",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/test"
+      }
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "decision",
+        "fault_case_count",
+        "exposure_step_count",
+        "required_zone_count"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "NotComparable",
+            "Fail",
+            "Indeterminate",
+            "FaultSurvivable"
+          ]
+        },
+        "fault_case_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "exposure_step_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_zone_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "interval": {
+      "type": "object",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fault_kind": {
+      "enum": [
+        "PhaseToPhaseShortCircuit",
+        "ThreePhaseShortCircuit",
+        "InverterShootThrough",
+        "OverCurrent",
+        "CoolingLoss",
+        "LockedRotor",
+        "ThermalOverload",
+        "ExternalDemagnetizingField"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "PhysicalMeasurement",
+        "ProductionRecord",
+        "Simulation",
+        "PublishedLiterature",
+        "SyntheticControl"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "required": [
+        "application_id",
+        "component_id",
+        "assembly_revision_digest",
+        "magnet_material_lot_digest",
+        "rotor_geometry_digest",
+        "magnetization_digest",
+        "duty_profile_digest",
+        "degraded_mission_digest",
+        "fault_protocol_digest",
+        "measurement_setup_digest",
+        "safety_policy_digest"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assembly_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "magnet_material_lot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "rotor_geometry_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "magnetization_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "duty_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "degraded_mission_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "fault_protocol_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "measurement_setup_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "safety_policy_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "fault_case": {
+      "type": "object",
+      "required": [
+        "case_id",
+        "fault_kind",
+        "minimum_peak_current_a",
+        "maximum_peak_current_a",
+        "minimum_rotor_speed_rpm",
+        "maximum_rotor_speed_rpm",
+        "minimum_magnet_temperature_c",
+        "maximum_magnet_temperature_c",
+        "minimum_exposure_duration_ms",
+        "maximum_exposure_duration_ms",
+        "minimum_degraded_mission_energy_kwh",
+        "maximum_allowed_mechanical_stress_mpa",
+        "minimum_mechanical_safety_factor",
+        "required_magnet_zones"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fault_kind": {
+          "$ref": "#/$defs/fault_kind"
+        },
+        "minimum_peak_current_a": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_peak_current_a": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_rotor_speed_rpm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_rotor_speed_rpm": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_magnet_temperature_c": {
+          "type": "number"
+        },
+        "maximum_magnet_temperature_c": {
+          "type": "number"
+        },
+        "minimum_exposure_duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_exposure_duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "minimum_degraded_mission_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maximum_allowed_mechanical_stress_mpa": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "minimum_mechanical_safety_factor": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "required_magnet_zones": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "campaign_id",
+        "scope",
+        "required_fault_cases",
+        "minimum_post_fault_mission_completion"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "required_fault_cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fault_case"
+          }
+        },
+        "minimum_post_fault_mission_completion": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "exposure": {
+      "type": "object",
+      "required": [
+        "sequence",
+        "timestamp_ms",
+        "duration_ms",
+        "phase_current_peak_a",
+        "rotor_speed_rpm",
+        "magnet_temperature_c",
+        "dc_bus_voltage_v",
+        "cooling_flow_l_per_min",
+        "fault_active",
+        "fault_kind",
+        "event_receipt_id",
+        "event_digest",
+        "sensor_method_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp_ms": {
+          "type": "number"
+        },
+        "duration_ms": {
+          "type": "number",
+          "minimum": 0
+        },
+        "phase_current_peak_a": {
+          "$ref": "#/$defs/interval"
+        },
+        "rotor_speed_rpm": {
+          "$ref": "#/$defs/interval"
+        },
+        "magnet_temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "dc_bus_voltage_v": {
+          "$ref": "#/$defs/interval"
+        },
+        "cooling_flow_l_per_min": {
+          "$ref": "#/$defs/interval"
+        },
+        "fault_active": {
+          "type": "boolean"
+        },
+        "fault_kind": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/fault_kind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "event_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "sensor_method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        }
+      },
+      "additionalProperties": false
+    },
+    "bulk_flux": {
+      "type": "object",
+      "required": [
+        "pre_fault_flux_density_t",
+        "post_fault_flux_density_t",
+        "pre_fault_temperature_c",
+        "post_fault_temperature_c",
+        "method_id",
+        "instrument_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "pre_fault_flux_density_t": {
+          "$ref": "#/$defs/interval"
+        },
+        "post_fault_flux_density_t": {
+          "$ref": "#/$defs/interval"
+        },
+        "pre_fault_temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "post_fault_temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        }
+      },
+      "additionalProperties": false
+    },
+    "flux_zone": {
+      "type": "object",
+      "required": [
+        "measurement_id",
+        "zone_id",
+        "pre_fault_flux_density_t",
+        "post_fault_flux_density_t",
+        "pre_fault_temperature_c",
+        "post_fault_temperature_c",
+        "method_id",
+        "instrument_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "measurement_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "zone_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pre_fault_flux_density_t": {
+          "$ref": "#/$defs/interval"
+        },
+        "post_fault_flux_density_t": {
+          "$ref": "#/$defs/interval"
+        },
+        "pre_fault_temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "post_fault_temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        }
+      },
+      "additionalProperties": false
+    },
+    "structural": {
+      "type": "object",
+      "required": [
+        "inspection_receipt_id",
+        "inspection_digest",
+        "evidence_class",
+        "maximum_measured_stress_mpa",
+        "minimum_measured_safety_factor",
+        "retention_intact",
+        "containment_intact",
+        "crack_or_deformation_detected",
+        "vibration_rms_mm_s",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_record_digest"
+      ],
+      "properties": {
+        "inspection_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inspection_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "maximum_measured_stress_mpa": {
+          "$ref": "#/$defs/interval"
+        },
+        "minimum_measured_safety_factor": {
+          "$ref": "#/$defs/interval"
+        },
+        "retention_intact": {
+          "type": "boolean"
+        },
+        "containment_intact": {
+          "type": "boolean"
+        },
+        "crack_or_deformation_detected": {
+          "type": "boolean"
+        },
+        "vibration_rms_mm_s": {
+          "$ref": "#/$defs/interval"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mission": {
+      "type": "object",
+      "required": [
+        "receipt_id",
+        "receipt_digest",
+        "evidence_class",
+        "mission_profile_digest",
+        "completed_mission_energy_kwh",
+        "required_mission_energy_kwh",
+        "mission_completion_fraction",
+        "minimum_torque_margin_percent",
+        "maximum_temperature_c",
+        "method_id",
+        "instrument_id",
+        "calibration_digest",
+        "uncertainty_record_digest"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "mission_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "completed_mission_energy_kwh": {
+          "$ref": "#/$defs/interval"
+        },
+        "required_mission_energy_kwh": {
+          "$ref": "#/$defs/interval"
+        },
+        "mission_completion_fraction": {
+          "$ref": "#/$defs/interval"
+        },
+        "minimum_torque_margin_percent": {
+          "$ref": "#/$defs/interval"
+        },
+        "maximum_temperature_c": {
+          "$ref": "#/$defs/interval"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "test": {
+      "type": "object",
+      "required": [
+        "case_id",
+        "scope",
+        "build_id",
+        "specimen_id",
+        "source_material_lot_id",
+        "exposure_steps",
+        "bulk_flux_measurement",
+        "flux_measurements",
+        "structural",
+        "degraded_mission",
+        "test_receipt_id",
+        "test_receipt_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "build_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "specimen_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_material_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exposure_steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/exposure"
+          }
+        },
+        "bulk_flux_measurement": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/bulk_flux"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flux_measurements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/flux_zone"
+          }
+        },
+        "structural": {
+          "$ref": "#/$defs/structural"
+        },
+        "degraded_mission": {
+          "$ref": "#/$defs/mission"
+        },
+        "test_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
