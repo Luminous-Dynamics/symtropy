@@ -1210,7 +1210,9 @@ mod tests {
             as_known_at_unix_ms: 1_795_517_000_000,
             decision_context_sha256: digest('a'),
             assurance_state_sha256: digest('b'),
+            assurance_state_receipt: None,
             action_catalogue_sha256: digest('c'),
+            action_catalogue_receipt: None,
             decision_model_sha256: digest('d'),
             outcome_model_sha256: digest('e'),
             unresolved_obligation_ids: vec!["obligation:calibration".to_owned()],
@@ -1273,6 +1275,34 @@ mod tests {
         input.unresolved_obligation_manifest_sha256 =
             compute_unresolved_obligation_manifest_sha256(&input.unresolved_obligation_ids)
                 .expect("unresolved obligation commitment");
+        input.assurance_state_receipt = Some(SourceBoundAssuranceStateReceiptV0_1 {
+            verification_status: UpstreamReceiptVerificationStatusV0_1::Verified,
+            owner_namespace: "owner:aero-assurance-adapter".to_owned(),
+            claim_id: input.claim_id.clone(),
+            decision_context_sha256: input.decision_context_sha256.clone(),
+            assurance_state_sha256: input.assurance_state_sha256.clone(),
+            frozen_claim_disposition: input.frozen_claim_disposition.clone(),
+            unresolved_obligation_manifest_sha256: input
+                .unresolved_obligation_manifest_sha256
+                .clone(),
+            receipt_sha256: digest('8'),
+            receiver_first_seen_at_unix_ms: 1_795_516_000_000,
+            effective_from_unix_ms: 1_795_500_000_000,
+            effective_until_unix_ms: 1_798_000_000_000,
+        });
+        input.action_catalogue_receipt = Some(ActionCatalogueSnapshotReceiptV0_1 {
+            verification_status: UpstreamReceiptVerificationStatusV0_1::Verified,
+            owner_namespace: "owner:action-catalogue".to_owned(),
+            claim_id: input.claim_id.clone(),
+            decision_context_sha256: input.decision_context_sha256.clone(),
+            configuration_ref: input.configuration_ref.clone(),
+            action_catalogue_sha256: input.action_catalogue_sha256.clone(),
+            action_count: input.actions.len() as u32,
+            receipt_sha256: digest('9'),
+            receiver_first_seen_at_unix_ms: 1_795_516_000_000,
+            effective_from_unix_ms: 1_795_500_000_000,
+            effective_until_unix_ms: 1_798_000_000_000,
+        });
         let likelihood_digest = compute_outcome_likelihoods_sha256(
             &input.actions[0],
             &input.outcome_model_sha256,
@@ -1447,6 +1477,71 @@ mod tests {
         assert!(result
             .reason_codes
             .contains(&"EVSI_VERIFIED_ACTION_MISSING_AUTHORIZATION_RECEIPT".to_owned()));
+    }
+
+    #[test]
+    fn missing_upstream_assurance_state_receipt_is_invalid() {
+        let mut input = base_input();
+        input.assurance_state_receipt = None;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result
+            .reason_codes
+            .contains(&"EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_MISSING".to_owned()));
+    }
+
+    #[test]
+    fn source_state_receipt_prevents_unresolved_obligation_substitution() {
+        let mut input = base_input();
+        input.unresolved_obligation_ids = vec!["obligation:other".to_owned()];
+        input.unresolved_obligation_manifest_sha256 =
+            compute_unresolved_obligation_manifest_sha256(&input.unresolved_obligation_ids)
+                .expect("mutated manifest");
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_SCOPE_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn action_catalogue_snapshot_receipt_prevents_candidate_omission() {
+        let mut input = base_input();
+        input.actions.clear();
+        input.action_catalogue_sha256 =
+            compute_action_catalogue_cut_sha256(&input).expect("empty cut digest");
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_SCOPE_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn late_assurance_state_receipt_cannot_backfill_historical_knowledge() {
+        let mut input = base_input();
+        input
+            .assurance_state_receipt
+            .as_mut()
+            .expect("source receipt")
+            .receiver_first_seen_at_unix_ms = input.as_known_at_unix_ms + 1;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_NOT_KNOWN_AT_CUTOFF"
+        }));
     }
 
     #[test]
