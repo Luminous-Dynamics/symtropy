@@ -286,9 +286,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
         for family in &spec.required_baseline_families {
             let matching: Vec<&Trial> = trials
                 .iter()
-                .filter(|trial| {
-                    trial.role == Role::RequiredBaseline && trial.family == *family
-                })
+                .filter(|trial| trial.role == Role::RequiredBaseline && trial.family == *family)
                 .collect();
 
             if matching.is_empty() {
@@ -299,7 +297,8 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
 
             for baseline in matching {
                 if baseline.scope != spec.scope
-                    || baseline.acceptance.acceptance_policy_digest != spec.scope.acceptance_policy_digest
+                    || baseline.acceptance.acceptance_policy_digest
+                        != spec.scope.acceptance_policy_digest
                 {
                     blockers.push(Blocker::ScopeMismatch);
                     any_baseline_invalid = true;
@@ -323,12 +322,8 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
                     continue;
                 }
 
-                let comparison = compare_metrics(
-                    spec,
-                    &candidate_intervals,
-                    &intervals,
-                    &mut blockers,
-                );
+                let comparison =
+                    compare_metrics(spec, &candidate_intervals, &intervals, &mut blockers);
                 baseline_comparisons.push(BaselineComparison {
                     baseline_id: baseline.architecture_id.clone(),
                     all_mandatory_metrics_non_inferior: comparison.non_inferior,
@@ -347,8 +342,7 @@ pub fn evaluate(spec: &BenchmarkSpec, trials: &[Trial]) -> Vec<Evaluation> {
 
         let all_comparators_present =
             baseline_comparisons.len() >= spec.required_baseline_families.len();
-        let any_noninferiority_violation =
-            blockers.contains(&Blocker::NonInferiorityViolation);
+        let any_noninferiority_violation = blockers.contains(&Blocker::NonInferiorityViolation);
         let benefits = common_robust_benefits(&baseline_comparisons);
 
         let not_comparable = blockers.iter().any(|blocker| {
@@ -511,9 +505,14 @@ fn validate_spec(spec: &BenchmarkSpec) -> Vec<Blocker> {
         if !CONVENTIONAL_FAMILIES.contains(&record.family)
             || record.rationale.trim().is_empty()
             || record.supporting_evidence_ids.is_empty()
-            || record.supporting_evidence_ids.iter().any(|id| id.trim().is_empty())
+            || record
+                .supporting_evidence_ids
+                .iter()
+                .any(|id| id.trim().is_empty())
             || !valid_sha256(&record.decision_digest)
-            || applicability_by_family.insert(record.family, record).is_some()
+            || applicability_by_family
+                .insert(record.family, record)
+                .is_some()
         {
             blockers.push(Blocker::InvalidBenchmarkSpec);
         }
@@ -537,11 +536,7 @@ fn validate_spec(spec: &BenchmarkSpec) -> Vec<Blocker> {
     blockers
 }
 
-fn validate_acceptance(
-    trial: &Trial,
-    spec: &BenchmarkSpec,
-    blockers: &mut Vec<Blocker>,
-) {
+fn validate_acceptance(trial: &Trial, spec: &BenchmarkSpec, blockers: &mut Vec<Blocker>) {
     let acceptance = &trial.acceptance;
     if acceptance.component_id != trial.component_id
         || acceptance.specimen_id.trim().is_empty()
@@ -561,11 +556,7 @@ fn validate_acceptance(
     }
 }
 
-fn validate_optimization(
-    baseline: &Trial,
-    spec: &BenchmarkSpec,
-    blockers: &mut Vec<Blocker>,
-) {
+fn validate_optimization(baseline: &Trial, spec: &BenchmarkSpec, blockers: &mut Vec<Blocker>) {
     let Some(receipt) = &baseline.optimization else {
         blockers.push(Blocker::InvalidOptimizationReceipt);
         return;
@@ -632,7 +623,11 @@ fn validate_observations(
             blockers.push(Blocker::InvalidObservation);
             valid = false;
         }
-        if let Some(metric) = spec.metrics.iter().find(|m| m.metric_id == observation.metric_id) {
+        if let Some(metric) = spec
+            .metrics
+            .iter()
+            .find(|m| m.metric_id == observation.metric_id)
+        {
             if metric.unit != observation.unit {
                 blockers.push(Blocker::InvalidObservation);
                 valid = false;
@@ -683,10 +678,7 @@ struct HardStatus {
     unresolved: bool,
 }
 
-fn hard_limit_status(
-    intervals: &BTreeMap<String, Interval>,
-    metrics: &[MetricSpec],
-) -> HardStatus {
+fn hard_limit_status(intervals: &BTreeMap<String, Interval>, metrics: &[MetricSpec]) -> HardStatus {
     let mut blockers = Vec::new();
     let mut unresolved = false;
 
@@ -1082,32 +1074,35 @@ mod tests {
     fn qualified_stack_is_advantage_when_same_benefit_beats_all_baselines() {
         let results = evaluate(&spec(), &known_trials());
         assert_eq!(results[0].decision, Decision::StackAdvantage);
-        assert!(results[0]
-            .robust_stack_benefits
-            .contains(&"effective_thermal_resistance".to_string()));
+        assert!(
+            results[0]
+                .robust_stack_benefits
+                .contains(&"effective_thermal_resistance".to_string())
+        );
     }
 
     #[test]
     fn benchmark_spec_requires_all_seven_mandatory_function_metrics() {
         let mut benchmark = spec();
-        benchmark.metrics.retain(|metric| metric.metric_id != "ac_winding_loss");
+        benchmark
+            .metrics
+            .retain(|metric| metric.metric_id != "ac_winding_loss");
         let result = evaluate(&benchmark, &known_trials());
         assert_eq!(result[0].decision, Decision::NotComparable);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidBenchmarkSpec));
+        assert!(result[0].blockers.contains(&Blocker::InvalidBenchmarkSpec));
     }
 
     #[test]
     fn evidence_ids_must_be_unique_across_candidate_and_baseline() {
         let mut trials = known_trials();
-        trials[1].observations[0].evidence_id =
-            trials[0].observations[0].evidence_id.clone();
+        trials[1].observations[0].evidence_id = trials[0].observations[0].evidence_id.clone();
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::DuplicateEvidenceIdentity));
+        assert!(
+            result[0]
+                .blockers
+                .contains(&Blocker::DuplicateEvidenceIdentity)
+        );
     }
 
     #[test]
@@ -1116,9 +1111,11 @@ mod tests {
         trials[0].observations[0].evidence_class = EvidenceClass::Synthetic;
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InadmissibleEvidenceClass));
+        assert!(
+            result[0]
+                .blockers
+                .contains(&Blocker::InadmissibleEvidenceClass)
+        );
     }
 
     #[test]
@@ -1162,9 +1159,7 @@ mod tests {
             .retain(|item| item.metric_id != "dielectric_margin");
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::MissingObservation));
+        assert!(result[0].blockers.contains(&Blocker::MissingObservation));
     }
 
     #[test]
@@ -1190,9 +1185,11 @@ mod tests {
         trials.remove(1);
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::NotComparable);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::MissingRequiredBaseline));
+        assert!(
+            result[0]
+                .blockers
+                .contains(&Blocker::MissingRequiredBaseline)
+        );
     }
 
     #[test]
@@ -1201,9 +1198,11 @@ mod tests {
         trials[1].optimization.as_mut().unwrap().evaluations = 1;
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidOptimizationReceipt));
+        assert!(
+            result[0]
+                .blockers
+                .contains(&Blocker::InvalidOptimizationReceipt)
+        );
     }
 
     #[test]
@@ -1239,9 +1238,7 @@ mod tests {
             .push(trials[0].observations[0].clone());
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::DuplicateObservation));
+        assert!(result[0].blockers.contains(&Blocker::DuplicateObservation));
     }
 
     #[test]
@@ -1262,12 +1259,12 @@ mod tests {
         trials[0].acceptance.comparison_scope_digest = digest('f');
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
-        assert!(!result[0]
-            .blockers
-            .contains(&Blocker::DefiniteHardLimitViolation));
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::InvalidAcceptance));
+        assert!(
+            !result[0]
+                .blockers
+                .contains(&Blocker::DefiniteHardLimitViolation)
+        );
+        assert!(result[0].blockers.contains(&Blocker::InvalidAcceptance));
     }
 
     #[test]
@@ -1280,9 +1277,7 @@ mod tests {
         assert!(!result[0]
             .blockers
             .contains(&Blocker::DefiniteHardLimitViolation));
-        assert!(result[0]
-            .blockers
-            .contains(&Blocker::BrokenSpecimenBinding));
+        assert!(result[0].blockers.contains(&Blocker::BrokenSpecimenBinding));
     }
 
     #[test]
