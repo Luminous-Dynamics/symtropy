@@ -26,7 +26,9 @@
         "authors",
         "arxiv_id",
         "publication_date",
-        "url"
+        "url",
+        "code_repository",
+        "code_license"
       ],
       "properties": {
         "title": {
@@ -52,6 +54,13 @@
         "url": {
           "type": "string",
           "format": "uri"
+        },
+        "code_repository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "code_license": {
+          "const": "Apache-2.0"
         }
       }
     },
@@ -64,7 +73,10 @@
         "task_type_count",
         "source_datasets",
         "split_description",
-        "transform_families"
+        "transform_families",
+        "dataset_url",
+        "dataset_card_license_field_present",
+        "dataset_asset_rights_status"
       ],
       "properties": {
         "question_count": {
@@ -96,6 +108,19 @@
             "type": "string"
           },
           "minItems": 1
+        },
+        "dataset_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "dataset_card_license_field_present": {
+          "type": "boolean"
+        },
+        "dataset_asset_rights_status": {
+          "enum": [
+            "unverified_source_dataset_terms",
+            "rights_qualified"
+          ]
         }
       }
     },
