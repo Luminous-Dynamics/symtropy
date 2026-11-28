@@ -7,8 +7,8 @@
     "frozen_claim_disposition": "INCOMPLETE",
     "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "action_catalogue_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-    "decision_model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "action_catalogue_sha256": "8e1bb01b82cdd6765aa86bc92f15333c26cbc236c08d60e01b376d1b7e4d92ef",
+    "decision_model_sha256": "58a6677f4b6ce980ef34d29a5d6d4239dd96b213fe1f417573f664310d7f654d",
     "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "decision_alternatives": [
       {
@@ -108,7 +108,8 @@
           "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
           "receiver_first_seen_at_unix_ms": 1795516000000,
           "effective_from_unix_ms": 1795500000000,
-          "effective_until_unix_ms": 1798000000000
+          "effective_until_unix_ms": 1798000000000,
+          "outcome_likelihoods_sha256": "c5e35ea600a13eff92bba9abf807da83933096a20f1b4b017e70888dc0efa3a1"
         },
         "outcome_model_owner_namespace": "owner:forecast-model-team"
       },
@@ -158,13 +159,18 @@
           "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
           "receiver_first_seen_at_unix_ms": 1795516000000,
           "effective_from_unix_ms": 1795500000000,
-          "effective_until_unix_ms": 1798000000000
+          "effective_until_unix_ms": 1798000000000,
+          "outcome_likelihoods_sha256": "80677e834200a879796018ffa201af87fd90f289a90e9902320750466d311257"
         },
         "outcome_model_owner_namespace": "owner:forecast-model-team"
       }
     ],
     "configuration_ref": "configuration:wing-r17",
-    "as_known_at_unix_ms": 1795517000000
+    "as_known_at_unix_ms": 1795517000000,
+    "unresolved_obligation_ids": [
+      "obligation:calibration"
+    ],
+    "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309"
   },
   "expected": {
     "disposition": "RANKED_ACTIONS",
