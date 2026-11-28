@@ -3,7 +3,7 @@
   "claim_id": "claim:wing-panel-strength",
   "configuration_ref": "configuration:wing-r17",
   "as_known_at_unix_ms": 1800000000000,
-  "graph_snapshot_sha256": "e6f7bc70ba3a895f5884db87915903bfc2952e243965ba91ea25be5e0e96cd51",
+  "graph_snapshot_sha256": "cffdae3d91c6844354e0e62406ed9dd9caf461d4fa00c62554419bc5bc5f902c",
   "graph": {
     "schema": "AeroAssuranceDependencyGraphV0_1",
     "snapshot_id": "graph:snapshot-r1",
@@ -13,52 +13,52 @@
     "nodes": [
       {
         "node_id": "claim:wing-panel-strength",
+        "owner_namespace": "owner:engineering-evidence",
         "kind": "CLAIM",
         "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:engineering-evidence"
+        "dependency_manifest_complete": true
       },
       {
         "node_id": "obligation:material-lot",
+        "owner_namespace": "owner:engineering-evidence",
         "kind": "OBLIGATION",
         "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:engineering-evidence"
+        "dependency_manifest_complete": true
       },
       {
         "node_id": "evidence:material-certificate",
+        "owner_namespace": "owner:engineering-evidence",
         "kind": "EVIDENCE",
         "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:engineering-evidence"
+        "dependency_manifest_complete": true
       },
       {
         "node_id": "source:material-lot-record",
+        "owner_namespace": "owner:materials-authority",
         "kind": "SOURCE_RECORD",
         "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:materials-authority"
+        "dependency_manifest_complete": true
       },
       {
         "node_id": "obligation:solver-validation",
+        "owner_namespace": "owner:engineering-evidence",
         "kind": "OBLIGATION",
         "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:engineering-evidence"
+        "dependency_manifest_complete": true
       },
       {
         "node_id": "evidence:solver-report",
+        "owner_namespace": "owner:engineering-evidence",
         "kind": "EVIDENCE",
         "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:engineering-evidence"
+        "dependency_manifest_complete": true
       },
       {
         "node_id": "source:solver-validation-record",
+        "owner_namespace": "owner:engineering-evidence",
         "kind": "SOURCE_RECORD",
         "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-        "dependency_manifest_complete": true,
-        "owner_namespace": "owner:engineering-evidence"
+        "dependency_manifest_complete": true
       }
     ],
     "edges": [
@@ -93,7 +93,7 @@
     "owner_namespace": "owner:assurance-graph-authority",
     "claim_id": "claim:wing-panel-strength",
     "configuration_ref": "configuration:wing-r17",
-    "graph_snapshot_sha256": "e6f7bc70ba3a895f5884db87915903bfc2952e243965ba91ea25be5e0e96cd51",
+    "graph_snapshot_sha256": "cffdae3d91c6844354e0e62406ed9dd9caf461d4fa00c62554419bc5bc5f902c",
     "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "receiver_first_seen_at_unix_ms": 1799999970000,
     "effective_from_unix_ms": 1799999960000,
