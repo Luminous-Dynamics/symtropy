@@ -1,0 +1,53 @@
+schema_version = "0.1"
+program_id = "MAG-AM-EXPERIMENT-SELECTION-BENCH-001"
+revision = "0.1-draft"
+status = "synthetic_trace_evaluator"
+date = "2026-11-27"
+issue = 7794
+parents = [7757, 7770, 7774, 7791, 7792]
+
+[comparison]
+task_scope_matched = true
+seed_id_matched = true
+initial_design_digest_matched = true
+experiment_budget_matched = true
+holdout_manifest_matched = true
+holdout_split_unit_must_be = ["MaterialLot", "Build", "ProcessRevision"]
+random_row_holdout_is_qualification_grade = false
+all_initiated_outcomes_required = true
+missing_fail_indeterminate_not_evaluable_retained = true
+
+[policies]
+required = ["ExpertPrior", "FactorialDoe", "Random", "LatinHypercube", "MaximinSpaceFilling", "ClusterRepresentative", "GaussianProcessExpectedImprovement", "GaussianProcessUpperConfidenceBound", "ProbabilityOfFeasibility", "ThompsonSampling", "KnowledgeGradient", "ExpectedHypervolumeImprovement", "CostAwareBatch", "FeasibilityDiversityCombined"]
+
+[metrics]
+separate_metrics = ["simple_regret", "pareto_hypervolume", "feasible_discovery_rate", "false_feasible_selections", "unresolved_feasibility_selections", "cost_to_first_qualified", "total_experiment_cost", "holdout_interval_coverage", "holdout_interval_width", "holdout_feasibility_brier", "selection_diversity", "unique_candidate_fraction"]
+weighted_universal_score = false
+
+[implementation]
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+schema = "evaluator/experiment-selection-trace-v0.1.schema.json"
+fixture = "evaluator/fixtures/synthetic-experiment-selection-v0.1.json"
+source_register = "fixtures/experiment-selection-source-register-v0.1.json"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 18
+unit_tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_savings_is_real_experiment_savings = false
+bgolearn_40_60_percent_claim_transfers_to_magnetics = false
+random_search_alone_is_sufficient_baseline = false
+
+
+[batch_accounting]
+cost_to_first_qualified_includes_entire_successful_iteration_batch = true
+partial_batch_stop_credit = false
+cost_accumulation_saturates_u64 = true
+
+[regret]
+objective_direction_is_respected = true
+minimize_uses_best_qualified_minimum = true
+maximize_uses_best_qualified_maximum = true

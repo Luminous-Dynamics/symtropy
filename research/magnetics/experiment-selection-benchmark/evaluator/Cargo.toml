@@ -1,0 +1,11 @@
+[package]
+name = "magnetic-experiment-selection-benchmark"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Matched-budget, lot-heldout evaluation of magnetic materials experiment-selection policies"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
