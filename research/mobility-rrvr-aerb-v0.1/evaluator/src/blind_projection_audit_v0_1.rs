@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    canonical_sorted_json_sha256, BENCHMARK, CandidateEpisode, CandidateSubmission,
-    OPEN_WORLD_RESIDUAL, Observation, SCHEMA_VERSION, sha256_hex,
+    BENCHMARK, CandidateEpisode, CandidateSubmission, OPEN_WORLD_RESIDUAL, Observation,
+    SCHEMA_VERSION, canonical_sorted_json_sha256, sha256_hex,
 };
 
 #[cfg(test)]
@@ -572,10 +572,14 @@ pub fn project_candidate_submission(
     if original_submission.episode_id != original_episode.episode_id
         || receipt.original_episode_id != original_episode.episode_id
     {
-        return Err(ProjectionError::InvalidProjectionReceipt("submission source identity"));
+        return Err(ProjectionError::InvalidProjectionReceipt(
+            "submission source identity",
+        ));
     }
     if projected_episode.episode_id != receipt.candidate_episode_id {
-        return Err(ProjectionError::InvalidProjectionReceipt("submission projected identity"));
+        return Err(ProjectionError::InvalidProjectionReceipt(
+            "submission projected identity",
+        ));
     }
 
     let available_observation_ids = original_episode
@@ -588,16 +592,17 @@ pub fn project_candidate_submission(
         .iter()
         .any(|observation_id| !available_observation_ids.contains(observation_id.as_str()))
     {
-        return Err(ProjectionError::InvalidProjectionReceipt("submission explanation reference"));
+        return Err(ProjectionError::InvalidProjectionReceipt(
+            "submission explanation reference",
+        ));
     }
 
     let episode_json = serde_json::to_string(projected_episode)
         .map_err(|_| ProjectionError::SerializationFailed)?;
     let mut projected_submission = original_submission.clone();
     projected_submission.episode_id = projected_episode.episode_id.clone();
-    projected_submission.candidate_snapshot_sha256 =
-        canonical_sorted_json_sha256(&episode_json)
-            .map_err(|_| ProjectionError::SerializationFailed)?;
+    projected_submission.candidate_snapshot_sha256 = canonical_sorted_json_sha256(&episode_json)
+        .map_err(|_| ProjectionError::SerializationFailed)?;
     projected_submission.explanation_observation_ids = original_submission
         .explanation_observation_ids
         .iter()
