@@ -497,3 +497,212 @@ pub fn bind_claim_defeater_resolutions_v0_1(
         reason_codes,
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::claim_obligation_evidence_binding_v0_1::tests::build_case;
+
+    fn receipts_for_case(
+        spec: &ClaimSpecificationV0_1,
+        context: &DecisionContextV0_1,
+        states: &[DefeaterResolutionStateV0_1],
+    ) -> Vec<ClaimDefeaterResolutionReceiptV0_1> {
+        let profile = derive_claim_obligation_profile_v0_1(
+            spec,
+            RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
+        )
+        .profile
+        .expect("registered profile");
+        let expected = defeater_specs(spec, &profile);
+        assert_eq!(expected.len(), states.len());
+        expected
+            .iter()
+            .zip(states)
+            .enumerate()
+            .map(|(index, ((obligation_id, source_ref, kind, statement_sha), state))| {
+                let evidence_refs = if *state == DefeaterResolutionStateV0_1::ResolvedWithEvidence {
+                    vec![format!("evidence:defeater-support-{index}")]
+                } else {
+                    Vec::new()
+                };
+                let evidence_manifest =
+                    compute_defeater_supporting_evidence_manifest_sha256_v0_1(&evidence_refs)
+                        .expect("evidence manifest");
+                ClaimDefeaterResolutionReceiptV0_1 {
+                    verification_status: DefeaterResolutionReceiptStatusV0_1::Verified,
+                    reviewer_namespace: "reviewer:structures-board".to_owned(),
+                    authority_holder_namespace: "authority:independent-structures-reviewer".to_owned(),
+                    authority_role_ref: spec.acceptance_authority_role_ref.clone(),
+                    claim_id: spec.claim_id.clone(),
+                    configuration_ref: spec.configuration_ref.clone(),
+                    decision_context_sha256: context.compute_sha256().expect("context digest"),
+                    claim_specification_semantic_sha256: spec.compute_semantic_sha256().expect("semantic digest"),
+                    obligation_profile_sha256: profile.profile_sha256.clone(),
+                    obligation_manifest_sha256: profile.obligation_manifest_sha256.clone(),
+                    obligation_id: obligation_id.clone(),
+                    requirement_source_ref: source_ref.clone(),
+                    defeater_kind: *kind,
+                    statement_sha256: statement_sha.clone(),
+                    state: *state,
+                    supporting_evidence_refs: evidence_refs,
+                    supporting_evidence_manifest_sha256: evidence_manifest,
+                    rationale_sha256: if matches!(
+                        state,
+                        DefeaterResolutionStateV0_1::AcceptedAsLimitation
+                            | DefeaterResolutionStateV0_1::NotApplicableWithJustification
+                    ) {
+                        Some(format!("{:064x}", index + 1))
+                    } else {
+                        None
+                    },
+                    receiver_first_seen_at_unix_ms: context.as_known_at_unix_ms - 100,
+                    effective_from_unix_ms: context.as_known_at_unix_ms - 200,
+                    effective_until_unix_ms: context.as_known_at_unix_ms + 200,
+                    receipt_sha256: format!("{:064x}", index + 10),
+                }
+            })
+            .collect()
+    }
+
+    fn evaluate_case(
+        receipts: &[ClaimDefeaterResolutionReceiptV0_1],
+    ) -> ClaimDefeaterResolutionAssessmentV0_1 {
+        let (_, spec, context, ..) = build_case();
+        bind_claim_defeater_resolutions_v0_1(ClaimDefeaterResolutionInputV0_1 {
+            schema: CLAIM_DEFEATER_RESOLUTION_SCHEMA_V0_1.to_owned(),
+            requirement_profile: RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
+            claim_specification: &spec,
+            decision_context: &context,
+            receipts,
+        })
+    }
+
+    #[test]
+    fn all_declared_assumption_and_exclusion_defeaters_are_explicitly_reviewed() {
+        let (_, spec, context, ..) = build_case();
+        let states = (0..(spec.assumptions.len() + spec.exclusions.len()))
+            .map(|index| match index % 3 {
+                0 => DefeaterResolutionStateV0_1::ResolvedWithEvidence,
+                1 => DefeaterResolutionStateV0_1::AcceptedAsLimitation,
+                _ => DefeaterResolutionStateV0_1::NotApplicableWithJustification,
+            })
+            .collect::<Vec<_>>();
+        let receipts = receipts_for_case(&spec, &context, &states);
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::AllReviewed);
+        assert!(result.open_obligation_ids.is_empty());
+        assert_eq!(result.defeaters.len(), states.len());
+        assert!(result.advisory_nonblocking);
+        assert!(!result.complete_claim_assurance_state);
+        assert!(!result.assurance_state_mutated);
+        assert!(!result.engineering_acceptance_granted);
+        assert!(!result.physical_work_authorized);
+    }
+
+    #[test]
+    fn open_defeater_remains_open_and_does_not_upgrade_or_downgrade_claim_gate() {
+        let (_, spec, context, ..) = build_case();
+        let mut states = vec![DefeaterResolutionStateV0_1::ResolvedWithEvidence;
+            spec.assumptions.len() + spec.exclusions.len()];
+        states[0] = DefeaterResolutionStateV0_1::Open;
+        let receipts = receipts_for_case(&spec, &context, &states);
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::OpenItemsRemain);
+        assert_eq!(result.open_obligation_ids.len(), 1);
+        assert!(result.advisory_nonblocking);
+        assert!(!result.complete_claim_assurance_state);
+    }
+
+    #[test]
+    fn missing_receipt_is_preserved_as_open_not_assumed_resolved() {
+        let (_, spec, context, ..) = build_case();
+        let states = vec![DefeaterResolutionStateV0_1::ResolvedWithEvidence;
+            spec.assumptions.len() + spec.exclusions.len()];
+        let mut receipts = receipts_for_case(&spec, &context, &states);
+        receipts.pop();
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::OpenItemsRemain);
+        assert_eq!(result.open_obligation_ids.len(), 1);
+        assert!(result.defeaters.iter().any(|item| {
+            item.state.is_none()
+                && item.reason_codes.contains(
+                    &"CLAIM_DEFEATER_REVIEW_RECEIPT_MISSING".to_owned()
+                )
+        }));
+    }
+
+    #[test]
+    fn receipt_for_an_undeclared_defeater_is_rejected() {
+        let (_, spec, context, ..) = build_case();
+        let states = vec![DefeaterResolutionStateV0_1::ResolvedWithEvidence;
+            spec.assumptions.len() + spec.exclusions.len()];
+        let mut receipts = receipts_for_case(&spec, &context, &states);
+        let mut extra = receipts[0].clone();
+        extra.obligation_id = "assumption-defeater:assumption:not-in-claim".to_owned();
+        receipts.push(extra);
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::Rejected);
+    }
+
+    #[test]
+    fn supporting_evidence_is_required_for_resolved_state() {
+        let (_, spec, context, ..) = build_case();
+        let mut states = vec![DefeaterResolutionStateV0_1::ResolvedWithEvidence;
+            spec.assumptions.len() + spec.exclusions.len()];
+        let mut receipts = receipts_for_case(&spec, &context, &states);
+        receipts[0].supporting_evidence_refs.clear();
+        receipts[0].supporting_evidence_manifest_sha256 =
+            compute_defeater_supporting_evidence_manifest_sha256_v0_1(&[])
+                .expect("empty evidence manifest");
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::Rejected);
+    }
+
+    #[test]
+    fn limitation_or_non_applicability_requires_a_rationale_digest() {
+        let (_, spec, context, ..) = build_case();
+        let mut states = vec![DefeaterResolutionStateV0_1::AcceptedAsLimitation;
+            spec.assumptions.len() + spec.exclusions.len()];
+        states[0] = DefeaterResolutionStateV0_1::NotApplicableWithJustification;
+        let mut receipts = receipts_for_case(&spec, &context, &states);
+        receipts[0].rationale_sha256 = None;
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::Rejected);
+    }
+
+    #[test]
+    fn late_resolution_receipt_cannot_backfill_historical_review() {
+        let (_, spec, context, ..) = build_case();
+        let states = vec![DefeaterResolutionStateV0_1::ResolvedWithEvidence;
+            spec.assumptions.len() + spec.exclusions.len()];
+        let mut receipts = receipts_for_case(&spec, &context, &states);
+        receipts[0].receiver_first_seen_at_unix_ms = context.as_known_at_unix_ms + 1;
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::Unverified);
+    }
+
+    #[test]
+    fn reviewer_cannot_change_the_registered_acceptance_role() {
+        let (_, spec, context, ..) = build_case();
+        let states = vec![DefeaterResolutionStateV0_1::ResolvedWithEvidence;
+            spec.assumptions.len() + spec.exclusions.len()];
+        let mut receipts = receipts_for_case(&spec, &context, &states);
+        receipts[0].authority_role_ref = "role:unrelated".to_owned();
+        let result = evaluate_case(&receipts);
+        assert_eq!(result.disposition, DefeaterBindingDispositionV0_1::Rejected);
+    }
+
+    #[test]
+    fn receipt_order_permutation_preserves_the_complete_assessment() {
+        let (_, spec, context, ..) = build_case();
+        let states = vec![DefeaterResolutionStateV0_1::AcceptedAsLimitation;
+            spec.assumptions.len() + spec.exclusions.len()];
+        let receipts = receipts_for_case(&spec, &context, &states);
+        let baseline = evaluate_case(&receipts);
+        let mut permuted = receipts;
+        permuted.reverse();
+        assert_eq!(baseline, evaluate_case(&permuted));
+    }
+}
