@@ -990,6 +990,14 @@ mod tests {
     }
 
     #[test]
+    fn metadata_only_fixture_cannot_claim_a_field_clock_alignment() {
+        let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
+        value["time_alignment_method"] = Value::from("ptp_ntp_verified");
+        let bytes = serde_json::to_vec(&value).expect("mismatched alignment method");
+        assert!(audit_event_censoring_evaluation(SCHEMA, &bytes).is_err());
+    }
+
+    #[test]
     fn rejects_alarm_score_not_above_frozen_threshold() {
         let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
         value["alarms"][0]["score"] = Value::from(0.5);
