@@ -34,6 +34,12 @@ The paper's diagnosis matters more than its leaderboard number:
 
 This is an unusually clear opportunity to test whether an explicit, provenance-bearing spatial state and typed state transition solve a different bottleneck from a larger image-language backbone or more chain-of-thought prompting.
 
+### Adjacent benchmark: SpatialCast (not pooled with SpaceCast)
+
+A second, newer benchmark adds a complementary physical-projection dimension. [SpatialCast (arXiv:2611.22657, 17 November 2026)](https://arxiv.org/abs/2611.22657) tests geometry/light/shadow/camera consistency, projection propagation after specified interventions, and attribution of changes from paired images. It reports 21,000 synthetic questions (4,500 test) plus 200 real-photograph questions across 20 scenes. Its best reported API model reaches 79.42% on the synthetic test and 79.50% on the real subset; chance differs by task format (25% synthetic, 34.38% real). These figures are **not comparable to SpaceCast's macro accuracy**.
+
+SpatialCast is a useful future projection-physics lane: the observation depends jointly on geometry, pose, lighting and camera. Its trained 8B GRPO model reaches 38.73% overall on its synthetic test (versus 24.40% base) and improves T2 projection propagation by 23.33 points. Do not pool its synthetic, real-photo, or trained results with SpaceCast. The paper currently does not expose a code-repository URL in its arXiv source page; reproduction requires locating an official implementation and checking the ReNe image rights independently.
+
 ## 3. Testable architectural hypothesis
 
 A state-transition candidate should:
