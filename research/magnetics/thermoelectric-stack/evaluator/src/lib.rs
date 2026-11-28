@@ -1005,7 +1005,7 @@ mod tests {
             ("effective_thermal_resistance", "K/W", values[7], 0.01, '2'),
             ("system_mass", "kg", values[8], 0.1, '3'),
         ];
-        let observations = metric_values
+        let observations: Vec<Observation> = metric_values
             .into_iter()
             .map(
                 |(metric_id, unit, value, uncertainty_radius, suffix)| Observation {
@@ -1233,9 +1233,8 @@ mod tests {
     #[test]
     fn duplicate_metric_observations_invalidate_evidence() {
         let mut trials = known_trials();
-        trials[0]
-            .observations
-            .push(trials[0].observations[0].clone());
+        let duplicate = trials[0].observations[0].clone();
+        trials[0].observations.push(duplicate);
         let result = evaluate(&spec(), &trials);
         assert_eq!(result[0].decision, Decision::Indeterminate);
         assert!(result[0].blockers.contains(&Blocker::DuplicateObservation));
