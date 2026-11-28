@@ -157,6 +157,16 @@ This first tranche carries only paper-level metadata and synthetic matrix descri
 
 SpaceCast is based on indoor ScanNet/ScanNet++ scenes and programmatic geometric transformations. Its reported labels do not establish real physical dynamics, contact forces, friction, collisions, deformation or manipulation safety.
 
+## Dataset rights gate — reviewed 2026-11-28
+
+The official source terms were inspected directly:
+- [ScanNet Terms of Use](https://kaldir.vc.in.tum.de/scannet/ScanNet_TOS.pdf): clause 1 limits use to non-commercial research and educational purposes; clause 6 says a researcher's for-profit commercial employer must also be bound, with the researcher representing they are authorized to sign on the employer's behalf. Access is approval-based after submitting the agreement.
+- [ScanNet++ Terms of Use](https://scannetpp.mlsg.cit.tum.de/scannetpp/static/scannetpp-terms-of-use.pdf): clause 1 limits use to non-commercial research and educational purposes and expressly prohibits commercial use; clause 4 restricts sharing to research associates/colleagues who have also signed; clause 7 binds a for-profit employer and requires authority to sign for it. Signatures must be handwritten; digital signatures are not accepted. Access follows application approval.
+
+**Decision for this protocol:** no dataset access has been requested or granted, and no source media has been downloaded. The SpaceCast code repository's Apache-2.0 license does not override the ScanNet/ScanNet++ data terms. Do not use embedded benchmark media in a commercial Luminous product, training pipeline or customer work under these terms. Before even a company-hosted non-commercial research run, obtain written approval/interpretation from the dataset owners, confirm the permitted scope, and complete all required signatures with an authorized employer representative. The current state is `terms_reviewed_access_not_granted`, not rights-qualified.
+
+A rights-cleared alternative for initial engineering qualification is to use synthetic ROOM-TWIN/other internally generated scenes, or a benchmark with explicit commercial-use rights, while retaining the SpaceCast metric definitions as a crosswalk only.
+
 ## 10. Existing ownership boundaries
 
 - #6183/#6184: AV scenario matrix and candidate projection contract.
