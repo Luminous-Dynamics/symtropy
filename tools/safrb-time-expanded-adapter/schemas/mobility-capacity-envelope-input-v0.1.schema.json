@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/mobility-capacity-envelope-input-v0.1.schema.json",
+  "title": "SAFRB Mobility Capacity Envelope Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "timebase_ref",
+    "unit_ref",
+    "quantity_boundary_ref",
+    "mobility_instance",
+    "bindings",
+    "capacity_schedules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-mobility-capacity-envelope-v0.1"
+    },
+    "timebase_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "unit_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "quantity_boundary_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mobility_instance": {
+      "$ref": "mobility-instance-v0.1.schema.json"
+    },
+    "bindings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/binding"
+      }
+    },
+    "capacity_schedules": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "capacity-schedule-input-v0.1.schema.json"
+      }
+    }
+  },
+  "$defs": {
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arc_id",
+        "arc_capacity_subject_id",
+        "arc_resource_ref",
+        "corridor_capacity_subject_id"
+      ],
+      "properties": {
+        "arc_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arc_capacity_subject_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "arc_resource_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corridor_capacity_subject_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "description": "Exactly one complete, dimensionally consistent Route-role schedule is required for each mobility scenario. Every directed arc has one distinct arc subject; aliases of a shared physical corridor must use one shared corridor subject."
+}

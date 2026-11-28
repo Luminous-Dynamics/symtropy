@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/mobility-instance-v0.1.schema.json",
+  "title": "SAFRB Bounded Mobility Policy Instance v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "horizon_last_period",
+    "sites",
+    "units",
+    "arcs",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-mobility-instance-v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "horizon_last_period": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "sites": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "units": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": {
+        "$ref": "#/$defs/unit"
+      }
+    },
+    "arcs": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/arc"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "initial_site_id"
+      ],
+      "properties": {
+        "unit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_site_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "arc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arc_id",
+        "from_site_id",
+        "to_site_id",
+        "travel_time_periods",
+        "arc_capacity_per_departure",
+        "corridor_ref",
+        "corridor_capacity_per_departure",
+        "available_departure_periods"
+      ],
+      "properties": {
+        "arc_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "travel_time_periods": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "arc_capacity_per_departure": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "corridor_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "corridor_capacity_per_departure": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "available_departure_periods": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reveal_period",
+        "event_id",
+        "key",
+        "value"
+      ],
+      "properties": {
+        "reveal_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arc_id",
+        "departure_period",
+        "observed_at_period"
+      ],
+      "properties": {
+        "arc_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "departure_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "observed_at_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        }
+      }
+    },
+    "serviceFloor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site_id",
+        "period",
+        "minimum_units"
+      ],
+      "properties": {
+        "site_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "minimum_units": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "observations",
+        "route_closures",
+        "service_floors"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "route_closures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/closure"
+          }
+        },
+        "service_floors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/serviceFloor"
+          }
+        },
+        "route_capacity_overrides": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeCapacityOverride"
+          },
+          "description": "Optional scenario-specific per-departure overrides. If non-empty, it must contain every directed arc at every decision period exactly once. Shared aliases must agree on corridor_capacity."
+        }
+      }
+    },
+    "routeCapacityOverride": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "arc_id",
+        "departure_period",
+        "arc_capacity",
+        "corridor_capacity"
+      ],
+      "properties": {
+        "arc_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "departure_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "arc_capacity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "corridor_capacity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "description": "v0.1 exact reference limits: 2–4 sites, 1–4 homogeneous units, at most 8 directed arcs, at most 8 scenarios and last service boundary 0–4. Route capacity and physical corridor capacity are separate. Observation reveal time is distinct from the physical time a closure applies. Scenario route_capacity_overrides are optional for legacy static inputs; when present they replace static capacities for each departure period and must form a complete arc-by-period table."
+}

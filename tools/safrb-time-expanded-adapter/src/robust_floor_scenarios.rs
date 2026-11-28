@@ -648,23 +648,25 @@ mod tests {
         ))
         .unwrap();
         assert_eq!(input_schema["properties"]["floors"]["type"], "array");
-        assert!(
+        assert_eq!(
             input_schema["required"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|value| value == "recourse_assumption")
+                .any(|value| value == "recourse_assumption"),
+            true
         );
         assert_eq!(
             input_schema["properties"]["recourse_assumption"]["const"],
             "scenario_observed_before_allocation"
         );
-        assert!(
+        assert_eq!(
             report_schema["required"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|value| value == "recourse_assumption")
+                .any(|value| value == "recourse_assumption"),
+            true
         );
         assert_eq!(
             report_schema["properties"]["recourse_assumption"]["const"],
