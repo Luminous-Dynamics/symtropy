@@ -63,6 +63,18 @@ These fields are inputs from source-owner evaluators. This prototype does not au
 
 Each action names target obligation IDs and an expected artifact-contract digest. This prevents a recommendation from becoming an unconstrained prompt such as “run a test and see what happens.” The owner still controls the acquisition method, prerequisites, safety envelope, approvals and execution. The permission receipt is bound to the claim, decision-context digest, configuration, action ID, action-catalogue entry digest, effective interval and receiver-first-seen time. The outcome-model calibration receipt is separately bound to the same claim/context/configuration/action, the exact outcome-model digest, calibration profile/report, effective interval and receiver-first-seen time. A receipt for another aircraft, action or model is excluded; a receipt first seen after the selected as-known cutoff cannot authorize a historical recommendation.
 
+## 3A. Exact decision and acquisition commitments
+
+The planner recomputes three source commitments before ranking:
+
+1. **Decision-model commitment:** sorted decision alternatives, sorted world states with exact prior PPM, and the complete decision × state integer utility matrix. A caller cannot change a prior or utility while retaining the old decision-model digest.
+2. **Action-catalogue cut commitment:** the exact candidate action IDs, acquisition-owner namespaces, outcome-model-owner namespaces and owner-issued catalogue-entry digests. A caller cannot omit or substitute a candidate while retaining the previous cut digest.
+3. **Unresolved-obligation manifest:** the unique, sorted obligation IDs supplied by the source-bound assurance state. Every action target must be a member of this unresolved set.
+
+Each model-calibration receipt additionally commits to a deterministic, sorted likelihood-table envelope containing the exact action ID, outcome-model SHA-256 and every (P(\text{outcome}\mid\text{state},\text{action})) PPM cell. The receipt must match the declared outcome-model owner, claim, decision context, configuration, action, model digest, likelihood-table digest, receiver-first-seen cutoff and effective interval. Changing the likelihood table while retaining the old receipt excludes the action.
+
+These commitments use domain-separated, schema-versioned Serde JSON envelopes in the frozen v0.1 profile. This improves reconstruction and substitution detection but remains an implementation-specific serialization contract. Cross-language JCS / deterministic-CBOR alternatives are a separate versioned interoperability study; v0.1 commitments must not be silently reinterpreted.
+
 ## 4. Authority and non-mutation contract
 
 The planner copies the following through unchanged:
