@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "Synthetic planning example only; no powered experiment or manufacturing inference is claimed.",
+  "spec": {
+    "campaign_id": "PAIRED-HPMS-PEM-POWER-001",
+    "endpoint_id": "absolute_br_paired_lot_difference",
+    "unit": "T",
+    "direction": "Maximize",
+    "noninferiority_margin": 0.05,
+    "target_effect": 0,
+    "familywise_alpha": 0.05,
+    "multiplicity_endpoints": 3,
+    "target_power": 0.8,
+    "maximum_type1_error_upper_bound": 0.1,
+    "minimum_power_lower_bound": 0.7,
+    "minimum_independent_lot_pairs": 6,
+    "minimum_build_pairs_per_lot": 3,
+    "build_pair_missing_probability": 0.05,
+    "variance_bounds": {
+      "between_lot_sd": {
+        "lower": 0.01,
+        "upper": 0.03
+      },
+      "within_lot_build_sd": {
+        "lower": 0.01,
+        "upper": 0.04
+      }
+    },
+    "monte_carlo_replicates": 2000,
+    "random_seed": 123456789,
+    "candidates": [
+      {
+        "candidate_id": "PILOT-3x3",
+        "independent_lot_pairs": 3,
+        "paired_build_blocks_per_lot": 3
+      },
+      {
+        "candidate_id": "SCREEN-8x4",
+        "independent_lot_pairs": 8,
+        "paired_build_blocks_per_lot": 4
+      },
+      {
+        "candidate_id": "CONFIRM-12x4",
+        "independent_lot_pairs": 12,
+        "paired_build_blocks_per_lot": 4
+      },
+      {
+        "candidate_id": "CONFIRM-16x4",
+        "independent_lot_pairs": 16,
+        "paired_build_blocks_per_lot": 4
+      },
+      {
+        "candidate_id": "CONFIRM-20x4",
+        "independent_lot_pairs": 20,
+        "paired_build_blocks_per_lot": 4
+      }
+    ]
+  }
+}
