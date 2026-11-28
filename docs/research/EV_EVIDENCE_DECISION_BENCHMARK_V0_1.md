@@ -91,6 +91,29 @@ Paper DOI: https://doi.org/10.1016/j.energy.2026.142412
 
 The benchmark question is not whether Symthaea obtains lower RMSE on a random split. It is whether it preserves calibrated uncertainty and safe capability bounds on held-out vehicles, chemistries, routes, temperature regimes and early-data budgets.
 
+### Battery fault classification and field-warning baselines (2026)
+
+**CH-BatteryGen (ICLR 2026) is the fault-classification benchmark, not field-warning ground truth.** The paper explicitly distinguishes two partitions: a stratified 80:20 segment-level split and a strict vehicle-level split in which all segments from one pack instance remain in one partition. We must reproduce both; do not dismiss the published vehicle-level result as a window-random split.
+
+The dataset is nevertheless *generated*: commercial confidentiality prevents release of the fault-labelled raw fleet telemetry. Real onboard operational data calibrate and constrain the generative pipeline; released voltage/current/temperature/SOC traces are produced through mechanism-constrained models. The paper describes 1,000 pack/vehicle instances, 500 per chemistry, with 400 normal and 200 faulty per chemistry across high resistance, low capacity and self-discharge. Treat that as generated/mechanism-constrained benchmark scale, not 1,000 independent raw field-telemetry vehicles.
+
+Paper-reported **strict vehicle-level** CNN references:
+- classification F1: LFP discharge 0.9280; LFP charge 0.8899; NCM charge 0.8897; NCM discharge 0.8580;
+- severity grading F1: LFP charge 0.8813; LFP discharge 0.7823.
+
+For a fair replication, preserve the released preprocessing and label/task definition, reproduce both split protocols, and report the class denominators and confusion matrices. Then add stricter stress lanes that the paper numbers do not answer: leave-one-topology/temperature/chemistry-out, corruption and missing-channel robustness, calibration, selective risk/coverage, and cross-dataset transfer. Never compare these generated segment/vehicle classification scores directly with real-world event-warning coverage or false alarms per vehicle-hour.
+
+Paper: Liu et al., ICLR 2026, *Battery Fault: A Comprehensive Dataset and Benchmark for Battery Fault Diagnosis*.  
+https://proceedings.iclr.cc/paper_files/paper/2026/file/0d781fa5f639bf2caf728a68e9678362-Paper-Conference.pdf
+
+**Real-world weak-label warning reference (Batteries 2026, 12(10), 415).** The cell-wise LOF + validity-gated SPOT/EVT paper reports seven event-labelled vehicles and two independent normal vehicles. It records an alarm within the preceding 24 hours for all seven events, median lead 17.39 hours; however its window-level recall is 0.029 under broad ±24-hour event labels, with one event providing only 0.053 hours of notice. The recorded event time is the earliest voltage-related BMS bit-64 alarm or a source fault-time-file value, with no manual time shift; the authors explicitly do not correct for maintenance delay or unobserved physical onset. Thus the result is a valuable **recorded-event-time** warning reference, but not seven independently observed physical-onset truths or a large fleet validation.
+
+Its declared q=0.01 setup reports 1.85% aggregate false alarms on pre-event baselines and 1.64% on independent normal vehicles. Do not interpret these as a fleet-wide false alarms-per-1,000-vehicle-hours rate without matching the paper's exposure and alarm definitions. Our event-censoring benchmark (#7872/#7874) adds the missing distinction between record timestamps, onset intervals, definite/possible warnings, monitoring gaps and right-censored exposure.
+
+Paper: Yang et al., *Cell-Wise Fault Warning for Lithium-Ion Battery Packs Using Local Outlier Factor and Validity-Gated Extreme-Value Thresholds*, 10 October 2026.  
+https://www.mdpi.com/2313-0105/12/10/415
+
+
 ### Grid capacity and valet charging
 
 A 2025 Applied Energy vehicle-valet study reports a 64% average grid-capacity reduction in its 30-vehicle case (5th/95th percentiles 55%/73%) and 13% lower levelized cost of charging (8%/24% bounds). This is a replication target, not our result.
