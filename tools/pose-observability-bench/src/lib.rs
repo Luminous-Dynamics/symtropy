@@ -164,6 +164,11 @@ fn validate_request(request: &ObservabilityRequest) -> Result<(), String> {
     if request.camera.fx_px <= 0.0 || request.camera.fy_px <= 0.0 {
         return Err("camera focal lengths must be positive".to_string());
     }
+    if !(0.0..f64::from(request.camera.width)).contains(&request.camera.cx_px)
+        || !(0.0..f64::from(request.camera.height)).contains(&request.camera.cy_px)
+    {
+        return Err("camera principal point must lie within the declared image bounds".to_string());
+    }
     if request.translation_scale_m <= 0.0 {
         return Err("translation_scale_m must be positive".to_string());
     }
@@ -194,6 +199,14 @@ fn validate_request(request: &ObservabilityRequest) -> Result<(), String> {
         for value in observation.measured_pixel_uv {
             finite(value, "measured_pixel_uv")?;
         }
+        if !(0.0..f64::from(request.camera.width)).contains(&observation.measured_pixel_uv[0])
+            || !(0.0..f64::from(request.camera.height)).contains(&observation.measured_pixel_uv[1])
+        {
+            return Err(format!(
+                "landmark {} pixel coordinate lies outside the image",
+                observation.landmark_id
+            ));
+        }
         finite(observation.sigma_px, "sigma_px")?;
         finite(observation.weight, "weight")?;
         if observation.point_camera_m[2] <= 1e-9 {
@@ -202,8 +215,12 @@ fn validate_request(request: &ObservabilityRequest) -> Result<(), String> {
                 observation.landmark_id
             ));
         }
-        if observation.sigma_px <= 0.0 {
+            if observation.sigma_px <= 0.0 {
             return Err(format!("landmark {} sigma_px must be positive", observation.landmark_id));
+        }
+        let variance = observation.sigma_px * observation.sigma_px;
+        if !variance.is_finite() || variance <= 0.0 {
+            return Err(format!("landmark {} sigma_px variance is invalid", observation.landmark_id));
         }
         if !(0.0..=1.0).contains(&observation.weight) {
             return Err(format!("landmark {} weight must be in [0, 1]", observation.landmark_id));
@@ -377,7 +394,17 @@ pub fn evaluate(request: &ObservabilityRequest) -> Result<ObservabilityResult, S
         let predicted = project(&request.camera, observation.point_camera_m);
         let du = predicted[0] - observation.measured_pixel_uv[0];
         let dv = predicted[1] - observation.measured_pixel_uv[1];
-        residuals.push((du * du + dv * dv).sqrt());
+        let residual = (du * du + dv * dv).sqrt();
+        if !predicted[0].is_finite()
+            || !predicted[1].is_finite()
+            || !residual.is_finite()
+        {
+            return Err(format!(
+                "landmark {} reprojection residual is non-finite",
+                observation.landmark_id
+            ));
+        }
+        residuals.push(residual);
 
         if observation.weight == 0.0 {
             continue;
@@ -385,7 +412,14 @@ pub fn evaluate(request: &ObservabilityRequest) -> Result<ObservabilityResult, S
         let point_j = point_jacobian(observation.point_camera_m, request.translation_scale_m);
         let projection_j = projection_jacobian(&request.camera, observation.point_camera_m);
         let jacobian = multiply_2x3_3x6(projection_j, point_j);
-        let information_weight = observation.weight / (observation.sigma_px * observation.sigma_px);
+        let information_weight = observation.weight
+            / (observation.sigma_px * observation.sigma_px);
+        if !information_weight.is_finite() {
+            return Err(format!(
+                "landmark {} information weight is non-finite",
+                observation.landmark_id
+            ));
+        }
         add_outer_product(&mut fim, jacobian, information_weight);
         effective_observation_count += 1;
     }
