@@ -44,3 +44,11 @@ path = "src/bin/aerb_blind_materialize.rs"
 [[bin]]
 name = "aerb_blind_campaign_evaluate"
 path = "src/bin/aerb_blind_campaign_evaluate.rs"
+
+[[bin]]
+name = "aerb_reference_candidate"
+path = "src/bin/aerb_reference_candidate.rs"
+
+[[bin]]
+name = "aerb_sandbox_launch"
+path = "src/bin/aerb_sandbox_launch.rs"
