@@ -234,7 +234,7 @@ The following are engineering targets for the programme. They are deliberately s
 | Dimension | Proposed target | Qualification condition |
 |---|---:|---|
 | SPEED+ known-target rotation | mean ≤ 1.0° on Lightbox and Sunlamp | Same official test protocol and independent reproduction; report mean/median/P95 and translation separately |
-| SPEED+ compute envelope | ≤ 50 ms/crop and ≤ 11 W board power | Same Jetson Orin NX 16 GB hardware/power mode as the published DINOv3 reference; include full pipeline, not encoder-only |
+| SPEED+ compute envelope | ≤ 45 ms/crop and ≤ 10.7 W board power | Same Jetson Orin NX 16 GB hardware/power mode as the published DINOv3 reference; include full pipeline, not encoder-only |
 | Pose tail risk | P95/P99 and max-horizon errors reported; no critical frame hidden by sequence mean | Fixed mission tolerance and independent sequence-level scoring |
 | New-target generalization | ≤ 2° mean rotation as an initial target | Unseen target and unseen target-family splits; no target leakage or test-time labels |
 | Small-part perception | ≥ 95% recall at a predeclared false-positive budget | Thrusters, antennas and other small parts; report per-part and range/occlusion strata |
