@@ -1,0 +1,75 @@
+schema_version = "0.1"
+program_id = "MAG-FAULT-SURVIVABILITY-001"
+revision = "0.1-draft"
+status = "synthetic_fault_evidence_evaluator"
+date = "2026-11-28"
+issue = 7934
+parents = [7890, 7802, 7793, 7870, 7911, 7912, 7913, 7916, 7918]
+
+[design_paradigm]
+objective = "safe_post_fault_functional_service"
+universal_irreversible_flux_loss_threshold = false
+local_magnet_zone_maps_required = true
+independent_bulk_flux_measurement_required = true
+fault_trace_order_required = true
+fault_waveform_and_temperature_scope_bound = true
+mechanical_containment_and_retention_required = true
+post_fault_degraded_mission_required = true
+
+[exposure]
+fault_scenarios_preregistered = true
+sequence_and_timestamp_monotonic = true
+peak_current_rotor_speed_magnet_temperature_duration_cooling_recorded = true
+fault_kind_and_fault_receipt_bound = true
+sensor_method_calibration_uncertainty_required = true
+
+[material]
+pre_and_post_fault_bulk_flux_required = true
+pre_and_post_fault_local_zone_maps_required = true
+every_required_magnet_zone_covered = true
+zone_loss_reported_separately = true
+unweighted_zone_average_as_bulk_metric = false
+local_failure_cannot_be_hidden_by_bulk_average = true
+
+[structural]
+retention_and_containment_required = true
+crack_or_deformation_inspection_required = true
+mechanical_stress_interval_required = true
+mechanical_safety_factor_interval_required = true
+vibration_measurement_required = true
+
+[degraded_mission]
+accepted_shaft_energy_required = true
+minimum_torque_margin_required = true
+maximum_temperature_required = true
+mission_completion_fraction_required = true
+physical_post_fault_measurement_required = true
+simulation_only_component_survivability = false
+
+[comparators]
+required_application_matched_architectures = ["NdFeB_IPM", "Ferrite_Spoke_or_PMaSynRM", "WoundField_Synchronous", "Induction_or_SynRM"]
+study_specific_demagnetization_safety_factor_reference = 1.3
+study_specific_mechanical_safety_factor_reference = 2.0
+reference_values_are_universal_limits = false
+
+[implementation]
+language = "Rust 2024"
+dependencies = []
+manifest = "evaluator/Cargo.toml"
+source = "evaluator/src/lib.rs"
+schema = "evaluator/fault-survivability-v0.1.schema.json"
+fixture = "evaluator/fixtures/fault-survivability-synthetic-v0.1.json"
+source_register = "source-register.json"
+workflow = ".github/workflows/magnetic-fault-survivability.yml"
+authored_unit_tests = 27
+tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_fixture_promotes_physical_fault_survivability = false
+simulation_only_promotes_component_survivability = false
+normal_duty_test_substitutes_for_fault_test = false
+bulk_flux_average_substitutes_for_local_zone_map = false
+flux_loss_percentage_alone_decides_failure = false
+safety_certification_claimed = false
+fleet_reliability_or_life_prediction_claimed = false
