@@ -66,7 +66,7 @@ pub struct PowerSpec {
     pub direction: Direction,
     /// Positive margin in the direction where recovered feedstock is worse.
     pub noninferiority_margin: f64,
-    /// Expected recovered-minus-virgin effect after orienting positive as better.
+    /// Expected raw recovered-minus-virgin effect. Direction orients positive as better.
     pub target_effect: f64,
     /// Familywise one-sided alpha, divided by multiplicity_endpoints.
     pub familywise_alpha: f64,
@@ -276,8 +276,6 @@ fn simulate_scenario(
     alpha: f64,
     seed: u64,
 ) -> VarianceScenarioResult {
-    let df = f64::from(candidate.independent_lot_pairs.saturating_sub(1));
-    let critical = student_t_quantile(1.0 - alpha, df);
     let mut rng = XorShift64::new(seed);
     let mut null_rejections = 0_u32;
     let mut alternative_rejections = 0_u32;
@@ -285,7 +283,7 @@ fn simulate_scenario(
     let mut below_minimum = 0_u32;
 
     let null_effect = -spec.noninferiority_margin;
-    let alternative_effect = spec.target_effect;
+    let alternative_effect = orient_effect(spec.target_effect, spec.direction);
 
     for _ in 0..spec.monte_carlo_replicates {
         let null_sample = simulate_lot_means(
@@ -300,7 +298,7 @@ fn simulate_scenario(
         analyzable_total += u64::from(null_sample.len() as u32);
         if null_sample.len() < spec.minimum_independent_lot_pairs as usize {
             below_minimum += 1;
-        } else if one_sample_t_statistic(&null_sample).is_some_and(|stat| stat > critical) {
+        } else if one_sided_noninferiority_rejects(&null_sample, null_effect, alpha) {
             null_rejections += 1;
         }
 
@@ -316,7 +314,7 @@ fn simulate_scenario(
         analyzable_total += u64::from(alternative_sample.len() as u32);
         if alternative_sample.len() < spec.minimum_independent_lot_pairs as usize {
             below_minimum += 1;
-        } else if one_sample_t_statistic(&alternative_sample).is_some_and(|stat| stat > critical) {
+        } else if one_sided_noninferiority_rejects(&alternative_sample, null_effect, alpha) {
             alternative_rejections += 1;
         }
     }
@@ -366,8 +364,8 @@ fn simulate_lot_means(
     }
 }
 
-fn one_sample_t_statistic(values: &[f64]) -> Option<f64> {
-    if values.len() < 2 {
+fn one_sample_t_statistic(values: &[f64], null_boundary: f64) -> Option<f64> {
+    if values.len() < 2 || !null_boundary.is_finite() {
         return None;
     }
     let n = values.len() as f64;
@@ -377,7 +375,25 @@ fn one_sample_t_statistic(values: &[f64]) -> Option<f64> {
         return None;
     }
     let se = (variance / n).sqrt();
-    (se.is_finite() && se > 0.0).then_some(mean / se)
+    (se.is_finite() && se > 0.0).then_some((mean - null_boundary) / se)
+}
+
+fn one_sided_noninferiority_rejects(values: &[f64], null_boundary: f64, alpha: f64) -> bool {
+    if values.len() < 2 {
+        return false;
+    }
+    let Some(statistic) = one_sample_t_statistic(values, null_boundary) else {
+        return false;
+    };
+    let critical = student_t_quantile(1.0 - alpha, (values.len() - 1) as f64);
+    statistic > critical
+}
+
+fn orient_effect(raw_effect: f64, direction: Direction) -> f64 {
+    match direction {
+        Direction::Maximize => raw_effect,
+        Direction::Minimize => -raw_effect,
+    }
 }
 
 fn wilson_interval(successes: u32, trials: u32) -> ProportionInterval {
@@ -582,7 +598,7 @@ fn validate_spec(spec: &PowerSpec) -> Vec<String> {
         || !spec.noninferiority_margin.is_finite()
         || spec.noninferiority_margin < 0.0
         || !spec.target_effect.is_finite()
-        || spec.target_effect <= -spec.noninferiority_margin
+        || orient_effect(spec.target_effect, spec.direction) <= -spec.noninferiority_margin
         || !spec.familywise_alpha.is_finite()
         || spec.familywise_alpha <= 0.0
         || spec.familywise_alpha >= 0.5
@@ -829,8 +845,25 @@ mod tests {
 
     #[test]
     fn lot_level_student_t_uses_independent_lot_means() {
-        let statistic = one_sample_t_statistic(&[0.1, 0.2, 0.0, 0.15, 0.05, 0.12]);
+        let statistic = one_sample_t_statistic(&[0.1, 0.2, 0.0, 0.15, 0.05, 0.12], 0.0);
         assert!(statistic.is_some_and(|value| value > 0.0));
+        let centered = one_sample_t_statistic(&[-0.05, -0.04, -0.06, -0.05, -0.04, -0.06], -0.05);
+        assert!(centered.is_some_and(|value| value.abs() < 1e-10));
+    }
+
+    #[test]
+    fn minimizing_endpoint_orients_negative_raw_effect_as_improvement() {
+        assert_eq!(orient_effect(-0.2, Direction::Minimize), 0.2);
+        assert_eq!(orient_effect(0.2, Direction::Maximize), 0.2);
+    }
+
+    #[test]
+    fn type_i_test_is_centered_on_noninferiority_boundary_not_zero() {
+        let boundary = -0.05;
+        let sample = vec![-0.05, -0.04, -0.06, -0.05, -0.04, -0.06];
+        let statistic = one_sample_t_statistic(&sample, boundary).unwrap();
+        assert!(statistic.abs() < 1e-10);
+        assert!(!one_sided_noninferiority_rejects(&sample, boundary, 0.05));
     }
 
     #[test]
