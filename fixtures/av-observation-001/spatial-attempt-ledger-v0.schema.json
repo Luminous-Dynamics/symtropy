@@ -1,0 +1,354 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/fixtures/av-observation-001/spatial-attempt-ledger-v0.schema.json",
+  "title": "Spatial Reliability Attempt Ledger v0",
+  "description": "Evaluator-facing attempt ledger for failure-inclusive spatial benchmark reporting. Aggregate scores are recomputed from every attempt; this schema does not validate arithmetic consistency or confer benchmark qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_identity",
+    "attempts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "spatial-attempt-ledger-v0"
+    },
+    "run_identity": {
+      "$ref": "#/$defs/run_identity"
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/attempt"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "run_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "benchmark_id",
+        "benchmark_version",
+        "protocol_sha256",
+        "attempt_manifest_sha256",
+        "candidate_code_sha256",
+        "model_sha256",
+        "configuration_sha256",
+        "sensor_profile_sha256",
+        "split_id",
+        "input_modalities",
+        "hardware_profile",
+        "declared_budgets"
+      ],
+      "properties": {
+        "benchmark_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "benchmark_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "protocol_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "attempt_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_code_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "model_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sensor_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "split_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "input_modalities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "video",
+              "rgbd",
+              "stereo",
+              "imu",
+              "lidar",
+              "audio",
+              "odometry",
+              "other"
+            ]
+          }
+        },
+        "hardware_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "host_class",
+            "runtime"
+          ],
+          "properties": {
+            "host_class": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "cpu": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "gpu": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "driver": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "runtime": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            }
+          }
+        },
+        "declared_budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_actions",
+            "max_frames",
+            "max_observation_bytes",
+            "max_memory_bytes"
+          ],
+          "properties": {
+            "max_actions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_frames": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_observation_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_memory_bytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attempt_id",
+        "trial_id",
+        "scene_cluster_id",
+        "session_cluster_id",
+        "world_pair_cluster_id",
+        "episode_cluster_id",
+        "terminal_disposition",
+        "expected_pose_opportunities",
+        "valid_on_time_pose_opportunities",
+        "pose_coverage",
+        "pose_metric_status",
+        "conditional_ate_m",
+        "conditional_rpe_m",
+        "joint_success"
+      ],
+      "properties": {
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "trial_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "scene_cluster_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "session_cluster_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "world_pair_cluster_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "episode_cluster_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "terminal_disposition": {
+          "enum": [
+            "completed",
+            "crash",
+            "timeout",
+            "tracking_lost",
+            "invalid_output",
+            "permission_denied",
+            "abstained",
+            "not_evaluated"
+          ]
+        },
+        "expected_pose_opportunities": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "valid_on_time_pose_opportunities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pose_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pose_metric_status": {
+          "enum": [
+            "evaluated",
+            "not_evaluated"
+          ]
+        },
+        "conditional_ate_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "conditional_rpe_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "joint_success": {
+          "type": "boolean"
+        },
+        "not_evaluated_reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "tracking_loss_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "longest_tracking_loss_ns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "pose_metric_status": {
+                "const": "evaluated"
+              }
+            },
+            "required": [
+              "pose_metric_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "valid_on_time_pose_opportunities": {
+                "minimum": 1
+              },
+              "conditional_ate_m": {
+                "type": "number"
+              }
+            },
+            "not": {
+              "required": [
+                "not_evaluated_reason"
+              ]
+            }
+          },
+          "else": {
+            "properties": {
+              "conditional_ate_m": {
+                "type": "null"
+              },
+              "conditional_rpe_m": {
+                "type": "null"
+              },
+              "joint_success": {
+                "const": false
+              }
+            },
+            "required": [
+              "not_evaluated_reason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "terminal_disposition": {
+                "enum": [
+                  "crash",
+                  "timeout",
+                  "tracking_lost",
+                  "invalid_output",
+                  "permission_denied",
+                  "abstained",
+                  "not_evaluated"
+                ]
+              }
+            },
+            "required": [
+              "terminal_disposition"
+            ]
+          },
+          "then": {
+            "properties": {
+              "joint_success": {
+                "const": false
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
