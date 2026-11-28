@@ -126,7 +126,9 @@ fn canonical_dir(path: &Path, name: &'static str) -> Result<PathBuf, SandboxErro
     if !path.exists() {
         return Err(SandboxError::MissingPath(name));
     }
-    let canonical = path.canonicalize().map_err(|_| SandboxError::PathResolution(name))?;
+    let canonical = path
+        .canonicalize()
+        .map_err(|_| SandboxError::PathResolution(name))?;
     if !canonical.is_dir() {
         return Err(SandboxError::NotDirectory(name));
     }
@@ -140,7 +142,9 @@ fn canonical_executable(path: &Path, name: &'static str) -> Result<PathBuf, Sand
     if !path.exists() {
         return Err(SandboxError::MissingPath(name));
     }
-    let canonical = path.canonicalize().map_err(|_| SandboxError::PathResolution(name))?;
+    let canonical = path
+        .canonicalize()
+        .map_err(|_| SandboxError::PathResolution(name))?;
     if !canonical.is_file() {
         return Err(SandboxError::NotFile(name));
     }
@@ -163,14 +167,9 @@ fn paths_are_disjoint(left: &Path, right: &Path) -> bool {
 }
 
 fn is_allowed_sandbox_absolute(path: &Path) -> bool {
-    [
-        "/candidate/input",
-        "/candidate/output",
-        "/runtime",
-        "/tmp",
-    ]
-    .iter()
-    .any(|prefix| path == Path::new(prefix) || path.starts_with(prefix))
+    ["/candidate/input", "/candidate/output", "/runtime", "/tmp"]
+        .iter()
+        .any(|prefix| path == Path::new(prefix) || path.starts_with(prefix))
 }
 
 fn validate_candidate_argument(argument: &OsString) -> Result<(), SandboxError> {
@@ -183,9 +182,10 @@ fn validate_candidate_argument(argument: &OsString) -> Result<(), SandboxError> 
 
     for segment in value.split(['=', ':', ',']) {
         let path = Path::new(segment);
-        if path.components().any(|component| {
-            matches!(component, Component::ParentDir | Component::Prefix(_))
-        }) {
+        if path
+            .components()
+            .any(|component| matches!(component, Component::ParentDir | Component::Prefix(_)))
+        {
             return Err(SandboxError::InvalidCandidateArgument);
         }
         if path.is_absolute() && !is_allowed_sandbox_absolute(path) {
@@ -238,12 +238,21 @@ pub fn build_candidate_sandbox_command(
     let runtime_root = canonical_dir(&paths.runtime_bundle_root, "runtime_bundle_root")?;
     let candidate_output = canonical_dir(&paths.candidate_output_root, "candidate_output_root")?;
     let evaluator_secret = canonical_dir(&paths.evaluator_secret_root, "evaluator_secret_root")?;
-    let candidate_executable = canonical_executable(&paths.candidate_executable, "candidate_executable")?;
+    let candidate_executable =
+        canonical_executable(&paths.candidate_executable, "candidate_executable")?;
 
     let roots = [
         ("candidate input/runtime", &candidate_input, &runtime_root),
-        ("candidate input/output", &candidate_input, &candidate_output),
-        ("candidate input/evaluator", &candidate_input, &evaluator_secret),
+        (
+            "candidate input/output",
+            &candidate_input,
+            &candidate_output,
+        ),
+        (
+            "candidate input/evaluator",
+            &candidate_input,
+            &evaluator_secret,
+        ),
         ("runtime/output", &runtime_root, &candidate_output),
         ("runtime/evaluator", &runtime_root, &evaluator_secret),
         ("output/evaluator", &candidate_output, &evaluator_secret),
@@ -261,7 +270,10 @@ pub fn build_candidate_sandbox_command(
         .strip_prefix(&runtime_root)
         .map_err(|_| SandboxError::ExecutableOutsideRuntime)?;
     if executable_relative.components().any(|component| {
-        matches!(component, Component::ParentDir | Component::RootDir | Component::Prefix(_))
+        matches!(
+            component,
+            Component::ParentDir | Component::RootDir | Component::Prefix(_)
+        )
     }) || !candidate_executable.starts_with(&runtime_root)
     {
         return Err(SandboxError::ExecutableOutsideRuntime);
@@ -386,10 +398,8 @@ mod tests {
                 .duration_since(UNIX_EPOCH)
                 .expect("clock")
                 .as_nanos();
-            let root = std::env::temp_dir().join(format!(
-                "aerb-sandbox-test-{}-{nonce}",
-                std::process::id()
-            ));
+            let root = std::env::temp_dir()
+                .join(format!("aerb-sandbox-test-{}-{nonce}", std::process::id()));
             fs::create_dir_all(&root).expect("temp root");
             Self { root }
         }
@@ -454,7 +464,11 @@ mod tests {
     }
 
     fn strings(command: &SandboxCommand) -> Vec<String> {
-        command.args.iter().map(|arg| arg.to_string_lossy().into_owned()).collect()
+        command
+            .args
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect()
     }
 
     #[test]
@@ -465,10 +479,23 @@ mod tests {
         let input = command.candidate_input_root.to_string_lossy().into_owned();
         let runtime = command.runtime_bundle_root.to_string_lossy().into_owned();
         let output = command.candidate_output_root.to_string_lossy().into_owned();
-        assert!(args.windows(3).any(|w| w[0] == "--ro-bind" && w[1] == input && w[2] == "/candidate/input"));
-        assert!(args.windows(3).any(|w| w[0] == "--ro-bind" && w[1] == runtime && w[2] == "/runtime"));
-        assert!(args.windows(3).any(|w| w[0] == "--bind" && w[1] == output && w[2] == "/candidate/output"));
-        assert!(!args.iter().any(|arg| arg == command.evaluator_secret_root.to_string_lossy().as_ref()));
+        assert!(
+            args.windows(3)
+                .any(|w| w[0] == "--ro-bind" && w[1] == input && w[2] == "/candidate/input")
+        );
+        assert!(
+            args.windows(3)
+                .any(|w| w[0] == "--ro-bind" && w[1] == runtime && w[2] == "/runtime")
+        );
+        assert!(
+            args.windows(3)
+                .any(|w| w[0] == "--bind" && w[1] == output && w[2] == "/candidate/output")
+        );
+        assert!(
+            !args
+                .iter()
+                .any(|arg| arg == command.evaluator_secret_root.to_string_lossy().as_ref())
+        );
         assert!(!args.iter().any(|arg| arg == "/evaluator"));
     }
 
@@ -485,7 +512,10 @@ mod tests {
         ] {
             assert!(args.contains(&namespace.to_owned()), "missing {namespace}");
         }
-        assert!(args.windows(2).any(|w| w[0] == "--cap-drop" && w[1] == "ALL"));
+        assert!(
+            args.windows(2)
+                .any(|w| w[0] == "--cap-drop" && w[1] == "ALL")
+        );
         assert!(args.contains(&"--clearenv".to_owned()));
     }
 
@@ -493,8 +523,14 @@ mod tests {
     fn candidate_output_is_the_only_writable_host_mount() {
         let (_tree, paths, limits) = fixture();
         let args = strings(&build_candidate_sandbox_command(&paths, limits, &[]).expect("command"));
-        assert!(args.windows(3).any(|w| w[0] == "--bind" && w[2] == "/candidate/output"));
-        assert_eq!(args.iter().filter(|arg| arg.as_str() == "--bind").count(), 1);
+        assert!(
+            args.windows(3)
+                .any(|w| w[0] == "--bind" && w[2] == "/candidate/output")
+        );
+        assert_eq!(
+            args.iter().filter(|arg| arg.as_str() == "--bind").count(),
+            1
+        );
     }
 
     #[test]
@@ -550,7 +586,11 @@ mod tests {
     #[test]
     fn absolute_host_paths_in_candidate_arguments_are_rejected() {
         let (_tree, paths, limits) = fixture();
-        for argument in ["/etc/passwd", "--world-pack=/secrets/world.json", "-I/usr/lib"] {
+        for argument in [
+            "/etc/passwd",
+            "--world-pack=/secrets/world.json",
+            "-I/usr/lib",
+        ] {
             assert_eq!(
                 build_candidate_sandbox_command(&paths, limits, &[OsString::from(argument)]),
                 Err(SandboxError::InvalidCandidateArgument),
@@ -606,7 +646,10 @@ mod tests {
     fn private_tmpfs_is_explicitly_size_bounded() {
         let (_tree, paths, limits) = fixture();
         let args = strings(&build_candidate_sandbox_command(&paths, limits, &[]).expect("command"));
-        let size = args.iter().position(|arg| arg == "--size").expect("size option");
+        let size = args
+            .iter()
+            .position(|arg| arg == "--size")
+            .expect("size option");
         assert_eq!(args[size + 1], "67108864");
         assert_eq!(args[size + 2], "--tmpfs");
         assert_eq!(args[size + 3], "/tmp");
@@ -629,5 +672,4 @@ mod tests {
             Err(SandboxError::ZeroResourceLimit)
         );
     }
-
 }
