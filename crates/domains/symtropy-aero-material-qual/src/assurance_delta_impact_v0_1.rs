@@ -691,7 +691,15 @@ pub fn evaluate_assurance_delta_impact_v0_1(
         reason_codes.insert("AERO_DELTA_IMPACT_CANNOT_BE_CLOSED".to_owned());
     }
 
-    let disposition = if !incomplete.is_empty() {
+    let dependency_scope_incomplete =
+        graph.coverage_status != DependencyCoverageStatusV0_1::Complete || !claim_root_complete;
+    if graph.coverage_status != DependencyCoverageStatusV0_1::Complete {
+        reason_codes.insert("AERO_DELTA_GRAPH_DEPENDENCY_COVERAGE_INCOMPLETE".to_owned());
+    }
+    if !claim_root_complete {
+        reason_codes.insert("AERO_DELTA_CLAIM_ROOT_DEPENDENCY_MANIFEST_INCOMPLETE".to_owned());
+    }
+    let disposition = if dependency_scope_incomplete || !incomplete.is_empty() {
         AssuranceDeltaDispositionV0_1::IncompleteImpact
     } else if affected.is_empty() {
         AssuranceDeltaDispositionV0_1::NoAffectedObligations
@@ -850,9 +858,9 @@ mod tests {
         assert_eq!(
             assessment.affected_obligations[0].dependency_path,
             vec![
-                "obligation:material-lot",
-                "evidence:material-certificate",
-                "source:material-lot-record"
+                "obligation:material-lot".to_owned(),
+                "evidence:material-certificate".to_owned(),
+                "source:material-lot-record".to_owned()
             ]
         );
         assert_eq!(assessment.retained_obligations.len(), 1);
@@ -896,8 +904,34 @@ mod tests {
         assert!(assessment.retained_obligations.is_empty());
         assert_eq!(
             assessment.incomplete_obligation_ids,
-            vec!["obligation:solver-validation"]
+            vec!["obligation:solver-validation".to_owned()]
         );
+    }
+
+    #[test]
+    fn incomplete_graph_cannot_close_even_when_every_listed_obligation_is_affected() {
+        let mut graph = graph();
+        graph.coverage_status = DependencyCoverageStatusV0_1::Incomplete;
+        graph.nodes.retain(|node| {
+            !matches!(
+                node.node_id.as_str(),
+                "obligation:solver-validation"
+                    | "evidence:solver-report"
+                    | "source:solver-validation-record"
+            )
+        });
+        graph.edges.retain(|edge| {
+            edge.dependent_node_id != "claim:wing-panel-strength"
+                || edge.dependency_node_id != "obligation:solver-validation"
+        });
+        graph.edges.retain(|edge| {
+            edge.dependent_node_id != "obligation:solver-validation"
+                && edge.dependent_node_id != "evidence:solver-report"
+        });
+        let assessment = evaluate_assurance_delta_impact_v0_1(&input(graph));
+        assert_eq!(assessment.disposition, AssuranceDeltaDispositionV0_1::IncompleteImpact);
+        assert_eq!(assessment.affected_obligations.len(), 1);
+        assert!(assessment.incomplete_obligation_ids.is_empty());
     }
 
     #[test]
