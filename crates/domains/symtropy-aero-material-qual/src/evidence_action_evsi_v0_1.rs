@@ -1128,9 +1128,9 @@ mod tests {
                 compute_action_catalogue_entry_sha256(action)
                     .expect("action catalogue entry commitment");
         }
+        let first_entry_digest = input.actions[0].action_catalogue_entry_sha256.clone();
         if let Some(receipt) = input.actions[0].authorization_receipt.as_mut() {
-            receipt.action_catalogue_entry_sha256 =
-                input.actions[0].action_catalogue_entry_sha256.clone();
+            receipt.action_catalogue_entry_sha256 = first_entry_digest;
         }
         input.action_catalogue_sha256 =
             compute_action_catalogue_cut_sha256(&input).expect("action catalogue cut commitment");
