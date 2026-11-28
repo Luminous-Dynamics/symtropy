@@ -1,0 +1,353 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-evidence-action-planner-v0.1.schema.json",
+  "title": "AERO Evidence Action Planner Synthetic Fixture v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "authority_ceiling",
+    "input",
+    "expected"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroEvidenceActionPlannerFixtureV0_1"
+    },
+    "status": {
+      "const": "SYNTHETIC_RESEARCH_FIXTURE_NOT_ENGINEERING_EVIDENCE"
+    },
+    "authority_ceiling": {
+      "const": "recommendations_only_no_assurance_mutation_or_physical_work_authority"
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "frozen_claim_disposition",
+        "decision_context_sha256",
+        "assurance_state_sha256",
+        "action_catalogue_sha256",
+        "decision_model_sha256",
+        "outcome_model_sha256",
+        "decision_alternatives",
+        "world_states",
+        "utilities",
+        "actions"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frozen_claim_disposition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_context_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "assurance_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "action_catalogue_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "decision_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "outcome_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "decision_alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision_id"
+            ],
+            "properties": {
+              "decision_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "world_states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state_id",
+              "prior_probability_ppm"
+            ],
+            "properties": {
+              "state_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "prior_probability_ppm": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              }
+            }
+          }
+        },
+        "utilities": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "decision_id",
+              "state_id",
+              "utility_units"
+            ],
+            "properties": {
+              "decision_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "state_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "utility_units": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "owner_namespace",
+              "action_catalogue_entry_sha256",
+              "authorization_status",
+              "authorization_receipt_sha256",
+              "calibration_status",
+              "expected_artifact_contract_sha256",
+              "target_obligation_ids",
+              "expected_cost_units",
+              "expected_delay_cost_units",
+              "outcome_likelihoods"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "owner_namespace": {
+                "type": "string",
+                "minLength": 1
+              },
+              "action_catalogue_entry_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "authorization_status": {
+                "enum": [
+                  "VERIFIED_PERMITTED",
+                  "DENIED",
+                  "UNKNOWN"
+                ]
+              },
+              "authorization_receipt_sha256": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "calibration_status": {
+                "enum": [
+                  "QUALIFIED_FOR_DECLARED_PURPOSE",
+                  "UNVERIFIED",
+                  "OUT_OF_DOMAIN",
+                  "NOT_ESTIMABLE"
+                ]
+              },
+              "expected_artifact_contract_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "target_obligation_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "expected_cost_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "expected_delay_cost_units": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "outcome_likelihoods": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "state_id",
+                    "outcome_id",
+                    "likelihood_ppm"
+                  ],
+                  "properties": {
+                    "state_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "outcome_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "likelihood_ppm": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "current_best_decision_id",
+        "selected_action_id",
+        "ranked_actions",
+        "excluded_actions",
+        "frozen_claim_disposition",
+        "assurance_state_mutated",
+        "physical_work_authorized",
+        "engineering_acceptance_granted",
+        "evsi_numerator_scale"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "RANKED_ACTIONS",
+            "NO_POSITIVE_NET_BENEFIT",
+            "ABSTAIN_NO_QUALIFIED_PERMITTED_ACTIONS",
+            "INVALID_INPUT"
+          ]
+        },
+        "current_best_decision_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "selected_action_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ranked_actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rank",
+              "action_id",
+              "evsi_scaled_numerator",
+              "expected_cost_units",
+              "expected_delay_cost_units",
+              "net_benefit_scaled_numerator"
+            ],
+            "properties": {
+              "rank": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "action_id": {
+                "type": "string"
+              },
+              "evsi_scaled_numerator": {
+                "type": "string",
+                "pattern": "^-?[0-9]+$"
+              },
+              "expected_cost_units": {
+                "type": "integer"
+              },
+              "expected_delay_cost_units": {
+                "type": "integer"
+              },
+              "net_benefit_scaled_numerator": {
+                "type": "string",
+                "pattern": "^-?[0-9]+$"
+              }
+            }
+          }
+        },
+        "excluded_actions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "reason_code"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string"
+              },
+              "reason_code": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "frozen_claim_disposition": {
+          "type": "string"
+        },
+        "assurance_state_mutated": {
+          "const": false
+        },
+        "physical_work_authorized": {
+          "const": false
+        },
+        "engineering_acceptance_granted": {
+          "const": false
+        },
+        "evsi_numerator_scale": {
+          "const": 1000000000000
+        }
+      }
+    }
+  }
+}
