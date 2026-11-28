@@ -152,9 +152,10 @@ pub struct OwnerEvidenceSourceReceiptV0_1 {
     /// Producer identity whose authority is evaluated for this claim.
     pub producer_namespace: String,
     pub claim_id: String,
-    pub decision_context_sha256: String,
     pub subject_ref: String,
     pub configuration_ref: String,
+    pub acquisition_time_earliest_unix_ms: u64,
+    pub acquisition_time_latest_unix_ms: u64,
     pub evidence_ref: String,
     pub evidence_record_sha256: String,
     pub trust_policy_sha256: String,
@@ -236,6 +237,13 @@ pub struct ClaimObligationEvidenceBindingAssessmentV0_1 {
     pub engineering_acceptance_granted: bool,
     pub physical_work_authorized: bool,
     pub reason_codes: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct SourceReceiptManifestEnvelopeV0_1<'a> {
+    schema: &'static str,
+    canonicalization_profile: &'static str,
+    receipts: Vec<&'a OwnerEvidenceSourceReceiptV0_1>,
 }
 
 #[derive(Serialize)]
@@ -334,6 +342,29 @@ fn assessment_shell(
         physical_work_authorized: false,
         reason_codes: reasons.into_iter().collect(),
     }
+}
+
+/// Compute the owner-cut receipt manifest independently of the decision-context
+/// digest. Receipts bind claim/subject/configuration/acquisition scope; the
+/// owner-cut digest then binds this complete receipt inventory, and the
+/// mapping approval subsequently binds the resulting decision-context digest.
+pub fn compute_owner_evidence_source_receipt_manifest_sha256_v0_1(
+    receipts: &[OwnerEvidenceSourceReceiptV0_1],
+) -> Result<String, String> {
+    let mut ordered = receipts.iter().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| {
+        left.evidence_ref
+            .cmp(&right.evidence_ref)
+            .then_with(|| left.receipt_sha256.cmp(&right.receipt_sha256))
+    });
+    let envelope = SourceReceiptManifestEnvelopeV0_1 {
+        schema: "AeroOwnerEvidenceSourceReceiptManifestV0_1",
+        canonicalization_profile: "rust-serde-json-struct-order-v1",
+        receipts: ordered,
+    };
+    serde_json::to_vec(&envelope)
+        .map(|bytes| sha256_hex(&bytes))
+        .map_err(|_| "OWNER_EVIDENCE_SOURCE_RECEIPT_MANIFEST_SERIALIZATION_FAILED".to_owned())
 }
 
 /// Compute the owner-approved mapping manifest. Order of entries and references
@@ -642,9 +673,12 @@ fn evaluate_source_record(
             }
             if receipt.owner_namespace != owner_cut.owner_namespace
                 || receipt.claim_id != decision_context.claim_id
-                || receipt.decision_context_sha256 != decision_context.compute_sha256().unwrap_or_default()
                 || receipt.subject_ref != decision_context.subject_ref
                 || receipt.configuration_ref != decision_context.configuration_ref
+                || receipt.acquisition_time_earliest_unix_ms
+                    != decision_context.acquisition_time_earliest_unix_ms
+                || receipt.acquisition_time_latest_unix_ms
+                    != decision_context.acquisition_time_latest_unix_ms
                 || receipt.evidence_ref != evidence_ref
                 || receipt.trust_policy_sha256 != owner_cut.trust_policy_sha256
             {
@@ -854,6 +888,14 @@ pub fn bind_claim_obligation_evidence_v0_1(
     let admission_ids = required_refs.iter().collect::<BTreeSet<_>>();
     if admission_ids.len() != required_refs.len() {
         reasons.insert("EVIDENCE_BINDING_REQUIRED_EVIDENCE_DUPLICATE".to_owned());
+    }
+
+    let source_receipt_manifest_sha = compute_owner_evidence_source_receipt_manifest_sha256_v0_1(
+        input.source_receipts,
+    )
+    .unwrap_or_default();
+    if source_receipt_manifest_sha != input.owner_evidence_cut.receiver_receipt_manifest_sha256 {
+        reasons.insert("EVIDENCE_BINDING_SOURCE_RECEIPT_MANIFEST_MISMATCH".to_owned());
     }
 
     let owner_cut_sha = match input.owner_evidence_cut.compute_sha256() {
@@ -1109,6 +1151,50 @@ mod tests {
             .collect::<Vec<_>>();
         let required_manifest = compute_required_evidence_manifest_sha256(&required_refs)
             .expect("required evidence manifest");
+        let evidence_records = required_refs
+            .iter()
+            .map(|reference| OwnerEvidenceRecordV0_1 {
+                evidence_ref: reference.clone(),
+                record_sha256: sha256(reference.as_bytes()),
+                subject_ref: spec.subject_ref.clone(),
+                configuration_ref: spec.configuration_ref.clone(),
+                lifecycle: OwnerEvidenceLifecycle::Active,
+                predecessor_ref: None,
+                freshness: OwnerEvidenceFreshness::Fresh,
+                dependency_coverage: OwnerDependencyCoverage::Complete,
+                unresolved_inputs: Vec::new(),
+                requires_reverification: false,
+                eligible_under_declared_coverage: true,
+            })
+            .collect::<Vec<_>>();
+        let source_receipts = required_refs
+            .iter()
+            .map(|reference| OwnerEvidenceSourceReceiptV0_1 {
+                verification_status: EvidenceBindingReceiptStatusV0_1::Verified,
+                owner_namespace: "owner:materials-authority".to_owned(),
+                producer_namespace: "producer:materials-lab".to_owned(),
+                claim_id: spec.claim_id.clone(),
+                subject_ref: spec.subject_ref.clone(),
+                configuration_ref: spec.configuration_ref.clone(),
+                acquisition_time_earliest_unix_ms: spec.validity.effective_from_unix_ms,
+                acquisition_time_latest_unix_ms: spec.validity.effective_from_unix_ms + 10,
+                evidence_ref: reference.clone(),
+                evidence_record_sha256: sha256(reference.as_bytes()),
+                trust_policy_sha256: "f".repeat(64),
+                integrity_state: EvidenceBindingIntegrityStateV0_1::Verified,
+                producer_authority_state: EvidenceProducerAuthorityStateV0_1::Authorized,
+                receiver_first_seen_at_unix_ms: CUTOFF - 50,
+                evidence_effective_from_unix_ms: spec.validity.effective_from_unix_ms,
+                evidence_effective_until_unix_ms: spec.validity.effective_until_unix_ms,
+                authority_effective_from_unix_ms: CUTOFF - 1000,
+                authority_effective_until_unix_ms: CUTOFF + 1000,
+                receipt_sha256: sha256(format!("receipt:{reference}").as_bytes()),
+            })
+            .collect::<Vec<_>>();
+        let receipt_manifest_sha = compute_owner_evidence_source_receipt_manifest_sha256_v0_1(
+            &source_receipts,
+        )
+        .expect("source receipt manifest");
         let owner_cut = OwnerEvidenceCutV0_1 {
             schema: "AeroOwnerEvidenceCutV0_1".to_owned(),
             owner_namespace: "owner:materials-authority".to_owned(),
@@ -1118,35 +1204,20 @@ mod tests {
             component_packet_sha256: "a".repeat(64),
             component_packet_byte_length: 8192,
             artifact_payloads_verified: true,
-            evidence_records: required_refs
-                .iter()
-                .map(|reference| OwnerEvidenceRecordV0_1 {
-                    evidence_ref: reference.clone(),
-                    record_sha256: sha256(reference.as_bytes()),
-                    subject_ref: spec.subject_ref.clone(),
-                    configuration_ref: spec.configuration_ref.clone(),
-                    lifecycle: OwnerEvidenceLifecycle::Active,
-                    predecessor_ref: None,
-                    freshness: OwnerEvidenceFreshness::Fresh,
-                    dependency_coverage: OwnerDependencyCoverage::Complete,
-                    unresolved_inputs: Vec::new(),
-                    requires_reverification: false,
-                    eligible_under_declared_coverage: true,
-                })
-                .collect(),
+            evidence_records,
             basalt_run_id: "basalt:wing-r17".to_owned(),
             basalt_report_version: 1,
             basalt_timeline_input_sha256: "b".repeat(64),
             basalt_final_state_sha256: "c".repeat(64),
             basalt_report_sha256: "d".repeat(64),
             basalt_confirmatory_eligible: true,
-            receiver_receipt_manifest_sha256: "e".repeat(64),
-            receiver_receipt_watermark_unix_ms: CUTOFF - 100,
+            receiver_receipt_manifest_sha256: receipt_manifest_sha,
+            receiver_receipt_watermark_unix_ms: CUTOFF - 40,
             trust_policy_sha256: "f".repeat(64),
             observer_coverage_profile_id: "observer:synthetic".to_owned(),
             observer_coverage_receipt_sha256: "1".repeat(64),
             observer_coverage_status: OwnerObserverCoverageStatus::QualifiedCompleteForScope,
-            observer_coverage_watermark_unix_ms: CUTOFF - 150,
+            observer_coverage_watermark_unix_ms: CUTOFF - 50,
         };
         let owner_cut_sha = owner_cut.compute_sha256().expect("owner cut digest");
         let context = DecisionContextV0_1 {
@@ -1220,32 +1291,7 @@ mod tests {
                 state: EvidenceAdmissionState::Admitted,
             })
             .collect();
-        let source_receipts = required_refs
-            .iter()
-            .map(|reference| {
-                let record = owner_cut.find_evidence(reference).unwrap();
-                OwnerEvidenceSourceReceiptV0_1 {
-                    verification_status: EvidenceBindingReceiptStatusV0_1::Verified,
-                    owner_namespace: owner_cut.owner_namespace.clone(),
-                    producer_namespace: "producer:materials-lab".to_owned(),
-                    claim_id: spec.claim_id.clone(),
-                    decision_context_sha256: context_sha.clone(),
-                    subject_ref: spec.subject_ref.clone(),
-                    configuration_ref: spec.configuration_ref.clone(),
-                    evidence_ref: reference.clone(),
-                    evidence_record_sha256: record.record_sha256.clone(),
-                    trust_policy_sha256: owner_cut.trust_policy_sha256.clone(),
-                    integrity_state: EvidenceBindingIntegrityStateV0_1::Verified,
-                    producer_authority_state: EvidenceProducerAuthorityStateV0_1::Authorized,
-                    receiver_first_seen_at_unix_ms: CUTOFF - 50,
-                    evidence_effective_from_unix_ms: spec.validity.effective_from_unix_ms,
-                    evidence_effective_until_unix_ms: spec.validity.effective_until_unix_ms,
-                    authority_effective_from_unix_ms: CUTOFF - 1000,
-                    authority_effective_until_unix_ms: CUTOFF + 1000,
-                    receipt_sha256: "6".repeat(64),
-                }
-            })
-            .collect();
+
         (
             raw,
             spec,
