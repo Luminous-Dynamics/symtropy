@@ -15,6 +15,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use super::{CandidateEpisode, Observation, sha256_hex, SCHEMA_VERSION, BENCHMARK, OPEN_WORLD_RESIDUAL};
 
@@ -101,10 +102,9 @@ impl BlindProjectionContext {
             PROJECTION_DOMAIN.len() + self.salt.len() + namespace.len() + raw.len() + 16,
         );
         preimage.extend_from_slice(PROJECTION_DOMAIN);
-        preimage.extend_from_slice(&self.salt);
         append_length_prefixed(&mut preimage, namespace.as_bytes());
         append_length_prefixed(&mut preimage, raw.as_bytes());
-        sha256_hex(&preimage)
+        encode_hex(&hmac_sha256(&self.salt, &preimage))
     }
 
     fn pseudonym_id(&self, prefix: &str, namespace: &str, raw: &str) -> String {
@@ -120,6 +120,47 @@ impl BlindProjectionContext {
         let digest = self.pseudonym_hex(namespace, &raw.to_string());
         u64::from_str_radix(&digest[..16], 16).unwrap_or(0)
     }
+}
+
+fn hmac_sha256(key: &[u8], message: &[u8]) -> [u8; 32] {
+    const BLOCK_BYTES: usize = 64;
+    let mut normalized_key = [0_u8; BLOCK_BYTES];
+    if key.len() > BLOCK_BYTES {
+        let digest = Sha256::digest(key);
+        normalized_key[..digest.len()].copy_from_slice(&digest);
+    } else {
+        normalized_key[..key.len()].copy_from_slice(key);
+    }
+
+    let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+    let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+    for index in 0..BLOCK_BYTES {
+        inner_pad[index] ^= normalized_key[index];
+        outer_pad[index] ^= normalized_key[index];
+    }
+
+    let mut inner = Sha256::new();
+    inner.update(inner_pad);
+    inner.update(message);
+    let inner_digest = inner.finalize();
+
+    let mut outer = Sha256::new();
+    outer.update(outer_pad);
+    outer.update(inner_digest);
+    let digest = outer.finalize();
+    let mut output = [0_u8; 32];
+    output.copy_from_slice(&digest);
+    output
+}
+
+fn encode_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
 }
 
 fn append_length_prefixed(output: &mut Vec<u8>, bytes: &[u8]) {
@@ -1128,6 +1169,16 @@ mod tests {
                 result_delay_steps: 2,
             }],
         }
+    }
+
+    #[test]
+    fn hmac_sha256_matches_rfc_4231_test_case_one() {
+        let key = [0x0b_u8; 20];
+        let actual = encode_hex(&hmac_sha256(&key, b"Hi There"));
+        assert_eq!(
+            actual,
+            "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+        );
     }
 
     #[test]
