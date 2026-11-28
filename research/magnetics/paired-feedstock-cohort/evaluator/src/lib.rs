@@ -670,6 +670,11 @@ fn validate_build(
         if build.rework_receipt_id.is_some() || build.rework_receipt_digest.is_some() {
             blockers.push(Blocker::ReworkReceiptUnexpected);
         }
+        if build.final_disposition == BuildDisposition::Qualified
+            && build.first_pass_disposition != BuildDisposition::Qualified
+        {
+            blockers.push(Blocker::MissingReworkReceipt);
+        }
     } else if build.rework_receipt_id.as_deref().is_none_or(str::is_empty)
         || build.rework_receipt_digest.as_deref().is_none_or(|x| !valid_digest(x))
     {
@@ -1230,6 +1235,21 @@ mod tests {
         assert_eq!(summary.recovered_first_pass_qualified, 8);
         assert_eq!(summary.recovered_final_qualified, 9);
         assert_eq!(summary.virgin_first_pass_qualified, 9);
+    }
+
+    #[test]
+    fn final_acceptance_after_first_pass_failure_requires_rework_receipt() {
+        let mut data = cohort(0.89, 148.0, 2.1);
+        let recovered = data
+            .builds
+            .iter_mut()
+            .find(|build| build.condition == MaterialCondition::Recovered)
+            .unwrap();
+        recovered.first_pass_disposition = BuildDisposition::Fail;
+        recovered.final_disposition = BuildDisposition::Qualified;
+        let result = evaluate_paired_cohort(&spec(), &data);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingReworkReceipt));
     }
 
     #[test]
