@@ -61,6 +61,8 @@ def validate_input(source: dict[str, Any]) -> None:
             raise ValueError(f"{action['action_id']}: verified action is missing its permission receipt")
         if authorization is not None and authorization["effective_from_unix_ms"] >= authorization["effective_until_unix_ms"]:
             raise ValueError(f"{action['action_id']}: malformed permission receipt interval")
+        if not action["outcome_model_owner_namespace"].strip():
+            raise ValueError(f"{action['action_id']}: outcome model owner namespace is empty")
         calibration = action["calibration_receipt"]
         if action["calibration_status"] == "QUALIFIED_FOR_DECLARED_PURPOSE" and calibration is None:
             raise ValueError(f"{action['action_id']}: qualified outcome model is missing its receipt")
@@ -135,7 +137,8 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
         elif calibration != "QUALIFIED_FOR_DECLARED_PURPOSE":
             raise ValueError(f"{action['action_id']}: unsupported calibration state")
         elif (
-            calibration_receipt["claim_id"] != source["claim_id"]
+            calibration_receipt["owner_namespace"] != action["outcome_model_owner_namespace"]
+            or calibration_receipt["claim_id"] != source["claim_id"]
             or calibration_receipt["decision_context_sha256"] != source["decision_context_sha256"]
             or calibration_receipt["configuration_ref"] != source["configuration_ref"]
             or calibration_receipt["action_id"] != action["action_id"]
@@ -276,6 +279,15 @@ def main() -> int:
     if unauthorized_result["selected_action_id"] is not None:
         raise SystemExit("FAIL: unknown-permission action was selected")
 
+    # Mutation control 3: calibration from another owner cannot be reused.
+    wrong_model_owner = copy.deepcopy(source)
+    wrong_model_owner["actions"][0]["calibration_receipt"]["owner_namespace"] = "owner:unrelated-model-team"
+    owner_result = calculate(wrong_model_owner)
+    if owner_result["ranked_actions"]:
+        raise SystemExit("FAIL: calibration receipt from another model owner was ranked")
+    if owner_result["excluded_actions"][0]["reason_code"] != "ACTION_CALIBRATION_SCOPE_MISMATCH":
+        raise SystemExit("FAIL: wrong model owner did not produce the expected exclusion")
+
     # Mutation control 3: probability mass is never silently normalized.
     malformed = copy.deepcopy(source)
     malformed["world_states"][0]["prior_probability_ppm"] -= 1
@@ -289,7 +301,7 @@ def main() -> int:
     print(
         "PASS: AERO EVSI v0.1 schema and independent integer oracle "
         "(2 states, 2 decisions, 1 permitted action, 1 excluded action, "
-        "3 mutation controls)."
+        "4 mutation controls)."
     )
     print("NOTE: synthetic decision arithmetic is not physical evidence or action authorization.")
     return 0
