@@ -197,9 +197,21 @@ def main() -> int:
     source = fixture["input"]
     actual = calculate(source)
     expected = fixture["expected"]
-    for field in expected:
-        if actual[field] != expected[field]:
-            raise SystemExit(f"FAIL: expected {field}={expected[field]!r}, got {actual[field]!r}")
+    for field, expected_value in expected.items():
+        if field == "ranked_actions":
+            if len(actual[field]) != len(expected_value):
+                raise SystemExit("FAIL: ranked action count differs from fixture")
+            for actual_action, expected_action in zip(actual[field], expected_value):
+                for key, value in expected_action.items():
+                    if actual_action.get(key) != value:
+                        raise SystemExit(
+                            f"FAIL: ranked action {actual_action.get('action_id')} "
+                            f"field {key} expected {value!r}, got {actual_action.get(key)!r}"
+                        )
+        elif actual[field] != expected_value:
+            raise SystemExit(
+                f"FAIL: expected {field}={expected_value!r}, got {actual[field]!r}"
+            )
 
     # Mutation control 1: exact information with zero decision utility is not valuable.
     irrelevant = copy.deepcopy(source)
