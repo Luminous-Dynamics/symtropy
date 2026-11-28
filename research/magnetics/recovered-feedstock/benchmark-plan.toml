@@ -57,7 +57,7 @@ schema = "evaluator/route-evidence-v0.1.schema.json"
 fixture = "evaluator/fixtures/recovered-feedstock-synthetic-v0.1.json"
 source_register = "source-register.json"
 workflow = ".github/workflows/magnetic-recovered-feedstock.yml"
-authored_unit_tests = 23
+authored_unit_tests = 25
 tests_executed = false
 exact_head_ci_pass = false
 
