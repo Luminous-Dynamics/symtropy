@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "episode_id": "diverse-full-rank",
+  "frame_id": "frame-1",
+  "sensor_id": "camera-1",
+  "coordinate_frame": "camera_optical",
+  "transform_direction": "target_to_camera",
+  "twist_order": "left_camera_frame_scaled_xyz_then_rx_ry_rz",
+  "camera_intrinsics_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "target_geometry_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+  "correspondence_ledger_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+  "translation_scale_m": 1,
+  "rank_relative_tolerance": 1e-9,
+  "rank_absolute_tolerance": 1e-12,
+  "camera": {
+    "width": 640,
+    "height": 480,
+    "fx_px": 500,
+    "fy_px": 500,
+    "cx_px": 320,
+    "cy_px": 240
+  },
+  "observations": [
+    {
+      "landmark_id": "landmark-0",
+      "point_camera_m": [
+        -1,
+        -1,
+        5
+      ],
+      "measured_pixel_uv": [
+        220,
+        140
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-1",
+      "point_camera_m": [
+        1,
+        -1,
+        5
+      ],
+      "measured_pixel_uv": [
+        420,
+        140
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-2",
+      "point_camera_m": [
+        -1,
+        1,
+        5
+      ],
+      "measured_pixel_uv": [
+        220,
+        340
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-3",
+      "point_camera_m": [
+        1,
+        1,
+        5
+      ],
+      "measured_pixel_uv": [
+        420,
+        340
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-4",
+      "point_camera_m": [
+        -0.8,
+        -0.7,
+        7
+      ],
+      "measured_pixel_uv": [
+        262.85714285714283,
+        190
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-5",
+      "point_camera_m": [
+        0.9,
+        -0.6,
+        8
+      ],
+      "measured_pixel_uv": [
+        376.25,
+        202.5
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-6",
+      "point_camera_m": [
+        -0.7,
+        0.8,
+        6
+      ],
+      "measured_pixel_uv": [
+        261.6666666666667,
+        306.6666666666667
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    },
+    {
+      "landmark_id": "landmark-7",
+      "point_camera_m": [
+        0.8,
+        0.9,
+        7
+      ],
+      "measured_pixel_uv": [
+        377.14285714285717,
+        304.2857142857143
+      ],
+      "sigma_px": 0.5,
+      "weight": 1
+    }
+  ]
+}
