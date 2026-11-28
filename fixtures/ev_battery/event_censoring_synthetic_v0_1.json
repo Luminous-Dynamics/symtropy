@@ -1,0 +1,153 @@
+{
+  "manifest_version": "ev-bms-event-censoring-evaluation/v0.1",
+  "evaluation_id": "synthetic-event-censoring-known-answer-v0.1",
+  "dataset_id": "cao-onboard-bms-zenodo-10656500",
+  "dataset_domain": "onboard_bms",
+  "dataset_admission_state": "metadata_only",
+  "dataset_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "dataset_snapshot_sha256": null,
+  "split_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "split_partition": "test",
+  "evidence_class": "synthetic_fixture",
+  "warning_horizon_ms": 86400000,
+  "minimum_action_lead_ms": 7200000,
+  "threshold_policy_id": "synthetic-fixed-threshold-v0.1",
+  "exposures": [
+    {
+      "exposure_id": "exp-event-001",
+      "asset_id": "asset-event",
+      "role": "event_monitoring",
+      "window_start_unix_ms": 273600000,
+      "window_end_unix_ms": 363600000
+    },
+    {
+      "exposure_id": "exp-event-002",
+      "asset_id": "asset-event",
+      "role": "event_monitoring",
+      "window_start_unix_ms": 633600000,
+      "window_end_unix_ms": 730800000
+    },
+    {
+      "exposure_id": "exp-event-003",
+      "asset_id": "asset-event",
+      "role": "event_monitoring",
+      "window_start_unix_ms": 993600000,
+      "window_end_unix_ms": 1227600000
+    },
+    {
+      "exposure_id": "exp-event-004",
+      "asset_id": "asset-event",
+      "role": "event_monitoring",
+      "window_start_unix_ms": 1404000000,
+      "window_end_unix_ms": 1476000000
+    },
+    {
+      "exposure_id": "exp-negative-001",
+      "asset_id": "asset-negative",
+      "role": "negative_control",
+      "window_start_unix_ms": 0,
+      "window_end_unix_ms": 360000000
+    },
+    {
+      "exposure_id": "exp-right-censored-001",
+      "asset_id": "asset-right-censored",
+      "role": "right_censored_followup",
+      "window_start_unix_ms": 1800000000,
+      "window_end_unix_ms": 1980000000
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event-exact-001",
+      "asset_id": "asset-event",
+      "onset_type": "exact_reported",
+      "onset_lower_unix_ms": 360000000,
+      "onset_upper_unix_ms": 360000000,
+      "event_time_semantics": "first_positive_sample",
+      "onset_evidence_refs": ["synthetic-onset-ref-001"],
+      "adjudication_revision": "synthetic-fixture-v0.1"
+    },
+    {
+      "event_id": "event-interval-002",
+      "asset_id": "asset-event",
+      "onset_type": "interval_censored",
+      "onset_lower_unix_ms": 720000000,
+      "onset_upper_unix_ms": 727200000,
+      "event_time_semantics": "last_normal_first_abnormal_bracket",
+      "onset_evidence_refs": ["synthetic-onset-ref-002a", "synthetic-onset-ref-002b"],
+      "adjudication_revision": "synthetic-fixture-v0.1"
+    },
+    {
+      "event_id": "event-interval-wide-003",
+      "asset_id": "asset-event",
+      "onset_type": "interval_censored",
+      "onset_lower_unix_ms": 1080000000,
+      "onset_upper_unix_ms": 1224000000,
+      "event_time_semantics": "last_normal_first_abnormal_bracket",
+      "onset_evidence_refs": ["synthetic-onset-ref-003a", "synthetic-onset-ref-003b"],
+      "adjudication_revision": "synthetic-fixture-v0.1"
+    },
+    {
+      "event_id": "event-left-censored-004",
+      "asset_id": "asset-event",
+      "onset_type": "left_censored",
+      "onset_lower_unix_ms": null,
+      "onset_upper_unix_ms": 1440000000,
+      "event_time_semantics": "first_positive_sample",
+      "onset_evidence_refs": ["synthetic-onset-ref-004"],
+      "adjudication_revision": "synthetic-fixture-v0.1"
+    }
+  ],
+  "alarms": [
+    {
+      "alarm_id": "alarm-event-exact",
+      "asset_id": "asset-event",
+      "alarm_time_unix_ms": 345600000,
+      "score": 0.95,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-event-interval",
+      "asset_id": "asset-event",
+      "alarm_time_unix_ms": 721800000,
+      "score": 0.92,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-left-censored",
+      "asset_id": "asset-event",
+      "alarm_time_unix_ms": 1422000000,
+      "score": 0.91,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-negative-001",
+      "asset_id": "asset-negative",
+      "alarm_time_unix_ms": 72000000,
+      "score": 0.9,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-negative-002",
+      "asset_id": "asset-negative",
+      "alarm_time_unix_ms": 180000000,
+      "score": 0.89,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-right-censored-false",
+      "asset_id": "asset-right-censored",
+      "alarm_time_unix_ms": 1872000000,
+      "score": 0.94,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-right-censored-unresolved",
+      "asset_id": "asset-right-censored",
+      "alarm_time_unix_ms": 1908000000,
+      "score": 0.93,
+      "threshold": 0.8
+    }
+  ],
+  "claim_ceiling": "synthetic_software_validation_only"
+}
