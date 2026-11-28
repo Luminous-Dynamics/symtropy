@@ -10,7 +10,7 @@
 //! kernel validates upstream receipt dispositions and exact scopes.
 
 use super::evidence_action_evsi_v0_1::{
-    ROBUST_EVSI_NUMERATOR_SCALE_V0_1, EvidenceActionPlannerDispositionV0_1,
+    EVSI_NUMERATOR_SCALE_V0_1, EvidenceActionPlannerDispositionV0_1,
     EvidenceActionPlannerInputV0_1, rank_evidence_actions_v0_1,
 };
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,6 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const ROBUST_EVSI_AMBIGUITY_SCHEMA_V0_1: &str = "AeroRobustEVSIAmbiguitySetV0_1";
-pub const ROBUST_EVSI_NUMERATOR_SCALE_V0_1: i128 = 1_000_000_000_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum RobustEVSIReceiptVerificationStatusV0_1 {
@@ -613,13 +612,13 @@ pub fn rank_robust_evidence_actions_v0_1(
         }
         let mut action_map = BTreeMap::new();
         for action in result.ranked_actions {
-            let Ok(evsi) = action.evsi_numerator.parse::<i128>() else {
+            let Ok(evsi) = action.evsi_scaled_numerator.parse::<i128>() else {
                 return invalid_result(
                     input,
                     BTreeSet::from(["ROBUST_EVSI_EVSI_NUMERATOR_INVALID".to_owned()]),
                 );
             };
-            let Ok(net_benefit) = action.net_benefit_numerator.parse::<i128>() else {
+            let Ok(net_benefit) = action.net_benefit_scaled_numerator.parse::<i128>() else {
                 return invalid_result(
                     input,
                     BTreeSet::from(["ROBUST_EVSI_NET_BENEFIT_NUMERATOR_INVALID".to_owned()]),
@@ -657,7 +656,7 @@ pub fn rank_robust_evidence_actions_v0_1(
             }
         }
         if missing || per_scenario.len() != evaluations.len() {
-            for (scenario_id, _, action_map) in &evaluations {
+            for (scenario_id, action_map) in &evaluations {
                 if !action_map.contains_key(&action_id) {
                     if !excluded.iter().any(|item| {
                         item.scenario_id.as_str() == *scenario_id && item.action_id.as_str() == action_id.as_str()
