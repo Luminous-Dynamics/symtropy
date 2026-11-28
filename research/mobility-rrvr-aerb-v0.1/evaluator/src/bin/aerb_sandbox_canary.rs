@@ -7,7 +7,7 @@
 //! from inside the namespace and writes a small report only to candidate output.
 
 use mobility_rrvr_aerb_evaluator::blind_execution_sandbox_v0_1::{
-    build_candidate_sandbox_command, SandboxLimits, SandboxPaths,
+    SandboxLimits, SandboxPaths, build_candidate_sandbox_command,
 };
 use std::env;
 use std::fs::{self, File};
@@ -16,8 +16,8 @@ use std::net::{TcpListener, TcpStream};
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -69,9 +69,7 @@ fn find_executable(name: &str) -> Result<PathBuf, String> {
         if candidate.is_file() {
             let metadata = fs::metadata(&candidate).map_err(|error| error.to_string())?;
             if metadata.permissions().mode() & 0o111 != 0 {
-                return candidate
-                    .canonicalize()
-                    .map_err(|error| error.to_string());
+                return candidate.canonicalize().map_err(|error| error.to_string());
             }
         }
     }
@@ -85,17 +83,20 @@ fn current_pid_namespace() -> Result<String, String> {
 }
 
 fn limit_soft_is_bounded(limits: &str, label: &str, bound: u64) -> bool {
-    limits.lines().find(|line| line.starts_with(label)).is_some_and(|line| {
-        let values: Vec<&str> = line[label.len()..].split_whitespace().collect();
-        values
-            .first()
-            .and_then(|value| value.parse::<u64>().ok())
-            .is_some_and(|soft| soft <= bound)
-            && values
-                .get(1)
+    limits
+        .lines()
+        .find(|line| line.starts_with(label))
+        .is_some_and(|line| {
+            let values: Vec<&str> = line[label.len()..].split_whitespace().collect();
+            values
+                .first()
                 .and_then(|value| value.parse::<u64>().ok())
-                .is_some_and(|hard| hard <= bound)
-    })
+                .is_some_and(|soft| soft <= bound)
+                && values
+                    .get(1)
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .is_some_and(|hard| hard <= bound)
+        })
 }
 
 fn candidate_mode(args: &[String]) -> Result<(), String> {
@@ -133,15 +134,13 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         && !Path::new("/evaluator").exists()
         && !Path::new("/host-secret.txt").exists();
     let evaluator_environment_absent = env::var_os("AERB_EVALUATOR_SECRET").is_none();
-    let process_one_environment =
-        fs::read("/proc/1/environ").map_err(|error| error.to_string())?;
-    let evaluator_secret_absent_from_process_table =
-        !process_one_environment
-            .windows(b"AERB_EVALUATOR_SECRET".len())
-            .any(|window| window == b"AERB_EVALUATOR_SECRET")
-            && !process_one_environment
-                .windows(b"CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX".len())
-                .any(|window| window == b"CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX");
+    let process_one_environment = fs::read("/proc/1/environ").map_err(|error| error.to_string())?;
+    let evaluator_secret_absent_from_process_table = !process_one_environment
+        .windows(b"AERB_EVALUATOR_SECRET".len())
+        .any(|window| window == b"AERB_EVALUATOR_SECRET")
+        && !process_one_environment
+            .windows(b"CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX".len())
+            .any(|window| window == b"CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX");
     let expected_env = [
         ("HOME", "/tmp"),
         ("PWD", "/candidate/input"),
@@ -167,8 +166,8 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         .map_err(|error| error.to_string())?;
     let nested_user_namespaces_disabled = user_namespace_limit == 1;
 
-    let process_status = fs::read_to_string("/proc/self/status")
-        .map_err(|error| error.to_string())?;
+    let process_status =
+        fs::read_to_string("/proc/self/status").map_err(|error| error.to_string())?;
     let capabilities_dropped = ["CapEff:", "CapPrm:", "CapBnd:"].iter().all(|label| {
         process_status
             .lines()
@@ -207,10 +206,18 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
         ("runtime read-only", runtime_write_blocked),
         ("candidate output writable", output_write_succeeded),
         ("evaluator mount absent", evaluator_mount_absent),
-        ("evaluator environment absent", evaluator_environment_absent),\n        ("evaluator secret absent from process table", evaluator_secret_absent_from_process_table),
+        ("evaluator environment absent", evaluator_environment_absent),
+        (
+            "evaluator secret absent from process table",
+            evaluator_secret_absent_from_process_table,
+        ),
         ("environment sanitized", environment_matches),
         ("PID namespace isolated", pid_namespace_isolated),
-        ("nested user namespaces disabled", nested_user_namespaces_disabled),\n        ("capabilities dropped", capabilities_dropped),
+        (
+            "nested user namespaces disabled",
+            nested_user_namespaces_disabled,
+        ),
+        ("capabilities dropped", capabilities_dropped),
         ("resource limits active", resource_limits_active),
         ("host loopback unreachable", network_blocked),
     ];
@@ -246,13 +253,11 @@ fn host_mode() -> Result<(), String> {
     )
     .map_err(|error| error.to_string())?;
     let host_secret = tree.root.join("host-secret.txt");
-    fs::write(&host_secret, b"NEVER_VISIBLE_TO_CANDIDATE")
-        .map_err(|error| error.to_string())?;
+    fs::write(&host_secret, b"NEVER_VISIBLE_TO_CANDIDATE").map_err(|error| error.to_string())?;
 
     let current_executable = env::current_exe().map_err(|error| error.to_string())?;
     let candidate_executable = runtime_bin.join("aerb_sandbox_canary");
-    fs::copy(&current_executable, &candidate_executable)
-        .map_err(|error| error.to_string())?;
+    fs::copy(&current_executable, &candidate_executable).map_err(|error| error.to_string())?;
     set_mode(&candidate_executable, 0o755)?;
 
     let bubblewrap = find_executable("bwrap")?;
@@ -263,7 +268,10 @@ fn host_mode() -> Result<(), String> {
     listener
         .set_nonblocking(true)
         .map_err(|error| error.to_string())?;
-    let network_port = listener.local_addr().map_err(|error| error.to_string())?.port();
+    let network_port = listener
+        .local_addr()
+        .map_err(|error| error.to_string())?
+        .port();
     let network_accepted = Arc::new(AtomicBool::new(false));
     let network_accepted_thread = Arc::clone(&network_accepted);
     let server = thread::spawn(move || {
@@ -306,7 +314,10 @@ fn host_mode() -> Result<(), String> {
     let spec = build_candidate_sandbox_command(
         &paths,
         limits,
-        &candidate_arguments.iter().map(Into::into).collect::<Vec<_>>(),
+        &candidate_arguments
+            .iter()
+            .map(Into::into)
+            .collect::<Vec<_>>(),
     )
     .map_err(|error| error.to_string())?;
 
@@ -334,15 +345,19 @@ fn host_mode() -> Result<(), String> {
         "runtime_write_blocked=true",
         "output_write_succeeded=true",
         "evaluator_mount_absent=true",
-        "evaluator_environment_absent=true",\n        "evaluator_secret_absent_from_process_table=true",
+        "evaluator_environment_absent=true",
+        "evaluator_secret_absent_from_process_table=true",
         "environment_matches=true",
         "pid_namespace_isolated=true",
-        "nested_user_namespaces_disabled=true",\n        "capabilities_dropped=true",
+        "nested_user_namespaces_disabled=true",
+        "capabilities_dropped=true",
         "resource_limits_active=true",
         "network_blocked=true",
     ] {
         if !report.lines().any(|line| line == key) {
-            return Err(format!("canary report missing positive result {key}: {report}"));
+            return Err(format!(
+                "canary report missing positive result {key}: {report}"
+            ));
         }
     }
     println!("AERB_BLIND_SANDBOX_CANARY=PASS");
