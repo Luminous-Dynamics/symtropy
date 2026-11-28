@@ -849,11 +849,9 @@ mod tests {
         ClaimObligationEvidenceBindingInputV0_1,
     };
     use crate::claim_assurance_gate_v0_1::RequiredEvidenceAdmission;
-    use crate::claim_specification_v0_1::UncertaintyTreatmentV0_1;
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
     use crate::model_credibility_cut_v0_1::{
-        MetricStratumReportV0_1, MetricStratumStatus, ModelPackageStatus,
-        SplitIntegrityStatus, UncertaintyComponentEvidenceV0_1,
+        MetricStratumStatus, ModelPackageStatus, SplitIntegrityStatus,
         UncertaintyEvidenceStatus,
     };
     use crate::owner_evidence_cut_v0_1::OwnerEvidenceCutV0_1;
