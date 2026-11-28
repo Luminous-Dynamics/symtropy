@@ -533,7 +533,7 @@ mod tests {
     }
 
     #[test]
-    fn repeated_on_axis_points_leave_a_rotational_mode_unobservable() {
+    fn repeated_on_axis_points_leave_multiple_pose_modes_unobservable() {
         let points = [
             [0.0, 0.0, 5.0],
             [0.0, 0.0, 6.0],
@@ -543,10 +543,18 @@ mod tests {
             [0.0, 0.0, 10.0],
         ];
         let result = evaluate(&request(&points)).unwrap();
-        assert!(result.numerical_rank < 6);
+        assert_eq!(result.numerical_rank, 4);
+        assert!(result.eigenvalues_ascending[0] <= result.rank_threshold);
+        assert!(result.eigenvalues_ascending[1] <= result.rank_threshold);
         assert!(result.condition_number.is_none());
         assert!(result.log_determinant.is_none());
-        assert!(result.weakest_mode_rotation_norm > 0.99);
+        let weakest_norm = result
+            .weakest_mode
+            .iter()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        assert!((weakest_norm - 1.0).abs() < 1e-9);
     }
 
     #[test]
