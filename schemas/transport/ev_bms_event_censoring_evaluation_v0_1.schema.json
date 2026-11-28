@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transport/ev-bms-event-censoring-evaluation/0.1",
+  "title": "EV BMS interval-censored event warning evaluation v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "evaluation_id",
+    "dataset_id",
+    "dataset_domain",
+    "dataset_admission_state",
+    "dataset_manifest_sha256",
+    "dataset_snapshot_sha256",
+    "split_manifest_sha256",
+    "split_partition",
+    "evidence_class",
+    "time_basis_id",
+    "time_alignment_id",
+    "time_alignment_artifact_sha256",
+    "time_alignment_method",
+    "max_relative_clock_error_ms",
+    "alignment_uncertainty_preapplied",
+    "warning_horizon_ms",
+    "minimum_action_lead_ms",
+    "threshold_policy_id",
+    "exposures",
+    "events",
+    "alarms",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "ev-bms-event-censoring-evaluation/v0.1"
+    },
+    "evaluation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_id": {
+      "enum": [
+        "cao-onboard-bms-zenodo-10656500",
+        "shenzhen-charger-side-mendeley-c7gg94tmvz-v3"
+      ]
+    },
+    "dataset_domain": {
+      "enum": [
+        "onboard_bms",
+        "charger_side"
+      ]
+    },
+    "dataset_admission_state": {
+      "enum": [
+        "metadata_only",
+        "snapshot_admitted"
+      ]
+    },
+    "dataset_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "dataset_snapshot_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "split_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "split_partition": {
+      "const": "test"
+    },
+    "evidence_class": {
+      "enum": [
+        "synthetic_fixture",
+        "operator_collected_field_observation"
+      ]
+    },
+    "time_basis_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "time_alignment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "time_alignment_artifact_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "time_alignment_method": {
+      "enum": [
+        "synthetic_shared_clock",
+        "shared_hardware_clock",
+        "ptp_ntp_verified",
+        "reference_event_alignment",
+        "operator_adjudicated_alignment"
+      ]
+    },
+    "max_relative_clock_error_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "alignment_uncertainty_preapplied": {
+      "const": true
+    },
+    "warning_horizon_ms": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "minimum_action_lead_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "threshold_policy_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "exposures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "exposure_id",
+          "asset_id",
+          "role",
+          "window_start_unix_ms",
+          "window_end_unix_ms"
+        ],
+        "properties": {
+          "exposure_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "enum": [
+              "negative_control",
+              "event_monitoring",
+              "right_censored_followup"
+            ]
+          },
+          "window_start_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "window_end_unix_ms": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "event_id",
+          "asset_id",
+          "onset_type",
+          "onset_lower_unix_ms",
+          "onset_lower_semantics",
+          "onset_upper_unix_ms",
+          "onset_upper_semantics",
+          "event_time_semantics",
+          "onset_evidence_refs",
+          "adjudication_revision"
+        ],
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "onset_type": {
+            "enum": [
+              "exact_reported",
+              "interval_censored",
+              "left_censored"
+            ]
+          },
+          "onset_lower_unix_ms": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "onset_lower_semantics": {
+            "enum": [
+              "exact_reported_instant",
+              "earliest_possible_instant_after_last_verified_normal",
+              "other_adjudicated_lower_bound",
+              "not_available_left_censored"
+            ]
+          },
+          "onset_upper_unix_ms": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "onset_upper_semantics": {
+            "enum": [
+              "exact_reported_instant",
+              "first_verified_abnormal_sample",
+              "other_adjudicated_upper_bound"
+            ]
+          },
+          "event_time_semantics": {
+            "enum": [
+              "reported_bms_alarm",
+              "first_positive_sample",
+              "maintenance_confirmation",
+              "teardown_adjudication",
+              "independently_adjudicated_onset",
+              "last_normal_first_abnormal_bracket",
+              "other_recorded_time"
+            ]
+          },
+          "onset_evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "adjudication_revision": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "alarms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "alarm_id",
+          "asset_id",
+          "alarm_time_unix_ms",
+          "score",
+          "threshold"
+        ],
+        "properties": {
+          "alarm_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "asset_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alarm_time_unix_ms": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "number"
+          },
+          "threshold": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
