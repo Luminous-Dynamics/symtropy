@@ -17,6 +17,28 @@ The repository already has stronger upstream contracts:
 
 The next step must derive the state vector from those typed facts. It must not become a parallel authority source or duplicate BASALT, AeroCommons, Mycelix or model-owner evaluation.
 
+## 1A. Implemented first adapter increment: exact claim-specification binding
+
+The Rust module `claim_specification_binding_v0_1.rs` adds a narrow, additive source-to-context admission function:
+
+`bind_claim_specification_v0_1(raw_payload, expected_raw_payload_sha256, specification, decision_context)`.
+
+It verifies, in order:
+
+1. The exact raw payload digest matches the expected source commitment.
+2. The raw payload deserializes under the closed `ClaimSpecificationV0_1` type and equals the separately supplied typed object.
+3. The typed specification is formally complete and supported.
+4. The typed semantic commitment is recomputed.
+5. The decision context is valid and its claim, subject, configuration and operating envelope exactly match the specification.
+6. The existing `DecisionContextV0_1.claim_specification_sha256` is bound to the typed semantic digest under this explicit v0.1 adapter profile.
+7. The full closed acquisition interval is inside the specification's half-open validity interval: `earliest >= effective_from` and `latest < effective_until`.
+
+The result reports three separate commitments: raw source payload SHA-256, typed semantic SHA-256 and decision-context SHA-256. It carries deterministic reason codes and always declares physical truth, engineering acceptance and execution authority as false.
+
+This is intentionally **not the full source adapter**. It does not derive evidence obligations or strata, verify owner receipts/signatures, calculate producer authority, evaluate model credibility, or consume observer/causal-cut/effectivity reports. The existing claim gate remains unchanged and authoritative during this migration.
+
+The v0.1 meaning of `claim_specification_sha256` is made explicit here as the typed semantic commitment. If a future profile needs a composite digest of claim specification plus obligations, that must be a separately named, versioned field—not a silent reinterpretation of this one.
+
 ## 2. Normative adapter rule
 
 **No caller-authored obligation policy.** The adapter receives exact typed specifications and upstream assessments, validates their commitments and produces the state vector. It never accepts an unbound mandatory or hard-gate boolean from an external request.
