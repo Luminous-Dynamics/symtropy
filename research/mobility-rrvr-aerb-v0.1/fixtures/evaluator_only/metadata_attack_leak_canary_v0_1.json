@@ -1,0 +1,1543 @@
+{
+  "schema_version": "aerb-metadata-attack-input-v0.1",
+  "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "requested_folds": 4,
+  "rows": [
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000000",
+      "evaluator_cluster_id": "evalcluster-0-0",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000000",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000001",
+      "evaluator_cluster_id": "evalcluster-0-0",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000001",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000002",
+      "evaluator_cluster_id": "evalcluster-0-1",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000002",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000003",
+      "evaluator_cluster_id": "evalcluster-0-1",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000003",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000004",
+      "evaluator_cluster_id": "evalcluster-0-2",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000004",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000005",
+      "evaluator_cluster_id": "evalcluster-0-2",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000005",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000006",
+      "evaluator_cluster_id": "evalcluster-0-3",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000006",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000007",
+      "evaluator_cluster_id": "evalcluster-0-3",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000007",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000008",
+      "evaluator_cluster_id": "evalcluster-0-4",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000008",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000009",
+      "evaluator_cluster_id": "evalcluster-0-4",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_00000000000000000000000000000009",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000000a",
+      "evaluator_cluster_id": "evalcluster-0-5",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_0000000000000000000000000000000a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000000b",
+      "evaluator_cluster_id": "evalcluster-0-5",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_0000000000000000000000000000000b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000000c",
+      "evaluator_cluster_id": "evalcluster-0-6",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_0000000000000000000000000000000c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000000d",
+      "evaluator_cluster_id": "evalcluster-0-6",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_0000000000000000000000000000000d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000000e",
+      "evaluator_cluster_id": "evalcluster-0-7",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_0000000000000000000000000000000e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000000f",
+      "evaluator_cluster_id": "evalcluster-0-7",
+      "hidden_truth_world_id": "not_dispatched",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "not_dispatched",
+        "opaque_episode_id": "ep_0000000000000000000000000000000f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000010",
+      "evaluator_cluster_id": "evalcluster-1-0",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000010",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000011",
+      "evaluator_cluster_id": "evalcluster-1-0",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000011",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000012",
+      "evaluator_cluster_id": "evalcluster-1-1",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000012",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000013",
+      "evaluator_cluster_id": "evalcluster-1-1",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000013",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000014",
+      "evaluator_cluster_id": "evalcluster-1-2",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000014",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000015",
+      "evaluator_cluster_id": "evalcluster-1-2",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000015",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000016",
+      "evaluator_cluster_id": "evalcluster-1-3",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000016",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000017",
+      "evaluator_cluster_id": "evalcluster-1-3",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000017",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000018",
+      "evaluator_cluster_id": "evalcluster-1-4",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000018",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000019",
+      "evaluator_cluster_id": "evalcluster-1-4",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000019",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000001a",
+      "evaluator_cluster_id": "evalcluster-1-5",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000001a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000001b",
+      "evaluator_cluster_id": "evalcluster-1-5",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000001b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000001c",
+      "evaluator_cluster_id": "evalcluster-1-6",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000001c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000001d",
+      "evaluator_cluster_id": "evalcluster-1-6",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000001d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000001e",
+      "evaluator_cluster_id": "evalcluster-1-7",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000001e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000001f",
+      "evaluator_cluster_id": "evalcluster-1-7",
+      "hidden_truth_world_id": "dispatched_no_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "dispatched_no_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000001f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000020",
+      "evaluator_cluster_id": "evalcluster-2-0",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000020",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000021",
+      "evaluator_cluster_id": "evalcluster-2-0",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000021",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000022",
+      "evaluator_cluster_id": "evalcluster-2-1",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000022",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000023",
+      "evaluator_cluster_id": "evalcluster-2-1",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000023",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000024",
+      "evaluator_cluster_id": "evalcluster-2-2",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000024",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000025",
+      "evaluator_cluster_id": "evalcluster-2-2",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000025",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000026",
+      "evaluator_cluster_id": "evalcluster-2-3",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000026",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000027",
+      "evaluator_cluster_id": "evalcluster-2-3",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000027",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000028",
+      "evaluator_cluster_id": "evalcluster-2-4",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000028",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000029",
+      "evaluator_cluster_id": "evalcluster-2-4",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_00000000000000000000000000000029",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000002a",
+      "evaluator_cluster_id": "evalcluster-2-5",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_0000000000000000000000000000002a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000002b",
+      "evaluator_cluster_id": "evalcluster-2-5",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_0000000000000000000000000000002b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000002c",
+      "evaluator_cluster_id": "evalcluster-2-6",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_0000000000000000000000000000002c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000002d",
+      "evaluator_cluster_id": "evalcluster-2-6",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_0000000000000000000000000000002d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000002e",
+      "evaluator_cluster_id": "evalcluster-2-7",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_0000000000000000000000000000002e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000002f",
+      "evaluator_cluster_id": "evalcluster-2-7",
+      "hidden_truth_world_id": "applied_once_ack_lost",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "applied_once_ack_lost",
+        "opaque_episode_id": "ep_0000000000000000000000000000002f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000030",
+      "evaluator_cluster_id": "evalcluster-3-0",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000030",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000031",
+      "evaluator_cluster_id": "evalcluster-3-0",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000031",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000032",
+      "evaluator_cluster_id": "evalcluster-3-1",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000032",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000033",
+      "evaluator_cluster_id": "evalcluster-3-1",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000033",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000034",
+      "evaluator_cluster_id": "evalcluster-3-2",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000034",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000035",
+      "evaluator_cluster_id": "evalcluster-3-2",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000035",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000036",
+      "evaluator_cluster_id": "evalcluster-3-3",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000036",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000037",
+      "evaluator_cluster_id": "evalcluster-3-3",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000037",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000038",
+      "evaluator_cluster_id": "evalcluster-3-4",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000038",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000039",
+      "evaluator_cluster_id": "evalcluster-3-4",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000039",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000003a",
+      "evaluator_cluster_id": "evalcluster-3-5",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000003a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000003b",
+      "evaluator_cluster_id": "evalcluster-3-5",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000003b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000003c",
+      "evaluator_cluster_id": "evalcluster-3-6",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000003c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000003d",
+      "evaluator_cluster_id": "evalcluster-3-6",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000003d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000003e",
+      "evaluator_cluster_id": "evalcluster-3-7",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000003e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000003f",
+      "evaluator_cluster_id": "evalcluster-3-7",
+      "hidden_truth_world_id": "partial_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "partial_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000003f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000040",
+      "evaluator_cluster_id": "evalcluster-4-0",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000040",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000041",
+      "evaluator_cluster_id": "evalcluster-4-0",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000041",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000042",
+      "evaluator_cluster_id": "evalcluster-4-1",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000042",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000043",
+      "evaluator_cluster_id": "evalcluster-4-1",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000043",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000044",
+      "evaluator_cluster_id": "evalcluster-4-2",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000044",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000045",
+      "evaluator_cluster_id": "evalcluster-4-2",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000045",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000046",
+      "evaluator_cluster_id": "evalcluster-4-3",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000046",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000047",
+      "evaluator_cluster_id": "evalcluster-4-3",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000047",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000048",
+      "evaluator_cluster_id": "evalcluster-4-4",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000048",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000049",
+      "evaluator_cluster_id": "evalcluster-4-4",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000049",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000004a",
+      "evaluator_cluster_id": "evalcluster-4-5",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000004a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000004b",
+      "evaluator_cluster_id": "evalcluster-4-5",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000004b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000004c",
+      "evaluator_cluster_id": "evalcluster-4-6",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000004c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000004d",
+      "evaluator_cluster_id": "evalcluster-4-6",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000004d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000004e",
+      "evaluator_cluster_id": "evalcluster-4-7",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000004e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000004f",
+      "evaluator_cluster_id": "evalcluster-4-7",
+      "hidden_truth_world_id": "duplicate_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "duplicate_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000004f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000050",
+      "evaluator_cluster_id": "evalcluster-5-0",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000050",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000051",
+      "evaluator_cluster_id": "evalcluster-5-0",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000051",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000052",
+      "evaluator_cluster_id": "evalcluster-5-1",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000052",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000053",
+      "evaluator_cluster_id": "evalcluster-5-1",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000053",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000054",
+      "evaluator_cluster_id": "evalcluster-5-2",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000054",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000055",
+      "evaluator_cluster_id": "evalcluster-5-2",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000055",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000056",
+      "evaluator_cluster_id": "evalcluster-5-3",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000056",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000057",
+      "evaluator_cluster_id": "evalcluster-5-3",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000057",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000058",
+      "evaluator_cluster_id": "evalcluster-5-4",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000058",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000059",
+      "evaluator_cluster_id": "evalcluster-5-4",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_00000000000000000000000000000059",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000005a",
+      "evaluator_cluster_id": "evalcluster-5-5",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000005a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000005b",
+      "evaluator_cluster_id": "evalcluster-5-5",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000005b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000005c",
+      "evaluator_cluster_id": "evalcluster-5-6",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000005c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000005d",
+      "evaluator_cluster_id": "evalcluster-5-6",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000005d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000005e",
+      "evaluator_cluster_id": "evalcluster-5-7",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000005e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000005f",
+      "evaluator_cluster_id": "evalcluster-5-7",
+      "hidden_truth_world_id": "stale_authority_effect",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "stale_authority_effect",
+        "opaque_episode_id": "ep_0000000000000000000000000000005f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000060",
+      "evaluator_cluster_id": "evalcluster-6-0",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000060",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000061",
+      "evaluator_cluster_id": "evalcluster-6-0",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000061",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000062",
+      "evaluator_cluster_id": "evalcluster-6-1",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000062",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000063",
+      "evaluator_cluster_id": "evalcluster-6-1",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000063",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000064",
+      "evaluator_cluster_id": "evalcluster-6-2",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000064",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000065",
+      "evaluator_cluster_id": "evalcluster-6-2",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000065",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000066",
+      "evaluator_cluster_id": "evalcluster-6-3",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000066",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000067",
+      "evaluator_cluster_id": "evalcluster-6-3",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000067",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000068",
+      "evaluator_cluster_id": "evalcluster-6-4",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000068",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000069",
+      "evaluator_cluster_id": "evalcluster-6-4",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_00000000000000000000000000000069",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000006a",
+      "evaluator_cluster_id": "evalcluster-6-5",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_0000000000000000000000000000006a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000006b",
+      "evaluator_cluster_id": "evalcluster-6-5",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_0000000000000000000000000000006b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000006c",
+      "evaluator_cluster_id": "evalcluster-6-6",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_0000000000000000000000000000006c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000006d",
+      "evaluator_cluster_id": "evalcluster-6-6",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_0000000000000000000000000000006d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000006e",
+      "evaluator_cluster_id": "evalcluster-6-7",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_0000000000000000000000000000006e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000006f",
+      "evaluator_cluster_id": "evalcluster-6-7",
+      "hidden_truth_world_id": "unresolved_command_holder",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "unresolved_command_holder",
+        "opaque_episode_id": "ep_0000000000000000000000000000006f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000070",
+      "evaluator_cluster_id": "evalcluster-7-0",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000070",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000071",
+      "evaluator_cluster_id": "evalcluster-7-0",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000071",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000072",
+      "evaluator_cluster_id": "evalcluster-7-1",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000072",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "9"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000073",
+      "evaluator_cluster_id": "evalcluster-7-1",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000073",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "7"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000074",
+      "evaluator_cluster_id": "evalcluster-7-2",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000074",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "5"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000075",
+      "evaluator_cluster_id": "evalcluster-7-2",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000075",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "3"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000076",
+      "evaluator_cluster_id": "evalcluster-7-3",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000076",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "1"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000077",
+      "evaluator_cluster_id": "evalcluster-7-3",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000077",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "12"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000078",
+      "evaluator_cluster_id": "evalcluster-7-4",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000078",
+        "file_order_mod_8": "0",
+        "neutral_bucket": "10"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_00000000000000000000000000000079",
+      "evaluator_cluster_id": "evalcluster-7-4",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_00000000000000000000000000000079",
+        "file_order_mod_8": "1",
+        "neutral_bucket": "8"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000007a",
+      "evaluator_cluster_id": "evalcluster-7-5",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_0000000000000000000000000000007a",
+        "file_order_mod_8": "2",
+        "neutral_bucket": "6"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000007b",
+      "evaluator_cluster_id": "evalcluster-7-5",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_0000000000000000000000000000007b",
+        "file_order_mod_8": "3",
+        "neutral_bucket": "4"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000007c",
+      "evaluator_cluster_id": "evalcluster-7-6",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_0000000000000000000000000000007c",
+        "file_order_mod_8": "4",
+        "neutral_bucket": "2"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000007d",
+      "evaluator_cluster_id": "evalcluster-7-6",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_0000000000000000000000000000007d",
+        "file_order_mod_8": "5",
+        "neutral_bucket": "0"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000007e",
+      "evaluator_cluster_id": "evalcluster-7-7",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_0000000000000000000000000000007e",
+        "file_order_mod_8": "6",
+        "neutral_bucket": "11"
+      }
+    },
+    {
+      "campaign_id": "camp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "episode_id": "ep_0000000000000000000000000000007f",
+      "evaluator_cluster_id": "evalcluster-7-7",
+      "hidden_truth_world_id": "open_world_residual",
+      "candidate_visible_features": {
+        "deliberately_leaking_scenario_label": "open_world_residual",
+        "opaque_episode_id": "ep_0000000000000000000000000000007f",
+        "file_order_mod_8": "7",
+        "neutral_bucket": "9"
+      }
+    }
+  ]
+}
