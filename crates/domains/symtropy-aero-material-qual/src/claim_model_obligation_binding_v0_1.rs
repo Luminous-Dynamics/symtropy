@@ -270,6 +270,25 @@ fn valid_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
+fn uncertainty_component_name(component: UncertaintyComponentKind) -> &'static str {
+    match component {
+        UncertaintyComponentKind::ObservationNoise => "observation_noise",
+        UncertaintyComponentKind::MeasurementUncertainty => "measurement_uncertainty",
+        UncertaintyComponentKind::ParameterUncertainty => "parameter_uncertainty",
+        UncertaintyComponentKind::StructuralModelDiscrepancy => "structural_model_discrepancy",
+        UncertaintyComponentKind::EnvironmentalUncertainty => "environmental_uncertainty",
+    }
+}
+
+fn domain_coverage_name(status: ModelDomainCoverageStatus) -> &'static str {
+    match status {
+        ModelDomainCoverageStatus::Covered => "covered",
+        ModelDomainCoverageStatus::NotCovered => "not_covered",
+        ModelDomainCoverageStatus::Indeterminate => "indeterminate",
+        ModelDomainCoverageStatus::Unverified => "unverified",
+    }
+}
+
 fn valid_interval(from: u64, until: u64) -> bool {
     from < until
 }
@@ -705,7 +724,7 @@ pub fn bind_claim_model_obligations_v0_1(
                     method_ref: spec.uncertainty.method_ref.clone(),
                     treatment: format!("{:?}", spec.uncertainty.treatment),
                     confidence_level_ppm: spec.uncertainty.confidence_level_ppm,
-                    component: component.component.as_str().to_owned(),
+                    component: uncertainty_component_name(component.component).to_owned(),
                     method_profile_sha256: component.method_profile_sha256.clone(),
                     report_sha256: component.report_sha256.clone(),
                     status: format!("{:?}", component.status),
@@ -744,13 +763,12 @@ pub fn bind_claim_model_obligations_v0_1(
         operating_envelope_ref: model.operating_envelope_ref.clone(),
         applicability_profile_sha256: model.applicability_profile_sha256.clone(),
         risk_classification_sha256: model.risk_classification_sha256.clone(),
-        domain_coverage_status: model.domain_coverage_status.as_str().to_owned(),
+        domain_coverage_status: domain_coverage_name(model.domain_coverage_status).to_owned(),
         disposition: applicability_disposition,
         reason_codes: applicability_reasons,
     };
 
-    let mut reasons_from_model = model.reviewability_blockers();
-    reasons_from_model.sort();
+    let reasons_from_model = model.reviewability_blockers();
     reasons.extend(reasons_from_model);
 
     let applicability_sha = compute_model_applicability_mapping_sha256_v0_1(
