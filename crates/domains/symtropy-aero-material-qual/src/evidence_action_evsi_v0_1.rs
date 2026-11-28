@@ -137,6 +137,8 @@ pub struct EvidenceActionPlannerInputV0_1 {
     pub claim_id: String,
     /// Passed through unchanged; the planner never recalculates or upgrades it.
     pub frozen_claim_disposition: String,
+    pub configuration_ref: String,
+    pub as_known_at_unix_ms: u64,
     pub decision_context_sha256: String,
     pub assurance_state_sha256: String,
     pub action_catalogue_sha256: String,
@@ -254,6 +256,7 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
     for (code, value) in [
         ("CLAIM_ID", input.claim_id.as_str()),
         ("CLAIM_DISPOSITION", input.frozen_claim_disposition.as_str()),
+        ("CONFIGURATION_REF", input.configuration_ref.as_str()),
     ] {
         if !valid_identifier(value) {
             errors.insert(format!("EVSI_{code}_INVALID"));
