@@ -1585,18 +1585,6 @@ mod tests {
         let mut candidate = candidate();
         candidate.pbf_lb_equipment_qualification_required = false;
         let mut receipts = m5_receipts();
-        receipts.push(receipt(
-            "LAB-FUNCTION-001",
-            EvidenceKind::LaboratoryMethodScope,
-            EvidenceClass::ExternalAttestation,
-        ));
-        receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-FUNCTION-001".to_string());
-        receipts.push(receipt(
-            "LAB-GEOMETRY-001",
-            EvidenceKind::LaboratoryMethodScope,
-            EvidenceClass::ExternalAttestation,
-        ));
-        receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-GEOMETRY-001".to_string());
         let result = evaluate(&candidate, &receipts);
         assert_eq!(result.derived_level, M5);
     }
@@ -1624,18 +1612,6 @@ mod tests {
             r.standard_reference = Some("ISO/ASTM TS 52930:2021".to_string());
             receipts.push(r);
         }
-        receipts.push(receipt(
-            "LAB-FUNCTION-001",
-            EvidenceKind::LaboratoryMethodScope,
-            EvidenceClass::ExternalAttestation,
-        ));
-        receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-FUNCTION-001".to_string());
-        receipts.push(receipt(
-            "LAB-GEOMETRY-001",
-            EvidenceKind::LaboratoryMethodScope,
-            EvidenceClass::ExternalAttestation,
-        ));
-        receipts.last_mut().unwrap().method_scope_id = Some("SCOPE-GEOMETRY-001".to_string());
         let result = evaluate(&candidate, &receipts);
         assert_eq!(result.derived_level, M5);
     }
