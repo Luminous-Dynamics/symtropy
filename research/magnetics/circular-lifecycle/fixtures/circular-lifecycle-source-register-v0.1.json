@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.1",
+  "sources": [
+    {
+      "id": "FRAUNHOFER-IPK-MOTOR-CIRCULARITY-2026",
+      "citation": "Keeping Electric Motors in the Loop",
+      "url": "https://www.ipk.fraunhofer.de/en/media/futur/futur-2026-1/keeping-electric-motors-in-the-loop.html",
+      "published": "2026",
+      "evidence_class": "industrial_research_overview",
+      "supports": [
+        "reuse",
+        "repair",
+        "remanufacture",
+        "refurbishment",
+        "retrofit",
+        "design for disassembly",
+        "material separation"
+      ],
+      "limitations": [
+        "overview and research activity, not a controlled comparative teardown trial",
+        "no universal recovery-rate or service-cost factor"
+      ]
+    },
+    {
+      "id": "HAMIDI-2026-MOTOR-DISASSEMBLY",
+      "citation": "Maximising material recovery from end-of-life electric traction motors via disassembly",
+      "doi": "10.1016/j.resconrec.2026.109078",
+      "url": "https://doi.org/10.1016/j.resconrec.2026.109078",
+      "published": "2026",
+      "evidence_class": "case_study_and_robotic_simulation",
+      "supports": [
+        "component hierarchy and joining maps",
+        "automated disassembly tooling requirements",
+        "critical material separation"
+      ],
+      "limitations": [
+        "Tesla Model Y drive-unit case study",
+        "robotic time reduction is simulation-supported potential, not general deployed-production evidence",
+        "study data availability is limited"
+      ]
+    },
+    {
+      "id": "KLEIN-2026-MOTOR-CIRCULARITY-DECISION-TOOL",
+      "citation": "Development of a Decision Tool for Assessing the Circularity of Electric Traction Motors",
+      "doi": "10.1016/j.procir.2026.05.108",
+      "url": "https://doi.org/10.1016/j.procir.2026.05.108",
+      "published": "2026",
+      "evidence_class": "decision_framework",
+      "supports": [
+        "precedence-constrained disassembly operations",
+        "cleaning and diagnostic outcomes",
+        "reuse/remanufacture/recycle decisions"
+      ],
+      "limitations": [
+        "method/tool paper, not evidence that a specific rotor has superior circularity"
+      ]
+    },
+    {
+      "id": "FODOR-2026-MATERIALS-DRIVEN-AM-EM",
+      "citation": "Materials-Driven Additive Manufacturing for Electrical Machines: Qualification-Oriented Design Beyond Geometric Freedom",
+      "doi": "10.1002/adem.71259",
+      "url": "https://doi.org/10.1002/adem.71259",
+      "published": "2026-09-09",
+      "evidence_class": "materials_and_qualification_perspective",
+      "supports": [
+        "geometry-adapted PM integration",
+        "integrated retention",
+        "material/interface qualification",
+        "claim maturity M1-M5"
+      ],
+      "limitations": [
+        "perspective/review, not a matched rotor lifecycle experiment"
+      ]
+    },
+    {
+      "id": "NDFEB-AM-REVIEW-2026",
+      "citation": "State-of-the-art additive manufacturing of NdFeB permanent magnets: challenges and pathways toward high performance",
+      "doi": "10.1016/j.jsamd.2026.101226",
+      "url": "https://doi.org/10.1016/j.jsamd.2026.101226",
+      "published": "2026-09",
+      "evidence_class": "materials_review",
+      "supports": [
+        "AM NdFeB remanence limits",
+        "magnetic texture and phase-retention challenges"
+      ],
+      "limitations": [
+        "cross-study review; not matched rotor lifecycle data"
+      ]
+    },
+    {
+      "id": "REDUCED-REE-TOPOLOGY-REVIEW-2026",
+      "citation": "A review of structural design for reduced-rare-earth permanent magnet motors in new energy vehicles",
+      "doi": "10.3389/fmech.2026.1957624",
+      "url": "https://doi.org/10.3389/fmech.2026.1957624",
+      "published": "2026",
+      "evidence_class": "topology_review",
+      "supports": [
+        "PMaSynRM",
+        "EESM",
+        "induction and reluctance comparator context",
+        "demagnetization under coupled thermal/electrical/mechanical loads"
+      ],
+      "limitations": [
+        "review synthesis; topology results vary across applications and designs"
+      ]
+    }
+  ]
+}
