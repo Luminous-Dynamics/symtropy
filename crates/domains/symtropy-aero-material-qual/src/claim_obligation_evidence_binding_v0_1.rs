@@ -171,8 +171,7 @@ pub struct OwnerEvidenceSourceReceiptV0_1 {
     pub receipt_sha256: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClaimObligationEvidenceBindingInputV0_1<'a> {
     pub schema: String,
     pub raw_claim_specification_payload: &'a [u8],
@@ -505,8 +504,14 @@ fn validate_mapping_receipt(
         errors.insert("EVIDENCE_MAPPING_APPROVAL_RECEIPT_MISSING".to_owned());
         return errors;
     };
-    if receipt.verification_status != EvidenceBindingReceiptStatusV0_1::Verified {
-        errors.insert("EVIDENCE_MAPPING_APPROVAL_NOT_UPSTREAM_VERIFIED".to_owned());
+    match receipt.verification_status {
+        EvidenceBindingReceiptStatusV0_1::Verified => {}
+        EvidenceBindingReceiptStatusV0_1::Unverified => {
+            errors.insert("EVIDENCE_MAPPING_APPROVAL_NOT_UPSTREAM_VERIFIED".to_owned());
+        }
+        EvidenceBindingReceiptStatusV0_1::Failed => {
+            errors.insert("EVIDENCE_MAPPING_APPROVAL_VERIFICATION_FAILED".to_owned());
+        }
     }
     if !valid_identifier(&receipt.owner_namespace)
         || !valid_sha256(&receipt.receipt_sha256)
@@ -626,8 +631,14 @@ fn evaluate_source_record(
             {
                 reasons.insert("OWNER_EVIDENCE_SOURCE_RECEIPT_INVALID".to_owned());
             }
-            if receipt.verification_status != EvidenceBindingReceiptStatusV0_1::Verified {
-                reasons.insert("OWNER_EVIDENCE_SOURCE_RECEIPT_NOT_UPSTREAM_VERIFIED".to_owned());
+            match receipt.verification_status {
+                EvidenceBindingReceiptStatusV0_1::Verified => {}
+                EvidenceBindingReceiptStatusV0_1::Unverified => {
+                    reasons.insert("OWNER_EVIDENCE_SOURCE_RECEIPT_NOT_UPSTREAM_VERIFIED".to_owned());
+                }
+                EvidenceBindingReceiptStatusV0_1::Failed => {
+                    reasons.insert("OWNER_EVIDENCE_SOURCE_RECEIPT_VERIFICATION_FAILED".to_owned());
+                }
             }
             if receipt.owner_namespace != owner_cut.owner_namespace
                 || receipt.claim_id != decision_context.claim_id
@@ -677,8 +688,14 @@ fn evaluate_source_record(
             } else {
                 EvidenceEffectivityStateV0_1::InvalidInterval
             };
-            if effectivity != EvidenceEffectivityStateV0_1::CoversAcquisitionInterval {
-                reasons.insert("OWNER_EVIDENCE_DOES_NOT_COVER_ACQUISITION_INTERVAL".to_owned());
+            match effectivity {
+                EvidenceEffectivityStateV0_1::CoversAcquisitionInterval => {}
+                EvidenceEffectivityStateV0_1::DoesNotCoverAcquisitionInterval => {
+                    reasons.insert("OWNER_EVIDENCE_DOES_NOT_COVER_ACQUISITION_INTERVAL".to_owned());
+                }
+                EvidenceEffectivityStateV0_1::InvalidInterval => {
+                    reasons.insert("OWNER_EVIDENCE_EFFECTIVITY_INTERVAL_INVALID".to_owned());
+                }
             }
         }
     }
@@ -739,6 +756,8 @@ fn disposition_for_reasons(
                 || reason.contains("NOT_ACTIVE")
                 || reason.contains("STALE")
                 || reason.contains("AUTHORITY_DENIED")
+                || reason.contains("INVALID")
+                || reason.contains("DUPLICATE")
         })
     }) {
         return ClaimObligationEvidenceBindingDispositionV0_1::Rejected;
@@ -921,7 +940,9 @@ pub fn bind_claim_obligation_evidence_v0_1(
             continue;
         };
         let mut records = Vec::new();
-        for evidence_ref in &entry.evidence_refs {
+        let mut ordered_evidence_refs = entry.evidence_refs.iter().collect::<Vec<_>>();
+        ordered_evidence_refs.sort_unstable();
+        for evidence_ref in ordered_evidence_refs {
             mapped_refs.insert(evidence_ref.as_str());
             let record = evaluate_source_record(
                 evidence_ref,
@@ -978,25 +999,39 @@ pub fn bind_claim_obligation_evidence_v0_1(
         reasons.insert("NON_EVIDENCE_CLASS_OBLIGATIONS_REMAIN_UNASSESSED".to_owned());
     }
 
+    let entry_dispositions = output_entries
+        .iter()
+        .map(|entry| entry.disposition)
+        .collect::<Vec<_>>();
     let hard_errors = reasons.iter().any(|reason| {
         reason.contains("MISMATCH")
             || reason.contains("INVALID")
             || reason.contains("DUPLICATE")
             || reason.contains("NOT_DERIVED")
             || reason.contains("REJECTED")
+            || reason.contains("VERIFICATION_FAILED")
     });
-    let disposition = if hard_errors {
+    let unverified = reasons.iter().any(|reason| {
+        reason.contains("NOT_UPSTREAM_VERIFIED")
+            || reason.contains("NOT_KNOWN")
+            || reason.contains("UNVERIFIED")
+    });
+    let other_incomplete = reasons
+        .iter()
+        .any(|reason| reason != "NON_EVIDENCE_CLASS_OBLIGATIONS_REMAIN_UNASSESSED");
+    let disposition = if hard_errors
+        || entry_dispositions.contains(&ClaimObligationEvidenceBindingDispositionV0_1::Rejected)
+    {
         ClaimObligationEvidenceBindingDispositionV0_1::Rejected
-    } else if !reasons.is_empty() || any_record_blocker {
-        if reasons.iter().any(|reason| {
-            reason.contains("NOT_UPSTREAM_VERIFIED")
-                || reason.contains("NOT_KNOWN")
-                || reason.contains("UNVERIFIED")
-        }) {
-            ClaimObligationEvidenceBindingDispositionV0_1::Unverified
-        } else {
-            ClaimObligationEvidenceBindingDispositionV0_1::Incomplete
-        }
+    } else if unverified
+        || entry_dispositions.contains(&ClaimObligationEvidenceBindingDispositionV0_1::Unverified)
+    {
+        ClaimObligationEvidenceBindingDispositionV0_1::Unverified
+    } else if other_incomplete
+        || any_record_blocker
+        || entry_dispositions.contains(&ClaimObligationEvidenceBindingDispositionV0_1::Incomplete)
+    {
+        ClaimObligationEvidenceBindingDispositionV0_1::Incomplete
     } else {
         ClaimObligationEvidenceBindingDispositionV0_1::Bound
     };
@@ -1074,7 +1109,7 @@ mod tests {
             .collect::<Vec<_>>();
         let required_manifest = compute_required_evidence_manifest_sha256(&required_refs)
             .expect("required evidence manifest");
-        let mut owner_cut = OwnerEvidenceCutV0_1 {
+        let owner_cut = OwnerEvidenceCutV0_1 {
             schema: "AeroOwnerEvidenceCutV0_1".to_owned(),
             owner_namespace: "owner:materials-authority".to_owned(),
             component_packet_id: "packet:wing-r17".to_owned(),
