@@ -9,9 +9,7 @@
 //! remain responsible for those assessments.
 
 use super::assurance_disposition_v0_1::ObligationKindV0_1;
-use super::claim_specification_v0_1::{
-    ClaimSpecificationDispositionV0_1, ClaimSpecificationV0_1,
-};
+use super::claim_specification_v0_1::{ClaimSpecificationDispositionV0_1, ClaimSpecificationV0_1};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
@@ -145,17 +143,23 @@ fn profile_sha256(profile: RegisteredClaimRequirementProfileV0_1) -> String {
             ("producer_authority", "PRODUCER_AUTHORITY", true, true),
             ("model_applicability", "MODEL_APPLICABILITY", true, true),
             ("temporal_knowledge", "TEMPORAL_KNOWLEDGE", true, true),
-            ("dependency_observation", "DEPENDENCY_OBSERVATION", true, true),
+            (
+                "dependency_observation",
+                "DEPENDENCY_OBSERVATION",
+                true,
+                true,
+            ),
         ],
         strata_rule: ("MODEL_CREDIBILITY_PER_REQUIRED_STRATUM", true, true),
         evidence_class_rule: ("EVIDENCE_INTEGRITY_PER_REQUIRED_CLASS", true, true),
         uncertainty_rule: ("MODEL_CREDIBILITY_FOR_DECLARED_UNCERTAINTY", true, true),
-        defeater_rule: ("DEFEATER_RESOLUTION_FOR_ASSUMPTIONS_AND_EXCLUSIONS", false, false),
+        defeater_rule: (
+            "DEFEATER_RESOLUTION_FOR_ASSUMPTIONS_AND_EXCLUSIONS",
+            false,
+            false,
+        ),
     };
-    sha256_hex(
-        &serde_json::to_vec(&envelope)
-            .expect("closed obligation profile is serializable"),
-    )
+    sha256_hex(&serde_json::to_vec(&envelope).expect("closed obligation profile is serializable"))
 }
 
 fn add_obligation(
@@ -177,9 +181,7 @@ fn add_obligation(
     });
 }
 
-fn derive_obligations(
-    specification: &ClaimSpecificationV0_1,
-) -> Vec<DerivedClaimObligationV0_1> {
+fn derive_obligations(specification: &ClaimSpecificationV0_1) -> Vec<DerivedClaimObligationV0_1> {
     let mut obligations = Vec::new();
 
     for (id, kind, source_ref) in [
@@ -244,12 +246,13 @@ fn derive_obligations(
             ObligationKindV0_1::ModelCredibility,
             true,
             true,
-            format!("claim-spec:/population/required_strata/{}", stratum.stratum_id),
+            format!(
+                "claim-spec:/population/required_strata/{}",
+                stratum.stratum_id
+            ),
             format!(
                 "{}|{}|{}",
-                specification.population.population_ref,
-                stratum.dimension_ref,
-                stratum.level_ref
+                specification.population.population_ref, stratum.dimension_ref, stratum.level_ref
             ),
         );
     }
@@ -308,10 +311,7 @@ fn obligation_manifest_sha256(
         profile_sha256: profile_digest,
         obligations,
     };
-    sha256_hex(
-        &serde_json::to_vec(&envelope)
-            .expect("derived obligation manifest is serializable"),
-    )
+    sha256_hex(&serde_json::to_vec(&envelope).expect("derived obligation manifest is serializable"))
 }
 
 /// Derive mandatory obligations from one formally assessed, typed scalar claim.
@@ -442,8 +442,7 @@ mod tests {
     );
 
     fn specification() -> ClaimSpecificationV0_1 {
-        serde_json::from_str(SPECIFICATION_FIXTURE)
-            .expect("synthetic claim specification parses")
+        serde_json::from_str(SPECIFICATION_FIXTURE).expect("synthetic claim specification parses")
     }
 
     #[test]
@@ -453,7 +452,10 @@ mod tests {
             &specification,
             RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
         );
-        assert_eq!(result.disposition, ClaimObligationProfileDispositionV0_1::Derived);
+        assert_eq!(
+            result.disposition,
+            ClaimObligationProfileDispositionV0_1::Derived
+        );
         let profile = result.profile.expect("derived obligation profile");
 
         let evidence_class_count = specification.required_evidence_classes.len();
@@ -531,7 +533,11 @@ mod tests {
             advisory.len(),
             specification.assumptions.len() + specification.exclusions.len()
         );
-        assert!(advisory.iter().all(|item| !item.mandatory && !item.hard_gate));
+        assert!(
+            advisory
+                .iter()
+                .all(|item| !item.mandatory && !item.hard_gate)
+        );
     }
 
     #[test]
@@ -542,7 +548,10 @@ mod tests {
             &specification,
             RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
         );
-        assert_eq!(result.disposition, ClaimObligationProfileDispositionV0_1::Incomplete);
+        assert_eq!(
+            result.disposition,
+            ClaimObligationProfileDispositionV0_1::Incomplete
+        );
         assert!(result.profile.is_none());
         assert!(!result.physical_truth_established);
     }
