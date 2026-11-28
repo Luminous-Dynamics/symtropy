@@ -54,6 +54,12 @@ quad	ext{and}quad
 
 The state is calculated only from admissible evidence: payload integrity, owner/producer authority, semantic validation, applicability and time must be evaluated as separate gates before an item contributes support or rebuttal. An unauthenticated assertion is not admissible merely because its contents look plausible.
 
+### 3.2 Intrinsic hard gates and policy authority
+
+The v0.1 projection treats claim identity, evidence/payload integrity and producer authority as intrinsic mandatory hard gates. Every state vector must include each kind, and no instance may mark one optional or non-hard. Missing or downgraded intrinsic gates produce `UNVERIFIED`, never reviewability.
+
+This protects against the most direct self-declared-policy bypass. It does **not** solve the broader policy-authority problem: whether every other obligation is mandatory, which domain strata are required, and which gates apply to a particular intended use must be bound to a verified claim specification / requirement profile and its exact digest. The present reference evaluator receives those additional obligations as caller-supplied inputs; it does not authenticate a requirement profile or acceptance authority. Until that profile binding exists, this module is a reference projection and must not be used as a standalone production approval gate.
+
 ## 3. Orthogonal gates and open-world semantics
 
 The proposition state is only one axis. Each obligation also records:
@@ -81,6 +87,17 @@ otRightarrow) correct engineering conclusion.
 
 The system is open-world. Missing records, unavailable observers and empty impact sets are not evidence of absence unless the source inventory, observation interval, change classes and event-delivery coverage are themselves qualified.
 
+### 3.1 Do not collapse subject-time effectivity into receiver knowledge
+
+AERO has two independent temporal questions:
+
+- **Subject-time effectivity:** was the event / requirement / configuration effective for every possible physical acquisition instant? The existing `effectivity_interval_v0_1` comparator consumes hard event-effective and acquisition-time intervals and returns `DEFINITELY_EFFECTIVE`, `DEFINITELY_NOT_YET_EFFECTIVE`, `TIME_BOUNDARY_AMBIGUOUS` or `INVALID_TIME_INTERVAL`.
+- **Receiver knowledge:** had the evidence actually been received by the selected `as_known_at` cutoff? A backdated issuer assertion does not move receiver-first-seen earlier.
+
+The disposition evaluator consumes the existing `EffectivityRelation` through an explicit Rust conversion into its normalized state-vector enum. The normalized values `BOUNDARY_AMBIGUOUS` and `INVALID_INTERVAL` correspond to the comparator's `TIME_BOUNDARY_AMBIGUOUS` and `INVALID_TIME_INTERVAL`. A Rust `From<EffectivityRelation>` conversion and test cover all four mappings. `NOT_EFFECTIVE_AT_SUBJECT_TIME` is distinct from `NOT_KNOWN_AT_SNAPSHOT`; boundary ambiguity abstains and invalid intervals reject the temporal assertion. It does not recompute source chronology or substitute issuer-asserted time for receipt time.
+
+Physical/acquisition bounds and event-effective bounds are owned by the interval comparator; receiver receipt watermarks and trust-policy commitments remain owner/decision-context inputs. The issuer-asserted event timestamp is retained with the source artifact and must not be inferred from either of those watermarks. The evaluator is a projection layer, not a replacement for the owner-native temporal ledger.
+
 ## 4. Deterministic disposition projection
 
 The full state vector is normative. A primary label is derived using the following fixed presentation precedence; all component states and all applicable reason codes remain visible:
@@ -89,8 +106,9 @@ The full state vector is normative. A primary label is derived using the followi
 2. **OUT_OF_SCOPE** — the claim's declared context of use is affirmatively outside the applicable domain.
 3. **NOT_KNOWN_AT_SNAPSHOT** — evidence necessary to evaluate the claim was first received after the selected as-known cutoff.
 4. **UNVERIFIED** — required payload, producer authority, owner receipt or verifier result cannot be trusted or has not been run. A completed, trusted negative verification is a failure finding, not merely an absence of verification.
-5. **INCOMPLETE** — one or more mandatory obligations remain `NEITHER`, conflicting, uncollected, or dependent on incomplete/unknown observer coverage; or a material defeater remains unresolved.
-6. **REVIEWABLE_FOR_INDEPENDENT_DECISION** — every mandatory obligation is supported, in scope, authorized where required, known at the cutoff, verified, and free of unresolved material defeaters; relevant observers are complete.
+5. **INCOMPLETE** — one or more mandatory obligations remain `NEITHER`, conflicting, uncollected, or dependent on incomplete/unknown observer coverage; an effectivity boundary is ambiguous; or a material defeater remains unresolved.
+6. **NOT_EFFECTIVE_AT_SUBJECT_TIME** — an event is definitely not yet effective for any physical acquisition instant in the declared acquisition interval. This says nothing about whether its evidence was received by the historical cutoff.
+7. **REVIEWABLE_FOR_INDEPENDENT_DECISION** — every mandatory obligation is supported, in scope, authorized where required, known at the cutoff, verified, and free of unresolved material defeaters; relevant observers are complete; and any required event is effective at subject time.
 
 The precedence is a stable user-interface projection, not a safety ranking or compensating score. When multiple conditions occur, report the selected label **and** every obligation-level blocker. For example, a late evidence item and an independently verified wrong-subject record must preserve both facts even though the primary projection is `REJECTED`.
 
@@ -110,7 +128,7 @@ Symthaea may generate candidate defeaters, alternative explanations and acquisit
 
 ## 6. Temporal replay is an explicit query
 
-Every evaluation names a replay mode and immutable snapshots:
+Every evaluation names a replay mode and immutable snapshots. The v0.1 Rust projection preserves the selected replay mode in its result; it does not itself fetch or reconstruct snapshots. The caller must supply already-resolved, owner-verified obligation states and policy context. Replay orchestration remains a separate layer:
 
 - `HISTORICAL_AS_KNOWN`: evidence and trust policy as known at the original cutoff;
 - `CURRENT_POLICY_COUNTERFACTUAL`: same evidence cut evaluated under a named current trust policy;
@@ -153,8 +171,15 @@ derive_disposition(vector):
 
     if any mandatory proposition is NEITHER or BOTH
        or a material defeater is UNRESOLVED
-       or required observer coverage is UNKNOWN / INCOMPLETE:
+       or required observer coverage is UNKNOWN / INCOMPLETE
+       or subject-time effectivity is BOUNDARY_AMBIGUOUS:
         return INCOMPLETE
+
+    if subject-time effectivity is DEFINITELY_NOT_YET_EFFECTIVE:
+        return NOT_EFFECTIVE_AT_SUBJECT_TIME
+
+    if subject-time effectivity is INVALID_INTERVAL:
+        return REJECTED
 
     if every mandatory obligation passes every applicable axis:
         return REVIEWABLE_FOR_INDEPENDENT_DECISION
@@ -179,7 +204,7 @@ An implementation must be deterministic for a frozen vector, policy snapshot and
 
 Four-valued logic, assurance cases, formal argument analysis and traceability are not new. ACCESS and goal-directed ASP work already explore formalized assurance cases and semantic analysis. The research contribution is the empirically tested composition of those techniques with owner-scoped provenance, bitemporal replay, observer-qualified impact, non-compensatory gates and portable independent reconstruction.
 
-The next implementation experiment should be a small Rust evaluator for this projection, plus an independently written oracle and exhaustive truth-table/property tests. A later Lean or TLA+ model may verify projection properties and temporal invariants. Neither formal proof nor passing software tests establishes physical safety; evidence quality and context-specific engineering validation remain separate.
+The first Rust reference evaluator is now in `crates/domains/symtropy-aero-material-qual/src/assurance_disposition_v0_1.rs`. A separately implemented JSON-level integration oracle in `tests/assurance_disposition_oracle_v0_1.rs` cross-checks all published vectors, 12,288 finite product states and obligation-order permutations without calling the production evaluator's helpers. This is implementation diversity / consistency testing; it is not independent domain adjudication of the expected outcomes. It deserializes the typed obligation contract, derives the non-compensatory projection, preserves sorted reason codes and blocker identities, and always reports authority/physical qualification/certification as not granted or not claimed. Its unit tests execute the ten published synthetic vectors and test evidence conflict, missing versus unverified evidence, temporal precedence, observer unknowns, hard-gate failures, defeaters and optional-obligation handling. This remains an implementation of the proposed projection, not an independent oracle: a later Lean or TLA+ model and a separately implemented oracle are still required. Neither formal proof nor passing software tests establishes physical safety; evidence quality and context-specific engineering validation remain separate.
 
 ## 11. Non-claims
 

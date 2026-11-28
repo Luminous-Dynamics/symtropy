@@ -132,7 +132,8 @@
       "defeaters": [],
       "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
       "expected_blocking_obligation_ids": [],
-      "expected_reason_codes": []
+      "expected_reason_codes": [],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV02",
@@ -268,7 +269,8 @@
       ],
       "expected_reason_codes": [
         "EVIDENCE_CONFLICT"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV03",
@@ -402,7 +404,8 @@
       ],
       "expected_reason_codes": [
         "MANDATORY_EVIDENCE_MISSING"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV04",
@@ -536,7 +539,8 @@
       ],
       "expected_reason_codes": [
         "EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV05",
@@ -670,7 +674,8 @@
       ],
       "expected_reason_codes": [
         "DEPENDENCY_OBSERVER_COVERAGE_UNKNOWN"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV06",
@@ -806,7 +811,8 @@
       ],
       "expected_reason_codes": [
         "CLAIM_PHYSICAL_SUBJECT_MISMATCH"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV07",
@@ -942,7 +948,8 @@
       ],
       "expected_reason_codes": [
         "MODEL_OPERATING_DOMAIN_EXCEEDED"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV08",
@@ -1078,7 +1085,8 @@
       ],
       "expected_reason_codes": [
         "EVIDENCE_PRODUCER_AUTHORITY_UNVERIFIED"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV09",
@@ -1214,7 +1222,8 @@
       ],
       "expected_reason_codes": [
         "EVIDENCE_PRODUCER_AUTHORITY_DENIED"
-      ]
+      ],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
     },
     {
       "case_id": "ASV10",
@@ -1354,7 +1363,407 @@
       ],
       "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
       "expected_blocking_obligation_ids": [],
-      "expected_reason_codes": []
+      "expected_reason_codes": [],
+      "subject_time_effectivity": "DEFINITELY_EFFECTIVE"
+    },
+    {
+      "case_id": "ASV11",
+      "description": "A source event is definitely not yet effective at every possible physical acquisition instant; this is distinct from evidence being received late.",
+      "replay_mode": "HISTORICAL_AS_KNOWN",
+      "claim_context": {
+        "claim_id": "SYNTH-CLAIM-001",
+        "physical_subject_ref": "SYNTH-ARTICLE-001",
+        "configuration_ref": "SYNTH-CONFIG-A",
+        "as_known_cutoff": "2026-11-01T00:00:00Z",
+        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "obligations": [
+        {
+          "obligation_id": "identity",
+          "kind": "CLAIM_IDENTITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "integrity",
+          "kind": "EVIDENCE_INTEGRITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "authority",
+          "kind": "PRODUCER_AUTHORITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "AUTHORIZED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "semantic",
+          "kind": "SEMANTIC_VALIDITY",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "applicability",
+          "kind": "MODEL_APPLICABILITY",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "temporal",
+          "kind": "TEMPORAL_KNOWLEDGE",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "KNOWN_AT_CUTOFF",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "observer",
+          "kind": "DEPENDENCY_OBSERVATION",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "COMPLETE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        }
+      ],
+      "defeaters": [],
+      "expected_disposition": "NOT_EFFECTIVE_AT_SUBJECT_TIME",
+      "expected_blocking_obligation_ids": [],
+      "expected_reason_codes": [
+        "EVENT_EFFECTIVE_AFTER_EVERY_POSSIBLE_ACQUISITION"
+      ],
+      "subject_time_effectivity": "DEFINITELY_NOT_YET_EFFECTIVE"
+    },
+    {
+      "case_id": "ASV12",
+      "description": "Event-effectivity and physical-acquisition time bounds overlap, so subject-time applicability is ambiguous.",
+      "replay_mode": "HISTORICAL_AS_KNOWN",
+      "claim_context": {
+        "claim_id": "SYNTH-CLAIM-001",
+        "physical_subject_ref": "SYNTH-ARTICLE-001",
+        "configuration_ref": "SYNTH-CONFIG-A",
+        "as_known_cutoff": "2026-11-01T00:00:00Z",
+        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "obligations": [
+        {
+          "obligation_id": "identity",
+          "kind": "CLAIM_IDENTITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "integrity",
+          "kind": "EVIDENCE_INTEGRITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "authority",
+          "kind": "PRODUCER_AUTHORITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "AUTHORIZED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "semantic",
+          "kind": "SEMANTIC_VALIDITY",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "applicability",
+          "kind": "MODEL_APPLICABILITY",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "temporal",
+          "kind": "TEMPORAL_KNOWLEDGE",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "KNOWN_AT_CUTOFF",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "observer",
+          "kind": "DEPENDENCY_OBSERVATION",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "COMPLETE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        }
+      ],
+      "defeaters": [],
+      "expected_disposition": "INCOMPLETE",
+      "expected_blocking_obligation_ids": [],
+      "expected_reason_codes": [
+        "EVENT_AND_ACQUISITION_TIME_BOUNDS_OVERLAP"
+      ],
+      "subject_time_effectivity": "BOUNDARY_AMBIGUOUS"
+    },
+    {
+      "case_id": "ASV13",
+      "description": "The declared event or physical-acquisition time interval is malformed and cannot support an effectivity inference.",
+      "replay_mode": "HISTORICAL_AS_KNOWN",
+      "claim_context": {
+        "claim_id": "SYNTH-CLAIM-001",
+        "physical_subject_ref": "SYNTH-ARTICLE-001",
+        "configuration_ref": "SYNTH-CONFIG-A",
+        "as_known_cutoff": "2026-11-01T00:00:00Z",
+        "trust_policy_snapshot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "obligations": [
+        {
+          "obligation_id": "identity",
+          "kind": "CLAIM_IDENTITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "integrity",
+          "kind": "EVIDENCE_INTEGRITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "authority",
+          "kind": "PRODUCER_AUTHORITY",
+          "mandatory": true,
+          "hard_gate": true,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "AUTHORIZED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "semantic",
+          "kind": "SEMANTIC_VALIDITY",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "applicability",
+          "kind": "MODEL_APPLICABILITY",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "temporal",
+          "kind": "TEMPORAL_KNOWLEDGE",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "KNOWN_AT_CUTOFF",
+          "observer_coverage": "NOT_APPLICABLE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        },
+        {
+          "obligation_id": "observer",
+          "kind": "DEPENDENCY_OBSERVATION",
+          "mandatory": true,
+          "hard_gate": false,
+          "proposition_evidence": "SUPPORTED_ONLY",
+          "applicability": "IN_SCOPE",
+          "authority": "NOT_REQUIRED",
+          "temporal_knowledge": "NOT_TEMPORAL",
+          "observer_coverage": "COMPLETE",
+          "verification": "VERIFIED",
+          "evidence_refs": [
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          ],
+          "reason_codes": []
+        }
+      ],
+      "defeaters": [],
+      "expected_disposition": "REJECTED",
+      "expected_blocking_obligation_ids": [],
+      "expected_reason_codes": [
+        "TEMPORAL_INTERVAL_START_AFTER_END"
+      ],
+      "subject_time_effectivity": "INVALID_INTERVAL"
     }
   ]
 }

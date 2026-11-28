@@ -26,7 +26,7 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 8,
+      "minItems": 13,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -39,7 +39,8 @@
           "defeaters",
           "expected_disposition",
           "expected_blocking_obligation_ids",
-          "expected_reason_codes"
+          "expected_reason_codes",
+          "subject_time_effectivity"
         ],
         "properties": {
           "case_id": {
@@ -253,6 +254,7 @@
               "REJECTED",
               "OUT_OF_SCOPE",
               "NOT_KNOWN_AT_SNAPSHOT",
+              "NOT_EFFECTIVE_AT_SUBJECT_TIME",
               "UNVERIFIED",
               "INCOMPLETE",
               "REVIEWABLE_FOR_INDEPENDENT_DECISION"
@@ -271,6 +273,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "subject_time_effectivity": {
+            "enum": [
+              "DEFINITELY_EFFECTIVE",
+              "DEFINITELY_NOT_YET_EFFECTIVE",
+              "BOUNDARY_AMBIGUOUS",
+              "INVALID_INTERVAL"
+            ]
           }
         }
       }
