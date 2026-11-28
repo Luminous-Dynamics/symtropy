@@ -6,6 +6,8 @@ on:
       - "tools/pose-observability-bench/**"
       - "scripts/pose-observability-challenger.py"
       - "research/spacecraft/pose-observability/fixtures/**"
+      - "schemas/pose-observability/**"
+      - "research/spacecraft/pose-observability/README.md"
       - ".github/workflows/pose-observability-fim.yml"
   push:
     branches:
