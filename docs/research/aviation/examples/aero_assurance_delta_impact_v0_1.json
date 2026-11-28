@@ -15,43 +15,50 @@
         "node_id": "claim:wing-panel-strength",
         "kind": "CLAIM",
         "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:engineering-evidence"
       },
       {
         "node_id": "obligation:material-lot",
         "kind": "OBLIGATION",
         "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:engineering-evidence"
       },
       {
         "node_id": "evidence:material-certificate",
         "kind": "EVIDENCE",
         "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:engineering-evidence"
       },
       {
         "node_id": "source:material-lot-record",
         "kind": "SOURCE_RECORD",
         "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:materials-authority"
       },
       {
         "node_id": "obligation:solver-validation",
         "kind": "OBLIGATION",
         "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:engineering-evidence"
       },
       {
         "node_id": "evidence:solver-report",
         "kind": "EVIDENCE",
         "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:engineering-evidence"
       },
       {
         "node_id": "source:solver-validation-record",
         "kind": "SOURCE_RECORD",
         "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-        "dependency_manifest_complete": true
+        "dependency_manifest_complete": true,
+        "owner_namespace": "owner:engineering-evidence"
       }
     ],
     "edges": [
