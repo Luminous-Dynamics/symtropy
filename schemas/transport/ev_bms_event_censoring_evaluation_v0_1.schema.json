@@ -15,6 +15,10 @@
     "split_manifest_sha256",
     "split_partition",
     "evidence_class",
+    "time_basis_id",
+    "time_alignment_id",
+    "max_relative_clock_error_ms",
+    "alignment_uncertainty_preapplied",
     "warning_horizon_ms",
     "minimum_action_lead_ms",
     "threshold_policy_id",
@@ -69,6 +73,21 @@
         "synthetic_fixture",
         "operator_collected_field_observation"
       ]
+    },
+    "time_basis_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "time_alignment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "max_relative_clock_error_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "alignment_uncertainty_preapplied": {
+      "const": true
     },
     "warning_horizon_ms": {
       "type": "integer",
