@@ -26,10 +26,6 @@ on:
       - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
       - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
       - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
-      - "docs/research/aviation/AERO_EVIDENCE_ACTION_PLANNER_V0_1.md"
-      - "docs/research/aviation/examples/aero_evidence_action_planner_v0_1.json"
-      - "docs/research/aviation/schemas/aero_evidence_action_planner_v0_1.schema.json"
-      - "tools/aero/validate_evidence_action_planner.py"
       - "docs/research/aviation/schemas/aero_independent_assurance_benchmark_v0_3.schema.json"
       - "docs/research/aviation/schemas/aero_independent_assurance_challenge_v0_3.schema.json"
   pull_request:
