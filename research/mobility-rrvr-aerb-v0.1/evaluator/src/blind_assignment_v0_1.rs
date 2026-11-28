@@ -185,6 +185,64 @@ fn generate_blind_campaign_with_entropy<E: EntropySource>(
     })
 }
 
+/// Build a blind campaign over an existing evaluator-owned truth schedule.
+///
+/// Unlike `generate_blind_campaign`, this preserves the supplied empirical or
+/// preregistered class counts while replacing each source episode identity with
+/// a fresh CSPRNG identifier and shuffling presentation order. The caller must
+/// keep the source-to-blind mapping in evaluator-only custody.
+pub fn generate_blind_campaign_from_worlds(
+    hidden_world_ids: &[String],
+) -> Result<GeneratedBlindCampaign, BlindGenerationError> {
+    if !(1..=MAX_EPISODES).contains(&hidden_world_ids.len()) {
+        return Err(BlindGenerationError::InvalidEpisodeCount);
+    }
+    if hidden_world_ids
+        .iter()
+        .any(|world_id| !WORLD_IDS.contains(&world_id.as_str()))
+    {
+        return Err(BlindGenerationError::RevealMismatch("hidden_world_vocabulary"));
+    }
+
+    let mut entropy = OperatingSystemEntropy;
+    let campaign_id = format!("camp_{}", random_hex(&mut entropy, OPAQUE_ID_BYTES)?);
+    let manifest_salt_hex = random_hex(&mut entropy, MANIFEST_SALT_BYTES)?;
+    let mut assignments = Vec::with_capacity(hidden_world_ids.len());
+    let mut unique_ids = BTreeSet::new();
+    for hidden_truth_world_id in hidden_world_ids {
+        let episode_id = unique_opaque_episode_id(&mut entropy, &mut unique_ids)?;
+        assignments.push(BlindAssignment {
+            episode_id,
+            hidden_truth_world_id: hidden_truth_world_id.clone(),
+        });
+    }
+    fisher_yates_shuffle(&mut entropy, &mut assignments)?;
+
+    let evaluator_manifest = EvaluatorBlindManifest {
+        schema_version: BLIND_SCHEMA_VERSION.to_owned(),
+        corpus_class: BLIND_CORPUS_CLASS.to_owned(),
+        campaign_id: campaign_id.clone(),
+        manifest_salt_hex,
+        assignments,
+    };
+    let candidate_manifest = CandidateBlindManifest {
+        schema_version: BLIND_SCHEMA_VERSION.to_owned(),
+        corpus_class: BLIND_CORPUS_CLASS.to_owned(),
+        campaign_id,
+        campaign_commitment_sha256: commitment_for(&evaluator_manifest)?,
+        episode_ids: evaluator_manifest
+            .assignments
+            .iter()
+            .map(|assignment| assignment.episode_id.clone())
+            .collect(),
+    };
+
+    Ok(GeneratedBlindCampaign {
+        candidate_manifest,
+        evaluator_manifest,
+    })
+}
+
 /// Verify the post-run evaluator reveal against the candidate-visible
 /// pre-run commitment. This checks byte/profile identity and assignment-ID
 /// correspondence; it does not authenticate the custodian or establish
@@ -384,6 +442,40 @@ mod tests {
         for world_id in WORLD_IDS {
             assert!(!candidate_json.contains(world_id));
         }
+    }
+
+    #[test]
+    fn from_world_schedule_preserves_counts_without_exposing_class_balance_in_manifest() {
+        let worlds = vec![
+            "not_dispatched".to_owned(),
+            "applied_once_ack_lost".to_owned(),
+            "open_world_residual".to_owned(),
+            "not_dispatched".to_owned(),
+        ];
+        let campaign =
+            generate_blind_campaign_from_worlds(&worlds).expect("preserved world schedule");
+        assert_eq!(campaign.candidate_manifest.episode_ids.len(), 4);
+        let mut counts = BTreeMap::<&str, usize>::new();
+        for assignment in &campaign.evaluator_manifest.assignments {
+            *counts.entry(&assignment.hidden_truth_world_id).or_default() += 1;
+        }
+        assert_eq!(counts.get("not_dispatched"), Some(&2));
+        assert_eq!(counts.get("applied_once_ack_lost"), Some(&1));
+        assert_eq!(counts.get("open_world_residual"), Some(&1));
+        let candidate_json = serde_json::to_string(&campaign.candidate_manifest).unwrap();
+        assert!(!candidate_json.contains("hidden_truth_world_id"));
+        assert!(!candidate_json.contains("not_dispatched"));
+        verify_post_run_reveal(&campaign.candidate_manifest, &campaign.evaluator_manifest)
+            .expect("pre-run commitment matches post-run reveal");
+    }
+
+    #[test]
+    fn from_world_schedule_rejects_unrecognized_truth() {
+        let worlds = vec!["not_a_world".to_owned()];
+        assert_eq!(
+            generate_blind_campaign_from_worlds(&worlds),
+            Err(BlindGenerationError::RevealMismatch("hidden_world_vocabulary"))
+        );
     }
 
     #[test]
