@@ -177,6 +177,9 @@ def validate(source: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
 
     for obligation in obligations:
         obligation_id = obligation["node_id"]
+        if obligation_id not in claim_closure:
+            incomplete.append(obligation_id)
+            continue
         dependency_path = path_to(obligation_id, change["target_node_id"], adjacency)
         if dependency_path is not None:
             affected.append({
@@ -282,6 +285,22 @@ def main() -> int:
     owner_errors, _ = validate(wrong_owner)
     if not any("does not own the changed node" in error for error in owner_errors):
         raise SystemExit("FAIL: a different owner changed the source node")
+
+    orphan_obligation = copy.deepcopy(instance)
+    orphan_obligation["graph"]["edges"] = [
+        edge for edge in orphan_obligation["graph"]["edges"]
+        if not (
+            edge["dependent_node_id"] == orphan_obligation["claim_id"]
+            and edge["dependency_node_id"] == "obligation:material-lot"
+        )
+    ]
+    orphan_obligation["graph_snapshot_sha256"] = graph_sha256(orphan_obligation["graph"])
+    orphan_obligation["graph_approval_receipt"]["graph_snapshot_sha256"] = orphan_obligation["graph_snapshot_sha256"]
+    orphan_errors, orphan_result = validate(orphan_obligation)
+    if orphan_errors or orphan_result["disposition"] != "INCOMPLETE_IMPACT":
+        raise SystemExit("FAIL: orphan obligation was not classified as incomplete impact")
+    if orphan_result["affected"]:
+        raise SystemExit("FAIL: obligation outside the claim closure was incorrectly marked affected")
 
     incomplete_root = copy.deepcopy(instance)
     root_node = next(
