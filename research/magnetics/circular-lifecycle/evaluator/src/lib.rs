@@ -184,6 +184,13 @@ pub struct DisassemblyEvidence {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RecoveryPathReceipt {
+    pub evidence_id: String,
+    pub evidence_digest: String,
+    pub output_lot_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RecoveryReceipt {
     pub component_id: String,
     pub specimen_id: String,
@@ -204,6 +211,9 @@ pub struct RecoveryReceipt {
     pub recycling_uncertainty_kg: f64,
     pub reject_waste_mass_kg: f64,
     pub reject_uncertainty_kg: f64,
+    pub reuse_acceptance_receipt: Option<RecoveryPathReceipt>,
+    pub remanufacture_acceptance_receipt: Option<RecoveryPathReceipt>,
+    pub recycling_intake_receipt: Option<RecoveryPathReceipt>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -557,6 +567,16 @@ fn validate_acceptance(trial: &Trial, spec: &BenchmarkSpec, blockers: &mut Vec<B
         .collect();
     expected.insert(trial.disassembly.evidence_id.as_str());
     expected.insert(trial.recovery.evidence_id.as_str());
+    for receipt in [
+        &trial.recovery.reuse_acceptance_receipt,
+        &trial.recovery.remanufacture_acceptance_receipt,
+        &trial.recovery.recycling_intake_receipt,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        expected.insert(receipt.evidence_id.as_str());
+    }
     expected.insert(acceptance.functional_test_evidence_id.as_str());
 
     let linked: BTreeSet<&str> = acceptance
@@ -792,6 +812,30 @@ fn validate_recovery(
         return BTreeMap::new();
     }
 
+    let path_receipt_valid = |mass: f64, path: &Option<RecoveryPathReceipt>| {
+        if mass <= 0.0 {
+            return path.is_none();
+        }
+        path.as_ref().is_some_and(|path| {
+            !path.evidence_id.trim().is_empty()
+                && !path.output_lot_id.trim().is_empty()
+                && valid_sha256(&path.evidence_digest)
+        })
+    };
+    if !path_receipt_valid(
+        receipt.reuse_grade_mass_kg,
+        &receipt.reuse_acceptance_receipt,
+    ) || !path_receipt_valid(
+        receipt.remanufactured_accepted_mass_kg,
+        &receipt.remanufacture_acceptance_receipt,
+    ) || !path_receipt_valid(
+        receipt.recycling_feedstock_mass_kg,
+        &receipt.recycling_intake_receipt,
+    ) {
+        blockers.push(Blocker::InvalidRecoveryReceipt);
+        return BTreeMap::new();
+    }
+
     let output_mass = receipt.reuse_grade_mass_kg
         + receipt.remanufactured_accepted_mass_kg
         + receipt.recycling_feedstock_mass_kg
@@ -1017,6 +1061,16 @@ fn trial_evidence_ids(trial: &Trial) -> Vec<&str> {
         .collect();
     ids.push(trial.disassembly.evidence_id.as_str());
     ids.push(trial.recovery.evidence_id.as_str());
+    for receipt in [
+        &trial.recovery.reuse_acceptance_receipt,
+        &trial.recovery.remanufacture_acceptance_receipt,
+        &trial.recovery.recycling_intake_receipt,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        ids.push(receipt.evidence_id.as_str());
+    }
     ids.push(trial.acceptance.functional_test_evidence_id.as_str());
     ids
 }
@@ -1276,6 +1330,21 @@ mod tests {
             recycling_uncertainty_kg: 0.01,
             reject_waste_mass_kg: recovery_masses[4],
             reject_uncertainty_kg: 0.01,
+            reuse_acceptance_receipt: (recovery_masses[1] > 0.0).then(|| RecoveryPathReceipt {
+                evidence_id: format!("REUSE-ACCEPT-{id}"),
+                evidence_digest: digest('a'),
+                output_lot_id: format!("REUSE-LOT-{id}"),
+            }),
+            remanufacture_acceptance_receipt: (recovery_masses[2] > 0.0).then(|| RecoveryPathReceipt {
+                evidence_id: format!("REMAN-ACCEPT-{id}"),
+                evidence_digest: digest('b'),
+                output_lot_id: format!("REMAN-LOT-{id}"),
+            }),
+            recycling_intake_receipt: (recovery_masses[3] > 0.0).then(|| RecoveryPathReceipt {
+                evidence_id: format!("RECYCLER-INTAKE-{id}"),
+                evidence_digest: digest('c'),
+                output_lot_id: format!("FEEDSTOCK-LOT-{id}"),
+            }),
         };
 
         let functional_test_evidence_id = format!("FUNCTIONAL-{id}");
@@ -1285,8 +1354,26 @@ mod tests {
             .chain([
                 disassembly.evidence_id.clone(),
                 recovery.evidence_id.clone(),
-                functional_test_evidence_id.clone(),
             ])
+            .chain(
+                recovery
+                    .reuse_acceptance_receipt
+                    .iter()
+                    .map(|receipt| receipt.evidence_id.clone()),
+            )
+            .chain(
+                recovery
+                    .remanufacture_acceptance_receipt
+                    .iter()
+                    .map(|receipt| receipt.evidence_id.clone()),
+            )
+            .chain(
+                recovery
+                    .recycling_intake_receipt
+                    .iter()
+                    .map(|receipt| receipt.evidence_id.clone()),
+            )
+            .chain([functional_test_evidence_id.clone()])
             .collect();
 
         let acceptance = ComponentAcceptance {
