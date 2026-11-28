@@ -1718,7 +1718,7 @@ mod tests {
             },
         ];
         let mut report = evaluate_beneficiary_floors(&model, &floors).unwrap();
-        let route_edge = source_edge_id("transfer", "route-a");
+        let route_edge = "transfer/7/route-a".to_string();
         report
             .base_graph
             .edges
