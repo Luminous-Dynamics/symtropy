@@ -1,0 +1,51 @@
+name: CFI-Space EVSI selector
+
+on:
+  pull_request:
+    paths:
+      - "tools/cfi-space-evsi-bench/**"
+      - "scripts/cfi-space-evsi-challenger.py"
+      - "schemas/spacecraft/evsi-observation-selector-v0.1.schema.json"
+      - "research/spacecraft/cfi-space/evsi-observation-selection-v0.1.md"
+      - ".github/workflows/cfi-space-evsi.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "tools/cfi-space-evsi-bench/**"
+      - "scripts/cfi-space-evsi-challenger.py"
+      - "schemas/spacecraft/evsi-observation-selector-v0.1.schema.json"
+      - "research/spacecraft/cfi-space/evsi-observation-selection-v0.1.md"
+      - ".github/workflows/cfi-space-evsi.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format check
+        run: cargo fmt --manifest-path tools/cfi-space-evsi-bench/Cargo.toml -- --check
+      - name: Unit and adversarial tests
+        run: cargo test --manifest-path tools/cfi-space-evsi-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path tools/cfi-space-evsi-bench/Cargo.toml --all-targets -- -D warnings
+      - name: EVSI Rust selector
+        run: |
+          cargo run --quiet --manifest-path tools/cfi-space-evsi-bench/Cargo.toml -- \
+            --scenario tools/cfi-space-evsi-bench/fixtures/synthetic-evsi-scenario-v0.1.json \
+            --expect-evsi independent-reference-check \
+            --expect-information-gain illumination-survey > "$RUNNER_TEMP/evsi-rust.json"
+      - name: EVSI independent challenger
+        run: |
+          python3 scripts/cfi-space-evsi-challenger.py \
+            --scenario tools/cfi-space-evsi-bench/fixtures/synthetic-evsi-scenario-v0.1.json \
+            --expect-evsi independent-reference-check \
+            --expect-information-gain illumination-survey > "$RUNNER_TEMP/evsi-python.json"
+          diff -u "$RUNNER_TEMP/evsi-rust.json" "$RUNNER_TEMP/evsi-python.json"

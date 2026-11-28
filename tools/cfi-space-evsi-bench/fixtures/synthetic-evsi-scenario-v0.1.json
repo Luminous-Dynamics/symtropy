@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "scenario_id": "CFI-SPACE-EVSI-SYNTHETIC-001",
+  "mission": "synthetic rendezvous corridor decision under common-cause uncertainty",
+  "probability_denominator": 10000,
+  "hypotheses": [
+    {
+      "id": "healthy-lighting-a"
+    },
+    {
+      "id": "healthy-lighting-b"
+    },
+    {
+      "id": "common-cause-geometry-fault"
+    }
+  ],
+  "prior_probability_bps": [
+    4000,
+    4000,
+    2000
+  ],
+  "decisions": [
+    {
+      "id": "approach"
+    },
+    {
+      "id": "reobserve"
+    },
+    {
+      "id": "abort"
+    }
+  ],
+  "decision_loss_units": [
+    [
+      0,
+      100,
+      500
+    ],
+    [
+      0,
+      100,
+      500
+    ],
+    [
+      3000,
+      30,
+      500
+    ]
+  ],
+  "proposals": [
+    {
+      "id": "illumination-survey",
+      "cost_units": 1,
+      "estimated_latency_us": 1000,
+      "max_latency_us": 10000,
+      "capability_available": true,
+      "preconditions_met": true,
+      "dependencies_known": true,
+      "advisory_only": true,
+      "actuation_authority": false,
+      "outcomes": [
+        {
+          "id": "bright-response",
+          "likelihood_bps": [
+            10000,
+            0,
+            5000
+          ]
+        },
+        {
+          "id": "dim-response",
+          "likelihood_bps": [
+            0,
+            10000,
+            5000
+          ]
+        }
+      ]
+    },
+    {
+      "id": "independent-reference-check",
+      "cost_units": 5,
+      "estimated_latency_us": 5000,
+      "max_latency_us": 10000,
+      "capability_available": true,
+      "preconditions_met": true,
+      "dependencies_known": true,
+      "advisory_only": true,
+      "actuation_authority": false,
+      "outcomes": [
+        {
+          "id": "independent-agreement",
+          "likelihood_bps": [
+            9500,
+            9500,
+            500
+          ]
+        },
+        {
+          "id": "independent-conflict",
+          "likelihood_bps": [
+            500,
+            500,
+            9500
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unavailable-lidar-revisit",
+      "cost_units": 2,
+      "estimated_latency_us": 7000,
+      "max_latency_us": 10000,
+      "capability_available": false,
+      "preconditions_met": true,
+      "dependencies_known": true,
+      "advisory_only": true,
+      "actuation_authority": false,
+      "outcomes": [
+        {
+          "id": "lidar-agreement",
+          "likelihood_bps": [
+            9000,
+            9000,
+            1000
+          ]
+        },
+        {
+          "id": "lidar-conflict",
+          "likelihood_bps": [
+            1000,
+            1000,
+            9000
+          ]
+        }
+      ]
+    }
+  ]
+}
