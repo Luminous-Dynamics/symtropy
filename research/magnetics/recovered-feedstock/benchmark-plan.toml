@@ -16,8 +16,9 @@ do_not_pool_route_families = true
 eligibility_receipt_required = true
 bind_family_form_route_source_lot_recipe_scope = true
 hpms_recovered_ndfeb_powder_to_pem = "provisional evidence-backed route stratum"
+hdd_recovered_ndfeb_powder_to_mex = "2026 FDM evidence-backed route stratum with PBAT composite and field-assisted alignment"
 hpms_recovered_ndfeb_powder_to_lpbf = "not admitted without separate feedstock-specific qualification"
-recovered_bonded_ndfeb_composite_to_mex = "separate stratum requiring route-specific eligibility receipt"
+hddr_and_dynamic_hddr_to_dlp_4d = "adjacent actuator research lane; not in motor-magnet evaluator v0.1"
 cross_family_transfer_allowed = false
 
 [mass_balance]
