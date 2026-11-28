@@ -413,3 +413,48 @@ fn main() -> ExitCode {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        os::unix::fs::symlink,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    #[test]
+    fn output_capture_preserves_missing_and_unexpected_artifacts() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "aerb-runner-output-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("temporary output root");
+        let present = "ep_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        let missing = "ep_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        let present_name = format!("submission-{present}.json");
+        fs::write(root.join(&present_name), b"{\"candidate\":true}")
+            .expect("candidate output");
+        fs::write(root.join("unexpected.bin"), b"unexpected").expect("extra output");
+        symlink(root.join(&present_name), root.join("linked.json")).expect("symlink output");
+        let expected = BTreeSet::from([present.to_owned(), missing.to_owned()]);
+
+        let (artifacts, missing_ids, unexpected) = capture_outputs(&root, &expected);
+
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(artifacts[0].episode_id, present);
+        assert_eq!(missing_ids, vec![missing.to_owned()]);
+        assert_eq!(
+            unexpected,
+            vec![
+                "linked.json:NOT_REGULAR_FILE".to_owned(),
+                "unexpected.bin".to_owned()
+            ]
+        );
+        fs::remove_dir_all(root).expect("remove temporary output root");
+    }
+}
+
