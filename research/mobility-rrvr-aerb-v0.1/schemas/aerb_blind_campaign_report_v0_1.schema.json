@@ -32,7 +32,14 @@
     "invalid_episodes",
     "statistical_interpretation",
     "claim_ceiling",
-    "candidate_surface_audit"
+    "candidate_surface_audit",
+    "candidate_run_receipt_sha256",
+    "candidate_executable_sha256",
+    "runtime_bundle_sha256",
+    "sandbox_profile_sha256",
+    "candidate_run_completed",
+    "candidate_outputs_verified_n",
+    "unexpected_output_entry_n"
   ],
   "properties": {
     "schema_version": {
@@ -151,6 +158,33 @@
     },
     "candidate_surface_audit": {
       "$ref": "#/$defs/candidateSurfaceAudit"
+    },
+    "candidate_run_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_executable_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "runtime_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sandbox_profile_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_run_completed": {
+      "type": "boolean"
+    },
+    "candidate_outputs_verified_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unexpected_output_entry_n": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "$defs": {
