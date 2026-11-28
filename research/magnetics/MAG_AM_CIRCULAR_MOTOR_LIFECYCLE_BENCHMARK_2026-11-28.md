@@ -65,7 +65,7 @@ Output streams are mutually exclusive:
 
 The mass balance must close conservatively. Let input mass interval be I and sum of output stream intervals be O. The full difference interval O-I must fit inside the predeclared absolute-plus-relative tolerance; overlap at one point is insufficient. An unclosed balance is Indeterminate, not an optimistic recovery percentage.
 
-Reuse and remanufacture fractions are computed from receipt masses with conservative interval propagation. Recycling-feedstock fraction is reported separately. Do not call feedstock recycled material until downstream recycling yield and grade are evidenced.
+Direct reuse, accepted remanufacture and recycling-feedstock fractions are computed and reported separately from receipt masses with conservative interval propagation. Remanufactured mass counts only after its own functional acceptance; no direct-reuse and remanufacture outputs are merged into one headline. Do not call feedstock recycled material until downstream recycling yield and grade are evidenced.
 
 ## 6. Benefits, without a universal score
 
