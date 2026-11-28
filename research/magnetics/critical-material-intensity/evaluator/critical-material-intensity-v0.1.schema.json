@@ -262,8 +262,8 @@
           "minLength": 1
         },
         "minimum_completed_missions": {
-          "type": "number",
-          "exclusiveMinimum": 0
+          "type": "integer",
+          "minimum": 1
         },
         "service_noninferiority_margin_kwh": {
           "type": "number",
@@ -370,7 +370,8 @@
           "$ref": "#/$defs/interval"
         },
         "completed_mission_count": {
-          "$ref": "#/$defs/interval"
+          "type": "integer",
+          "minimum": 0
         },
         "durability_receipt_id": {
           "type": "string",
