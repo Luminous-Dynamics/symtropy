@@ -340,7 +340,7 @@ struct DecisionModelCommitmentV0_1<'a> {
     utilities: Vec<&'a StateUtilityV0_1>,
 }
 
-fn compute_decision_model_sha256(
+pub(crate) fn compute_decision_model_sha256(
     input: &EvidenceActionPlannerInputV0_1,
 ) -> Result<String, String> {
     let mut decisions = input.decision_alternatives.iter().collect::<Vec<_>>();
@@ -449,7 +449,7 @@ struct OutcomeLikelihoodCommitmentV0_1<'a> {
     likelihoods: Vec<&'a OutcomeLikelihoodV0_1>,
 }
 
-fn compute_outcome_likelihoods_sha256(
+pub(crate) fn compute_outcome_likelihoods_sha256(
     action: &EvidenceAcquisitionActionV0_1,
     outcome_model_sha256: &str,
 ) -> Result<String, String> {
