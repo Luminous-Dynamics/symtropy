@@ -5,7 +5,7 @@ use std::{
     env, fs,
     fs::{File, OpenOptions},
     io::Write,
-    os::unix::fs::FileTypeExt,
+    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
     process::ExitCode,
 };
@@ -67,6 +67,7 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
+        .mode(0o600)
         .open(&temporary)
         .map_err(|error| format!("OUTPUT_TEMP_CREATE_FAILED: {error}"))?;
 
@@ -76,8 +77,12 @@ fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
         file.sync_all()
             .map_err(|error| format!("OUTPUT_FSYNC_FAILED: {error}"))?;
         drop(file);
-        fs::rename(&temporary, path)
-            .map_err(|error| format!("OUTPUT_ATOMIC_RENAME_FAILED: {error}"))?;
+        // Hard-link creation is atomic and fails when the final path already
+        // exists; unlike rename, it cannot silently replace an existing report.
+        fs::hard_link(&temporary, path)
+            .map_err(|error| format!("OUTPUT_ATOMIC_CREATE_FAILED: {error}"))?;
+        fs::remove_file(&temporary)
+            .map_err(|error| format!("OUTPUT_TEMP_REMOVE_FAILED: {error}"))?;
         File::open(&parent)
             .and_then(|directory| directory.sync_all())
             .map_err(|error| format!("OUTPUT_DIRECTORY_FSYNC_FAILED: {error}"))?;
