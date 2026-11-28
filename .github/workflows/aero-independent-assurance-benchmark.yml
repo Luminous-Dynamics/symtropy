@@ -6,55 +6,32 @@ on:
       - research/aero-independent-assurance-benchmark-v0.3
       - research/aero-assurance-disposition-semantics-v0.1
       - research/aero-assurance-disposition-evaluator-v0.1
+      - research/aero-state-vector-source-binding-v0.1
       - research/aero-evsi-evidence-action-planner-v0.1
+      - research/aero-robust-evsi-v0.1
+      - research/aero-tool-assurance-v0.1
     paths:
-      - ".github/workflows/aero-independent-assurance-benchmark.yml"
-      - "tools/aero/validate_independent_assurance_benchmark.py"
-      - "crates/domains/symtropy-aero-material-qual/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "docs/research/aviation/AERO_STATE_VECTOR_SOURCE_BINDING_V0_1.md"
-      - "docs/research/aviation/schemas/aero_assurance_source_binding_v0_1.schema.json"
-      - "docs/research/aviation/examples/aero_assurance_source_binding_v0_1.json"
-      - "docs/research/aviation/AERO_EVIDENCE_ACTION_PLANNER_V0_1.md"
-      - "docs/research/aviation/examples/aero_evidence_action_planner_v0_1.json"
-      - "docs/research/aviation/schemas/aero_evidence_action_planner_v0_1.schema.json"
-      - "tools/aero/validate_evidence_action_planner.py"
-      - "docs/research/aviation/AERO_ASSURANCE_DISPOSITION_SEMANTICS_V0_1.md"
-      - "docs/research/aviation/schemas/aero_assurance_state_vector_v0_1.schema.json"
-      - "docs/research/aviation/examples/aero_assurance_state_vectors_v0_1.json"
-      - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
-      - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
-      - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
-      - "docs/research/aviation/schemas/aero_independent_assurance_benchmark_v0_3.schema.json"
-      - "docs/research/aviation/schemas/aero_independent_assurance_challenge_v0_3.schema.json"
+      - .github/workflows/aero-independent-assurance-benchmark.yml
+      - crates/domains/symtropy-aero-material-qual/**
+      - Cargo.toml
+      - Cargo.lock
+      - docs/research/aviation/**
+      - tools/aero/**
   pull_request:
     paths:
-      - ".github/workflows/aero-independent-assurance-benchmark.yml"
-      - "tools/aero/validate_independent_assurance_benchmark.py"
-      - "crates/domains/symtropy-aero-material-qual/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "docs/research/aviation/AERO_ASSURANCE_DISPOSITION_SEMANTICS_V0_1.md"
-      - "docs/research/aviation/schemas/aero_assurance_state_vector_v0_1.schema.json"
-      - "docs/research/aviation/examples/aero_assurance_state_vectors_v0_1.json"
-      - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
-      - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
-      - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
-      - "docs/research/aviation/AERO_EVIDENCE_ACTION_PLANNER_V0_1.md"
-      - "docs/research/aviation/examples/aero_evidence_action_planner_v0_1.json"
-      - "docs/research/aviation/schemas/aero_evidence_action_planner_v0_1.schema.json"
-      - "tools/aero/validate_evidence_action_planner.py"
-      - "docs/research/aviation/schemas/aero_independent_assurance_benchmark_v0_3.schema.json"
-      - "docs/research/aviation/schemas/aero_independent_assurance_challenge_v0_3.schema.json"
-  workflow_dispatch:
+      - .github/workflows/aero-independent-assurance-benchmark.yml
+      - crates/domains/symtropy-aero-material-qual/**
+      - Cargo.toml
+      - Cargo.lock
+      - docs/research/aviation/**
+      - tools/aero/**
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 jobs:
   validate:
-    # This workflow checks research contracts and code hygiene only; it is not a physical-qualification or certification gate.
     name: Benchmark and Rust disposition contract
     runs-on: ubuntu-latest
     steps:
@@ -66,8 +43,10 @@ jobs:
         run: python -m pip install --disable-pip-version-check "jsonschema==4.23.0"
       - name: Validate v0.3 registry and challenge corpus
         run: python tools/aero/validate_independent_assurance_benchmark.py
-      - name: Validate EVSI planner fixture and independent integer oracle
+      - name: Validate point EVSI planner fixture and independent integer oracle
         run: python tools/aero/validate_evidence_action_planner.py
+      - name: Validate robust EVSI scenario-set contract
+        run: python tools/aero/validate_robust_evidence_action_evsi.py
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -75,7 +54,7 @@ jobs:
           components: clippy, rustfmt
       - name: Check AERO evaluator formatting
         run: cargo fmt --manifest-path Cargo.toml --package symtropy-aero-material-qual -- --check
-      - name: Test AERO disposition evaluator (locked dependency graph)
+      - name: Test AERO evaluator (locked dependency graph)
         run: cargo test --locked --manifest-path Cargo.toml --package symtropy-aero-material-qual
       - name: Clippy AERO evaluator (locked dependency graph)
         run: cargo clippy --locked --manifest-path Cargo.toml --package symtropy-aero-material-qual --all-targets -- -D warnings
