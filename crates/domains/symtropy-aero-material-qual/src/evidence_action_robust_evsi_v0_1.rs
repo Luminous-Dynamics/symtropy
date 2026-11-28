@@ -100,6 +100,23 @@ pub struct RobustEvidenceActionBoundsV0_1 {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RobustEVSIScenarioActionResultV0_1 {
+    pub scenario_id: String,
+    pub action_id: String,
+    pub evsi_scaled_numerator: String,
+    pub net_benefit_scaled_numerator: String,
+    pub calibration_receipt_sha256: String,
+    pub outcome_likelihoods_sha256: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct RobustEvidenceActionExclusionV0_1 {
+    pub scenario_id: String,
+    pub action_id: String,
+    pub reason_code: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct RobustEvidenceActionPlannerAssessmentV0_1 {
     pub disposition: RobustEVSIDispositionV0_1,
     pub scenario_set_id: String,
@@ -116,8 +133,9 @@ pub struct RobustEvidenceActionPlannerAssessmentV0_1 {
     pub unresolved_obligation_manifest_sha256: String,
     pub action_catalogue_sha256: String,
     pub action_catalogue_receipt_sha256: String,
+    pub scenario_action_results: Vec<RobustEVSIScenarioActionResultV0_1>,
     pub ranked_actions: Vec<RobustEvidenceActionBoundsV0_1>,
-    pub excluded_actions: Vec<(String, String)>,
+    pub excluded_actions: Vec<RobustEvidenceActionExclusionV0_1>,
     pub reason_codes: Vec<String>,
     pub selected_action_id: Option<String>,
     pub evsi_numerator_scale: i128,
@@ -259,6 +277,7 @@ fn invalid_result(
         unresolved_obligation_manifest_sha256: unresolved,
         action_catalogue_sha256: catalogue,
         action_catalogue_receipt_sha256: catalogue_receipt,
+        scenario_action_results: Vec::new(),
         ranked_actions: Vec::new(),
         excluded_actions: Vec::new(),
         reason_codes: reasons.into_iter().collect(),
@@ -369,6 +388,8 @@ pub fn rank_robust_evidence_actions_v0_1(
     }
 
     let mut evaluations = Vec::new();
+    let mut scenario_action_results = Vec::new();
+    let mut scenario_exclusions = Vec::new();
     for scenario in &input.scenarios {
         let result = rank_evidence_actions_v0_1(&scenario.input);
         if result.disposition == EvidenceActionPlannerDispositionV0_1::InvalidInput {
@@ -376,6 +397,13 @@ pub fn rank_robust_evidence_actions_v0_1(
                 input,
                 BTreeSet::from(["ROBUST_EVSI_SCENARIO_INPUT_INVALID".to_owned()]),
             );
+        }
+        for (action_id, reason_code) in &result.excluded_actions {
+            scenario_exclusions.push(RobustEvidenceActionExclusionV0_1 {
+                scenario_id: scenario.scenario_id.clone(),
+                action_id: action_id.clone(),
+                reason_code: reason_code.clone(),
+            });
         }
         let mut action_map = BTreeMap::new();
         for action in result.ranked_actions {
@@ -391,6 +419,14 @@ pub fn rank_robust_evidence_actions_v0_1(
                     BTreeSet::from(["ROBUST_EVSI_NET_BENEFIT_NUMERATOR_INVALID".to_owned()]),
                 );
             };
+            scenario_action_results.push(RobustEVSIScenarioActionResultV0_1 {
+                scenario_id: scenario.scenario_id.clone(),
+                action_id: action.action_id.clone(),
+                evsi_scaled_numerator: evsi.to_string(),
+                net_benefit_scaled_numerator: net_benefit.to_string(),
+                calibration_receipt_sha256: action.calibration_receipt_sha256.clone(),
+                outcome_likelihoods_sha256: action.outcome_likelihoods_sha256.clone(),
+            });
             action_map.insert(action.action_id.clone(), (action, evsi, net_benefit));
         }
         evaluations.push((scenario.scenario_id.as_str(), result, action_map));
@@ -402,7 +438,7 @@ pub fn rank_robust_evidence_actions_v0_1(
     }
 
     let mut bounds = Vec::new();
-    let mut excluded = Vec::new();
+    let mut excluded: Vec<RobustEvidenceActionExclusionV0_1> = scenario_exclusions;
     for action_id in all_action_ids {
         let mut per_scenario = Vec::new();
         let mut missing = false;
@@ -415,10 +451,15 @@ pub fn rank_robust_evidence_actions_v0_1(
             }
         }
         if missing || per_scenario.len() != evaluations.len() {
-            excluded.push((
-                action_id,
-                "ACTION_NOT_QUALIFIED_IN_EVERY_APPROVED_SCENARIO".to_owned(),
-            ));
+            for (scenario_id, _, action_map) in &evaluations {
+                if !action_map.contains_key(&action_id) {
+                    excluded.push((
+                        scenario_id.to_string(),
+                        action_id.clone(),
+                        "ACTION_NOT_QUALIFIED_IN_EVERY_APPROVED_SCENARIO".to_owned(),
+                    ));
+                }
+            }
             continue;
         }
 
@@ -475,7 +516,17 @@ pub fn rank_robust_evidence_actions_v0_1(
     for (index, item) in bounds.iter_mut().enumerate() {
         item.rank = index + 1;
     }
-    excluded.sort_by(|a, b| a.0.cmp(&b.0));
+    scenario_action_results.sort_by(|a, b| {
+        a.scenario_id
+            .cmp(&b.scenario_id)
+            .then_with(|| a.action_id.cmp(&b.action_id))
+    });
+    excluded.sort_by(|a, b| {
+        a.scenario_id
+            .cmp(&b.scenario_id)
+            .then_with(|| a.action_id.cmp(&b.action_id))
+            .then_with(|| a.reason_code.cmp(&b.reason_code))
+    });
 
     let selected_action_id = bounds
         .first()
@@ -519,6 +570,7 @@ pub fn rank_robust_evidence_actions_v0_1(
         unresolved_obligation_manifest_sha256: anchor.unresolved_obligation_manifest_sha256.clone(),
         action_catalogue_sha256: anchor.action_catalogue_sha256.clone(),
         action_catalogue_receipt_sha256: anchor.action_catalogue_receipt.as_ref().unwrap().receipt_sha256.clone(),
+        scenario_action_results,
         ranked_actions: bounds,
         excluded_actions: excluded,
         reason_codes: reason_codes.into_iter().collect(),
