@@ -1478,93 +1478,139 @@ pub fn verify_mobility_report(
 fn validate_mobility_instance_for_verification(
     instance: &MobilityInstance,
 ) -> Result<(), String> {
+    // Re-admit the instance independently instead of delegating to the
+    // producer's validator. Keep the checks explicit so a producer regression
+    // cannot silently certify the same malformed input through shared logic.
     if instance.schema_version != MOBILITY_INSTANCE_SCHEMA
         || instance.case_id.trim().is_empty()
-        || instance.sites.len() < 2
-        || instance.sites.len() > MAX_SITES
+        || instance.horizon_last_period > MAX_HORIZON_LAST_PERIOD
+        || !(2..=MAX_SITES).contains(&instance.sites.len())
         || instance.units.is_empty()
         || instance.units.len() > MAX_UNITS
         || instance.arcs.len() > MAX_ARCS
         || instance.scenarios.is_empty()
         || instance.scenarios.len() > MAX_SCENARIOS
-        || instance.horizon_last_period > MAX_HORIZON_LAST_PERIOD
     {
         return Err("independent verifier rejected mobility instance envelope".to_string());
     }
-    let site_set = instance
-        .sites
-        .iter()
-        .map(String::as_str)
-        .collect::<BTreeSet<_>>();
-    let unit_set = instance
+
+    let sites = instance.sites.iter().map(String::as_str).collect::<BTreeSet<_>>();
+    if sites.len() != instance.sites.len()
+        || instance.sites.iter().any(|site| site.trim().is_empty())
+    {
+        return Err("independent verifier found invalid or duplicate site identity".to_string());
+    }
+
+    let units = instance
         .units
         .iter()
         .map(|unit| unit.unit_id.as_str())
         .collect::<BTreeSet<_>>();
-    let arc_set = instance
-        .arcs
-        .iter()
-        .map(|arc| arc.arc_id.as_str())
-        .collect::<BTreeSet<_>>();
-    let scenario_set = instance
-        .scenarios
-        .iter()
-        .map(|scenario| scenario.scenario_id.as_str())
-        .collect::<BTreeSet<_>>();
-    if site_set.len() != instance.sites.len()
-        || unit_set.len() != instance.units.len()
-        || arc_set.len() != instance.arcs.len()
-        || scenario_set.len() != instance.scenarios.len()
+    if units.len() != instance.units.len()
+        || instance.units.iter().any(|unit| {
+            unit.unit_id.trim().is_empty()
+                || !sites.contains(unit.initial_site_id.as_str())
+        })
     {
-        return Err("independent verifier found duplicate identities".to_string());
+        return Err("independent verifier rejected mobile-unit identity or initial position".to_string());
     }
-    for unit in &instance.units {
-        if unit.unit_id.trim().is_empty() || !site_set.contains(unit.initial_site_id.as_str()) {
-            return Err("independent verifier rejected mobile-unit identity".to_string());
-        }
+
+    let arc_ids = instance.arcs.iter().map(|arc| arc.arc_id.as_str()).collect::<BTreeSet<_>>();
+    let mut corridor_capacities = BTreeMap::<&str, u64>::new();
+    if arc_ids.len() != instance.arcs.len() {
+        return Err("independent verifier found duplicate movement-arc identity".to_string());
     }
     for arc in &instance.arcs {
         if arc.arc_id.trim().is_empty()
             || arc.corridor_ref.trim().is_empty()
-            || arc.travel_time_periods == 0
             || arc.from_site_id == arc.to_site_id
-            || !site_set.contains(&arc.from_site_id)
-            || !site_set.contains(&arc.to_site_id)
+            || !sites.contains(arc.from_site_id.as_str())
+            || !sites.contains(arc.to_site_id.as_str())
+            || arc.travel_time_periods == 0
+            || arc.travel_time_periods > MAX_TRAVEL_PERIODS
             || arc.arc_capacity_per_departure == 0
             || arc.corridor_capacity_per_departure == 0
         {
             return Err("independent verifier rejected movement-arc semantics".to_string());
         }
+        if corridor_capacities
+            .insert(arc.corridor_ref.as_str(), arc.corridor_capacity_per_departure)
+            .is_some_and(|previous| previous != arc.corridor_capacity_per_departure)
+        {
+            return Err("independent verifier found inconsistent shared-corridor capacity".to_string());
+        }
+        let departure_periods = arc
+            .available_departure_periods
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if departure_periods.len() != arc.available_departure_periods.len()
+            || departure_periods
+                .iter()
+                .any(|period| *period >= instance.horizon_last_period)
+        {
+            return Err("independent verifier rejected route departure availability".to_string());
+        }
+    }
+
+    let scenarios = instance
+        .scenarios
+        .iter()
+        .map(|scenario| scenario.scenario_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if scenarios.len() != instance.scenarios.len()
+        || instance.scenarios.iter().any(|scenario| scenario.scenario_id.trim().is_empty())
+    {
+        return Err("independent verifier found invalid or duplicate scenario identity".to_string());
     }
     for scenario in &instance.scenarios {
-        for closure in &scenario.route_closures {
-            if !arc_set.contains(closure.arc_id.as_str())
-                || closure.departure_period >= instance.horizon_last_period
-                || closure.observed_at_period > instance.horizon_last_period
-            {
-                return Err("independent verifier rejected route-closure reference".to_string());
-            }
+        let event_ids = scenario
+            .observations
+            .iter()
+            .map(|event| event.event_id.as_str())
+            .collect::<BTreeSet<_>>();
+        if event_ids.len() != scenario.observations.len()
+            || scenario.observations.iter().any(|event| {
+                event.event_id.trim().is_empty()
+                    || event.key.trim().is_empty()
+                    || event.value.trim().is_empty()
+                    || event.reveal_period > instance.horizon_last_period
+            })
+        {
+            return Err("independent verifier rejected observation event inventory".to_string());
         }
-        for floor in &scenario.service_floors {
-            if !site_set.contains(floor.site_id.as_str())
-                || floor.period > instance.horizon_last_period
-                || floor.minimum_units == 0
-                || floor.minimum_units > instance.units.len() as u64
-            {
-                return Err("independent verifier rejected service-floor semantics".to_string());
-            }
+
+        let closure_keys = scenario
+            .route_closures
+            .iter()
+            .map(|closure| (closure.arc_id.as_str(), closure.departure_period))
+            .collect::<BTreeSet<_>>();
+        if closure_keys.len() != scenario.route_closures.len()
+            || scenario.route_closures.iter().any(|closure| {
+                !arc_ids.contains(closure.arc_id.as_str())
+                    || closure.departure_period >= instance.horizon_last_period
+                    || closure.observed_at_period > instance.horizon_last_period
+            })
+        {
+            return Err("independent verifier rejected route-closure inventory".to_string());
         }
-        for event in &scenario.observations {
-            if event.event_id.trim().is_empty()
-                || event.key.trim().is_empty()
-                || event.value.trim().is_empty()
-                || event.reveal_period > instance.horizon_last_period
-            {
-                return Err("independent verifier rejected observation event".to_string());
-            }
+
+        let floor_keys = scenario
+            .service_floors
+            .iter()
+            .map(|floor| (floor.site_id.as_str(), floor.period))
+            .collect::<BTreeSet<_>>();
+        if floor_keys.len() != scenario.service_floors.len()
+            || scenario.service_floors.iter().any(|floor| {
+                !sites.contains(floor.site_id.as_str())
+                    || floor.period > instance.horizon_last_period
+                    || floor.minimum_units == 0
+                    || floor.minimum_units > instance.units.len() as u64
+            })
+        {
+            return Err("independent verifier rejected service-floor inventory".to_string());
         }
     }
-    validate_mobility_instance(instance)?;
     Ok(())
 }
 
