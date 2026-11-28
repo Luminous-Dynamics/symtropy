@@ -173,8 +173,7 @@ impl Mt19937 {
         let mut k = 624usize.max(key.len());
         while k > 0 {
             let previous = self.state[i - 1];
-            self.state[i] = (self.state[i]
-                ^ (previous ^ (previous >> 30)).wrapping_mul(1_664_525))
+            self.state[i] = (self.state[i] ^ (previous ^ (previous >> 30)).wrapping_mul(1_664_525))
                 .wrapping_add(key[j])
                 .wrapping_add(j as u32);
             i += 1;
@@ -194,7 +193,7 @@ impl Mt19937 {
             let previous = self.state[i - 1];
             self.state[i] = (self.state[i]
                 ^ (previous ^ (previous >> 30)).wrapping_mul(1_566_083_941))
-                .wrapping_sub(i as u32);
+            .wrapping_sub(i as u32);
             i += 1;
             if i >= 624 {
                 self.state[0] = self.state[623];
@@ -208,23 +207,17 @@ impl Mt19937 {
 
     fn twist(&mut self) {
         for index in 0..227 {
-            let y = (self.state[index] & 0x8000_0000)
-                | (self.state[index + 1] & 0x7fff_ffff);
-            self.state[index] = self.state[index + 397]
-                ^ (y >> 1)
-                ^ if y & 1 == 0 { 0 } else { 0x9908_b0df };
+            let y = (self.state[index] & 0x8000_0000) | (self.state[index + 1] & 0x7fff_ffff);
+            self.state[index] =
+                self.state[index + 397] ^ (y >> 1) ^ if y & 1 == 0 { 0 } else { 0x9908_b0df };
         }
         for index in 227..623 {
-            let y = (self.state[index] & 0x8000_0000)
-                | (self.state[index + 1] & 0x7fff_ffff);
-            self.state[index] = self.state[index - 227]
-                ^ (y >> 1)
-                ^ if y & 1 == 0 { 0 } else { 0x9908_b0df };
+            let y = (self.state[index] & 0x8000_0000) | (self.state[index + 1] & 0x7fff_ffff);
+            self.state[index] =
+                self.state[index - 227] ^ (y >> 1) ^ if y & 1 == 0 { 0 } else { 0x9908_b0df };
         }
         let y = (self.state[623] & 0x8000_0000) | (self.state[0] & 0x7fff_ffff);
-        self.state[623] = self.state[396]
-            ^ (y >> 1)
-            ^ if y & 1 == 0 { 0 } else { 0x9908_b0df };
+        self.state[623] = self.state[396] ^ (y >> 1) ^ if y & 1 == 0 { 0 } else { 0x9908_b0df };
         self.index = 0;
     }
 
@@ -271,9 +264,7 @@ fn python_master_seeds(seed: u64, count: usize) -> Result<Vec<u32>, String> {
     let seed = u32::try_from(seed)
         .map_err(|_| "Python-compatible master seed must fit in u32".to_owned())?;
     let mut rng = Mt19937::seeded_for_python(seed);
-    Ok((0..count)
-        .map(|_| rng.python_randbelow(1000))
-        .collect())
+    Ok((0..count).map(|_| rng.python_randbelow(1000)).collect())
 }
 
 fn numpy_choice_indices(
@@ -320,7 +311,9 @@ fn load_fleet_inputs(root: &Path, fleet_id: &str) -> Result<FleetInputs, String>
     let (operation_rows, op_bytes) = read_csv::<OperationDayRow>(&op_path)?;
     let (schedule_rows, schedule_bytes) = read_csv::<ScheduleSegmentRow>(&schedule_path)?;
     if operation_rows.is_empty() || schedule_rows.is_empty() {
-        return Err(format!("{fleet_id}: source schedule files must not be empty"));
+        return Err(format!(
+            "{fleet_id}: source schedule files must not be empty"
+        ));
     }
 
     let mut seen_days = BTreeSet::new();
@@ -373,7 +366,10 @@ fn load_fleet_inputs(root: &Path, fleet_id: &str) -> Result<FleetInputs, String>
         let segments = schedules
             .get(&day.id)
             .ok_or_else(|| format!("{fleet_id}: missing schedule for operation day {}", day.id))?;
-        let total_seconds = segments.iter().map(|segment| segment.total_time_s).sum::<u64>();
+        let total_seconds = segments
+            .iter()
+            .map(|segment| segment.total_time_s)
+            .sum::<u64>();
         let on_shift_seconds = segments
             .iter()
             .filter(|segment| segment.on_shift)
@@ -397,7 +393,9 @@ fn load_fleet_inputs(root: &Path, fleet_id: &str) -> Result<FleetInputs, String>
         }
     }
     if schedules.len() != operation_days.len() {
-        return Err(format!("{fleet_id}: schedule table contains unknown operation-day IDs"));
+        return Err(format!(
+            "{fleet_id}: schedule table contains unknown operation-day IDs"
+        ));
     }
 
     Ok(FleetInputs {
@@ -459,8 +457,7 @@ fn add_vehicle_immediate_or_delayed(
         if shift_state {
             remaining_energy_kwh += distance_miles * KWH_PER_MILE;
         } else {
-            let required_seconds =
-                (remaining_energy_kwh / CHARGER_POWER_KW * 3600.0).ceil() as u64;
+            let required_seconds = (remaining_energy_kwh / CHARGER_POWER_KW * 3600.0).ceil() as u64;
             if required_seconds > duration_s && duration_s > 0 {
                 add_middle_day_interval(
                     delta,
@@ -468,8 +465,7 @@ fn add_vehicle_immediate_or_delayed(
                     cursor + duration_s as usize,
                     CHARGER_POWER_KW,
                 );
-                remaining_energy_kwh -=
-                    CHARGER_POWER_KW * duration_s as f64 / 3600.0;
+                remaining_energy_kwh -= CHARGER_POWER_KW * duration_s as f64 / 3600.0;
             } else {
                 remaining_energy_kwh = 0.0;
                 if required_seconds > duration_s {
@@ -515,8 +511,7 @@ fn add_vehicle_min_power(
             day.id
         ));
     }
-    let minimum_power_kw =
-        day.vmt * KWH_PER_MILE / (day.time_off_shift_s as f64 / 3600.0);
+    let minimum_power_kw = day.vmt * KWH_PER_MILE / (day.time_off_shift_s as f64 / 3600.0);
     let mut cursor = 0usize;
     for segment in schedule {
         let end = cursor + segment.total_time_s as usize;
@@ -562,7 +557,10 @@ fn quarter_hour_means(profile: &[f64]) -> Result<Vec<f64>, String> {
         .map(|interval| interval.iter().sum::<f64>() / QUARTER_HOUR_SECONDS as f64)
         .collect::<Vec<_>>();
     if result.len() != 96 {
-        return Err(format!("quarter-hour aggregation produced {} intervals", result.len()));
+        return Err(format!(
+            "quarter-hour aggregation produced {} intervals",
+            result.len()
+        ));
     }
     Ok(result)
 }
@@ -591,14 +589,18 @@ fn write_profile_csv(
     let values = quarter_hour_means(profile)?;
     let file_name = key.file_name();
     let path = output_dir.join(&file_name);
-    let mut content = String::from("time,avg_power_kw
-");
+    let mut content = String::from(
+        "time,avg_power_kw
+",
+    );
     for (index, value) in values.iter().enumerate() {
         let minutes = index * 15;
         let hour = minutes / 60;
         let minute = minutes % 60;
-        content.push_str(&format!("{hour:02}:{minute:02}:00,{value:.12}
-"));
+        content.push_str(&format!(
+            "{hour:02}:{minute:02}:00,{value:.12}
+"
+        ));
     }
     let bytes = content.as_bytes();
     fs::write(&path, bytes)
@@ -714,17 +716,11 @@ pub fn run_source_replay(
     for input in &inputs {
         source_input_files.push(SourceInputDigest {
             fleet_id: input.fleet_id.clone(),
-            operation_days_path: format!(
-                "data/fleet-schedules/{}/veh_op_days.csv",
-                input.fleet_id
-            ),
+            operation_days_path: format!("data/fleet-schedules/{}/veh_op_days.csv", input.fleet_id),
             operation_days_sha256: input.operation_days_sha256.clone(),
             operation_days_bytes: input.operation_days_bytes,
             operation_day_count: input.operation_days.len(),
-            schedules_path: format!(
-                "data/fleet-schedules/{}/veh_schedules.csv",
-                input.fleet_id
-            ),
+            schedules_path: format!("data/fleet-schedules/{}/veh_schedules.csv", input.fleet_id),
             schedules_sha256: input.schedules_sha256.clone(),
             schedules_bytes: input.schedules_bytes,
             schedule_segment_count: input.schedules.values().map(Vec::len).sum(),
@@ -735,8 +731,7 @@ pub fn run_source_replay(
     for input in &inputs {
         for fleet_size in FLEET_SIZES {
             for strategy in STRATEGIES {
-                let generated =
-                    generate_candidate_profiles(input, fleet_size, strategy, &seeds)?;
+                let generated = generate_candidate_profiles(input, fleet_size, strategy, &seeds)?;
                 for profile_kind in PROFILE_KINDS {
                     let values = generated
                         .get(profile_kind)
@@ -786,16 +781,20 @@ pub fn run_source_replay(
         profiles,
         claim_ceiling: "Source-reconstructed candidate profiles from pinned NLR schedule inputs and the documented model algorithm. This is not an official archive audit or an independent NLR replication until the generated outputs are compared with the exact catalog ZIP under matched source/runtime semantics. The source data are modeled operating scenarios, not metered depot loads.".to_owned(),
     };
-    let report_bytes =
-        serde_json::to_vec(&report).map_err(|error| format!("replay report serialization: {error}"))?;
+    let report_bytes = serde_json::to_vec(&report)
+        .map_err(|error| format!("replay report serialization: {error}"))?;
     let envelope = ReplayEnvelope {
         report,
         report_sha256: sha256(&report_bytes),
     };
     let output = serde_json::to_vec_pretty(&envelope)
         .map_err(|error| format!("replay envelope serialization: {error}"))?;
-    fs::write(report_path, output)
-        .map_err(|error| format!("cannot write replay report {}: {error}", report_path.display()))?;
+    fs::write(report_path, output).map_err(|error| {
+        format!(
+            "cannot write replay report {}: {error}",
+            report_path.display()
+        )
+    })?;
     Ok(envelope)
 }
 
@@ -825,7 +824,10 @@ mod tests {
         add_interval(&mut delta, 1, 5, 10.0);
         add_interval(&mut delta, 3, 8, 7.0);
         let load = cumulative_profile(&delta);
-        assert_eq!(load, vec![0.0, 10.0, 10.0, 17.0, 17.0, 7.0, 7.0, 7.0, 0.0, 0.0]);
+        assert_eq!(
+            load,
+            vec![0.0, 10.0, 10.0, 17.0, 17.0, 7.0, 7.0, 7.0, 0.0, 0.0]
+        );
     }
 
     #[test]
@@ -868,11 +870,9 @@ mod tests {
         assert_eq!(delayed[1000], 0.0);
 
         let mut minimum_delta = vec![0.0; DAY_SECONDS + 1];
-        add_vehicle_min_power(&mut minimum_delta, &day, &schedule)
-            .expect("minimum-power strategy");
+        add_vehicle_min_power(&mut minimum_delta, &day, &schedule).expect("minimum-power strategy");
         let minimum = cumulative_profile(&minimum_delta);
-        let expected_minimum =
-            day.vmt * KWH_PER_MILE / (day.time_off_shift_s as f64 / 3600.0);
+        let expected_minimum = day.vmt * KWH_PER_MILE / (day.time_off_shift_s as f64 / 3600.0);
         assert!((minimum[0] - expected_minimum).abs() < 1e-12);
         assert_eq!(minimum[1000], 0.0);
         assert_eq!(minimum[4600], expected_minimum);
