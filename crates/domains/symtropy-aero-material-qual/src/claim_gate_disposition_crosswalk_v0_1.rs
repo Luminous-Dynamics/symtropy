@@ -85,7 +85,6 @@ pub fn crosswalk_claim_gate_assessment_v0_1(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claim_assurance_gate_v0_1::ClaimGateStatus;
 
     #[test]
     fn every_claim_gate_status_has_an_exact_non_more_permissive_crosswalk() {
