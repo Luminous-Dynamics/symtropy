@@ -489,16 +489,19 @@ fn advance_arrivals(
     period: u64,
 ) -> Result<(), String> {
     for position in positions {
-        if let Position::InTransit {
-            arc_id,
-            arrival_period,
-        } = position
-        {
-            if *arrival_period < period {
+        let transit = match position {
+            Position::InTransit {
+                arc_id,
+                arrival_period,
+            } => Some((arc_id.clone(), *arrival_period)),
+            Position::AtSite(_) => None,
+        };
+        if let Some((arc_id, arrival_period)) = transit {
+            if arrival_period < period {
                 return Err("resource state skipped its declared arrival boundary".to_string());
             }
-            if *arrival_period == period {
-                let arc = arc_by_id(instance, arc_id)
+            if arrival_period == period {
+                let arc = arc_by_id(instance, &arc_id)
                     .ok_or_else(|| "in-transit state references an unknown arc".to_string())?;
                 *position = Position::AtSite(arc.to_site_id.clone());
             }
@@ -521,7 +524,9 @@ fn service_satisfied(
         .all(|floor| {
             let present = positions
                 .iter()
-                .filter(|position| **position == Position::AtSite(floor.site_id.clone()))
+                .filter(|position| {
+                    matches!(position, Position::AtSite(site_id) if site_id == &floor.site_id)
+                })
                 .count() as u64;
             present >= floor.minimum_units
         })
@@ -811,7 +816,9 @@ fn enumerate_group_actions(
             decisions,
             budget,
         )?;
-        decisions.truncate(old_len);
+        if result != SearchResult::Found {
+            decisions.truncate(old_len);
+        }
         return Ok(result);
     }
 
@@ -1700,8 +1707,8 @@ mod tests {
         let model = instance(
             1,
             &["depot", "site-a"],
-            vec![unit("pump-1", "depot")],
-            vec![arc("depot-a", "depot", "site-a", 2, "road", 1, &[0])],
+            vec![unit("pump-1", "depot"), unit("pump-2", "depot")],
+            vec![arc("depot-a", "depot", "site-a", 2, "road", 2, &[0])],
             vec![scenario(
                 "world",
                 vec![floor("depot", 1, 1), floor("site-a", 1, 1)],
@@ -1821,7 +1828,7 @@ mod tests {
         report.plan_sha256 = Some(mobility_plan_digest(plan).unwrap());
         assert!(verify_mobility_report(&model, &report)
             .unwrap_err()
-            .contains("policy decision set"));
+            .contains("policy omitted"));
     }
 
     #[test]
