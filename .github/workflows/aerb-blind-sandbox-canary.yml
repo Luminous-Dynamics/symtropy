@@ -35,4 +35,4 @@ jobs:
         timeout-minutes: 2
         env:
           AERB_EVALUATOR_SECRET: CI_SENTINEL_SHOULD_NOT_ENTER_SANDBOX
-        run: target/x86_64-unknown-linux-musl/release/aerb_sandbox_canary
+        run: research/mobility-rrvr-aerb-v0.1/evaluator/target/x86_64-unknown-linux-musl/release/aerb_sandbox_canary
