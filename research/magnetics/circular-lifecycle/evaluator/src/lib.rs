@@ -33,7 +33,8 @@ pub enum MetricSource {
     Observation,
     DisassemblyElapsedMinutes,
     DisassemblyEnergyWh,
-    QualifiedReuseFraction,
+    DirectReuseFraction,
+    RemanufacturedAcceptedFraction,
     RecyclingFeedstockFraction,
 }
 
@@ -816,12 +817,23 @@ fn validate_recovery(
         return BTreeMap::new();
     }
 
-    let reuse_mass = receipt.reuse_grade_mass_kg + receipt.remanufactured_accepted_mass_kg;
-    let reuse_uncertainty =
-        receipt.reuse_grade_uncertainty_kg + receipt.remanufactured_uncertainty_kg;
-    let reuse_fraction = Interval {
-        lower: ((reuse_mass - reuse_uncertainty).max(0.0) / input_upper).clamp(0.0, 1.0),
-        upper: ((reuse_mass + reuse_uncertainty) / input_lower).clamp(0.0, 1.0),
+    let direct_reuse_fraction = Interval {
+        lower: ((receipt.reuse_grade_mass_kg - receipt.reuse_grade_uncertainty_kg).max(0.0)
+            / input_upper)
+            .clamp(0.0, 1.0),
+        upper: ((receipt.reuse_grade_mass_kg + receipt.reuse_grade_uncertainty_kg) / input_lower)
+            .clamp(0.0, 1.0),
+    };
+    let remanufactured_fraction = Interval {
+        lower: ((receipt.remanufactured_accepted_mass_kg
+            - receipt.remanufactured_uncertainty_kg)
+            .max(0.0)
+            / input_upper)
+            .clamp(0.0, 1.0),
+        upper: ((receipt.remanufactured_accepted_mass_kg
+            + receipt.remanufactured_uncertainty_kg)
+            / input_lower)
+            .clamp(0.0, 1.0),
     };
     let recycle_fraction = Interval {
         lower: ((receipt.recycling_feedstock_mass_kg - receipt.recycling_uncertainty_kg).max(0.0)
@@ -833,7 +845,11 @@ fn validate_recovery(
     };
 
     BTreeMap::from([
-        ("qualified_reuse_fraction".to_string(), reuse_fraction),
+        ("direct_reuse_fraction".to_string(), direct_reuse_fraction),
+        (
+            "accepted_remanufacture_fraction".to_string(),
+            remanufactured_fraction,
+        ),
         ("recycling_feedstock_fraction".to_string(), recycle_fraction),
     ])
 }
@@ -852,7 +868,8 @@ fn trial_intervals(
             MetricSource::Observation => metric.metric_id.as_str(),
             MetricSource::DisassemblyElapsedMinutes => "disassembly_time_minutes",
             MetricSource::DisassemblyEnergyWh => "disassembly_energy_wh",
-            MetricSource::QualifiedReuseFraction => "qualified_reuse_fraction",
+            MetricSource::DirectReuseFraction => "direct_reuse_fraction",
+            MetricSource::RemanufacturedAcceptedFraction => "accepted_remanufacture_fraction",
             MetricSource::RecyclingFeedstockFraction => "recycling_feedstock_fraction",
         };
         if !intervals.contains_key(source_id) {
@@ -957,7 +974,10 @@ fn metric_id(metric: &MetricSpec) -> String {
         MetricSource::Observation => metric.metric_id.clone(),
         MetricSource::DisassemblyElapsedMinutes => "disassembly_time_minutes".to_string(),
         MetricSource::DisassemblyEnergyWh => "disassembly_energy_wh".to_string(),
-        MetricSource::QualifiedReuseFraction => "qualified_reuse_fraction".to_string(),
+        MetricSource::DirectReuseFraction => "direct_reuse_fraction".to_string(),
+        MetricSource::RemanufacturedAcceptedFraction => {
+            "accepted_remanufacture_fraction".to_string()
+        }
         MetricSource::RecyclingFeedstockFraction => {
             "recycling_feedstock_fraction".to_string()
         }
@@ -1114,10 +1134,20 @@ mod tests {
                     non_inferiority_margin: None,
                 },
                 MetricSpec {
-                    metric_id: "qualified_reuse_fraction".to_string(),
+                    metric_id: "direct_reuse_fraction".to_string(),
                     unit: "fraction".to_string(),
                     class: MetricClass::CircularityBenefit,
-                    source: MetricSource::QualifiedReuseFraction,
+                    source: MetricSource::DirectReuseFraction,
+                    direction: Direction::Maximize,
+                    hard_min: None,
+                    hard_max: None,
+                    non_inferiority_margin: None,
+                },
+                MetricSpec {
+                    metric_id: "accepted_remanufacture_fraction".to_string(),
+                    unit: "fraction".to_string(),
+                    class: MetricClass::CircularityBenefit,
+                    source: MetricSource::RemanufacturedAcceptedFraction,
                     direction: Direction::Maximize,
                     hard_min: None,
                     hard_max: None,
@@ -1312,7 +1342,7 @@ mod tests {
         assert_eq!(result[0].decision, Decision::CircularityAdvantage);
         assert!(result[0]
             .robust_circularity_benefits
-            .contains(&"qualified_reuse_fraction".to_string()));
+            .contains(&"direct_reuse_fraction".to_string()));
     }
 
     #[test]
@@ -1497,7 +1527,7 @@ mod tests {
     fn recovery_fraction_is_derived_not_accepted_as_observation() {
         let mut trials = known_trials();
         trials[0].observations.push(Observation {
-            metric_id: "qualified_reuse_fraction".to_string(),
+            metric_id: "direct_reuse_fraction".to_string(),
             component_id: "COMP-AM-MODULAR".to_string(),
             specimen_id: "SPEC-AM-MODULAR".to_string(),
             build_id: "BUILD-AM-MODULAR".to_string(),
