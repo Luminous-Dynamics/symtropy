@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Magnetic duty-cycle evidence v0.1",
+  "type": "object",
+  "required": ["schema_version", "spec", "evidence"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "spec": { "$ref": "#/$defs/spec" },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "expected": {
+      "type": "object",
+      "properties": {
+        "disposition": { "enum": ["Qualified", "Fail", "Indeterminate", "NotComparable"] },
+        "expected_segment_count": { "type": "integer", "minimum": 0 },
+        "observed_segment_count": { "type": "integer", "minimum": 0 },
+        "motoring_efficiency": { "$ref": "#/$defs/interval" },
+        "regenerative_efficiency": { "$ref": "#/$defs/interval" },
+        "net_dc_input_j": { "$ref": "#/$defs/interval" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "interval": {
+      "type": "object",
+      "required": ["lower", "upper"],
+      "properties": {
+        "lower": { "type": "number" },
+        "upper": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "quadrant": {
+      "enum": ["Motoring", "Regenerative", "Standstill"]
+    },
+    "segment_spec": {
+      "type": "object",
+      "required": [
+        "segment_id",
+        "sequence_index",
+        "duration_s",
+        "quadrant",
+        "minimum_torque_tracking",
+        "minimum_speed_tracking",
+        "maximum_winding_temperature_c",
+        "maximum_magnet_temperature_c",
+        "minimum_demagnetization_margin",
+        "minimum_retention_margin"
+      ],
+      "properties": {
+        "segment_id": { "type": "string", "minLength": 1 },
+        "sequence_index": { "type": "integer", "minimum": 0 },
+        "duration_s": { "type": "number", "exclusiveMinimum": 0 },
+        "quadrant": { "$ref": "#/$defs/quadrant" },
+        "minimum_torque_tracking": { "type": "number", "minimum": 0 },
+        "minimum_speed_tracking": { "type": "number", "minimum": 0 },
+        "maximum_winding_temperature_c": { "type": "number" },
+        "maximum_magnet_temperature_c": { "type": "number" },
+        "minimum_demagnetization_margin": { "type": "number", "minimum": 0 },
+        "minimum_retention_margin": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "energy": {
+      "type": "object",
+      "required": ["auxiliary_dc_input_j"],
+      "properties": {
+        "dc_input_j": { "$ref": "#/$defs/interval" },
+        "shaft_output_j": { "$ref": "#/$defs/interval" },
+        "shaft_input_j": { "$ref": "#/$defs/interval" },
+        "dc_output_j": { "$ref": "#/$defs/interval" },
+        "auxiliary_dc_input_j": { "$ref": "#/$defs/interval" }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "component_id",
+        "profile_digest",
+        "system_boundary_digest",
+        "measurement_setup_digest",
+        "initial_thermal_state_digest",
+        "segments"
+      ],
+      "properties": {
+        "profile_id": { "type": "string", "minLength": 1 },
+        "component_id": { "type": "string", "minLength": 1 },
+        "profile_digest": { "$ref": "#/$defs/digest" },
+        "system_boundary_digest": { "$ref": "#/$defs/digest" },
+        "measurement_setup_digest": { "$ref": "#/$defs/digest" },
+        "initial_thermal_state_digest": { "$ref": "#/$defs/digest" },
+        "segments": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/segment_spec" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "segment_id",
+        "sequence_index",
+        "profile_digest",
+        "component_id",
+        "system_boundary_digest",
+        "measurement_setup_digest",
+        "evidence_id",
+        "receipt_id",
+        "evidence_digest",
+        "receipt_digest",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "method_id",
+        "evidence_class",
+        "thermal_start_state_digest",
+        "thermal_end_state_digest",
+        "torque_tracking",
+        "speed_tracking",
+        "maximum_winding_temperature_c",
+        "maximum_magnet_temperature_c",
+        "minimum_demagnetization_margin",
+        "minimum_retention_margin",
+        "energy"
+      ],
+      "properties": {
+        "segment_id": { "type": "string", "minLength": 1 },
+        "sequence_index": { "type": "integer", "minimum": 0 },
+        "profile_digest": { "$ref": "#/$defs/digest" },
+        "component_id": { "type": "string", "minLength": 1 },
+        "system_boundary_digest": { "$ref": "#/$defs/digest" },
+        "measurement_setup_digest": { "$ref": "#/$defs/digest" },
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "receipt_id": { "type": "string", "minLength": 1 },
+        "evidence_digest": { "$ref": "#/$defs/digest" },
+        "receipt_digest": { "$ref": "#/$defs/digest" },
+        "calibration_digest": { "$ref": "#/$defs/digest" },
+        "uncertainty_record_digest": { "$ref": "#/$defs/digest" },
+        "method_id": { "type": "string", "minLength": 1 },
+        "evidence_class": {
+          "enum": ["PhysicalMeasurement", "ProductionRecord", "Simulation", "PublishedLiterature", "SyntheticControl"]
+        },
+        "thermal_start_state_digest": { "$ref": "#/$defs/digest" },
+        "thermal_end_state_digest": { "$ref": "#/$defs/digest" },
+        "torque_tracking": { "$ref": "#/$defs/interval" },
+        "speed_tracking": { "$ref": "#/$defs/interval" },
+        "maximum_winding_temperature_c": { "$ref": "#/$defs/interval" },
+        "maximum_magnet_temperature_c": { "$ref": "#/$defs/interval" },
+        "minimum_demagnetization_margin": { "$ref": "#/$defs/interval" },
+        "minimum_retention_margin": { "$ref": "#/$defs/interval" },
+        "energy": { "$ref": "#/$defs/energy" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
