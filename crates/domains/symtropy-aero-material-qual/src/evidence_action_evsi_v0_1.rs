@@ -1361,6 +1361,27 @@ mod tests {
                 .as_str()
                 .expect("exclusion reason")
         );
+        assert_eq!(result.claim_id, "claim:wing-panel-proof-load");
+        assert_eq!(
+            result.decision_context_sha256,
+            expected["decision_context_sha256"].as_str().expect("decision context")
+        );
+        assert_eq!(
+            result.assurance_state_sha256,
+            expected["assurance_state_sha256"].as_str().expect("assurance state")
+        );
+        assert_eq!(
+            result.action_catalogue_sha256,
+            expected["action_catalogue_sha256"].as_str().expect("action catalogue cut")
+        );
+        assert_eq!(
+            result.decision_model_sha256,
+            expected["decision_model_sha256"].as_str().expect("decision model")
+        );
+        assert_eq!(
+            result.outcome_model_sha256,
+            expected["outcome_model_sha256"].as_str().expect("outcome model")
+        );
         assert_eq!(result.frozen_claim_disposition, "INCOMPLETE");
         assert_eq!(
             result.configuration_ref,
@@ -1400,6 +1421,10 @@ mod tests {
                 .as_str()
                 .expect("outcome likelihood commitment")
         );
+        let expected_reasons: Vec<String> =
+            serde_json::from_value(expected["reason_codes"].clone())
+                .expect("expected reason-code vector");
+        assert_eq!(result.reason_codes, expected_reasons);
         assert!(!result.assurance_state_mutated);
         assert!(!result.physical_work_authorized);
         assert!(!result.engineering_acceptance_granted);
