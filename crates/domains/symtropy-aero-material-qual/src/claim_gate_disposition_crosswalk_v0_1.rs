@@ -10,12 +10,11 @@
 
 use super::assurance_disposition_v0_1::AssuranceDispositionV0_1;
 use super::claim_assurance_gate_v0_1::{ClaimAssuranceAssessment, ClaimGateStatus};
-use serde::{Deserialize, Serialize};
 
 pub const CLAIM_GATE_CROSSWALK_SCHEMA_V0_1: &str = "AeroClaimGateDispositionCrosswalkV0_1";
 
 /// Lossless disposition/reason-code projection of the existing ClaimGate.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ClaimGateDispositionCrosswalkV0_1 {
     pub schema: String,
     pub claim_id: String,
