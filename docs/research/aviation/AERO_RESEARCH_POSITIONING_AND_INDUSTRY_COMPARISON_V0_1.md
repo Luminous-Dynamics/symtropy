@@ -156,6 +156,20 @@ References:
 
 **Positioning consequence:** compare AERO against both assurance-case authoring/analysis tools and PLM/QMS/digital-thread workflows. The measurable gap is not "traceability exists" but whether a third party can independently reconstruct a claim-level decision across owner boundaries, temporal trust-policy cuts and qualified observer coverage, while preserving source-owner authority and a clear non-approval ceiling.
 
+### Owner-hosted evidence verification and disclosure boundaries
+
+A cross-owner assurance system must handle proprietary or restricted source records without misleading consumers about what was actually verified. AERO should distinguish full disclosure and replay, authorized-source replay, owner-hosted verifier receipts, digest-only evidence, and withheld/unavailable records. These are different verification modes, not interchangeable levels of confidence.
+
+An owner-hosted verifier receipt can establish that a particular owner-operated verifier reported a result for a declared source digest and invocation, provided the receipt issuer, verifier build, chronology and scope are independently checked. It does not allow the consumer to independently reconstruct undisclosed source semantics, and it does not prove physical truth. A digest-only record proves neither semantic validity nor completeness.
+
+This is an interoperability hypothesis, not an industry-first claim. It should be benchmarked against controlled data-room/manual review and supplier PLM/QMS portals, with source bytes transferred, sensitive fields disclosed, owner burden, exact result parity against full replay, receipt substitution detection and disclosure-mode overclaim measured separately.
+
+Related execution:
+- [#7898 — owner-hosted evidence verification receipts](https://github.com/Luminous-Dynamics/symtropy/issues/7898)
+- [#7899 — benchmark v0.4 extension](https://github.com/Luminous-Dynamics/symtropy/issues/7899)
+
+**Benchmark versioning:** keep the v0.3 protocol and holdouts frozen. Tool-malfunction, owner-hosted verification and robust-EVSI experiments belong in a separately preregistered v0.4 extension; do not retroactively change v0.3 thresholds or denominators.
+
 ## 3. Competitive capability matrix
 
 | Capability | Established industry/research position | AERO's testable opportunity |
