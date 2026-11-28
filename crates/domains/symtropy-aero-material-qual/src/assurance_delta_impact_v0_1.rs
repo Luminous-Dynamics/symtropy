@@ -360,13 +360,21 @@ fn retained_closure_sha256(
             }
         })
         .collect();
-    let edges = graph
+    let mut retained_edges = graph
         .edges
         .iter()
         .filter(|edge| {
             closure.contains(&edge.dependent_node_id)
                 && closure.contains(&edge.dependency_node_id)
         })
+        .collect::<Vec<_>>();
+    retained_edges.sort_by(|left, right| {
+        left.dependent_node_id
+            .cmp(&right.dependent_node_id)
+            .then_with(|| left.dependency_node_id.cmp(&right.dependency_node_id))
+    });
+    let edges = retained_edges
+        .into_iter()
         .map(|edge| RetainedEdgeManifestV0_1 {
             dependent_node_id: &edge.dependent_node_id,
             dependency_node_id: &edge.dependency_node_id,
