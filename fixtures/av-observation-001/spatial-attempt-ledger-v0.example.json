@@ -25,6 +25,18 @@
       "max_frames": 3,
       "max_observation_bytes": 0,
       "max_memory_bytes": 0
+    },
+    "scorer_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "reference_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "reference_source_kind": "simulator",
+    "reference_source_independence": "derived",
+    "qualification_criteria": {
+      "criteria_id": "room-twin-dev-demo-v0",
+      "status": "development_only",
+      "criteria_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "minimum_pose_coverage": 0.8,
+      "maximum_conditional_ate_m": 0.1,
+      "maximum_conditional_rpe_m": 0.03
     }
   },
   "attempts": [
