@@ -1,0 +1,73 @@
+name: SpaceCast intervention matrix integrity
+
+on:
+  push:
+    branches:
+      - research/spatial-state-intervention-v0
+    paths:
+      - "fixtures/spacecast-intervention-001/**"
+      - "scripts/validate_spacecast_intervention_matrix.py"
+      - ".github/workflows/spacecast-intervention-matrix.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "fixtures/spacecast-intervention-001/**"
+      - "scripts/validate_spacecast_intervention_matrix.py"
+      - ".github/workflows/spacecast-intervention-matrix.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spacecast-intervention-matrix-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  QUALIFIED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  source-integrity:
+    name: Exact-head schema and paired-matrix audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact candidate SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.QUALIFIED_SHA }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned JSON Schema validator
+        run: python -m pip install --disable-pip-version-check --no-cache-dir jsonschema==4.23.0
+
+      - name: Validate SpaceCast source crosswalk
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator, FormatChecker
+
+          root = Path("fixtures/spacecast-intervention-001")
+          schema = json.loads((root / "spacecast-crosswalk-v0.schema.json").read_text())
+          instance = json.loads((root / "spacecast-crosswalk-v0.json").read_text())
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(instance),
+              key=lambda error: list(error.absolute_path),
+          )
+          if errors:
+              for error in errors:
+                  print(f"{list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+          assert sum(level["question_count"] for level in instance["capability_levels"]) == instance["dataset"]["question_count"]
+          assert instance["reproduction_status"] == "metadata_only_no_media_downloaded"
+          print("PASS: crosswalk Draft 2020-12 schema and dataset totals; metadata-only status preserved")
+          PY
+
+      - name: Validate paired intervention matrix
+        run: python scripts/validate_spacecast_intervention_matrix.py
