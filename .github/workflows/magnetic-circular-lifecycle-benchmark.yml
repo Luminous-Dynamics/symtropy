@@ -1,0 +1,44 @@
+name: Magnetic Circular Lifecycle Benchmark
+
+on:
+  pull_request:
+    paths:
+      - "research/magnetics/circular-lifecycle/**"
+      - "research/magnetics/MAG_AM_CIRCULAR_MOTOR_LIFECYCLE_BENCHMARK_2026-11-28.md"
+      - ".github/workflows/magnetic-circular-lifecycle-benchmark.yml"
+  push:
+    branches:
+      - "research/magnetic-circular-lifecycle-benchmark-v0.1"
+    paths:
+      - "research/magnetics/circular-lifecycle/**"
+      - "research/magnetics/MAG_AM_CIRCULAR_MOTOR_LIFECYCLE_BENCHMARK_2026-11-28.md"
+      - ".github/workflows/magnetic-circular-lifecycle-benchmark.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: circular lifecycle (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Check formatting
+        working-directory: research/magnetics/circular-lifecycle/evaluator
+        run: cargo fmt --all -- --check
+      - name: Run strict Clippy
+        working-directory: research/magnetics/circular-lifecycle/evaluator
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Run evaluator tests
+        working-directory: research/magnetics/circular-lifecycle/evaluator
+        run: cargo test --all-targets
