@@ -1,0 +1,424 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-claim-authority-observer-temporal-binding-v0.1.schema.json",
+  "title": "AERO Claim Authority Observer Temporal Binding v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "authority_ceiling",
+    "requirement_profile",
+    "evidence_binding_input",
+    "observer_assessment_binding",
+    "observer_coverage",
+    "authority_receipt",
+    "observer_receipt",
+    "temporal_receipt"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroClaimAuthorityObserverTemporalBindingV0_1"
+    },
+    "status": {
+      "const": "SYNTHETIC_CLAIM_OBLIGATION_BINDING_EXAMPLE_NOT_ENGINEERING_EVIDENCE"
+    },
+    "authority_ceiling": {
+      "const": "CLAIM_AUTHORITY_OBSERVER_TEMPORAL_BINDING_ONLY_NO_CLAIM_DECISION_OR_PHYSICAL_AUTHORITY"
+    },
+    "requirement_profile": {
+      "const": "AERO_SCALAR_ENGINEERING_CLAIM_V0_1"
+    },
+    "evidence_binding_input": {
+      "type": "object"
+    },
+    "observer_assessment_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "subject_ref",
+        "decision_context_sha256",
+        "report_sha256",
+        "evaluator_profile"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "subject_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "decision_context_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "evaluator_profile": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        }
+      }
+    },
+    "observer_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "replay_consequence",
+        "reason_codes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "qualified_complete_for_scope",
+            "incomplete",
+            "unverified",
+            "invalid",
+            "out_of_scope"
+          ]
+        },
+        "replay_consequence": {
+          "enum": [
+            "allow_scoped_absence_inference",
+            "abstain"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+          }
+        }
+      }
+    },
+    "authority_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_status",
+        "owner_namespace",
+        "authority_holder_namespace",
+        "authority_role_ref",
+        "claim_id",
+        "subject_ref",
+        "configuration_ref",
+        "decision_context_sha256",
+        "trust_policy_sha256",
+        "source_scope_manifest_sha256",
+        "receiver_first_seen_at_unix_ms",
+        "effective_from_unix_ms",
+        "effective_until_unix_ms",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "verification_status": {
+          "enum": [
+            "VERIFIED",
+            "UNVERIFIED",
+            "FAILED"
+          ]
+        },
+        "owner_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "authority_holder_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "authority_role_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "subject_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "decision_context_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "trust_policy_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_scope_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_first_seen_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "observer_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_status",
+        "owner_namespace",
+        "claim_id",
+        "subject_ref",
+        "configuration_ref",
+        "decision_context_sha256",
+        "source_scope_manifest_sha256",
+        "acquisition_time_earliest_unix_ms",
+        "acquisition_time_latest_unix_ms",
+        "observer_coverage_profile_id",
+        "owner_observer_coverage_status",
+        "owner_observer_coverage_receipt_sha256",
+        "coverage_report_sha256",
+        "coverage_status",
+        "replay_consequence",
+        "source_roster_manifest_sha256",
+        "required_capture_obligation_manifest_sha256",
+        "critical_channel_manifest_sha256",
+        "observer_watermark_unix_ms",
+        "receiver_first_seen_at_unix_ms",
+        "effective_from_unix_ms",
+        "effective_until_unix_ms",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "verification_status": {
+          "enum": [
+            "VERIFIED",
+            "UNVERIFIED",
+            "FAILED"
+          ]
+        },
+        "owner_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "subject_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "decision_context_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_scope_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "acquisition_time_earliest_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "acquisition_time_latest_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observer_coverage_profile_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "owner_observer_coverage_status": {
+          "enum": [
+            "qualified_complete_for_scope",
+            "incomplete",
+            "unverified",
+            "out_of_scope"
+          ]
+        },
+        "owner_observer_coverage_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "coverage_report_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "coverage_status": {
+          "enum": [
+            "qualified_complete_for_scope",
+            "incomplete",
+            "unverified",
+            "invalid",
+            "out_of_scope"
+          ]
+        },
+        "replay_consequence": {
+          "enum": [
+            "allow_scoped_absence_inference",
+            "abstain"
+          ]
+        },
+        "source_roster_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "required_capture_obligation_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "critical_channel_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "observer_watermark_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receiver_first_seen_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "temporal_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_status",
+        "owner_namespace",
+        "claim_id",
+        "configuration_ref",
+        "decision_context_sha256",
+        "trust_policy_sha256",
+        "owner_evidence_cut_sha256",
+        "source_receipt_manifest_sha256",
+        "receiver_receipt_manifest_sha256",
+        "receiver_watermark_unix_ms",
+        "as_known_at_unix_ms",
+        "receiver_first_seen_at_unix_ms",
+        "effective_from_unix_ms",
+        "effective_until_unix_ms",
+        "receipt_sha256"
+      ],
+      "properties": {
+        "verification_status": {
+          "enum": [
+            "VERIFIED",
+            "UNVERIFIED",
+            "FAILED"
+          ]
+        },
+        "owner_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "decision_context_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "trust_policy_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "owner_evidence_cut_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "source_receipt_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_receipt_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_watermark_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "as_known_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receiver_first_seen_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}
