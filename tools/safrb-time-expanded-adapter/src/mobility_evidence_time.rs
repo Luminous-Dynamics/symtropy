@@ -98,6 +98,7 @@ struct CanonicalCapacityFact<'a> {
     issuer_ref: &'a str,
     authority_ref: &'a str,
     source_bytes_sha256: &'a str,
+    admission_receipt_sha256: &'a str,
 }
 
 fn role_key(role: CapacityRole) -> &'static str {
@@ -134,6 +135,7 @@ fn canonical_capacity_fact(record: &CapacityEvidenceRecord) -> CanonicalCapacity
         issuer_ref: &record.issuer_ref,
         authority_ref: &record.authority_ref,
         source_bytes_sha256: &record.source_bytes_sha256,
+        admission_receipt_sha256: &record.admission_receipt_sha256,
     }
 }
 
@@ -459,6 +461,7 @@ struct VerifierCapacityFact<'a> {
     issuer_ref: &'a str,
     authority_ref: &'a str,
     source_bytes_sha256: &'a str,
+    admission_receipt_sha256: &'a str,
 }
 
 fn verifier_role_key(role: CapacityRole) -> &'static str {
@@ -487,6 +490,7 @@ fn verifier_fact_digest(record: &CapacityEvidenceRecord) -> Result<String, Strin
         issuer_ref: &record.issuer_ref,
         authority_ref: &record.authority_ref,
         source_bytes_sha256: &record.source_bytes_sha256,
+        admission_receipt_sha256: &record.admission_receipt_sha256,
     };
     let bytes = serde_json::to_vec(&fact)
         .map_err(|error| format!("independent verifier could not encode capacity fact: {error}"))?;
@@ -1069,6 +1073,36 @@ mod tests {
         let mut tampered = report.clone();
         tampered.revocation_notice_gaps[0].notice_eligible_at_period = 3;
         assert!(verify_mobility_evidence_time(&source, &tampered).is_err());
+    }
+
+    #[test]
+    fn actor_visible_capacity_fact_binds_the_admission_receipt_digest() {
+        let source = input(&["one"]);
+        let first = compile_mobility_evidence_time(&source).unwrap();
+        let first_value = first.mobility_instance.scenarios[0]
+            .observations
+            .iter()
+            .find(|event| event.event_id.ends_with("one:arc:route-a:a0"))
+            .unwrap()
+            .value
+            .clone();
+
+        let mut changed = source.clone();
+        changed.capacity_envelope.capacity_schedules[0].records[0].admission_receipt_sha256 =
+            format!("sha256:{}", "c".repeat(64));
+        let second = compile_mobility_evidence_time(&changed).unwrap();
+        let second_value = second.mobility_instance.scenarios[0]
+            .observations
+            .iter()
+            .find(|event| event.event_id.ends_with("one:arc:route-a:a0"))
+            .unwrap()
+            .value
+            .clone();
+
+        assert_ne!(first_value, second_value);
+        verify_mobility_evidence_time(&source, &first).unwrap();
+        verify_mobility_evidence_time(&changed, &second).unwrap();
+        assert!(verify_mobility_evidence_time(&source, &second).is_err());
     }
 
     #[test]
