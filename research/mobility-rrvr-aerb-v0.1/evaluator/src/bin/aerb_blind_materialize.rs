@@ -17,7 +17,7 @@ use mobility_rrvr_aerb_evaluator::{
         CandidateBlindManifest, EvaluatorBlindManifest, generate_blind_campaign_from_worlds,
     },
     blind_projection_audit_v0_1::{
-        BlindProjectionContext, BlindProjectionReceipt, MetadataAttackRow,
+        BlindProjectionContext, MetadataAttackRow,
         candidate_metadata_features, project_candidate_episode,
         project_candidate_submission,
     },
@@ -56,6 +56,7 @@ struct SourceEvaluatorManifest {
     benchmark: String,
     generator_profile_id: String,
     generator_profile_sha256: String,
+    #[serde(rename = "seed")]
     _seed: u64,
     scenario_count: usize,
     hidden_truth_by_episode: BTreeMap<String, String>,
@@ -252,21 +253,39 @@ fn load_source_index(
 ) -> Result<BTreeMap<String, Vec<SourceCaseIndex>>, String> {
     let mut by_world = BTreeMap::<String, Vec<SourceCaseIndex>>::new();
     let mut episode_ids = BTreeSet::new();
-    let mut episode_files = BTreeSet::new();
-    let mut submission_files = BTreeSet::new();
+    let episode_files = candidate_manifest
+        .episode_files
+        .iter()
+        .map(|name| safe_leaf_name(name).map(str::to_owned))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let submission_files = candidate_manifest
+        .submission_files
+        .iter()
+        .map(|name| safe_leaf_name(name).map(str::to_owned))
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    if episode_files.len() != candidate_manifest.scenario_count
+        || submission_files.len() != candidate_manifest.scenario_count
+        || !episode_files.is_disjoint(&submission_files)
+        || episode_files.contains("candidate_manifest.json")
+        || submission_files.contains("candidate_manifest.json")
+    {
+        return Err("SOURCE_CANDIDATE_FILE_LISTS_NOT_UNIQUE_OR_DISJOINT".to_owned());
+    }
+    if candidate_root.join("evaluator_manifest.json").exists()
+        || fs::read_dir(candidate_root)
+            .map_err(|error| format!("SOURCE_CANDIDATE_DIRECTORY_READ_FAILED: {error}"))?
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().starts_with("world-pack-"))
+    {
+        return Err("EVALUATOR_ARTIFACT_FOUND_IN_SOURCE_CANDIDATE_ROOT".to_owned());
+    }
 
     for index in 0..candidate_manifest.scenario_count {
         let episode_file = safe_leaf_name(&candidate_manifest.episode_files[index])?.to_owned();
         let submission_file =
             safe_leaf_name(&candidate_manifest.submission_files[index])?.to_owned();
-        if !episode_files.insert(episode_file.clone()) {
-            return Err("DUPLICATE_SOURCE_EPISODE_FILE".to_owned());
-        }
-        if !submission_files.insert(submission_file.clone()) {
-            return Err("DUPLICATE_SOURCE_SUBMISSION_FILE".to_owned());
-        }
-        if episode_files.contains(&submission_file) {
-            return Err("SOURCE_EPISODE_AND_SUBMISSION_FILE_COLLISION".to_owned());
+        if !episode_files.contains(&episode_file) || !submission_files.contains(&submission_file) {
+            return Err("SOURCE_FILE_LIST_CHANGED_DURING_INDEX".to_owned());
         }
         let world_pack_file = format!("world-pack-{index:06}.json");
         let episode_bytes =
@@ -563,7 +582,6 @@ fn materialize(
             hidden_truth_world_id: assignment.hidden_truth_world_id.clone(),
             candidate_visible_features: features,
         });
-        let _ = receipt;
     }
 
     if source_by_world.values().any(|cases| !cases.is_empty()) {
