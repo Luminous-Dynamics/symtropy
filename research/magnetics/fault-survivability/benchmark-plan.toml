@@ -61,7 +61,7 @@ schema = "evaluator/fault-survivability-v0.1.schema.json"
 fixture = "evaluator/fixtures/fault-survivability-synthetic-v0.1.json"
 source_register = "source-register.json"
 workflow = ".github/workflows/magnetic-fault-survivability.yml"
-authored_unit_tests = 27
+authored_unit_tests = 30
 tests_executed = false
 exact_head_ci_pass = false
 
