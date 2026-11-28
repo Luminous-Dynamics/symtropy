@@ -612,41 +612,60 @@ mod tests {
     }
 
     #[test]
-    fn absolute_host_paths_in_candidate_arguments_are_rejected() {
-        let (_tree, paths, limits) = fixture();
-        for argument in [
-            "/etc/passwd",
-            "--world-pack=/secrets/world.json",
-            "-I/usr/lib",
-        ] {
-            assert_eq!(
-                build_candidate_sandbox_command(&paths, limits, &[OsString::from(argument)]),
-                Err(SandboxError::InvalidCandidateArgument),
-                "argument {argument}"
-            );
-        }
-    }
-
-    #[test]
-    fn sandbox_relative_paths_and_ordinary_flags_are_allowed() {
+    fn typed_launch_arguments_accept_only_blind_ids_and_safe_artifact_leaves() {
         let (_tree, paths, limits) = fixture();
         let args = vec![
-            OsString::from("--episode=/candidate/input/episode.json"),
-            OsString::from("--output=/candidate/output/result.json"),
-            OsString::from("--weights=weights/model.bin"),
+            CandidateSandboxArgument::CampaignId(
+                "camp_0123456789abcdef0123456789abcdef".to_owned(),
+            ),
+            CandidateSandboxArgument::EpisodeId(
+                "ep_0123456789abcdef0123456789abcdef".to_owned(),
+            ),
+            CandidateSandboxArgument::CandidateInputArtifact("episode.json".to_owned()),
+            CandidateSandboxArgument::CandidateOutputArtifact("submission.json".to_owned()),
         ];
-        assert!(build_candidate_sandbox_command(&paths, limits, &args).is_ok());
+        let command = build_candidate_sandbox_command(&paths, limits, &args).expect("typed argv");
+        let encoded = strings(&command);
+        assert!(encoded.iter().any(|arg| arg == "--campaign-id=camp_0123456789abcdef0123456789abcdef"));
+        assert!(encoded.iter().any(|arg| arg == "--episode-id=ep_0123456789abcdef0123456789abcdef"));
+        assert!(encoded.iter().any(|arg| arg == "--input=/candidate/input/episode.json"));
+        assert!(encoded.iter().any(|arg| arg == "--output=/candidate/output/submission.json"));
     }
 
     #[test]
-    fn parent_traversal_and_nul_arguments_are_rejected() {
-        let (_tree, paths, limits) = fixture();
-        for argument in ["../evaluator/world.json", "--input=../../secret", "x\0y"] {
+    fn typed_launch_arguments_reject_free_form_paths_and_unrecognized_labels() {
+        let invalid = [
+            CandidateSandboxArgument::EpisodeId("applied_once_ack_lost".to_owned()),
+            CandidateSandboxArgument::CampaignId("secret-world-7".to_owned()),
+            CandidateSandboxArgument::CandidateInputArtifact("/etc/passwd".to_owned()),
+            CandidateSandboxArgument::CandidateInputArtifact("../world-pack.json".to_owned()),
+            CandidateSandboxArgument::CandidateOutputArtifact("nested/result.json".to_owned()),
+            CandidateSandboxArgument::CandidateOutputArtifact("hidden..json".to_owned()),
+            CandidateSandboxArgument::HostPidNamespace("host-pid-namespace-secret".to_owned()),
+            CandidateSandboxArgument::NetworkProbePort(0),
+        ];
+        for argument in invalid {
             assert_eq!(
-                build_candidate_sandbox_command(&paths, limits, &[OsString::from(argument)]),
-                Err(SandboxError::InvalidCandidateArgument)
+                argument.to_argv(),
+                Err(SandboxError::InvalidCandidateArgument),
+                "argument {argument:?}"
             );
         }
+    }
+
+    #[test]
+    fn canary_only_typed_arguments_emit_expected_probe_flags() {
+        let (_tree, paths, limits) = fixture();
+        let args = [
+            CandidateSandboxArgument::CanaryMode,
+            CandidateSandboxArgument::NetworkProbePort(43123),
+            CandidateSandboxArgument::HostPidNamespace("pid:[4026531836]".to_owned()),
+        ];
+        let command = build_candidate_sandbox_command(&paths, limits, &args).expect("canary argv");
+        let encoded = strings(&command);
+        assert!(encoded.contains(&"--candidate".to_owned()));
+        assert!(encoded.contains(&"--network-port=43123".to_owned()));
+        assert!(encoded.contains(&"--host-pid-ns=pid:[4026531836]".to_owned()));
     }
 
     #[test]
