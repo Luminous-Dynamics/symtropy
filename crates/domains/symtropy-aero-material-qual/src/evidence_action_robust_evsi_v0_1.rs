@@ -242,7 +242,10 @@ mod tests {
         scenarios: Vec<EVSIAdmissibleScenarioV0_1>,
     ) -> RobustEvidenceActionPlannerInputV0_1 {
         let first = scenarios.first().expect("at least one scenario");
-        let anchor = &first.input;
+        let claim_id = first.input.claim_id.clone();
+        let decision_context_sha256 = first.input.decision_context_sha256.clone();
+        let configuration_ref = first.input.configuration_ref.clone();
+        let as_known_at_unix_ms = first.input.as_known_at_unix_ms;
         let mut input = RobustEvidenceActionPlannerInputV0_1 {
             schema: ROBUST_EVSI_AMBIGUITY_SCHEMA_V0_1.to_owned(),
             scenario_set_id: scenario_set_id.to_owned(),
@@ -256,15 +259,15 @@ mod tests {
         input.approval_receipt = Some(EVSIAmbiguitySetApprovalReceiptV0_1 {
             verification_status: RobustEVSIReceiptVerificationStatusV0_1::Verified,
             owner_namespace: "owner:approved-decision-model-board".to_owned(),
-            claim_id: anchor.input.claim_id.clone(),
-            decision_context_sha256: anchor.input.decision_context_sha256.clone(),
-            configuration_ref: anchor.input.configuration_ref.clone(),
+            claim_id,
+            decision_context_sha256,
+            configuration_ref,
             scenario_set_sha256: input.scenario_set_sha256.clone(),
             scenario_count: input.scenarios.len() as u32,
             receipt_sha256: "a".repeat(64),
-            receiver_first_seen_at_unix_ms: anchor.input.as_known_at_unix_ms - 1_000,
-            effective_from_unix_ms: anchor.input.as_known_at_unix_ms - 10_000,
-            effective_until_unix_ms: anchor.input.as_known_at_unix_ms + 10_000,
+            receiver_first_seen_at_unix_ms: as_known_at_unix_ms - 1_000,
+            effective_from_unix_ms: as_known_at_unix_ms - 10_000,
+            effective_until_unix_ms: as_known_at_unix_ms + 10_000,
         });
         input
     }
