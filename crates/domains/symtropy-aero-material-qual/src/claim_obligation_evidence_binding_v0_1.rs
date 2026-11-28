@@ -1117,7 +1117,7 @@ pub fn bind_claim_obligation_evidence_v0_1(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::claim_assurance_gate_v0_1::{
         EvidenceAdmissionState, RequiredEvidenceAdmission,
@@ -1147,7 +1147,7 @@ mod tests {
         serde_json::from_str(SPECIFICATION_FIXTURE).expect("claim specification fixture parses")
     }
 
-    fn build_case() -> (
+    pub(crate) fn build_case() -> (
         Vec<u8>,
         ClaimSpecificationV0_1,
         DecisionContextV0_1,
