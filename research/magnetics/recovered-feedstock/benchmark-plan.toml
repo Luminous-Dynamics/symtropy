@@ -1,0 +1,70 @@
+schema_version = "0.1"
+program_id = "MAG-RECOVERED-FEEDSTOCK-ROUTES-001"
+revision = "0.1-draft"
+status = "synthetic_route_evidence_evaluator"
+date = "2026-11-28"
+issue = 7911
+parents = [7773, 7776, 7791, 7792, 7798, 7802, 7887, 7870]
+
+[route_nomenclature]
+pem = "Powder extrusion moulding followed by sintering; near-net-shape powder processing"
+mex = "Material extrusion of polymer-bonded magnetic composite; additive manufacturing"
+pem_is_mex = false
+do_not_pool_route_families = true
+
+[admission]
+eligibility_receipt_required = true
+bind_family_form_route_source_lot_recipe_scope = true
+hpms_recovered_ndfeb_powder_to_pem = "provisional evidence-backed route stratum"
+hdd_recovered_ndfeb_powder_to_mex = "2026 FDM evidence-backed route stratum with PBAT composite and field-assisted alignment"
+hpms_recovered_ndfeb_powder_to_lpbf = "not admitted without separate feedstock-specific qualification"
+hddr_and_dynamic_hddr_to_dlp_4d = "adjacent actuator research lane; not in motor-magnet evaluator v0.1"
+cross_family_transfer_allowed = false
+
+[mass_balance]
+feedstock_input_and_added_inputs_separate = true
+every_output_stream_requires_receipt = true
+required_output_kinds_are_preregistered = true
+mass_balance = "output_minus_input_interval_entirely_within_preregistered_absolute_tolerance"
+definite_residual_outside_tolerance_disposition = "Fail"
+residual_interval_crosses_tolerance_disposition = "Indeterminate"
+overlapping_input_output_intervals_alone_prove_pass = false
+missing_or_invalid_stream_disposition = "Indeterminate"
+
+[assays]
+physical_measurement_required = true
+bind_product_lot_route_method_calibration_uncertainty_lab_method_scope = true
+br_js_is_absolute_br = false
+route_specific_acceptance_limits_required = true
+universal_carbon_oxygen_br_hcj_thresholds = false
+required_assay_roles = ["AbsoluteRemanence", "Coercivity", "MaximumEnergyProduct", "MagneticAlignment", "Chemistry", "Microstructure", "DensityOrPorosity"]
+absolute_br_is_distinct_from_br_js_alignment = true
+per_route_required_roles_cannot_be_removed_by_caller = true
+
+[comparators]
+matched_virgin_feedstock_same_route_recipe = true
+same_material_family = true
+same_geometry_magnetization_measurement_method = true
+holdout_by_lot_build_process_revision = true
+first_pass_scrap_rework_and_missing_outputs_retained = true
+
+[implementation]
+language = "Rust 2024"
+dependencies = []
+manifest = "evaluator/Cargo.toml"
+source = "evaluator/src/lib.rs"
+schema = "evaluator/route-evidence-v0.1.schema.json"
+fixture = "evaluator/fixtures/recovered-feedstock-synthetic-v0.1.json"
+source_register = "source-register.json"
+workflow = ".github/workflows/magnetic-recovered-feedstock.yml"
+authored_unit_tests = 25
+tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_fixture_promotes_physical_route = false
+study_specific_br_js_is_universal_limit = false
+feedstock_route_qualification_equals_m4_component_acceptance = false
+feedstock_route_qualification_equals_m5_process_capability = false
+environmental_or_cost_advantage_inferred = false
+standards_conformity_claimed = false

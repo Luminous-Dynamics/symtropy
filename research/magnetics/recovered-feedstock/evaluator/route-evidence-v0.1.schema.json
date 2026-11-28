@@ -1,0 +1,627 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recovered permanent-magnet feedstock route evidence v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "spec",
+    "route_eligibility",
+    "process",
+    "expected"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    },
+    "route_eligibility": {
+      "$ref": "#/$defs/eligibility"
+    },
+    "process": {
+      "$ref": "#/$defs/process"
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "disposition",
+        "expected_output_streams",
+        "observed_output_streams"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "QualifiedFeedstockRoute",
+            "Fail",
+            "Indeterminate",
+            "NotComparable"
+          ]
+        },
+        "expected_output_streams": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_output_streams": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input_mass_mg": {
+          "$ref": "#/$defs/interval"
+        },
+        "output_mass_mg": {
+          "$ref": "#/$defs/interval"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-fA-F]{64}$"
+    },
+    "interval": {
+      "type": "object",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upper": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "family": {
+      "enum": [
+        "HpmsRecoveredNdFeB",
+        "HddRecoveredNdFeB",
+        "VirginNdFeB",
+        "SmCo",
+        "SmFeN",
+        "Ferrite"
+      ]
+    },
+    "form": {
+      "enum": [
+        "Powder",
+        "CompositeFeedstock",
+        "AtomizedPowder",
+        "BulkMagnet"
+      ]
+    },
+    "route": {
+      "enum": [
+        "PowderExtrusionMouldingSintering",
+        "MaterialExtrusionBonded",
+        "LaserPowderBedFusion",
+        "DirectReuse"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "PhysicalMeasurement",
+        "ProductionRecord",
+        "PublishedLiterature",
+        "Simulation",
+        "SyntheticControl"
+      ]
+    },
+    "output_kind": {
+      "enum": [
+        "MagnetProduct",
+        "BinderOrLubricantResidue",
+        "ProcessReject",
+        "ProcessLoss",
+        "OtherMeasuredOutput"
+      ]
+    },
+    "assay_spec": {
+      "type": "object",
+      "required": [
+        "assay_id",
+        "role",
+        "unit",
+        "laboratory_method_scope_digest"
+      ],
+      "properties": {
+        "assay_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "laboratory_method_scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "role": {
+          "$ref": "#/$defs/assay_role"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "minimum"
+          ]
+        },
+        {
+          "required": [
+            "maximum"
+          ]
+        }
+      ],
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "campaign_id",
+        "scope_digest",
+        "source_lot_id",
+        "product_lot_id",
+        "feedstock_family",
+        "feedstock_form",
+        "route",
+        "recipe_digest",
+        "process_revision_digest",
+        "feedstock_input_mass_mg",
+        "added_input_mass_mg",
+        "maximum_mass_balance_error_mg",
+        "required_output_kinds",
+        "required_assays"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feedstock_family": {
+          "$ref": "#/$defs/family"
+        },
+        "feedstock_form": {
+          "$ref": "#/$defs/form"
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "recipe_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "feedstock_input_mass_mg": {
+          "$ref": "#/$defs/interval"
+        },
+        "added_input_mass_mg": {
+          "$ref": "#/$defs/interval"
+        },
+        "required_output_kinds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/output_kind"
+          }
+        },
+        "required_assays": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/assay_spec"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "AbsoluteRemanence"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "Coercivity"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "MaximumEnergyProduct"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "MagneticAlignment"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "Chemistry"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "Microstructure"
+                  }
+                }
+              }
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "role"
+                ],
+                "properties": {
+                  "role": {
+                    "const": "DensityOrPorosity"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "maximum_mass_balance_error_mg": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "eligibility": {
+      "type": "object",
+      "required": [
+        "receipt_id",
+        "receipt_digest",
+        "evidence_class",
+        "issuer_id",
+        "scope_digest",
+        "source_lot_id",
+        "feedstock_family",
+        "feedstock_form",
+        "route",
+        "recipe_digest",
+        "eligible"
+      ],
+      "properties": {
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feedstock_family": {
+          "$ref": "#/$defs/family"
+        },
+        "feedstock_form": {
+          "$ref": "#/$defs/form"
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "recipe_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "eligible": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mass_output": {
+      "type": "object",
+      "required": [
+        "stream_id",
+        "lot_id",
+        "kind",
+        "mass_mg",
+        "receipt_id",
+        "receipt_digest",
+        "evidence_id",
+        "evidence_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "evidence_class"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "$ref": "#/$defs/output_kind"
+        },
+        "mass_mg": {
+          "$ref": "#/$defs/interval"
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        }
+      },
+      "additionalProperties": false
+    },
+    "assay_observation": {
+      "type": "object",
+      "required": [
+        "assay_id",
+        "role",
+        "unit",
+        "value",
+        "product_lot_id",
+        "route",
+        "evidence_id",
+        "evidence_digest",
+        "method_id",
+        "calibration_digest",
+        "uncertainty_record_digest",
+        "laboratory_method_scope_digest",
+        "laboratory_id",
+        "evidence_class"
+      ],
+      "properties": {
+        "assay_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "$ref": "#/$defs/interval"
+        },
+        "product_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "laboratory_method_scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "laboratory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "role": {
+          "$ref": "#/$defs/assay_role"
+        }
+      },
+      "additionalProperties": false
+    },
+    "process": {
+      "type": "object",
+      "required": [
+        "process_receipt_id",
+        "process_receipt_digest",
+        "evidence_class",
+        "scope_digest",
+        "source_lot_id",
+        "product_lot_id",
+        "feedstock_family",
+        "feedstock_form",
+        "route",
+        "recipe_digest",
+        "process_revision_digest",
+        "equipment_id",
+        "feedstock_input_mass_mg",
+        "added_input_mass_mg",
+        "outputs",
+        "assays"
+      ],
+      "properties": {
+        "process_receipt_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "scope_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "source_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "product_lot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feedstock_family": {
+          "$ref": "#/$defs/family"
+        },
+        "feedstock_form": {
+          "$ref": "#/$defs/form"
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "recipe_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "process_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "equipment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "feedstock_input_mass_mg": {
+          "$ref": "#/$defs/interval"
+        },
+        "added_input_mass_mg": {
+          "$ref": "#/$defs/interval"
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/mass_output"
+          }
+        },
+        "assays": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/assay_observation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "assay_role": {
+      "enum": [
+        "AbsoluteRemanence",
+        "Coercivity",
+        "MaximumEnergyProduct",
+        "MagneticAlignment",
+        "Chemistry",
+        "Microstructure",
+        "DensityOrPorosity"
+      ]
+    }
+  }
+}
