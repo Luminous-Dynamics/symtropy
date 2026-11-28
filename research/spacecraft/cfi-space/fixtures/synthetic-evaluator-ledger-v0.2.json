@@ -1,0 +1,390 @@
+{
+  "schema_version": 2,
+  "benchmark_id": "CFI-SPACE-SYNTHETIC-CONTRACT-001",
+  "episodes": [
+    {
+      "episode_id": "episode-a-clean",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "clean",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [],
+      "fault_families": [],
+      "critical": false,
+      "expected_disposition": "qualified",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-clock",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-clock-a"
+      ],
+      "fault_families": [
+        "timing"
+      ],
+      "critical": true,
+      "expected_disposition": "out_of_scope",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-extrinsics",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-extrinsics-a"
+      ],
+      "fault_families": [
+        "extrinsics"
+      ],
+      "critical": true,
+      "expected_disposition": "disagreement",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-common",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-common-geometry-a"
+      ],
+      "fault_families": [
+        "common_cause"
+      ],
+      "critical": true,
+      "expected_disposition": "dependence_unknown",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-translation",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-translation-a"
+      ],
+      "fault_families": [
+        "translation"
+      ],
+      "critical": true,
+      "expected_disposition": "abstain",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-ood",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-observability-a"
+      ],
+      "fault_families": [
+        "observability"
+      ],
+      "critical": false,
+      "expected_disposition": "abstain",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-integrity",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-integrity-a"
+      ],
+      "fault_families": [
+        "integrity"
+      ],
+      "critical": true,
+      "expected_disposition": "missing_evidence",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-a-interaction",
+      "parent_episode_id": "parent-a",
+      "counterfactual_group_id": "group-a",
+      "variant_kind": "interaction",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-a",
+        "session_id": "session-a",
+        "trajectory_id": "trajectory-a",
+        "sensor_rig_id": "rig-a"
+      },
+      "fault_ids": [
+        "fault-clock-ext-a",
+        "fault-extrinsics-ext-a"
+      ],
+      "fault_families": [
+        "timing",
+        "extrinsics"
+      ],
+      "critical": true,
+      "expected_disposition": "dependence_unknown",
+      "generalization": "seen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          1,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "label_audit_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "episode_id": "episode-b-clean",
+      "parent_episode_id": "parent-b",
+      "counterfactual_group_id": "group-b",
+      "variant_kind": "clean",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-b",
+        "session_id": "session-b",
+        "trajectory_id": "trajectory-b",
+        "sensor_rig_id": "rig-b"
+      },
+      "fault_ids": [],
+      "fault_families": [],
+      "critical": false,
+      "expected_disposition": "qualified",
+      "generalization": "unseen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          2,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "label_audit_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    },
+    {
+      "episode_id": "episode-b-clock",
+      "parent_episode_id": "parent-b",
+      "counterfactual_group_id": "group-b",
+      "variant_kind": "single_fault",
+      "split": "development",
+      "independent_unit": {
+        "target_id": "target-b",
+        "session_id": "session-b",
+        "trajectory_id": "trajectory-b",
+        "sensor_rig_id": "rig-b"
+      },
+      "fault_ids": [
+        "fault-clock-b"
+      ],
+      "fault_families": [
+        "timing"
+      ],
+      "critical": true,
+      "expected_disposition": "out_of_scope",
+      "generalization": "unseen_target",
+      "ground_truth_pose": {
+        "coordinate_frame": "camera_optical",
+        "transform_direction": "target_to_camera",
+        "translation_m": [
+          2,
+          0,
+          0
+        ],
+        "orientation_xyzw": [
+          0,
+          0,
+          0,
+          1
+        ],
+        "annotation_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "label_audit_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    }
+  ]
+}
