@@ -67,6 +67,7 @@ pub enum AssuranceDependencyNodeKindV0_1 {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct AssuranceDependencyNodeV0_1 {
     pub node_id: String,
+    pub owner_namespace: String,
     pub kind: AssuranceDependencyNodeKindV0_1,
     pub content_sha256: String,
     /// True only when the source owner declares that this node's complete
@@ -406,6 +407,7 @@ fn validate_input(input: &AssuranceDeltaImpactInputV0_1) -> BTreeSet<String> {
     let mut claim_nodes = 0usize;
     for node in &graph.nodes {
         if !valid_identifier(&node.node_id)
+            || !valid_identifier(&node.owner_namespace)
             || !valid_sha256(&node.content_sha256)
             || !node_ids.insert(node.node_id.as_str())
         {
@@ -484,6 +486,9 @@ fn validate_input(input: &AssuranceDeltaImpactInputV0_1) -> BTreeSet<String> {
                 }
                 Some(node) if node.content_sha256 != change.previous_content_sha256 => {
                     errors.insert("AERO_DELTA_PREVIOUS_DIGEST_MISMATCH".to_owned());
+                }
+                Some(node) if node.owner_namespace != change.owner_namespace => {
+                    errors.insert("AERO_DELTA_CHANGE_OWNER_MISMATCH".to_owned());
                 }
                 Some(_) => {}
             }
@@ -602,6 +607,9 @@ pub fn evaluate_assurance_delta_impact_v0_1(
         .iter()
         .map(|node| (node.node_id.as_str(), node))
         .collect::<BTreeMap<_, _>>();
+    let claim_root_complete = node_map
+        .get(input.claim_id.as_str())
+        .is_some_and(|node| node.dependency_manifest_complete);
 
     for obligation in obligations {
         let reachable_from_claim = claim_root_closure.contains(&obligation.node_id);
@@ -617,6 +625,7 @@ pub fn evaluate_assurance_delta_impact_v0_1(
         }
 
         let closure_complete = reachable_from_claim
+            && claim_root_complete
             && graph.coverage_status == DependencyCoverageStatusV0_1::Complete
             && closure.iter().all(|node_id| {
                 node_map
@@ -645,6 +654,9 @@ pub fn evaluate_assurance_delta_impact_v0_1(
             incomplete.push(obligation.node_id.clone());
             if !reachable_from_claim {
                 reason_codes.insert("AERO_DELTA_OBLIGATION_NOT_REACHABLE_FROM_CLAIM_ROOT".to_owned());
+            }
+            if !claim_root_complete {
+                reason_codes.insert("AERO_DELTA_CLAIM_ROOT_DEPENDENCY_MANIFEST_INCOMPLETE".to_owned());
             }
             if graph.coverage_status != DependencyCoverageStatusV0_1::Complete {
                 reason_codes.insert("AERO_DELTA_GRAPH_DEPENDENCY_COVERAGE_INCOMPLETE".to_owned());
@@ -720,6 +732,11 @@ mod tests {
     ) -> AssuranceDependencyNodeV0_1 {
         AssuranceDependencyNodeV0_1 {
             node_id: id.to_owned(),
+            owner_namespace: if id == "source:material-lot-record" {
+                "owner:materials-authority".to_owned()
+            } else {
+                "owner:engineering-evidence".to_owned()
+            },
             kind,
             content_sha256: digest_byte.to_string().repeat(64),
             dependency_manifest_complete: true,
@@ -869,6 +886,42 @@ mod tests {
             assessment.incomplete_obligation_ids,
             vec!["obligation:solver-validation"]
         );
+    }
+
+    #[test]
+    fn incomplete_claim_root_manifest_blocks_retained_status() {
+        let mut graph = graph();
+        let claim_root = graph
+            .nodes
+            .iter_mut()
+            .find(|node| node.kind == AssuranceDependencyNodeKindV0_1::Claim)
+            .expect("claim root");
+        claim_root.dependency_manifest_complete = false;
+        let assessment = evaluate_assurance_delta_impact_v0_1(&input(graph));
+        assert_eq!(assessment.disposition, AssuranceDeltaDispositionV0_1::IncompleteImpact);
+        assert!(assessment.retained_obligations.is_empty());
+        assert_eq!(
+            assessment.incomplete_obligation_ids,
+            vec!["obligation:solver-validation"]
+        );
+        assert!(assessment.reason_codes.contains(
+            &"AERO_DELTA_CLAIM_ROOT_DEPENDENCY_MANIFEST_INCOMPLETE".to_owned()
+        ));
+    }
+
+    #[test]
+    fn wrong_change_owner_cannot_replace_a_node_from_another_owner() {
+        let mut input = input(graph());
+        input
+            .change_receipt
+            .as_mut()
+            .expect("change receipt")
+            .owner_namespace = "owner:unrelated-authority".to_owned();
+        let assessment = evaluate_assurance_delta_impact_v0_1(&input);
+        assert_eq!(assessment.disposition, AssuranceDeltaDispositionV0_1::InvalidInput);
+        assert!(assessment
+            .reason_codes
+            .contains(&"AERO_DELTA_CHANGE_OWNER_MISMATCH".to_owned()));
     }
 
     #[test]
