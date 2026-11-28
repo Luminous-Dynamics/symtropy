@@ -1436,6 +1436,30 @@ mod tests {
     }
 
     #[test]
+    fn positive_direct_reuse_mass_requires_its_own_acceptance_receipt() {
+        let mut trials = known_trials();
+        trials[0].recovery.reuse_acceptance_receipt = None;
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(result[0].blockers.contains(&Blocker::InvalidRecoveryReceipt));
+        assert!(!result[0]
+            .robust_circularity_benefits
+            .contains(&"direct_reuse_fraction".to_string()));
+    }
+
+    #[test]
+    fn positive_recycling_feedstock_mass_requires_intake_receipt() {
+        let mut trials = known_trials();
+        trials[0].recovery.recycling_intake_receipt = None;
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::Indeterminate);
+        assert!(result[0].blockers.contains(&Blocker::InvalidRecoveryReceipt));
+        assert!(!result[0]
+            .robust_circularity_benefits
+            .contains(&"recycling_feedstock_fraction".to_string()));
+    }
+
+    #[test]
     fn accepted_remanufacture_is_separate_from_direct_reuse() {
         let mut trials = known_trials();
         trials[0].recovery.reuse_grade_mass_kg = 1.0;
