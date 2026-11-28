@@ -55,6 +55,8 @@ pub struct ObservabilityRequest {
     pub camera_intrinsics_sha256: String,
     pub target_geometry_sha256: String,
     pub correspondence_ledger_sha256: String,
+    /// Digest of the exact pose estimate about which this local Jacobian is linearized.
+    pub linearization_pose_sha256: String,
     /// Translation perturbations are scaled by this characteristic target length
     /// so the six-dimensional local parameter vector is dimensionless:
     /// [dx/L, dy/L, dz/L, d_rx, d_ry, d_rz].
@@ -74,6 +76,12 @@ pub struct ObservabilityResult {
     pub coordinate_frame: String,
     pub transform_direction: String,
     pub twist_order: String,
+    pub measurement_model: String,
+    pub camera_intrinsics: CameraIntrinsics,
+    pub camera_intrinsics_sha256: String,
+    pub target_geometry_sha256: String,
+    pub correspondence_ledger_sha256: String,
+    pub linearization_pose_sha256: String,
     pub observation_count: usize,
     pub effective_observation_count: usize,
     pub translation_scale_m: f64,
@@ -142,6 +150,7 @@ fn validate_request(request: &ObservabilityRequest) -> Result<(), String> {
         ("camera_intrinsics_sha256", request.camera_intrinsics_sha256.as_str()),
         ("target_geometry_sha256", request.target_geometry_sha256.as_str()),
         ("correspondence_ledger_sha256", request.correspondence_ledger_sha256.as_str()),
+        ("linearization_pose_sha256", request.linearization_pose_sha256.as_str()),
     ] {
         if !is_sha256(digest) {
             return Err(format!("{field} must be a lowercase SHA-256 digest"));
@@ -479,6 +488,12 @@ pub fn evaluate(request: &ObservabilityRequest) -> Result<ObservabilityResult, S
         coordinate_frame: request.coordinate_frame.clone(),
         transform_direction: request.transform_direction.clone(),
         twist_order: request.twist_order.clone(),
+        measurement_model: "ideal_pinhole_independent_isotropic_pixel_noise".to_string(),
+        camera_intrinsics: request.camera.clone(),
+        camera_intrinsics_sha256: request.camera_intrinsics_sha256.clone(),
+        target_geometry_sha256: request.target_geometry_sha256.clone(),
+        correspondence_ledger_sha256: request.correspondence_ledger_sha256.clone(),
+        linearization_pose_sha256: request.linearization_pose_sha256.clone(),
         observation_count: request.observations.len(),
         effective_observation_count,
         translation_scale_m: request.translation_scale_m,
@@ -545,6 +560,7 @@ mod tests {
             camera_intrinsics_sha256: sha('1'),
             target_geometry_sha256: sha('2'),
             correspondence_ledger_sha256: sha('3'),
+            linearization_pose_sha256: sha('4'),
             translation_scale_m: 1.0,
             rank_relative_tolerance: 1e-9,
             rank_absolute_tolerance: 1e-12,
@@ -607,6 +623,12 @@ mod tests {
         assert_eq!(result.numerical_rank, 6);
         assert!(result.condition_number.unwrap().is_finite());
         assert!(result.log_determinant.unwrap().is_finite());
+        assert_eq!(result.linearization_pose_sha256, sha('4'));
+        assert_eq!(result.camera_intrinsics_sha256, sha('1'));
+        assert_eq!(
+            result.measurement_model,
+            "ideal_pinhole_independent_isotropic_pixel_noise"
+        );
         assert!((result.mean_reprojection_error_px).abs() < 1e-12);
         assert!(!result.physical_truth_claim);
         assert!(!result.pose_probability_claim);
