@@ -61,7 +61,7 @@ source = "evaluator/src/lib.rs"
 schema = "evaluator/duty-cycle-evidence-v0.1.schema.json"
 fixture = "evaluator/fixtures/duty-cycle-evidence-synthetic-v0.1.json"
 workflow = ".github/workflows/magnetic-duty-cycle-evidence.yml"
-authored_unit_tests = 19
+authored_unit_tests = 20
 tests_executed = false
 exact_head_ci_pass = false
 
