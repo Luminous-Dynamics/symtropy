@@ -658,9 +658,10 @@ fn evaluate_candidate(
 
     let decision = if not_comparable {
         Decision::NotComparable
-    } else if candidate_summary
-        .blockers
-        .contains(&Blocker::ComponentAcceptanceFailed)
+    } else if candidate_summary.blockers.contains(&Blocker::ComponentAcceptanceFailed)
+        || candidate_summary
+            .blockers
+            .contains(&Blocker::ElementFractionMassClosureFailure)
     {
         Decision::Fail
     } else if definitely_inferior {
@@ -1087,7 +1088,7 @@ mod tests {
                 ElementSpec {
                     element_id: "Dy".to_string(),
                     unit: "g".to_string(),
-                    no_worse_margin_g_per_mwh: 0.2,
+                    no_worse_margin_g_per_mwh: 40.0,
                     improvement_margin_g_per_mwh: 0.1,
                 },
                 ElementSpec {
@@ -1199,10 +1200,14 @@ mod tests {
     fn assay(element: &str, fraction: f64, suffix: char) -> ElementFractionAssay {
         ElementFractionAssay {
             element_id: element.to_string(),
-            mass_fraction: Interval::new(
-                (fraction - 0.0001).max(0.0),
-                (fraction + 0.0001).min(1.0),
-            ),
+            mass_fraction: if fraction == 0.0 {
+                Interval::new(0.0, 0.0)
+            } else {
+                Interval::new(
+                    (fraction - 0.0001).max(0.0),
+                    (fraction + 0.0001).min(1.0),
+                )
+            },
             evidence_id: format!("ASSAY-{element}-{suffix}"),
             evidence_digest: digest(suffix),
             method_id: "ICP-MS-METHOD-001".to_string(),
@@ -1565,6 +1570,70 @@ mod tests {
             .unwrap();
         assert_eq!(nd.virgin_g, Interval::new(0.0, 0.0));
         assert!(nd.direct_reuse_g.upper > 0.0);
+    }
+
+    #[test]
+    fn element_mass_fraction_sum_above_unity_is_a_hard_failure() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.80,
+            0.30,
+            50.0,
+            100.0,
+        );
+        candidate.material_lots[0].element_assays[0].mass_fraction =
+            Interval::new(0.80, 0.81);
+        candidate.material_lots[0].element_assays[1].mass_fraction =
+            Interval::new(0.30, 0.31);
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::Fail);
+        assert!(result
+            .blockers
+            .contains(&Blocker::ElementFractionMassClosureFailure));
+    }
+
+    #[test]
+    fn element_mass_fraction_interval_crossing_unity_is_indeterminate() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.80,
+            0.19,
+            50.0,
+            100.0,
+        );
+        candidate.material_lots[0].element_assays[0].mass_fraction =
+            Interval::new(0.80, 0.81);
+        candidate.material_lots[0].element_assays[1].mass_fraction =
+            Interval::new(0.19, 0.21);
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::ElementFractionMassClosureUnresolved));
+    }
+
+    #[test]
+    fn cooling_boundary_change_makes_element_comparison_not_comparable() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.28,
+            0.0215,
+            50.0,
+            100.0,
+        );
+        candidate.scope.cooling_boundary_digest = digest('0');
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::NotComparable);
+        assert!(result.blockers.contains(&Blocker::ScopeMismatch));
     }
 
     #[test]
