@@ -333,10 +333,14 @@ fn host_mode() -> Result<(), String> {
     let report = fs::read_to_string(output.join("canary-report.txt"))
         .map_err(|error| format!("candidate canary report missing after {status}: {error}"))?;
     if !status.success() {
-        return Err(format!("candidate sandbox exited with {status}; individual checks:\n{report}"));
+        return Err(format!(
+            "candidate sandbox exited with {status}; individual checks:\n{report}"
+        ));
     }
     if network_accepted.load(Ordering::SeqCst) {
-        return Err(format!("candidate reached host loopback listener; individual checks:\n{report}"));
+        return Err(format!(
+            "candidate reached host loopback listener; individual checks:\n{report}"
+        ));
     }
     for key in [
         "candidate_input_read=true",
