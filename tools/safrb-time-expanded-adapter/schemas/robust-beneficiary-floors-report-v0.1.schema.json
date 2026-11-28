@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/robust-beneficiary-floors-report-v0.1.schema.json",
+  "title": "SAFRB Robust Beneficiary Floor Scenario Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scenario_set_id",
+    "recourse_assumption",
+    "scenario_set_sha256",
+    "floor_set_sha256",
+    "assurance_input_sha256",
+    "outcomes",
+    "disposition",
+    "guaranteed_scenario_count",
+    "total_scenario_count",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-robust-beneficiary-floors-v0.1"
+    },
+    "scenario_set_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_set_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "floor_set_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "assurance_input_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "case_id",
+          "floors_jointly_feasible",
+          "report"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "floors_jointly_feasible": {
+            "type": "boolean"
+          },
+          "report": {
+            "$ref": "beneficiary-floor-feasibility-v0.1.schema.json"
+          }
+        }
+      }
+    },
+    "disposition": {
+      "enum": [
+        "GuaranteedAcrossSuppliedScenarios",
+        "PossibleInAtLeastOneSuppliedScenario",
+        "NotFeasibleInAnySuppliedScenario"
+      ]
+    },
+    "guaranteed_scenario_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_scenario_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "claim_ceiling": {
+      "const": "Joint mandatory-floor feasibility across every supplied finite synthetic scenario, assuming the scenario is observed before scenario-specific allocation (full recourse); no scenario-set completeness, evidence authority, probability calibration, physical qualification, dispatch authority or actual beneficiary-service claim."
+    },
+    "recourse_assumption": {
+      "const": "scenario_observed_before_allocation",
+      "description": "The feasibility guarantee permits a distinct allocation after each supplied scenario has been identified."
+    }
+  },
+  "description": "The report proves the declared floors within the supplied finite set only. It does not authenticate scenario-set completeness, probabilities or external evidence."
+}

@@ -1005,7 +1005,10 @@ fn verifier_check_original_allocation(
 
     let mut services = BTreeMap::new();
     for service in &profile.services {
-        if services.insert(service.service_id.as_str(), service).is_some() {
+        if services
+            .insert(service.service_id.as_str(), service)
+            .is_some()
+        {
             return Err("verifier found duplicate profile service identity".to_string());
         }
     }
@@ -1424,7 +1427,10 @@ mod tests {
                 .all(|item| { item.allocated_quantity >= item.minimum_required_quantity })
         );
         assert_eq!(
-            allocations.iter().map(|item| item.allocated_quantity).sum::<u64>(),
+            allocations
+                .iter()
+                .map(|item| item.allocated_quantity)
+                .sum::<u64>(),
             15
         );
         verify_beneficiary_floor_report(&model, &floors, &report).unwrap();
@@ -1712,7 +1718,7 @@ mod tests {
             },
         ];
         let mut report = evaluate_beneficiary_floors(&model, &floors).unwrap();
-        let route_edge = source_edge_id("transfer", "route-a");
+        let route_edge = "transfer/7/route-a".to_string();
         report
             .base_graph
             .edges

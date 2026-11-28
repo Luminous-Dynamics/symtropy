@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/robust-beneficiary-floors-input-v0.1.schema.json",
+  "title": "SAFRB Robust Beneficiary Floor Scenario Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_set_id",
+    "recourse_assumption",
+    "scenarios",
+    "floors"
+  ],
+  "properties": {
+    "scenario_set_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "profile"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "profile": {
+            "$ref": "temporal-profile-v0.1.schema.json"
+          }
+        }
+      }
+    },
+    "floors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "beneficiary-floor-feasibility-v0.1.schema.json#/$defs/floor"
+      }
+    },
+    "recourse_assumption": {
+      "const": "scenario_observed_before_allocation",
+      "description": "Full-recourse assumption: the coherent operating scenario is identified before choosing its scenario-specific beneficiary allocation."
+    }
+  },
+  "description": "All profiles must use comparable commodity, unit, quantity boundary, timebase, temporal schema and horizon. Every scenario must declare each floor service with a request ceiling at least as high as its mandatory minimum."
+}
