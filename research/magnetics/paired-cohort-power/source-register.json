@@ -1,0 +1,80 @@
+[
+  {
+    "source_id": "SMALL-CLUSTER-CORRECTIONS-2025",
+    "citation": "Hemming et al., The performance of small sample correction methods for controlling type I error when analyzing parallel cluster randomized trials: a systematic review of simulation studies",
+    "year": 2025,
+    "published": "2025-09",
+    "journal": "Journal of Clinical Epidemiology",
+    "volume": 185,
+    "article": 111838,
+    "doi": "10.1016/j.jclinepi.2025.111838",
+    "url": "https://doi.org/10.1016/j.jclinepi.2025.111838",
+    "evidence_class": "systematic_review_of_simulation_studies",
+    "reported_findings": [
+      "For continuous outcomes, cluster-level analyses with between-within degrees of freedom, mixed models with Satterthwaite correction, or Fay/Graubard-corrected GEE often preserved nominal type-I error in some settings with as few as six clusters.",
+      "Other settings required substantially more clusters; no single small-sample method is uniformly valid for all designs."
+    ],
+    "limitations": [
+      "Cluster-randomized clinical/implementation data, not magnetic manufacturing.",
+      "Type-I error control does not imply adequate power or process capability."
+    ]
+  },
+  {
+    "source_id": "CARE-DESIGN-ANCHORED-INFERENCE-2026",
+    "citation": "Alexeev and Morton, Cluster Trials Inference With CARE",
+    "year": 2026,
+    "published": "2026-06-04",
+    "journal": "Statistics in Medicine",
+    "volume": 45,
+    "issue": 13,
+    "article": "e70610",
+    "doi": "10.1002/sim.70610",
+    "url": "https://doi.org/10.1002/sim.70610",
+    "evidence_class": "statistical_methodology_and_simulation",
+    "reported_findings": [
+      "Cluster-size and cluster-structure heterogeneity can distort inference.",
+      "Proposes a design-anchored benchmark before assumption-rich estimators, with sensitivity and cluster influence diagnostics."
+    ],
+    "limitations": [
+      "Clinical/pragmatic cluster-trial context; manufacturing application must validate its own variance and design assumptions."
+    ]
+  },
+  {
+    "source_id": "CLUSTER-POWER-TUTORIAL-2026",
+    "citation": "Baumann et al., A tutorial on conducting sample size and power calculations for detecting treatment effect heterogeneity in cluster randomized trials with linear mixed models",
+    "year": 2026,
+    "published": "2026-05-13",
+    "journal": "International Journal of Epidemiology",
+    "volume": 55,
+    "issue": 3,
+    "article": "dyag069",
+    "doi": "10.1093/ije/dyag069",
+    "url": "https://doi.org/10.1093/ije/dyag069",
+    "evidence_class": "statistical_power_methodology_tutorial",
+    "reported_findings": [
+      "Power calculations depend on cluster count, cluster size, covariance structure and effect heterogeneity.",
+      "The tutorial consolidates calculations for several parallel, crossover and stepped-wedge cluster designs."
+    ],
+    "limitations": [
+      "Methodology source only; not a magnetic-manufacturing effect-size or sample-size authority."
+    ]
+  },
+  {
+    "source_id": "SMALL-CLUSTER-ANALYSIS-2018",
+    "citation": "Small sample cluster randomized trials with a small number of clusters: which analyses should be used?",
+    "year": 2018,
+    "journal": "International Journal of Epidemiology",
+    "volume": 47,
+    "issue": 1,
+    "pages": "321",
+    "url": "https://academic.oup.com/ije/article/47/1/321/4091562",
+    "evidence_class": "statistical_simulation_study",
+    "reported_findings": [
+      "Uncorrected large-sample methods may inflate type-I error with small cluster counts; small-sample degrees-of-freedom corrections are important.",
+      "Some scenarios with fewer than 20 clusters had low power."
+    ],
+    "limitations": [
+      "Older methodology study in healthcare context, not directly transferable to manufacturing."
+    ]
+  }
+]
