@@ -17,7 +17,7 @@ const MAX_OBSERVATIONS: usize = 100_000;
 const MIN_OBSERVATIONS: usize = 3;
 const EIGEN_ITERATION_LIMIT: usize = 6 * 6 * 128;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct CameraIntrinsics {
     pub width: u32,
