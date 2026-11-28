@@ -283,10 +283,16 @@ fn run() -> Result<RunnerOutcome, String> {
         read_regular_file(&candidate_executable, MAX_ARTIFACT_BYTES)?;
     let candidate_executable_sha256 = sha256_hex(&candidate_executable_bytes);
     let runtime_bundle_sha256 = digest_tree(&runtime_root)?;
+    let bubblewrap_path = PathBuf::from("/usr/bin/bwrap");
+    let prlimit_path = PathBuf::from("/usr/bin/prlimit");
+    let timeout_path = PathBuf::from("/usr/bin/timeout");
+    let bubblewrap_sha256 = sha256_hex(&read_regular_file(&bubblewrap_path, MAX_ARTIFACT_BYTES)?);
+    let prlimit_sha256 = sha256_hex(&read_regular_file(&prlimit_path, MAX_ARTIFACT_BYTES)?);
+    let timeout_sha256 = sha256_hex(&read_regular_file(&timeout_path, MAX_ARTIFACT_BYTES)?);
     let sandbox_profile_sha256 = sandbox_profile_sha256();
     let paths = SandboxPaths {
-        bubblewrap: PathBuf::from("/usr/bin/bwrap"),
-        prlimit: PathBuf::from("/usr/bin/prlimit"),
+        bubblewrap: bubblewrap_path,
+        prlimit: prlimit_path,
         candidate_input_root: input_root.clone(),
         runtime_bundle_root: runtime_root.clone(),
         candidate_output_root: output_root.clone(),
@@ -354,6 +360,11 @@ fn run() -> Result<RunnerOutcome, String> {
         capture_outputs(&output_root, &episode_ids);
     let profile_binding = serde_json::json!({
         "profile": sandbox_profile_sha256,
+        "host_tools": {
+            "bubblewrap_sha256": bubblewrap_sha256,
+            "prlimit_sha256": prlimit_sha256,
+            "timeout_sha256": timeout_sha256
+        },
         "argv_sha256": sha256_hex(&args_for_profile),
         "limits": {
             "address_space_bytes": limits.address_space_bytes,
