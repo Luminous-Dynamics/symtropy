@@ -472,6 +472,129 @@ fn closure_blocks(
     })
 }
 
+fn independent_information_set_digest(
+    scenario: &MobilityScenario,
+    period: u64,
+    adaptive: bool,
+) -> Result<String, String> {
+    if !adaptive {
+        return Ok(hash_domain(
+            b"LUMINOUS-SAFRB-HERE-AND-NOW-V1\\0",
+            b"all-scenarios-share-one-policy",
+        ));
+    }
+    // Reconstruct the observable information set independently from the
+    // producer helper. Event identifiers and scenario identifiers are excluded.
+    let mut history = Vec::<(u64, String, String)>::new();
+    for observation in &scenario.observations {
+        if observation.reveal_period <= period {
+            history.push((
+                observation.reveal_period,
+                observation.key.clone(),
+                observation.value.clone(),
+            ));
+        }
+    }
+    for closure in &scenario.route_closures {
+        if closure.observed_at_period <= period {
+            history.push((
+                closure.observed_at_period,
+                format!("route-closure:{}:{}", closure.arc_id, closure.departure_period),
+                "closed".to_string(),
+            ));
+        }
+    }
+    history.sort();
+    let encoded = serde_json::to_vec(&history)
+        .map_err(|error| format!("independent verifier could not encode visible history: {error}"))?;
+    Ok(hash_domain(
+        b"LUMINOUS-SAFRB-MOBILITY-OBSERVED-HISTORY-V1\\0",
+        &encoded,
+    ))
+}
+
+fn independent_route_is_closed(
+    scenario: &MobilityScenario,
+    arc_id: &str,
+    departure_period: u64,
+) -> bool {
+    scenario
+        .route_closures
+        .iter()
+        .any(|record| record.arc_id == arc_id && record.departure_period == departure_period)
+}
+
+fn independent_advance_positions(
+    instance: &MobilityInstance,
+    positions: &mut [Position],
+    boundary: u64,
+) -> Result<(), String> {
+    for index in 0..positions.len() {
+        let (arc_id, arrival) = match &positions[index] {
+            Position::AtSite(_) => continue,
+            Position::InTransit {
+                arc_id,
+                arrival_period,
+            } => (arc_id.clone(), *arrival_period),
+        };
+        if arrival < boundary {
+            return Err("independent replay found a skipped arrival boundary".to_string());
+        }
+        if arrival == boundary {
+            let destination = instance
+                .arcs
+                .iter()
+                .find(|arc| arc.arc_id == arc_id)
+                .map(|arc| arc.to_site_id.clone())
+                .ok_or_else(|| "independent replay found unknown in-transit route".to_string())?;
+            positions[index] = Position::AtSite(destination);
+        }
+    }
+    Ok(())
+}
+
+fn independent_service_floor_check(
+    instance: &MobilityInstance,
+    scenario_index: usize,
+    positions: &[Position],
+    boundary: u64,
+) -> bool {
+    let scenario = &instance.scenarios[scenario_index];
+    for floor in scenario.service_floors.iter().filter(|floor| floor.period == boundary) {
+        let mut present = 0_u64;
+        for position in positions {
+            if matches!(position, Position::AtSite(site) if site == &floor.site_id) {
+                let Some(next) = present.checked_add(1) else {
+                    return false;
+                };
+                present = next;
+            }
+        }
+        if present < floor.minimum_units {
+            return false;
+        }
+    }
+    true
+}
+
+fn independent_zero_time_relaxation(instance: &MobilityInstance) -> bool {
+    for scenario in &instance.scenarios {
+        for boundary in 0..=instance.horizon_last_period {
+            let mut total_floor = 0_u64;
+            for floor in scenario.service_floors.iter().filter(|floor| floor.period == boundary) {
+                let Some(next) = total_floor.checked_add(floor.minimum_units) else {
+                    return false;
+                };
+                total_floor = next;
+            }
+            if total_floor > instance.units.len() as u64 {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 fn initial_positions(instance: &MobilityInstance) -> Vec<Vec<Position>> {
     let initial = instance
         .units
@@ -998,8 +1121,8 @@ fn replay_policy(
     let mut states = initial_positions(instance);
     for period in 0..=instance.horizon_last_period {
         for (scenario_index, positions) in states.iter_mut().enumerate() {
-            advance_arrivals(instance, positions, period)?;
-            if !service_satisfied(instance, scenario_index, positions, period) {
+            independent_advance_positions(instance, positions, period)?;
+            if !independent_service_floor_check(instance, scenario_index, positions, period) {
                 return Err(format!(
                     "policy misses a service floor in scenario {} at period {period}",
                     instance.scenarios[scenario_index].scenario_id
@@ -1011,7 +1134,7 @@ fn replay_policy(
         }
         let mut groups = BTreeMap::<String, Vec<usize>>::new();
         for (scenario_index, scenario) in instance.scenarios.iter().enumerate() {
-            let history = information_set_digest(scenario, period, adaptive)?;
+            let history = independent_information_set_digest(scenario, period, adaptive)?;
             groups.entry(history).or_default().push(scenario_index);
         }
         for (history, scenario_indices) in &groups {
@@ -1039,7 +1162,7 @@ fn replay_policy(
                         if arc.from_site_id != site_id
                             || !arc.available_departure_periods.contains(&period)
                             || scenario_indices.iter().any(|scenario_index| {
-                                closure_blocks(&instance.scenarios[*scenario_index], arc_id, period)
+                                independent_route_is_closed(&instance.scenarios[*scenario_index], arc_id, period)
                             })
                         {
                             return Err(format!(
@@ -1118,8 +1241,8 @@ fn enumerate_one_scenario_period(
     output: &mut Vec<ScenarioPath>,
     budget: &mut SearchBudget,
 ) -> Result<bool, String> {
-    advance_arrivals(instance, &mut positions, period)?;
-    if !service_satisfied(instance, scenario_index, &positions, period) {
+    independent_advance_positions(instance, &mut positions, period)?;
+    if !independent_service_floor_check(instance, scenario_index, &positions, period) {
         return Ok(false);
     }
     if period == instance.horizon_last_period {
@@ -1129,7 +1252,7 @@ fn enumerate_one_scenario_period(
         return Ok(false);
     }
     let scenario = &instance.scenarios[scenario_index];
-    let history = information_set_digest(scenario, period, adaptive)?;
+    let history = independent_information_set_digest(scenario, period, adaptive)?;
     let active_units = positions
         .iter()
         .enumerate()
@@ -1144,7 +1267,7 @@ fn enumerate_one_scenario_period(
         for arc in instance.arcs.iter().filter(|arc| {
             arc.from_site_id == *site_id
                 && arc.available_departure_periods.contains(&period)
-                && !closure_blocks(scenario, &arc.arc_id, period)
+                && !independent_route_is_closed(scenario, &arc.arc_id, period)
         }) {
             unit_options.push(MobilityAction::Move {
                 arc_id: arc.arc_id.clone(),
@@ -1379,7 +1502,7 @@ pub fn verify_mobility_report(
     {
         return Err("mobility report identity or claim ceiling mismatch".to_string());
     }
-    let expected_relaxation = zero_time_information_relaxation(instance);
+    let expected_relaxation = independent_zero_time_relaxation(instance);
     if report.zero_time_information_relaxation_feasible != expected_relaxation {
         return Err("zero-time relaxation summary mismatch".to_string());
     }
