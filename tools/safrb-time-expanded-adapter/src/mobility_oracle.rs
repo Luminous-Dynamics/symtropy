@@ -2240,6 +2240,64 @@ mod tests {
     }
 
     #[test]
+    fn seeded_two_leg_policies_preserve_nonanticipativity_across_transit() {
+        let mut rng = 0x51A7_EB00_7876_2026_u64;
+        for seed in 0..100_u64 {
+            rng = rng
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let scenario_count = 1 + ((rng >> 32) % 3) as usize;
+            let mut scenarios = Vec::with_capacity(scenario_count);
+            let mut targets = Vec::with_capacity(scenario_count);
+            for index in 0..scenario_count {
+                rng = rng
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                let target = if (rng >> 32) % 2 == 0 { "site-a" } else { "site-b" };
+                targets.push(target.to_string());
+                rng = rng
+                    .wrapping_mul(6_364_136_223_846_793_005)
+                    .wrapping_add(1_442_695_040_888_963_407);
+                let reveal_period = (rng >> 32) % 2;
+                let mut candidate = scenario(
+                    &format!("world-{index}"),
+                    vec![floor(target, 2, 1)],
+                );
+                candidate.observations.push(ObservationEvent {
+                    reveal_period,
+                    event_id: format!("target-{index}"),
+                    key: "service-target".to_string(),
+                    value: target.to_string(),
+                });
+                scenarios.push(candidate);
+            }
+            let same_target = targets.iter().all(|target| target == &targets[0]);
+            let model = instance(
+                2,
+                &["hub", "site-a", "site-b"],
+                vec![unit("mobile-unit", "hub")],
+                vec![
+                    arc("hub-a", "hub", "site-a", 1, "corridor-hub-a", 1, &[0, 1]),
+                    arc("a-b", "site-a", "site-b", 1, "corridor-a-b", 1, &[1]),
+                ],
+                scenarios,
+            );
+            let report = solve_mobility_policy(&model).unwrap_or_else(|error| {
+                panic!("seed {seed}: two-leg producer rejected model: {error}")
+            });
+            let expected = if same_target {
+                MobilityDisposition::HereAndNowFeasible
+            } else {
+                MobilityDisposition::MobilityFeasibleOnlyWithRecourse
+            };
+            assert_eq!(report.disposition, expected, "seed {seed}");
+            verify_mobility_report(&model, &report).unwrap_or_else(|error| {
+                panic!("seed {seed}: independent multi-period oracle disagreed: {error}")
+            });
+        }
+    }
+
+    #[test]
     fn zero_travel_and_zero_duration_arcs_are_rejected() {
         let mut model = instance(
             1,
