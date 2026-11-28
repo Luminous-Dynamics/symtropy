@@ -1,5 +1,6 @@
 pub mod dataset_manifest;
 pub mod event_evaluation;
+pub mod event_censoring;
 
 use jsonschema::{Validator, draft202012};
 use serde::{Deserialize, Serialize};
