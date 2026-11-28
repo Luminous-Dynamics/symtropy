@@ -31,7 +31,7 @@ The v0.1 input binds:
 
 All timestamps use Unix milliseconds. Effective intervals are half-open: `[effective_from, effective_until)`. A receipt received after the selected as-known cutoff cannot backfill historical knowledge.
 
-The graph digest is recomputed over a sorted node/edge manifest using the declared `rust-serde-json-struct-order-v1` serialization profile. Node entries commit the node kind, content digest and per-node dependency-completeness declaration. Edge order and node order do not affect the result.
+The graph digest is recomputed over a sorted node/edge manifest using the declared `rust-serde-json-struct-order-v1` serialization profile. Each node commits its owner namespace, kind, content digest and per-node dependency-completeness declaration. The change receipt owner must match the owner namespace of the changed node. A retained result also requires the claim root's dependency manifest to be complete, so hidden obligations cannot be skipped by an incomplete root. Edge order and node order do not affect the result.
 
 The evaluator checks the upstream `VERIFIED` dispositions, exact scope, digests, chronology and effective intervals. **It does not authenticate signatures or trust roots.** Production integration must authenticate the graph and change receipts with the relevant source-owner trust policy before passing them to this pure evaluator.
 
@@ -52,7 +52,7 @@ The Rust unit tests and CI-only independent Python oracle cover:
 - transitive dependency invalidation and path reconstruction;
 - retention only for a disjoint closure with complete dependency coverage;
 - global incomplete graph status prevents retained conclusions;
-- one incomplete node dependency manifest prevents retained conclusions;
+- one incomplete node or claim-root dependency manifest prevents retained conclusions;\n- a change receipt from an owner other than the changed node's owner is rejected;
 - late change receipt cannot backfill the historical cutoff;
 - previous digest must match the graph node's content digest;
 - node/edge order permutation preserves the graph commitment and assessment;
