@@ -95,6 +95,23 @@ References:
 - [EASA MOC-5 SC-VTOL, Issue 2, 5 November 2026](https://www.easa.europa.eu/en/downloads/144423/en).
 - [EUROCAE ED-342: Guidance on Using Simulation in Handling Qualities Certification of VTOL (September 2026)](https://www.eurocae.net/product/ed-342-guidance-on-using-simulation-in-handling-qualities-certification-of-vtol/).
 
+### Reproducible builds and software supply-chain attestations
+
+SLSA provenance and the in-toto attestation model are important adjacent precedents for the “claim as build artifact” direction. SLSA defines a verifiable provenance statement describing where, when and how an artifact was produced, including the builder and resolved dependencies; downstream consumers are expected to verify provenance rather than trust fields merely because they are present.
+
+Implication: AERO should reuse these established supply-chain ideas for the *assurance computation itself*: identify the verifier source tree and build, toolchain/runtime, locked dependencies, invocation, inputs, output manifest, builder identity, network policy and execution receipt. The independent consumer must be able to reconstruct the disposition from the declared inputs and verify the verifier's provenance. A digest of a verifier binary is not evidence that its logic is correct, and software build provenance does not prove physical truth, model validity, engineering authority or certification credit.
+
+The research opportunity is the composition across two different provenance layers:
+
+1. **Engineering provenance:** exact claim specification, physical subject/configuration, owner-native evidence cuts, trust-policy snapshot, model-credibility cut, observer coverage and source chronology.
+2. **Computation provenance:** exact verifier source/build, dependency graph, runtime, invocation, disclosed inputs and output manifest.
+
+AERO's novelty hypothesis must remain at the boundary between these layers: whether a third party can independently replay the exact claim decision across owner boundaries and historical time cuts, while retaining source-owner and regulatory authority. Provenance attestations themselves are established technology, not an AERO novelty claim.
+
+References:
+- [SLSA Build Provenance specification](https://slsa.dev/spec/v1.1/provenance).
+- [in-toto Attestation Framework](https://github.com/in-toto/attestation).
+
 ### EASA VIRTUA: lifecycle authenticity and revocation
 
 EASA's VIRTUA project is a directly relevant adjacent workstream. Its stated objective is the use of virtualisation and decentralised-ledger concepts to manage approved aircraft parts and EASA Form 1 certificates across their lifecycle, from issuance by production organisations through design/maintenance changes. The motivating challenges include checking certificate authenticity and revoking certificates when defects or suspected unapproved parts are identified. The project is listed as closed.
