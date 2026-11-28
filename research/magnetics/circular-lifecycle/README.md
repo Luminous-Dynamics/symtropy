@@ -12,6 +12,8 @@ Co-design the rotor, magnet carrier, joining system, material passport and servi
 ## What counts
 
 - A magnet is reuse-grade only after post-recovery functional acceptance.
+- Remanufactured magnets are a separate stream and count only after their own functional acceptance.
+- Direct reuse, accepted remanufacture and recycling feedstock are separate fractions.
 - Material sent to a recycler is recycling feedstock, not recycled material or direct reuse.
 - Remanufactured output counts only after the remanufactured magnet passes acceptance.
 - Every mass stream is joined to one teardown, component, specimen, build and material lot.
