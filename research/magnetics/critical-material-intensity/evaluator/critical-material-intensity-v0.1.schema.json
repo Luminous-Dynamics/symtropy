@@ -143,6 +143,7 @@
         "measurement_setup_digest",
         "acceptance_policy_digest",
         "service_horizon_digest",
+        "element_inventory_scope_digest",
         "objective_set_digest"
       ],
       "properties": {
@@ -175,6 +176,9 @@
           "$ref": "#/$defs/digest"
         },
         "objective_set_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "element_inventory_scope_digest": {
           "$ref": "#/$defs/digest"
         }
       },
@@ -334,6 +338,10 @@
         "completed_mission_count",
         "durability_receipt_id",
         "durability_receipt_digest",
+        "durability_evidence_class",
+        "durability_method_id",
+        "durability_calibration_digest",
+        "durability_uncertainty_record_digest",
         "method_id",
         "calibration_digest",
         "uncertainty_record_digest",
@@ -393,6 +401,19 @@
         "instrument_id": {
           "type": "string",
           "minLength": 1
+        },
+        "durability_evidence_class": {
+          "$ref": "#/$defs/evidence_class"
+        },
+        "durability_method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durability_calibration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "durability_uncertainty_record_digest": {
+          "$ref": "#/$defs/digest"
         }
       },
       "additionalProperties": false
@@ -514,6 +535,7 @@
         "material_family_id",
         "origin",
         "scope_digest",
+        "inventory_scope_digest",
         "material_mass_g",
         "mass_evidence_id",
         "mass_evidence_digest",
@@ -580,6 +602,9 @@
           "items": {
             "$ref": "#/$defs/element_assay"
           }
+        },
+        "inventory_scope_digest": {
+          "$ref": "#/$defs/digest"
         }
       },
       "additionalProperties": false
