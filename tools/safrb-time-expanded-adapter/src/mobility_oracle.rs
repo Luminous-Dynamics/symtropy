@@ -635,13 +635,13 @@ fn independent_states_match(
         return false;
     };
     for scenario_index in scenario_indices.iter().skip(1) {
-        if states[*scenario_index].len() != states[*first_index].len() {
+        if states[*scenario_index].len() != states[*first_index].len()
+            || states[*scenario_index]
+                .iter()
+                .zip(states[*first_index].iter())
+                .any(|(left, right)| left != right)
+        {
             return false;
-        }
-        for unit_index in 0..states[*first_index].len() {
-            if states[*scenario_index][unit_index] != states[*first_index][unit_index] {
-                return false;
-            }
         }
     }
     true
@@ -1886,6 +1886,38 @@ mod tests {
         let report = solve_mobility_policy(&model).unwrap();
         assert_eq!(report.disposition, MobilityDisposition::InformationRelaxationOnly);
         assert!(report.zero_time_information_relaxation_feasible);
+        verify_mobility_report(&model, &report).unwrap();
+    }
+
+    #[test]
+    fn one_common_policy_is_feasible_when_all_scenarios_need_the_same_site() {
+        let mut alpha = scenario("alpha", vec![floor("site-a", 1, 1)]);
+        alpha.observations.push(ObservationEvent {
+            reveal_period: 1,
+            event_id: "alpha-demand".to_string(),
+            key: "service-site".to_string(),
+            value: "site-a".to_string(),
+        });
+        let mut beta = scenario("beta", vec![floor("site-a", 1, 1)]);
+        beta.observations.push(ObservationEvent {
+            reveal_period: 1,
+            event_id: "beta-demand".to_string(),
+            key: "service-site".to_string(),
+            value: "site-a".to_string(),
+        });
+        let model = instance(
+            1,
+            &["hub", "site-a", "site-b"],
+            vec![unit("mobile-pump", "hub")],
+            vec![
+                arc("hub-a", "hub", "site-a", 1, "corridor-a", 1, &[0]),
+                arc("hub-b", "hub", "site-b", 1, "corridor-b", 1, &[0]),
+            ],
+            vec![alpha, beta],
+        );
+        let report = solve_mobility_policy(&model).unwrap();
+        assert_eq!(report.disposition, MobilityDisposition::HereAndNowFeasible);
+        assert_eq!(report.plan.as_ref().unwrap().mode, PolicyMode::HereAndNow);
         verify_mobility_report(&model, &report).unwrap();
     }
 
