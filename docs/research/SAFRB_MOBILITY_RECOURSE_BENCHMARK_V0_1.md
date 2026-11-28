@@ -177,7 +177,7 @@ Reference material:
 
 ## 9. Claim ceiling and integration
 
-This protocol is documentation only. A future passing implementation would establish only the declared finite synthetic mobility model and supplied scenario tree. It would not establish real route conditions, empirical travel-time distributions, asset condition, scenario completeness, source authority, legal access, dispatch authority or actual delivered service.
+The benchmark specification is paired with the bounded reference implementation recorded in Section 10. Until its exact-head Rust gates pass, treat the code as unqualified draft research code. A future passing implementation would establish only the declared finite synthetic mobility model and supplied scenario tree. It would not establish real route conditions, empirical travel-time distributions, asset condition, scenario completeness, source authority, legal access, dispatch authority or actual delivered service.
 
 Compose rather than duplicate:
 - #7796 owns general scenario-tree / non-anticipativity semantics.
@@ -189,6 +189,81 @@ Compose rather than duplicate:
 - Mycelix remains the owner of issuer identity, rights, provenance and source-independence.
 
 The intended advancement is not a faster route planner. It is a policy result that proves exactly what can be moved, when the decision-maker could know the relevant event, whether the resource arrives before service is due, and which assumption separates physical feasibility from an optimistic upper bound.
+
+## 11. SOTA, industry and assurance-methodology comparators
+
+The competitive position must be divided into four different questions. Do not describe all established products as flow solvers, and do not compare the mobility policy oracle to a relaxed flow model.
+
+### 11.1 Pure network-flow algorithm engineering
+
+Use the 13th DIMACS Network Flows 2.0 challenge and its official/core instance families for the pure MCF/max-flow lane. The challenge itself notes that many historical instances are now too easy for modern solvers and calls for new realistic benchmark families. Report official instances, infrastructure-derived instances, timeouts and DNF.
+
+Comparators:
+- LEMON `NetworkSimplex` and `CostScaling`;
+- OR-Tools `SimpleMinCostFlow`;
+- NetworkX capacity scaling / network simplex where graph class and multigraph semantics match;
+- a separate exhaustive integer-flow oracle for bounded cases.
+
+### 11.2 Coupled movement and decision policies
+
+Use a matched CP-SAT or MILP formulation for integer movement, route, time and policy coupling. OR-Tools CP-SAT exposes distinct OPTIMAL, FEASIBLE, INFEASIBLE, MODEL_INVALID and UNKNOWN outcomes; preserve these distinctions and do not treat UNKNOWN as infeasible. HiGHS is a relevant independent LP/MILP comparator for compatible formulations.
+
+The comparison must freeze the information sets, scenario leaves, route capacities, travel durations, service floors, integer precision, objective, hardware, wall-time and memory budget. The exhaustive physical trajectory oracle remains the correctness reference at tiny scale.
+
+### 11.3 Domain-specific energy and industrial platforms
+
+PyPSA is an important open-source energy-system comparator, not a SAFRB replacement target. Its current documentation describes economic dispatch, linear and security-constrained optimal power flow, capacity expansion, stochastic two-stage investment/recourse and modelling-to-generate-alternatives. For energy applications, compare against the strongest applicable PyPSA formulation and preserve its native optimization metrics. SAFRB's proposed incremental test is whether the same source/model revisions and candidate decisions also pass independent evidence, resource-identity, obligation and beneficiary-service qualification.
+
+Commercial platform roles also differ:
+- AVEVA PI System: industrial operational-data collection, contextualization, storage and visualization.
+- Siemens Gridscale X: grid planning/operations, metering and digital-twin workflow.
+- Schneider EcoStruxure Microgrid Advisor: DER monitoring, forecasting and microgrid optimization/MPC.
+
+Treat these as potential integration environments and matched read-only replay sources, not interchangeable algorithm baselines. Public descriptions do not establish that any vendor lacks assurance features. The research question is whether an independently verified, portable cross-owner assurance receipt adds measurable value to their existing workflows.
+
+### 11.4 NIST methodology and evidence federation
+
+Use NIST's 2026 Super Intelligence for Manufacturing / TIDAL programme as a methodology comparator. Its research plan covers a shared test bench spanning real equipment and simulators, planning/scheduling/monitoring/root-cause benchmark studies, human-machine teaming and digital-twin verification/validation/uncertainty quantification. Compose with its measurement-science and VVUQ direction; do not create a second generic manufacturing testbed.
+
+Use NIST IR 8536 (final, September 2026) as a traceability and provenance architecture comparator. It provides a meta-framework for interoperable traceability across manufacturing ecosystems while allowing organizations to retain existing standards and proprietary processes. Use its linking/selective-disclosure direction through Mycelix; do not duplicate a generic traceability repository.
+
+### 11.5 Matched assurance ablation
+
+A publishable SAFRB study should compare the same base planner and frozen input data under these arms:
+
+| Arm | Added layer | Question |
+| --- | --- | --- |
+| A0 | Planner only | What does the native plan claim? |
+| A1 | Semantic/model admission | Do the source records compile to a supported physical model? |
+| A2 | Independent proof/replay | Does an independent verifier accept the result or expose a model/certificate error? |
+| A3 | Authority/provenance closure | Are the evidence issuers, rights, freshness and common-cause dependencies admitted? |
+| A4 | Decision-aware acquisition | Which admissible new observation changes an unresolved decision at lowest acquisition cost? |
+
+Freeze planner version, source revisions, scenario set, compute budget, and operator action policy across arms. Report separately:
+- false guaranteed-service and false infeasible findings;
+- true/false positive and negative control outcomes;
+- unresolved/unsupported/DNF/timeout coverage and risk-coverage curves;
+- per-beneficiary service shortfall, missed deadlines and restoration delay;
+- decision regret and acquisition cost;
+- percentage of reports accepted/rejected by a separate verifier;
+- P50/P95/P99 model-admission, solve, proof-build, verification and end-to-end latency;
+- operator time and the quality of the identified next evidence action.
+
+The key experiment is not whether A4 makes a prettier plan. It is whether A1–A4 reduce false assurance and decision regret enough to justify the added evidence and verification cost, without hiding difficult or unresolved cases.
+
+### Reference links
+
+- DIMACS Network Flows 2.0: https://coral.ise.lehigh.edu/flow-challenge-2-0/
+- DIMACS instances and generators: https://coral.ise.lehigh.edu/flow-challenge-2-0/mcf-instances-and-generators/
+- OR-Tools CP-SAT: https://developers.google.com/optimization/cp/cp_solver
+- OR-Tools SimpleMinCostFlow: https://developers.google.com/optimization/flow/mincostflow
+- HiGHS: https://ergo-code.github.io/HiGHS/stable/
+- PyPSA optimization overview: https://docs.pypsa.org/latest/user-guide/optimization/overview/
+- NIST SI for Manufacturing / TIDAL: https://www.nist.gov/programs-projects/super-intelligence-si-manufacturing
+- NIST IR 8536: https://csrc.nist.gov/pubs/ir/8536/final
+- AVEVA PI System: https://www.aveva.com/en/products/aveva-pi-system/
+- Siemens Gridscale X: https://www.siemens.com/en-us/products/gridscale-x/
+- Schneider Microgrid Advisor: https://www.se.com/us/en/product-range/65896-ecostruxure-microgrid-advisor/
 
 ## 10. Reference implementation status — 28 November 2026
 
