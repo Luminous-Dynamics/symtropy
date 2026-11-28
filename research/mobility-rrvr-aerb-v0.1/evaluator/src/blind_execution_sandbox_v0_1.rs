@@ -618,18 +618,32 @@ mod tests {
             CandidateSandboxArgument::CampaignId(
                 "camp_0123456789abcdef0123456789abcdef".to_owned(),
             ),
-            CandidateSandboxArgument::EpisodeId(
-                "ep_0123456789abcdef0123456789abcdef".to_owned(),
-            ),
+            CandidateSandboxArgument::EpisodeId("ep_0123456789abcdef0123456789abcdef".to_owned()),
             CandidateSandboxArgument::CandidateInputArtifact("episode.json".to_owned()),
             CandidateSandboxArgument::CandidateOutputArtifact("submission.json".to_owned()),
         ];
         let command = build_candidate_sandbox_command(&paths, limits, &args).expect("typed argv");
         let encoded = strings(&command);
-        assert!(encoded.iter().any(|arg| arg == "--campaign-id=camp_0123456789abcdef0123456789abcdef"));
-        assert!(encoded.iter().any(|arg| arg == "--episode-id=ep_0123456789abcdef0123456789abcdef"));
-        assert!(encoded.iter().any(|arg| arg == "--input=/candidate/input/episode.json"));
-        assert!(encoded.iter().any(|arg| arg == "--output=/candidate/output/submission.json"));
+        assert!(
+            encoded
+                .iter()
+                .any(|arg| arg == "--campaign-id=camp_0123456789abcdef0123456789abcdef")
+        );
+        assert!(
+            encoded
+                .iter()
+                .any(|arg| arg == "--episode-id=ep_0123456789abcdef0123456789abcdef")
+        );
+        assert!(
+            encoded
+                .iter()
+                .any(|arg| arg == "--input=/candidate/input/episode.json")
+        );
+        assert!(
+            encoded
+                .iter()
+                .any(|arg| arg == "--output=/candidate/output/submission.json")
+        );
     }
 
     #[test]
