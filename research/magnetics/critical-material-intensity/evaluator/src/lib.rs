@@ -1220,8 +1220,8 @@ mod tests {
             mass_evidence_class: EvidenceClass::PhysicalMeasurement,
             element_assays: vec![
                 assay("Nd", nd_fraction, suffix),
-                assay("Dy", dy_fraction, '4'),
-                assay("Cu", cu_fraction, '5'),
+                assay("Dy", dy_fraction, suffix),
+                assay("Cu", cu_fraction, suffix),
             ],
         }
     }
