@@ -902,7 +902,7 @@ mod tests {
                 "AM-HYBRID-001",
                 ArchitectureFamily::AmHybridArchitecture,
                 ArchitectureRole::Candidate,
-                [14.7, 0.946, 92.0, 1.7, 2.6, 0.45, 0.15, 930.0],
+                [14.7, 0.947, 92.0, 1.8, 2.8, 0.45, 0.15, 930.0],
             ),
             trial(
                 "SINTERED-PM-001",
@@ -990,7 +990,7 @@ mod tests {
     #[test]
     fn scope_mismatch_is_not_repaired_by_normalizing_metrics() {
         let mut trials = known_answer_trials();
-        trials[0].scope.duty_cycle_digest = digest('f');
+        trials[0].scope.duty_cycle_digest = digest('0');
         let candidate = evaluate_architectures(&spec(), &trials)
             .into_iter()
             .find(|evaluation| evaluation.architecture_id == "AM-HYBRID-001")
