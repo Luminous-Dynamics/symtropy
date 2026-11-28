@@ -825,6 +825,59 @@ mod tests {
     }
 
     #[test]
+    fn published_synthetic_fixture_matches_exact_evsi_and_authority_boundary() {
+        let fixture: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../../docs/research/aviation/examples/aero_evidence_action_planner_v0_1.json"
+        ))
+        .expect("published EVSI fixture parses");
+        let input: EvidenceActionPlannerInputV0_1 =
+            serde_json::from_value(fixture["input"].clone())
+                .expect("published EVSI input matches the typed contract");
+        let result = rank_evidence_actions_v0_1(&input);
+        let expected = &fixture["expected"];
+
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::RankedActions
+        );
+        assert_eq!(
+            result.disposition,
+            serde_json::from_value(expected["disposition"].clone())
+                .unwrap_or(EvidenceActionPlannerDispositionV0_1::InvalidInput)
+        );
+        assert_eq!(
+            result.current_best_decision_id.as_deref(),
+            expected["current_best_decision_id"].as_str()
+        );
+        assert_eq!(
+            result.selected_action_id.as_deref(),
+            expected["selected_action_id"].as_str()
+        );
+        assert_eq!(
+            result.ranked_actions[0].evsi_scaled_numerator,
+            expected["ranked_actions"][0]["evsi_scaled_numerator"]
+                .as_str()
+                .expect("EVSI numerator")
+        );
+        assert_eq!(
+            result.ranked_actions[0].net_benefit_scaled_numerator,
+            expected["ranked_actions"][0]["net_benefit_scaled_numerator"]
+                .as_str()
+                .expect("net benefit numerator")
+        );
+        assert_eq!(
+            result.excluded_actions[0].reason_code,
+            expected["excluded_actions"][0]["reason_code"]
+                .as_str()
+                .expect("exclusion reason")
+        );
+        assert_eq!(result.frozen_claim_disposition, "INCOMPLETE");
+        assert!(!result.assurance_state_mutated);
+        assert!(!result.physical_work_authorized);
+        assert!(!result.engineering_acceptance_granted);
+    }
+
+    #[test]
     fn a_deny_all_action_catalogue_does_not_pass_as_success() {
         let mut input = base_input();
         input.actions[0].authorization_status = ActionAuthorizationStatusV0_1::Unknown;
