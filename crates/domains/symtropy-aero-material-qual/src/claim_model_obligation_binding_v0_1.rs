@@ -716,6 +716,13 @@ pub fn bind_claim_model_obligations_v0_1(
         reasons.insert("MODEL_UNCERTAINTY_MAPPING_REQUIRED_COMPONENT_SET_INCOMPLETE".to_owned());
     }
 
+    metric_entries.sort_by(|left, right| {
+        left.metric_id
+            .cmp(&right.metric_id)
+            .then_with(|| left.model_stratum_ref.cmp(&right.model_stratum_ref))
+    });
+    uncertainty_entries.sort_by(|left, right| left.component.cmp(&right.component));
+
     let applicability_disposition = match model.domain_coverage_status {
         ModelDomainCoverageStatus::Covered => ModelObligationDispositionV0_1::Bound,
         ModelDomainCoverageStatus::NotCovered => ModelObligationDispositionV0_1::OutOfScope,
