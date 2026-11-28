@@ -11,6 +11,8 @@ on:
       - "docs/transport/EV_BMS_EVENT_LEVEL_EVALUATION_V0_1.md"
       - "fixtures/ev_battery/event_evaluation_synthetic_v0_1.json"
       - "schemas/transport/ev_bms_event_evaluation_v0_1.schema.json"
+      - "schemas/transport/ev_bms_event_censoring_evaluation_v0_1.schema.json"
+      - "fixtures/ev_battery/event_censoring_synthetic_v0_1.json"
       - "docs/transport/EV_BMS_DIAGNOSTIC_EVENT_V0_1.md"
       - "docs/transport/EV_BMS_FAULT_DATASET_REGISTRY_V0_1.md"
       - ".github/workflows/ev-bms-diagnostic-audit.yml"
@@ -46,6 +48,30 @@ jobs:
         run: |
           cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-event-evaluation -- --schema schemas/transport/ev_bms_event_evaluation_v0_1.schema.json --manifest fixtures/ev_battery/event_evaluation_synthetic_v0_1.json > "$RUNNER_TEMP/ev-bms-event-evaluation.json"
           jq -e '.positive_event_count == 2 and .event_warning_count == 1 and .event_miss_count == 1 and .false_alarm_episode_count == 2 and .negative_control_exposure_hours == 10 and .primary_event_alarm_count == 1 and .repeated_event_alarm_count == 1 and .unmatched_event_exposure_alarm_count == 1 and (.false_alarms_per_1000_negative_hours - 200 | fabs < 0.000001) and (.lead_time_hours_p50 - 3 | fabs < 0.000001)' "$RUNNER_TEMP/ev-bms-event-evaluation.json"
+
+      - name: Audit synthetic interval-censored event warning evaluation
+        run: |
+          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-event-censoring-evaluation -- --schema schemas/transport/ev_bms_event_censoring_evaluation_v0_1.schema.json --manifest fixtures/ev_battery/event_censoring_synthetic_v0_1.json > "$RUNNER_TEMP/ev-bms-event-censoring.json"
+          jq -e '
+            .event_count == 4 and
+            .exact_reported_event_count == 1 and
+            .interval_censored_event_count == 2 and
+            .left_censored_event_count == 1 and
+            .eligible_event_count == 3 and
+            .definite_warning_count == 1 and
+            .possible_only_warning_count == 1 and
+            .ambiguous_ordering_warning_count == 1 and
+            .event_miss_count == 1 and
+            .guaranteed_actionable_warning_count == 1 and
+            .negative_control_false_alarm_count == 2 and
+            .right_censored_false_alarm_count == 1 and
+            .right_censored_unresolved_alarm_count == 1 and
+            (.right_censored_eligible_forecast_hours - 26 | fabs < 0.000001) and
+            (.negative_control_false_alarms_per_1000_hours - 20 | fabs < 0.000001) and
+            (.lead_lower_hours_min - 4 | fabs < 0.000001) and
+            (.lead_upper_hours_min - 4 | fabs < 0.000001) and
+            (.report_sha256 | test("^[a-f0-9]{64}$"))
+          ' "$RUNNER_TEMP/ev-bms-event-censoring.json"
 
       - name: Audit frozen synthetic corpus
         run: |
