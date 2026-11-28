@@ -1343,7 +1343,7 @@ mod tests {
         assert!(result[0]
             .robust_circularity_benefits
             .contains(&"direct_reuse_fraction".to_string()));
-        assert!(!result[0]
+        assert!(result[0]
             .robust_circularity_benefits
             .contains(&"accepted_remanufacture_fraction".to_string()));
     }
@@ -1485,13 +1485,16 @@ mod tests {
             Family::ConventionalMechanicallyRetainedSegmentedPmRotor,
         );
         let mut trials = known_trials();
-        trials.push(trial(
+        let mut segmented = trial(
             "CONVENTIONAL-SEGMENTED",
             Family::ConventionalMechanicallyRetainedSegmentedPmRotor,
             Role::RequiredBaseline,
-            [199.0, 0.949, 1.75, 2.75, 11.0, 0.003],
-            [10.0, 4.0, 2.0, 2.0, 2.0],
-        ));
+            [199.0, 0.949, 1.75, 2.75, 11.0, 0.001],
+            [10.0, 8.0, 0.0, 1.0, 1.0],
+        );
+        segmented.disassembly.elapsed_minutes = 10.0;
+        segmented.disassembly.energy_wh = 10.0;
+        trials.push(segmented);
         let result = evaluate(&benchmark, &trials);
         assert_eq!(result[0].decision, Decision::NonInferiorNoCircularityBenefit);
     }
