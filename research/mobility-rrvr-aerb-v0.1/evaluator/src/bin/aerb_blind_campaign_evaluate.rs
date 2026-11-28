@@ -19,7 +19,8 @@ use mobility_rrvr_aerb_evaluator::{
     },
     blind_projection_audit_v0_1::{
         BlindProjectionContext, BlindProjectionReceipt, MetadataAttackRow,
-        MetadataLeakageReport, BlindProjectionSecretV0_1, audit_metadata_leakage,
+        CandidateSurfaceAudit, CandidateSurfaceFinding, MetadataLeakageReport,
+        BlindProjectionSecretV0_1, audit_candidate_surface, audit_metadata_leakage,
         candidate_metadata_features, project_candidate_episode,
         project_candidate_submission, verify_projected_episode,
     },
@@ -125,6 +126,7 @@ struct BlindCampaignReport {
     world_strata: BTreeMap<String, DecisionStratum>,
     source_cluster_strata: BTreeMap<String, DecisionStratum>,
     metadata_leakage: MetadataLeakageReport,
+    candidate_surface_audit: CandidateSurfaceAudit,
     invalid_episodes: Vec<InvalidEpisode>,
     statistical_interpretation: String,
     claim_ceiling: String,
@@ -458,6 +460,12 @@ fn campaign_report(
     let mut truth_loss_sum = 0.0_f64;
     let mut world_strata = BTreeMap::<String, DecisionStratum>::new();
     let mut source_cluster_strata = BTreeMap::<String, DecisionStratum>::new();
+    let mut candidate_episode_jsons = Vec::<String>::with_capacity(scenario_count);
+    let mut candidate_submission_jsons = Vec::<String>::with_capacity(scenario_count);
+    let mut projection_receipts = Vec::<BlindProjectionReceipt>::with_capacity(scenario_count);
+    let mut candidate_episode_file_names = Vec::<String>::with_capacity(scenario_count);
+    let mut candidate_submission_file_names = Vec::<String>::with_capacity(scenario_count);
+    let mut hidden_world_ids = Vec::<String>::with_capacity(scenario_count);
 
     for (file_order_index, assignment) in evaluator_manifest.assignments.iter().enumerate() {
         let episode_id = &assignment.episode_id;
@@ -469,7 +477,7 @@ fn campaign_report(
         let source_submission_name = format!("source-submission-{episode_id}.json");
 
         let episode_result = (|| -> Result<
-            (EvaluatorReport, bool, String),
+            (EvaluatorReport, bool, String, String, String, BlindProjectionReceipt),
             String,
         > {
             let episode_seal = candidate_seals
@@ -602,11 +610,24 @@ fn campaign_report(
                 .map_err(|error| format!("EPISODE_EVALUATION_FAILED: {error}"))?;
             let unsafe_fresh =
                 unsafe_fresh_recommendation(&projected_submission, &assignment.hidden_truth_world_id);
-            Ok((report, unsafe_fresh, receipt.original_trajectory_cluster_id))
+            Ok((
+                report,
+                unsafe_fresh,
+                receipt.original_trajectory_cluster_id,
+                episode_json,
+                submission_json,
+                receipt,
+            ))
         })();
 
         match episode_result {
-            Ok((report, unsafe_fresh, source_cluster_id)) => {
+            Ok((report, unsafe_fresh, source_cluster_id, episode_json, submission_json, receipt)) => {
+                candidate_episode_jsons.push(episode_json);
+                candidate_submission_jsons.push(submission_json);
+                projection_receipts.push(receipt);
+                candidate_episode_file_names.push(format!("episode-{episode_id}.json"));
+                candidate_submission_file_names.push(format!("submission-{episode_id}.json"));
+                hidden_world_ids.push(assignment.hidden_truth_world_id.clone());
                 evaluated_n += 1;
                 candidate_contract_valid_n += usize::from(report.candidate_contract_valid);
                 hidden_truth_covered_n += usize::from(report.hidden_truth_in_candidate_support);
@@ -646,6 +667,41 @@ fn campaign_report(
     )
     .map_err(|error| format!("METADATA_LEAKAGE_AUDIT_FAILED: {error}"))?;
 
+    let candidate_surface_audit = if invalid.is_empty() {
+        let candidate_manifest_json = String::from_utf8(candidate_manifest_bytes.clone())
+            .map_err(|error| format!("CANDIDATE_MANIFEST_UTF8_FAILED: {error}"))?;
+        let evaluator_secret_tokens = vec![
+            projection_secret.projection_salt_hex.clone(),
+            evaluator_manifest.manifest_salt_hex.clone(),
+        ];
+        audit_candidate_surface(
+            &candidate_manifest_json,
+            &candidate_episode_jsons,
+            &candidate_submission_jsons,
+            &projection_receipts,
+            &hidden_world_ids,
+            &evaluator_secret_tokens,
+            &candidate_episode_file_names,
+            &candidate_submission_file_names,
+        )
+        .map_err(|error| format!("CANDIDATE_SURFACE_AUDIT_FAILED: {error}"))?
+    } else {
+        CandidateSurfaceAudit {
+            schema_version: "aerb-candidate-surface-audit-v0.1".to_owned(),
+            candidate_episode_n: candidate_episode_jsons.len(),
+            candidate_submission_n: candidate_submission_jsons.len(),
+            projection_receipt_n: projection_receipts.len(),
+            finding_n: 1,
+            passed: false,
+            findings: vec![CandidateSurfaceFinding {
+                location: "campaign".to_owned(),
+                finding_kind: "structural_episode_invalid_prevents_complete_surface_scan".to_owned(),
+                token_sha256: sha256_hex(b"structural-episode-invalid"),
+            }],
+            interpretation: "The complete candidate surface could not be qualified because at least one episode failed structural projection verification.".to_owned(),
+        }
+    };
+
     let scheduled = scenario_count as f64;
     let evaluated_denominator = evaluated_n.max(1) as f64;
     Ok(BlindCampaignReport {
@@ -673,6 +729,7 @@ fn campaign_report(
         world_strata,
         source_cluster_strata,
         metadata_leakage,
+        candidate_surface_audit,
         invalid_episodes: invalid,
         statistical_interpretation: "Blind evaluator-only software/process-model campaign. Per-episode counts preserve the scheduled denominator; structural invalids remain explicit. Metadata attack is a grouped categorical diagnostic, not proof of no inferential leakage. Truth-class counts are inherited from the source corpus and are not event probabilities.".to_owned(),
         claim_ceiling: "Synthetic/process-model evidence only. No simulator, HIL, physical, calibrated-risk, causal-identification, certification or SOTA claim.".to_owned(),
@@ -716,6 +773,7 @@ fn run() -> Result<(), String> {
     if report.structurally_invalid_n > 0
         || report.candidate_contract_valid_n != report.scheduled_n
         || report.unsafe_fresh_attempt_n > 0
+        || !report.candidate_surface_audit.passed
     {
         return Err("BLIND_CAMPAIGN_QUALIFICATION_GATE_FAILED".to_owned());
     }
