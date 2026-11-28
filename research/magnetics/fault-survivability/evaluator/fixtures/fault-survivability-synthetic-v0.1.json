@@ -292,7 +292,8 @@
       },
       "test_receipt_id": "SYNTHETIC-FAULT-TEST",
       "test_receipt_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
-      "evidence_class": "SyntheticControl"
+      "evidence_class": "SyntheticControl",
+      "source_material_lot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     }
   ],
   "expected": {
