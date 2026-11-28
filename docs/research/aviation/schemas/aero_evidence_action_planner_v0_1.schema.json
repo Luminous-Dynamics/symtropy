@@ -26,6 +26,8 @@
       "additionalProperties": false,
       "required": [
         "claim_id",
+        "configuration_ref",
+        "as_known_at_unix_ms",
         "frozen_claim_disposition",
         "decision_context_sha256",
         "assurance_state_sha256",
@@ -142,8 +144,9 @@
               "owner_namespace",
               "action_catalogue_entry_sha256",
               "authorization_status",
-              "authorization_receipt_sha256",
+              "authorization_receipt",
               "calibration_status",
+              "calibration_receipt",
               "expected_artifact_contract_sha256",
               "target_obligation_ids",
               "expected_cost_units",
@@ -169,13 +172,6 @@
                   "DENIED",
                   "UNKNOWN"
                 ]
-              },
-              "authorization_receipt_sha256": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "pattern": "^[a-f0-9]{64}$"
               },
               "calibration_status": {
                 "enum": [
@@ -233,9 +229,144 @@
                     }
                   }
                 }
+              },
+              "authorization_receipt": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": false,
+                "required": [
+                  "owner_namespace",
+                  "claim_id",
+                  "decision_context_sha256",
+                  "configuration_ref",
+                  "action_id",
+                  "action_catalogue_entry_sha256",
+                  "receipt_sha256",
+                  "receiver_first_seen_at_unix_ms",
+                  "effective_from_unix_ms",
+                  "effective_until_unix_ms"
+                ],
+                "properties": {
+                  "owner_namespace": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "claim_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "decision_context_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "configuration_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "action_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "action_catalogue_entry_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "receipt_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "receiver_first_seen_at_unix_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "effective_from_unix_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "effective_until_unix_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "calibration_receipt": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": false,
+                "required": [
+                  "owner_namespace",
+                  "claim_id",
+                  "decision_context_sha256",
+                  "configuration_ref",
+                  "action_id",
+                  "outcome_model_sha256",
+                  "calibration_profile_sha256",
+                  "calibration_report_sha256",
+                  "receiver_first_seen_at_unix_ms",
+                  "effective_from_unix_ms",
+                  "effective_until_unix_ms"
+                ],
+                "properties": {
+                  "owner_namespace": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "claim_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "decision_context_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "configuration_ref": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "action_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "outcome_model_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "calibration_profile_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "calibration_report_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "receiver_first_seen_at_unix_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "effective_from_unix_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "effective_until_unix_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
               }
             }
           }
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_known_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
