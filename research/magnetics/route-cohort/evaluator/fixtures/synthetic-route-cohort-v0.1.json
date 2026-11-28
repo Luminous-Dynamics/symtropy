@@ -1,0 +1,195 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-ROUTE-COHORT-001",
+  "fixture_class": "synthetic_semantic_controls",
+  "claim_ceiling": "All builds, lots and specimens are synthetic. These counts test denominator, rework and replication semantics only; they are not a manufacturing yield or route-performance estimate.",
+  "cohort": {
+    "cohort_id": "MEX-COHORT-001",
+    "route_family": "Mex",
+    "route_revision": "MEX-v1",
+    "machine_tool_revision": "MACHINE-v1",
+    "process_recipe_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "feedstock_family": "BONDED-NDFEB-PA12",
+    "material_grade": "NDFEB-GRADE-X",
+    "scope": {
+      "application_id": "ENCODER-80MM-001",
+      "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "replication_policy": {
+      "minimum_independent_builds": 3,
+      "minimum_distinct_material_lots": 2,
+      "policy_id": "REPLICATION-POLICY-v1",
+      "policy_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    "lots": [
+      {
+        "lot_id": "LOT-1",
+        "feedstock_family": "BONDED-NDFEB-PA12",
+        "material_grade": "NDFEB-GRADE-X",
+        "recycled_mass_fraction": 0.75,
+        "lot_record_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "source_provenance_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      {
+        "lot_id": "LOT-2",
+        "feedstock_family": "BONDED-NDFEB-PA12",
+        "material_grade": "NDFEB-GRADE-X",
+        "recycled_mass_fraction": 0.75,
+        "lot_record_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "source_provenance_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ],
+    "builds": [
+      {
+        "build_id": "BUILD-1",
+        "material_lot_id": "LOT-1",
+        "route_revision": "MEX-v1",
+        "machine_tool_revision": "MACHINE-v1",
+        "recipe_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "build_record_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "genealogy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "status": "Completed",
+        "initiated_specimen_ids": [
+          "SPEC-1",
+          "SPEC-2"
+        ]
+      },
+      {
+        "build_id": "BUILD-2",
+        "material_lot_id": "LOT-2",
+        "route_revision": "MEX-v1",
+        "machine_tool_revision": "MACHINE-v1",
+        "recipe_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "build_record_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "genealogy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "status": "FailedBeforeInspection",
+        "initiated_specimen_ids": [
+          "SPEC-3"
+        ]
+      }
+    ],
+    "specimens": [
+      {
+        "specimen_id": "SPEC-1",
+        "build_id": "BUILD-1",
+        "material_lot_id": "LOT-1",
+        "scope": {
+          "application_id": "ENCODER-80MM-001",
+          "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "manufacturing_complete": true,
+        "inspection_completed": true,
+        "first_pass_disposition": "Qualified",
+        "qualification_receipt_id": "QUAL-SPEC-1",
+        "qualification_receipt_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "rework_attempts": 0,
+        "final_disposition": "Qualified",
+        "scrapped": false
+      },
+      {
+        "specimen_id": "SPEC-2",
+        "build_id": "BUILD-1",
+        "material_lot_id": "LOT-1",
+        "scope": {
+          "application_id": "ENCODER-80MM-001",
+          "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "manufacturing_complete": true,
+        "inspection_completed": true,
+        "first_pass_disposition": "Fail",
+        "qualification_receipt_id": "QUAL-SPEC-2",
+        "qualification_receipt_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "rework_attempts": 1,
+        "rework_receipt_id": "REWORK-SPEC-2",
+        "rework_receipt_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "final_disposition": "Qualified",
+        "scrapped": false
+      },
+      {
+        "specimen_id": "SPEC-3",
+        "build_id": "BUILD-2",
+        "material_lot_id": "LOT-2",
+        "scope": {
+          "application_id": "ENCODER-80MM-001",
+          "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "measurement_setup_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "acceptance_policy_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "manufacturing_complete": false,
+        "inspection_completed": false,
+        "first_pass_disposition": "Missing",
+        "rework_attempts": 0,
+        "final_disposition": "Missing",
+        "scrapped": false
+      }
+    ],
+    "campaign_cost": {
+      "receipt_id": "COST-001",
+      "digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "currency": "USD",
+      "total_campaign_cost_minor": 10000
+    }
+  },
+  "expected_summary": {
+    "initiated_builds": 2,
+    "completed_builds": 1,
+    "pre_inspection_build_failures": 1,
+    "initiated_specimens": 3,
+    "completed_specimens": 2,
+    "inspected_specimens": 2,
+    "first_pass_qualified": 1,
+    "first_pass_fail": 1,
+    "first_pass_indeterminate": 0,
+    "first_pass_not_evaluable": 0,
+    "missing_specimen_outcomes": 1,
+    "reworked_specimens": 1,
+    "rework_recovered": 1,
+    "scrapped_specimens": 0,
+    "final_accepted_specimens": 2,
+    "distinct_material_lots": 2,
+    "first_pass_acceptance": {
+      "numerator": 1,
+      "denominator": 3,
+      "ratio_ppm": 333333
+    },
+    "confirmed_failure": {
+      "numerator": 1,
+      "denominator": 3,
+      "ratio_ppm": 333333
+    },
+    "unresolved": {
+      "numerator": 1,
+      "denominator": 3,
+      "ratio_ppm": 333333
+    },
+    "inspection_coverage": {
+      "numerator": 2,
+      "denominator": 3,
+      "ratio_ppm": 666666
+    },
+    "build_completion": {
+      "numerator": 1,
+      "denominator": 2,
+      "ratio_ppm": 500000
+    },
+    "rework_recovery": {
+      "numerator": 1,
+      "denominator": 1,
+      "ratio_ppm": 1000000
+    },
+    "final_accepted_fraction": {
+      "numerator": 2,
+      "denominator": 3,
+      "ratio_ppm": 666666
+    },
+    "generalization_status": "GeneralizationUnavailable",
+    "inferential_yield_claim_available": false,
+    "replication_eligible_builds": 2
+  }
+}
