@@ -94,8 +94,14 @@ pub struct ProportionInterval {
 pub struct VarianceScenarioResult {
     pub between_lot_sd: f64,
     pub within_lot_build_sd: f64,
+    /// Type-I error conditional on having enough complete lot pairs to run the test.
     pub null_rejection_probability: ProportionInterval,
+    /// Operational power: a trial without enough complete lot pairs counts as no success.
     pub alternative_power: ProportionInterval,
+    pub null_analyzable_replicates: u32,
+    pub alternative_analyzable_replicates: u32,
+    pub null_analysis_coverage: ProportionInterval,
+    pub alternative_analysis_coverage: ProportionInterval,
     pub mean_analyzable_lot_pairs: f64,
     pub probability_below_minimum_lot_pairs: f64,
 }
@@ -280,6 +286,8 @@ fn simulate_scenario(
     let mut rng = XorShift64::new(seed);
     let mut null_rejections = 0_u32;
     let mut alternative_rejections = 0_u32;
+    let mut null_analyzable_replicates = 0_u32;
+    let mut alternative_analyzable_replicates = 0_u32;
     let mut analyzable_total = 0_u64;
     let mut below_minimum = 0_u32;
 
@@ -298,8 +306,11 @@ fn simulate_scenario(
         analyzable_total += u64::from(null_sample.len() as u32);
         if null_sample.len() < spec.minimum_independent_lot_pairs as usize {
             below_minimum += 1;
-        } else if one_sided_noninferiority_rejects(&null_sample, null_effect, alpha) {
-            null_rejections += 1;
+        } else {
+            null_analyzable_replicates += 1;
+            if one_sided_noninferiority_rejects(&null_sample, null_effect, alpha) {
+                null_rejections += 1;
+            }
         }
 
         let alternative_sample = simulate_lot_means(
@@ -313,14 +324,20 @@ fn simulate_scenario(
         analyzable_total += u64::from(alternative_sample.len() as u32);
         if alternative_sample.len() < spec.minimum_independent_lot_pairs as usize {
             below_minimum += 1;
-        } else if one_sided_noninferiority_rejects(&alternative_sample, null_effect, alpha) {
-            alternative_rejections += 1;
+        } else {
+            alternative_analyzable_replicates += 1;
+            if one_sided_noninferiority_rejects(&alternative_sample, null_effect, alpha) {
+                alternative_rejections += 1;
+            }
         }
     }
 
     let total = spec.monte_carlo_replicates.saturating_mul(2).max(1);
-    let null_ci = wilson_interval(null_rejections, spec.monte_carlo_replicates);
+    let null_ci = wilson_interval(null_rejections, null_analyzable_replicates);
     let power_ci = wilson_interval(alternative_rejections, spec.monte_carlo_replicates);
+    let null_coverage = wilson_interval(null_analyzable_replicates, spec.monte_carlo_replicates);
+    let alternative_coverage =
+        wilson_interval(alternative_analyzable_replicates, spec.monte_carlo_replicates);
     let mean_analyzable = analyzable_total as f64 / f64::from(total);
     let below_probability = f64::from(below_minimum) / f64::from(total);
 
@@ -329,6 +346,10 @@ fn simulate_scenario(
         within_lot_build_sd: within_sd,
         null_rejection_probability: null_ci,
         alternative_power: power_ci,
+        null_analyzable_replicates,
+        alternative_analyzable_replicates,
+        null_analysis_coverage: null_coverage,
+        alternative_analysis_coverage: alternative_coverage,
         mean_analyzable_lot_pairs: mean_analyzable,
         probability_below_minimum_lot_pairs: below_probability,
     }
@@ -896,6 +917,25 @@ mod tests {
         let scenario = &result.candidates[0].scenario_results[0];
         assert!(scenario.mean_analyzable_lot_pairs < 12.0);
         assert!(scenario.probability_below_minimum_lot_pairs > 0.0);
+    }
+
+    #[test]
+    fn type_one_error_is_conditioned_on_analysable_null_simulations() {
+        let mut design = spec();
+        design.candidates = vec![DesignCandidate {
+            candidate_id: "DESIGN".to_string(),
+            independent_lot_pairs: 12,
+            paired_build_blocks_per_lot: 3,
+        }];
+        design.build_pair_missing_probability = 0.5;
+        let result = evaluate_power_design(&design);
+        let scenario = &result.candidates[0].scenario_results[0];
+        assert!(scenario.null_analyzable_replicates <= design.monte_carlo_replicates);
+        assert!(scenario.alternative_analyzable_replicates <= design.monte_carlo_replicates);
+        assert!(scenario.null_analysis_coverage.estimate < 1.0);
+        assert!(scenario.alternative_analysis_coverage.estimate < 1.0);
+        assert!(scenario.null_rejection_probability.estimate <= 1.0);
+        assert!(scenario.alternative_power.estimate <= scenario.alternative_coverage.estimate);
     }
 
     #[test]
