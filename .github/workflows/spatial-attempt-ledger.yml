@@ -80,6 +80,18 @@ jobs:
           bad["evaluator_truth"] = {"world_id": "hidden"}
           mutations.append(("unknown evaluator-truth field is rejected", bad))
 
+          bad = copy.deepcopy(example)
+          del bad["run_identity"]["scorer_sha256"]
+          mutations.append(("scoring code identity is required", bad))
+
+          bad = copy.deepcopy(example)
+          bad["run_identity"]["reference_source_independence"] = "assumed-independent"
+          mutations.append(("reference independence must use a declared enum", bad))
+
+          bad = copy.deepcopy(example)
+          bad["run_identity"]["qualification_criteria"]["minimum_pose_coverage"] = 1.4
+          mutations.append(("preregistered coverage threshold must be within [0,1]", bad))
+
           for label, candidate in mutations:
               if not list(validator.iter_errors(candidate)):
                   raise SystemExit("negative control unexpectedly accepted: " + label)
