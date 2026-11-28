@@ -78,7 +78,7 @@ The 2025 paper's values are source-specific contextual evidence only. The softwa
 
 ## Mass balance
 
-The v0.1 evaluator compares interval-bounded feedstock plus declared added inputs with the sum of all receipted output streams. A definite non-overlap is FAIL. Missing streams, invalid mass evidence and arithmetic uncertainty are INDETERMINATE.
+The v0.1 evaluator computes the full residual interval (total measured output mass minus total declared input mass) and requires the entire residual interval to remain inside a preregistered absolute tolerance. A residual definitely outside tolerance is FAIL; a residual that crosses the tolerance boundary is INDETERMINATE. Overlap of input/output intervals alone is not a qualification pass. Missing streams, invalid mass evidence and arithmetic uncertainty are INDETERMINATE.
 
 This is a gross process mass balance, not an elemental balance. Elemental accounting, off-gas chemistry, life-cycle assessment and techno-economic analysis require separate measured data and matched boundaries.
 
