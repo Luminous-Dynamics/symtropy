@@ -1,0 +1,82 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-ARCHITECTURE-BENCH-001",
+  "claim_ceiling": "Source register supports benchmark framing only. It does not establish matched motor results, AM system advantage, formal standard conformity or certification.",
+  "sources": [
+    {
+      "id": "JSAMD-NDFEB-AM-REVIEW-2026",
+      "doi": "10.1016/j.jsamd.2026.101226",
+      "source_type": "review",
+      "scope": "AM NdFeB permanent magnet manufacturing routes and performance challenges",
+      "claims": [
+        "AM NdFeB literature Br broadly 0.6–1.0 T",
+        "MEX is competitive for bonded NdFeB",
+        "LPBF density and texture challenges; SLS/binder-jet porosity constraints",
+        "conventional anisotropic sintered NdFeB remains higher in Br"
+      ],
+      "limits": [
+        "aggregated cross-study values, not matched motor/architecture tests",
+        "material form, density, magnetic alignment and measurement conditions differ"
+      ]
+    },
+    {
+      "id": "FODOR-MOEM-2026",
+      "doi": "10.1002/adem.71259",
+      "source_type": "perspective",
+      "scope": "materials-driven additive manufacturing for electrical machines, qualification-oriented evidence",
+      "claims": [
+        "MOEM M1-M5 evidence maturity framework",
+        "AM component comparisons should include function and qualification maturity"
+      ],
+      "limits": [
+        "research reporting framework, not a formal certification standard",
+        "examples across different material families are not directly rankable"
+      ]
+    },
+    {
+      "id": "ISOASTM-52920-2023",
+      "reference": "ISO/ASTM 52920:2023",
+      "source_type": "standard",
+      "scope": "industrial AM process and production-site quality assurance",
+      "limits": [
+        "crosswalk only; no conformity claim"
+      ]
+    },
+    {
+      "id": "ISOASTM-TS-52930-2021",
+      "reference": "ISO/ASTM TS 52930:2021",
+      "source_type": "technical_specification",
+      "scope": "PBF-LB equipment IQ/OQ/PQ",
+      "limits": [
+        "does not qualify feedstock or all post-processing; crosswalk only"
+      ]
+    },
+    {
+      "id": "IEC-60404-5-2015",
+      "reference": "IEC 60404-5:2015",
+      "source_type": "standard",
+      "scope": "hard-magnet material measurement methods",
+      "limits": [
+        "material measurement does not prove complete component function"
+      ]
+    },
+    {
+      "id": "IEC-60404-18-2025",
+      "reference": "IEC 60404-18:2025",
+      "source_type": "standard",
+      "scope": "open-circuit DC hard-magnet characterization by superconducting magnet methods",
+      "limits": [
+        "method scope and material homogeneity conditions apply"
+      ]
+    },
+    {
+      "id": "ISO-IEC-17025-2017",
+      "reference": "ISO/IEC 17025:2017",
+      "source_type": "standard",
+      "scope": "laboratory competence and method scope",
+      "limits": [
+        "laboratory competence does not qualify a motor architecture or production process"
+      ]
+    }
+  ]
+}

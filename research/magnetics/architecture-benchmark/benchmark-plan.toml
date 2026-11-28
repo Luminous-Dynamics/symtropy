@@ -1,0 +1,83 @@
+schema_version = "0.1"
+program_id = "MAG-AM-ARCHITECTURE-BENCH-001"
+revision = "0.1-draft"
+status = "synthetic_interval_decision_evaluator"
+date = "2026-11-27"
+issue = 7802
+parents = [7757, 7770, 7774, 7791, 7792]
+
+[comparison]
+scope_must_match_exactly = true
+candidate_maturity_minimum = "M4"
+required_conventional_pm_baseline_families_must_be_preregistered = true
+at_least_one_conventional_pm_baseline_required = true
+reluctance_only_control_can_satisfy_baseline_requirement = false
+baseline_optimization_receipt_required = true
+
+[baseline_optimization]
+minimum_evaluations = 100
+minimum_independent_restarts = 3
+objective_digest_must_match_task = true
+constraint_digest_must_match_acceptance_policy = true
+search_space_digest_required = true
+
+[metrics]
+mandatory_function = ["torque_power_duty", "efficiency_duty", "max_temperature", "demagnetization_margin", "retention_margin"]
+architecture_benefits = ["pm_mass", "rotor_inertia", "cost_per_torque", "cost_per_power", "material_utilization"]
+universal_weighted_score = false
+hard_limits_are_noncompensatory = true
+
+[interval_rules]
+maximizing_noninferiority = "candidate_lower >= baseline_upper - margin"
+minimizing_noninferiority = "candidate_upper <= baseline_lower + margin"
+maximizing_benefit = "candidate_lower > baseline_upper"
+minimizing_benefit = "candidate_upper < baseline_lower"
+overlap_is_proven_benefit = false
+
+[claim_policy]
+simulation_only_can_claim_architecture_advantage = false
+literature_only_can_claim_architecture_advantage = false
+synthetic_advantage_is_physical_result = false
+reluctance_only_is_sufficient_baseline = false
+
+[implementation]
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+schema = "evaluator/architecture-benchmark-v0.1.schema.json"
+fixture = "evaluator/fixtures/synthetic-architecture-benchmark-v0.1.json"
+source_register = "fixtures/architecture-benchmark-source-register-v0.1.json"
+workflow = ".github/workflows/magnetic-architecture-benchmark.yml"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 18
+unit_tests_executed = false
+exact_head_ci_pass = false
+
+
+[decision_classes]
+noninferiority_failure = "InferiorToBaseline"
+baseline_hard_failure = "Indeterminate"
+candidate_hard_failure = "Fail"
+missing_or_unqualified_component_evidence = "Indeterminate"
+no_candidate_trial_returns_empty_decisions = true
+only_candidate_architectures_receive_candidate_decisions = true
+
+[robust_baseline_semantics]
+maximize_noninferiority_compares_candidate_lower_to_baseline_upper = true
+minimize_noninferiority_compares_candidate_upper_to_baseline_lower = true
+baseline_must_itself_pass_declared_hard_limits = true
+
+
+[baseline_admissibility]
+baseline_must_pass_hard_requirements = true
+baseline_hard_failure_decision = "Indeterminate"
+candidate_hard_failure_decision = "Fail"
+mandatory_noninferiority_failure_decision = "InferiorToBaseline"
+all_required_baselines_must_be_present = true
+reluctance_only_is_secondary_control = true
+candidate_role_must_be_am_or_hybrid = true
+
+[noninferiority_interval_rules]
+maximize = "candidate_lower >= baseline_upper - margin"
+minimize = "candidate_upper <= baseline_lower + margin"
+benefit_interval_overlap_counts_as_improvement = false
