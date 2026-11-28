@@ -86,10 +86,7 @@
           "lower": 49.9,
           "upper": 50.1
         },
-        "completed_mission_count": {
-          "lower": 99.9,
-          "upper": 100.1
-        },
+        "completed_mission_count": 100,
         "durability_receipt_id": "SYNTHETIC-DURABILITY-AM-HYBRID",
         "durability_receipt_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
         "method_id": "SYNTHETIC-SHAFT-ENERGY",
@@ -285,10 +282,7 @@
           "lower": 49.9,
           "upper": 50.1
         },
-        "completed_mission_count": {
-          "lower": 99.9,
-          "upper": 100.1
-        },
+        "completed_mission_count": 100,
         "durability_receipt_id": "SYNTHETIC-DURABILITY-SINTERED-IPM",
         "durability_receipt_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
         "method_id": "SYNTHETIC-SHAFT-ENERGY",
@@ -484,10 +478,7 @@
           "lower": 49.9,
           "upper": 50.1
         },
-        "completed_mission_count": {
-          "lower": 99.9,
-          "upper": 100.1
-        },
+        "completed_mission_count": 100,
         "durability_receipt_id": "SYNTHETIC-DURABILITY-PMASS-SYNRM",
         "durability_receipt_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
         "method_id": "SYNTHETIC-SHAFT-ENERGY",
