@@ -148,14 +148,16 @@ The producer enumerates policy actions by current information set and physical s
 The independent reference takes a different path: it enumerates physically legal trajectories per scenario, then joins those paths only where decision-time observable-history digests agree. Its verifier independently re-admits the input, replays a submitted policy, checks movement/arrival/service/corridor accounting and uses the trajectory oracle to challenge infeasibility dispositions.
 
 The seeded test lane uses 250 deterministic tiny scenario trees and compares the producer's disposition/witness with the independently enumerated policy paths. Frozen tests cover:
-- zero-time information relaxation versus a late physical arrival;
-- decisions that can or cannot branch before demand is revealed;
-- resource unavailability while in transit;
-- parallel logical routes sharing one physical corridor;
-- route closures whose physical effect precedes their report;
-- incompatible service floors exceeding all available mobile units;
-- policy digest/history mutations and input-order canonicalization;
-- zero-duration travel and integer-arrival overflow.
+- zero-time information relaxation versus late physical arrival;
+- arrival exactly at the required service boundary;
+- directed routes (no inferred reverse arc);
+- decisions that can/cannot branch before demand is revealed;
+- in-transit resource unavailability;
+- parallel route aliases sharing one physical corridor;
+- late-reported route closures;
+- insufficient total mobile units;
+- policy/history digest mutations and canonical ordering;
+- 250 deterministic tiny policy instances checked against independent scenario trajectories.
 
 ### Result and claim boundary
 
