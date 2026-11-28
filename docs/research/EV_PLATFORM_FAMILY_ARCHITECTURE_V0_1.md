@@ -317,6 +317,54 @@ No single score should allow range, cost or performance to compensate for a safe
 - Zhao et al. (16 June 2026), battery integration trade-offs in transportation: https://www.nature.com/articles/s44359-026-00185-y
 - Cellular crash structures review (2026): https://www.mdpi.com/1996-1944/19/14/2985
 
+
+
+## 15. South African manufacturing and industrialization pathway
+
+The October 2026 naamsa release reports 13,689 light-commercial vehicles (bakkies/minibuses) and 770 medium commercial vehicles sold domestically during the month. These totals establish the scale of the incumbent vehicle categories, **not** the BEV share, near-term addressable market or demand for a Luminous product. The BEV case must be validated with fleet interviews, actual duty-cycle and energy-cost data, total-cost-of-ownership comparisons and financeability.
+
+The dtic Electric Vehicles White Paper frames EV transition as both a change in the domestic market and a change in productive capacity; it identifies deeper supply-chain localization and a regional critical-minerals-to-battery value chain as industrial opportunities. Design for production and export from the start, but do not claim local-content percentages before a supplier and BOM audit.
+
+### 15.1 Design-for-local-manufacture priorities
+
+Evaluate localization by process capability, quality, cost, volume and warranty risk, not by a headline local-content percentage.
+
+| Work package | Early localization hypothesis | Evidence required |
+|---|---|---|
+| Chassis rails, crossmembers and brackets | Local fabrication and welding may be viable at pilot volumes | Material traceability, weld procedure qualification, fatigue/corrosion, dimensional capability |
+| Cargo body, dropside, box and reefer conversion | High-value local converter ecosystem | Body mass/CG, mounting loads, sealing, crash/load restraint and conversion approval |
+| Wiring harnesses, LV distribution and body looms | Candidate local supply | EMC, environmental sealing, traceability, end-of-line tests and change control |
+| Pack enclosure, cooling plates and underbody shields | Local metalwork/thermal fabrication candidate | Pressure/leak, corrosion, thermal uniformity, crush, joining and material recovery |
+| Battery pack assembly and end-of-line test | Potential staged localization using qualified imported cells initially | Cell provenance, process controls, formation/inspection scope, HV test, isolation, thermal propagation and warranty returns |
+| Seats, glass, tyres, trim and service components | Existing automotive supplier search | Vehicle-specific performance, safety and regulatory evidence |
+| Inverter, motor, cells and high-voltage semiconductors | Likely strategic supply/technology partnerships in early phases | Supplier financial health, quality history, software access, repair rights, cybersecurity and end-of-life support |
+| Fleet software, diagnostics and configuration | Luminous-controlled differentiation | Secure boot/update, provenance, audit, fleet uptime and reproducible verification |
+
+A local battery value chain should not be reduced to assembling imported cells. The roadmap should evaluate enclosure, busbars, thermal management, BMS, pack assembly, testing, second-life characterization, recycling and eventually cell/active-material partnerships where volume, quality and economics support them.
+
+### 15.2 Incentive diligence (not a forecast)
+
+South Africa's Taxation Laws Amendment Act 42 of 2024 inserted section 12V for a 150% deduction in respect of qualifying buildings and new/unused machinery, plant and equipment used mainly by a motor-vehicle manufacturer in the production of battery-electric or hydrogen-powered vehicles in the Republic. SARS's draft interpretation note describes qualifying assets brought into use from 1 March 2026 and before 1 March 2036. Eligibility is conditional; it is not a universal grant and should not be included in project cash flow until tax counsel and SARS/dtic requirements are confirmed.
+
+The dtic Automotive Investment Scheme (AIS) describes a non-taxable grant of 20% of qualifying productive-asset investment for OEMs and 25% for component manufacturers/tooling companies, subject to approval and the scheme's requirements. Treat AIS, section 12V, APDP2 and any NEV-specific support as separate instruments with explicit eligibility, caps, conditions, timing and interaction. Do not assume every incentive stacks or that a concept-stage venture qualifies.
+
+Primary references:
+- dtic EV White Paper, December 2023: https://www.thedtic.gov.za/wp-content/uploads/EV-White-Paper.pdf
+- Taxation Laws Amendment Act 42 of 2024, section 12V: https://www.sars.gov.za/wp-content/uploads/Legal/AmendActs/Legal-LPrim-AA-2024-02-Taxation-Laws-Amendment-Act-42-of-2024-GG-51826-24-December-2024.pdf
+- SARS draft interpretation note on section 12V (November 2026): https://www.sars.gov.za/wp-content/uploads/Legal/Drafts/Legal-LPrep-Draft-2026-11-Draft-Interpretation-Note-Deduction-iro-production-of-battery-electric-and-hydrogen-powered-vehicles.pdf
+- dtic Automotive Investment Scheme: https://www.thedtic.gov.za/financial-and-non-financial-support/incentives/automotive-investment-scheme/
+- naamsa October 2026 sales release: https://naamsa.net/wp-content/uploads/2026/11/20261102-naamsa-October-2026-New-Vehicle-Sales-Media-Release.pdf
+
+### 15.3 Industrialization gates
+
+1. Freeze an auditable product architecture and variant family before buying model-specific tooling.
+2. Create an as-designed / as-built configuration and supplier evidence thread for every vehicle and body converter.
+3. Cost a complete local/imported BOM by revision and volume tier; include tooling, yield, scrap, warranty, logistics, working capital and foreign-exchange exposure.
+4. Qualify local suppliers against the same performance and safety tests as imported components.
+5. Separate pilot assembly, low-volume conversion and mass-production business cases; do not extrapolate one to the next.
+6. Map target export-market homologation and service obligations before platform hard points are frozen.
+7. Preserve battery repair, refurbishment and recovery capability as part of manufacturing and product-life-cycle planning.
+
 ## 14. Claim ceiling
 
 This document is a concept architecture and prospective benchmark plan. It does not establish that the proposed payloads, ranges, costs, safety performance, production costs or local content have been achieved. It does not certify any battery, vehicle, body conversion, charger or manufacturing process. All design targets must be replaced by measured evidence from production-representative prototypes and then by homologated specifications.
