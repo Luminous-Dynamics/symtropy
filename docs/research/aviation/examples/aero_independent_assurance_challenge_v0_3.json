@@ -1,0 +1,290 @@
+{
+  "schema": "AeroIndependentAssuranceChallengeV0_3",
+  "corpus_id": "AERO-IAB-CHALLENGE-SEED-001-V0_3",
+  "status": "NOT_INDEPENDENTLY_ADJUDICATED",
+  "execution_status": "NOT_EXECUTED",
+  "cases": [
+    {
+      "case_id": "IAB01",
+      "case_class": "positive_control",
+      "mutation": "Complete claim context, authorized evidence, current owner receipts, applicable model strata and complete dependency observation.",
+      "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+      "expected_reason_codes": []
+    },
+    {
+      "case_id": "IAB02",
+      "case_class": "single_fault",
+      "mutation": "Substitute a different serial-numbered article with the same part number.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_PHYSICAL_SUBJECT_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB03",
+      "case_class": "single_fault",
+      "mutation": "Substitute a different material batch while retaining the original certificate digest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_MATERIAL_BATCH_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB04",
+      "case_class": "single_fault",
+      "mutation": "Use evidence from a superseded configuration revision.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "EVIDENCE_CONFIGURATION_NOT_CURRENT"
+      ]
+    },
+    {
+      "case_id": "IAB05",
+      "case_class": "single_fault",
+      "mutation": "Change the intended operating envelope beyond the validated range.",
+      "expected_disposition": "OUT_OF_SCOPE",
+      "expected_reason_codes": [
+        "MODEL_OPERATING_DOMAIN_EXCEEDED"
+      ]
+    },
+    {
+      "case_id": "IAB06",
+      "case_class": "single_fault",
+      "mutation": "Alter one source payload byte while retaining the original SHA-256 commitment.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "EVIDENCE_PAYLOAD_DIGEST_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB07",
+      "case_class": "single_fault",
+      "mutation": "Use an otherwise valid report from an unauthorized producer.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "EVIDENCE_PRODUCER_AUTHORITY_UNVERIFIED"
+      ]
+    },
+    {
+      "case_id": "IAB08",
+      "case_class": "single_fault",
+      "mutation": "Replay a valid owner receipt for a different evidence record.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "OWNER_RECEIPT_RECORD_BINDING_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB09",
+      "case_class": "single_fault",
+      "mutation": "Use evidence first received after the historical as-known cutoff.",
+      "expected_disposition": "NOT_KNOWN_AT_SNAPSHOT",
+      "expected_reason_codes": [
+        "EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"
+      ]
+    },
+    {
+      "case_id": "IAB10",
+      "case_class": "single_fault",
+      "mutation": "Backdate issuer-asserted event time while receiver-first-seen remains later than the decision cutoff.",
+      "expected_disposition": "NOT_KNOWN_AT_SNAPSHOT",
+      "expected_reason_codes": [
+        "EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"
+      ]
+    },
+    {
+      "case_id": "IAB11",
+      "case_class": "single_fault",
+      "mutation": "Apply current trust policy while claiming a historical-trust replay result.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "TRUST_POLICY_SNAPSHOT_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB12",
+      "case_class": "single_fault",
+      "mutation": "Remove one required model validation stratum report.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "MODEL_REQUIRED_STRATUM_MISSING"
+      ]
+    },
+    {
+      "case_id": "IAB13",
+      "case_class": "single_fault",
+      "mutation": "Add an unregistered model validation stratum report.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "MODEL_UNEXPECTED_STRATUM"
+      ]
+    },
+    {
+      "case_id": "IAB14",
+      "case_class": "single_fault",
+      "mutation": "Reuse a model report from a different solver build digest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "MODEL_SOLVER_IDENTITY_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB15",
+      "case_class": "single_fault",
+      "mutation": "Leak test-episode identifiers into the training partition.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "MODEL_VALIDATION_SPLIT_LEAKAGE"
+      ]
+    },
+    {
+      "case_id": "IAB16",
+      "case_class": "single_fault",
+      "mutation": "Present a model report with missing uncertainty characterization.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "MODEL_UNCERTAINTY_OBLIGATION_MISSING"
+      ]
+    },
+    {
+      "case_id": "IAB17",
+      "case_class": "single_fault",
+      "mutation": "Remove an upstream material-batch dependency from the impact graph while observer coverage is claimed complete.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "DEPENDENCY_OBSERVER_INTEGRITY_UNVERIFIED"
+      ]
+    },
+    {
+      "case_id": "IAB18",
+      "case_class": "single_fault",
+      "mutation": "Mark observer coverage unknown but return an empty affected-claim set as complete.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "DEPENDENCY_OBSERVER_COVERAGE_UNKNOWN"
+      ]
+    },
+    {
+      "case_id": "IAB19",
+      "case_class": "single_fault",
+      "mutation": "Change calibration evidence used by one claim and omit that claim from the impact set.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "AFFECTED_CLAIM_INVALIDATION_MISSED"
+      ]
+    },
+    {
+      "case_id": "IAB20",
+      "case_class": "metamorphic",
+      "mutation": "Permute evidence-manifest order without changing identifiers or payloads; normalized disposition must remain identical.",
+      "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+      "expected_reason_codes": []
+    },
+    {
+      "case_id": "IAB21",
+      "case_class": "metamorphic",
+      "mutation": "Permute graph node order without changing edges; normalized argument semantics must remain identical.",
+      "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+      "expected_reason_codes": []
+    },
+    {
+      "case_id": "IAB22",
+      "case_class": "coupled_fault",
+      "mutation": "Combine a late receiver-first-seen timestamp with a backdated issuer event and a retroactive trust-policy change.",
+      "expected_disposition": "NOT_KNOWN_AT_SNAPSHOT",
+      "expected_reason_codes": [
+        "EVIDENCE_NOT_KNOWN_AT_SNAPSHOT"
+      ]
+    },
+    {
+      "case_id": "IAB23",
+      "case_class": "coupled_fault",
+      "mutation": "Combine a wrong physical subject with an unauthorized producer and a valid-looking digest.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "CLAIM_PHYSICAL_SUBJECT_MISMATCH",
+        "EVIDENCE_PRODUCER_AUTHORITY_UNVERIFIED"
+      ]
+    },
+    {
+      "case_id": "IAB24",
+      "case_class": "coupled_fault",
+      "mutation": "Combine missing model strata with a configuration mismatch and an optimistic aggregate score.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "MODEL_REQUIRED_STRATUM_MISSING",
+        "MODEL_CONFIGURATION_MISMATCH"
+      ]
+    },
+    {
+      "case_id": "IAB25",
+      "case_class": "single_fault",
+      "mutation": "Classify digest-only mandatory evidence as fully reproducible.",
+      "expected_disposition": "REJECTED",
+      "expected_reason_codes": [
+        "REPRODUCIBILITY_CLASSIFICATION_FALSE"
+      ]
+    },
+    {
+      "case_id": "IAB26",
+      "case_class": "single_fault",
+      "mutation": "Use an undeclared external network dependency during an allegedly hermetic replay.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "VERIFIER_NETWORK_DEPENDENCY_UNQUALIFIED"
+      ]
+    },
+    {
+      "case_id": "IAB27",
+      "case_class": "single_fault",
+      "mutation": "Change a non-dependent document and unnecessarily requalify every claim despite complete dependency observation.",
+      "expected_disposition": "REVIEWABLE_FOR_INDEPENDENT_DECISION",
+      "expected_reason_codes": [],
+      "expected_impact_outcome": "NO_REQUALIFICATION_REQUIRED"
+    },
+    {
+      "case_id": "IAB28",
+      "case_class": "single_fault",
+      "mutation": "A source owner is unavailable and observer coverage for the interval cannot be established.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "DEPENDENCY_OBSERVER_COVERAGE_UNVERIFIED"
+      ]
+    },
+    {
+      "case_id": "IAB29",
+      "case_class": "single_fault",
+      "mutation": "Recommend a destructive physical test without required authorization or approved procedure.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "EVIDENCE_ACTION_AUTHORITY_MISSING"
+      ]
+    },
+    {
+      "case_id": "IAB30",
+      "case_class": "single_fault",
+      "mutation": "Recommend an additional test but mark the claim resolved before the resulting artifact is received and verified.",
+      "expected_disposition": "INCOMPLETE",
+      "expected_reason_codes": [
+        "EVIDENCE_ACTION_COMPLETION_NOT_VERIFIED"
+      ]
+    },
+    {
+      "case_id": "IAB31",
+      "case_class": "coupled_fault",
+      "mutation": "Combine a revoked producer key, a previously valid signature and a trust policy that changed after the original cutoff.",
+      "expected_disposition": "UNVERIFIED",
+      "expected_reason_codes": [
+        "EVIDENCE_PRODUCER_AUTHORITY_UNVERIFIED"
+      ],
+      "replay_mode": "CURRENT_POLICY_COUNTERFACTUAL"
+    },
+    {
+      "case_id": "IAB32",
+      "case_class": "metamorphic",
+      "mutation": "Reorder candidate evidence-acquisition actions with equal declared utility; deterministic tie-breaking must preserve the same ranked set.",
+      "expected_disposition": "STRUCTURALLY_VALID",
+      "expected_reason_codes": []
+    }
+  ]
+}

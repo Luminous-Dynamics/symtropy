@@ -1,0 +1,42 @@
+name: AERO Independent Assurance Benchmark Contract
+
+on:
+  push:
+    branches:
+      - research/aero-independent-assurance-benchmark-v0.3
+    paths:
+      - ".github/workflows/aero-independent-assurance-benchmark.yml"
+      - "tools/aero/validate_independent_assurance_benchmark.py"
+      - "docs/research/aviation/AERO_BENCHMARK_STATISTICAL_PROTOCOL_V0_1.md"
+      - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
+      - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
+      - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
+      - "docs/research/aviation/schemas/aero_independent_assurance_benchmark_v0_3.schema.json"
+      - "docs/research/aviation/schemas/aero_independent_assurance_challenge_v0_3.schema.json"
+  pull_request:
+    paths:
+      - ".github/workflows/aero-independent-assurance-benchmark.yml"
+      - "tools/aero/validate_independent_assurance_benchmark.py"
+      - "docs/research/aviation/AERO_INDEPENDENT_ASSURANCE_BENCHMARK_V0_3.md"
+      - "docs/research/aviation/examples/aero_independent_assurance_benchmark_v0_3.json"
+      - "docs/research/aviation/examples/aero_independent_assurance_challenge_v0_3.json"
+      - "docs/research/aviation/schemas/aero_independent_assurance_benchmark_v0_3.schema.json"
+      - "docs/research/aviation/schemas/aero_independent_assurance_challenge_v0_3.schema.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Benchmark schema and metric contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install schema validator
+        run: python -m pip install --disable-pip-version-check "jsonschema==4.23.0"
+      - name: Validate v0.3 registry and challenge corpus
+        run: python tools/aero/validate_independent_assurance_benchmark.py
