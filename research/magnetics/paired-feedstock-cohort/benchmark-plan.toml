@@ -47,7 +47,7 @@ source = "evaluator/src/lib.rs"
 schema = "evaluator/paired-feedstock-cohort-v0.1.schema.json"
 fixture = "evaluator/fixtures/paired-feedstock-cohort-synthetic-v0.1.json"
 workflow = ".github/workflows/magnetic-paired-feedstock-cohort.yml"
-authored_unit_tests = 21
+authored_unit_tests = 23
 tests_executed = false
 exact_head_ci_pass = false
 
