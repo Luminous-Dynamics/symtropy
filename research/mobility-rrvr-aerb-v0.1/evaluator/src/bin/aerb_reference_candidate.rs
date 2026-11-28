@@ -94,7 +94,13 @@ fn reference_submission(episode: &CandidateEpisode, episode_json: &str) -> Resul
         model_sha256: sha256_hex(b"aerb-conservative-reference-policy-v0.2"),
         observer_profile_sha256: sha256_hex(b"aerb-reference-observer-profile-v0.2"),
         possible_world_support_ids: WORLD_IDS.iter().map(|world| (*world).to_owned()).collect(),
-        disposition: mobility_rrvr_aerb_evaluator::Disposition::HoldReconcile,
+        disposition: if episode.observations.iter().any(|observation| {
+            observation.quality != mobility_rrvr_aerb_evaluator::ObservationQuality::Admitted
+        }) {
+            mobility_rrvr_aerb_evaluator::Disposition::Abstain
+        } else {
+            mobility_rrvr_aerb_evaluator::Disposition::HoldReconcile
+        },
         requested_probe_id: None,
         reason_codes: vec![
             "REFERENCE_POLICY_NOT_A_LEARNED_AGENT".to_owned(),
