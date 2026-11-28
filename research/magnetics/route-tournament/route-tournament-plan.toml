@@ -1,0 +1,148 @@
+schema_version = "0.1"
+program_id = "MAG-AM-ROUTE-TOURNAMENT-001"
+revision = "0.1-draft"
+status = "literature_stratified_protocol"
+date = "2026-11-27"
+issue = 7757
+protocol = "MAG_AM_ROUTE_TOURNAMENT_2026-11-27.md"
+
+[decision]
+unit = "accepted_manufactured_component"
+target = "application_specific_field_or_mechanical_function"
+single_remanence_leaderboard = false
+cross_study_values_are_matched_results = false
+hidden_composite_score = false
+
+[route_strata]
+values = ["MEX", "LPBF_SLM", "SLS", "BINDER_JET", "LCM_PHOTOPOLYMER", "PEM_ADJACENT", "CONVENTIONAL_BONDED", "SINTERED_OR_ASSEMBLED"]
+near_net_shape_is_additive_manufacturing = false
+route_specific_inputs_must_be_recorded = true
+
+[identity]
+required = ["application_target_id", "specimen_id", "material_lot_id", "build_run_id", "route_id", "nominal_geometry_digest", "as_built_geometry_digest", "process_genealogy_ref", "magnetization_history_ref", "measurement_ref"]
+holdout_split_unit = ["build", "lot"]
+random_row_split_allowed_for_claimed_generalization = false
+
+[measurement]
+exact_frame_and_grid_required_for_field_map_comparison = true
+standoff_required = true
+background_field_treatment_required = true
+temperature_and_magnetization_state_required = true
+mass_specific_and_volumetric_quantities_interchangeable = false
+surface_field_and_intrinsic_remanence_interchangeable = false
+in_process_and_post_magnetization_fields_interchangeable = false
+
+[correctness_targets]
+false_safe_count = 0
+qualified_identity_closure_fraction = 1.0
+calibration_holdout_leakage_count = 0
+uncertainty_widening_may_improve_disposition = false
+all_targets_achieved = false
+
+[performance_hypotheses]
+reduce_measurements_at_equal_false_safe_rate = true
+improve_accepted_part_yield = true
+reduce_accepted_part_cost = true
+improve_application_function_per_unit_material = true
+all_targets_achieved = false
+
+[[metrics]]
+id = "field_map"
+dimensions = ["vector_mae", "vector_rmse", "max_error", "p95_error", "direction_error", "polarity_boundary_error"]
+
+[[metrics]]
+id = "material"
+dimensions = ["Br", "J", "Hcj", "BHmax", "texture", "porosity", "density", "mechanical_properties"]
+
+[[metrics]]
+id = "manufacturing"
+dimensions = ["dimensional_error", "shrinkage", "feature_resolution", "first_pass_yield", "scrap", "rework", "energy_per_accepted_part"]
+
+[[metrics]]
+id = "economics"
+dimensions = ["accepted_part_cost", "throughput", "material_utilization", "recycled_fraction", "lifecycle_energy"]
+
+[[metrics]]
+id = "decision"
+dimensions = ["false_safe", "false_fail", "ood_abstention", "uncertainty_coverage", "observations_per_accepted_part", "compute_per_accepted_candidate", "decision_regret"]
+
+[[baseline]]
+id = "conventional_reference"
+budget_matched = true
+
+[[baseline]]
+id = "mex_bonded"
+budget_matched = true
+
+[[baseline]]
+id = "lpbf_slm"
+budget_matched = true
+
+[[baseline]]
+id = "sls_binder_jet"
+budget_matched = true
+
+[[baseline]]
+id = "lcm_field_aligned_post_cure"
+budget_matched = true
+
+[[baseline]]
+id = "route_specific_parametric_optimization"
+budget_matched = true
+
+[[baseline]]
+id = "process_aware_inverse_design"
+budget_matched = true
+
+[[baseline]]
+id = "as_built_evidence_gated_selection"
+budget_matched = true
+
+[stages]
+ordered = ["R0_literature_source_ledger", "R1_synthetic_analytical_controls", "R2_common_target_challenge", "R3_repeated_physical_specimens", "R4_equal_budget_tournament", "R5_application_demonstration"]
+
+[claim_policy]
+literature_review_proves_matched_route_superiority = false
+synthetic_cases_prove_physical_manufacturing_performance = false
+one_best_specimen_establishes_route_repeatability = false
+nominal_cad_pass_qualifies_as_built_component = false
+certification_or_product_release_authority_granted = false
+
+
+[evidence_maturity]
+framework = "MOEM_M1_M5"
+source_doi = "10.1002/adem.71259"
+formal_standard = false
+levels = ["M1_CONCEPTUAL", "M2_COUPON_MATERIAL", "M3_CONTROLLED_PSPP", "M4_FUNCTIONAL_COMPONENT", "M5_QUALIFICATION_RELEVANT"]
+cross_maturity_results_are_directly_comparable = false
+m5_requires = ["reproducible_builds", "variability_control", "durability_evidence", "qualification_relevant_component_performance"]
+single_best_specimen_can_support_m5 = false
+build_count_alone_supports_m5 = false
+permanent_magnet_metrics = ["Br_temperature", "Hcj_temperature", "recoil_behavior", "demagnetization_margin", "magnetization_repeatability", "mechanical_retention", "interface_stability"]
+application_economics = ["cost_per_torque", "cost_per_power", "accepted_part_cost", "yield", "scrap", "inspection", "post_processing", "process_capability"]
+
+
+[state_of_art_nov_2026]
+ndfeb_am_reported_br_envelope_t = [0.6, 1.0]
+conventional_anisotropic_sintered_ndfeb_br_t = [1.4, 1.5]
+mex_is_most_competitive_reported_am_route_for_bonded_ndfeb = true
+lpbf_density_demonstrated_but_magnetic_texture_remains_limiting = true
+sls_and_binder_jet_porosity_is_limiting = true
+ranges_are_matched_head_to_head_results = false
+source_doi = "10.1016/j.jsamd.2026.101226"
+
+[component_architecture_benchmark]
+required_baselines = ["optimized_sintered_pm", "optimized_bonded_pm", "optimized_pm_assisted_synrm"]
+system_boundary_must_match = ["application_target", "duty_cycle", "air_gap", "temperature", "inverter", "cooling", "operating_envelope"]
+architecture_value_metrics = ["torque_density", "power_density", "pm_mass", "rotor_inertia", "retention_margin", "torque_ripple", "efficiency_over_duty", "cost_per_torque"]
+raw_remanence_is_the_only_winner_metric = false
+hard_demagnetization_and_retention_gates_are_noncompensatory = true
+
+[relevant_industry_standards]
+iso_astm_52902_2023 = "geometric capability test artefacts"
+iso_astm_52904_2024 = "PBF critical applications process characteristics"
+iso_astm_52908_2023 = "PBF finished-part post-processing inspection and testing"
+iso_astm_52927_2024 = "AM characteristics and test methods"
+iso_astm_52928_2024 = "metal powder feedstock lifecycle management"
+iso_astm_52929_2025 = "PBF material property data sheet presentation"
+iso_astm_52931_2023 = "metal AM environmental health and safety principles"

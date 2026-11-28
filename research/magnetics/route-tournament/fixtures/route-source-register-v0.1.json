@@ -1,0 +1,414 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-ROUTE-TOURNAMENT-001",
+  "fixture_class": "literature_source_register",
+  "claim_ceiling": "The records below preserve review-level and paper-level source statements with different evidence classes. They are not a matched route benchmark or locally reproduced measurements.",
+  "sources": [
+    {
+      "source_id": "AM-REVIEW-2026",
+      "route_stratum": "cross_route_review",
+      "doi": "10.1016/j.jsamd.2026.101226",
+      "publication_date": "2026-09",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "published_am_ndfeb_remanence_tesla_range": [
+          0.6,
+          1
+        ],
+        "mex_described_as_highest_remanence_am_route": true,
+        "laser_powder_bed_texture_challenge": true,
+        "sls_binder_jet_porosity_challenge": true
+      },
+      "limitations": [
+        "cross_study synthesis, not matched specimen comparison",
+        "route-specific feedstock and measurement methods differ",
+        "do not use these range values as a universal acceptance threshold"
+      ]
+    },
+    {
+      "source_id": "BONDED-NDFEB-REVIEW-2026",
+      "route_stratum": "bonded_magnets_cross_route",
+      "doi": "10.1016/j.jre.2026.03.002",
+      "publication_date": "2026-03-03",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "binder_flowability_magnetic_loading_tradeoff": true,
+        "high_filler_loading_mechanical_processability_tradeoff": true
+      },
+      "limitations": [
+        "review synthesis; not an individual route test",
+        "no route superiority inferred"
+      ]
+    },
+    {
+      "source_id": "SCHAFER-RECYCLED-LPBF-2026",
+      "route_stratum": "LPBF_recycled_NdFeB_PA12",
+      "doi": "10.1002/aesr.202500339",
+      "publication_date": "2026-01-05",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "hd_derived_printed_remanence_tesla": 0.34,
+        "hd_derived_porosity_fraction": 0.326,
+        "hd_derived_alignment_degree": 0.75,
+        "milled_printed_remanence_tesla": 0.32,
+        "milled_porosity_fraction": 0.283,
+        "milled_alignment_degree": 0.65,
+        "hd_powder_d90_table_um": 276,
+        "hd_powder_d90_discussion_um": 279
+      },
+      "limitations": [
+        "supporting raw data available from authors on request",
+        "published scalar values are not a 3D field map",
+        "D90 source discrepancy remains unresolved",
+        "not matched to MEX, SLS, binder jet or LCM"
+      ]
+    },
+    {
+      "source_id": "BEHERA-PATTERNED-SLS-2026",
+      "route_stratum": "SLS_patterned_multi_material",
+      "doi": "10.1038/s41598-026-43131-5",
+      "publication_date": "2026-03-11",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "multi_material_patterned_poles_demonstrated": true,
+        "build_field_millitesla": 230,
+        "post_magnetization_field_tesla_range": [
+          1.5,
+          1.9
+        ]
+      },
+      "limitations": [
+        "build field, post-magnetization field and probe field are distinct",
+        "raw pointwise 3D map and exact probe conditions required for matched reproduction",
+        "some equipment/process embodiments are patent-pending; conduct independent freedom-to-operate review"
+      ]
+    },
+    {
+      "source_id": "KIM-LCM-EBPC-2025",
+      "route_stratum": "LCM_field_aligned_post_cure",
+      "doi": "10.1080/17452759.2025.2593543",
+      "publication_date": "2025-12-05",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "field_alignment_and_electron_beam_post_cure_combined": true
+      },
+      "limitations": [
+        "mass-specific and volumetric magnetic quantities must remain separate",
+        "publisher data DOI and candidate Zenodo record discrepancy unresolved"
+      ]
+    },
+    {
+      "source_id": "RATHFELDER-PEM-2025",
+      "route_stratum": "PEM_adjacent_near_net_shape",
+      "doi": "10.1038/s41598-025-19111-6",
+      "publication_date": "2025-10-09",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "reported_alignment_ratio_max": 0.96
+      },
+      "limitations": [
+        "powder extrusion moulding is an adjacent near-net-shape route, not a matched LPBF or MEX route",
+        "Br/Js alignment ratio is not interchangeable with <cos(theta)>"
+      ]
+    },
+    {
+      "source_id": "FODOR-MOEM-2026",
+      "route_stratum": "cross_route_evidence_maturity",
+      "doi": "10.1002/adem.71259",
+      "publication_date": "2026-09-09",
+      "evidence_class": "perspective_framework",
+      "source_claims": {
+        "evidence_levels": [
+          "M1_CONCEPTUAL",
+          "M2_COUPON_MATERIAL",
+          "M3_CONTROLLED_PSPP",
+          "M4_FUNCTIONAL_COMPONENT",
+          "M5_QUALIFICATION_RELEVANT"
+        ],
+        "current_am_em_evidence_concentrated_at": [
+          "M2",
+          "M3"
+        ],
+        "m4_is_limited": true,
+        "m5_qualification_grade_evidence_rare_or_absent": true,
+        "industrial_metric_is_cost_per_performance_at_target_volume": true
+      },
+      "limitations": [
+        "MOEM is a proposed research reporting framework, not a formal standard or certification",
+        "the paper addresses AM-enabled electrical-machine materials and assemblies broadly; apply only where the magnetic component/use case matches its scope",
+        "maturity labels describe evidence demonstrated, not intended capability or route superiority"
+      ]
+    },
+    {
+      "source_id": "JSAMD-NDFEB-AM-REVIEW-2026",
+      "route_stratum": "cross_route_ndfeb_permanent_magnets",
+      "doi": "10.1016/j.jsamd.2026.101226",
+      "publication_date": "2026-09",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "reported_am_ndfeb_remanence_t_range": [
+          0.6,
+          1
+        ],
+        "conventional_anisotropic_sintered_ndfeb_remanence_t_range": [
+          1.4,
+          1.5
+        ],
+        "mex_most_competitive_am_route_for_bonded_ndfeb": true,
+        "lpbf_can_produce_dense_parts_but_magnetic_texture_is_limiting": true,
+        "sls_binder_jet_porosity_is_limiting": true
+      },
+      "limitations": [
+        "ranges aggregate different studies, materials, densities and methods",
+        "not matched head-to-head route data",
+        "do not treat a review envelope as a universal physical route limit or acceptance threshold"
+      ]
+    },
+    {
+      "source_id": "MOINUDDIN-MAGNETIC-AM-REVIEW-2026",
+      "route_stratum": "magnetic_am_microstructure_property_control",
+      "doi": "10.1002/adem.202502792",
+      "publication_date": "2026-05-09",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "process_settings_feedstock_design_and_postprocessing_jointly_affect_magnetic_properties": true,
+        "process_induced_microstructure_defect_distribution_and_orientation_affect_magnetic_function": true,
+        "selected_permanent_magnet_and_soft_magnetic_systems_need_distinct_property_targets": true
+      },
+      "limitations": [
+        "review spans soft magnetic and selected hard-magnetic systems; route comparisons must preserve material family and application scope",
+        "not a matched route-performance dataset"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52902-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52902:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "geometric capability assessment test artefacts"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52904-2024",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52904:2024",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "metal PBF process characteristics and performance for critical applications"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52905-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM TR 52905:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "NDT defect detection and evaluation in AM parts"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52908-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52908:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "PBF finished-part properties, post-processing, inspection and testing"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52927-2024",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52927:2024",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "AM characteristics and corresponding test methods"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52928-2024",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52928:2024",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "metal feedstock powder lifecycle management"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52929-2025",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52929:2025",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "PBF metal material property data-sheet presentation"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52931-2023",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52931:2023",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "EHS principles for metallic additive manufacturing materials"
+      },
+      "limitations": [
+        "cross-reference only; this programme does not claim formal conformity, certification or completeness",
+        "apply only to relevant process/material scope and current edition"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52951-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52951:2026",
+      "url": "https://www.iso.org/standard/76828.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "AM part data packages; technical basis PBF-LB/M with generalized workflow relevance to other AM processes"
+      },
+      "limitations": [
+        "data-package workflow, not a process qualification test or component acceptance method",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52953-2025",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52953:2025",
+      "url": "https://www.iso.org/standard/84117.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "registration of multimodal process-monitoring and QC data for metallic PBF-LB"
+      },
+      "limitations": [
+        "not data cleansing, sensor calibration or image processing",
+        "registration does not prove sensor validity or part acceptance",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52948-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52948:2026",
+      "url": "https://www.iso.org/standard/84919.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "classification and probable causes of imperfections in metallic PBF-LB/PBF-EB"
+      },
+      "limitations": [
+        "does not include acceptance criteria or dimensional scale",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-TR-52958-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM TR 52958:2026",
+      "url": "https://www.iso.org/ics/25.030/x/",
+      "evidence_class": "normative_technical_report_catalogue_entry",
+      "source_claims": {
+        "scope": "in-situ coaxial photodiode monitoring for lack-of-fusion flaw detection in PBF-LB"
+      },
+      "limitations": [
+        "one monitoring modality only; not complete process monitoring or NDT coverage",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52941-2026",
+      "route_stratum": "industry_qualification_standards_crosswalk",
+      "standard_reference": "ISO/ASTM 52941:2026",
+      "url": "https://www.iso.org/sectors/engineering/additive-manufacturing",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "aerospace PBF-LB/M machine-system performance and reliability tests"
+      },
+      "limitations": [
+        "aerospace-specific application scope; not a general magnetic-component qualification standard",
+        "this programme does not claim conformity or certification"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52959-2026",
+      "route_stratum": "lattice_structural_validation",
+      "standard_reference": "ISO/ASTM 52959:2026",
+      "url": "https://www.iso.org/standard/86116.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "preparation for axial-force compression testing of AM metallic lattice specimens"
+      },
+      "limitations": [
+        "does not validate magnetic, thermal, fatigue or whole-component performance",
+        "apply only when a lattice specimen is part of the design"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52966-2026",
+      "route_stratum": "deployed_repair_resource_capability",
+      "standard_reference": "ISO/ASTM 52966:2026",
+      "url": "https://www.iso.org/standard/89300.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "resource/process capability levels for temporary self-sufficient AM support systems, full part cycle"
+      },
+      "limitations": [
+        "not a generic factory production capability or component qualification standard",
+        "use only for relevant remote/deployed support scenarios"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-52957-2026",
+      "route_stratum": "ceramic_am_design",
+      "standard_reference": "ISO/ASTM 52957:2026",
+      "url": "https://www.iso.org/standard/85662.html",
+      "evidence_class": "normative_standard_catalogue_entry",
+      "source_claims": {
+        "scope": "AM ceramic part design freedom, strengths, applications and limitations"
+      },
+      "limitations": [
+        "design guidance only; not dielectric qualification or insulation acceptance",
+        "conditional relevance only for ceramic candidate subcomponents"
+      ]
+    },
+    {
+      "source_id": "ISOASTM-AWI-52964",
+      "route_stratum": "lifecycle_assessment_watchlist",
+      "standard_reference": "ISO/ASTM AWI 52964",
+      "url": "https://www.iso.org/ics/25.030/x/",
+      "evidence_class": "standards_work_item_catalogue_entry",
+      "source_claims": {
+        "scope": "under-development work item for gate-to-gate AM process LCA and cradle-to-gate part LCA"
+      },
+      "limitations": [
+        "not published as of 2026-11-27; do not cite as a normative method"
+      ]
+    }
+  ]
+}
