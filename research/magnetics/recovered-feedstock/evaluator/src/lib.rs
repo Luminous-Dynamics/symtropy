@@ -42,7 +42,7 @@ pub enum EvidenceClass {
     SyntheticControl,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OutputKind {
     MagnetProduct,
     BinderOrLubricantResidue,
@@ -340,9 +340,9 @@ pub fn evaluate_route(
         blockers.push(Blocker::NonProductionProcessEvidence);
         unresolved = true;
     }
-    if process.feedstock_input_mass_mg != spec.feedstock_input_mass_mg
-        || process.added_input_mass_mg != spec.added_input_mass_mg
-    {
+    let input_mass_scope_valid = process.feedstock_input_mass_mg == spec.feedstock_input_mass_mg
+        && process.added_input_mass_mg == spec.added_input_mass_mg;
+    if !input_mass_scope_valid {
         blockers.push(Blocker::InputMassReceiptMismatch);
         not_comparable = true;
     }
@@ -362,6 +362,7 @@ pub fn evaluate_route(
     let mut output_stream_ids = BTreeSet::new();
     let mut output_lot_ids = BTreeSet::new();
     let mut has_product = false;
+    let mut outputs_complete = !process.outputs.is_empty();
 
     if process.outputs.is_empty() {
         blockers.push(Blocker::MissingOutputStream);
@@ -372,10 +373,12 @@ pub fn evaluate_route(
         if !output_stream_ids.insert(output.stream_id.as_str()) {
             blockers.push(Blocker::DuplicateOutputStream);
             unresolved = true;
+            outputs_complete = false;
         }
         if !output_lot_ids.insert(output.lot_id.as_str()) {
             blockers.push(Blocker::DuplicateOutputLot);
             unresolved = true;
+            outputs_complete = false;
         }
         if output.stream_id.trim().is_empty()
             || output.lot_id.trim().is_empty()
@@ -384,6 +387,7 @@ pub fn evaluate_route(
         {
             blockers.push(Blocker::MissingIdentity);
             unresolved = true;
+            outputs_complete = false;
         }
         if !valid_digest(&output.receipt_digest)
             || !valid_digest(&output.evidence_digest)
@@ -392,24 +396,29 @@ pub fn evaluate_route(
         {
             blockers.push(Blocker::InvalidDigest);
             unresolved = true;
+            outputs_complete = false;
         }
         if !output.mass_mg.is_nonnegative() {
             blockers.push(Blocker::InvalidOutputMass);
             unresolved = true;
+            outputs_complete = false;
         }
         if output.evidence_class != EvidenceClass::PhysicalMeasurement {
             blockers.push(Blocker::NonPhysicalMassEvidence);
             unresolved = true;
+            outputs_complete = false;
         }
         if output.method_id.trim().is_empty() {
             blockers.push(Blocker::MissingMassMethod);
             unresolved = true;
+            outputs_complete = false;
         }
         if output.kind == OutputKind::MagnetProduct {
             has_product = true;
             if output.lot_id != spec.product_lot_id || !output.mass_mg.is_positive() {
                 blockers.push(Blocker::ProcessReceiptScopeMismatch);
                 not_comparable = true;
+                outputs_complete = false;
             }
         }
         output_mass = output_mass.add(output.mass_mg);
@@ -418,20 +427,27 @@ pub fn evaluate_route(
     if !has_product {
         blockers.push(Blocker::MissingMagnetProduct);
         unresolved = true;
+        outputs_complete = false;
     }
     for required_kind in &spec.required_output_kinds {
         if !process.outputs.iter().any(|output| output.kind == *required_kind) {
             blockers.push(Blocker::MissingOutputKind);
             unresolved = true;
+            outputs_complete = false;
         }
     }
 
-    if input_mass.is_nonnegative() && output_mass.is_nonnegative() {
+    if outputs_complete
+        && input_mass_scope_valid
+        && input_mass.is_nonnegative()
+        && output_mass.is_nonnegative()
+    {
         if !input_mass.overlaps(output_mass) {
             blockers.push(Blocker::DefiniteMassBalanceFailure);
             hard_failure = true;
         }
     } else {
+        blockers.push(Blocker::UnresolvedMassBalance);
         unresolved = true;
     }
 
