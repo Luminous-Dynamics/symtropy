@@ -120,6 +120,8 @@ pub struct EvidenceAcquisitionActionV0_1 {
     pub action_catalogue_entry_sha256: String,
     pub authorization_status: ActionAuthorizationStatusV0_1,
     pub authorization_receipt: Option<ActionAuthorizationReceiptV0_1>,
+    /// Model owner namespace declared by the action catalogue.
+    pub outcome_model_owner_namespace: String,
     pub calibration_status: OutcomeModelCalibrationStatusV0_1,
     pub calibration_receipt: Option<OutcomeModelCalibrationReceiptV0_1>,
     pub expected_artifact_contract_sha256: String,
@@ -327,7 +329,9 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
         {
             errors.insert("EVSI_ACTION_ID_INVALID_OR_DUPLICATE".to_owned());
         }
-        if !valid_identifier(&action.owner_namespace) {
+        if !valid_identifier(&action.owner_namespace)
+            || !valid_identifier(&action.outcome_model_owner_namespace)
+        {
             errors.insert("EVSI_ACTION_OWNER_INVALID".to_owned());
         }
         if !valid_sha256(&action.action_catalogue_entry_sha256)
@@ -539,7 +543,8 @@ pub fn rank_evidence_actions_v0_1(
                 let receipt = action.calibration_receipt.as_ref().expect(
                     "qualified outcome-model receipt was checked during input validation",
                 );
-                if receipt.claim_id != input.claim_id
+                if receipt.owner_namespace != action.outcome_model_owner_namespace
+                    || receipt.claim_id != input.claim_id
                     || receipt.decision_context_sha256 != input.decision_context_sha256
                     || receipt.configuration_ref != input.configuration_ref
                     || receipt.action_id != action.action_id
@@ -777,6 +782,7 @@ mod tests {
         let action = EvidenceAcquisitionActionV0_1 {
             action_id: "action:request-calibration-report".to_owned(),
             owner_namespace: "owner:metrology-lab".to_owned(),
+            outcome_model_owner_namespace: "owner:forecast-model-team".to_owned(),
             action_catalogue_entry_sha256: digest('1'),
             authorization_status: ActionAuthorizationStatusV0_1::VerifiedPermitted,
             authorization_receipt: Some(ActionAuthorizationReceiptV0_1 {
