@@ -12,6 +12,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod assurance_disposition_v0_1;
+pub mod claim_defeater_resolution_v0_1;
 pub mod claim_obligation_evidence_binding_v0_1;
 pub mod claim_authority_observer_temporal_binding_v0_1;
 pub mod claim_model_obligation_binding_v0_1;
