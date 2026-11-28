@@ -39,7 +39,9 @@
         "decision_alternatives",
         "world_states",
         "utilities",
-        "actions"
+        "actions",
+        "assurance_state_receipt",
+        "action_catalogue_receipt"
       ],
       "properties": {
         "claim_id": {
@@ -392,6 +394,130 @@
         "unresolved_obligation_manifest_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "assurance_state_receipt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verification_status",
+            "owner_namespace",
+            "claim_id",
+            "decision_context_sha256",
+            "assurance_state_sha256",
+            "frozen_claim_disposition",
+            "unresolved_obligation_manifest_sha256",
+            "receipt_sha256",
+            "receiver_first_seen_at_unix_ms",
+            "effective_from_unix_ms",
+            "effective_until_unix_ms"
+          ],
+          "properties": {
+            "verification_status": {
+              "const": "VERIFIED"
+            },
+            "owner_namespace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "claim_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_context_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "assurance_state_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "frozen_claim_disposition": {
+              "type": "string",
+              "minLength": 1
+            },
+            "unresolved_obligation_manifest_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "receipt_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "receiver_first_seen_at_unix_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "effective_from_unix_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "effective_until_unix_ms": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "action_catalogue_receipt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "verification_status",
+            "owner_namespace",
+            "claim_id",
+            "decision_context_sha256",
+            "configuration_ref",
+            "action_catalogue_sha256",
+            "action_count",
+            "receipt_sha256",
+            "receiver_first_seen_at_unix_ms",
+            "effective_from_unix_ms",
+            "effective_until_unix_ms"
+          ],
+          "properties": {
+            "verification_status": {
+              "const": "VERIFIED"
+            },
+            "owner_namespace": {
+              "type": "string",
+              "minLength": 1
+            },
+            "claim_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_context_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "configuration_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action_catalogue_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "action_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "receipt_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "receiver_first_seen_at_unix_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "effective_from_unix_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "effective_until_unix_ms": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
@@ -418,7 +544,9 @@
         "action_catalogue_sha256",
         "decision_model_sha256",
         "outcome_model_sha256",
-        "reason_codes"
+        "reason_codes",
+        "assurance_state_receipt_sha256",
+        "action_catalogue_receipt_sha256"
       ],
       "properties": {
         "disposition": {
@@ -604,6 +732,14 @@
           "items": {
             "type": "string"
           }
+        },
+        "assurance_state_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "action_catalogue_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     }
