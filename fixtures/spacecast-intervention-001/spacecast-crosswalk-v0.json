@@ -73,12 +73,6 @@
       "role": "Highest-scoring listed open-weight general model."
     },
     {
-      "system": "Spatial-specialized model range",
-      "system_class": "spatial_specialized",
-      "overall_accuracy_percent": 27,
-      "role": "Reported range 25.7–29.1 percent across six evaluated specialized models; midpoint is recorded here only as an approximate index, not a model score."
-    },
-    {
       "system": "Human Level",
       "system_class": "human",
       "overall_accuracy_percent": 87.2,
@@ -105,7 +99,8 @@
     "Ground-truth geometry derives from reconstructed scene assets and their annotation quality; it is not a universal physical ground-truth guarantee.",
     "The paper reports bridge-view and explicit 3D evidence benefits; generated future images can fail through object deformation, missing objects, scale or perspective mismatch.",
     "Human performance is a reference comparator, not a guaranteed upper bound for every task or scoring condition.",
-    "Benchmark-native macro averages must be reproduced exactly; do not substitute micro accuracy or pool L1/L2/L3 without preserving the native protocol."
+    "Benchmark-native macro averages must be reproduced exactly; do not substitute micro accuracy or pool L1/L2/L3 without preserving the native protocol.",
+    "The six listed spatial-specialized models report 25.7–29.1 percent overall; this is a range across models, not a single model score."
   ],
   "reproduction_status": "metadata_only_no_media_downloaded"
 }
