@@ -479,7 +479,7 @@ fn independent_information_set_digest(
 ) -> Result<String, String> {
     if !adaptive {
         return Ok(hash_domain(
-            b"LUMINOUS-SAFRB-HERE-AND-NOW-V1\\0",
+            b"LUMINOUS-SAFRB-HERE-AND-NOW-V1\0",
             b"all-scenarios-share-one-policy",
         ));
     }
@@ -508,7 +508,7 @@ fn independent_information_set_digest(
     let encoded = serde_json::to_vec(&history)
         .map_err(|error| format!("independent verifier could not encode visible history: {error}"))?;
     Ok(hash_domain(
-        b"LUMINOUS-SAFRB-MOBILITY-OBSERVED-HISTORY-V1\\0",
+        b"LUMINOUS-SAFRB-MOBILITY-OBSERVED-HISTORY-V1\0",
         &encoded,
     ))
 }
