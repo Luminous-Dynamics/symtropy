@@ -549,6 +549,7 @@ fn beta_continued_fraction(a: f64, b: f64, x: f64) -> f64 {
 }
 
 fn log_gamma(z: f64) -> f64 {
+    #[allow(clippy::excessive_precision)]
     const COEFFICIENTS: [f64; 9] = [
         0.999_999_999_999_809_93,
         676.520_368_121_885_1,
