@@ -1224,6 +1224,7 @@ fn replay_policy(
                     expected.insert(key.clone());
                     let action = decisions
                         .get(&key)
+                        .copied()
                         .ok_or_else(|| "policy omitted an available-unit decision".to_string())?;
                     if let MobilityAction::Move { arc_id } = action {
                         let arc = arc_by_id(instance, arc_id)
