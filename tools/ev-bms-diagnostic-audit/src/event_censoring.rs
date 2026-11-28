@@ -370,8 +370,19 @@ fn validate_and_evaluate(
     let mut left_count = 0usize;
 
     for event in &manifest.events {
+        let recorded_time_semantics_valid = match event.onset_type.as_str() {
+            "exact_reported" => event.event_time_semantics != "last_normal_first_abnormal_bracket",
+            "interval_censored" => [
+                "last_normal_first_abnormal_bracket",
+                "other_recorded_time",
+            ]
+            .contains(&event.event_time_semantics.as_str()),
+            "left_censored" => event.event_time_semantics != "last_normal_first_abnormal_bracket",
+            _ => false,
+        };
         let mut evidence_refs = BTreeSet::new();
-        if !nonempty(&event.onset_lower_semantics)
+        if !recorded_time_semantics_valid
+            || !nonempty(&event.onset_lower_semantics)
             || !nonempty(&event.onset_upper_semantics)
             || !nonempty(&event.event_id)
             || !event_ids.insert(event.event_id.clone())
@@ -478,6 +489,22 @@ fn validate_and_evaluate(
                     "possible warning windows overlap for asset {asset_id}; event attribution is ambiguous"
                 ));
             }
+        }
+    }
+    for event in manifest.events.iter().filter(|event| event.onset_type == "left_censored") {
+        if event_window_index
+            .get(&event.asset_id)
+            .is_some_and(|windows| {
+                windows.iter().any(|(start, end, _)| {
+                    event.onset_upper_unix_ms >= *start
+                        && event.onset_upper_unix_ms < *end
+                })
+            })
+        {
+            return Err(format!(
+                "left-censored event {} overlaps another event's possible warning window",
+                event.event_id
+            ));
         }
     }
 
