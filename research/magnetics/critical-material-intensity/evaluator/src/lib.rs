@@ -198,7 +198,7 @@ pub struct ServiceEvidence {
     pub service_basis: ServiceBasis,
     /// Useful mechanical shaft energy delivered per completed mission.
     pub useful_shaft_energy_per_mission_kwh: Interval,
-    /// Bounded count of completed missions in the declared service horizon.
+    /// Exact integer count of completed missions in the declared service horizon.
     pub completed_mission_count: u32,
     pub durability_receipt_id: String,
     pub durability_receipt_digest: String,
@@ -1148,7 +1148,7 @@ mod tests {
         }
     }
 
-    fn service(component: &str, energy_per_mission: f64, missions: f64) -> ServiceEvidence {
+    fn service(component: &str, energy_per_mission: f64, missions: u32) -> ServiceEvidence {
         ServiceEvidence {
             receipt_id: format!("SERVICE-{component}"),
             receipt_digest: digest('6'),
@@ -1256,7 +1256,7 @@ mod tests {
         nd_fraction: f64,
         dy_fraction: f64,
         service_per_mission_kwh: f64,
-        mission_count: f64,
+        mission_count: u32,
     ) -> ArchitectureTrial {
         ArchitectureTrial {
             architecture_id: id.to_string(),
