@@ -629,8 +629,7 @@ mod tests {
                 configuration_ref: "CONFIG-A".to_owned(),
                 as_known_cutoff: "2026-11-01T00:00:00Z".to_owned(),
                 trust_policy_snapshot_digest:
-                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                        .to_owned(),
+                    "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
             },
             obligations: vec![
                 obligation("identity", Kind::ClaimIdentity),
