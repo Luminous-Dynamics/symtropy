@@ -700,6 +700,7 @@ fn search_period(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn search_groups(
     instance: &MobilityInstance,
     period: u64,
@@ -1028,10 +1029,13 @@ fn replay_policy(
                     if let MobilityAction::Move { arc_id } = action {
                         let arc = arc_by_id(instance, arc_id)
                             .ok_or_else(|| "policy selected an unknown movement arc".to_string())?;
-                        let Position::AtSite(site_id) = &states[first][unit_index] else {
-                            unreachable!();
+                        let site_id = match &states[first][unit_index] {
+                            Position::AtSite(site_id) => site_id.clone(),
+                            Position::InTransit { .. } => {
+                                return Err("policy move references a unit already in transit".to_string());
+                            }
                         };
-                        if arc.from_site_id != *site_id
+                        if arc.from_site_id != site_id
                             || !arc.available_departure_periods.contains(&period)
                             || scenario_indices.iter().any(|scenario_index| {
                                 closure_blocks(&instance.scenarios[*scenario_index], arc_id, period)
@@ -1217,7 +1221,8 @@ fn enumerate_single_scenario_actions(
         let mut corridor_counts = BTreeMap::<&str, u64>::new();
         for (_, action) in selected.iter() {
             if let MobilityAction::Move { arc_id } = action {
-                let arc = arc_by_id(instance, arc_id).unwrap();
+                let arc = arc_by_id(instance, arc_id)
+                    .ok_or_else(|| "independent oracle references unknown route".to_string())?;
                 *arc_counts.entry(arc.arc_id.as_str()).or_default() += 1;
                 *corridor_counts.entry(arc.corridor_ref.as_str()).or_default() += 1;
             }
@@ -1276,7 +1281,6 @@ fn enumerate_single_scenario_actions(
 }
 
 fn join_scenario_paths(
-    instance: &MobilityInstance,
     path_sets: &[Vec<ScenarioPath>],
     scenario_order: &[usize],
     scenario_position: usize,
@@ -1311,7 +1315,6 @@ fn join_scenario_paths(
         }
         if compatible {
             let result = join_scenario_paths(
-                instance,
                 path_sets,
                 scenario_order,
                 scenario_position + 1,
@@ -1355,7 +1358,6 @@ fn independent_policy_oracle(
     let mut order = (0..path_sets.len()).collect::<Vec<_>>();
     order.sort_by_key(|index| path_sets[*index].len());
     Ok(join_scenario_paths(
-        instance,
         &path_sets,
         &order,
         0,
@@ -1382,7 +1384,7 @@ pub fn verify_mobility_report(
     }
     match (&report.plan, &report.plan_sha256) {
         (Some(plan), Some(digest)) => {
-            if mobility_plan_digest(plan)? != *digest {
+            if mobility_plan_digest(plan)? != digest.as_str() {
                 return Err("mobility policy digest mismatch".to_string());
             }
             replay_policy(instance, plan)?;
