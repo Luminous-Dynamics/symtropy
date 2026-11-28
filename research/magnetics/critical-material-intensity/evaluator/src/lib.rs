@@ -353,10 +353,10 @@ pub struct ElementIntensitySummary {
     pub total_embodied_g: Interval,
     /// Virgin grams per MWh of observed/durability-tested useful shaft service.
     pub virgin_g_per_mwh: Interval,
-    pub external_secondary_g_per_mwh: Interval,
-    pub internal_recycled_g_per_mwh: Interval,
-    pub direct_reuse_g_per_mwh: Interval,
-    pub total_embodied_g_per_mwh: Interval,
+    pub external_secondary_g_per_mwh: Option<Interval>,
+    pub internal_recycled_g_per_mwh: Option<Interval>,
+    pub direct_reuse_g_per_mwh: Option<Interval>,
+    pub total_embodied_g_per_mwh: Option<Interval>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -988,6 +988,32 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
                 blockers.push(Blocker::NonPositiveServiceDenominator);
                 continue;
             };
+            let external_secondary_g_per_mwh = total
+                .external_secondary_g
+                .divide_positive(service)
+                .and_then(|value| value.scale_nonnegative(1000.0));
+            let internal_recycled_g_per_mwh = total
+                .internal_recycled_g
+                .divide_positive(service)
+                .and_then(|value| value.scale_nonnegative(1000.0));
+            let direct_reuse_g_per_mwh = total
+                .direct_reuse_g
+                .divide_positive(service)
+                .and_then(|value| value.scale_nonnegative(1000.0));
+            let total_embodied_g_per_mwh = total
+                .total_embodied_g
+                .divide_positive(service)
+                .and_then(|value| value.scale_nonnegative(1000.0));
+
+            if external_secondary_g_per_mwh.is_none()
+                || internal_recycled_g_per_mwh.is_none()
+                || direct_reuse_g_per_mwh.is_none()
+                || total_embodied_g_per_mwh.is_none()
+            {
+                blockers.push(Blocker::ElementArithmeticOverflow);
+                continue;
+            }
+
             element_intensities.insert(
                 element.element_id.clone(),
                 ElementIntensitySummary {
@@ -998,26 +1024,10 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
                     direct_reuse_g: total.direct_reuse_g,
                     total_embodied_g: total.total_embodied_g,
                     virgin_g_per_mwh,
-                    external_secondary_g_per_mwh: total
-                        .external_secondary_g
-                        .divide_positive(service)
-                        .and_then(|value| value.scale_nonnegative(1000.0))
-                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
-                    internal_recycled_g_per_mwh: total
-                        .internal_recycled_g
-                        .divide_positive(service)
-                        .and_then(|value| value.scale_nonnegative(1000.0))
-                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
-                    direct_reuse_g_per_mwh: total
-                        .direct_reuse_g
-                        .divide_positive(service)
-                        .and_then(|value| value.scale_nonnegative(1000.0))
-                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
-                    total_embodied_g_per_mwh: total
-                        .total_embodied_g
-                        .divide_positive(service)
-                        .and_then(|value| value.scale_nonnegative(1000.0))
-                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
+                    external_secondary_g_per_mwh,
+                    internal_recycled_g_per_mwh,
+                    direct_reuse_g_per_mwh,
+                    total_embodied_g_per_mwh,
                 },
             );
         }
