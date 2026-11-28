@@ -204,6 +204,7 @@ pub struct ServiceEvidence {
     pub method_id: String,
     pub calibration_digest: String,
     pub uncertainty_record_digest: String,
+    pub instrument_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -232,6 +233,8 @@ pub struct ElementFractionAssay {
     pub method_id: String,
     pub calibration_digest: String,
     pub uncertainty_record_digest: String,
+    pub laboratory_id: String,
+    pub laboratory_method_scope_digest: String,
     pub evidence_class: EvidenceClass,
 }
 
@@ -248,6 +251,8 @@ pub struct MaterialLotEvidence {
     pub mass_method_id: String,
     pub mass_calibration_digest: String,
     pub mass_uncertainty_record_digest: String,
+    pub mass_laboratory_id: String,
+    pub mass_laboratory_method_scope_digest: String,
     pub mass_evidence_class: EvidenceClass,
     pub element_assays: Vec<ElementFractionAssay>,
 }
@@ -298,10 +303,14 @@ pub enum Blocker {
     InvalidElementFraction,
     NonPhysicalElementEvidence,
     MissingElementMethod,
+    MissingLaboratoryIdentity,
+    InvalidLaboratoryMethodScope,
     InvalidElementCalibration,
     InvalidElementUncertainty,
     MissingMassMethod,
     MissingMassCalibration,
+    MissingMassLaboratoryIdentity,
+    InvalidMassLaboratoryMethodScope,
     MissingMassUncertainty,
     NonPhysicalMassEvidence,
     ElementArithmeticOverflow,
@@ -753,6 +762,7 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
     if service.receipt_id.trim().is_empty()
         || service.durability_receipt_id.trim().is_empty()
         || service.method_id.trim().is_empty()
+        || service.instrument_id.trim().is_empty()
     {
         blockers.push(Blocker::MissingServiceEvidence);
     }
@@ -846,6 +856,12 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
         if lot.mass_calibration_digest.trim().is_empty() {
             blockers.push(Blocker::MissingMassCalibration);
         }
+        if lot.mass_laboratory_id.trim().is_empty() {
+            blockers.push(Blocker::MissingMassLaboratoryIdentity);
+        }
+        if !valid_digest(&lot.mass_laboratory_method_scope_digest) {
+            blockers.push(Blocker::InvalidMassLaboratoryMethodScope);
+        }
         if lot.mass_uncertainty_record_digest.trim().is_empty() {
             blockers.push(Blocker::MissingMassUncertainty);
         }
@@ -867,6 +883,14 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
             }
             if assay.evidence_id.trim().is_empty() || assay.method_id.trim().is_empty() {
                 blockers.push(Blocker::MissingElementMethod);
+                continue;
+            }
+            if assay.laboratory_id.trim().is_empty() {
+                blockers.push(Blocker::MissingLaboratoryIdentity);
+                continue;
+            }
+            if !valid_digest(&assay.laboratory_method_scope_digest) {
+                blockers.push(Blocker::InvalidLaboratoryMethodScope);
                 continue;
             }
             if !valid_digest(&assay.evidence_digest) {
@@ -1082,6 +1106,7 @@ mod tests {
             method_id: "SHAFT-ENERGY-METHOD-001".to_string(),
             calibration_digest: digest('8'),
             uncertainty_record_digest: digest('9'),
+            instrument_id: "DYNAMOMETER-001".to_string(),
         }
     }
 
@@ -1123,6 +1148,8 @@ mod tests {
             mass_method_id: "CALIBRATED-SCALE-001".to_string(),
             mass_calibration_digest: digest('d'),
             mass_uncertainty_record_digest: digest('e'),
+            mass_laboratory_id: "METROLOGY-LAB-001".to_string(),
+            mass_laboratory_method_scope_digest: digest('f'),
             mass_evidence_class: EvidenceClass::PhysicalMeasurement,
             element_assays: vec![
                 assay("Nd", nd_fraction, suffix),
@@ -1144,6 +1171,8 @@ mod tests {
             method_id: "ICP-MS-METHOD-001".to_string(),
             calibration_digest: digest('f'),
             uncertainty_record_digest: digest('1'),
+            laboratory_id: "CHEMISTRY-LAB-001".to_string(),
+            laboratory_method_scope_digest: digest('a'),
             evidence_class: EvidenceClass::PhysicalMeasurement,
         }
     }
