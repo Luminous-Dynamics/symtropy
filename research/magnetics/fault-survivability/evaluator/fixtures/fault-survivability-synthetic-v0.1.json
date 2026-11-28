@@ -34,7 +34,9 @@
         "required_magnet_zones": [
           "north-pole",
           "south-pole"
-        ]
+        ],
+        "minimum_degraded_torque_margin_percent": 5,
+        "maximum_degraded_mission_temperature_c": 180
       }
     ],
     "minimum_post_fault_mission_completion": 0.8
