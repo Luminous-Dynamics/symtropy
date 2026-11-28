@@ -35,8 +35,8 @@ PAIR_SCOPE_FIELDS = (
     "intervention",
     "relation_family",
     "reference_frame",
-    "evidence_profile",
 )
+EVIDENCE_PROFILE_MUTATION_PAIRS = {"SPI001-009", "SPI001-011"}
 
 
 def fail(message: str) -> None:
@@ -102,7 +102,10 @@ def main() -> None:
         mutated = by_role["mutated"]
         for field in PAIR_SCOPE_FIELDS:
             if control[field] != mutated[field]:
-                fail(f"{pair_id}: paired scope mismatch for {field}")
+                fail(f"{pair_id}: paired task-scope mismatch for {field}")
+        evidence_profiles_differ = control["evidence_profile"] != mutated["evidence_profile"]
+        if (pair_id in EVIDENCE_PROFILE_MUTATION_PAIRS) != evidence_profiles_differ:
+            fail(f"{pair_id}: evidence-profile mutation does not match the preregistered pair design")
 
     print(
         "PASS: metadata matrix source integrity only — "
