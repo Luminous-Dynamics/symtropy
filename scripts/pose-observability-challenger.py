@@ -295,6 +295,13 @@ def compare(rust: dict[str, Any], python: dict[str, Any]) -> list[str]:
                 dot = sum(a * b for a, b in zip(actual, expected, strict=True)) if isinstance(actual, list) else 0.0
                 if abs(abs(dot) - 1.0) > 2e-6:
                     failures.append("weakest_mode differs beyond sign ambiguity or degeneracy")
+        elif key in ("weakest_mode_translation_norm", "weakest_mode_rotation_norm"):
+            gap = abs(python["eigenvalues_ascending"][1] - python["eigenvalues_ascending"][0])
+            scale = max(1.0, abs(python["eigenvalues_ascending"][-1]))
+            if gap <= 1e-8 * scale:
+                continue
+            if not close(actual, expected):
+                failures.append(f"{key} mismatch in a non-degenerate weakest mode")
         elif not close(actual, expected):
             failures.append(f"{key} mismatch")
     return failures
