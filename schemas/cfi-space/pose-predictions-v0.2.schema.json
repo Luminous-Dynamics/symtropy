@@ -1,0 +1,39 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://luminousdynamics.io/schemas/cfi-space/pose-predictions-v0.2.schema.json",
+  "title":"CFI-Space Pose Predictions v0.2",
+  "description":"Candidate-facing pose outputs; contains no evaluator ground truth.",
+  "type":"object","additionalProperties":false,
+  "required":["schema_version","benchmark_id","predictions"],
+  "properties":{"schema_version":{"const":2},"benchmark_id":{"type":"string","minLength":1},"predictions":{"type":"array","minItems":1,"items":{"$ref":"#/$defs/prediction"}}},
+  "$defs":{
+    "disposition":{"enum":["qualified","abstain","out_of_scope","disagreement","dependence_unknown","missing_evidence"]},
+    "fault_family":{"enum":["rgb_local","event_local","timing","extrinsics","common_cause","translation","dynamics","observability","integrity"]},
+    "vec3":{"type":"array","prefixItems":[{"type":"number"},{"type":"number"},{"type":"number"}],"minItems":3,"maxItems":3},
+    "quat":{"type":"array","prefixItems":[{"type":"number"},{"type":"number"},{"type":"number"},{"type":"number"}],"minItems":4,"maxItems":4},
+    "pose":{"type":"object","additionalProperties":false,"required":["coordinate_frame","transform_direction","translation_m","orientation_xyzw"],"properties":{
+      "coordinate_frame":{"type":"string","minLength":1},"transform_direction":{"type":"string","minLength":1},
+      "translation_m":{"$ref":"#/$defs/vec3"},"orientation_xyzw":{"$ref":"#/$defs/quat"}}},
+    "region":{"type":"object","additionalProperties":false,"required":["coordinate_frame","transform_direction","translation_lower_m","translation_upper_m","orientation_center_xyzw","orientation_half_angle_rad"],"properties":{
+      "coordinate_frame":{"type":"string","minLength":1},"transform_direction":{"type":"string","minLength":1},
+      "translation_lower_m":{"$ref":"#/$defs/vec3"},"translation_upper_m":{"$ref":"#/$defs/vec3"},
+      "orientation_center_xyzw":{"$ref":"#/$defs/quat"},"orientation_half_angle_rad":{"type":"number","minimum":0,"maximum":3.141592653589793}}},
+    "prediction":{
+      "type":"object","additionalProperties":false,
+      "required":["episode_id","input_bundle_sha256","disposition","detected_fault_families","pose","uncertainty_region","orientation_method","translation_method"],
+      "properties":{
+        "episode_id":{"type":"string","minLength":1},"input_bundle_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+        "disposition":{"$ref":"#/$defs/disposition"},"detected_fault_families":{"type":"array","uniqueItems":true,"items":{"$ref":"#/$defs/fault_family"}},
+        "pose":{"oneOf":[{"$ref":"#/$defs/pose"},{"type":"null"}]},
+        "uncertainty_region":{"oneOf":[{"$ref":"#/$defs/region"},{"type":"null"}]},
+        "orientation_method":{"type":["string","null"]},"translation_method":{"type":["string","null"]}
+      },
+      "allOf":[
+        {"if":{"properties":{"disposition":{"const":"qualified"}},"required":["disposition"]},
+         "then":{"properties":{"pose":{"$ref":"#/$defs/pose"},"uncertainty_region":{"$ref":"#/$defs/region"},"orientation_method":{"type":"string","minLength":1},"translation_method":{"type":"string","minLength":1}}}},
+        {"if":{"properties":{"disposition":{"not":{"const":"qualified"}}},"required":["disposition"]},
+         "then":{"properties":{"pose":{"type":"null"},"uncertainty_region":{"type":"null"},"orientation_method":{"type":"null"},"translation_method":{"type":"null"}}}}
+      ]
+    }
+  }
+}
