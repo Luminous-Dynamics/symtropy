@@ -11,7 +11,6 @@ use std::collections::BTreeSet;
 pub enum FeedstockFamily {
     HpmsRecoveredNdFeB,
     HddRecoveredNdFeB,
-    BondedRecoveredNdFeB,
     VirginNdFeB,
     SmCo,
     SmFeN,
@@ -686,10 +685,6 @@ pub fn supported_family_form_route(
             FeedstockForm::Powder,
             ProcessRoute::MaterialExtrusionBonded
         ) | (
-            FeedstockFamily::BondedRecoveredNdFeB,
-            FeedstockForm::CompositeFeedstock,
-            ProcessRoute::MaterialExtrusionBonded
-        ) | (
             FeedstockFamily::VirginNdFeB,
             FeedstockForm::CompositeFeedstock,
             ProcessRoute::MaterialExtrusionBonded
@@ -962,8 +957,8 @@ mod tests {
             ProcessRoute::MaterialExtrusionBonded
         ));
         assert!(supported_family_form_route(
-            FeedstockFamily::BondedRecoveredNdFeB,
-            FeedstockForm::CompositeFeedstock,
+            FeedstockFamily::HddRecoveredNdFeB,
+            FeedstockForm::Powder,
             ProcessRoute::MaterialExtrusionBonded
         ));
     }
