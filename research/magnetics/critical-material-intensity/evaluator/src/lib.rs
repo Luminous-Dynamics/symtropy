@@ -146,6 +146,7 @@ pub struct SystemScope {
     pub measurement_setup_digest: String,
     pub acceptance_policy_digest: String,
     pub service_horizon_digest: String,
+    pub element_inventory_scope_digest: String,
     pub objective_set_digest: String,
 }
 
@@ -201,6 +202,10 @@ pub struct ServiceEvidence {
     pub completed_mission_count: u32,
     pub durability_receipt_id: String,
     pub durability_receipt_digest: String,
+    pub durability_evidence_class: EvidenceClass,
+    pub durability_method_id: String,
+    pub durability_calibration_digest: String,
+    pub durability_uncertainty_record_digest: String,
     pub method_id: String,
     pub calibration_digest: String,
     pub uncertainty_record_digest: String,
@@ -245,6 +250,7 @@ pub struct MaterialLotEvidence {
     pub material_family_id: String,
     pub origin: ElementOrigin,
     pub scope_digest: String,
+    pub inventory_scope_digest: String,
     pub material_mass_g: Interval,
     pub mass_evidence_id: String,
     pub mass_evidence_digest: String,
@@ -771,6 +777,16 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
     {
         blockers.push(Blocker::MissingServiceEvidence);
     }
+    if service.durability_evidence_class != EvidenceClass::PhysicalMeasurement
+        || service.durability_method_id.trim().is_empty()
+    {
+        blockers.push(Blocker::MissingDurabilityReceipt);
+    }
+    if !valid_digest(&service.durability_calibration_digest)
+        || !valid_digest(&service.durability_uncertainty_record_digest)
+    {
+        blockers.push(Blocker::InvalidDigest);
+    }
     if !valid_digest(&service.receipt_digest)
         || !valid_digest(&service.durability_receipt_digest)
         || !valid_digest(&service.duty_profile_digest)
@@ -815,6 +831,7 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
     }
     let mut seen_lots = BTreeSet::new();
     let mut seen_receipts = BTreeSet::new();
+    let mut seen_element_assay_ids = BTreeSet::new();
     let required_elements = spec
         .required_elements
         .iter()
@@ -841,7 +858,9 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
         if !seen_receipts.insert(lot.mass_evidence_id.as_str()) {
             blockers.push(Blocker::DuplicateMaterialReceipt);
         }
-        if lot.scope_digest != spec.scope.acceptance_policy_digest {
+        if lot.scope_digest != spec.scope.acceptance_policy_digest
+            || lot.inventory_scope_digest != spec.scope.element_inventory_scope_digest
+        {
             blockers.push(Blocker::ScopeMismatch);
         }
         if !valid_digest(&lot.scope_digest)
@@ -891,6 +910,10 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
             }
             if assay.evidence_id.trim().is_empty() || assay.method_id.trim().is_empty() {
                 blockers.push(Blocker::MissingElementMethod);
+                continue;
+            }
+            if !seen_element_assay_ids.insert(assay.evidence_id.as_str()) {
+                blockers.push(Blocker::DuplicateElementAssay);
                 continue;
             }
             if assay.laboratory_id.trim().is_empty() {
@@ -1070,7 +1093,8 @@ mod tests {
             measurement_setup_digest: digest('f'),
             acceptance_policy_digest: digest('1'),
             service_horizon_digest: digest('2'),
-            objective_set_digest: digest('3'),
+            element_inventory_scope_digest: digest('3'),
+            objective_set_digest: digest('4'),
         }
     }
 
@@ -1141,6 +1165,10 @@ mod tests {
             completed_mission_count: missions,
             durability_receipt_id: format!("DURABILITY-{component}"),
             durability_receipt_digest: digest('7'),
+            durability_evidence_class: EvidenceClass::PhysicalMeasurement,
+            durability_method_id: "DURABILITY-TEST-METHOD-001".to_string(),
+            durability_calibration_digest: digest('a'),
+            durability_uncertainty_record_digest: digest('b'),
             method_id: "SHAFT-ENERGY-METHOD-001".to_string(),
             calibration_digest: digest('8'),
             uncertainty_record_digest: digest('9'),
@@ -1154,7 +1182,7 @@ mod tests {
             digest: digest('a'),
             optimizer_id: "MOTOR-OPTIMIZER-001".to_string(),
             search_space_digest: digest('b'),
-            objective_digest: digest('3'),
+            objective_digest: digest('4'),
             constraint_digest: digest('1'),
             protocol_digest: digest('c'),
             evaluations: 500,
@@ -1180,6 +1208,7 @@ mod tests {
             material_family_id: "MATERIAL-FAMILY-001".to_string(),
             origin,
             scope_digest: digest('1'),
+            inventory_scope_digest: digest('3'),
             material_mass_g: Interval::new(mass_g - 0.01, mass_g + 0.01),
             mass_evidence_id: format!("MASS-{lot_id}"),
             mass_evidence_digest: digest(suffix),
