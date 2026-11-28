@@ -1666,6 +1666,87 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_element_assays_cannot_claim_a_critical_material_advantage() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.28,
+            0.0215,
+            50.0,
+            100.0,
+        );
+        candidate.material_lots[0].element_assays[0].evidence_class =
+            EvidenceClass::SyntheticControl;
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::NonPhysicalElementEvidence));
+    }
+
+    #[test]
+    fn durability_receipt_without_physical_method_evidence_cannot_support_service() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.28,
+            0.0215,
+            50.0,
+            100.0,
+        );
+        candidate.service.durability_evidence_class = EvidenceClass::SyntheticControl;
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingDurabilityReceipt));
+    }
+
+    #[test]
+    fn element_assay_receipt_cannot_be_replayed_across_material_lots() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.28,
+            0.0215,
+            50.0,
+            100.0,
+        );
+        candidate.material_lots[1].element_assays[0].evidence_id =
+            candidate.material_lots[0].element_assays[0].evidence_id.clone();
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::DuplicateElementAssay));
+    }
+
+    #[test]
+    fn external_secondary_and_virgin_intensity_are_distinct_per_mwh() {
+        let mut candidate = trial(
+            "AM-HYBRID",
+            ArchitectureFamily::AmHybridArchitecture,
+            ArchitectureRole::Candidate,
+            650.0,
+            0.28,
+            0.0215,
+            50.0,
+            100.0,
+        );
+        candidate.material_lots[0].origin = ElementOrigin::ExternalSecondary;
+        let result = run(candidate);
+        assert_eq!(result.decision, Decision::CriticalMaterialAdvantage);
+        let nd = result
+            .element_intensities
+            .iter()
+            .find(|item| item.element_id == "Nd")
+            .unwrap();
+        assert!(nd.virgin_g_per_mwh.upper < 0.1);
+        assert!(nd.external_secondary_g_per_mwh.unwrap().lower > 30.0);
+        assert!(nd.total_embodied_g_per_mwh.unwrap().lower > 30.0);
+    }
+
+    #[test]
     fn candidate_and_baseline_must_use_the_declared_budget_tier() {
         let mut candidate = trial(
             "AM-HYBRID",
