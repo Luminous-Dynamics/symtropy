@@ -7,7 +7,7 @@
     "frozen_claim_disposition": "INCOMPLETE",
     "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "action_catalogue_sha256": "8e1bb01b82cdd6765aa86bc92f15333c26cbc236c08d60e01b376d1b7e4d92ef",
+    "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
     "decision_model_sha256": "58a6677f4b6ce980ef34d29a5d6d4239dd96b213fe1f417573f664310d7f654d",
     "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "decision_alternatives": [
@@ -54,7 +54,7 @@
       {
         "action_id": "action:request-calibration-report",
         "owner_namespace": "owner:metrology-lab",
-        "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
         "authorization_status": "VERIFIED_PERMITTED",
         "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
         "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
@@ -91,7 +91,7 @@
           "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "configuration_ref": "configuration:wing-r17",
           "action_id": "action:request-calibration-report",
-          "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
           "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
           "receiver_first_seen_at_unix_ms": 1795516000000,
           "effective_from_unix_ms": 1795500000000,
@@ -116,7 +116,7 @@
       {
         "action_id": "action:unauthorized-bench-test",
         "owner_namespace": "owner:test-facility",
-        "action_catalogue_entry_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "action_catalogue_entry_sha256": "29cf6ad54be0bac3edee6e35798175133a6298246e7c6de5903f9609f3963b04",
         "authorization_status": "UNKNOWN",
         "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
         "expected_artifact_contract_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
@@ -188,7 +188,7 @@
         "target_obligation_ids": [
           "obligation:calibration"
         ],
-        "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "action_catalogue_entry_sha256": "982c4390a732bb0462d1bdd0b5366eb00577736298213e456b3dc33d15f03aeb",
         "authorization_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
         "calibration_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
         "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
@@ -214,7 +214,7 @@
     "claim_id": "claim:wing-panel-proof-load",
     "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "action_catalogue_sha256": "8e1bb01b82cdd6765aa86bc92f15333c26cbc236c08d60e01b376d1b7e4d92ef",
+    "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
     "decision_model_sha256": "58a6677f4b6ce980ef34d29a5d6d4239dd96b213fe1f417573f664310d7f654d",
     "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "reason_codes": []
