@@ -222,10 +222,9 @@
             "timeout",
             "tracking_lost",
             "invalid_output",
-            "permission_denied",
-            "abstained",
             "not_evaluated"
-          ]
+          ],
+          "description": "Execution outcome for the whole trial. Answer abstention and individual acquisition outcomes are not terminal execution failures."
         },
         "expected_pose_opportunities": {
           "type": "integer",
@@ -261,7 +260,8 @@
           "minimum": 0
         },
         "joint_success": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Geometric trajectory success only: the run completed without terminal execution failure, meets preregistered pose coverage and error thresholds, and is recomputed by the evaluator. It does not imply that the task answer was correct or that an abstention was appropriate."
         },
         "not_evaluated_reason": {
           "type": "string",
@@ -275,6 +275,49 @@
         "longest_tracking_loss_ns": {
           "type": "integer",
           "minimum": 0
+        },
+        "answer_disposition": {
+          "type": "string",
+          "enum": [
+            "answered",
+            "abstained",
+            "deferred",
+            "no_response",
+            "not_applicable"
+          ],
+          "description": "Decision/response outcome. Abstention is evaluated on the selective-risk and correct/false-abstention score planes; it does not automatically fail geometric trajectory success."
+        },
+        "acquisition_dispositions": {
+          "type": "array",
+          "description": "Per-action sensor/acquisition outcomes. Permission denial, drop, lateness and staleness are action outcomes, not whole-trial crashes.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "action_id",
+              "disposition"
+            ],
+            "properties": {
+              "action_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              "disposition": {
+                "type": "string",
+                "enum": [
+                  "requested",
+                  "delivered",
+                  "dropped",
+                  "stale",
+                  "late",
+                  "permission_denied",
+                  "duplicate",
+                  "reordered"
+                ]
+              }
+            }
+          }
         }
       },
       "allOf": [
@@ -330,8 +373,6 @@
                   "timeout",
                   "tracking_lost",
                   "invalid_output",
-                  "permission_denied",
-                  "abstained",
                   "not_evaluated"
                 ]
               }
