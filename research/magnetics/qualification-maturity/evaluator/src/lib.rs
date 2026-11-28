@@ -1584,7 +1584,7 @@ mod tests {
     fn valid_m5_requires_all_independent_layers() {
         let mut candidate = candidate();
         candidate.pbf_lb_equipment_qualification_required = false;
-        let mut receipts = m5_receipts();
+        let receipts = m5_receipts();
         let result = evaluate(&candidate, &receipts);
         assert_eq!(result.derived_level, M5);
     }
