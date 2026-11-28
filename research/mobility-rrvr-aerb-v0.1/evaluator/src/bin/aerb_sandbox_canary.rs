@@ -312,7 +312,7 @@ fn host_mode() -> Result<(), String> {
         CandidateSandboxArgument::HostPidNamespace(host_pid_namespace),
     ];
     let spec = build_candidate_sandbox_command(&paths, limits, &candidate_arguments)
-    .map_err(|error| error.to_string())?;
+        .map_err(|error| error.to_string())?;
 
     let status = spec
         .process_command()

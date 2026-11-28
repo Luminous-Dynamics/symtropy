@@ -100,7 +100,9 @@ impl CandidateSandboxArgument {
                 if namespace
                     .strip_prefix("pid:[")
                     .and_then(|value| value.strip_suffix(']'))
-                    .is_some_and(|digits| !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())) =>
+                    .is_some_and(|digits| {
+                        !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())
+                    }) =>
             {
                 vec![OsString::from(format!("--host-pid-ns={namespace}"))]
             }
@@ -114,15 +116,11 @@ impl CandidateSandboxArgument {
             }
             Self::EpisodeId(_) => return Err(SandboxError::InvalidCandidateArgument),
             Self::CandidateInputArtifact(name) if is_safe_artifact_name(name) => {
-                vec![OsString::from(format!(
-                    "--input=/candidate/input/{name}"
-                ))]
+                vec![OsString::from(format!("--input=/candidate/input/{name}"))]
             }
             Self::CandidateInputArtifact(_) => return Err(SandboxError::InvalidCandidateArgument),
             Self::CandidateOutputArtifact(name) if is_safe_artifact_name(name) => {
-                vec![OsString::from(format!(
-                    "--output=/candidate/output/{name}"
-                ))]
+                vec![OsString::from(format!("--output=/candidate/output/{name}"))]
             }
             Self::CandidateOutputArtifact(_) => return Err(SandboxError::InvalidCandidateArgument),
         };
