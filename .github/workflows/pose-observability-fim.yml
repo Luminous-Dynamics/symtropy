@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "tools/pose-observability-bench/**"
+      - "scripts/pose-observability-challenger.py"
+      - "research/spacecraft/pose-observability/fixtures/**"
       - ".github/workflows/pose-observability-fim.yml"
   push:
     branches:
@@ -29,5 +31,18 @@ jobs:
         run: cargo fmt --manifest-path tools/pose-observability-bench/Cargo.toml -- --check
       - name: Unit and degeneracy tests
         run: cargo test --manifest-path tools/pose-observability-bench/Cargo.toml
+      - name: Independent Python/Rust parity
+        run: |
+          set -euo pipefail
+          for fixture in \
+            research/spacecraft/pose-observability/fixtures/diverse-full-rank-v0.1.json \
+            research/spacecraft/pose-observability/fixtures/on-axis-degenerate-v0.1.json \
+            research/spacecraft/pose-observability/fixtures/collinear-degenerate-v0.1.json \
+            research/spacecraft/pose-observability/fixtures/common-correspondence-bias-v0.1.json; do
+            rust_output="$(mktemp)"
+            cargo run --quiet --manifest-path tools/pose-observability-bench/Cargo.toml -- --input "$fixture" > "$rust_output"
+            python3 scripts/pose-observability-challenger.py --input "$fixture" --compare "$rust_output"
+            rm -f "$rust_output"
+          done
       - name: Strict Clippy
         run: cargo clippy --manifest-path tools/pose-observability-bench/Cargo.toml --all-targets -- -D warnings
