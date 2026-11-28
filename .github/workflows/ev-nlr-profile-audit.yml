@@ -35,6 +35,51 @@ jobs:
         run: cargo test --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets --locked
       - name: Run warnings-denied Clippy
         run: cargo clippy --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Check out pinned upstream NLR source data and generator
+        uses: actions/checkout@v4
+        with:
+          repository: NatLabRockies/hdev-depot-charging-2021
+          ref: 61530df51f6cd7d64f014ebbf8714cef24c8ca70
+          path: nlr-upstream
+      - name: Verify pinned NLR revision
+        run: |
+          test "$(git -C nlr-upstream rev-parse HEAD)" = "61530df51f6cd7d64f014ebbf8714cef24c8ca70"
+      - name: Reconstruct NLR source profiles with Rust
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nlr-source-replay"
+          mkdir -p "$OUT/profiles"
+          cargo run --quiet --manifest-path tools/ev-nlr-profile-audit/Cargo.toml --locked --bin ev-nlr-source-replay -- \
+            --schedule-root nlr-upstream/data/fleet-schedules \
+            --source-script nlr-upstream/src/depot_charging.py \
+            --output-dir "$OUT/profiles" \
+            --source-revision 61530df51f6cd7d64f014ebbf8714cef24c8ca70 \
+            --report "$OUT/replay-report.json"
+          jq -e '
+            .report.source_revision == "61530df51f6cd7d64f014ebbf8714cef24c8ca70" and
+            .report.generated_profile_count == 81 and
+            .report.generated_total_interval_count == 7776 and
+            .report.output_intervals == 96 and
+            .report.archive_comparison_state == "not_performed_official_catalog_zip_not_supplied" and
+            .report.candidate_evidence_class == "source_reconstructed_model_output" and
+            (.report_sha256 | test("^[a-f0-9]{64}$")) and
+            ([.report.profiles[].sha256] | length == 81)
+          ' "$OUT/replay-report.json"
+          test "$(find "$OUT/profiles" -maxdepth 1 -type f -name '*.csv' | wc -l)" -eq 81
+          (cd "$OUT" && find profiles -maxdepth 1 -type f -name '*.csv' -print0 | sort -z | xargs -0 sha256sum) > "$OUT/profile-files.sha256"
+          sha256sum "$OUT/replay-report.json" > "$OUT/replay-report.sha256"
+      - name: Upload pinned-source NLR replay evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ev-nlr-source-replay-v0-1
+          path: |
+            ${{ runner.temp }}/nlr-source-replay/profiles/*.csv
+            ${{ runner.temp }}/nlr-source-replay/replay-report.json
+            ${{ runner.temp }}/nlr-source-replay/replay-report.sha256
+            ${{ runner.temp }}/nlr-source-replay/profile-files.sha256
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Generate synthetic 81-profile reference and candidate archives
         shell: bash
         run: |
