@@ -169,6 +169,7 @@ pub struct RankedEvidenceActionV0_1 {
     pub rank: usize,
     pub action_id: String,
     pub owner_namespace: String,
+    pub outcome_model_owner_namespace: String,
     pub target_obligation_ids: Vec<String>,
     pub action_catalogue_entry_sha256: String,
     pub authorization_receipt_sha256: String,
@@ -189,8 +190,11 @@ pub struct EvidenceActionPlannerAssessmentV0_1 {
     pub disposition: EvidenceActionPlannerDispositionV0_1,
     pub claim_id: String,
     pub frozen_claim_disposition: String,
+    pub configuration_ref: String,
+    pub as_known_at_unix_ms: u64,
     pub decision_context_sha256: String,
     pub assurance_state_sha256: String,
+    pub unresolved_obligation_manifest_sha256: String,
     pub action_catalogue_sha256: String,
     pub decision_model_sha256: String,
     pub outcome_model_sha256: String,
@@ -226,8 +230,11 @@ fn invalid_assessment(
         disposition: EvidenceActionPlannerDispositionV0_1::InvalidInput,
         claim_id: input.claim_id.clone(),
         frozen_claim_disposition: input.frozen_claim_disposition.clone(),
+        configuration_ref: input.configuration_ref.clone(),
+        as_known_at_unix_ms: input.as_known_at_unix_ms,
         decision_context_sha256: input.decision_context_sha256.clone(),
         assurance_state_sha256: input.assurance_state_sha256.clone(),
+        unresolved_obligation_manifest_sha256: input.unresolved_obligation_manifest_sha256.clone(),
         action_catalogue_sha256: input.action_catalogue_sha256.clone(),
         decision_model_sha256: input.decision_model_sha256.clone(),
         outcome_model_sha256: input.outcome_model_sha256.clone(),
@@ -865,6 +872,7 @@ pub fn rank_evidence_actions_v0_1(
             rank: index + 1,
             action_id: action.action_id.clone(),
             owner_namespace: action.owner_namespace.clone(),
+            outcome_model_owner_namespace: action.outcome_model_owner_namespace.clone(),
             target_obligation_ids: action.target_obligation_ids.clone(),
             action_catalogue_entry_sha256: action.action_catalogue_entry_sha256.clone(),
             authorization_receipt_sha256: action
@@ -921,8 +929,11 @@ pub fn rank_evidence_actions_v0_1(
         disposition,
         claim_id: input.claim_id.clone(),
         frozen_claim_disposition: input.frozen_claim_disposition.clone(),
+        configuration_ref: input.configuration_ref.clone(),
+        as_known_at_unix_ms: input.as_known_at_unix_ms,
         decision_context_sha256: input.decision_context_sha256.clone(),
         assurance_state_sha256: input.assurance_state_sha256.clone(),
+        unresolved_obligation_manifest_sha256: input.unresolved_obligation_manifest_sha256.clone(),
         action_catalogue_sha256: input.action_catalogue_sha256.clone(),
         decision_model_sha256: input.decision_model_sha256.clone(),
         outcome_model_sha256: input.outcome_model_sha256.clone(),
@@ -1111,6 +1122,8 @@ mod tests {
         for utility in &mut input.utilities {
             utility.utility_units = 0;
         }
+        input.decision_model_sha256 =
+            compute_decision_model_sha256(&input).expect("zero-utility decision commitment");
         let result = rank_evidence_actions_v0_1(&input);
         assert_eq!(
             result.disposition,
@@ -1265,6 +1278,20 @@ mod tests {
         assert!(result
             .reason_codes
             .contains(&"EVSI_ACTION_CATALOGUE_COMMITMENT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn action_cannot_target_an_obligation_outside_the_unresolved_manifest() {
+        let mut input = base_input();
+        input.actions[0].target_obligation_ids = vec!["obligation:not-open".to_owned()];
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "EVSI_ACTION_TARGET_IS_NOT_A_DECLARED_UNRESOLVED_OBLIGATION"
+        }));
     }
 
     #[test]
