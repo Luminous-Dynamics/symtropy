@@ -211,3 +211,18 @@ Synthetic known-answer counts:
 - Unsafe control: common-cause-corrupted episode incorrectly labelled qualified; scorer counts exactly 1 unsafe acceptance and 9/10 exact disposition matches.
 
 This qualifies the P1 scorer/fixture semantics only. Two independent units and ten synthetic episodes are intentionally far too few for generalization, rare-event safety-rate, or statistical confidence claims. The candidate bundles are synthetic non-image payloads; this run does not execute Symthaea or evaluate spacecraft imagery.
+
+## Symthaea temporal observer witness contract
+
+A separate wire schema now describes the bounded temporal observer output produced by Symthaea's symthaea-vision-manifold observer-only path:
+
+- schemas/cfi-space/temporal-observer-witness-v0.1.schema.json
+- The schema records the current wire revision (schema_version: 3), profile/model digests, exact raw-frame digest, episode/target/session/trajectory/frame/sensor identity, clock/calibration/ROI/preprocessing digests, timestamp/sequence, fixed horizon, warm-up/observed status, bounded Q16.16 telemetry, delayed forecast-vs-persistence diagnostics and top-K spatial patch surprise.
+- It requires the observer-only invariants: observer_only=true, learning_frozen=true, raw_frame_retained=false, actuation_authority=false, and all pose-probability/source-authentication/physical-truth claim flags false.
+- The witness is attached as a separate evidence channel. It does not modify pose estimates, covariance, conformal regions, cross-modal dependence dispositions or action-admission results.
+
+### Binding requirements before scoring
+
+A future CFI-Space adapter must join each witness to exactly one candidate manifest frame by episode ID, frame ID, sequence, timestamp and raw-frame digest; bind the frozen model/profile/config revision and calibration/clock/ROI/preprocessing lineage; verify horizon completion and dropped/late/expired forecast counts; and reject duplicate, stale, partial, or cross-episode witnesses. A representation surprise score is not an anomaly probability; forecast skill must be compared with the same persistence baseline and stratified by horizon and operating condition.
+
+The JSON schema is an interchange contract, not proof that a witness was emitted by trusted hardware or that its source hash is authentic. The Symthaea PR's own tests and exact-head gates remain separately required. CFI-Space's current Rust scorer does not yet parse or score these witness receipts; that adapter is a distinct next implementation step.
