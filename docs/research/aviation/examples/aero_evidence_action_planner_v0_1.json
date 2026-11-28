@@ -1,0 +1,154 @@
+{
+  "schema": "AeroEvidenceActionPlannerFixtureV0_1",
+  "status": "SYNTHETIC_RESEARCH_FIXTURE_NOT_ENGINEERING_EVIDENCE",
+  "authority_ceiling": "recommendations_only_no_assurance_mutation_or_physical_work_authority",
+  "input": {
+    "claim_id": "claim:wing-panel-proof-load",
+    "frozen_claim_disposition": "INCOMPLETE",
+    "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "action_catalogue_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "decision_model_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "decision_alternatives": [
+      {
+        "decision_id": "decision:hold"
+      },
+      {
+        "decision_id": "decision:proceed"
+      }
+    ],
+    "world_states": [
+      {
+        "state_id": "state:bad",
+        "prior_probability_ppm": 500000
+      },
+      {
+        "state_id": "state:good",
+        "prior_probability_ppm": 500000
+      }
+    ],
+    "utilities": [
+      {
+        "decision_id": "decision:hold",
+        "state_id": "state:bad",
+        "utility_units": 0
+      },
+      {
+        "decision_id": "decision:hold",
+        "state_id": "state:good",
+        "utility_units": 0
+      },
+      {
+        "decision_id": "decision:proceed",
+        "state_id": "state:bad",
+        "utility_units": -100
+      },
+      {
+        "decision_id": "decision:proceed",
+        "state_id": "state:good",
+        "utility_units": 100
+      }
+    ],
+    "actions": [
+      {
+        "action_id": "action:request-calibration-report",
+        "owner_namespace": "owner:metrology-lab",
+        "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "authorization_status": "VERIFIED_PERMITTED",
+        "authorization_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
+        "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "target_obligation_ids": [
+          "obligation:calibration"
+        ],
+        "expected_cost_units": 1,
+        "expected_delay_cost_units": 2,
+        "outcome_likelihoods": [
+          {
+            "state_id": "state:bad",
+            "outcome_id": "outcome:positive",
+            "likelihood_ppm": 100000
+          },
+          {
+            "state_id": "state:bad",
+            "outcome_id": "outcome:negative",
+            "likelihood_ppm": 900000
+          },
+          {
+            "state_id": "state:good",
+            "outcome_id": "outcome:positive",
+            "likelihood_ppm": 900000
+          },
+          {
+            "state_id": "state:good",
+            "outcome_id": "outcome:negative",
+            "likelihood_ppm": 100000
+          }
+        ]
+      },
+      {
+        "action_id": "action:unauthorized-bench-test",
+        "owner_namespace": "owner:test-facility",
+        "action_catalogue_entry_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "authorization_status": "UNKNOWN",
+        "authorization_receipt_sha256": null,
+        "calibration_status": "QUALIFIED_FOR_DECLARED_PURPOSE",
+        "expected_artifact_contract_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "target_obligation_ids": [
+          "obligation:calibration"
+        ],
+        "expected_cost_units": 0,
+        "expected_delay_cost_units": 0,
+        "outcome_likelihoods": [
+          {
+            "state_id": "state:bad",
+            "outcome_id": "outcome:positive",
+            "likelihood_ppm": 100000
+          },
+          {
+            "state_id": "state:bad",
+            "outcome_id": "outcome:negative",
+            "likelihood_ppm": 900000
+          },
+          {
+            "state_id": "state:good",
+            "outcome_id": "outcome:positive",
+            "likelihood_ppm": 900000
+          },
+          {
+            "state_id": "state:good",
+            "outcome_id": "outcome:negative",
+            "likelihood_ppm": 100000
+          }
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "disposition": "RANKED_ACTIONS",
+    "current_best_decision_id": "decision:hold",
+    "selected_action_id": "action:request-calibration-report",
+    "ranked_actions": [
+      {
+        "rank": 1,
+        "action_id": "action:request-calibration-report",
+        "evsi_scaled_numerator": "40000000000000",
+        "expected_cost_units": 1,
+        "expected_delay_cost_units": 2,
+        "net_benefit_scaled_numerator": "37000000000000"
+      }
+    ],
+    "excluded_actions": [
+      {
+        "action_id": "action:unauthorized-bench-test",
+        "reason_code": "ACTION_AUTHORITY_UNKNOWN"
+      }
+    ],
+    "frozen_claim_disposition": "INCOMPLETE",
+    "assurance_state_mutated": false,
+    "physical_work_authorized": false,
+    "engineering_acceptance_granted": false,
+    "evsi_numerator_scale": 1000000000000
+  }
+}
