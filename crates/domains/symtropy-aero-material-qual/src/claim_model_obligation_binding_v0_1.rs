@@ -850,12 +850,7 @@ mod tests {
     };
     use crate::claim_assurance_gate_v0_1::RequiredEvidenceAdmission;
     use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
-    use crate::model_credibility_cut_v0_1::{
-        MetricStratumStatus, ModelPackageStatus, SplitIntegrityStatus,
-        UncertaintyEvidenceStatus,
-    };
     use crate::owner_evidence_cut_v0_1::OwnerEvidenceCutV0_1;
-    use serde_json::Value;
     use sha2::{Digest, Sha256};
 
     const SPECIFICATION_FIXTURE: &str = include_str!(
