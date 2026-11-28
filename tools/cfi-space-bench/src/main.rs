@@ -212,7 +212,9 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
     let relative = Path::new(&episode.input_bundle_path);
     if relative.as_os_str().is_empty()
         || relative.is_absolute()
-        || relative.components().any(|part| !matches!(part, Component::Normal(_)))
+        || relative
+            .components()
+            .any(|part| !matches!(part, Component::Normal(_)))
     {
         return Err(format!(
             "episode {} has an unsafe input_bundle_path",
@@ -220,8 +222,12 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
         ));
     }
 
-    let root = fs::canonicalize(bundle_root)
-        .map_err(|error| format!("cannot resolve bundle root {}: {error}", bundle_root.display()))?;
+    let root = fs::canonicalize(bundle_root).map_err(|error| {
+        format!(
+            "cannot resolve bundle root {}: {error}",
+            bundle_root.display()
+        )
+    })?;
     let resolved = fs::canonicalize(root.join(relative)).map_err(|error| {
         format!(
             "cannot resolve bundle for episode {} at {}: {error}",
@@ -249,7 +255,10 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
     let byte_count = u64::try_from(bytes.len())
         .map_err(|_| format!("episode {} bundle length exceeds u64", episode.episode_id))?;
     if byte_count > MAX_INPUT_BYTES {
-        return Err(format!("episode {} bundle grew beyond the byte limit", episode.episode_id));
+        return Err(format!(
+            "episode {} bundle grew beyond the byte limit",
+            episode.episode_id
+        ));
     }
     let actual = format!("{:x}", Sha256::digest(&bytes));
     if actual != episode.input_bundle_sha256 {
@@ -262,8 +271,12 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
     // The non-image contract fixture cross-binds the episode header and every
     // frame identity/time/modality row to the manifest. This prevents a valid
     // source-byte digest from being paired with substituted metadata.
-    let text = std::str::from_utf8(&bytes)
-        .map_err(|error| format!("episode {} bundle is not UTF-8: {error}", episode.episode_id))?;
+    let text = std::str::from_utf8(&bytes).map_err(|error| {
+        format!(
+            "episode {} bundle is not UTF-8: {error}",
+            episode.episode_id
+        )
+    })?;
     let mut lines = text.lines();
     let expected_episode = format!("episode={}", episode.episode_id);
     let expected_metadata = format!(
@@ -311,7 +324,10 @@ fn verify_input_bundle(bundle_root: &Path, episode: &CandidateEpisode) -> Result
         }
     }
     if lines.next().is_some() {
-        return Err(format!("episode {} bundle has unmanifested trailing records", episode.episode_id));
+        return Err(format!(
+            "episode {} bundle has unmanifested trailing records",
+            episode.episode_id
+        ));
     }
     Ok(())
 }
@@ -347,7 +363,10 @@ fn validate_candidate_manifest(
             ));
         }
         if episode.input_bundle_path.trim().is_empty() {
-            return Err(format!("episode {} has empty input_bundle_path", episode.episode_id));
+            return Err(format!(
+                "episode {} has empty input_bundle_path",
+                episode.episode_id
+            ));
         }
         verify_input_bundle(bundle_root, episode)?;
         if episode.frame_budget == 0
@@ -666,8 +685,7 @@ fn validate_and_score(
     let mut exact_disposition_matches = 0;
     let mut false_positive_family_labels = 0;
     let mut family_counts: BTreeMap<FaultFamily, (usize, usize)> = BTreeMap::new();
-    let mut generalization_counts: BTreeMap<GeneralizationStratum, [usize; 7]> =
-        BTreeMap::new();
+    let mut generalization_counts: BTreeMap<GeneralizationStratum, [usize; 7]> = BTreeMap::new();
 
     for episode_id in &manifest_ids {
         let episode = candidate_by_id[episode_id];
@@ -878,12 +896,7 @@ fn run() -> Result<(), String> {
     let manifest: CandidateManifest = read_json(Path::new(&manifest_path))?;
     let ledger: EvaluatorLedger = read_json(Path::new(&ledger_path))?;
     let predictions: PredictionFile = read_json(Path::new(&predictions_path))?;
-    let score = validate_and_score(
-        &manifest,
-        &ledger,
-        &predictions,
-        Path::new(&bundle_root),
-    )?;
+    let score = validate_and_score(&manifest, &ledger, &predictions, Path::new(&bundle_root))?;
 
     println!(
         "{}",
@@ -933,7 +946,8 @@ mod tests {
         let manifest: CandidateManifest = parse(MANIFEST);
         let ledger: EvaluatorLedger = parse(LEDGER);
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
-        let score = validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
+        let score =
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
 
         assert_eq!(score.episodes, 10);
         assert_eq!(score.independent_units, 2);
@@ -945,11 +959,17 @@ mod tests {
         assert_eq!(score.correctly_contained_faults, 8);
         assert_eq!(score.exact_disposition_matches, 10);
         assert_eq!(score.generalization.len(), 2);
-        assert_eq!(score.generalization[0].stratum, GeneralizationStratum::SeenTarget);
+        assert_eq!(
+            score.generalization[0].stratum,
+            GeneralizationStratum::SeenTarget
+        );
         assert_eq!(score.generalization[0].episodes, 8);
         assert_eq!(score.generalization[0].fault_episodes, 7);
         assert_eq!(score.generalization[0].critical_fault_episodes, 6);
-        assert_eq!(score.generalization[1].stratum, GeneralizationStratum::UnseenTarget);
+        assert_eq!(
+            score.generalization[1].stratum,
+            GeneralizationStratum::UnseenTarget
+        );
         assert_eq!(score.generalization[1].episodes, 2);
         assert_eq!(score.generalization[1].fault_episodes, 1);
     }
@@ -973,7 +993,9 @@ mod tests {
         let ledger: EvaluatorLedger = parse(LEDGER);
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
-        assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 
     #[test]
@@ -990,7 +1012,9 @@ mod tests {
     fn counterfactual_group_requires_exactly_one_clean_reference() {
         let manifest: CandidateManifest = parse(MANIFEST);
         let mut ledger: EvaluatorLedger = parse(LEDGER);
-        ledger.episodes.retain(|episode| episode.episode_id != "episode-a-clean");
+        ledger
+            .episodes
+            .retain(|episode| episode.episode_id != "episode-a-clean");
         let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
 
         assert!(validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err());
