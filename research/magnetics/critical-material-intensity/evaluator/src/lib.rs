@@ -168,7 +168,7 @@ pub struct BenchmarkSpec {
     pub minimum_optimization_evaluations: u32,
     pub minimum_independent_restarts: u32,
     pub optimization_budget_tier: String,
-    pub minimum_completed_missions: f64,
+    pub minimum_completed_missions: u32,
     pub service_noninferiority_margin_kwh: f64,
 }
 
@@ -198,7 +198,7 @@ pub struct ServiceEvidence {
     /// Useful mechanical shaft energy delivered per completed mission.
     pub useful_shaft_energy_per_mission_kwh: Interval,
     /// Bounded count of completed missions in the declared service horizon.
-    pub completed_mission_count: Interval,
+    pub completed_mission_count: u32,
     pub durability_receipt_id: String,
     pub durability_receipt_digest: String,
     pub method_id: String,
@@ -353,6 +353,10 @@ pub struct ElementIntensitySummary {
     pub total_embodied_g: Interval,
     /// Virgin grams per MWh of observed/durability-tested useful shaft service.
     pub virgin_g_per_mwh: Interval,
+    pub external_secondary_g_per_mwh: Interval,
+    pub internal_recycled_g_per_mwh: Interval,
+    pub direct_reuse_g_per_mwh: Interval,
+    pub total_embodied_g_per_mwh: Interval,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -783,24 +787,27 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
         blockers.push(Blocker::ProjectionCannotSupportLifetimeClaim);
     }
     if !service.useful_shaft_energy_per_mission_kwh.is_positive()
-        || !service.completed_mission_count.is_positive()
+        || service.completed_mission_count == 0
     {
         blockers.push(Blocker::InvalidServiceInterval);
     }
-    if service.completed_mission_count.lower < spec.minimum_completed_missions {
+    if service.completed_mission_count < spec.minimum_completed_missions {
         blockers.push(Blocker::InsufficientCompletedMissions);
     }
 
-    let service_kwh = service
-        .useful_shaft_energy_per_mission_kwh
-        .multiply_nonnegative(service.completed_mission_count);
-    let service_kwh = match service_kwh {
-        Some(value) if value.is_positive() => Some(value),
-        _ => {
-            blockers.push(Blocker::NonPositiveServiceDenominator);
-            None
-        }
+    let service_kwh = if service.useful_shaft_energy_per_mission_kwh.is_positive()
+        && service.completed_mission_count >= spec.minimum_completed_missions
+    {
+        service
+            .useful_shaft_energy_per_mission_kwh
+            .scale_nonnegative(f64::from(service.completed_mission_count))
+            .filter(|value| value.is_positive())
+    } else {
+        None
     };
+    if service_kwh.is_none() {
+        blockers.push(Blocker::NonPositiveServiceDenominator);
+    }
 
     if trial.material_lots.is_empty() {
         blockers.push(Blocker::InvalidMaterialInventory);
@@ -991,6 +998,26 @@ fn summarize_trial(spec: &BenchmarkSpec, trial: &ArchitectureTrial) -> TrialSumm
                     direct_reuse_g: total.direct_reuse_g,
                     total_embodied_g: total.total_embodied_g,
                     virgin_g_per_mwh,
+                    external_secondary_g_per_mwh: total
+                        .external_secondary_g
+                        .divide_positive(service)
+                        .and_then(|value| value.scale_nonnegative(1000.0))
+                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
+                    internal_recycled_g_per_mwh: total
+                        .internal_recycled_g
+                        .divide_positive(service)
+                        .and_then(|value| value.scale_nonnegative(1000.0))
+                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
+                    direct_reuse_g_per_mwh: total
+                        .direct_reuse_g
+                        .divide_positive(service)
+                        .and_then(|value| value.scale_nonnegative(1000.0))
+                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
+                    total_embodied_g_per_mwh: total
+                        .total_embodied_g
+                        .divide_positive(service)
+                        .and_then(|value| value.scale_nonnegative(1000.0))
+                        .unwrap_or(Interval::new(f64::INFINITY, f64::INFINITY)),
                 },
             );
         }
@@ -1100,7 +1127,7 @@ mod tests {
                 energy_per_mission - 0.1,
                 energy_per_mission + 0.1,
             ),
-            completed_mission_count: Interval::new(missions - 0.1, missions + 0.1),
+            completed_mission_count: missions,
             durability_receipt_id: format!("DURABILITY-{component}"),
             durability_receipt_digest: digest('7'),
             method_id: "SHAFT-ENERGY-METHOD-001".to_string(),
