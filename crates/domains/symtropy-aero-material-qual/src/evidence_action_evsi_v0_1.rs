@@ -843,7 +843,7 @@ mod tests {
         assert_eq!(
             result.disposition,
             serde_json::from_value(expected["disposition"].clone())
-                .unwrap_or(EvidenceActionPlannerDispositionV0_1::InvalidInput)
+                .expect("expected disposition is a valid enum value")
         );
         assert_eq!(
             result.current_best_decision_id.as_deref(),
