@@ -193,7 +193,8 @@
         "calibration_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
         "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
         "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
-        "outcome_model_owner_namespace": "owner:forecast-model-team"
+        "outcome_model_owner_namespace": "owner:forecast-model-team",
+        "outcome_likelihoods_sha256": "c5e35ea600a13eff92bba9abf807da83933096a20f1b4b017e70888dc0efa3a1"
       }
     ],
     "excluded_actions": [
