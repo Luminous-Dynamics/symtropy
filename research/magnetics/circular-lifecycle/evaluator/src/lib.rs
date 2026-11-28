@@ -1343,6 +1343,26 @@ mod tests {
         assert!(result[0]
             .robust_circularity_benefits
             .contains(&"direct_reuse_fraction".to_string()));
+        assert!(!result[0]
+            .robust_circularity_benefits
+            .contains(&"accepted_remanufacture_fraction".to_string()));
+    }
+
+    #[test]
+    fn accepted_remanufacture_is_separate_from_direct_reuse() {
+        let mut trials = known_trials();
+        trials[0].recovery.reuse_grade_mass_kg = 1.0;
+        trials[0].recovery.remanufactured_accepted_mass_kg = 5.0;
+        trials[0].recovery.recycling_feedstock_mass_kg = 2.0;
+        trials[0].recovery.reject_waste_mass_kg = 2.0;
+        let result = evaluate(&spec(), &trials);
+        assert_eq!(result[0].decision, Decision::CircularityAdvantage);
+        assert!(!result[0]
+            .robust_circularity_benefits
+            .contains(&"direct_reuse_fraction".to_string()));
+        assert!(result[0]
+            .robust_circularity_benefits
+            .contains(&"accepted_remanufacture_fraction".to_string()));
     }
 
     #[test]
