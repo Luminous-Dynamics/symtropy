@@ -148,7 +148,10 @@ pub struct RobustEvidenceActionPlannerAssessmentV0_1 {
 #[derive(Serialize)]
 struct ScenarioActionCalibrationCommitmentV0_1<'a> {
     action_id: &'a str,
+    outcome_model_owner_namespace: &'a str,
+    calibration_owner_namespace: Option<&'a str>,
     calibration_receipt_sha256: Option<&'a str>,
+    calibration_profile_sha256: Option<&'a str>,
     outcome_likelihoods_sha256: Option<&'a str>,
 }
 
@@ -406,7 +409,10 @@ pub fn compute_scenario_set_sha256_v0_1(
                     let receipt = action.calibration_receipt.as_ref();
                     ScenarioActionCalibrationCommitmentV0_1 {
                         action_id: &action.action_id,
+                        outcome_model_owner_namespace: &action.outcome_model_owner_namespace,
+                        calibration_owner_namespace: receipt.map(|item| item.owner_namespace.as_str()),
                         calibration_receipt_sha256: receipt.map(|item| item.calibration_report_sha256.as_str()),
+                        calibration_profile_sha256: receipt.map(|item| item.calibration_profile_sha256.as_str()),
                         outcome_likelihoods_sha256: receipt.map(|item| item.outcome_likelihoods_sha256.as_str()),
                     }
                 })
@@ -588,10 +594,15 @@ pub fn rank_robust_evidence_actions_v0_1(
     for scenario in &input.scenarios {
         let result = rank_evidence_actions_v0_1(&scenario.input);
         if result.disposition == EvidenceActionPlannerDispositionV0_1::InvalidInput {
-            return invalid_result(
-                input,
-                BTreeSet::from(["ROBUST_EVSI_SCENARIO_INPUT_INVALID".to_owned()]),
-            );
+            let mut reasons = BTreeSet::new();
+            reasons.insert(format!(
+                "ROBUST_EVSI_SCENARIO_INPUT_INVALID:{}",
+                scenario.scenario_id
+            ));
+            reasons.extend(result.reason_codes.iter().map(|code| {
+                format!("SCENARIO:{}:{code}", scenario.scenario_id)
+            }));
+            return invalid_result(input, reasons);
         }
         for excluded_action in &result.excluded_actions {
             scenario_exclusions.push(RobustEvidenceActionExclusionV0_1 {
