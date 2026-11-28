@@ -73,6 +73,24 @@ Implication: Symthaea should be an investigator, defeater generator and evidence
 
 Reference: [NASA/TM-20250001849, Examining Proposed Uses of LLMs to Produce or Assess Assurance Arguments](https://ntrs.nasa.gov/api/citations/20250001849/downloads/NASA-TM-20250001849.pdf?attachment=true).
 
+### Tool qualification: AERO must assure its own operational behavior
+
+FAA AC 20-115D is active and recognizes RTCA DO-330 / EUROCAE ED-215 Software Tool Qualification Considerations alongside DO-178C / ED-12C. This is an important comparator because AERO is itself software whose output may influence downstream verification, engineering review or compliance decisions.
+
+This does **not** mean every AERO deployment automatically requires DO-330 qualification. Applicability and any required Tool Qualification Level depend on the declared tool use, the effect of tool malfunction, and whether the output replaces/reduces another verification activity. The applicant and competent authority determine the applicable approach.
+
+Implication: AERO needs its own tool-assurance case, distinct from the engineering claim it evaluates. Each component should have tool operational requirements, input assumptions, output semantics, failure-mode analysis, requirements-based tests, configuration identity, known limitations, operating instructions, problem-report handling and independent error detection/containment. AERO must not use its own disposition or a signature over its own output as the sole evidence that its logic is correct.
+
+Keep three questions independent:
+1. Is the engineering claim and its owner evidence admissible?
+2. Did the AERO tool operate correctly within its declared operational requirements?
+3. Is the proposed use of that tool accepted by the applicant / competent authority under the applicable assurance framework?
+
+SLSA build provenance answers how the tool artifact was built; it does not prove functional correctness or tool qualification.
+
+Reference:
+- [FAA AC 20-115D — Airborne Software Development Assurance](https://www.faa.gov/airports/resources/advisory_circulars/index.cfm/go/document.information/documentNumber/20-115D).
+
 ### MBSE and digital-thread workflows
 
 Industrial MBSE and PLM workflows already provide requirements traceability, configuration management, verification management, product lifecycle data and digital-thread integration. Automated validation suites can query model completeness and maturity.
