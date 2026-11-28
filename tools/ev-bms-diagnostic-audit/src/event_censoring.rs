@@ -15,6 +15,9 @@ const SCHEMA_ID: &str =
     "https://luminousdynamics.io/schemas/transport/ev-bms-event-censoring-evaluation/0.1";
 const HOUR_MS: f64 = 3_600_000.0;
 
+type AssetExposures<'a> = BTreeMap<String, Vec<&'a Exposure>>;
+type EventWindowIndex = BTreeMap<String, Vec<(u64, u64, String)>>;
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct EvaluationManifest {
@@ -92,6 +95,7 @@ pub struct EventCensoringReport {
     pub left_censored_event_count: usize,
     pub eligible_event_count: usize,
     pub unobservable_event_count: usize,
+    pub unobservable_event_window_alarm_count: usize,
     pub definite_warning_count: usize,
     pub possible_only_warning_count: usize,
     pub possible_pre_onset_only_warning_count: usize,
@@ -294,7 +298,7 @@ fn validate_and_evaluate(
     let mut event_ids = BTreeSet::new();
     let mut alarm_ids = BTreeSet::new();
     let mut asset_roles: BTreeMap<String, String> = BTreeMap::new();
-    let mut exposures_by_asset: BTreeMap<String, Vec<&Exposure>> = BTreeMap::new();
+    let mut exposures_by_asset: AssetExposures = BTreeMap::new();
     let mut all_assets = BTreeSet::new();
     let mut negative_assets = BTreeSet::new();
     let mut right_censored_assets = BTreeSet::new();
@@ -350,7 +354,7 @@ fn validate_and_evaluate(
     }
 
     let mut events_by_asset: BTreeMap<String, Vec<&FaultEvent>> = BTreeMap::new();
-    let mut event_window_index: BTreeMap<String, Vec<(u64, u64, String)>> = BTreeMap::new();
+    let mut event_window_index: EventWindowIndex = BTreeMap::new();
     let mut exact_count = 0usize;
     let mut interval_count = 0usize;
     let mut left_count = 0usize;
@@ -507,7 +511,8 @@ fn validate_and_evaluate(
 
         let guaranteed_start = event
             .onset_upper_unix_ms
-            .saturating_sub(manifest.warning_horizon_ms);
+            .checked_sub(manifest.warning_horizon_ms)
+            .ok_or_else(|| format!("event {} guaranteed window underflow", event.event_id))?;
         let is_guaranteed = |alarm: &&AlarmEpisode| {
             alarm.alarm_time_unix_ms >= guaranteed_start
                 && alarm.alarm_time_unix_ms < lower
@@ -633,6 +638,7 @@ fn validate_and_evaluate(
         left_censored_event_count: left_count,
         eligible_event_count: eligible_events,
         unobservable_event_count: unobservable_events,
+        unobservable_event_window_alarm_count: unobservable_event_alarm_count,
         definite_warning_count: definite_warnings,
         possible_only_warning_count: possible_only_warnings,
         possible_pre_onset_only_warning_count: possible_pre_onset_only_warnings,
@@ -644,7 +650,7 @@ fn validate_and_evaluate(
         guaranteed_actionable_warning_count: actionable_warnings,
         primary_event_alarm_count: primary_alarms,
         repeated_event_alarm_count: repeated_alarms,
-        unmatched_event_monitoring_alarm_count: unmatched_event_alarms + unobservable_event_alarm_count,
+        unmatched_event_monitoring_alarm_count: unmatched_event_alarms,
         left_censored_ambiguous_alarm_count: left_ambiguous_alarm_count,
         negative_control_asset_count: negative_assets.len(),
         negative_control_exposure_hours: negative_hours,
