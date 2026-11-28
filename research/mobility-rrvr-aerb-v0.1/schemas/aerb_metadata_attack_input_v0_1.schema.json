@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-metadata-attack-input-v0.1.schema.json",
+  "title": "AERB Evaluator-Only Metadata Attack Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "requested_folds",
+    "rows"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-metadata-attack-input-v0.1"
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_folds": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 10000
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 100000,
+      "items": {
+        "$ref": "#/$defs/row"
+      }
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "campaign_id",
+        "episode_id",
+        "evaluator_cluster_id",
+        "hidden_truth_world_id",
+        "candidate_visible_features"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluator_cluster_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hidden_truth_world_id": {
+          "enum": [
+            "not_dispatched",
+            "dispatched_no_effect",
+            "applied_once_ack_lost",
+            "partial_effect",
+            "duplicate_effect",
+            "stale_authority_effect",
+            "unresolved_command_holder",
+            "open_world_residual"
+          ]
+        },
+        "candidate_visible_features": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
