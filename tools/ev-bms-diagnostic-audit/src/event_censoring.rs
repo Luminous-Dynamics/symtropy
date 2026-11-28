@@ -125,10 +125,13 @@ pub struct EventCensoringReport {
     pub lead_lower_hours_p05: Option<f64>,
     pub lead_lower_hours_p50: Option<f64>,
     pub lead_lower_hours_p95: Option<f64>,
+    pub lead_lower_hours_max: Option<f64>,
     pub lead_upper_hours_min: Option<f64>,
     pub lead_upper_hours_p05: Option<f64>,
     pub lead_upper_hours_p50: Option<f64>,
     pub lead_upper_hours_p95: Option<f64>,
+    pub lead_upper_hours_max: Option<f64>,
+    pub total_alarm_episode_count: usize,
     pub schema_sha256: String,
     pub canonical_manifest_sha256: String,
     pub claim_ceiling: String,
@@ -264,8 +267,13 @@ fn validate_and_evaluate(
     if manifest.split_partition != "test" {
         return Err("event-censoring promotion metrics require the frozen test partition".to_owned());
     }
-    if !["onboard_bms", "charger_side"].contains(&manifest.dataset_domain.as_str()) {
-        return Err("unsupported event-censoring dataset domain".to_owned());
+    let expected_dataset = match manifest.dataset_domain.as_str() {
+        "onboard_bms" => "cao-onboard-bms-zenodo-10656500",
+        "charger_side" => "shenzhen-charger-side-mendeley-c7gg94tmvz-v3",
+        _ => return Err("unsupported event-censoring dataset domain".to_owned()),
+    };
+    if manifest.dataset_id != expected_dataset {
+        return Err("dataset ID does not match the declared measurement domain".to_owned());
     }
     if !is_sha256(&manifest.dataset_manifest_sha256) || !is_sha256(&manifest.split_manifest_sha256) {
         return Err("dataset and split manifest digests must be lowercase SHA-256".to_owned());
@@ -360,12 +368,13 @@ fn validate_and_evaluate(
     let mut left_count = 0usize;
 
     for event in &manifest.events {
+        let mut evidence_refs = BTreeSet::new();
         if !nonempty(&event.event_id)
             || !event_ids.insert(event.event_id.clone())
             || !nonempty(&event.asset_id)
             || !nonempty(&event.adjudication_revision)
             || event.onset_evidence_refs.is_empty()
-            || event.onset_evidence_refs.iter().any(|r| !nonempty(r))
+            || event.onset_evidence_refs.iter().any(|r| !nonempty(r) || !evidence_refs.insert(r))
             || !["reported_bms_alarm", "first_positive_sample", "maintenance_confirmation",
                 "teardown_adjudication", "independently_adjudicated_onset",
                 "last_normal_first_abnormal_bracket", "other_recorded_time"]
@@ -668,10 +677,13 @@ fn validate_and_evaluate(
         lead_lower_hours_p05: percentile(&lead_lower_hours, 0.05),
         lead_lower_hours_p50: percentile(&lead_lower_hours, 0.50),
         lead_lower_hours_p95: percentile(&lead_lower_hours, 0.95),
+        lead_lower_hours_max: lead_lower_hours.iter().copied().reduce(f64::max),
         lead_upper_hours_min: lead_upper_hours.iter().copied().reduce(f64::min),
         lead_upper_hours_p05: percentile(&lead_upper_hours, 0.05),
         lead_upper_hours_p50: percentile(&lead_upper_hours, 0.50),
         lead_upper_hours_p95: percentile(&lead_upper_hours, 0.95),
+        lead_upper_hours_max: lead_upper_hours.iter().copied().reduce(f64::max),
+        total_alarm_episode_count: alarm_refs.len(),
         schema_sha256: String::new(),
         canonical_manifest_sha256: String::new(),
         claim_ceiling: manifest.claim_ceiling.clone(),
@@ -776,11 +788,81 @@ mod tests {
     fn interval_warning_boundaries_are_half_open_and_conservative() {
         let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
         let alarms = value["alarms"].as_array_mut().unwrap();
-        alarms.retain(|alarm| alarm["alarm_id"] != "alarm-event-interval");
-        let bytes = serde_json::to_vec(&value).expect("boundary fixture");
-        let base = report();
-        assert!(base.possible_warning_count >= 1);
-        assert!(audit_event_censoring_evaluation(SCHEMA, &bytes).is_ok());
+        let exact_alarm = alarms
+            .iter_mut()
+            .find(|alarm| alarm["alarm_id"] == "alarm-event-exact")
+            .expect("exact event alarm");
+        exact_alarm["alarm_time_unix_ms"] = Value::from(76_u64 * 3_600_000);
+        let interval_alarm = alarms
+            .iter_mut()
+            .find(|alarm| alarm["alarm_id"] == "alarm-event-interval")
+            .expect("interval event alarm");
+        interval_alarm["alarm_time_unix_ms"] = Value::from(200_u64 * 3_600_000);
+        let bytes = serde_json::to_vec(&value).expect("lower-bound fixture");
+        let at_lower = audit_event_censoring_evaluation(SCHEMA, &bytes).expect("inclusive lower boundary");
+        assert_eq!(at_lower.definite_warning_count, 1);
+        assert_eq!(at_lower.ambiguous_ordering_warning_count, 1);
+        assert!((at_lower.lead_lower_hours_min.unwrap() - 24.0).abs() < 1e-12);
+
+        let mut upper_value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
+        let alarms = upper_value["alarms"].as_array_mut().unwrap();
+        let exact_alarm = alarms
+            .iter_mut()
+            .find(|alarm| alarm["alarm_id"] == "alarm-event-exact")
+            .expect("exact event alarm");
+        exact_alarm["alarm_time_unix_ms"] = Value::from(100_u64 * 3_600_000);
+        let upper_bytes = serde_json::to_vec(&upper_value).expect("exclusive upper-bound fixture");
+        let at_upper = audit_event_censoring_evaluation(SCHEMA, &upper_bytes).expect("exclusive upper boundary");
+        assert_eq!(at_upper.definite_warning_count, 0);
+        assert_eq!(at_upper.event_miss_count, 2);
+    }
+
+    #[test]
+    fn wide_onset_interval_has_possible_but_no_guaranteed_warning_window() {
+        let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
+        value["alarms"].as_array_mut().unwrap().push(serde_json::json!({
+            "alarm_id": "alarm-wide-interval-pre-onset",
+            "asset_id": "asset-event",
+            "alarm_time_unix_ms": 310_u64 * 3_600_000,
+            "score": 0.9,
+            "threshold": 0.8
+        }));
+        let bytes = serde_json::to_vec(&value).expect("wide interval alarm manifest");
+        let report = audit_event_censoring_evaluation(SCHEMA, &bytes).expect("wide interval evaluation");
+        assert_eq!(report.definite_warning_count, 1);
+        assert_eq!(report.possible_pre_onset_only_warning_count, 1);
+        assert_eq!(report.ambiguous_ordering_warning_count, 1);
+        assert_eq!(report.possible_only_warning_count, 2);
+        assert_eq!(report.event_miss_count, 0);
+        assert_eq!(report.lead_interval_count, 2);
+        assert!((report.lead_lower_hours_min.unwrap() - 4.0).abs() < 1e-12);
+        assert!((report.lead_upper_hours_max.unwrap() - 30.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn right_censored_horizon_addition_overflow_is_unresolved_not_false() {
+        let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
+        value["warning_horizon_ms"] = Value::from(1000_u64);
+        value["minimum_action_lead_ms"] = Value::from(0_u64);
+        value["events"] = serde_json::json!([]);
+        value["exposures"] = serde_json::json!([{
+            "exposure_id": "exp-near-u64-max",
+            "asset_id": "asset-right-only",
+            "role": "right_censored_followup",
+            "window_start_unix_ms": u64::MAX - 2000,
+            "window_end_unix_ms": u64::MAX
+        }]);
+        value["alarms"] = serde_json::json!([{
+            "alarm_id": "alarm-near-u64-max",
+            "asset_id": "asset-right-only",
+            "alarm_time_unix_ms": u64::MAX - 500,
+            "score": 0.9,
+            "threshold": 0.8
+        }]);
+        let bytes = serde_json::to_vec(&value).expect("overflow fixture");
+        let report = audit_event_censoring_evaluation(SCHEMA, &bytes).expect("overflow evaluation");
+        assert_eq!(report.right_censored_false_alarm_count, 0);
+        assert_eq!(report.right_censored_unresolved_alarm_count, 1);
     }
 
     #[test]
