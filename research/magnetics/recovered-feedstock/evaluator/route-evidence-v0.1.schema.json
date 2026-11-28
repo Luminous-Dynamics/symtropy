@@ -132,6 +132,7 @@
       "type": "object",
       "required": [
         "assay_id",
+        "role",
         "unit",
         "laboratory_method_scope_digest"
       ],
@@ -152,6 +153,9 @@
         },
         "maximum": {
           "type": "number"
+        },
+        "role": {
+          "$ref": "#/$defs/assay_role"
         }
       },
       "anyOf": [
@@ -360,6 +364,7 @@
       "type": "object",
       "required": [
         "assay_id",
+        "role",
         "unit",
         "value",
         "product_lot_id",
@@ -418,6 +423,9 @@
         },
         "evidence_class": {
           "$ref": "#/$defs/evidence_class"
+        },
+        "role": {
+          "$ref": "#/$defs/assay_role"
         }
       },
       "additionalProperties": false
@@ -505,6 +513,17 @@
         }
       },
       "additionalProperties": false
+    },
+    "assay_role": {
+      "enum": [
+        "AbsoluteRemanence",
+        "Coercivity",
+        "MaximumEnergyProduct",
+        "MagneticAlignment",
+        "Chemistry",
+        "Microstructure",
+        "DensityOrPorosity"
+      ]
     }
   }
 }
