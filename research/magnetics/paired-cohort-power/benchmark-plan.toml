@@ -46,6 +46,7 @@ three_by_three_pilot_is_inferentially_adequate = false
 [decision]
 design_qualified_requires_all_variance_corners = true
 type1_upper_bound_must_not_exceed_preregistered_limit = true
+null_analysis_coverage_lower_bound_must_be_at_least_95_percent = true
 power_estimate_must_meet_target = true
 power_lower_bound_must_meet_minimum = true
 probability_of_under_minimum_analyzable_lots_must_be_at_most_5_percent = true
@@ -60,7 +61,7 @@ schema = "evaluator/paired-cohort-power-v0.1.schema.json"
 fixture = "evaluator/fixtures/paired-cohort-power-synthetic-v0.1.json"
 source_register = "source-register.json"
 workflow = ".github/workflows/magnetic-paired-cohort-power.yml"
-authored_unit_tests = 22
+authored_unit_tests = 23
 tests_executed = false
 exact_head_ci_pass = false
 
