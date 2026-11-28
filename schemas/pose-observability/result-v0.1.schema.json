@@ -5,75 +5,268 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version", "episode_id", "frame_id", "sensor_id", "coordinate_frame",
-    "transform_direction", "twist_order", "measurement_model", "camera_intrinsics",
-    "camera_intrinsics_sha256", "target_geometry_sha256", "correspondence_ledger_sha256",
-    "linearization_pose_sha256", "observation_count", "effective_observation_count",
-    "translation_scale_m", "fim_6x6", "eigenvalues_ascending", "numerical_rank",
-    "rank_threshold", "weakest_eigenvalue", "strongest_eigenvalue", "condition_number",
-    "log_determinant", "participation_ratio", "weakest_mode",
-    "weakest_mode_translation_norm", "weakest_mode_rotation_norm",
-    "mean_reprojection_error_px", "p95_reprojection_error_px", "max_reprojection_error_px",
-    "physical_truth_claim", "pose_probability_claim", "correspondence_authentication_claim"
+    "schema_version",
+    "episode_id",
+    "frame_id",
+    "sensor_id",
+    "coordinate_frame",
+    "transform_direction",
+    "twist_order",
+    "measurement_model",
+    "camera_intrinsics",
+    "camera_intrinsics_sha256",
+    "target_geometry_sha256",
+    "correspondence_ledger_sha256",
+    "linearization_pose_sha256",
+    "observation_count",
+    "effective_observation_count",
+    "translation_scale_m",
+    "rank_relative_tolerance",
+    "rank_absolute_tolerance",
+    "fim_6x6",
+    "eigenvalues_ascending",
+    "numerical_rank",
+    "rank_threshold",
+    "weakest_eigenvalue",
+    "strongest_eigenvalue",
+    "condition_number",
+    "log_determinant",
+    "participation_ratio",
+    "weakest_mode",
+    "weakest_mode_translation_norm",
+    "weakest_mode_rotation_norm",
+    "mean_reprojection_error_px",
+    "p95_reprojection_error_px",
+    "max_reprojection_error_px",
+    "physical_truth_claim",
+    "pose_probability_claim",
+    "correspondence_authentication_claim"
   ],
   "properties": {
-    "schema_version": {"const": 1},
-    "episode_id": {"type": "string"},
-    "frame_id": {"type": "string"},
-    "sensor_id": {"type": "string"},
-    "coordinate_frame": {"type": "string"},
-    "transform_direction": {"type": "string"},
-    "twist_order": {"const": "left_camera_frame_scaled_xyz_then_rx_ry_rz"},
-    "measurement_model": {"const": "ideal_pinhole_independent_isotropic_pixel_noise"},
-    "camera_intrinsics": {"$ref": "#/$defs/camera"},
-    "camera_intrinsics_sha256": {"$ref": "#/$defs/digest"},
-    "target_geometry_sha256": {"$ref": "#/$defs/digest"},
-    "correspondence_ledger_sha256": {"$ref": "#/$defs/digest"},
-    "linearization_pose_sha256": {"$ref": "#/$defs/digest"},
-    "observation_count": {"type": "integer", "minimum": 3},
-    "effective_observation_count": {"type": "integer", "minimum": 3},
-    "translation_scale_m": {"type": "number", "exclusiveMinimum": 0},
-    "fim_6x6": {"type": "array", "prefixItems": [
-      {"$ref": "#/$defs/vec6"},{"$ref": "#/$defs/vec6"},{"$ref": "#/$defs/vec6"},
-      {"$ref": "#/$defs/vec6"},{"$ref": "#/$defs/vec6"},{"$ref": "#/$defs/vec6"}
-    ], "minItems": 6, "maxItems": 6},
-    "eigenvalues_ascending": {"$ref": "#/$defs/vec6"},
-    "numerical_rank": {"type": "integer", "minimum": 0, "maximum": 6},
-    "rank_threshold": {"type": "number", "minimum": 0},
-    "weakest_eigenvalue": {"type": "number", "minimum": 0},
-    "strongest_eigenvalue": {"type": "number", "minimum": 0},
-    "condition_number": {"type": ["number", "null"], "minimum": 1},
-    "log_determinant": {"type": ["number", "null"]},
-    "participation_ratio": {"type": ["number", "null"], "minimum": 0},
-    "weakest_mode": {"$ref": "#/$defs/vec6"},
-    "weakest_mode_translation_norm": {"type": "number", "minimum": 0},
-    "weakest_mode_rotation_norm": {"type": "number", "minimum": 0},
-    "mean_reprojection_error_px": {"type": "number", "minimum": 0},
-    "p95_reprojection_error_px": {"type": "number", "minimum": 0},
-    "max_reprojection_error_px": {"type": "number", "minimum": 0},
-    "physical_truth_claim": {"const": false},
-    "pose_probability_claim": {"const": false},
-    "correspondence_authentication_claim": {"const": false}
+    "schema_version": {
+      "const": 1
+    },
+    "episode_id": {
+      "type": "string"
+    },
+    "frame_id": {
+      "type": "string"
+    },
+    "sensor_id": {
+      "type": "string"
+    },
+    "coordinate_frame": {
+      "type": "string"
+    },
+    "transform_direction": {
+      "type": "string"
+    },
+    "twist_order": {
+      "const": "left_camera_frame_scaled_xyz_then_rx_ry_rz"
+    },
+    "measurement_model": {
+      "const": "ideal_pinhole_independent_isotropic_pixel_noise"
+    },
+    "camera_intrinsics": {
+      "$ref": "#/$defs/camera"
+    },
+    "camera_intrinsics_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "target_geometry_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "correspondence_ledger_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "linearization_pose_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "observation_count": {
+      "type": "integer",
+      "minimum": 3
+    },
+    "effective_observation_count": {
+      "type": "integer",
+      "minimum": 3
+    },
+    "translation_scale_m": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "fim_6x6": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/vec6"
+        },
+        {
+          "$ref": "#/$defs/vec6"
+        },
+        {
+          "$ref": "#/$defs/vec6"
+        },
+        {
+          "$ref": "#/$defs/vec6"
+        },
+        {
+          "$ref": "#/$defs/vec6"
+        },
+        {
+          "$ref": "#/$defs/vec6"
+        }
+      ],
+      "minItems": 6,
+      "maxItems": 6
+    },
+    "eigenvalues_ascending": {
+      "$ref": "#/$defs/vec6"
+    },
+    "numerical_rank": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "rank_threshold": {
+      "type": "number",
+      "minimum": 0
+    },
+    "weakest_eigenvalue": {
+      "type": "number",
+      "minimum": 0
+    },
+    "strongest_eigenvalue": {
+      "type": "number",
+      "minimum": 0
+    },
+    "condition_number": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "log_determinant": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "participation_ratio": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "weakest_mode": {
+      "$ref": "#/$defs/vec6"
+    },
+    "weakest_mode_translation_norm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "weakest_mode_rotation_norm": {
+      "type": "number",
+      "minimum": 0
+    },
+    "mean_reprojection_error_px": {
+      "type": "number",
+      "minimum": 0
+    },
+    "p95_reprojection_error_px": {
+      "type": "number",
+      "minimum": 0
+    },
+    "max_reprojection_error_px": {
+      "type": "number",
+      "minimum": 0
+    },
+    "physical_truth_claim": {
+      "const": false
+    },
+    "pose_probability_claim": {
+      "const": false
+    },
+    "correspondence_authentication_claim": {
+      "const": false
+    },
+    "rank_relative_tolerance": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 1
+    },
+    "rank_absolute_tolerance": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    }
   },
   "$defs": {
-    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
     "vec6": {
       "type": "array",
-      "prefixItems": [{"type":"number"},{"type":"number"},{"type":"number"},{"type":"number"},{"type":"number"},{"type":"number"}],
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
       "minItems": 6,
       "maxItems": 6
     },
     "camera": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["width","height","fx_px","fy_px","cx_px","cy_px"],
+      "required": [
+        "width",
+        "height",
+        "fx_px",
+        "fy_px",
+        "cx_px",
+        "cy_px"
+      ],
       "properties": {
-        "width": {"type":"integer","minimum":1},
-        "height": {"type":"integer","minimum":1},
-        "fx_px": {"type":"number","exclusiveMinimum":0},
-        "fy_px": {"type":"number","exclusiveMinimum":0},
-        "cx_px": {"type":"number","minimum":0},
-        "cy_px": {"type":"number","minimum":0}
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fx_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fy_px": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "cx_px": {
+          "type": "number",
+          "minimum": 0
+        },
+        "cy_px": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     }
   }
