@@ -38,29 +38,29 @@ jobs:
         run: |
           cargo run --quiet --manifest-path tools/cfi-space-bench/Cargo.toml -- \
             --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
-            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json \
-            --predictions research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json \
+            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json \
+            --predictions research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-safe-v0.2.json \
             --expect-unsafe 0 --bundle-root . > "$RUNNER_TEMP/safe-rust.json"
       - name: Positive-control independent challenger
         run: |
           python3 scripts/cfi-space-challenger.py \
             --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
-            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json \
-            --predictions research/spacecraft/cfi-space/fixtures/synthetic-predictions-safe-v0.1.json \
+            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json \
+            --predictions research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-safe-v0.2.json \
             --expect-unsafe 0 --bundle-root . > "$RUNNER_TEMP/safe-python.json"
           diff -u "$RUNNER_TEMP/safe-rust.json" "$RUNNER_TEMP/safe-python.json"
       - name: Negative-control Rust scorer
         run: |
           cargo run --quiet --manifest-path tools/cfi-space-bench/Cargo.toml -- \
             --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
-            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json \
-            --predictions research/spacecraft/cfi-space/fixtures/synthetic-predictions-unsafe-v0.1.json \
+            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json \
+            --predictions research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-unsafe-v0.2.json \
             --expect-unsafe 1 --bundle-root . > "$RUNNER_TEMP/unsafe-rust.json"
       - name: Negative-control independent challenger
         run: |
           python3 scripts/cfi-space-challenger.py \
             --manifest research/spacecraft/cfi-space/fixtures/synthetic-candidate-manifest-v0.1.json \
-            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.1.json \
-            --predictions research/spacecraft/cfi-space/fixtures/synthetic-predictions-unsafe-v0.1.json \
+            --ledger research/spacecraft/cfi-space/fixtures/synthetic-evaluator-ledger-v0.2.json \
+            --predictions research/spacecraft/cfi-space/fixtures/synthetic-pose-predictions-unsafe-v0.2.json \
             --expect-unsafe 1 --bundle-root . > "$RUNNER_TEMP/unsafe-python.json"
           diff -u "$RUNNER_TEMP/unsafe-rust.json" "$RUNNER_TEMP/unsafe-python.json"
