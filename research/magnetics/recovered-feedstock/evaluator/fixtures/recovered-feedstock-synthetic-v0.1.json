@@ -61,7 +61,7 @@
   "process": {
     "process_receipt_id": "SYNTHETIC-PROCESS-001",
     "process_receipt_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-    "evidence_class": "ProductionRecord",
+    "evidence_class": "SyntheticControl",
     "scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "source_lot_id": "HPMS-SOURCE-LOT-001",
     "product_lot_id": "PEM-MAGNET-LOT-001",
