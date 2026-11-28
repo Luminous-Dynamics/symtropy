@@ -170,6 +170,8 @@
         "minimum_exposure_duration_ms",
         "maximum_exposure_duration_ms",
         "minimum_degraded_mission_energy_kwh",
+        "minimum_degraded_torque_margin_percent",
+        "maximum_degraded_mission_temperature_c",
         "maximum_allowed_mechanical_stress_mpa",
         "minimum_mechanical_safety_factor",
         "required_magnet_zones"
@@ -232,6 +234,12 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "minimum_degraded_torque_margin_percent": {
+          "type": "number"
+        },
+        "maximum_degraded_mission_temperature_c": {
+          "type": "number"
         }
       },
       "additionalProperties": false
