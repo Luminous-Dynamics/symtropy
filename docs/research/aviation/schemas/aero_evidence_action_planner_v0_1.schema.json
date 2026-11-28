@@ -142,6 +142,7 @@
             "required": [
               "action_id",
               "owner_namespace",
+              "outcome_model_owner_namespace",
               "action_catalogue_entry_sha256",
               "authorization_status",
               "authorization_receipt",
@@ -356,6 +357,10 @@
                     "minimum": 0
                   }
                 }
+              },
+              "outcome_model_owner_namespace": {
+                "type": "string",
+                "minLength": 1
               }
             }
           }
