@@ -125,6 +125,50 @@ Portable schemas:
 
 Guaranteed means guaranteed across the *supplied finite synthetic scenario set*, assuming scenario observation before allocation. It does not establish that the set is complete, that scenarios are authenticated or physically exhaustive, that probabilities are known, or that source authority, legal rights, physical qualification, dispatch authorization or actual service exists. It never splices capacity maxima from different scenarios.
 
+## Physical mobility recourse oracle v0.1
+
+The `mobility_oracle` module is a bounded exact reference for scenario-contingent movement of homogeneous mobile resources. It composes with the scenario/recourse model in [#7796](https://github.com/Luminous-Dynamics/symtropy/issues/7796) and the two-site zero-time reference in [#7831](https://github.com/Luminous-Dynamics/symtropy/pull/7831). Programme issue: [#7876](https://github.com/Luminous-Dynamics/symtropy/issues/7876).
+
+### Model and limits
+
+- 2–4 sites, 1–4 integer mobile units, at most 8 directed movement arcs, 1–8 finite scenarios and service boundaries 0–4.
+- Every movement arc has a positive integer travel duration, its own departure capacity, a canonical physical corridor identity/capacity and an explicit list of available departure periods.
+- Unit states are exclusive: at one site, or in transit on one arc until its checked arrival boundary. A travelling unit is unavailable at both endpoints.
+- Service floors are checked at the service boundary before the period's movement decisions. One unit supplies one declared service unit at one site in that period.
+- Route closures carry both the physical departure period and the period in which the closure is observed. Decisions use only observations revealed by their decision boundary; a closure still invalidates a movement at the physical departure time even when its report arrives later.
+- Here-and-now policies use one common information set. Adaptive policies may differ only after their observable histories differ. Scenario IDs are not part of the observable-history digest.
+- Per-arc and shared-corridor capacities are checked per departure period. Reverse routes must be declared separately.
+
+These are exact-reference ceilings, not deployment-scale promises. The current profile does not model continuous travel, heterogeneous units, route costs, in-transit corridor occupancy beyond departure capacity, stochastic scenario probabilities, asset condition or dispatch authority.
+
+### Producer and independent reference
+
+The producer enumerates policy actions by current information set and physical state, with a hard search budget. Search-limit exhaustion is a distinct outcome and never becomes an infeasibility claim.
+
+The independent reference takes a different path: it enumerates physically legal trajectories per scenario, then joins those paths only where decision-time observable-history digests agree. Its verifier independently re-admits the input, replays a submitted policy, checks movement/arrival/service/corridor accounting and uses the trajectory oracle to challenge infeasibility dispositions.
+
+The seeded test lane uses 250 deterministic tiny scenario trees and compares the producer's disposition/witness with the independently enumerated policy paths. Frozen tests cover:
+- zero-time information relaxation versus late physical arrival;
+- arrival exactly at the required service boundary;
+- directed routes (no inferred reverse arc);
+- decisions that can/cannot branch before demand is revealed;
+- in-transit resource unavailability;
+- parallel route aliases sharing one physical corridor;
+- late-reported route closures;
+- insufficient total mobile units;
+- policy/history digest mutations and canonical ordering;
+- 250 deterministic tiny policy instances checked against independent scenario trajectories.
+
+### Result and claim boundary
+
+The report distinguishes `here_and_now_feasible`, `mobility_feasible_only_with_recourse`, `information_relaxation_only`, `not_feasible_within_supplied_tree` and `search_limit_exceeded`. A zero-time relaxation is an optimistic bound only; it does not establish that a resource can physically arrive before service is due.
+
+Portable schemas:
+- `schemas/mobility-instance-v0.1.schema.json`
+- `schemas/mobility-report-v0.1.schema.json`
+
+A passing synthetic contract establishes only the bounded model and supplied scenario set. It does not authenticate routes, travel times, source authority, asset condition, legal access, scenario completeness, field service or operational dispatch. No SOTA performance advantage is claimed.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
