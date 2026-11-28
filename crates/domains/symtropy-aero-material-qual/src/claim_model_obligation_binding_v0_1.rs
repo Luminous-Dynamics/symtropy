@@ -838,3 +838,462 @@ pub fn bind_claim_model_obligations_v0_1(
         reason_codes: reasons.into_iter().collect(),
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::claim_obligation_evidence_binding_v0_1::{
+        compute_evidence_mapping_manifest_sha256_v0_1,
+        compute_owner_evidence_source_receipt_manifest_sha256_v0_1,
+        ClaimObligationEvidenceBindingInputV0_1,
+    };
+    use crate::claim_assurance_gate_v0_1::RequiredEvidenceAdmission;
+    use crate::claim_specification_v0_1::UncertaintyTreatmentV0_1;
+    use crate::decision_context_v0_1::compute_required_evidence_manifest_sha256;
+    use crate::model_credibility_cut_v0_1::{
+        MetricStratumReportV0_1, MetricStratumStatus, ModelPackageStatus,
+        SplitIntegrityStatus, UncertaintyComponentEvidenceV0_1,
+        UncertaintyEvidenceStatus,
+    };
+    use crate::owner_evidence_cut_v0_1::OwnerEvidenceCutV0_1;
+    use serde_json::Value;
+    use sha2::{Digest, Sha256};
+
+    const SPECIFICATION_FIXTURE: &str = include_str!(
+        "../../../../docs/research/aviation/examples/aero_claim_specification_v0_1.json"
+    );
+
+    #[derive(Clone)]
+    struct Case {
+        raw: Vec<u8>,
+        spec: ClaimSpecificationV0_1,
+        context: DecisionContextV0_1,
+        owner_cut: OwnerEvidenceCutV0_1,
+        admissions: Vec<RequiredEvidenceAdmission>,
+        evidence_mapping_entries: Vec<super::super::claim_obligation_evidence_binding_v0_1::ClaimObligationEvidenceMappingEntryV0_1>,
+        evidence_mapping_receipt: super::super::claim_obligation_evidence_binding_v0_1::ClaimObligationEvidenceMappingReceiptV0_1,
+        source_receipts: Vec<super::super::claim_obligation_evidence_binding_v0_1::OwnerEvidenceSourceReceiptV0_1>,
+        model: ModelCredibilityCutV0_1,
+        applicability_mapping: ModelApplicabilityMappingEntryV0_1,
+        metric_mappings: Vec<ModelMetricStratumMappingEntryV0_1>,
+        uncertainty_mappings: Vec<ModelUncertaintyMappingEntryV0_1>,
+        model_mapping_receipt: ClaimModelObligationMappingReceiptV0_1,
+    }
+
+    fn sha256(bytes: &[u8]) -> String {
+        Sha256::digest(bytes)
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<Vec<_>>()
+            .join("")
+    }
+
+    fn build_case(
+        metric_status: MetricStratumStatus,
+        uncertainty_status: UncertaintyEvidenceStatus,
+        domain_status: ModelDomainCoverageStatus,
+        package_status: ModelPackageStatus,
+        split_status: SplitIntegrityStatus,
+    ) -> Case {
+        let (
+            raw,
+            spec,
+            mut context,
+            mut owner_cut,
+            mut admissions,
+            evidence_mapping_entries,
+            mut evidence_mapping_receipt,
+            mut source_receipts,
+        ) = crate::claim_obligation_evidence_binding_v0_1::tests::build_case();
+
+        let mut model = crate::model_credibility_cut_v0_1::tests::fixture();
+        model.claim_id = spec.claim_id.clone();
+        model.configuration_ref = spec.configuration_ref.clone();
+        model.operating_envelope_ref = spec.operating_envelope_ref.clone();
+        model.applicability_profile_sha256 = context.model_applicability_profile_sha256.clone();
+        model.risk_classification_sha256 = context.risk_classification_sha256.clone();
+        model.package_status = package_status;
+        model.split_integrity_status = split_status;
+        model.domain_coverage_status = domain_status;
+
+        let model_evidence_ref = evidence_mapping_entries
+            .iter()
+            .find(|entry| entry.evidence_class == "evidence-class:model-validation")
+            .and_then(|entry| entry.evidence_refs.first())
+            .expect("claim requires model-validation evidence")
+            .clone();
+        model.evidence_ref = model_evidence_ref.clone();
+
+        let owner_stratum_refs = [
+            "owner-stratum:temperature-ambient",
+            "owner-stratum:limit-load",
+        ];
+        for (index, required) in model.required_metric_strata.iter_mut().enumerate() {
+            required.stratum_ref = owner_stratum_refs[index].to_owned();
+        }
+        for report in &mut model.metric_stratum_reports {
+            report.stratum_ref = match report.metric_id.as_str() {
+                "prediction_interval_coverage" => owner_stratum_refs[0].to_owned(),
+                "out_of_domain_recall" => owner_stratum_refs[1].to_owned(),
+                _ => unreachable!("frozen model fixture metric"),
+            };
+            report.population_manifest_sha256 =
+                spec.population.population_manifest_sha256.clone();
+            report.status = metric_status;
+        }
+        for uncertainty in &mut model.uncertainty_components {
+            uncertainty.status = uncertainty_status;
+        }
+        let model_cut_sha = model.compute_sha256().expect("model cut remains valid");
+
+        let owner_record = owner_cut
+            .evidence_records
+            .iter_mut()
+            .find(|record| record.evidence_ref == model_evidence_ref)
+            .expect("model validation source record in owner cut");
+        owner_record.record_sha256 = model_cut_sha.clone();
+        let source_receipt = source_receipts
+            .iter_mut()
+            .find(|receipt| receipt.evidence_ref == model_evidence_ref)
+            .expect("model validation source receipt");
+        source_receipt.evidence_record_sha256 = model_cut_sha.clone();
+        owner_cut.receiver_receipt_manifest_sha256 =
+            compute_owner_evidence_source_receipt_manifest_sha256_v0_1(&source_receipts)
+                .expect("source receipt manifest");
+        let owner_cut_sha = owner_cut.compute_sha256().expect("owner cut digest");
+        context.evidence_knowledge_cut_sha256 = owner_cut_sha.clone();
+        let context_sha = context.compute_sha256().expect("decision context digest");
+        for admission in &mut admissions {
+            admission.decision_context_sha256 = context_sha.clone();
+        }
+
+        let profile = derive_claim_obligation_profile_v0_1(
+            &spec,
+            RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
+        )
+        .profile
+        .expect("claim obligation profile");
+        let semantic_sha = spec.compute_semantic_sha256().expect("claim semantic digest");
+        let required_refs = admissions
+            .iter()
+            .map(|admission| admission.evidence_ref.clone())
+            .collect::<Vec<_>>();
+        let required_manifest_sha =
+            compute_required_evidence_manifest_sha256(&required_refs).expect("required evidence digest");
+        let evidence_mapping_sha = compute_evidence_mapping_manifest_sha256_v0_1(
+            &spec.claim_id,
+            &context_sha,
+            &semantic_sha,
+            &profile,
+            &required_manifest_sha,
+            &owner_cut_sha,
+            &context.trust_policy_sha256,
+            &evidence_mapping_entries,
+        )
+        .expect("evidence mapping digest");
+        evidence_mapping_receipt.decision_context_sha256 = context_sha.clone();
+        evidence_mapping_receipt.owner_evidence_cut_sha256 = owner_cut_sha.clone();
+        evidence_mapping_receipt.mapping_manifest_sha256 = evidence_mapping_sha;
+        evidence_mapping_receipt.claim_specification_semantic_sha256 = semantic_sha.clone();
+        evidence_mapping_receipt.obligation_profile_sha256 = profile.profile_sha256.clone();
+        evidence_mapping_receipt.obligation_manifest_sha256 =
+            profile.obligation_manifest_sha256.clone();
+
+        let applicability_obligation = find_obligation(&profile, "model-applicability")
+            .expect("model applicability obligation");
+        let applicability_mapping = ModelApplicabilityMappingEntryV0_1 {
+            obligation_id: applicability_obligation.obligation_id.clone(),
+            requirement_source_ref: applicability_obligation.requirement_source_ref.clone(),
+            model_ref: model.model_ref.clone(),
+            model_artifact_sha256: model.model_artifact_sha256.clone(),
+            solver_configuration_sha256: model.solver_configuration_sha256.clone(),
+            operating_envelope_ref: spec.operating_envelope_ref.clone(),
+            applicability_profile_sha256: context.model_applicability_profile_sha256.clone(),
+            risk_classification_sha256: context.risk_classification_sha256.clone(),
+        };
+
+        let metric_mappings = model
+            .required_metric_strata
+            .iter()
+            .map(|metric| {
+                let report_index = model
+                    .required_metric_strata
+                    .iter()
+                    .position(|item| item == metric)
+                    .expect("metric index");
+                let claim_stratum = &spec.population.required_strata[report_index];
+                let obligation_id = format!("model-credibility:{}", claim_stratum.stratum_id);
+                let obligation = find_obligation(&profile, &obligation_id)
+                    .expect("derived model credibility stratum obligation");
+                ModelMetricStratumMappingEntryV0_1 {
+                    obligation_id,
+                    requirement_source_ref: obligation.requirement_source_ref.clone(),
+                    claim_stratum_id: claim_stratum.stratum_id.clone(),
+                    metric_id: metric.metric_id.clone(),
+                    model_stratum_ref: metric.stratum_ref.clone(),
+                    population_manifest_sha256: spec.population.population_manifest_sha256.clone(),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let uncertainty_obligation =
+            find_obligation(&profile, "model-uncertainty").expect("model uncertainty obligation");
+        let uncertainty_mappings = model
+            .required_uncertainty_components
+            .iter()
+            .map(|component| {
+                let evidence = model
+                    .uncertainty_components
+                    .iter()
+                    .find(|item| item.component == *component)
+                    .expect("required uncertainty evidence");
+                ModelUncertaintyMappingEntryV0_1 {
+                    obligation_id: uncertainty_obligation.obligation_id.clone(),
+                    requirement_source_ref: uncertainty_obligation.requirement_source_ref.clone(),
+                    uncertainty_method_ref: spec.uncertainty.method_ref.clone(),
+                    component: *component,
+                    method_profile_sha256: evidence.method_profile_sha256.clone(),
+                    report_sha256: evidence.report_sha256.clone(),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let applicability_sha = compute_model_applicability_mapping_sha256_v0_1(
+            &spec.claim_id, &context_sha, &semantic_sha, &profile, &model_cut_sha,
+            &applicability_mapping,
+        ).expect("applicability mapping digest");
+        let metric_sha = compute_model_metric_strata_mapping_sha256_v0_1(
+            &spec.claim_id, &context_sha, &semantic_sha, &profile, &model_cut_sha,
+            &metric_mappings,
+        ).expect("metric mapping digest");
+        let uncertainty_sha = compute_model_uncertainty_mapping_sha256_v0_1(
+            &spec.claim_id, &context_sha, &semantic_sha, &profile, &model_cut_sha,
+            &spec.uncertainty.method_ref,
+            &format!("{:?}", spec.uncertainty.treatment),
+            spec.uncertainty.confidence_level_ppm,
+            &uncertainty_mappings,
+        ).expect("uncertainty mapping digest");
+        let model_mapping_receipt = ClaimModelObligationMappingReceiptV0_1 {
+            verification_status: ModelObligationReceiptStatusV0_1::Verified,
+            owner_namespace: owner_cut.owner_namespace.clone(),
+            claim_id: spec.claim_id.clone(),
+            decision_context_sha256: context_sha,
+            configuration_ref: spec.configuration_ref.clone(),
+            claim_specification_semantic_sha256: semantic_sha,
+            obligation_profile_sha256: profile.profile_sha256,
+            obligation_manifest_sha256: profile.obligation_manifest_sha256,
+            model_evidence_ref: model.evidence_ref.clone(),
+            model_evidence_record_sha256: model_cut_sha.clone(),
+            model_credibility_cut_sha256: model_cut_sha,
+            applicability_mapping_sha256: applicability_sha,
+            metric_strata_mapping_sha256: metric_sha,
+            uncertainty_mapping_sha256: uncertainty_sha,
+            uncertainty_treatment: format!("{:?}", spec.uncertainty.treatment),
+            uncertainty_method_ref: spec.uncertainty.method_ref.clone(),
+            uncertainty_confidence_level_ppm: spec.uncertainty.confidence_level_ppm,
+            receipt_sha256: "8".repeat(64),
+            receiver_first_seen_at_unix_ms: context.as_known_at_unix_ms - 100,
+            effective_from_unix_ms: context.as_known_at_unix_ms - 200,
+            effective_until_unix_ms: context.as_known_at_unix_ms + 200,
+        };
+
+        Case {
+            raw,
+            spec,
+            context,
+            owner_cut,
+            admissions,
+            evidence_mapping_entries,
+            evidence_mapping_receipt,
+            source_receipts,
+            model,
+            applicability_mapping,
+            metric_mappings,
+            uncertainty_mappings,
+            model_mapping_receipt,
+        }
+    }
+
+    impl Case {
+        fn evaluate(&self) -> ClaimModelObligationBindingAssessmentV0_1 {
+            let raw_sha = sha256(&self.raw);
+            let evidence_input = ClaimObligationEvidenceBindingInputV0_1 {
+                schema: super::super::claim_obligation_evidence_binding_v0_1::CLAIM_OBLIGATION_EVIDENCE_BINDING_SCHEMA_V0_1.to_owned(),
+                raw_claim_specification_payload: &self.raw,
+                expected_raw_claim_specification_sha256: &raw_sha,
+                claim_specification: &self.spec,
+                decision_context: &self.context,
+                requirement_profile: RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
+                owner_evidence_cut: &self.owner_cut,
+                required_evidence_admissions: &self.admissions,
+                mapping_entries: &self.evidence_mapping_entries,
+                mapping_receipt: Some(&self.evidence_mapping_receipt),
+                source_receipts: &self.source_receipts,
+            };
+            bind_claim_model_obligations_v0_1(ClaimModelObligationBindingInputV0_1 {
+                schema: CLAIM_MODEL_OBLIGATION_BINDING_SCHEMA_V0_1.to_owned(),
+                requirement_profile: RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
+                evidence_binding_input: &evidence_input,
+                model_credibility_cut: &self.model,
+                applicability_mapping: &self.applicability_mapping,
+                metric_strata_mappings: &self.metric_mappings,
+                uncertainty_mappings: &self.uncertainty_mappings,
+                mapping_receipt: Some(&self.model_mapping_receipt),
+            })
+        }
+    }
+
+    #[test]
+    fn binds_all_claim_strata_model_cut_and_uncertainty_components_without_completing_claim() {
+        let case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Characterized,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::Bound);
+        assert_eq!(result.metric_strata.len(), case.spec.population.required_strata.len());
+        assert_eq!(
+            result.uncertainty_components.len(),
+            case.model.required_uncertainty_components.len()
+        );
+        assert_eq!(
+            result.applicability.as_ref().unwrap().disposition,
+            ModelObligationDispositionV0_1::Bound
+        );
+        assert!(!result.unassessed_obligation_ids.is_empty());
+        assert!(!result.complete_claim_assurance_state);
+        assert!(!result.assurance_state_mutated);
+        assert!(!result.physical_truth_established);
+        assert!(!result.engineering_acceptance_granted);
+        assert!(!result.physical_work_authorized);
+    }
+
+    #[test]
+    fn out_of_profile_metric_stratum_remains_non_compensatory() {
+        let case = build_case(
+            MetricStratumStatus::OutsideDeclaredProfile,
+            UncertaintyEvidenceStatus::Characterized,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::OutOfScope);
+        assert!(result.metric_strata.iter().any(|item| {
+            item.disposition == ModelObligationDispositionV0_1::OutOfScope
+        }));
+    }
+
+    #[test]
+    fn unverified_uncertainty_component_remains_unverified() {
+        let case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Unverified,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::Unverified);
+        assert!(result.uncertainty_components.iter().any(|item| {
+            item.disposition == ModelObligationDispositionV0_1::Unverified
+        }));
+    }
+
+    #[test]
+    fn uncharacterized_uncertainty_component_is_incomplete() {
+        let case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Uncharacterized,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::Incomplete);
+    }
+
+    #[test]
+    fn model_outside_validated_domain_is_out_of_scope_not_qualified() {
+        let case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Characterized,
+            ModelDomainCoverageStatus::NotCovered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::OutOfScope);
+    }
+
+    #[test]
+    fn validation_package_rejection_and_split_leakage_are_hard_rejections() {
+        for (package, split) in [
+            (ModelPackageStatus::Rejected, SplitIntegrityStatus::DisjointByIndependentUnit),
+            (ModelPackageStatus::StructurallyComplete, SplitIntegrityStatus::LeakageDetected),
+        ] {
+            let case = build_case(
+                MetricStratumStatus::WithinDeclaredProfile,
+                UncertaintyEvidenceStatus::Characterized,
+                ModelDomainCoverageStatus::Covered,
+                package,
+                split,
+            );
+            let result = case.evaluate();
+            assert_eq!(result.disposition, ModelObligationDispositionV0_1::Rejected);
+        }
+    }
+
+    #[test]
+    fn stale_model_mapping_receipt_is_rejected() {
+        let mut case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Characterized,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        case.metric_mappings.pop();
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::Rejected);
+    }
+
+    #[test]
+    fn late_model_mapping_receipt_cannot_backfill_historical_knowledge() {
+        let mut case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Characterized,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        case.model_mapping_receipt.receiver_first_seen_at_unix_ms =
+            case.context.as_known_at_unix_ms + 1;
+        let result = case.evaluate();
+        assert_eq!(result.disposition, ModelObligationDispositionV0_1::Unverified);
+        assert!(result.reason_codes.contains(
+            &"MODEL_OBLIGATION_MAPPING_RECEIPT_NOT_KNOWN_AT_CUTOFF".to_owned()
+        ));
+    }
+
+    #[test]
+    fn mapping_order_permutation_preserves_complete_result() {
+        let baseline_case = build_case(
+            MetricStratumStatus::WithinDeclaredProfile,
+            UncertaintyEvidenceStatus::Characterized,
+            ModelDomainCoverageStatus::Covered,
+            ModelPackageStatus::StructurallyComplete,
+            SplitIntegrityStatus::DisjointByIndependentUnit,
+        );
+        let baseline = baseline_case.evaluate();
+        let mut permuted = baseline_case;
+        permuted.metric_mappings.reverse();
+        permuted.uncertainty_mappings.reverse();
+        let result = permuted.evaluate();
+        assert_eq!(baseline, result);
+    }
+}
