@@ -248,9 +248,9 @@ fn covers_range(exposures: &[&Exposure], start: u64, end: u64) -> bool {
 }
 
 fn contains_point(exposures: &[&Exposure], time: u64) -> bool {
-    exposures.iter().any(|exposure| {
-        exposure.window_start_unix_ms <= time && time < exposure.window_end_unix_ms
-    })
+    exposures
+        .iter()
+        .any(|exposure| exposure.window_start_unix_ms <= time && time < exposure.window_end_unix_ms)
 }
 
 fn contiguous_blocks(exposures: &[&Exposure]) -> Vec<(u64, u64)> {
@@ -267,9 +267,7 @@ fn contiguous_blocks(exposures: &[&Exposure]) -> Vec<(u64, u64)> {
     blocks
 }
 
-fn validate_and_evaluate(
-    manifest: &EvaluationManifest,
-) -> Result<EventCensoringReport, String> {
+fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventCensoringReport, String> {
     if manifest.manifest_version != MANIFEST_VERSION
         || !nonempty(&manifest.evaluation_id)
         || !nonempty(&manifest.dataset_id)
@@ -279,7 +277,9 @@ fn validate_and_evaluate(
         return Err("evaluation manifest version or identity is invalid".to_owned());
     }
     if manifest.split_partition != "test" {
-        return Err("event-censoring promotion metrics require the frozen test partition".to_owned());
+        return Err(
+            "event-censoring promotion metrics require the frozen test partition".to_owned(),
+        );
     }
     let expected_dataset = match manifest.dataset_domain.as_str() {
         "onboard_bms" => "cao-onboard-bms-zenodo-10656500",
@@ -289,7 +289,8 @@ fn validate_and_evaluate(
     if manifest.dataset_id != expected_dataset {
         return Err("dataset ID does not match the declared measurement domain".to_owned());
     }
-    if !is_sha256(&manifest.dataset_manifest_sha256) || !is_sha256(&manifest.split_manifest_sha256) {
+    if !is_sha256(&manifest.dataset_manifest_sha256) || !is_sha256(&manifest.split_manifest_sha256)
+    {
         return Err("dataset and split manifest digests must be lowercase SHA-256".to_owned());
     }
     if manifest.warning_horizon_ms == 0 {
@@ -298,7 +299,14 @@ fn validate_and_evaluate(
     if !nonempty(&manifest.time_basis_id)
         || !nonempty(&manifest.time_alignment_id)
         || !is_sha256(&manifest.time_alignment_artifact_sha256)
-        || !["synthetic_shared_clock", "shared_hardware_clock", "ptp_ntp_verified", "reference_event_alignment", "operator_adjudicated_alignment"].contains(&manifest.time_alignment_method.as_str())
+        || ![
+            "synthetic_shared_clock",
+            "shared_hardware_clock",
+            "ptp_ntp_verified",
+            "reference_event_alignment",
+            "operator_adjudicated_alignment",
+        ]
+        .contains(&manifest.time_alignment_method.as_str())
         || !manifest.alignment_uncertainty_preapplied
     {
         return Err(
@@ -317,7 +325,10 @@ fn validate_and_evaluate(
         "snapshot_admitted" => {
             if manifest.evidence_class != "operator_collected_field_observation"
                 || manifest.time_alignment_method == "synthetic_shared_clock"
-                || manifest.dataset_snapshot_sha256.as_deref().is_none_or(|d| !is_sha256(d))
+                || manifest
+                    .dataset_snapshot_sha256
+                    .as_deref()
+                    .is_none_or(|d| !is_sha256(d))
             {
                 return Err("field evaluation requires an admitted snapshot digest".to_owned());
             }
@@ -344,17 +355,18 @@ fn validate_and_evaluate(
             || !exposure_ids.insert(exposure.exposure_id.clone())
             || !nonempty(&exposure.asset_id)
             || exposure.window_start_unix_ms >= exposure.window_end_unix_ms
-            || !["negative_control", "event_monitoring", "right_censored_followup"]
-                .contains(&exposure.role.as_str())
+            || ![
+                "negative_control",
+                "event_monitoring",
+                "right_censored_followup",
+            ]
+            .contains(&exposure.role.as_str())
         {
             return Err("exposure identity, role or half-open time window is invalid".to_owned());
         }
         if let Some(role) = asset_roles.get(&exposure.asset_id) {
             if role != &exposure.role {
-                return Err(format!(
-                    "asset {} mixes exposure roles",
-                    exposure.asset_id
-                ));
+                return Err(format!("asset {} mixes exposure roles", exposure.asset_id));
             }
         } else {
             asset_roles.insert(exposure.asset_id.clone(), exposure.role.clone());
@@ -396,11 +408,8 @@ fn validate_and_evaluate(
     for event in &manifest.events {
         let recorded_time_semantics_valid = match event.onset_type.as_str() {
             "exact_reported" => event.event_time_semantics != "last_normal_first_abnormal_bracket",
-            "interval_censored" => [
-                "last_normal_first_abnormal_bracket",
-                "other_recorded_time",
-            ]
-            .contains(&event.event_time_semantics.as_str()),
+            "interval_censored" => ["last_normal_first_abnormal_bracket", "other_recorded_time"]
+                .contains(&event.event_time_semantics.as_str()),
             "left_censored" => event.event_time_semantics != "last_normal_first_abnormal_bracket",
             _ => false,
         };
@@ -413,13 +422,24 @@ fn validate_and_evaluate(
             || !nonempty(&event.asset_id)
             || !nonempty(&event.adjudication_revision)
             || event.onset_evidence_refs.is_empty()
-            || event.onset_evidence_refs.iter().any(|r| !nonempty(r) || !evidence_refs.insert(r))
-            || !["reported_bms_alarm", "first_positive_sample", "maintenance_confirmation",
-                "teardown_adjudication", "independently_adjudicated_onset",
-                "last_normal_first_abnormal_bracket", "other_recorded_time"]
-                .contains(&event.event_time_semantics.as_str())
+            || event
+                .onset_evidence_refs
+                .iter()
+                .any(|r| !nonempty(r) || !evidence_refs.insert(r))
+            || ![
+                "reported_bms_alarm",
+                "first_positive_sample",
+                "maintenance_confirmation",
+                "teardown_adjudication",
+                "independently_adjudicated_onset",
+                "last_normal_first_abnormal_bracket",
+                "other_recorded_time",
+            ]
+            .contains(&event.event_time_semantics.as_str())
         {
-            return Err("event identity, evidence references or time semantics are invalid".to_owned());
+            return Err(
+                "event identity, evidence references or time semantics are invalid".to_owned(),
+            );
         }
         let lower = event.onset_lower_unix_ms;
         match event.onset_type.as_str() {
@@ -455,7 +475,7 @@ fn validate_and_evaluate(
                     .contains(&event.onset_upper_semantics.as_str()) =>
             {
                 left_count += 1;
-            },
+            }
             _ => {
                 return Err(format!(
                     "event {} has inconsistent onset type and interval bounds",
@@ -463,9 +483,9 @@ fn validate_and_evaluate(
                 ));
             }
         }
-        let intervals = exposures_by_asset.get(&event.asset_id).ok_or_else(|| {
-            format!("event {} has no monitoring exposure", event.event_id)
-        })?;
+        let intervals = exposures_by_asset
+            .get(&event.asset_id)
+            .ok_or_else(|| format!("event {} has no monitoring exposure", event.event_id))?;
         if asset_roles.get(&event.asset_id).map(String::as_str) != Some("event_monitoring") {
             return Err(format!(
                 "event {} must be bound to event-monitoring exposure",
@@ -479,11 +499,19 @@ fn validate_and_evaluate(
             ));
         }
         if let Some(lower) = lower {
-            let start = lower.checked_sub(manifest.warning_horizon_ms).ok_or_else(|| {
-                format!("event {} cannot represent its warning window without underflow", event.event_id)
-            })?;
+            let start = lower
+                .checked_sub(manifest.warning_horizon_ms)
+                .ok_or_else(|| {
+                    format!(
+                        "event {} cannot represent its warning window without underflow",
+                        event.event_id
+                    )
+                })?;
             if start >= event.onset_upper_unix_ms {
-                return Err(format!("event {} has an empty possible warning window", event.event_id));
+                return Err(format!(
+                    "event {} has an empty possible warning window",
+                    event.event_id
+                ));
             }
             event_window_index
                 .entry(event.asset_id.clone())
@@ -515,13 +543,16 @@ fn validate_and_evaluate(
             }
         }
     }
-    for event in manifest.events.iter().filter(|event| event.onset_type == "left_censored") {
+    for event in manifest
+        .events
+        .iter()
+        .filter(|event| event.onset_type == "left_censored")
+    {
         if event_window_index
             .get(&event.asset_id)
             .is_some_and(|windows| {
                 windows.iter().any(|(start, end, _)| {
-                    event.onset_upper_unix_ms >= *start
-                        && event.onset_upper_unix_ms < *end
+                    event.onset_upper_unix_ms >= *start && event.onset_upper_unix_ms < *end
                 })
             })
         {
@@ -544,14 +575,26 @@ fn validate_and_evaluate(
             return Err("alarm identity or emitted-score/threshold contract is invalid".to_owned());
         }
         let intervals = exposures_by_asset.get(&alarm.asset_id).ok_or_else(|| {
-            format!("alarm {} has no declared monitoring exposure", alarm.alarm_id)
+            format!(
+                "alarm {} has no declared monitoring exposure",
+                alarm.alarm_id
+            )
         })?;
         if !contains_point(intervals, alarm.alarm_time_unix_ms) {
-            return Err(format!("alarm {} falls outside monitoring exposure", alarm.alarm_id));
+            return Err(format!(
+                "alarm {} falls outside monitoring exposure",
+                alarm.alarm_id
+            ));
         }
         alarm_refs.push(alarm);
     }
-    alarm_refs.sort_by_key(|alarm| (alarm.asset_id.as_str(), alarm.alarm_time_unix_ms, alarm.alarm_id.as_str()));
+    alarm_refs.sort_by_key(|alarm| {
+        (
+            alarm.asset_id.as_str(),
+            alarm.alarm_time_unix_ms,
+            alarm.alarm_id.as_str(),
+        )
+    });
 
     let mut eligible_events = 0usize;
     let mut unobservable_events = 0usize;
@@ -588,11 +631,13 @@ fn validate_and_evaluate(
             continue;
         };
 
-        let possible_start = lower.checked_sub(manifest.warning_horizon_ms).ok_or_else(|| {
-            format!("event {} warning horizon underflow", event.event_id)
-        })?;
+        let possible_start = lower
+            .checked_sub(manifest.warning_horizon_ms)
+            .ok_or_else(|| format!("event {} warning horizon underflow", event.event_id))?;
         let possible_end = event.onset_upper_unix_ms;
-        let intervals = exposures_by_asset.get(&event.asset_id).expect("event exposure");
+        let intervals = exposures_by_asset
+            .get(&event.asset_id)
+            .expect("event exposure");
         let complete = covers_range(intervals, possible_start, possible_end);
 
         let mut matching = alarm_refs
@@ -610,8 +655,7 @@ fn validate_and_evaluate(
             .checked_sub(manifest.warning_horizon_ms)
             .ok_or_else(|| format!("event {} guaranteed window underflow", event.event_id))?;
         let is_guaranteed = |alarm: &&AlarmEpisode| {
-            alarm.alarm_time_unix_ms >= guaranteed_start
-                && alarm.alarm_time_unix_ms < lower
+            alarm.alarm_time_unix_ms >= guaranteed_start && alarm.alarm_time_unix_ms < lower
         };
         matching.sort_by_key(|alarm| {
             (
@@ -638,7 +682,8 @@ fn validate_and_evaluate(
                 repeated_alarms += matching.len().saturating_sub(1);
                 if is_guaranteed(primary) {
                     definite_warnings += 1;
-                    if let Some(minimum_bound) = lower.checked_sub(manifest.minimum_action_lead_ms) {
+                    if let Some(minimum_bound) = lower.checked_sub(manifest.minimum_action_lead_ms)
+                    {
                         if primary.alarm_time_unix_ms <= minimum_bound {
                             actionable_warnings += 1;
                         }
@@ -653,7 +698,8 @@ fn validate_and_evaluate(
                 }
                 if primary.alarm_time_unix_ms < lower {
                     let lead_low = (lower - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
-                    let lead_high = (event.onset_upper_unix_ms - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
+                    let lead_high =
+                        (event.onset_upper_unix_ms - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
                     lead_lower_hours.push(lead_low);
                     lead_upper_hours.push(lead_high);
                 }
@@ -675,9 +721,15 @@ fn validate_and_evaluate(
         match asset_roles.get(&alarm.asset_id).map(String::as_str) {
             Some("negative_control") => negative_false_alarms += 1,
             Some("right_censored_followup") => {
-                let end = alarm.alarm_time_unix_ms.checked_add(manifest.warning_horizon_ms);
-                let intervals = exposures_by_asset.get(&alarm.asset_id).expect("right exposure");
-                if end.is_some_and(|future_end| covers_range(intervals, alarm.alarm_time_unix_ms, future_end)) {
+                let end = alarm
+                    .alarm_time_unix_ms
+                    .checked_add(manifest.warning_horizon_ms);
+                let intervals = exposures_by_asset
+                    .get(&alarm.asset_id)
+                    .expect("right exposure");
+                if end.is_some_and(|future_end| {
+                    covers_range(intervals, alarm.alarm_time_unix_ms, future_end)
+                }) {
                     right_false_alarms += 1;
                 } else {
                     right_unresolved_alarms += 1;
@@ -691,7 +743,9 @@ fn validate_and_evaluate(
     let mut right_horizon_edge_ms = 0_u128;
     let mut right_eligible_ms = 0_u128;
     for asset_id in &right_censored_assets {
-        let intervals = exposures_by_asset.get(asset_id).expect("right-censored exposure");
+        let intervals = exposures_by_asset
+            .get(asset_id)
+            .expect("right-censored exposure");
         for (start, end) in contiguous_blocks(intervals) {
             let duration = (end - start) as u128;
             let edge = duration.min(manifest.warning_horizon_ms as u128);
@@ -704,12 +758,12 @@ fn validate_and_evaluate(
     let right_at_risk_hours = right_at_risk_ms as f64 / HOUR_MS;
     let right_edge_hours = right_horizon_edge_ms as f64 / HOUR_MS;
     let right_eligible_hours = right_eligible_ms as f64 / HOUR_MS;
-    let definite_coverage = (eligible_events > 0)
-        .then_some(definite_warnings as f64 / eligible_events as f64);
+    let definite_coverage =
+        (eligible_events > 0).then_some(definite_warnings as f64 / eligible_events as f64);
     let possible_coverage = (eligible_events > 0)
         .then_some((definite_warnings + possible_only_warnings) as f64 / eligible_events as f64);
-    let negative_rate = (negative_hours > 0.0)
-        .then_some(negative_false_alarms as f64 / negative_hours * 1000.0);
+    let negative_rate =
+        (negative_hours > 0.0).then_some(negative_false_alarms as f64 / negative_hours * 1000.0);
     let right_rate = (right_eligible_hours > 0.0)
         .then_some(right_false_alarms as f64 / right_eligible_hours * 1000.0);
 
@@ -834,9 +888,8 @@ mod tests {
     const SCHEMA: &[u8] = include_bytes!(
         "../../../schemas/transport/ev_bms_event_censoring_evaluation_v0_1.schema.json"
     );
-    const FIXTURE: &[u8] = include_bytes!(
-        "../../../fixtures/ev_battery/event_censoring_synthetic_v0_1.json"
-    );
+    const FIXTURE: &[u8] =
+        include_bytes!("../../../fixtures/ev_battery/event_censoring_synthetic_v0_1.json");
 
     fn report() -> EventCensoringReport {
         audit_event_censoring_evaluation(SCHEMA, FIXTURE)
@@ -864,14 +917,22 @@ mod tests {
         assert_eq!(report.left_censored_ambiguous_alarm_count, 1);
         assert_eq!(report.negative_control_false_alarm_count, 2);
         assert!((report.negative_control_exposure_hours - 100.0).abs() < 1e-12);
-        assert!((report.negative_control_false_alarms_per_1000_hours.unwrap() - 20.0).abs() < 1e-12);
+        assert!(
+            (report.negative_control_false_alarms_per_1000_hours.unwrap() - 20.0).abs() < 1e-12
+        );
         assert_eq!(report.right_censored_false_alarm_count, 1);
         assert_eq!(report.right_censored_unresolved_alarm_count, 1);
         assert!((report.right_censored_at_risk_hours - 50.0).abs() < 1e-12);
         assert!((report.right_censored_horizon_edge_hours - 24.0).abs() < 1e-12);
         assert!((report.right_censored_eligible_forecast_hours - 26.0).abs() < 1e-12);
-        assert!((report.right_censored_false_alarms_per_1000_eligible_hours.unwrap()
-            - (1000.0 / 26.0)).abs() < 1e-9);
+        assert!(
+            (report
+                .right_censored_false_alarms_per_1000_eligible_hours
+                .unwrap()
+                - (1000.0 / 26.0))
+                .abs()
+                < 1e-9
+        );
         assert_eq!(report.lead_interval_count, 1);
         assert!((report.lead_lower_hours_min.unwrap() - 4.0).abs() < 1e-12);
         assert!((report.lead_upper_hours_min.unwrap() - 4.0).abs() < 1e-12);
@@ -892,7 +953,8 @@ mod tests {
             .expect("interval event alarm");
         interval_alarm["alarm_time_unix_ms"] = Value::from(200_u64 * 3_600_000);
         let bytes = serde_json::to_vec(&value).expect("lower-bound fixture");
-        let at_lower = audit_event_censoring_evaluation(SCHEMA, &bytes).expect("inclusive lower boundary");
+        let at_lower =
+            audit_event_censoring_evaluation(SCHEMA, &bytes).expect("inclusive lower boundary");
         assert_eq!(at_lower.definite_warning_count, 1);
         assert_eq!(at_lower.ambiguous_ordering_warning_count, 1);
         assert!((at_lower.lead_lower_hours_min.unwrap() - 24.0).abs() < 1e-12);
@@ -905,7 +967,8 @@ mod tests {
             .expect("exact event alarm");
         exact_alarm["alarm_time_unix_ms"] = Value::from(100_u64 * 3_600_000);
         let upper_bytes = serde_json::to_vec(&upper_value).expect("exclusive upper-bound fixture");
-        let at_upper = audit_event_censoring_evaluation(SCHEMA, &upper_bytes).expect("exclusive upper boundary");
+        let at_upper = audit_event_censoring_evaluation(SCHEMA, &upper_bytes)
+            .expect("exclusive upper boundary");
         assert_eq!(at_upper.definite_warning_count, 0);
         assert_eq!(at_upper.event_miss_count, 2);
     }
@@ -913,15 +976,19 @@ mod tests {
     #[test]
     fn wide_onset_interval_has_possible_but_no_guaranteed_warning_window() {
         let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
-        value["alarms"].as_array_mut().unwrap().push(serde_json::json!({
-            "alarm_id": "alarm-wide-interval-pre-onset",
-            "asset_id": "asset-event",
-            "alarm_time_unix_ms": 310_u64 * 3_600_000,
-            "score": 0.9,
-            "threshold": 0.8
-        }));
+        value["alarms"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "alarm_id": "alarm-wide-interval-pre-onset",
+                "asset_id": "asset-event",
+                "alarm_time_unix_ms": 310_u64 * 3_600_000,
+                "score": 0.9,
+                "threshold": 0.8
+            }));
         let bytes = serde_json::to_vec(&value).expect("wide interval alarm manifest");
-        let report = audit_event_censoring_evaluation(SCHEMA, &bytes).expect("wide interval evaluation");
+        let report =
+            audit_event_censoring_evaluation(SCHEMA, &bytes).expect("wide interval evaluation");
         assert_eq!(report.definite_warning_count, 1);
         assert_eq!(report.possible_pre_onset_only_warning_count, 1);
         assert_eq!(report.ambiguous_ordering_warning_count, 1);
