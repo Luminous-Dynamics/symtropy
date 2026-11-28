@@ -139,3 +139,27 @@ No decision is made here to add a direct root dependency. A local `vision-manifo
 ## Claim ceiling
 
 This specification and its eventual synthetic contract tests do not prove sensor independence, pose validity, physical truth, calibration coverage, source authenticity, flight readiness, HIL performance or SOTA superiority. The temporal witness remains supplementary evidence under existing Symtropy geometry, calibration, common-cause and action-admission owners.
+
+## Producer implementation alignment (2026-11-28)
+
+Symthaea's observer implementation now has a concrete v0.1 producer shape on [PR #14072](https://github.com/Luminous-Dynamics/symthaea/pull/14072):
+- `ObserverFrameIdentityV0_1`: episode/target/session/trajectory/frame/sensor identity, sequence, microsecond timestamp, modality, source-evidence ID, and clock/calibration/ROI/preprocessing SHA-256 digests.
+- `TemporalPerceptionWitnessV0_1`: profile/model/raw-frame SHA-256 commitments, accepted/expected count, fixed horizon, explicit `warming_up` vs `observed`, quantized telemetry, and constant observer-only/no-authority claim flags.
+- `TemporalObserverCheckpointV0_1`: profile/config/model digests plus last accepted identity, timestamp cursor and no-retention manifold state.
+- Strict monotonic sequence/time, same episode/sensor/calibration/ROI/clock/preprocessing, fixed frame count, fixed horizon, inter-frame gap and byte budget checks.
+- The raw image itself is SHA-256 hashed but is never emitted or retained by the observer profile. The hash binds the exact received bytes; it does not authenticate the sensor or its clock.
+- Q16.16 metrics represent internal HDC/CfC telemetry. They are not pose probability, uncertainty covariance, physical truth or a calibrated likelihood.
+
+The matching receiver schema is now at `schemas/spacecraft/temporal-perception-witness-v0.1.schema.json`. It fixes the schema/profile IDs, visible-only v0.1 modality, digest syntax, metric ranges, warm-up missing-prediction semantics and all non-authority flags.
+
+### Interoperability checks still required
+
+This schema is a receiver contract, not yet a live Symtropy adapter. The next executable step is to:
+1. freeze a canonical serialization profile and a known-answer witness fixture;
+2. validate the exact producer JSON against this JSON Schema using a schema validator in CI;
+3. independently recompute the raw-frame digest from the source bundle;
+4. bind every witness to candidate-manifest frame identity and source bundle digest;
+5. prove malformed, duplicate, stale, changed-calibration, horizon-exhausted and wrong-profile witnesses do not mutate receiver state;
+6. add safe and deliberately unsafe Symtropy policy controls (a temporal witness may suppress/restrict, never promote an unqualified pose).
+
+The SHA-256 model/profile commitments provide integrity references for the serialized parameters and declared configuration. They are not digital signatures, remote attestation or a proof of a trusted build. Those need a separately reviewed signing/attestation and supply-chain contract.
