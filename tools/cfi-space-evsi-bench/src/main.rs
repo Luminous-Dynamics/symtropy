@@ -128,9 +128,7 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
         return Err(format!("decision count must be in 2..={MAX_DECISIONS}"));
     }
     if scenario.proposals.is_empty() || scenario.proposals.len() > MAX_PROPOSALS {
-        return Err(format!(
-            "proposal count must be in 1..={MAX_PROPOSALS}"
-        ));
+        return Err(format!("proposal count must be in 1..={MAX_PROPOSALS}"));
     }
     if scenario.prior_probability_bps.len() != scenario.hypotheses.len() {
         return Err("prior probability vector length must match hypothesis count".to_string());
@@ -241,19 +239,14 @@ fn validate_scenario(scenario: &Scenario) -> Result<(), String> {
     Ok(())
 }
 
-fn best_decision_numerator(
-    scenario: &Scenario,
-    hypothesis_weights: &[u128],
-) -> (usize, u128) {
+fn best_decision_numerator(scenario: &Scenario, hypothesis_weights: &[u128]) -> (usize, u128) {
     let mut best_index = 0;
     let mut best_numerator = u128::MAX;
     for decision_index in 0..scenario.decisions.len() {
         let numerator = hypothesis_weights
             .iter()
             .zip(&scenario.decision_loss_units)
-            .map(|(weight, row)| {
-                weight * u128::from(row[decision_index])
-            })
+            .map(|(weight, row)| weight * u128::from(row[decision_index]))
             .sum::<u128>();
         if numerator < best_numerator {
             best_index = decision_index;
@@ -273,10 +266,7 @@ fn binary_entropy_bits(probabilities: &[f64]) -> f64 {
 
 /// Shannon information gain is a baseline diagnostic only. EVSI selection uses
 /// exact integer decision-loss arithmetic and never this floating-point value.
-fn entropy_gain_millibits(
-    scenario: &Scenario,
-    proposal: &ObservationProposal,
-) -> i64 {
+fn entropy_gain_millibits(scenario: &Scenario, proposal: &ObservationProposal) -> i64 {
     let priors: Vec<f64> = scenario
         .prior_probability_bps
         .iter()
@@ -359,16 +349,14 @@ fn evaluate_proposal(
         if outcome_weight == 0 {
             continue;
         }
-        let (_, best_outcome_loss_numerator) =
-            best_decision_numerator(scenario, &joint_weights);
+        let (_, best_outcome_loss_numerator) = best_decision_numerator(scenario, &joint_weights);
         expected_posterior_loss_numerator += best_outcome_loss_numerator;
     }
 
     let prior_scaled = prior_best_numerator * PROBABILITY_DENOMINATOR;
     let gross_evsi_numerator = prior_scaled.saturating_sub(expected_posterior_loss_numerator);
     let cost_numerator = u128::from(proposal.cost_units) * JOINT_DENOMINATOR;
-    let net_evsi_numerator = i128::try_from(gross_evsi_numerator)
-        .unwrap_or(i128::MAX)
+    let net_evsi_numerator = i128::try_from(gross_evsi_numerator).unwrap_or(i128::MAX)
         - i128::try_from(cost_numerator).unwrap_or(i128::MAX);
     let disposition = if net_evsi_numerator > 0 {
         ProposalDisposition::AdmissiblePositiveEvsi
@@ -414,9 +402,7 @@ fn evaluate_scenario(scenario: &Scenario) -> Result<EvaluationReport, String> {
 
     let evsi_recommendation_id = evaluations
         .iter()
-        .filter(|evaluation| {
-            evaluation.disposition == ProposalDisposition::AdmissiblePositiveEvsi
-        })
+        .filter(|evaluation| evaluation.disposition == ProposalDisposition::AdmissiblePositiveEvsi)
         .max_by_key(|evaluation| evaluation.net_evsi_numerator.unwrap_or(i128::MIN))
         .map(|evaluation| evaluation.proposal_id.clone());
 
@@ -448,10 +434,9 @@ fn read_scenario(path: &Path) -> Result<Scenario, String> {
     if metadata.len() > 4 * 1024 * 1024 {
         return Err("EVSI scenario exceeds 4 MiB".to_string());
     }
-    let bytes =
-        fs::read(path).map_err(|error| format!("cannot read scenario {}: {error}", path.display()))?;
-    serde_json::from_slice(&bytes)
-        .map_err(|error| format!("invalid EVSI scenario JSON: {error}"))
+    let bytes = fs::read(path)
+        .map_err(|error| format!("cannot read scenario {}: {error}", path.display()))?;
+    serde_json::from_slice(&bytes).map_err(|error| format!("invalid EVSI scenario JSON: {error}"))
 }
 
 fn run() -> Result<(), String> {
@@ -514,8 +499,7 @@ fn main() {
 mod tests {
     use super::*;
 
-    const SCENARIO: &str =
-        include_str!("fixtures/synthetic-evsi-scenario-v0.1.json");
+    const SCENARIO: &str = include_str!("fixtures/synthetic-evsi-scenario-v0.1.json");
 
     fn scenario() -> Scenario {
         serde_json::from_str(SCENARIO).unwrap()
@@ -571,7 +555,13 @@ mod tests {
             .find(|evaluation| evaluation.proposal_id == "unavailable-lidar-revisit")
             .unwrap();
         assert_eq!(rejected.disposition, ProposalDisposition::Rejected);
-        assert!(rejected.rejection_reason.as_deref().unwrap().contains("actuation"));
+        assert!(
+            rejected
+                .rejection_reason
+                .as_deref()
+                .unwrap()
+                .contains("actuation")
+        );
     }
 
     #[test]
@@ -585,7 +575,13 @@ mod tests {
             .find(|evaluation| evaluation.proposal_id == "independent-reference-check")
             .unwrap();
         assert_eq!(rejected.disposition, ProposalDisposition::Rejected);
-        assert!(rejected.rejection_reason.as_deref().unwrap().contains("dependencies"));
+        assert!(
+            rejected
+                .rejection_reason
+                .as_deref()
+                .unwrap()
+                .contains("dependencies")
+        );
 
         let mut scenario = scenario();
         scenario.proposals[1].estimated_latency_us = 20_000;
