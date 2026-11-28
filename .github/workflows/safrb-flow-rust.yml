@@ -7,6 +7,7 @@ on:
       - research/safrb-temporal-semantics-v0
       - research/safrb-time-expanded-adapter-v0
       - research/safrb-beneficiary-floor-feasibility-v0
+      - research/safrb-floor-cut-explanations-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
@@ -20,6 +21,8 @@ on:
       - research/wpt-exact-service-oracle-v0
       - research/single-commodity-flow-kernel-v0
       - research/safrb-temporal-semantics-v0
+      - research/safrb-beneficiary-floor-feasibility-v0
+      - research/safrb-floor-cut-explanations-v0
     paths:
       - "Cargo.toml"
       - "Cargo.lock"
