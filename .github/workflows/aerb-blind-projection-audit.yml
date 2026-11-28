@@ -51,10 +51,13 @@ jobs:
           jq -e '.report.sample_n == 128 and .report.independent_cluster_n == 64 and .report.combined_metadata_only_accuracy >= 0.95 and .report.combined_metadata_only_balanced_accuracy >= 0.95' "$WORK/report.json"
           test "$(stat -c '%a' "$WORK/report.json")" = "600"
           sha256sum "$WORK/input.json" "$WORK/report.json"
-      - name: Generate, blind, replay and score a complete process-model campaign
+      - name: Reference-policy projection/replay conformance test (not candidate execution)
         shell: bash
         run: |
           set -euo pipefail
+          set -euo pipefail
+          # This v0.1 lane replays a projected reference submission to qualify custody/projection only.
+          # It is not a blind candidate run; see Symtropy issue #7886 for the separate input/output-root runtime.
           ROOT="research/mobility-rrvr-aerb-v0.1"
           WORK="$(mktemp -d)"
           trap 'rm -rf "$WORK"' EXIT
