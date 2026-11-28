@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.1",
+  "benchmark_id": "CIRCULAR-ROTOR-001",
+  "claim_ceiling": "Synthetic contract fixture only. It does not contain physical teardown evidence, M4 acceptance, recovered magnets, recycling output, production qualification or an audited LCA.",
+  "scope": {
+    "application_id": "TRACTOR-DRIVE-150KW",
+    "duty_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "lifetime_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "thermal_environment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "mechanical_envelope_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "safety_policy_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "lifecycle_boundary_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "constraint_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "mass_balance_policy": {
+    "max_mass_balance_error_kg": 0.02,
+    "max_mass_balance_error_fraction": 0.015
+  },
+  "required_baseline_families": [
+    "ConventionalBondedAdhesivePmRotor"
+  ],
+  "metrics": [
+    {
+      "metric_id": "post_service_torque_nm",
+      "unit": "Nm",
+      "class": "MandatoryFunction",
+      "source": "Observation",
+      "direction": "Maximize",
+      "hard_min": 180,
+      "non_inferiority_margin": 2
+    },
+    {
+      "metric_id": "lifetime_energy_weighted_efficiency",
+      "unit": "fraction",
+      "class": "MandatoryFunction",
+      "source": "Observation",
+      "direction": "Maximize",
+      "hard_min": 0.93,
+      "non_inferiority_margin": 0.003
+    },
+    {
+      "metric_id": "demagnetization_margin",
+      "unit": "ratio",
+      "class": "MandatoryFunction",
+      "source": "Observation",
+      "direction": "Maximize",
+      "hard_min": 1.3,
+      "non_inferiority_margin": 0.05
+    },
+    {
+      "metric_id": "magnet_retention_margin",
+      "unit": "ratio",
+      "class": "MandatoryFunction",
+      "source": "Observation",
+      "direction": "Maximize",
+      "hard_min": 2,
+      "non_inferiority_margin": 0.1
+    },
+    {
+      "metric_id": "service_cycle_survival",
+      "unit": "cycles",
+      "class": "MandatoryFunction",
+      "source": "Observation",
+      "direction": "Maximize",
+      "hard_min": 5,
+      "non_inferiority_margin": 1
+    },
+    {
+      "metric_id": "disassembly_time_minutes",
+      "unit": "min",
+      "class": "CircularityBenefit",
+      "source": "DisassemblyElapsedMinutes",
+      "direction": "Minimize"
+    },
+    {
+      "metric_id": "disassembly_energy_wh",
+      "unit": "Wh",
+      "class": "CircularityBenefit",
+      "source": "DisassemblyEnergyWh",
+      "direction": "Minimize"
+    },
+    {
+      "metric_id": "qualified_reuse_fraction",
+      "unit": "fraction",
+      "class": "CircularityBenefit",
+      "source": "QualifiedReuseFraction",
+      "direction": "Maximize"
+    },
+    {
+      "metric_id": "recycling_feedstock_fraction",
+      "unit": "fraction",
+      "class": "CircularityBenefit",
+      "source": "RecyclingFeedstockFraction",
+      "direction": "Maximize"
+    },
+    {
+      "metric_id": "lifetime_cost_per_kwh",
+      "unit": "USD/kWh",
+      "class": "CircularityBenefit",
+      "source": "Observation",
+      "direction": "Minimize"
+    }
+  ],
+  "trials": []
+}
