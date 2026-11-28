@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/cfi-space/temporal-observer-witness-v0.1.schema.json",
+  "title": "Symthaea Temporal Perception Witness v0.1 (wire schema v3)",
+  "description": "Non-authoritative, exact-frame-bound temporal representation diagnostic. This witness is not pose probability, source authentication, physical truth, sensor independence, or maneuver authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "producer",
+    "producer_version",
+    "observer_profile_id",
+    "observer_profile_sha256",
+    "frozen_model_sha256",
+    "raw_frame_sha256",
+    "identity",
+    "width",
+    "height",
+    "channels",
+    "accepted_frame_count",
+    "expected_frame_count",
+    "fixed_horizon_us",
+    "horizon_elapsed_us",
+    "status",
+    "metrics",
+    "observer_only",
+    "learning_frozen",
+    "raw_frame_retained",
+    "actuation_authority",
+    "pose_probability_claim",
+    "source_authentication_claim",
+    "physical_truth_claim"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 3
+    },
+    "producer": {
+      "const": "symthaea-vision-manifold"
+    },
+    "producer_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observer_profile_id": {
+      "const": "symthaea-spacecraft-temporal-observer-v0.1"
+    },
+    "observer_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "frozen_model_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "raw_frame_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "identity": {
+      "$ref": "#/$defs/identity"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "channels": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "accepted_frame_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expected_frame_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "fixed_horizon_us": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "horizon_elapsed_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "warming_up",
+        "observed"
+      ]
+    },
+    "metrics": {
+      "$ref": "#/$defs/metrics"
+    },
+    "observer_only": {
+      "const": true
+    },
+    "learning_frozen": {
+      "const": true
+    },
+    "raw_frame_retained": {
+      "const": false
+    },
+    "actuation_authority": {
+      "const": false
+    },
+    "pose_probability_claim": {
+      "const": false
+    },
+    "source_authentication_claim": {
+      "const": false
+    },
+    "physical_truth_claim": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "target_id",
+        "session_id",
+        "trajectory_id",
+        "frame_id",
+        "sensor_id",
+        "source_evidence_id",
+        "sequence",
+        "timestamp_us",
+        "modality",
+        "clock_profile_sha256",
+        "calibration_sha256",
+        "roi_sha256",
+        "preprocessing_sha256"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trajectory_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modality": {
+          "const": "Visible"
+        },
+        "clock_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "roi_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "preprocessing_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "patch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row",
+        "col",
+        "value_q16_16"
+      ],
+      "properties": {
+        "row": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "col": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "value_q16_16": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prediction_error_q16_16",
+        "manifold_coherence_q16_16",
+        "attention_entropy_q16_16",
+        "motion_surprise_q16_16",
+        "cross_scale_prediction_error_q16_16",
+        "horizon_prediction_error_q16_16",
+        "horizon_persistence_error_q16_16",
+        "horizon_relative_skill_q16_16",
+        "horizon_sample_counts",
+        "horizon_mean_lateness_us",
+        "horizon_dropped_forecasts",
+        "horizon_expired_forecasts",
+        "salient_patch_count",
+        "patch_grid_rows",
+        "patch_grid_cols",
+        "patch_size_pixels",
+        "patch_surprise_nonzero_count",
+        "patch_surprise_top_k",
+        "encode_time_us",
+        "evolve_time_us"
+      ],
+      "properties": {
+        "prediction_error_q16_16": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "manifold_coherence_q16_16": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "attention_entropy_q16_16": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "motion_surprise_q16_16": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "cross_scale_prediction_error_q16_16": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "horizon_prediction_error_q16_16": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 4294967295
+          }
+        },
+        "horizon_persistence_error_q16_16": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 4294967295
+          }
+        },
+        "horizon_relative_skill_q16_16": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "horizon_sample_counts": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "horizon_mean_lateness_us": {
+          "type": "array",
+          "items": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "horizon_dropped_forecasts": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "horizon_expired_forecasts": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "salient_patch_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "patch_grid_rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "patch_grid_cols": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "patch_size_pixels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "patch_surprise_nonzero_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        },
+        "patch_surprise_top_k": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/patch"
+          }
+        },
+        "encode_time_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evolve_time_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
