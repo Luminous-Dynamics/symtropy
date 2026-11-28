@@ -25,7 +25,7 @@ Energy flows are kept distinct:
 
 Motoring and regenerative efficiencies use ratios of aggregate energy totals. They are not the arithmetic mean of segment efficiency percentages. The auxiliary load boundary is explicit and is not silently folded into or removed from traction energy.
 
-All energy values are bounded intervals in joules. Interval addition, subtraction and positive-denominator division are conservative; no statistical independence or probability distribution is assumed. Inputs must be bounded measurement intervals, not unqualified confidence intervals.
+All energy values are bounded intervals in joules. Interval addition, subtraction and positive-denominator division are conservative; no statistical independence or probability distribution is assumed. Arithmetic overflow, invalid intervals and non-positive denominators block a qualified aggregate. Inputs must be bounded measurement intervals, not unqualified confidence intervals.
 
 ## Segment requirements
 
