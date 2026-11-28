@@ -172,7 +172,13 @@ Keep camera-only, stereo, RGB-D, odometry, IMU and LiDAR lanes separate. A syste
 
 A failure at any hard gate returns NOT_QUALIFIED or NOT_EVALUATED; it is not converted into a lower task score. No CI pass, renderer success, candidate performance or SOTA result is implied by this protocol document.
 
-## 10. Composition
+## 10. Machine-readable attempt ledger
+
+The companion [spatial-attempt-ledger-v0.schema.json](./spatial-attempt-ledger-v0.schema.json) and [example](./spatial-attempt-ledger-v0.example.json) define a one-record-per-attempt contract. Each attempt preserves scene/session/world-pair/episode cluster identity, terminal disposition, expected and valid pose opportunities, coverage, conditional ATE/RPE or explicit NOT_EVALUATED, and a joint-success flag. The schema is checked by [.github/workflows/spatial-attempt-ledger.yml](../../.github/workflows/spatial-attempt-ledger.yml) against the repository-pinned JSON Schema validator, including negative controls for zero-pose ATE, missing NOT_EVALUATED reason, failure-as-success and hidden evaluator fields.
+
+The schema does not recompute aggregate statistics or prove that a candidate's reported coverage and metrics are truthful. The evaluator MUST recompute counts and metrics from source attempt receipts, compare valid counts with expected opportunities, verify metric/frame identity, and derive joint success using preregistered C_min/E_max. The example is illustrative only and contains no candidate performance result.
+
+## 11. Composition
 
 - #6184 owns scenario matrices and candidate-visible contracts.
 - #6201 owns typed observations and causal replay.
@@ -181,5 +187,6 @@ A failure at any hard gate returns NOT_QUALIFIED or NOT_EVALUATED; it is not con
 - #7787 owns dynamic persistent-versus-transient map challenges.
 - #6675 owns sequential acquisition policy tournaments.
 - #7577 owns evaluator-side decision-sufficiency checking.
+- #7902 / #7904 own observability-conditioned claim reliability, calibration and paired negative controls.
 
 This scorecard defines common reporting semantics only. It MUST be implemented by adapters in the owning evaluators rather than by adding a parallel scoring engine.
