@@ -439,7 +439,7 @@ fn validate_and_evaluate(manifest: &EvaluationManifest) -> Result<EventEvaluatio
     let event_warning_coverage_fraction = event_warning_count as f64 / manifest.events.len() as f64;
     let total_alarms = alarm_refs.len();
 
-    let mut report = EventEvaluationReport {
+    let report = EventEvaluationReport {
         report_version: "ev-bms-event-evaluation-report/v0.1".to_owned(),
         evaluation_id: manifest.evaluation_id.clone(),
         dataset_id: manifest.dataset_id.clone(),
