@@ -154,6 +154,32 @@ Every evaluation release should freeze identical source data, splits, weather/ta
 4. GRU/TCN/Mamba/Transformer models with vehicle-level holdout.
 5. Calibrated capability envelope, not just point SOH.
 
+### Active diagnostic sensing and value-of-information
+
+When the current evidence does not support a safe operating disposition, compare policies that choose the next measurement—not merely models that produce another confidence score. Candidate actions may include passive sampling, a longer rest observation, an independent reference sensor, a controlled pulse within an approved test envelope, workshop/thermal inspection, or human adjudication. A measurement recommendation is never its own execution authority.
+
+For hypothesis set H, disposition set D, loss L(d,h), ambiguity/probability set P, and candidate test s with outcomes Y_s and total cost c_s:
+
+`R(P) = min_d max_{p in P} E_p[L(d,H)]`
+
+`VOI_lower(s) = R(P) - sup_{q in Q_s} E_{y~q}[R(P(y,s))] - c_s`
+
+Here P(y,s) is the post-observation ambiguity set and Q_s is the declared set of plausible test-outcome distributions. Use calibrated EVSI only when outcome probabilities are supported; use a conservative lower-bound robust VOI when distributions are bounded but not known exactly. If neither is defensible, report VOI unavailable and keep the disposition INDETERMINATE. Entropy reduction alone is not decision value.
+
+Benchmark policies under the same allowed tests, loss matrix, evidence and resource budget:
+- no additional sensing/current policy;
+- random feasible test;
+- cheapest-first;
+- maximum-entropy / uncertainty-only;
+- expected information gain only;
+- calibrated EVSI;
+- distributionally robust lower-bound VOI;
+- full-information oracle (upper bound only; not deployable).
+
+Measure pre/post decision loss and regret; robust worst-case residual risk; safe and harmful decision changes; fraction of INDETERMINATE cases resolved; cost/time/downtime/compute per safely resolved decision; test count and sensor burden; false reassurance; and the calibration of predicted test outcomes. Use a cost-effectiveness frontier, not one scalar. Include shift in chemistry, pack, firmware, temperature, SOC and load. Freeze action policies and loss weights before opening the test split. Reject a claimed positive value where an observation cannot distinguish the hypotheses relevant to the best safe disposition, or where its delay/hazard outweighs the risk reduction.
+
+Detailed programme contract: https://github.com/Luminous-Dynamics/symtropy/issues/7875.
+
 ### Depot and charging-policy baselines
 1. NLR published scenario outputs (archive replay target).
 2. NLR EVI-Pro Lite scenario profile (matched only where dimensions overlap).
