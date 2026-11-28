@@ -76,7 +76,8 @@
         "transform_families",
         "dataset_url",
         "dataset_card_license_field_present",
-        "dataset_asset_rights_status"
+        "dataset_asset_rights_status",
+        "source_asset_terms"
       ],
       "properties": {
         "question_count": {
@@ -118,9 +119,47 @@
         },
         "dataset_asset_rights_status": {
           "enum": [
-            "unverified_source_dataset_terms",
+            "terms_unreviewed",
+            "terms_reviewed_access_not_granted",
             "rights_qualified"
           ]
+        },
+        "source_asset_terms": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scannet",
+            "scannetpp",
+            "commercial_use_permitted",
+            "access_granted",
+            "reviewed_on"
+          ],
+          "properties": {
+            "scannet": {
+              "enum": [
+                "unreviewed",
+                "non_commercial_only",
+                "separate_written_permission_required"
+              ]
+            },
+            "scannetpp": {
+              "enum": [
+                "unreviewed",
+                "non_commercial_only",
+                "separate_written_permission_required"
+              ]
+            },
+            "commercial_use_permitted": {
+              "type": "boolean"
+            },
+            "access_granted": {
+              "type": "boolean"
+            },
+            "reviewed_on": {
+              "type": "string",
+              "format": "date"
+            }
+          }
         }
       }
     },
