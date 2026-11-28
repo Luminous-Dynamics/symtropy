@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/magnetics/route-tournament/evaluator/route-tournament-fixture-v0.1.schema.json",
+  "title": "Synthetic magnetic route tournament fixture v0.1",
+  "description": "Structural schema for synthetic route comparison controls. It does not define physical evidence validity or assert real route performance.",
+  "type": "object",
+  "required": ["schema_version", "program_id", "fixture_class", "claim_ceiling", "cohort", "candidates", "expected_tournament"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "program_id": { "const": "MAG-AM-ROUTE-EVALUATOR-001" },
+    "fixture_class": { "const": "synthetic_semantic_controls" },
+    "claim_ceiling": { "type": "string", "minLength": 1 },
+    "cohort": {
+      "type": "object",
+      "required": ["scope", "metrics"],
+      "properties": {
+        "scope": { "$ref": "#/$defs/scope" },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/metric" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "expected_tournament": {
+      "type": "object",
+      "required": ["nondominated_candidate_ids", "dominated_candidate_ids", "incomparable_pairs"],
+      "properties": {
+        "nondominated_candidate_ids": { "type": "array", "items": { "type": "string" } },
+        "dominated_candidate_ids": { "type": "array", "items": { "type": "string" } },
+        "incomparable_pairs": { "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 } }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]{64}$" },
+    "scope": {
+      "type": "object",
+      "required": ["application_id", "target_function_digest", "measurement_setup_digest", "acceptance_policy_digest"],
+      "properties": {
+        "application_id": { "type": "string", "minLength": 1 },
+        "target_function_digest": { "$ref": "#/$defs/digest" },
+        "measurement_setup_digest": { "$ref": "#/$defs/digest" },
+        "acceptance_policy_digest": { "$ref": "#/$defs/digest" }
+      },
+      "additionalProperties": false
+    },
+    "metric": {
+      "type": "object",
+      "required": ["metric_id", "unit", "required_role", "objective"],
+      "properties": {
+        "metric_id": { "type": "string", "minLength": 1 },
+        "unit": { "type": "string", "minLength": 1 },
+        "required_role": { "enum": ["PhysicalObservation", "MaterialCharacterization", "AsBuiltInspection", "ProcessRecord"] },
+        "objective": { "enum": ["Minimize", "Maximize"] },
+        "hard_min": { "type": "number" },
+        "hard_max": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "observation": {
+      "type": "object",
+      "required": ["record_id", "record_digest", "metric_id", "specimen_id", "material_lot_id", "build_run_id", "as_built_geometry_digest", "geometry_inspection_digest", "process_genealogy_digest", "material_state_digest", "post_magnetization_digest", "scope", "value", "uncertainty_radius", "unit", "role", "method_id"],
+      "properties": {
+        "record_id": { "type": "string", "minLength": 1 },
+        "record_digest": { "$ref": "#/$defs/digest" },
+        "metric_id": { "type": "string", "minLength": 1 },
+        "specimen_id": { "type": "string", "minLength": 1 },
+        "material_lot_id": { "type": "string", "minLength": 1 },
+        "build_run_id": { "type": "string", "minLength": 1 },
+        "as_built_geometry_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_digest": { "$ref": "#/$defs/digest" },
+        "process_genealogy_digest": { "$ref": "#/$defs/digest" },
+        "material_state_digest": { "$ref": "#/$defs/digest" },
+        "post_magnetization_digest": { "$ref": "#/$defs/digest" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "value": { "type": "number" },
+        "uncertainty_radius": { "type": "number", "minimum": 0 },
+        "unit": { "type": "string", "minLength": 1 },
+        "role": { "enum": ["PhysicalObservation", "MaterialCharacterization", "AsBuiltInspection", "ProcessRecord", "PublishedSummary", "Synthetic"] },
+        "method_id": { "type": "string", "minLength": 1 },
+        "calibration_digest": { "$ref": "#/$defs/digest" },
+        "reference_chain_id": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["candidate_id", "route_family", "specimen_id", "material_lot_id", "build_run_id", "nominal_geometry_digest", "as_built_geometry_digest", "geometry_inspection_record_id", "geometry_inspection_digest", "geometry_inspection_method_id", "geometry_inspection_calibration_digest", "geometry_inspection_reference_chain_id", "inspected_geometry_digest", "process_genealogy_digest", "material_state_digest", "post_magnetization_digest", "scope", "method_scope_supported", "observations"],
+      "properties": {
+        "candidate_id": { "type": "string", "minLength": 1 },
+        "route_family": { "enum": ["Mex", "LpbfSlm", "Sls", "BinderJet", "LcmPhotopolymer", "PemAdjacent", "ConventionalBonded", "SinteredOrAssembled"] },
+        "specimen_id": { "type": "string", "minLength": 1 },
+        "material_lot_id": { "type": "string", "minLength": 1 },
+        "build_run_id": { "type": "string", "minLength": 1 },
+        "nominal_geometry_digest": { "$ref": "#/$defs/digest" },
+        "as_built_geometry_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_record_id": { "type": "string", "minLength": 1 },
+        "geometry_inspection_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_method_id": { "type": "string", "minLength": 1 },
+        "geometry_inspection_calibration_digest": { "$ref": "#/$defs/digest" },
+        "geometry_inspection_reference_chain_id": { "type": "string", "minLength": 1 },
+        "inspected_geometry_digest": { "$ref": "#/$defs/digest" },
+        "process_genealogy_digest": { "$ref": "#/$defs/digest" },
+        "material_state_digest": { "$ref": "#/$defs/digest" },
+        "post_magnetization_digest": { "$ref": "#/$defs/digest" },
+        "scope": { "$ref": "#/$defs/scope" },
+        "method_scope_supported": { "type": "boolean" },
+        "observations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/observation" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}

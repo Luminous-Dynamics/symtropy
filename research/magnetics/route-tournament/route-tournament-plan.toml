@@ -1,0 +1,142 @@
+schema_version = "0.1"
+program_id = "MAG-AM-ROUTE-TOURNAMENT-001"
+revision = "0.1-draft"
+status = "literature_stratified_protocol"
+date = "2026-11-27"
+issue = 7757
+protocol = "MAG_AM_ROUTE_TOURNAMENT_2026-11-27.md"
+
+[decision]
+unit = "accepted_manufactured_component"
+target = "application_specific_field_or_mechanical_function"
+single_remanence_leaderboard = false
+cross_study_values_are_matched_results = false
+hidden_composite_score = false
+
+[route_strata]
+values = ["MEX", "LPBF_SLM", "SLS", "BINDER_JET", "LCM_PHOTOPOLYMER", "PEM_ADJACENT", "CONVENTIONAL_BONDED", "SINTERED_OR_ASSEMBLED"]
+near_net_shape_is_additive_manufacturing = false
+route_specific_inputs_must_be_recorded = true
+
+[identity]
+required = ["application_target_id", "specimen_id", "material_lot_id", "build_run_id", "route_id", "nominal_geometry_digest", "as_built_geometry_digest", "process_genealogy_ref", "magnetization_history_ref", "measurement_ref"]
+holdout_split_unit = ["build", "lot"]
+random_row_split_allowed_for_claimed_generalization = false
+
+[measurement]
+exact_frame_and_grid_required_for_field_map_comparison = true
+standoff_required = true
+background_field_treatment_required = true
+temperature_and_magnetization_state_required = true
+mass_specific_and_volumetric_quantities_interchangeable = false
+surface_field_and_intrinsic_remanence_interchangeable = false
+in_process_and_post_magnetization_fields_interchangeable = false
+
+[correctness_targets]
+false_safe_count = 0
+qualified_identity_closure_fraction = 1.0
+calibration_holdout_leakage_count = 0
+uncertainty_widening_may_improve_disposition = false
+all_targets_achieved = false
+
+[performance_hypotheses]
+reduce_measurements_at_equal_false_safe_rate = true
+improve_accepted_part_yield = true
+reduce_accepted_part_cost = true
+improve_application_function_per_unit_material = true
+all_targets_achieved = false
+
+[[metrics]]
+id = "field_map"
+dimensions = ["vector_mae", "vector_rmse", "max_error", "p95_error", "direction_error", "polarity_boundary_error"]
+
+[[metrics]]
+id = "material"
+dimensions = ["Br", "J", "Hcj", "BHmax", "texture", "porosity", "density", "mechanical_properties"]
+
+[[metrics]]
+id = "manufacturing"
+dimensions = ["dimensional_error", "shrinkage", "feature_resolution", "first_pass_yield", "scrap", "rework", "energy_per_accepted_part"]
+
+[[metrics]]
+id = "economics"
+dimensions = ["accepted_part_cost", "throughput", "material_utilization", "recycled_fraction", "lifecycle_energy"]
+
+[[metrics]]
+id = "decision"
+dimensions = ["false_safe", "false_fail", "ood_abstention", "uncertainty_coverage", "observations_per_accepted_part", "compute_per_accepted_candidate", "decision_regret"]
+
+[[baseline]]
+id = "conventional_reference"
+budget_matched = true
+
+[[baseline]]
+id = "mex_bonded"
+budget_matched = true
+
+[[baseline]]
+id = "lpbf_slm"
+budget_matched = true
+
+[[baseline]]
+id = "sls_binder_jet"
+budget_matched = true
+
+[[baseline]]
+id = "lcm_field_aligned_post_cure"
+budget_matched = true
+
+[[baseline]]
+id = "route_specific_parametric_optimization"
+budget_matched = true
+
+[[baseline]]
+id = "process_aware_inverse_design"
+budget_matched = true
+
+[[baseline]]
+id = "as_built_evidence_gated_selection"
+budget_matched = true
+
+[stages]
+ordered = ["R0_literature_source_ledger", "R1_synthetic_analytical_controls", "R2_common_target_challenge", "R3_repeated_physical_specimens", "R4_equal_budget_tournament", "R5_application_demonstration"]
+
+[claim_policy]
+literature_review_proves_matched_route_superiority = false
+synthetic_cases_prove_physical_manufacturing_performance = false
+one_best_specimen_establishes_route_repeatability = false
+nominal_cad_pass_qualifies_as_built_component = false
+certification_or_product_release_authority_granted = false
+
+
+[implementation]
+issue = 7770
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+fixture_schema = "evaluator/route-tournament-fixture-v0.1.schema.json"
+synthetic_fixture = "evaluator/fixtures/synthetic-route-tournament-v0.1.json"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 21
+unit_tests_executed = false
+exact_head_ci_pass = false
+evaluator_semantics = ["exact_cohort_scope", "as_built_evidence_closure", "admissible_evidence_roles", "interval_hard_limits", "robust_interval_pareto"]
+no_scalar_score = true
+
+
+[implementation]
+issue = 7770
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+fixture_schema = "evaluator/route-tournament-fixture-v0.1.schema.json"
+synthetic_fixture = "evaluator/fixtures/synthetic-route-tournament-v0.1.json"
+workflow = ".github/workflows/magnetic-route-tournament.yml"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 24
+unit_tests_executed = false
+exact_head_ci_pass = false
+geometry_inspection_requires_method_and_calibration = true
+observation_binds_process_material_magnetization_and_geometry_records = true
+evaluator_semantics = ["exact_cohort_scope", "as_built_evidence_closure", "calibrated_geometry_inspection", "admissible_evidence_roles", "interval_hard_limits", "robust_interval_pareto"]
+no_scalar_score = true

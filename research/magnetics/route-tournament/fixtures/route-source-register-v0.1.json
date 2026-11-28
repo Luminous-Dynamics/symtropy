@@ -1,0 +1,188 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-AM-ROUTE-TOURNAMENT-001",
+  "fixture_class": "literature_source_register",
+  "claim_ceiling": "The records below preserve review-level and paper-level source statements with different evidence classes. They are not a matched route benchmark or locally reproduced measurements.",
+  "sources": [
+    {
+      "source_id": "AM-REVIEW-2026",
+      "route_stratum": "cross_route_review",
+      "doi": "10.1016/j.jsamd.2026.101226",
+      "publication_date": "2026-09",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "published_am_ndfeb_remanence_tesla_range": [
+          0.6,
+          1
+        ],
+        "mex_described_as_highest_remanence_am_route": true,
+        "laser_powder_bed_texture_challenge": true,
+        "sls_binder_jet_porosity_challenge": true
+      },
+      "limitations": [
+        "cross_study synthesis, not matched specimen comparison",
+        "route-specific feedstock and measurement methods differ",
+        "do not use these range values as a universal acceptance threshold"
+      ]
+    },
+    {
+      "source_id": "BONDED-NDFEB-REVIEW-2026",
+      "route_stratum": "bonded_magnets_cross_route",
+      "doi": "10.1016/j.jre.2026.03.002",
+      "publication_date": "2026-03-03",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "binder_flowability_magnetic_loading_tradeoff": true,
+        "high_filler_loading_mechanical_processability_tradeoff": true
+      },
+      "limitations": [
+        "review synthesis; not an individual route test",
+        "no route superiority inferred"
+      ]
+    },
+    {
+      "source_id": "SCHAFER-RECYCLED-LPBF-2026",
+      "route_stratum": "LPBF_recycled_NdFeB_PA12",
+      "doi": "10.1002/aesr.202500339",
+      "publication_date": "2026-01-05",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "hd_derived_printed_remanence_tesla": 0.34,
+        "hd_derived_porosity_fraction": 0.326,
+        "hd_derived_alignment_degree": 0.75,
+        "milled_printed_remanence_tesla": 0.32,
+        "milled_porosity_fraction": 0.283,
+        "milled_alignment_degree": 0.65,
+        "hd_powder_d90_table_um": 276,
+        "hd_powder_d90_discussion_um": 279
+      },
+      "limitations": [
+        "supporting raw data available from authors on request",
+        "published scalar values are not a 3D field map",
+        "D90 source discrepancy remains unresolved",
+        "not matched to MEX, SLS, binder jet or LCM"
+      ]
+    },
+    {
+      "source_id": "BEHERA-PATTERNED-SLS-2026",
+      "route_stratum": "SLS_patterned_multi_material",
+      "doi": "10.1038/s41598-026-43131-5",
+      "publication_date": "2026-03-11",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "multi_material_patterned_poles_demonstrated": true,
+        "build_field_millitesla": 230,
+        "post_magnetization_field_tesla_range": [
+          1.5,
+          1.9
+        ]
+      },
+      "limitations": [
+        "build field, post-magnetization field and probe field are distinct",
+        "raw pointwise 3D map and exact probe conditions required for matched reproduction",
+        "some equipment/process embodiments are patent-pending; conduct independent freedom-to-operate review"
+      ]
+    },
+    {
+      "source_id": "KIM-LCM-EBPC-2025",
+      "route_stratum": "LCM_field_aligned_post_cure",
+      "doi": "10.1080/17452759.2025.2593543",
+      "publication_date": "2025-12-05",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "field_alignment_and_electron_beam_post_cure_combined": true
+      },
+      "limitations": [
+        "mass-specific and volumetric magnetic quantities must remain separate",
+        "publisher data DOI and candidate Zenodo record discrepancy unresolved"
+      ]
+    },
+    {
+      "source_id": "RATHFELDER-PEM-2025",
+      "route_stratum": "PEM_adjacent_near_net_shape",
+      "doi": "10.1038/s41598-025-19111-6",
+      "publication_date": "2025-10-09",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "reported_alignment_ratio_max": 0.96
+      },
+      "limitations": [
+        "powder extrusion moulding is an adjacent near-net-shape route, not a matched LPBF or MEX route",
+        "Br/Js alignment ratio is not interchangeable with <cos(theta)>"
+      ]
+    },
+    {
+      "source_id": "LPBF-REMELTING-STRATEGY-2026",
+      "route_stratum": "LPBF_SLM_NdFeB_rescanning",
+      "doi": "10.1016/j.msea.2026.150555",
+      "publication_date": "2026-09",
+      "evidence_class": "published_paper_summary",
+      "source_claims": {
+        "low_power_rescanning_strengthens_reported_001_texture": true,
+        "low_power_rescanning_refines_grains_and_suppresses_alpha_fe": true,
+        "high_power_rescanning_promotes_alpha_fe_and_grain_coarsening": true,
+        "rescanning_homogenizes_thermal_stress_fields": true,
+        "incomplete_liquid_feeding_can_prevent_crack_healing": true
+      },
+      "limitations": [
+        "process-specific literature evidence, not universal LPBF settings",
+        "tested secondary-powder composition and PSD must remain attached to its result",
+        "do not transfer settings across feedstocks, machines or material systems without matched evidence"
+      ]
+    },
+    {
+      "source_id": "REPM-RECYCLABILITY-REVIEW-2026",
+      "route_stratum": "cross_route_circularity",
+      "doi": "10.1016/j.rser.2026.117244",
+      "publication_date": "2026-11",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "microstructure_modification_and_service_history_affect_recovery_feasibility": true,
+        "recyclability_should_be_considered_as_an_upstream_design_constraint": true,
+        "feedstock_provenance_guides_short_loop_reuse_versus_elemental_recovery": true
+      },
+      "limitations": [
+        "review-level, evidence-graded screening framework; not a validated predictive model",
+        "route-specific recovery yield, energy, impurity carryover and recovered quality require primary data",
+        "not a matched manufacturing-route performance result"
+      ]
+    },
+    {
+      "source_id": "BGOLEARN-MATERIALS-BO-2026",
+      "route_stratum": "methodological_active_learning_comparator",
+      "doi": "10.1038/s41524-026-02226-3",
+      "publication_date": "2026-07-14",
+      "evidence_class": "published_method_paper",
+      "source_claims": {
+        "reported_experimental_effort_reduction_fraction_range": [
+          0.4,
+          0.6
+        ],
+        "comparator_classes": [
+          "random_search",
+          "grid_search",
+          "genetic_algorithms"
+        ]
+      },
+      "limitations": [
+        "not a magnetic route study and not a transferable expected saving",
+        "reported reduction belongs to the paper's material-discovery case studies and budgets",
+        "use as a methodological comparator only; conduct matched magnetic trials"
+      ]
+    },
+    {
+      "source_id": "ACTIVE-LEARNING-WORKFLOWS-REVIEW-2026",
+      "route_stratum": "methodological_active_learning_comparator",
+      "doi": "10.1039/D6DD00081A",
+      "publication_date": "2026",
+      "evidence_class": "review_synthesis",
+      "source_claims": {
+        "acquisition_strategies_include_random_ei_ucb_thompson_knowledge_gradient_and_hypervolume": true
+      },
+      "limitations": [
+        "review-level acquisition-policy synthesis, not magnetic-route performance evidence",
+        "method suitability depends on calibrated uncertainty, noise and experiment costs"
+      ]
+    }
+  ]
+}
