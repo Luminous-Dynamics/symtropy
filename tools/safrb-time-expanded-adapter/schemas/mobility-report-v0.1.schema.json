@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/mobility-report-v0.1.schema.json",
+  "title": "SAFRB Bounded Mobility Policy Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "instance_sha256",
+    "disposition",
+    "here_and_now_status",
+    "mobility_status",
+    "zero_time_information_relaxation_feasible",
+    "plan_sha256",
+    "plan",
+    "producer_search_steps",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-mobility-report-v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instance_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "disposition": {
+      "enum": [
+        "here_and_now_feasible",
+        "mobility_feasible_only_with_recourse",
+        "mobility_feasible_policy_here_and_now_unresolved",
+        "information_relaxation_only",
+        "not_feasible_within_supplied_tree",
+        "search_limit_exceeded"
+      ]
+    },
+    "here_and_now_status": {
+      "enum": [
+        "feasible",
+        "infeasible_within_supplied_tree",
+        "indeterminate_search_limit"
+      ]
+    },
+    "mobility_status": {
+      "enum": [
+        "feasible",
+        "infeasible_within_supplied_tree",
+        "indeterminate_search_limit"
+      ]
+    },
+    "zero_time_information_relaxation_feasible": {
+      "type": "boolean"
+    },
+    "plan_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "plan": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/plan"
+        }
+      ]
+    },
+    "producer_search_steps": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "claim_ceiling": {
+      "const": "Exact bounded synthetic physical-mobility policy result for the supplied finite scenario set only. It does not establish route truth, travel-time distributions, asset condition, scenario completeness, evidence authority, legal access, dispatch authorization or delivered field service."
+    }
+  },
+  "$defs": {
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "wait"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "arc_id"
+          ],
+          "properties": {
+            "kind": {
+              "const": "move"
+            },
+            "arc_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period",
+        "information_set_sha256",
+        "unit_id",
+        "action"
+      ],
+      "properties": {
+        "period": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "information_set_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "unit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "decisions"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "here_and_now",
+            "observation_adaptive"
+          ]
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decision"
+          }
+        }
+      }
+    }
+  },
+  "description": "A plan action is keyed to the digest of observations available by the decision boundary, not by hidden scenario identifier. Here-and-now and observation-adaptive policies are distinct model classes."
+}
