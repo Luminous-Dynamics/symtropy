@@ -365,7 +365,7 @@ fn campaign_report(
     ] {
         if marker.schema_version != READY_SCHEMA
             || marker.campaign_id != candidate_manifest.campaign_id
-            || marker.manifest_sha256 != *manifest_sha256
+            || marker.manifest_sha256.as_str() != manifest_sha256.as_str()
             || marker.custody_commitment_sha256 != custody_seal.custody_commitment_sha256
         {
             return Err("CAMPAIGN_READY_MARKER_MISMATCH".to_owned());
@@ -478,7 +478,7 @@ fn campaign_report(
             let submission_seal = candidate_seals
                 .get(&submission_name)
                 .ok_or_else(|| "CANDIDATE_SUBMISSION_SEAL_MISSING".to_owned())?;
-            if episode_seal.0 != *episode_id || submission_seal.0 != *episode_id {
+            if episode_seal.0.as_str() != episode_id.as_str() || submission_seal.0.as_str() != episode_id.as_str() {
                 return Err("CANDIDATE_ARTIFACT_EPISODE_ID_MISMATCH".to_owned());
             }
             let episode_bytes = read_hash_sealed(&candidate_root, &episode_name, &episode_seal.1)?;
