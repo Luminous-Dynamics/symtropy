@@ -37,6 +37,48 @@ pub enum OutcomeModelCalibrationStatusV0_1 {
     NotEstimable,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum UpstreamReceiptVerificationStatusV0_1 {
+    #[serde(rename = "VERIFIED")]
+    Verified,
+    #[serde(rename = "UNVERIFIED")]
+    Unverified,
+    #[serde(rename = "FAILED")]
+    Failed,
+}
+
+/// Source-bound claim state receipt from the authoritative assurance adapter.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct SourceBoundAssuranceStateReceiptV0_1 {
+    pub verification_status: UpstreamReceiptVerificationStatusV0_1,
+    pub owner_namespace: String,
+    pub claim_id: String,
+    pub decision_context_sha256: String,
+    pub assurance_state_sha256: String,
+    pub frozen_claim_disposition: String,
+    pub unresolved_obligation_manifest_sha256: String,
+    pub receipt_sha256: String,
+    pub receiver_first_seen_at_unix_ms: u64,
+    pub effective_from_unix_ms: u64,
+    pub effective_until_unix_ms: u64,
+}
+
+/// Complete owner-issued snapshot receipt for the permitted action catalogue cut.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ActionCatalogueSnapshotReceiptV0_1 {
+    pub verification_status: UpstreamReceiptVerificationStatusV0_1,
+    pub owner_namespace: String,
+    pub claim_id: String,
+    pub decision_context_sha256: String,
+    pub configuration_ref: String,
+    pub action_catalogue_sha256: String,
+    pub action_count: u32,
+    pub receipt_sha256: String,
+    pub receiver_first_seen_at_unix_ms: u64,
+    pub effective_from_unix_ms: u64,
+    pub effective_until_unix_ms: u64,
+}
+
 /// Owner-issued permission receipt bound to one exact claim/action context.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ActionAuthorizationReceiptV0_1 {
@@ -148,7 +190,9 @@ pub struct EvidenceActionPlannerInputV0_1 {
     pub unresolved_obligation_manifest_sha256: String,
     pub decision_context_sha256: String,
     pub assurance_state_sha256: String,
+    pub assurance_state_receipt: Option<SourceBoundAssuranceStateReceiptV0_1>,
     pub action_catalogue_sha256: String,
+    pub action_catalogue_receipt: Option<ActionCatalogueSnapshotReceiptV0_1>,
     pub decision_model_sha256: String,
     pub outcome_model_sha256: String,
     pub decision_alternatives: Vec<DecisionAlternativeV0_1>,
@@ -195,8 +239,10 @@ pub struct EvidenceActionPlannerAssessmentV0_1 {
     pub as_known_at_unix_ms: u64,
     pub decision_context_sha256: String,
     pub assurance_state_sha256: String,
+    pub assurance_state_receipt_sha256: String,
     pub unresolved_obligation_manifest_sha256: String,
     pub action_catalogue_sha256: String,
+    pub action_catalogue_receipt_sha256: String,
     pub decision_model_sha256: String,
     pub outcome_model_sha256: String,
     pub current_best_decision_id: Option<String>,
