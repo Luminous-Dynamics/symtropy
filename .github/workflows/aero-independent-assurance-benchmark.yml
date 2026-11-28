@@ -9,6 +9,7 @@ on:
       - research/aero-state-vector-source-binding-v0.1
       - research/aero-evsi-evidence-action-planner-v0.1
       - research/aero-robust-evsi-v0.1
+      - research/aero-assurance-delta-v0.1
       - research/aero-tool-assurance-v0.1
     paths:
       - .github/workflows/aero-independent-assurance-benchmark.yml
@@ -47,6 +48,8 @@ jobs:
         run: python tools/aero/validate_evidence_action_planner.py
       - name: Validate robust EVSI scenario-set contract
         run: python tools/aero/validate_robust_evidence_action_evsi.py
+      - name: Validate assurance delta impact fixture and independent oracle
+        run: python tools/aero/validate_assurance_delta_impact.py
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
