@@ -588,10 +588,10 @@ fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
                 &mut rig_splits,
             ),
         ] {
-            if let Some(existing) = map.insert(value.to_string(), row.split) {
-                if existing != row.split {
-                    return Err(format!("{name} {value} leaks across dataset splits"));
-                }
+            if let Some(existing) = map.insert(value.to_string(), row.split)
+                && existing != row.split
+            {
+                return Err(format!("{name} {value} leaks across dataset splits"));
             }
         }
     }
