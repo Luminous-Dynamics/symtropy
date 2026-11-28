@@ -1,0 +1,282 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/aero-assurance-delta-impact-v0.1.schema.json",
+  "title": "AERO Assurance Delta Impact v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "claim_id",
+    "configuration_ref",
+    "as_known_at_unix_ms",
+    "graph_snapshot_sha256",
+    "graph",
+    "graph_approval_receipt",
+    "change_receipt"
+  ],
+  "properties": {
+    "schema": {
+      "const": "AeroAssuranceDeltaImpactV0_1"
+    },
+    "claim_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+    },
+    "configuration_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+    },
+    "as_known_at_unix_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "graph_snapshot_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "snapshot_id",
+        "claim_id",
+        "configuration_ref",
+        "coverage_status",
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "schema": {
+          "const": "AeroAssuranceDependencyGraphV0_1"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "coverage_status": {
+          "enum": [
+            "COMPLETE",
+            "INCOMPLETE"
+          ]
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "kind",
+              "content_sha256",
+              "dependency_manifest_complete"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+              },
+              "kind": {
+                "enum": [
+                  "CLAIM",
+                  "OBLIGATION",
+                  "EVIDENCE",
+                  "SOURCE_RECORD",
+                  "MODEL",
+                  "SOLVER",
+                  "PROCESS",
+                  "CONFIGURATION",
+                  "REQUIREMENT",
+                  "OWNER_POLICY",
+                  "OBSERVER",
+                  "TOOL",
+                  "OTHER"
+                ]
+              },
+              "content_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "dependency_manifest_complete": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "dependent_node_id",
+              "dependency_node_id"
+            ],
+            "properties": {
+              "dependent_node_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+              },
+              "dependency_node_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "graph_approval_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_status",
+        "owner_namespace",
+        "claim_id",
+        "configuration_ref",
+        "graph_snapshot_sha256",
+        "receipt_sha256",
+        "receiver_first_seen_at_unix_ms",
+        "effective_from_unix_ms",
+        "effective_until_unix_ms"
+      ],
+      "properties": {
+        "verification_status": {
+          "enum": [
+            "VERIFIED",
+            "UNVERIFIED",
+            "FAILED"
+          ]
+        },
+        "owner_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "graph_snapshot_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_first_seen_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "change_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verification_status",
+        "owner_namespace",
+        "claim_id",
+        "configuration_ref",
+        "change_id",
+        "target_node_id",
+        "previous_content_sha256",
+        "replacement_content_sha256",
+        "receipt_sha256",
+        "receiver_first_seen_at_unix_ms",
+        "effective_from_unix_ms",
+        "effective_until_unix_ms"
+      ],
+      "properties": {
+        "verification_status": {
+          "enum": [
+            "VERIFIED",
+            "UNVERIFIED",
+            "FAILED"
+          ]
+        },
+        "owner_namespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "change_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "target_node_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\\\S.*\\\\S$|^\\\\S$"
+        },
+        "previous_content_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "replacement_content_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "receiver_first_seen_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_from_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "effective_until_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
