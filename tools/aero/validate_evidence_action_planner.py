@@ -291,20 +291,34 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
     else:
         disposition = "NO_POSITIVE_NET_BENEFIT"
 
+    reason_codes = []
+    if selected is None:
+        reason_codes.append(
+            "NO_QUALIFIED_PERMITTED_EVIDENCE_ACTION"
+            if not ranked
+            else "NO_ACTION_HAS_POSITIVE_EXPECTED_NET_BENEFIT"
+        )
     return {
         "disposition": disposition,
+        "claim_id": source["claim_id"],
+        "frozen_claim_disposition": source["frozen_claim_disposition"],
+        "configuration_ref": source["configuration_ref"],
+        "as_known_at_unix_ms": source["as_known_at_unix_ms"],
+        "decision_context_sha256": source["decision_context_sha256"],
+        "assurance_state_sha256": source["assurance_state_sha256"],
+        "unresolved_obligation_manifest_sha256": source["unresolved_obligation_manifest_sha256"],
+        "action_catalogue_sha256": source["action_catalogue_sha256"],
+        "decision_model_sha256": source["decision_model_sha256"],
+        "outcome_model_sha256": source["outcome_model_sha256"],
         "current_best_decision_id": current_best,
         "selected_action_id": selected,
         "ranked_actions": ranked,
         "excluded_actions": excluded,
-        "frozen_claim_disposition": source["frozen_claim_disposition"],
-        "configuration_ref": source["configuration_ref"],
-        "as_known_at_unix_ms": source["as_known_at_unix_ms"],
-        "unresolved_obligation_manifest_sha256": source["unresolved_obligation_manifest_sha256"],
+        "reason_codes": reason_codes,
+        "evsi_numerator_scale": SCALE,
         "assurance_state_mutated": False,
         "physical_work_authorized": False,
         "engineering_acceptance_granted": False,
-        "evsi_numerator_scale": SCALE,
     }
 
 
