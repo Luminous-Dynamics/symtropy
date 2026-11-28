@@ -23,7 +23,7 @@ use super::claim_obligation_profile_v0_1::{
     RegisteredClaimRequirementProfileV0_1,
 };
 use super::decision_context_v0_1::DecisionContextV0_1;
-use super::observer_coverage::{
+use super::observer_coverage_v0_1::{
     CoverageAssessment, CoverageStatus, ReplayConsequence,
 };
 use super::owner_evidence_cut_v0_1::{
