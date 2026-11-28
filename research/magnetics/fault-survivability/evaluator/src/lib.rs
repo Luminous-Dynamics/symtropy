@@ -167,6 +167,7 @@ pub struct ExposureStep {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct BulkFluxMeasurement {
+    pub measurement_id: String,
     pub pre_fault_flux_density_t: Interval,
     pub post_fault_flux_density_t: Interval,
     pub pre_fault_temperature_c: Interval,
@@ -590,6 +591,10 @@ fn evaluate_fault_case(
         .collect::<BTreeSet<_>>();
     let bulk_flux_loss_percent = match &test.bulk_flux_measurement {
         Some(measurement) => {
+            if measurement.measurement_id.trim().is_empty() {
+                blockers.push(Blocker::InvalidFluxLineage);
+                unresolved = true;
+            }
             if !measurement.pre_fault_flux_density_t.is_positive()
                 || !measurement.post_fault_flux_density_t.is_nonnegative()
                 || !measurement.pre_fault_temperature_c.is_valid()
@@ -972,6 +977,7 @@ mod tests {
             source_material_lot_id: "MAGNET-LOT-001".to_string(),
             exposure_steps: vec![exposure(0, 0.0, false), exposure(1, 50.0, true), exposure(2, 250.0, false)],
             bulk_flux_measurement: Some(BulkFluxMeasurement {
+                measurement_id: "BULK-FLUX-MEASUREMENT-001".to_string(),
                 pre_fault_flux_density_t: Interval::new(1.2, 1.22),
                 post_fault_flux_density_t: Interval::new(1.1, 1.12),
                 pre_fault_temperature_c: Interval::new(25.0, 27.0),
@@ -1247,6 +1253,33 @@ mod tests {
         let result = run(test);
         assert_eq!(result.decision, Decision::Fail);
         assert!(result.blockers.contains(&Blocker::StructuralHardFailure));
+    }
+
+    #[test]
+    fn bulk_flux_measurement_requires_a_unique_identity() {
+        let mut test = test_case();
+        test.bulk_flux_measurement.as_mut().unwrap().measurement_id.clear();
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::InvalidFluxLineage));
+    }
+
+    #[test]
+    fn repeated_event_receipt_cannot_be_replayed_within_fault_trace() {
+        let mut test = test_case();
+        test.exposure_steps[2].event_receipt_id = test.exposure_steps[1].event_receipt_id.clone();
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::DuplicateFaultEventReceipt));
+    }
+
+    #[test]
+    fn required_degraded_energy_must_match_or_exceed_preregistered_floor() {
+        let mut test = test_case();
+        test.degraded_mission.required_mission_energy_kwh = Interval::new(5.0, 5.0);
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::InvalidDegradedMission));
     }
 
     #[test]
