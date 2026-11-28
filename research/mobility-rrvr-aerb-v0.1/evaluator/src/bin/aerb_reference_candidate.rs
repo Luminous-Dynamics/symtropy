@@ -117,7 +117,7 @@ fn reference_submission(episode: &CandidateEpisode, episode_json: &str) -> Resul
 
 fn run() -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    if args.as_slice() != ["--candidate"] {
+    if args.len() != 1 || args[0] != "--candidate" {
         return Err("REFERENCE_CANDIDATE_REQUIRES_THE_TYPED_SANDBOX_ARGUMENT".to_owned());
     }
 
