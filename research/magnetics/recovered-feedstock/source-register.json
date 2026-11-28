@@ -1,0 +1,49 @@
+[
+  {
+    "source_id": "HPMS-PEM-2025",
+    "citation": "Rathfelder et al., Process optimization to produce anisotropic NdFeB permanent magnets from recycled powder via powder extrusion",
+    "year": 2025,
+    "published": "2025-10-09",
+    "journal": "Scientific Reports",
+    "volume": "15",
+    "article": "35284",
+    "doi": "10.1038/s41598-025-19111-6",
+    "url": "https://www.nature.com/articles/s41598-025-19111-6",
+    "evidence_class": "peer_reviewed_experimental_materials_study",
+    "feedstock_family": "End-of-life NdFeB powder processed by HPMS",
+    "route": "Powder extrusion moulding with in-situ magnetic particle alignment followed by sintering",
+    "reported_results": {
+      "remanence_to_saturation_ratio": 0.96,
+      "carbon_wt_percent_approx": 0.045,
+      "oxygen_change": "Approximately 0.4 wt% increase from HPMS powder to sintered part; source-specific"
+    },
+    "limitations": [
+      "Br/Js is an alignment ratio and is not absolute remanence Br.",
+      "Reported values are specific to the study's feedstock, process, specimen and methods.",
+      "Does not qualify MEX, LPBF, SmCo, SmFeN, ferrite, unrelated recovered lots or production-scale process capability.",
+      "Not Luminous physical evidence."
+    ]
+  },
+  {
+    "source_id": "NDFEB-AM-REVIEW-2026",
+    "citation": "State-of-the-art additive manufacturing of NdFeB permanent magnets: challenges and pathways toward high performance",
+    "year": 2026,
+    "published": "2026-09",
+    "journal": "Journal of Science: Advanced Materials and Devices",
+    "volume": "11",
+    "issue": "3",
+    "article": "101226",
+    "doi": "10.1016/j.jsamd.2026.101226",
+    "url": "https://doi.org/10.1016/j.jsamd.2026.101226",
+    "evidence_class": "peer_reviewed_review",
+    "reported_findings": [
+      "The surveyed MEX route has the highest remanence among the printed NdFeB routes reviewed.",
+      "LPBF can produce dense material but magnetic texture remains a limiting issue.",
+      "The review identifies retention of Nd2Fe14B phase and magnetic texture as important high-performance challenges."
+    ],
+    "limitations": [
+      "Aggregated studies are not a matched process comparison.",
+      "No universal route ranking or production-performance value is implied."
+    ]
+  }
+]
