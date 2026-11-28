@@ -56,6 +56,80 @@ impl SandboxLimits {
     }
 }
 
+/// The sandbox launcher accepts only a closed set of typed arguments.
+/// Free-form argv is forbidden so callers cannot smuggle hidden labels or
+/// evaluator paths into the candidate process.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum CandidateSandboxArgument {
+    CanaryMode,
+    NetworkProbePort(u16),
+    HostPidNamespace(String),
+    CampaignId(String),
+    EpisodeId(String),
+    CandidateInputArtifact(String),
+    CandidateOutputArtifact(String),
+}
+
+fn is_hex_32(value: &str) -> bool {
+    value.len() == 32
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn is_safe_artifact_name(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 128
+        && value != "."
+        && value != ".."
+        && !value.contains("..")
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+}
+
+impl CandidateSandboxArgument {
+    fn to_argv(&self) -> Result<Vec<OsString>, SandboxError> {
+        let argument = match self {
+            Self::CanaryMode => vec![OsString::from("--candidate")],
+            Self::NetworkProbePort(port) if *port != 0 => {
+                vec![OsString::from(format!("--network-port={port}"))]
+            }
+            Self::NetworkProbePort(_) => return Err(SandboxError::InvalidCandidateArgument),
+            Self::HostPidNamespace(namespace)
+                if namespace
+                    .strip_prefix("pid:[")
+                    .and_then(|value| value.strip_suffix(']'))
+                    .is_some_and(|digits| !digits.is_empty() && digits.bytes().all(|byte| byte.is_ascii_digit())) =>
+            {
+                vec![OsString::from(format!("--host-pid-ns={namespace}"))]
+            }
+            Self::HostPidNamespace(_) => return Err(SandboxError::InvalidCandidateArgument),
+            Self::CampaignId(value) if is_hex_32(value.strip_prefix("camp_").unwrap_or("")) => {
+                vec![OsString::from(format!("--campaign-id={value}"))]
+            }
+            Self::CampaignId(_) => return Err(SandboxError::InvalidCandidateArgument),
+            Self::EpisodeId(value) if is_hex_32(value.strip_prefix("ep_").unwrap_or("")) => {
+                vec![OsString::from(format!("--episode-id={value}"))]
+            }
+            Self::EpisodeId(_) => return Err(SandboxError::InvalidCandidateArgument),
+            Self::CandidateInputArtifact(name) if is_safe_artifact_name(name) => {
+                vec![OsString::from(format!(
+                    "--input=/candidate/input/{name}"
+                ))]
+            }
+            Self::CandidateInputArtifact(_) => return Err(SandboxError::InvalidCandidateArgument),
+            Self::CandidateOutputArtifact(name) if is_safe_artifact_name(name) => {
+                vec![OsString::from(format!(
+                    "--output=/candidate/output/{name}"
+                ))]
+            }
+            Self::CandidateOutputArtifact(_) => return Err(SandboxError::InvalidCandidateArgument),
+        };
+        Ok(argument)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SandboxCommand {
     /// Absolute prlimit executable.
@@ -166,54 +240,6 @@ fn paths_are_disjoint(left: &Path, right: &Path) -> bool {
     !left.starts_with(right) && !right.starts_with(left)
 }
 
-fn is_allowed_sandbox_absolute(path: &Path) -> bool {
-    ["/candidate/input", "/candidate/output", "/runtime", "/tmp"]
-        .iter()
-        .any(|prefix| path == Path::new(prefix) || path.starts_with(prefix))
-}
-
-fn validate_candidate_argument(argument: &OsString) -> Result<(), SandboxError> {
-    let Some(value) = argument.to_str() else {
-        return Err(SandboxError::InvalidCandidateArgument);
-    };
-    if value.contains('\0') {
-        return Err(SandboxError::InvalidCandidateArgument);
-    }
-
-    for segment in value.split(['=', ':', ',']) {
-        let path = Path::new(segment);
-        if path
-            .components()
-            .any(|component| matches!(component, Component::ParentDir | Component::Prefix(_)))
-        {
-            return Err(SandboxError::InvalidCandidateArgument);
-        }
-        if path.is_absolute() && !is_allowed_sandbox_absolute(path) {
-            return Err(SandboxError::InvalidCandidateArgument);
-        }
-    }
-
-    // Catch compact options such as -I/usr/lib while allowing subsequent
-    // slashes inside already-approved sandbox absolute paths.
-    for (index, byte) in value.bytes().enumerate() {
-        if byte == b'/' && index > 0 {
-            let prefix = &value[..index];
-            if !prefix.contains('/')
-                && prefix.starts_with('-')
-                && !prefix.contains('=')
-                && !prefix.contains(':')
-                && !prefix.contains(',')
-            {
-                let embedded_path = Path::new(&value[index..]);
-                if !is_allowed_sandbox_absolute(embedded_path) {
-                    return Err(SandboxError::InvalidCandidateArgument);
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
 /// Construct a candidate process command with a deliberately small filesystem.
 ///
 /// Only these host roots are mounted:
@@ -228,7 +254,7 @@ fn validate_candidate_argument(argument: &OsString) -> Result<(), SandboxError> 
 pub fn build_candidate_sandbox_command(
     paths: &SandboxPaths,
     limits: SandboxLimits,
-    candidate_arguments: &[OsString],
+    candidate_arguments: &[CandidateSandboxArgument],
 ) -> Result<SandboxCommand, SandboxError> {
     limits.validate()?;
 
@@ -278,9 +304,13 @@ pub fn build_candidate_sandbox_command(
     {
         return Err(SandboxError::ExecutableOutsideRuntime);
     }
-    for argument in candidate_arguments {
-        validate_candidate_argument(argument)?;
-    }
+    let encoded_arguments = candidate_arguments
+        .iter()
+        .map(CandidateSandboxArgument::to_argv)
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
 
     let executable_in_sandbox = Path::new("/runtime").join(executable_relative);
     let executable_in_sandbox = executable_in_sandbox
@@ -356,7 +386,7 @@ pub fn build_candidate_sandbox_command(
     ] {
         bubblewrap_args.push(OsString::from(item));
     }
-    bubblewrap_args.extend(candidate_arguments.iter().cloned());
+    bubblewrap_args.extend(encoded_arguments);
 
     let mut prlimit_args = vec![
         OsString::from(format!("--as={}", limits.address_space_bytes)),
