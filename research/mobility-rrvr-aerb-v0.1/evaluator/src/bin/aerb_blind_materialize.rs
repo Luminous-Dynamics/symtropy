@@ -141,13 +141,60 @@ fn path_overlaps(left: &Path, right: &Path) -> bool {
     left == right || left.starts_with(right) || right.starts_with(left)
 }
 
+fn prospective_root_path(path: &Path) -> Result<PathBuf, String> {
+    if fs::symlink_metadata(path).is_ok() {
+        return Err(format!("OUTPUT_ROOT_ALREADY_EXISTS: {}", path.display()));
+    }
+    let parent_path = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let parent = parent_path
+        .canonicalize()
+        .map_err(|error| format!("OUTPUT_ROOT_PARENT_UNAVAILABLE: {error}"))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| "OUTPUT_ROOT_NAME_MISSING".to_owned())?;
+    Ok(parent.join(name))
+}
+
+struct OutputRootCleanup {
+    roots: Vec<PathBuf>,
+    armed: bool,
+}
+
+impl OutputRootCleanup {
+    fn new(candidate: PathBuf, evaluator: PathBuf) -> Self {
+        Self {
+            roots: vec![candidate, evaluator],
+            armed: true,
+        }
+    }
+
+    fn disarm(&mut self) {
+        self.armed = false;
+    }
+}
+
+impl Drop for OutputRootCleanup {
+    fn drop(&mut self) {
+        if self.armed {
+            for root in &self.roots {
+                let _ = fs::remove_dir_all(root);
+            }
+        }
+    }
+}
+
 fn create_private_root(path: &Path) -> Result<PathBuf, String> {
     if fs::symlink_metadata(path).is_ok() {
         return Err(format!("OUTPUT_ROOT_ALREADY_EXISTS: {}", path.display()));
     }
-    let parent = path
+    let parent_path = path
         .parent()
-        .ok_or_else(|| "OUTPUT_ROOT_PARENT_MISSING".to_owned())?
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let parent = parent_path
         .canonicalize()
         .map_err(|error| format!("OUTPUT_ROOT_PARENT_UNAVAILABLE: {error}"))?;
     let name = path
@@ -156,8 +203,10 @@ fn create_private_root(path: &Path) -> Result<PathBuf, String> {
     let destination = parent.join(name);
     fs::create_dir(&destination)
         .map_err(|error| format!("OUTPUT_ROOT_CREATE_FAILED: {error}"))?;
-    fs::set_permissions(&destination, fs::Permissions::from_mode(0o700))
-        .map_err(|error| format!("OUTPUT_ROOT_PERMISSION_FAILED: {error}"))?;
+    if let Err(error) = fs::set_permissions(&destination, fs::Permissions::from_mode(0o700)) {
+        let _ = fs::remove_dir(&destination);
+        return Err(format!("OUTPUT_ROOT_PERMISSION_FAILED: {error}"));
+    }
     destination
         .canonicalize()
         .map_err(|error| format!("OUTPUT_ROOT_CANONICALIZE_FAILED: {error}"))
@@ -416,6 +465,22 @@ fn materialize(
         return Err("SOURCE_WORLD_SCHEDULE_INCOMPLETE".to_owned());
     }
 
+    let candidate_target = prospective_root_path(candidate_output_path)?;
+    let evaluator_target = prospective_root_path(evaluator_output_path)?;
+    let intended_roots = [
+        &source_candidate_root,
+        &source_evaluator_root,
+        &candidate_target,
+        &evaluator_target,
+    ];
+    for (index, root) in intended_roots.iter().enumerate() {
+        for other in intended_roots.iter().skip(index + 1) {
+            if path_overlaps(root, other) {
+                return Err("SOURCE_AND_BLIND_CAMPAIGN_ROOTS_MUST_BE_PAIRWISE_DISJOINT".to_owned());
+            }
+        }
+    }
+
     let candidate_root = create_private_root(candidate_output_path)?;
     let evaluator_root = match create_private_root(evaluator_output_path) {
         Ok(path) => path,
@@ -424,23 +489,8 @@ fn materialize(
             return Err(error);
         }
     };
-    for path in [
-        &source_candidate_root,
-        &source_evaluator_root,
-        &candidate_root,
-        &evaluator_root,
-    ] {
-        for other in [
-            &source_candidate_root,
-            &source_evaluator_root,
-            &candidate_root,
-            &evaluator_root,
-        ] {
-            if path != other && path_overlaps(path, other) {
-                return Err("SOURCE_AND_BLIND_CAMPAIGN_ROOTS_MUST_BE_PAIRWISE_DISJOINT".to_owned());
-            }
-        }
-    }
+    let mut output_cleanup =
+        OutputRootCleanup::new(candidate_root.clone(), evaluator_root.clone());
 
     let generated = generate_blind_campaign_from_worlds(&world_schedule)
         .map_err(|error| format!("BLIND_ASSIGNMENT_FAILED: {error}"))?;
@@ -729,6 +779,7 @@ fn materialize(
         seal_sha256
     );
     println!("Claim ceiling: synthetic/process-model input only; no HIL, physical or SOTA qualification.");
+    output_cleanup.disarm();
     Ok(())
 }
 
