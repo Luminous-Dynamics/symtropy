@@ -308,6 +308,44 @@ fn compute_decision_model_sha256(
 }
 
 #[derive(Serialize)]
+struct ActionCatalogueEntryEnvelopeV0_1<'a> {
+    schema: &'static str,
+    canonicalization_profile: &'static str,
+    action_id: &'a str,
+    owner_namespace: &'a str,
+    outcome_model_owner_namespace: &'a str,
+    expected_artifact_contract_sha256: &'a str,
+    target_obligation_ids: Vec<&'a str>,
+    expected_cost_units: i64,
+    expected_delay_cost_units: i64,
+}
+
+fn compute_action_catalogue_entry_sha256(
+    action: &EvidenceAcquisitionActionV0_1,
+) -> Result<String, String> {
+    let mut targets = action
+        .target_obligation_ids
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    targets.sort_unstable();
+    let envelope = ActionCatalogueEntryEnvelopeV0_1 {
+        schema: "AeroEvidenceActionCatalogueEntryV0_1",
+        canonicalization_profile: "rust-serde-json-struct-order-v1",
+        action_id: &action.action_id,
+        owner_namespace: &action.owner_namespace,
+        outcome_model_owner_namespace: &action.outcome_model_owner_namespace,
+        expected_artifact_contract_sha256: &action.expected_artifact_contract_sha256,
+        target_obligation_ids: targets,
+        expected_cost_units: action.expected_cost_units,
+        expected_delay_cost_units: action.expected_delay_cost_units,
+    };
+    serde_json::to_vec(&envelope)
+        .map(|bytes| sha256_hex(&bytes))
+        .map_err(|_| "EVSI_ACTION_CATALOGUE_ENTRY_SERIALIZATION_FAILED".to_owned())
+}
+
+#[derive(Serialize)]
 struct ActionCatalogueCutEntryV0_1<'a> {
     action_id: &'a str,
     owner_namespace: &'a str,
@@ -508,6 +546,11 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
             || !valid_sha256(&action.expected_artifact_contract_sha256)
         {
             errors.insert("EVSI_ACTION_CATALOGUE_OR_ARTIFACT_DIGEST_INVALID".to_owned());
+        }
+        if compute_action_catalogue_entry_sha256(action).as_deref()
+            != Ok(action.action_catalogue_entry_sha256.as_str())
+        {
+            errors.insert("EVSI_ACTION_CATALOGUE_ENTRY_COMMITMENT_MISMATCH".to_owned());
         }
         if action.expected_cost_units < 0 || action.expected_delay_cost_units < 0 {
             errors.insert("EVSI_ACTION_COST_NEGATIVE".to_owned());
@@ -1080,6 +1123,15 @@ mod tests {
         };
         input.decision_model_sha256 =
             compute_decision_model_sha256(&input).expect("decision model commitment");
+        for action in &mut input.actions {
+            action.action_catalogue_entry_sha256 =
+                compute_action_catalogue_entry_sha256(action)
+                    .expect("action catalogue entry commitment");
+        }
+        if let Some(receipt) = input.actions[0].authorization_receipt.as_mut() {
+            receipt.action_catalogue_entry_sha256 =
+                input.actions[0].action_catalogue_entry_sha256.clone();
+        }
         input.action_catalogue_sha256 =
             compute_action_catalogue_cut_sha256(&input).expect("action catalogue cut commitment");
         input.unresolved_obligation_manifest_sha256 =
@@ -1270,6 +1322,34 @@ mod tests {
         assert!(result
             .reason_codes
             .contains(&"EVSI_DECISION_MODEL_COMMITMENT_MISMATCH".to_owned()));
+    }
+
+    #[test]
+    fn changed_action_cost_invalidates_owner_catalogue_entry_commitment() {
+        let mut input = base_input();
+        input.actions[0].expected_cost_units = 0;
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "EVSI_ACTION_CATALOGUE_ENTRY_COMMITMENT_MISMATCH"
+        }));
+    }
+
+    #[test]
+    fn changed_expected_artifact_contract_invalidates_catalogue_entry_commitment() {
+        let mut input = base_input();
+        input.actions[0].expected_artifact_contract_sha256 = digest('8');
+        let result = rank_evidence_actions_v0_1(&input);
+        assert_eq!(
+            result.disposition,
+            EvidenceActionPlannerDispositionV0_1::InvalidInput
+        );
+        assert!(result.reason_codes.iter().any(|code| {
+            code == "EVSI_ACTION_CATALOGUE_ENTRY_COMMITMENT_MISMATCH"
+        }));
     }
 
     #[test]
