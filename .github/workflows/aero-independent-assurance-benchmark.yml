@@ -57,6 +57,10 @@ jobs:
         run: python -m pip install --disable-pip-version-check "jsonschema==4.23.0"
       - name: Validate v0.3 registry and challenge corpus
         run: python tools/aero/validate_independent_assurance_benchmark.py
+      - name: Validate source-bound evidence-class obligations
+        run: python tools/aero/validate_claim_obligation_evidence_binding.py
+      - name: Validate source-bound model strata and uncertainty
+        run: python tools/aero/validate_claim_model_obligation_binding.py
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:

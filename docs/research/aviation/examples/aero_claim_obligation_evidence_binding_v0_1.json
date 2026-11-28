@@ -1,0 +1,307 @@
+{
+  "schema": "AeroClaimObligationEvidenceBindingV0_1",
+  "status": "SYNTHETIC_CONTRACT_EXAMPLE_NOT_ENGINEERING_EVIDENCE",
+  "authority_ceiling": "EVIDENCE_CLASS_MAPPING_ONLY_NO_CLAIM_DECISION_OR_PHYSICAL_AUTHORITY",
+  "raw_claim_specification_payload": "{\"schema\":\"AeroClaimSpecificationV0_1\",\"specification_id\":\"aero:claim-spec:wing-panel-strength-001\",\"claim_id\":\"aero:claim:wing-panel-strength-001\",\"subject_ref\":\"part:wing-panel-synthetic-001\",\"configuration_ref\":\"configuration:wing-r17-synthetic\",\"operating_envelope_ref\":\"envelope:transport-normal-synthetic\",\"intended_use_ref\":\"intended-use:structural-strength-screening\",\"validity\":{\"effective_from_unix_ms\":1795514399900,\"effective_until_unix_ms\":1798668800000},\"measurand\":{\"measurand_id\":\"measurand:maximum-principal-stress\",\"definition\":\"Maximum principal tensile stress over the declared population\",\"unit_code\":\"MPa\",\"aggregation\":\"maximum\"},\"predicate\":{\"operator\":\"less_than_or_equal\",\"threshold\":{\"numerator\":300,\"denominator\":1},\"unit_code\":\"MPa\"},\"population\":{\"population_ref\":\"population:wing-panel-candidates-synthetic\",\"sampling_unit_ref\":\"sampling-unit:physical-panel\",\"population_manifest_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"quantifier\":\"worst_case_over_declared_population\",\"confidence_level_ppm\":null,\"required_strata\":[{\"stratum_id\":\"stratum:temperature-ambient\",\"dimension_ref\":\"dimension:temperature\",\"level_ref\":\"level:ambient\"},{\"stratum_id\":\"stratum:limit-load\",\"dimension_ref\":\"dimension:load-case\",\"level_ref\":\"level:limit-load\"}]},\"uncertainty\":{\"treatment\":\"deterministic_upper_bound\",\"method_ref\":\"method:synthetic-upper-bound-v1\",\"confidence_level_ppm\":null},\"required_evidence_classes\":[\"evidence-class:material-characterization\",\"evidence-class:structural-test\",\"evidence-class:model-validation\"],\"assumptions\":[\"assumption:synthetic-boundary-conditions\"],\"exclusions\":[\"exclusion:damage-growth\"],\"rationale_ref\":\"rationale:synthetic-wing-panel-strength\",\"verification_method_ref\":\"method:independent-structural-review\",\"acceptance_authority_role_ref\":\"authority-role:delegated-engineering-authority\",\"limitations\":[\"Synthetic example only; no physical test or model result is represented.\",\"Formal specification does not establish the selected threshold or assumptions as correct.\"]}",
+  "expected_raw_claim_specification_sha256": "61580536c6f20c46277c5dd0e44ca0ecd105aea74c338df82048e8225dfd5f83",
+  "claim_specification": {
+    "schema": "AeroClaimSpecificationV0_1",
+    "specification_id": "aero:claim-spec:wing-panel-strength-001",
+    "claim_id": "aero:claim:wing-panel-strength-001",
+    "subject_ref": "part:wing-panel-synthetic-001",
+    "configuration_ref": "configuration:wing-r17-synthetic",
+    "operating_envelope_ref": "envelope:transport-normal-synthetic",
+    "intended_use_ref": "intended-use:structural-strength-screening",
+    "validity": {
+      "effective_from_unix_ms": 1795514399900,
+      "effective_until_unix_ms": 1798668800000
+    },
+    "measurand": {
+      "measurand_id": "measurand:maximum-principal-stress",
+      "definition": "Maximum principal tensile stress over the declared population",
+      "unit_code": "MPa",
+      "aggregation": "maximum"
+    },
+    "predicate": {
+      "operator": "less_than_or_equal",
+      "threshold": {
+        "numerator": 300,
+        "denominator": 1
+      },
+      "unit_code": "MPa"
+    },
+    "population": {
+      "population_ref": "population:wing-panel-candidates-synthetic",
+      "sampling_unit_ref": "sampling-unit:physical-panel",
+      "population_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "quantifier": "worst_case_over_declared_population",
+      "confidence_level_ppm": null,
+      "required_strata": [
+        {
+          "stratum_id": "stratum:temperature-ambient",
+          "dimension_ref": "dimension:temperature",
+          "level_ref": "level:ambient"
+        },
+        {
+          "stratum_id": "stratum:limit-load",
+          "dimension_ref": "dimension:load-case",
+          "level_ref": "level:limit-load"
+        }
+      ]
+    },
+    "uncertainty": {
+      "treatment": "deterministic_upper_bound",
+      "method_ref": "method:synthetic-upper-bound-v1",
+      "confidence_level_ppm": null
+    },
+    "required_evidence_classes": [
+      "evidence-class:material-characterization",
+      "evidence-class:structural-test",
+      "evidence-class:model-validation"
+    ],
+    "assumptions": [
+      "assumption:synthetic-boundary-conditions"
+    ],
+    "exclusions": [
+      "exclusion:damage-growth"
+    ],
+    "rationale_ref": "rationale:synthetic-wing-panel-strength",
+    "verification_method_ref": "method:independent-structural-review",
+    "acceptance_authority_role_ref": "authority-role:delegated-engineering-authority",
+    "limitations": [
+      "Synthetic example only; no physical test or model result is represented.",
+      "Formal specification does not establish the selected threshold or assumptions as correct."
+    ]
+  },
+  "decision_context": {
+    "claim_id": "aero:claim:wing-panel-strength-001",
+    "subject_ref": "part:wing-panel-synthetic-001",
+    "configuration_ref": "configuration:wing-r17-synthetic",
+    "operating_envelope_ref": "envelope:transport-normal-synthetic",
+    "acquisition_time_earliest_unix_ms": 1795514399900,
+    "acquisition_time_latest_unix_ms": 1795514399910,
+    "as_known_at_unix_ms": 1795516800000,
+    "source_scope_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "evidence_knowledge_cut_sha256": "f6eded0532f249a2143d47dbd85150f3022fb9b0c13c49a88c3f12d9af5d9d3a",
+    "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "claim_specification_sha256": "f285772a5a87cb958799a78ee0150a51afd41079153c23ec4ebdf56c0b1d8095",
+    "required_evidence_manifest_sha256": "8f9bfefe5e01b5e02f7cc9730f43678cc5b7c8d9eacc4612cd26b9bb9772ad48",
+    "risk_classification_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "model_applicability_profile_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
+  "requirement_profile": "AERO_SCALAR_ENGINEERING_CLAIM_V0_1",
+  "derived_profile_commitments": {
+    "profile_id": "aero-scalar-engineering-claim-v0.1",
+    "profile_sha256": "cdbaf5a44783de557a59e7b9b64ae77fe5b020c418459e10f0eefb662371fb60",
+    "obligation_manifest_sha256": "7c9567afddc06889183ad31428c61ab4114917e571568c2fb2c63a34fe016ea0",
+    "evidence_integrity_obligation_ids": [
+      "evidence-integrity:evidence-class:material-characterization",
+      "evidence-integrity:evidence-class:structural-test",
+      "evidence-integrity:evidence-class:model-validation"
+    ],
+    "unassessed_obligation_ids": [
+      "assumption-defeater:assumption:synthetic-boundary-conditions",
+      "claim-identity",
+      "dependency-observation",
+      "exclusion-defeater:exclusion:damage-growth",
+      "model-applicability",
+      "model-credibility:stratum:limit-load",
+      "model-credibility:stratum:temperature-ambient",
+      "model-uncertainty",
+      "producer-authority",
+      "semantic-validity",
+      "temporal-knowledge"
+    ]
+  },
+  "owner_evidence_cut": {
+    "schema": "AeroOwnerEvidenceCutV0_1",
+    "owner_namespace": "owner:materials-authority",
+    "component_packet_id": "packet:wing-r17",
+    "physical_unit_ref": "part:wing-panel-synthetic-001",
+    "configuration_ref": "configuration:wing-r17-synthetic",
+    "component_packet_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "component_packet_byte_length": 8192,
+    "artifact_payloads_verified": true,
+    "evidence_records": [
+      {
+        "evidence_ref": "evidence:evidence-class-material-characterization",
+        "record_sha256": "a8b858774407e328f4a284ee0348dd5b74d4056d145543f813fe1e9df2cc0c7c",
+        "subject_ref": "part:wing-panel-synthetic-001",
+        "configuration_ref": "configuration:wing-r17-synthetic",
+        "lifecycle": "active",
+        "predecessor_ref": null,
+        "freshness": "fresh",
+        "dependency_coverage": "complete",
+        "unresolved_inputs": [],
+        "requires_reverification": false,
+        "eligible_under_declared_coverage": true
+      },
+      {
+        "evidence_ref": "evidence:evidence-class-structural-test",
+        "record_sha256": "f662d325abcd5586c77238cf0f5d53303cd33ef2a55055db9c243cfc4963d6ca",
+        "subject_ref": "part:wing-panel-synthetic-001",
+        "configuration_ref": "configuration:wing-r17-synthetic",
+        "lifecycle": "active",
+        "predecessor_ref": null,
+        "freshness": "fresh",
+        "dependency_coverage": "complete",
+        "unresolved_inputs": [],
+        "requires_reverification": false,
+        "eligible_under_declared_coverage": true
+      },
+      {
+        "evidence_ref": "evidence:evidence-class-model-validation",
+        "record_sha256": "fcc7f48654ff570467c3b235ae5cc6e9a2e816df22850aab777fb4dfc85c3850",
+        "subject_ref": "part:wing-panel-synthetic-001",
+        "configuration_ref": "configuration:wing-r17-synthetic",
+        "lifecycle": "active",
+        "predecessor_ref": null,
+        "freshness": "fresh",
+        "dependency_coverage": "complete",
+        "unresolved_inputs": [],
+        "requires_reverification": false,
+        "eligible_under_declared_coverage": true
+      }
+    ],
+    "basalt_run_id": "basalt:wing-r17",
+    "basalt_report_version": 1,
+    "basalt_timeline_input_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "basalt_final_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "basalt_report_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "basalt_confirmatory_eligible": true,
+    "receiver_receipt_manifest_sha256": "2004ece1cadac968b9ffcbe6f8162ae3073302dc395924c296b5a23b4cd68029",
+    "receiver_receipt_watermark_unix_ms": 1795516799960,
+    "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "observer_coverage_profile_id": "observer:synthetic",
+    "observer_coverage_receipt_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "observer_coverage_status": "qualified_complete_for_scope",
+    "observer_coverage_watermark_unix_ms": 1795516799950
+  },
+  "required_evidence_admissions": [
+    {
+      "evidence_ref": "evidence:evidence-class-material-characterization",
+      "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
+      "state": "ADMITTED"
+    },
+    {
+      "evidence_ref": "evidence:evidence-class-structural-test",
+      "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
+      "state": "ADMITTED"
+    },
+    {
+      "evidence_ref": "evidence:evidence-class-model-validation",
+      "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
+      "state": "ADMITTED"
+    }
+  ],
+  "mapping_entries": [
+    {
+      "obligation_id": "evidence-integrity:evidence-class:material-characterization",
+      "requirement_source_ref": "claim-spec:/required_evidence_classes/evidence-class:material-characterization",
+      "evidence_class": "evidence-class:material-characterization",
+      "evidence_refs": [
+        "evidence:evidence-class-material-characterization"
+      ]
+    },
+    {
+      "obligation_id": "evidence-integrity:evidence-class:structural-test",
+      "requirement_source_ref": "claim-spec:/required_evidence_classes/evidence-class:structural-test",
+      "evidence_class": "evidence-class:structural-test",
+      "evidence_refs": [
+        "evidence:evidence-class-structural-test"
+      ]
+    },
+    {
+      "obligation_id": "evidence-integrity:evidence-class:model-validation",
+      "requirement_source_ref": "claim-spec:/required_evidence_classes/evidence-class:model-validation",
+      "evidence_class": "evidence-class:model-validation",
+      "evidence_refs": [
+        "evidence:evidence-class-model-validation"
+      ]
+    }
+  ],
+  "mapping_receipt": {
+    "verification_status": "VERIFIED",
+    "owner_namespace": "owner:materials-authority",
+    "claim_id": "aero:claim:wing-panel-strength-001",
+    "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
+    "configuration_ref": "configuration:wing-r17-synthetic",
+    "claim_specification_semantic_sha256": "f285772a5a87cb958799a78ee0150a51afd41079153c23ec4ebdf56c0b1d8095",
+    "obligation_profile_sha256": "cdbaf5a44783de557a59e7b9b64ae77fe5b020c418459e10f0eefb662371fb60",
+    "obligation_manifest_sha256": "7c9567afddc06889183ad31428c61ab4114917e571568c2fb2c63a34fe016ea0",
+    "required_evidence_manifest_sha256": "8f9bfefe5e01b5e02f7cc9730f43678cc5b7c8d9eacc4612cd26b9bb9772ad48",
+    "owner_evidence_cut_sha256": "f6eded0532f249a2143d47dbd85150f3022fb9b0c13c49a88c3f12d9af5d9d3a",
+    "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "mapping_manifest_sha256": "52667625eee94991ca6afa9335202e7801984baae846ea1b54c8f8b908d7e156",
+    "receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "receiver_first_seen_at_unix_ms": 1795516799800,
+    "effective_from_unix_ms": 1795516799700,
+    "effective_until_unix_ms": 1795516800300
+  },
+  "source_receipts": [
+    {
+      "verification_status": "VERIFIED",
+      "owner_namespace": "owner:materials-authority",
+      "producer_namespace": "producer:materials-lab",
+      "claim_id": "aero:claim:wing-panel-strength-001",
+      "subject_ref": "part:wing-panel-synthetic-001",
+      "configuration_ref": "configuration:wing-r17-synthetic",
+      "acquisition_time_earliest_unix_ms": 1795514399900,
+      "acquisition_time_latest_unix_ms": 1795514399910,
+      "evidence_ref": "evidence:evidence-class-material-characterization",
+      "evidence_record_sha256": "a8b858774407e328f4a284ee0348dd5b74d4056d145543f813fe1e9df2cc0c7c",
+      "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "integrity_state": "VERIFIED",
+      "producer_authority_state": "AUTHORIZED",
+      "receiver_first_seen_at_unix_ms": 1795516799950,
+      "evidence_effective_from_unix_ms": 1795514399900,
+      "evidence_effective_until_unix_ms": 1798668800000,
+      "authority_effective_from_unix_ms": 1795516799000,
+      "authority_effective_until_unix_ms": 1795516801000,
+      "receipt_sha256": "88943f192fffdff9208e05121465a79e77764ac8d9934a121689503465a9fade"
+    },
+    {
+      "verification_status": "VERIFIED",
+      "owner_namespace": "owner:materials-authority",
+      "producer_namespace": "producer:materials-lab",
+      "claim_id": "aero:claim:wing-panel-strength-001",
+      "subject_ref": "part:wing-panel-synthetic-001",
+      "configuration_ref": "configuration:wing-r17-synthetic",
+      "acquisition_time_earliest_unix_ms": 1795514399900,
+      "acquisition_time_latest_unix_ms": 1795514399910,
+      "evidence_ref": "evidence:evidence-class-structural-test",
+      "evidence_record_sha256": "f662d325abcd5586c77238cf0f5d53303cd33ef2a55055db9c243cfc4963d6ca",
+      "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "integrity_state": "VERIFIED",
+      "producer_authority_state": "AUTHORIZED",
+      "receiver_first_seen_at_unix_ms": 1795516799950,
+      "evidence_effective_from_unix_ms": 1795514399900,
+      "evidence_effective_until_unix_ms": 1798668800000,
+      "authority_effective_from_unix_ms": 1795516799000,
+      "authority_effective_until_unix_ms": 1795516801000,
+      "receipt_sha256": "d71e19b7835ae7da4c49e90684bf495ba1a210ba525ceea04e17b07de77c983f"
+    },
+    {
+      "verification_status": "VERIFIED",
+      "owner_namespace": "owner:materials-authority",
+      "producer_namespace": "producer:materials-lab",
+      "claim_id": "aero:claim:wing-panel-strength-001",
+      "subject_ref": "part:wing-panel-synthetic-001",
+      "configuration_ref": "configuration:wing-r17-synthetic",
+      "acquisition_time_earliest_unix_ms": 1795514399900,
+      "acquisition_time_latest_unix_ms": 1795514399910,
+      "evidence_ref": "evidence:evidence-class-model-validation",
+      "evidence_record_sha256": "fcc7f48654ff570467c3b235ae5cc6e9a2e816df22850aab777fb4dfc85c3850",
+      "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "integrity_state": "VERIFIED",
+      "producer_authority_state": "AUTHORIZED",
+      "receiver_first_seen_at_unix_ms": 1795516799950,
+      "evidence_effective_from_unix_ms": 1795514399900,
+      "evidence_effective_until_unix_ms": 1798668800000,
+      "authority_effective_from_unix_ms": 1795516799000,
+      "authority_effective_until_unix_ms": 1795516801000,
+      "receipt_sha256": "b465ca2c6140a4ac8583fd82bb1f490e5e23f0a34c5e6ce752c09d4dac11787e"
+    }
+  ]
+}
