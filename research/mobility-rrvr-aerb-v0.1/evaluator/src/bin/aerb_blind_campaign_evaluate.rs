@@ -234,6 +234,7 @@ fn verify_directory_entries(root: &Path, expected: &BTreeSet<String>) -> Result<
 
 fn inspect_output_directory(
     root: &Path,
+    expected_submission_files: &BTreeSet<String>,
 ) -> Result<(BTreeSet<String>, Vec<String>), String> {
     let mut regular_files = BTreeSet::new();
     let mut errors = Vec::new();
@@ -269,7 +270,7 @@ fn inspect_output_directory(
             errors.push(format!("{name}:ARTIFACT_TOO_LARGE"));
             continue;
         }
-        if fs::read(entry.path()).is_err() {
+        if expected_submission_files.contains(&name) && fs::read(entry.path()).is_err() {
             errors.push(format!("{name}:ARTIFACT_READ_FAILED"));
             continue;
         }
@@ -544,7 +545,8 @@ fn campaign_report(
     }
     verify_directory_entries(&candidate_root, &expected_candidate_files)?;
     verify_directory_entries(&evaluator_root, &expected_evaluator_files)?;
-    let (actual_output_files, output_entry_errors) = inspect_output_directory(&candidate_output_root)?;
+    let (actual_output_files, output_entry_errors) =
+        inspect_output_directory(&candidate_output_root, &expected_output_files)?;
     let missing_output_files = expected_output_files
         .difference(&actual_output_files)
         .cloned()
