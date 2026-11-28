@@ -7,7 +7,7 @@
 //! from inside the namespace and writes a small report only to candidate output.
 
 use mobility_rrvr_aerb_evaluator::blind_execution_sandbox_v0_1::{
-    SandboxLimits, SandboxPaths, build_candidate_sandbox_command,
+    CandidateSandboxArgument, SandboxLimits, SandboxPaths, build_candidate_sandbox_command,
 };
 use std::env;
 use std::fs::{self, File};
@@ -195,7 +195,7 @@ fn candidate_mode(args: &[String]) -> Result<(), String> {
     .is_err();
 
     let report = format!(
-        "candidate_input_read={visible}\ninput_write_blocked={input_write_blocked}\nruntime_write_blocked={runtime_write_blocked}\noutput_write_succeeded={output_write_succeeded}\nevaluator_mount_absent={evaluator_mount_absent}\nevaluator_environment_absent={evaluator_environment_absent}\nenvironment_matches={environment_matches}\npid_namespace_isolated={pid_namespace_isolated}\nnested_user_namespaces_disabled={nested_user_namespaces_disabled}\nresource_limits_active={resource_limits_active}\nnetwork_blocked={network_blocked}\n"
+        "candidate_input_read={visible}\ninput_write_blocked={input_write_blocked}\nruntime_write_blocked={runtime_write_blocked}\noutput_write_succeeded={output_write_succeeded}\nevaluator_mount_absent={evaluator_mount_absent}\nevaluator_environment_absent={evaluator_environment_absent}\nevaluator_secret_absent_from_process_table={evaluator_secret_absent_from_process_table}\nenvironment_matches={environment_matches}\npid_namespace_isolated={pid_namespace_isolated}\nnested_user_namespaces_disabled={nested_user_namespaces_disabled}\ncapabilities_dropped={capabilities_dropped}\nresource_limits_active={resource_limits_active}\nnetwork_blocked={network_blocked}\n"
     );
     fs::write("/candidate/output/canary-report.txt", report.as_bytes())
         .map_err(|error| error.to_string())?;
@@ -307,19 +307,12 @@ fn host_mode() -> Result<(), String> {
         tmpfs_bytes: 16_777_216,
     };
     let candidate_arguments = [
-        "--candidate".to_owned(),
-        format!("--network-port={network_port}"),
-        format!("--host-pid-ns={host_pid_namespace}"),
+        CandidateSandboxArgument::CanaryMode,
+        CandidateSandboxArgument::NetworkProbePort(network_port),
+        CandidateSandboxArgument::HostPidNamespace(host_pid_namespace),
     ];
-    let spec = build_candidate_sandbox_command(
-        &paths,
-        limits,
-        &candidate_arguments
-            .iter()
-            .map(Into::into)
-            .collect::<Vec<_>>(),
-    )
-    .map_err(|error| error.to_string())?;
+    let spec = build_candidate_sandbox_command(&paths, limits, &candidate_arguments)
+        .map_err(|error| error.to_string())?;
 
     let status = spec
         .process_command()
@@ -330,15 +323,18 @@ fn host_mode() -> Result<(), String> {
         .join()
         .map_err(|_| "network canary server thread panicked".to_owned())?;
 
+    let report = fs::read_to_string(output.join("canary-report.txt"))
+        .map_err(|error| format!("candidate canary report missing after {status}: {error}"))?;
     if !status.success() {
-        return Err(format!("candidate sandbox exited with {status}"));
+        return Err(format!(
+            "candidate sandbox exited with {status}; individual checks:\n{report}"
+        ));
     }
     if network_accepted.load(Ordering::SeqCst) {
-        return Err("candidate reached host loopback listener".to_owned());
+        return Err(format!(
+            "candidate reached host loopback listener; individual checks:\n{report}"
+        ));
     }
-
-    let report = fs::read_to_string(output.join("canary-report.txt"))
-        .map_err(|error| format!("candidate canary report missing: {error}"))?;
     for key in [
         "candidate_input_read=true",
         "input_write_blocked=true",
