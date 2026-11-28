@@ -251,6 +251,8 @@ def evaluate(request: dict[str, Any]) -> dict[str, Any]:
         "observation_count": len(request["observations"]),
         "effective_observation_count": effective,
         "translation_scale_m": length,
+        "rank_relative_tolerance": request["rank_relative_tolerance"],
+        "rank_absolute_tolerance": request["rank_absolute_tolerance"],
         "fim_6x6": fim,
         "eigenvalues_ascending": eigenvalues,
         "numerical_rank": rank,
