@@ -226,3 +226,42 @@ A separate wire schema now describes the bounded temporal observer output produc
 A future CFI-Space adapter must join each witness to exactly one candidate manifest frame by episode ID, frame ID, sequence, timestamp and raw-frame digest; bind the frozen model/profile/config revision and calibration/clock/ROI/preprocessing lineage; verify horizon completion and dropped/late/expired forecast counts; and reject duplicate, stale, partial, or cross-episode witnesses. A representation surprise score is not an anomaly probability; forecast skill must be compared with the same persistence baseline and stratified by horizon and operating condition.
 
 The JSON schema is an interchange contract, not proof that a witness was emitted by trusted hardware or that its source hash is authentic. The Symthaea PR's own tests and exact-head gates remain separately required. CFI-Space's current Rust scorer does not yet parse or score these witness receipts; that adapter is a distinct next implementation step.
+
+## Competitive target ladder (proposed targets, not achieved results)
+
+The following are engineering targets for the programme. They are deliberately separated from paper-reported results; they become valid comparisons only when dataset version, split, preprocessing, hardware, precision and scoring implementation are matched.
+
+| Dimension | Proposed target | Qualification condition |
+|---|---:|---|
+| SPEED+ known-target rotation | mean ≤ 1.0° on Lightbox and Sunlamp | Same official test protocol and independent reproduction; report mean/median/P95 and translation separately |
+| SPEED+ compute envelope | ≤ 50 ms/crop and ≤ 11 W board power | Same Jetson Orin NX 16 GB hardware/power mode as the published DINOv3 reference; include full pipeline, not encoder-only |
+| Pose tail risk | P95/P99 and max-horizon errors reported; no critical frame hidden by sequence mean | Fixed mission tolerance and independent sequence-level scoring |
+| New-target generalization | ≤ 2° mean rotation as an initial target | Unseen target and unseen target-family splits; no target leakage or test-time labels |
+| Small-part perception | ≥ 95% recall at a predeclared false-positive budget | Thrusters, antennas and other small parts; report per-part and range/occlusion strata |
+| Sequence calibration | 90/95/99% complete-horizon coverage at the corresponding nominal levels | Independent target/session/trajectory units; region size and silent-miss rate reported; finite-sample rank respected |
+| Critical-fault containment | zero unsafe accepts on the frozen deterministic critical-fault suite | Publish every case and denominator; this is finite-suite containment, not universal safety |
+| Fault detection | ≥ 99% recall at ≤ 1% false-alarm rate | Confirmatory independent fault units, per-family and per-generalization-stratum results |
+| Rare-event evidence | ≥ 3,000 independent critical-fault units with zero misses for a one-sided 95% upper bound near 0.1% | Approximate rule-of-three; clustered frames do not count as independent units |
+| Detection delay | median ≤ 2 frames and P95 ≤ 50 ms | Fault onset time known to evaluator; include late/missed detections |
+| Temporal observer utility | forecast skill beats persistence on ≥ 3/4 fixed horizons | Prospective confirmatory units; confidence interval for skill excludes zero; report warm-up, dropped, expired and late forecasts |
+| Active observation | ≥ 25% lower time-to-detect or ≥ 30% lower compute at matched critical-fault recall | Compare random, motion, surprise, observability and information-gain policies under equal acquisition/compute budgets |
+| Observer overhead | ≤ 10% end-to-end compute budget | Exact sensor/compute profile; report p50/p95/p99 latency, peak memory and energy/frame |
+
+The 1.0° and 50 ms / 11 W targets are deliberately aggressive relative to the published 1.17° Lightbox, 1.56° Sunlamp and 133.8 ms / 32 W DINOv3 840M report. They are not yet demonstrated by Luminous, and the speed/power target must be measured on the same Jetson profile before being called a head-to-head improvement. A lower compute budget that misses critical cases is not an improvement.
+
+### Statistical interpretation
+
+With zero observed failures in n independent Bernoulli trials, the rough one-sided 95% upper bound is 3/n. Thus 3,000 independent critical-fault units support an upper bound around 0.1%; 30,000 are needed for around 0.01%. These counts are not satisfied by thousands of adjacent frames from a handful of trajectories. Use target/session/trajectory-level clustering and publish the actual independence assumptions.
+
+### What would count as beating SOTA
+
+A credible superiority claim requires all of the following, not a cherry-picked metric:
+
+1. Reproduce at least one current published baseline on the exact same data split and metric implementation.
+2. Beat it on a predeclared primary metric with paired uncertainty intervals, while not regressing the other critical metrics.
+3. Show the gain persists on unseen targets, renderer, sensor rig and illumination strata.
+4. Show equal or better calibration, fault containment and selective risk.
+5. Show the resource envelope on the same hardware, including preprocessing, fusion, temporal processing and output serialization.
+6. Publish ablations that isolate the value of HDC, CfC, spatial patch surprise, delayed prediction, cross-modal dependency gates and active observation.
+
+The first target is not "one universal SOTA number". It is a Pareto improvement in pose error, silent-miss risk, critical-fault containment, generalization and energy/latency.
