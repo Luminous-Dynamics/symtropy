@@ -473,16 +473,16 @@ pub fn rank_robust_evidence_actions_v0_1(
         let mut net_min = per_scenario[0];
         let mut net_max = per_scenario[0];
         for item in &per_scenario[1..] {
-            if item.2 < evsi_min.2 {
+            if item.2 < evsi_min.2 || (item.2 == evsi_min.2 && item.0 < evsi_min.0) {
                 evsi_min = *item;
             }
-            if item.2 > evsi_max.2 {
+            if item.2 > evsi_max.2 || (item.2 == evsi_max.2 && item.0 < evsi_max.0) {
                 evsi_max = *item;
             }
-            if item.3 < net_min.3 {
+            if item.3 < net_min.3 || (item.3 == net_min.3 && item.0 < net_min.0) {
                 net_min = *item;
             }
-            if item.3 > net_max.3 {
+            if item.3 > net_max.3 || (item.3 == net_max.3 && item.0 < net_max.0) {
                 net_max = *item;
             }
         }
