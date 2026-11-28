@@ -1,0 +1,84 @@
+{
+  "manifest_version": "ev-bms-event-evaluation/v0.1",
+  "evaluation_id": "synthetic-event-warning-known-answer-v0.1",
+  "dataset_id": "cao-onboard-bms-zenodo-10656500",
+  "dataset_domain": "onboard_bms",
+  "dataset_admission_state": "metadata_only",
+  "dataset_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "dataset_snapshot_sha256": null,
+  "split_manifest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "split_partition": "test",
+  "evidence_class": "synthetic_fixture",
+  "event_lookback_ms": 14400000,
+  "threshold_policy_id": "synthetic-frozen-score-0.8",
+  "exposures": [
+    {
+      "exposure_id": "exposure-normal",
+      "asset_id": "asset-normal",
+      "role": "negative_control",
+      "window_start_unix_ms": 0,
+      "window_end_unix_ms": 36000000
+    },
+    {
+      "exposure_id": "exposure-fault",
+      "asset_id": "asset-fault",
+      "role": "event_monitoring",
+      "window_start_unix_ms": 0,
+      "window_end_unix_ms": 144000000
+    }
+  ],
+  "events": [
+    {
+      "event_id": "event-001",
+      "asset_id": "asset-fault",
+      "event_time_unix_ms": 36000000,
+      "event_time_semantics": "recorded_bms_alarm",
+      "label_source": "synthetic-source"
+    },
+    {
+      "event_id": "event-002",
+      "asset_id": "asset-fault",
+      "event_time_unix_ms": 108000000,
+      "event_time_semantics": "source_fault_time_file",
+      "label_source": "synthetic-source"
+    }
+  ],
+  "alarms": [
+    {
+      "alarm_id": "alarm-n1",
+      "asset_id": "asset-normal",
+      "alarm_time_unix_ms": 3600000,
+      "score": 0.9,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-n2",
+      "asset_id": "asset-normal",
+      "alarm_time_unix_ms": 18000000,
+      "score": 0.85,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-f1",
+      "asset_id": "asset-fault",
+      "alarm_time_unix_ms": 25200000,
+      "score": 0.95,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-f2",
+      "asset_id": "asset-fault",
+      "alarm_time_unix_ms": 28800000,
+      "score": 0.9,
+      "threshold": 0.8
+    },
+    {
+      "alarm_id": "alarm-f3",
+      "asset_id": "asset-fault",
+      "alarm_time_unix_ms": 43200000,
+      "score": 0.88,
+      "threshold": 0.8
+    }
+  ],
+  "claim_ceiling": "Synthetic known-answer event evaluator only. No field dataset, model performance, physical onset or safety result is represented."
+}

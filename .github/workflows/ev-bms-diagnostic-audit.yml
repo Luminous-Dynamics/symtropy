@@ -8,6 +8,9 @@ on:
       - "fixtures/ev_battery/*_manifest_v0_1.json"
       - "schemas/transport/ev_bms_dataset_manifest_v0_1.schema.json"
       - "tools/ev-bms-diagnostic-audit/**"
+      - "docs/transport/EV_BMS_EVENT_LEVEL_EVALUATION_V0_1.md"
+      - "fixtures/ev_battery/event_evaluation_synthetic_v0_1.json"
+      - "schemas/transport/ev_bms_event_evaluation_v0_1.schema.json"
       - "docs/transport/EV_BMS_DIAGNOSTIC_EVENT_V0_1.md"
       - "docs/transport/EV_BMS_FAULT_DATASET_REGISTRY_V0_1.md"
       - ".github/workflows/ev-bms-diagnostic-audit.yml"
@@ -38,6 +41,11 @@ jobs:
           cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-dataset-manifest-audit -- --schema schemas/transport/ev_bms_dataset_manifest_v0_1.schema.json --manifest fixtures/ev_battery/shenzhen_charger_side_manifest_v0_1.json > "$RUNNER_TEMP/shenzhen-dataset-admission.json"
           jq -e '.admission_state == "metadata_only" and .vehicle_count == 515 and .asset_count == 7' "$RUNNER_TEMP/cao-dataset-admission.json"
           jq -e '.admission_state == "metadata_only" and .vehicle_count == 10154 and .session_count == 21175 and .station_count == 30 and .asset_count == 2' "$RUNNER_TEMP/shenzhen-dataset-admission.json"
+
+      - name: Audit synthetic event-level warning evaluation
+        run: |
+          cargo run --manifest-path tools/ev-bms-diagnostic-audit/Cargo.toml --bin ev-bms-event-evaluation -- --schema schemas/transport/ev_bms_event_evaluation_v0_1.schema.json --manifest fixtures/ev_battery/event_evaluation_synthetic_v0_1.json > "$RUNNER_TEMP/ev-bms-event-evaluation.json"
+          jq -e '.positive_event_count == 2 and .event_warning_count == 1 and .event_miss_count == 1 and .false_alarm_episode_count == 2 and .negative_control_exposure_hours == 10 and .primary_event_alarm_count == 1 and .repeated_event_alarm_count == 1 and .unmatched_event_exposure_alarm_count == 1 and (.false_alarms_per_1000_negative_hours - 200 | fabs < 0.000001) and (.lead_time_hours_p50 - 3 | fabs < 0.000001)' "$RUNNER_TEMP/ev-bms-event-evaluation.json"
 
       - name: Audit frozen synthetic corpus
         run: |
