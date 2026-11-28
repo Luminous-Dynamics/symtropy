@@ -28,6 +28,8 @@
         "claim_id",
         "configuration_ref",
         "as_known_at_unix_ms",
+        "unresolved_obligation_manifest_sha256",
+        "unresolved_obligation_ids",
         "frozen_claim_disposition",
         "decision_context_sha256",
         "assurance_state_sha256",
@@ -305,6 +307,7 @@
                   "configuration_ref",
                   "action_id",
                   "outcome_model_sha256",
+                  "outcome_likelihoods_sha256",
                   "calibration_profile_sha256",
                   "calibration_report_sha256",
                   "receiver_first_seen_at_unix_ms",
@@ -355,6 +358,10 @@
                   "effective_until_unix_ms": {
                     "type": "integer",
                     "minimum": 0
+                  },
+                  "outcome_likelihoods_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
                   }
                 }
               },
@@ -372,6 +379,19 @@
         "as_known_at_unix_ms": {
           "type": "integer",
           "minimum": 0
+        },
+        "unresolved_obligation_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unresolved_obligation_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     },
