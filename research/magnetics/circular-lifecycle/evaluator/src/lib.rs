@@ -690,7 +690,7 @@ fn validate_disassembly(
         && evidence.build_id == trial.acceptance.build_id
         && evidence.material_lot_id == trial.acceptance.material_lot_id;
     let receipt_valid = !evidence.evidence_id.trim().is_empty()
-        && evidence.method_id.trim().is_empty().not()
+        && !evidence.method_id.trim().is_empty()
         && valid_sha256(&evidence.evidence_digest)
         && valid_sha256(&evidence.calibration_digest)
         && valid_sha256(&evidence.uncertainty_digest)
