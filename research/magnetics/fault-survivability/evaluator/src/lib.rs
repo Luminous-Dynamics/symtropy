@@ -154,9 +154,23 @@ pub struct ExposureStep {
     pub dc_bus_voltage_v: Interval,
     pub cooling_flow_l_per_min: Interval,
     pub fault_active: bool,
+    pub fault_kind: Option<FaultKind>,
     pub event_receipt_id: String,
     pub event_digest: String,
     pub sensor_method_id: String,
+    pub calibration_digest: String,
+    pub uncertainty_record_digest: String,
+    pub evidence_class: EvidenceClass,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct BulkFluxMeasurement {
+    pub pre_fault_flux_density_t: Interval,
+    pub post_fault_flux_density_t: Interval,
+    pub pre_fault_temperature_c: Interval,
+    pub post_fault_temperature_c: Interval,
+    pub method_id: String,
+    pub instrument_id: String,
     pub calibration_digest: String,
     pub uncertainty_record_digest: String,
     pub evidence_class: EvidenceClass,
@@ -218,6 +232,7 @@ pub struct FaultTest {
     pub specimen_id: String,
     pub source_material_lot_id: String,
     pub exposure_steps: Vec<ExposureStep>,
+    pub bulk_flux_measurement: Option<BulkFluxMeasurement>,
     pub flux_measurements: Vec<FluxMeasurement>,
     pub structural: StructuralEvidence,
     pub degraded_mission: DegradedMissionEvidence,
@@ -242,10 +257,15 @@ pub enum Blocker {
     ExposureScopeMismatch,
     FaultEventNotRecorded,
     ExposureOutsideDeclaredEnvelope,
+    ExposureEnvelopeUnresolved,
+    FaultKindMismatch,
+    DuplicateFaultEventReceipt,
     MissingExposureMethod,
     InvalidSensorLineage,
     MissingFluxMeasurement,
+    MissingBulkFluxMeasurement,
     DuplicateFluxMeasurement,
+    DuplicateFluxMeasurementId,
     MissingMagnetZone,
     UnexpectedMagnetZone,
     InvalidFluxInterval,
@@ -467,6 +487,7 @@ fn evaluate_fault_case(
     }
     let mut sequence_ids = BTreeSet::new();
     let mut previous_time = None;
+    let mut fault_receipts = BTreeSet::new();
     let mut saw_fault = false;
     let mut total_duration_ms = 0.0;
     for step in exposure_steps {
@@ -493,17 +514,38 @@ fn evaluate_fault_case(
         }
         if step.fault_active {
             saw_fault = true;
-            if step.phase_current_peak_a.upper < case_spec.minimum_peak_current_a
+            if step.fault_kind != Some(case_spec.fault_kind) {
+                blockers.push(Blocker::FaultKindMismatch);
+                not_comparable = true;
+            }
+            let definitely_outside = step.phase_current_peak_a.upper < case_spec.minimum_peak_current_a
                 || step.phase_current_peak_a.lower > case_spec.maximum_peak_current_a
                 || step.rotor_speed_rpm.upper < case_spec.minimum_rotor_speed_rpm
                 || step.rotor_speed_rpm.lower > case_spec.maximum_rotor_speed_rpm
                 || step.magnet_temperature_c.upper < case_spec.minimum_magnet_temperature_c
-                || step.magnet_temperature_c.lower > case_spec.maximum_magnet_temperature_c
-            {
+                || step.magnet_temperature_c.lower > case_spec.maximum_magnet_temperature_c;
+            let crosses_envelope = step.phase_current_peak_a.lower < case_spec.minimum_peak_current_a
+                || step.phase_current_peak_a.upper > case_spec.maximum_peak_current_a
+                || step.rotor_speed_rpm.lower < case_spec.minimum_rotor_speed_rpm
+                || step.rotor_speed_rpm.upper > case_spec.maximum_rotor_speed_rpm
+                || step.magnet_temperature_c.lower < case_spec.minimum_magnet_temperature_c
+                || step.magnet_temperature_c.upper > case_spec.maximum_magnet_temperature_c;
+            if definitely_outside {
                 blockers.push(Blocker::ExposureOutsideDeclaredEnvelope);
                 not_comparable = true;
+            } else if crosses_envelope {
+                blockers.push(Blocker::ExposureEnvelopeUnresolved);
+                unresolved = true;
             }
             total_duration_ms += step.duration_ms;
+            if !fault_receipts.insert(step.event_receipt_id.as_str()) {
+                blockers.push(Blocker::DuplicateFaultEventReceipt);
+                unresolved = true;
+            }
+        }
+        if step.fault_active != step.fault_kind.is_some() {
+            blockers.push(Blocker::FaultKindMismatch);
+            not_comparable = true;
         }
         if step.event_receipt_id.trim().is_empty() {
             blockers.push(Blocker::FaultEventNotRecorded);
@@ -538,8 +580,43 @@ fn evaluate_fault_case(
         .iter()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
+    let bulk_flux_loss_percent = match &test.bulk_flux_measurement {
+        Some(measurement) => {
+            if !measurement.pre_fault_flux_density_t.is_positive()
+                || !measurement.post_fault_flux_density_t.is_nonnegative()
+                || !measurement.pre_fault_temperature_c.is_valid()
+                || !measurement.post_fault_temperature_c.is_valid()
+            {
+                blockers.push(Blocker::InvalidFluxInterval);
+                unresolved = true;
+                None
+            } else if measurement.method_id.trim().is_empty()
+                || measurement.instrument_id.trim().is_empty()
+                || !valid_digest(&measurement.calibration_digest)
+                || !valid_digest(&measurement.uncertainty_record_digest)
+                || measurement.evidence_class != EvidenceClass::PhysicalMeasurement
+            {
+                blockers.push(Blocker::InvalidFluxLineage);
+                unresolved = true;
+                None
+            } else {
+                calculate_bulk_flux_loss(measurement)
+            }
+        }
+        None => {
+            blockers.push(Blocker::MissingBulkFluxMeasurement);
+            unresolved = true;
+            None
+        }
+    };
+
     let mut flux_by_zone = BTreeMap::new();
+    let mut flux_measurement_ids = BTreeSet::new();
     for measurement in &test.flux_measurements {
+        if !flux_measurement_ids.insert(measurement.measurement_id.as_str()) {
+            blockers.push(Blocker::DuplicateFluxMeasurementId);
+            unresolved = true;
+        }
         if flux_by_zone
             .insert(measurement.zone_id.as_str(), measurement)
             .is_some()
@@ -593,14 +670,6 @@ fn evaluate_fault_case(
             loss_percent: loss,
         }))
         .collect::<Vec<_>>();
-    let bulk_flux_loss_percent = if zone_flux_loss.is_empty() {
-        None
-    } else {
-        let total = zone_flux_loss.iter().fold(Interval::new(0.0, 0.0), |sum, zone| {
-            Interval::new(sum.lower + zone.loss_percent.lower, sum.upper + zone.loss_percent.upper)
-        });
-        total.scale(1.0 / zone_flux_loss.len() as f64)
-    };
 
     let structural = &test.structural;
     if structural.inspection_receipt_id.trim().is_empty() {
@@ -709,6 +778,15 @@ fn evaluate_fault_case(
     }
 }
 
+fn calculate_bulk_flux_loss(measurement: &BulkFluxMeasurement) -> Option<Interval> {
+    let retained = measurement
+        .post_fault_flux_density_t
+        .ratio_positive(measurement.pre_fault_flux_density_t)?;
+    Interval::new(1.0, 1.0)
+        .subtract(retained)?
+        .scale(100.0)
+}
+
 fn calculate_flux_loss(measurement: &FluxMeasurement) -> Option<Interval> {
     let retained = measurement
         .post_fault_flux_density_t
@@ -792,6 +870,7 @@ mod tests {
             dc_bus_voltage_v: Interval::new(600.0, 620.0),
             cooling_flow_l_per_min: Interval::new(5.0, 6.0),
             fault_active: fault,
+            fault_kind: if fault { Some(FaultKind::ThreePhaseShortCircuit) } else { None },
             event_receipt_id: format!("EVENT-{sequence}"),
             event_digest: digest('4'),
             sensor_method_id: "CURRENT-TEMP-SPEED-METHOD".to_string(),
@@ -860,6 +939,17 @@ mod tests {
             specimen_id: "SPECIMEN-001".to_string(),
             source_material_lot_id: "MAGNET-LOT-001".to_string(),
             exposure_steps: vec![exposure(0, 0.0, false), exposure(1, 50.0, true), exposure(2, 250.0, false)],
+            bulk_flux_measurement: Some(BulkFluxMeasurement {
+                pre_fault_flux_density_t: Interval::new(1.2, 1.22),
+                post_fault_flux_density_t: Interval::new(1.1, 1.12),
+                pre_fault_temperature_c: Interval::new(25.0, 27.0),
+                post_fault_temperature_c: Interval::new(25.0, 27.0),
+                method_id: "BULK-FLUX-METHOD".to_string(),
+                instrument_id: "FLUXMETER-001".to_string(),
+                calibration_digest: digest('e'),
+                uncertainty_record_digest: digest('f'),
+                evidence_class: EvidenceClass::PhysicalMeasurement,
+            }),
             flux_measurements: vec![
                 flux("north-pole", 1.2, 1.1, 'e'),
                 flux("south-pole", 1.2, 1.15, 'f'),
@@ -887,6 +977,8 @@ mod tests {
     #[test]
     fn flux_loss_is_reported_without_a_universal_percentage_fail_limit() {
         let mut test = test_case();
+        test.bulk_flux_measurement.as_mut().unwrap().post_fault_flux_density_t =
+            Interval::new(0.85, 0.87);
         test.flux_measurements = vec![
             flux("north-pole", 1.2, 0.85, 'e'),
             flux("south-pole", 1.2, 0.85, 'f'),
