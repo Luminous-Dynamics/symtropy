@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/orbital-truss/orbital_truss_acceptance_case.schema.json",
+  "title": "Orbital Truss Structural Acceptance Benchmark Case Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "fixture_id",
+    "evidence_class",
+    "suite_status",
+    "unit_system",
+    "reference_context",
+    "starter_analytic_case",
+    "case_registry",
+    "metrics",
+    "non_claims"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "ORBITAL-TRUSS-ACCEPTANCE-001"
+    },
+    "fixture_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence_class": {
+      "const": "SYNTHETIC_ONLY"
+    },
+    "suite_status": {
+      "const": "CASE_REGISTRY_NOT_EXECUTABLE"
+    },
+    "unit_system": {
+      "const": "SI"
+    },
+    "reference_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_id",
+        "source_urls",
+        "use_limit"
+      ],
+      "properties": {
+        "reference_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_urls": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "use_limit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "starter_analytic_case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "model_envelope",
+        "geometry",
+        "independent_analytic_oracle",
+        "important_limit"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_envelope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "nodes",
+            "members",
+            "supports",
+            "loads"
+          ],
+          "properties": {
+            "nodes": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "x_m",
+                  "y_m"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "x_m": {
+                    "type": "number"
+                  },
+                  "y_m": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "members": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id",
+                  "node_a",
+                  "node_b",
+                  "area_m2",
+                  "youngs_modulus_pa"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "node_a": {
+                    "type": "string"
+                  },
+                  "node_b": {
+                    "type": "string"
+                  },
+                  "area_m2": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "youngs_modulus_pa": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              }
+            },
+            "supports": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "node_id",
+                  "restrained_x",
+                  "restrained_y"
+                ],
+                "properties": {
+                  "node_id": {
+                    "type": "string"
+                  },
+                  "restrained_x": {
+                    "type": "boolean"
+                  },
+                  "restrained_y": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "loads": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "node_id",
+                  "fx_n",
+                  "fy_n"
+                ],
+                "properties": {
+                  "node_id": {
+                    "type": "string"
+                  },
+                  "fx_n": {
+                    "type": "number"
+                  },
+                  "fy_n": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "independent_analytic_oracle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "member_axial_force_n",
+            "member_stress_pa",
+            "apex_displacement_x_m",
+            "apex_displacement_y_m",
+            "left_support_reaction_fx_n",
+            "left_support_reaction_fy_n",
+            "right_support_reaction_fx_n",
+            "right_support_reaction_fy_n",
+            "equilibrium_residual_n",
+            "assumption"
+          ],
+          "properties": {
+            "member_axial_force_n": {
+              "type": "number"
+            },
+            "member_stress_pa": {
+              "type": "number"
+            },
+            "apex_displacement_x_m": {
+              "type": "number"
+            },
+            "apex_displacement_y_m": {
+              "type": "number"
+            },
+            "left_support_reaction_fx_n": {
+              "type": "number"
+            },
+            "left_support_reaction_fy_n": {
+              "type": "number"
+            },
+            "right_support_reaction_fx_n": {
+              "type": "number"
+            },
+            "right_support_reaction_fy_n": {
+              "type": "number"
+            },
+            "equilibrium_residual_n": {
+              "type": "number",
+              "minimum": 0
+            },
+            "assumption": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "important_limit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "case_registry": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "family",
+          "case_class",
+          "expected_disposition",
+          "truth_rationale",
+          "evidence_class"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^OTA-[0-9]{3}$"
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "case_class": {
+            "enum": [
+              "NOMINAL",
+              "NEGATIVE_CONTROL",
+              "METAMORPHIC"
+            ]
+          },
+          "expected_disposition": {
+            "enum": [
+              "ACCEPT",
+              "REJECT",
+              "REPAIR_REQUALIFY",
+              "INDETERMINATE_HUMAN_REVIEW"
+            ]
+          },
+          "truth_rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "const": "SYNTHETIC_ONLY"
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "metric_id",
+          "unit",
+          "aggregation"
+        ],
+        "properties": {
+          "metric_id": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "aggregation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "non_claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}
