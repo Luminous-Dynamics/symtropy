@@ -411,7 +411,14 @@
         "evsi_numerator_scale",
         "configuration_ref",
         "as_known_at_unix_ms",
-        "unresolved_obligation_manifest_sha256"
+        "unresolved_obligation_manifest_sha256",
+        "claim_id",
+        "decision_context_sha256",
+        "assurance_state_sha256",
+        "action_catalogue_sha256",
+        "decision_model_sha256",
+        "outcome_model_sha256",
+        "reason_codes"
       ],
       "properties": {
         "disposition": {
@@ -567,6 +574,36 @@
         "unresolved_obligation_manifest_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_context_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "assurance_state_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "action_catalogue_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "decision_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "outcome_model_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     }
