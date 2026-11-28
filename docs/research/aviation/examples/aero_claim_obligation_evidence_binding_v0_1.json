@@ -126,7 +126,7 @@
     "evidence_records": [
       {
         "evidence_ref": "evidence:evidence-class-material-characterization",
-        "record_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "record_sha256": "a8b858774407e328f4a284ee0348dd5b74d4056d145543f813fe1e9df2cc0c7c",
         "subject_ref": "part:wing-panel-synthetic-001",
         "configuration_ref": "configuration:wing-r17-synthetic",
         "lifecycle": "Active",
@@ -139,7 +139,7 @@
       },
       {
         "evidence_ref": "evidence:evidence-class-structural-test",
-        "record_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "record_sha256": "f662d325abcd5586c77238cf0f5d53303cd33ef2a55055db9c243cfc4963d6ca",
         "subject_ref": "part:wing-panel-synthetic-001",
         "configuration_ref": "configuration:wing-r17-synthetic",
         "lifecycle": "Active",
@@ -152,7 +152,7 @@
       },
       {
         "evidence_ref": "evidence:evidence-class-model-validation",
-        "record_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "record_sha256": "fcc7f48654ff570467c3b235ae5cc6e9a2e816df22850aab777fb4dfc85c3850",
         "subject_ref": "part:wing-panel-synthetic-001",
         "configuration_ref": "configuration:wing-r17-synthetic",
         "lifecycle": "Active",
@@ -250,7 +250,7 @@
       "acquisition_time_earliest_unix_ms": 1795514399900,
       "acquisition_time_latest_unix_ms": 1795514399910,
       "evidence_ref": "evidence:evidence-class-material-characterization",
-      "evidence_record_sha256": "d8b2b0f946d3ac4f4b2f36a81f1d3ebf5d4a6f62d43f5f4e0df7f33ab31d2b8e",
+      "evidence_record_sha256": "a8b858774407e328f4a284ee0348dd5b74d4056d145543f813fe1e9df2cc0c7c",
       "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "integrity_state": "VERIFIED",
       "producer_authority_state": "AUTHORIZED",
@@ -259,7 +259,7 @@
       "evidence_effective_until_unix_ms": 1798668800000,
       "authority_effective_from_unix_ms": 1795516799000,
       "authority_effective_until_unix_ms": 1795516801000,
-      "receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      "receipt_sha256": "88943f192fffdff9208e05121465a79e77764ac8d9934a121689503465a9fade"
     },
     {
       "verification_status": "VERIFIED",
@@ -271,7 +271,7 @@
       "acquisition_time_earliest_unix_ms": 1795514399900,
       "acquisition_time_latest_unix_ms": 1795514399910,
       "evidence_ref": "evidence:evidence-class-structural-test",
-      "evidence_record_sha256": "a8db4cf1fa1a6b7bcf0d2e3c4b5a69788776655443322110ffeeddccbbaa9988",
+      "evidence_record_sha256": "f662d325abcd5586c77238cf0f5d53303cd33ef2a55055db9c243cfc4963d6ca",
       "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "integrity_state": "VERIFIED",
       "producer_authority_state": "AUTHORIZED",
@@ -280,7 +280,7 @@
       "evidence_effective_until_unix_ms": 1798668800000,
       "authority_effective_from_unix_ms": 1795516799000,
       "authority_effective_until_unix_ms": 1795516801000,
-      "receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      "receipt_sha256": "d71e19b7835ae7da4c49e90684bf495ba1a210ba525ceea04e17b07de77c983f"
     },
     {
       "verification_status": "VERIFIED",
@@ -292,7 +292,7 @@
       "acquisition_time_earliest_unix_ms": 1795514399900,
       "acquisition_time_latest_unix_ms": 1795514399910,
       "evidence_ref": "evidence:evidence-class-model-validation",
-      "evidence_record_sha256": "c7f95c1e1acb6d1e2f3a4b5c6d7e8f90123456789abcdef0123456789abcdef0",
+      "evidence_record_sha256": "fcc7f48654ff570467c3b235ae5cc6e9a2e816df22850aab777fb4dfc85c3850",
       "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "integrity_state": "VERIFIED",
       "producer_authority_state": "AUTHORIZED",
@@ -301,7 +301,7 @@
       "evidence_effective_until_unix_ms": 1798668800000,
       "authority_effective_from_unix_ms": 1795516799000,
       "authority_effective_until_unix_ms": 1795516801000,
-      "receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+      "receipt_sha256": "b465ca2c6140a4ac8583fd82bb1f490e5e23f0a34c5e6ce752c09d4dac11787e"
     }
   ]
 }
