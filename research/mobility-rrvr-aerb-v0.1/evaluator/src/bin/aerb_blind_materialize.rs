@@ -516,7 +516,7 @@ fn materialize(
     let mut candidate_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len());
     let mut evaluator_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len() * 4 + 2);
     let mut metadata_rows = Vec::with_capacity(generated.evaluator_manifest.assignments.len());
-    let mut candidate_output_bytes = 0_u64;
+    let mut candidate_input_bytes = 0_u64;
     let mut evaluator_output_bytes = 0_u64;
     let candidate_manifest_json = serialize_pretty(&generated.candidate_manifest, "CANDIDATE_MANIFEST")?;
     let evaluator_manifest_json = serialize_pretty(&generated.evaluator_manifest, "EVALUATOR_MANIFEST")?;
@@ -608,7 +608,7 @@ fn materialize(
             &candidate_root,
             &episode_name,
             &episode_output_bytes,
-            &mut candidate_output_bytes,
+            &mut candidate_input_bytes,
         )?;
         let world_pack_sha256 = write_private_file(
             &evaluator_root,
@@ -698,7 +698,7 @@ fn materialize(
         &candidate_root,
         "candidate_manifest.json",
         &candidate_manifest_json,
-        &mut candidate_output_bytes,
+        &mut candidate_input_bytes,
     )?;
     let evaluator_manifest_sha256 = write_private_file(
         &evaluator_root,
@@ -747,7 +747,7 @@ fn materialize(
         &candidate_root,
         "READY.json",
         &candidate_ready_bytes,
-        &mut candidate_output_bytes,
+        &mut candidate_input_bytes,
     )?;
     write_private_file(
         &evaluator_root,
@@ -760,11 +760,11 @@ fn materialize(
     sync_directory(&evaluator_root)?;
 
     println!(
-        "AERB blind campaign materialized: campaign={} episodes={} clusters={} candidate_bytes={} evaluator_bytes={}",
+        "AERB blind campaign materialized: campaign={} episodes={} clusters={} candidate_input_bytes={} evaluator_bytes={}",
         generated.candidate_manifest.campaign_id,
         generated.candidate_manifest.episode_ids.len(),
         independent_cluster_n,
-        candidate_output_bytes,
+        candidate_input_bytes,
         evaluator_output_bytes
     );
     println!(
