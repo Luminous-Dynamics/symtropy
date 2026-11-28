@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/spacecraft/temporal-perception-witness-v0.1.schema.json",
+  "title": "Symthaea Temporal Perception Witness v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "producer",
+    "producer_version",
+    "observer_profile_id",
+    "observer_profile_sha256",
+    "frozen_model_sha256",
+    "raw_frame_sha256",
+    "identity",
+    "width",
+    "height",
+    "channels",
+    "accepted_frame_count",
+    "expected_frame_count",
+    "fixed_horizon_us",
+    "horizon_elapsed_us",
+    "status",
+    "metrics",
+    "observer_only",
+    "learning_frozen",
+    "raw_frame_retained",
+    "actuation_authority",
+    "pose_probability_claim",
+    "source_authentication_claim",
+    "physical_truth_claim"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "producer": {
+      "const": "symthaea-vision-manifold"
+    },
+    "producer_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observer_profile_id": {
+      "const": "symthaea-spacecraft-temporal-observer-v0.1"
+    },
+    "observer_profile_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "frozen_model_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "raw_frame_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "identity": {
+      "$ref": "#/$defs/identity"
+    },
+    "width": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "height": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "channels": {
+      "enum": [
+        1,
+        3,
+        4
+      ]
+    },
+    "accepted_frame_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "expected_frame_count": {
+      "type": "integer",
+      "minimum": 2
+    },
+    "fixed_horizon_us": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "horizon_elapsed_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "warming_up",
+        "observed"
+      ]
+    },
+    "metrics": {
+      "$ref": "#/$defs/metrics"
+    },
+    "observer_only": {
+      "const": true
+    },
+    "learning_frozen": {
+      "const": true
+    },
+    "raw_frame_retained": {
+      "const": false
+    },
+    "actuation_authority": {
+      "const": false
+    },
+    "pose_probability_claim": {
+      "const": false
+    },
+    "source_authentication_claim": {
+      "const": false
+    },
+    "physical_truth_claim": {
+      "const": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "warming_up"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metrics": {
+            "properties": {
+              "prediction_error_q16_16": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "observed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metrics": {
+            "properties": {
+              "prediction_error_q16_16": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "target_id",
+        "session_id",
+        "trajectory_id",
+        "frame_id",
+        "sensor_id",
+        "source_evidence_id",
+        "sequence",
+        "timestamp_us",
+        "modality",
+        "clock_profile_sha256",
+        "calibration_sha256",
+        "roi_sha256",
+        "preprocessing_sha256"
+      ],
+      "properties": {
+        "episode_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "target_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "session_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "trajectory_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "frame_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sensor_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "source_evidence_id": {
+          "$ref": "#/$defs/nonEmpty"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modality": {
+          "const": "Visible"
+        },
+        "clock_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "roi_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "preprocessing_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prediction_error_q16_16",
+        "manifold_coherence_q16_16",
+        "attention_entropy_q16_16",
+        "motion_surprise_q16_16",
+        "cross_scale_prediction_error_q16_16",
+        "salient_patch_count",
+        "encode_time_us",
+        "evolve_time_us"
+      ],
+      "properties": {
+        "prediction_error_q16_16": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "manifold_coherence_q16_16": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "attention_entropy_q16_16": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "motion_surprise_q16_16": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "cross_scale_prediction_error_q16_16": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "salient_patch_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "encode_time_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evolve_time_us": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
