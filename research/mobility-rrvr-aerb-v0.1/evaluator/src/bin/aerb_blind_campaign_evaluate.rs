@@ -910,7 +910,7 @@ fn campaign_report(
     let scheduled = scenario_count as f64;
     let evaluated_denominator = evaluated_n.max(1) as f64;
     Ok(BlindCampaignReport {
-        schema_version: "aerb-blind-campaign-report-v0.1".to_owned(),
+        schema_version: "aerb-blind-campaign-report-v0.2".to_owned(),
         benchmark: "AERB".to_owned(),
         campaign_id: candidate_manifest.campaign_id,
         candidate_manifest_sha256,
