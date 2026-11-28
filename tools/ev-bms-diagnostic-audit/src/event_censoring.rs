@@ -982,7 +982,7 @@ mod tests {
             .push(serde_json::json!({
                 "alarm_id": "alarm-wide-interval-pre-onset",
                 "asset_id": "asset-event",
-                "alarm_time_unix_ms": 310_u64 * 3_600_000,
+                "alarm_time_unix_ms": 290_u64 * 3_600_000,
                 "score": 0.9,
                 "threshold": 0.8
             }));
@@ -996,7 +996,7 @@ mod tests {
         assert_eq!(report.event_miss_count, 0);
         assert_eq!(report.lead_interval_count, 2);
         assert!((report.lead_lower_hours_min.unwrap() - 4.0).abs() < 1e-12);
-        assert!((report.lead_upper_hours_max.unwrap() - 30.0).abs() < 1e-12);
+        assert!((report.lead_upper_hours_max.unwrap() - 50.0).abs() < 1e-12);
     }
 
     #[test]
