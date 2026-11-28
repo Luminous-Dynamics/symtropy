@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/spacecast-crosswalk-v0.schema.json",
+  "title": "SpaceCast-Bench source crosswalk v0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "source",
+    "dataset",
+    "capability_levels",
+    "reported_baselines",
+    "training_arm",
+    "known_limits",
+    "reproduction_status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "spacecast-crosswalk-v0"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "authors",
+        "arxiv_id",
+        "publication_date",
+        "url"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "arxiv_id": {
+          "type": "string",
+          "pattern": "^[0-9]{4}\\.[0-9]{5}$"
+        },
+        "publication_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_count",
+        "scene_count",
+        "task_type_count",
+        "source_datasets",
+        "split_description",
+        "transform_families"
+      ],
+      "properties": {
+        "question_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scene_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "task_type_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_datasets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "split_description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transform_families": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "capability_levels": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "question_count",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "enum": [
+              "L1",
+              "L2",
+              "L3"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "question_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "reported_baselines": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "system",
+          "system_class",
+          "overall_accuracy_percent",
+          "role"
+        ],
+        "properties": {
+          "system": {
+            "type": "string"
+          },
+          "system_class": {
+            "enum": [
+              "proprietary",
+              "open_weight_general",
+              "spatial_specialized",
+              "human",
+              "random"
+            ]
+          },
+          "overall_accuracy_percent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "training_arm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "method",
+        "in_domain_accuracy_percent",
+        "ood_macro_accuracy_percent",
+        "base_in_domain_accuracy_percent",
+        "interpretation"
+      ],
+      "properties": {
+        "system": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "in_domain_accuracy_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "ood_macro_accuracy_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "base_in_domain_accuracy_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "interpretation": {
+          "type": "string"
+        }
+      }
+    },
+    "known_limits": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1
+    },
+    "reproduction_status": {
+      "enum": [
+        "metadata_only_no_media_downloaded",
+        "rights_review_pending",
+        "rights_qualified",
+        "reproduced"
+      ]
+    }
+  }
+}
