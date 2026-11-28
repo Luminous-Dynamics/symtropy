@@ -13,7 +13,7 @@ use std::{
 
 use mobility_rrvr_aerb_evaluator::{
     CandidateEpisode, CandidateSubmission, EvaluatorReport, EvaluatorWorldPack,
-    audit_metadata_leakage, canonical_sorted_json_sha256, evaluate_json, sha256_hex,
+    canonical_sorted_json_sha256, evaluate_json, sha256_hex,
     blind_assignment_v0_1::{
         CandidateBlindManifest, EvaluatorBlindManifest, verify_post_run_reveal,
     },
@@ -28,7 +28,7 @@ use serde::{Deserialize, Serialize};
 
 const READY_SCHEMA: &str = "aerb-blind-campaign-ready-v0.1";
 const METADATA_INPUT_SCHEMA: &str = "aerb-metadata-attack-input-v0.1";
-const MAX_ARTIFACT_BYTES: u64 = 16 * 1024 * 1024;
+const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;
 const CUSTODY_DOMAIN: &[u8] = b"AERB-BLIND-CAMPAIGN-CUSTODY-V0.1\0";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -289,10 +289,12 @@ fn unsafe_fresh_recommendation(
         )
 }
 
-fn write_report(root: &Path, report: &BlindCampaignReport) -> Result<(), String> {
+fn write_report(root: &Path, path: &Path, report: &BlindCampaignReport) -> Result<(), String> {
     let bytes = serde_json::to_vec_pretty(report)
         .map_err(|error| format!("REPORT_SERIALIZATION_FAILED: {error}"))?;
-    let path = root.join("blind-evaluator-report.json");
+    if path.parent().and_then(|parent| parent.canonicalize().ok()).as_deref() != Some(root) {
+        return Err("REPORT_PATH_MUST_REMAIN_INSIDE_EVALUATOR_ROOT".to_owned());
+    }
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -505,9 +507,9 @@ fn campaign_report(
 
             let episode_json = String::from_utf8(episode_bytes.clone())
                 .map_err(|error| format!("CANDIDATE_EPISODE_NOT_UTF8: {error}"))?;
-            let submission_json = String::from_utf8(submission_bytes)
+            let submission_json = String::from_utf8(submission_bytes.clone())
                 .map_err(|error| format!("CANDIDATE_SUBMISSION_NOT_UTF8: {error}"))?;
-            let world_pack_json = String::from_utf8(world_pack_bytes)
+            let world_pack_json = String::from_utf8(world_pack_bytes.clone())
                 .map_err(|error| format!("EVALUATOR_WORLD_PACK_NOT_UTF8: {error}"))?;
             let original_episode: CandidateEpisode = parse_json(&source_episode_bytes, "SOURCE_EPISODE")?;
             let original_submission: CandidateSubmission =
@@ -700,7 +702,7 @@ fn run() -> Result<(), String> {
         return Err("EVALUATOR_REPORT_MUST_REMAIN_INSIDE_EVALUATOR_CUSTODY_ROOT".to_owned());
     }
     let report = campaign_report(&candidate_root, &evaluator_root)?;
-    write_report(&canonical_evaluator, &report)?;
+    write_report(&canonical_evaluator, &report_path, &report)?;
     println!(
         "AERB blind evaluator: scheduled={} evaluated={} structurally_invalid={} contract_valid={} unsafe_fresh={} metadata_only_balanced_accuracy={:.4}",
         report.scheduled_n,
