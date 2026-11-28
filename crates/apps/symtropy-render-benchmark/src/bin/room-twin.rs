@@ -117,6 +117,20 @@ fn camera_pose_at(rail: &CameraRail, elapsed_secs: f32) -> Transform {
         let start = &pair[0];
         let end = &pair[1];
         if elapsed_secs <= end.at_secs {
+            // Preserve a fixed observation pose exactly. Interpolating identical
+            // waypoints can introduce tiny f32 differences that make a supposedly
+            // identical-prefix fixture depend on the requested capture time.
+            if start.transform.translation == end.transform.translation
+                && start.transform.rotation == end.transform.rotation
+                && start.transform.scale == end.transform.scale
+            {
+                return Transform {
+                    translation: start.transform.translation,
+                    rotation: start.transform.rotation,
+                    scale: start.transform.scale,
+                };
+            }
+
             let duration = (end.at_secs - start.at_secs).max(f32::EPSILON);
             let alpha = ((elapsed_secs - start.at_secs) / duration).clamp(0.0, 1.0);
             return Transform {
