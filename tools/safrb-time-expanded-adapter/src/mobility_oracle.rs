@@ -577,6 +577,76 @@ fn independent_service_floor_check(
     true
 }
 
+fn independent_policy_capacity_valid(
+    instance: &MobilityInstance,
+    scenario: &MobilityScenario,
+    period: u64,
+    decisions: &[MobilityDecision],
+    adaptive: bool,
+) -> bool {
+    let history = match independent_information_set_digest(scenario, period, adaptive) {
+        Ok(value) => value,
+        Err(_) => return false,
+    };
+    let mut arc_use = BTreeMap::<String, u64>::new();
+    let mut corridor_use = BTreeMap::<String, u64>::new();
+    for decision in decisions.iter().filter(|decision| {
+        decision.period == period && decision.information_set_sha256 == history
+    }) {
+        let MobilityAction::Move { arc_id } = &decision.action else {
+            continue;
+        };
+        let Some(arc) = instance.arcs.iter().find(|arc| arc.arc_id == *arc_id) else {
+            return false;
+        };
+        let Some(next_arc) = arc_use
+            .get(arc_id)
+            .copied()
+            .unwrap_or(0)
+            .checked_add(1)
+        else {
+            return false;
+        };
+        arc_use.insert(arc_id.clone(), next_arc);
+        let Some(next_corridor) = corridor_use
+            .get(&arc.corridor_ref)
+            .copied()
+            .unwrap_or(0)
+            .checked_add(1)
+        else {
+            return false;
+        };
+        corridor_use.insert(arc.corridor_ref.clone(), next_corridor);
+    }
+    arc_use.iter().all(|(arc_id, used)| {
+        instance.arcs.iter().find(|arc| arc.arc_id == *arc_id)
+            .is_some_and(|arc| *used <= arc.arc_capacity_per_departure)
+    }) && corridor_use.iter().all(|(corridor_id, used)| {
+        instance.arcs.iter().find(|arc| arc.corridor_ref == *corridor_id)
+            .is_some_and(|arc| *used <= arc.corridor_capacity_per_departure)
+    })
+}
+
+fn independent_states_match(
+    states: &[Vec<Position>],
+    scenario_indices: &[usize],
+) -> bool {
+    let Some(first_index) = scenario_indices.first() else {
+        return false;
+    };
+    for scenario_index in scenario_indices.iter().skip(1) {
+        if states[*scenario_index].len() != states[*first_index].len() {
+            return false;
+        }
+        for unit_index in 0..states[*first_index].len() {
+            if states[*scenario_index][unit_index] != states[*first_index][unit_index] {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 fn independent_zero_time_relaxation(instance: &MobilityInstance) -> bool {
     for scenario in &instance.scenarios {
         for boundary in 0..=instance.horizon_last_period {
@@ -1138,7 +1208,7 @@ fn replay_policy(
             groups.entry(history).or_default().push(scenario_index);
         }
         for (history, scenario_indices) in &groups {
-            if !same_group_state(&states, scenario_indices) {
+            if !independent_states_match(&states, scenario_indices) {
                 return Err("equal observable histories have different physical resource states".to_string());
             }
             let first = scenario_indices[0];
@@ -1183,7 +1253,7 @@ fn replay_policy(
             }
         }
         for scenario_index in 0..instance.scenarios.len() {
-            if !period_capacity_valid(instance, period, scenario_index, &plan.decisions, adaptive)
+            if !independent_policy_capacity_valid(instance, &instance.scenarios[scenario_index], period, &plan.decisions, adaptive)
             {
                 return Err(format!(
                     "policy exceeds a route or shared-corridor capacity in scenario {} at period {period}",
