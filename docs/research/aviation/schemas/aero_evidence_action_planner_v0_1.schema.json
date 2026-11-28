@@ -453,7 +453,8 @@
               "calibration_receipt_sha256",
               "calibration_profile_sha256",
               "expected_artifact_contract_sha256",
-              "outcome_model_owner_namespace"
+              "outcome_model_owner_namespace",
+              "outcome_likelihoods_sha256"
             ],
             "properties": {
               "rank": {
@@ -513,6 +514,10 @@
               "outcome_model_owner_namespace": {
                 "type": "string",
                 "minLength": 1
+              },
+              "outcome_likelihoods_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
               }
             }
           }
