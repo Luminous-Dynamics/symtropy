@@ -7,6 +7,7 @@ checks scenario scope, chronology and calibration-table commitments.
 """
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import sys
@@ -181,9 +182,51 @@ def main() -> int:
         for error in errors:
             print(f"CONTRACT FAIL: {error}")
         return 1
+    # Mutation controls are contract-level negative tests, independent of Rust.
+    late_approval = copy.deepcopy(instance)
+    late_approval["approval_receipt"]["receiver_first_seen_at_unix_ms"] = (
+        late_approval["scenarios"][0]["input"]["as_known_at_unix_ms"] + 1
+    )
+    if not any("not known at the selected cutoff" in issue for issue in validate(late_approval)):
+        raise SystemExit("FAIL: late scenario-set approval receipt was not rejected")
+
+    late_calibration = copy.deepcopy(instance)
+    first_input = late_calibration["scenarios"][0]["input"]
+    first_input["actions"][0]["calibration_receipt"]["receiver_first_seen_at_unix_ms"] = (
+        first_input["as_known_at_unix_ms"] + 1
+    )
+    if not any("calibration receipt was late" in issue for issue in validate(late_calibration)):
+        raise SystemExit("FAIL: late calibration receipt was not rejected")
+
+    wrong_owner = copy.deepcopy(instance)
+    wrong_owner["scenarios"][0]["input"]["actions"][0]["calibration_receipt"]["owner_namespace"] = (
+        "owner:unrelated-model-team"
+    )
+    if not validate(wrong_owner):
+        raise SystemExit("FAIL: calibration receipt from another owner was accepted")
+
+    changed_model = copy.deepcopy(instance)
+    changed_model["scenarios"][1]["input"]["outcome_model_sha256"] = "f" * 64
+    if not any("scenario-set digest mismatch" in issue for issue in validate(changed_model)):
+        raise SystemExit("FAIL: changed outcome-model scenario retained old scenario-set commitment")
+
+    omitted_scenario = copy.deepcopy(instance)
+    omitted_scenario["scenarios"].pop()
+    if not validate(omitted_scenario):
+        raise SystemExit("FAIL: incomplete scenario set was accepted")
+
+    permuted = copy.deepcopy(instance)
+    permuted["scenarios"].reverse()
+    for scenario in permuted["scenarios"]:
+        scenario["input"]["actions"].reverse()
+        for action in scenario["input"]["actions"]:
+            action["outcome_likelihoods"].reverse()
+    if validate(permuted):
+        raise SystemExit("FAIL: semantically equivalent scenario/action order permutation changed the contract")
+
     print(
-        "PASS: AERO robust EVSI v0.1 scenario-set schema, shared-context, "
-        "chronology and calibration commitments."
+        "PASS: AERO robust EVSI v0.1 schema, scenario commitments, chronology, calibration "
+        "and 6 independent mutation/permutation controls."
     )
     print(
         "NOTE: the published example uses synthetic placeholder owner receipts; "
