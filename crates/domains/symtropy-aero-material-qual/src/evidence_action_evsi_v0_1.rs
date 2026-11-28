@@ -281,8 +281,18 @@ fn invalid_assessment(
         as_known_at_unix_ms: input.as_known_at_unix_ms,
         decision_context_sha256: input.decision_context_sha256.clone(),
         assurance_state_sha256: input.assurance_state_sha256.clone(),
+        assurance_state_receipt_sha256: input
+            .assurance_state_receipt
+            .as_ref()
+            .map(|receipt| receipt.receipt_sha256.clone())
+            .unwrap_or_default(),
         unresolved_obligation_manifest_sha256: input.unresolved_obligation_manifest_sha256.clone(),
         action_catalogue_sha256: input.action_catalogue_sha256.clone(),
+        action_catalogue_receipt_sha256: input
+            .action_catalogue_receipt
+            .as_ref()
+            .map(|receipt| receipt.receipt_sha256.clone())
+            .unwrap_or_default(),
         decision_model_sha256: input.decision_model_sha256.clone(),
         outcome_model_sha256: input.outcome_model_sha256.clone(),
         current_best_decision_id: None,
@@ -535,6 +545,73 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
         != Ok(input.action_catalogue_sha256.as_str())
     {
         errors.insert("EVSI_ACTION_CATALOGUE_COMMITMENT_MISMATCH".to_owned());
+    }
+
+    match &input.assurance_state_receipt {
+        None => {
+            errors.insert("EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_MISSING".to_owned());
+        }
+        Some(receipt) => {
+            if receipt.verification_status != UpstreamReceiptVerificationStatusV0_1::Verified {
+                errors.insert("EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_NOT_VERIFIED".to_owned());
+            }
+            if !valid_identifier(&receipt.owner_namespace)
+                || !valid_sha256(&receipt.receipt_sha256)
+            {
+                errors.insert("EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_INVALID".to_owned());
+            }
+            if receipt.claim_id != input.claim_id
+                || receipt.decision_context_sha256 != input.decision_context_sha256
+                || receipt.assurance_state_sha256 != input.assurance_state_sha256
+                || receipt.frozen_claim_disposition != input.frozen_claim_disposition
+                || receipt.unresolved_obligation_manifest_sha256
+                    != input.unresolved_obligation_manifest_sha256
+            {
+                errors.insert("EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_SCOPE_MISMATCH".to_owned());
+            }
+            if receipt.receiver_first_seen_at_unix_ms > input.as_known_at_unix_ms {
+                errors.insert("EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_NOT_KNOWN_AT_CUTOFF".to_owned());
+            }
+            if receipt.effective_from_unix_ms >= receipt.effective_until_unix_ms
+                || receipt.effective_from_unix_ms > input.as_known_at_unix_ms
+                || receipt.effective_until_unix_ms <= input.as_known_at_unix_ms
+            {
+                errors.insert("EVSI_SOURCE_ASSURANCE_STATE_RECEIPT_NOT_EFFECTIVE_AT_CUTOFF".to_owned());
+            }
+        }
+    }
+
+    match &input.action_catalogue_receipt {
+        None => {
+            errors.insert("EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_MISSING".to_owned());
+        }
+        Some(receipt) => {
+            if receipt.verification_status != UpstreamReceiptVerificationStatusV0_1::Verified {
+                errors.insert("EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_NOT_VERIFIED".to_owned());
+            }
+            if !valid_identifier(&receipt.owner_namespace)
+                || !valid_sha256(&receipt.receipt_sha256)
+            {
+                errors.insert("EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_INVALID".to_owned());
+            }
+            if receipt.claim_id != input.claim_id
+                || receipt.decision_context_sha256 != input.decision_context_sha256
+                || receipt.configuration_ref != input.configuration_ref
+                || receipt.action_catalogue_sha256 != input.action_catalogue_sha256
+                || receipt.action_count as usize != input.actions.len()
+            {
+                errors.insert("EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_SCOPE_MISMATCH".to_owned());
+            }
+            if receipt.receiver_first_seen_at_unix_ms > input.as_known_at_unix_ms {
+                errors.insert("EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_NOT_KNOWN_AT_CUTOFF".to_owned());
+            }
+            if receipt.effective_from_unix_ms >= receipt.effective_until_unix_ms
+                || receipt.effective_from_unix_ms > input.as_known_at_unix_ms
+                || receipt.effective_until_unix_ms <= input.as_known_at_unix_ms
+            {
+                errors.insert("EVSI_ACTION_CATALOGUE_SNAPSHOT_RECEIPT_NOT_EFFECTIVE_AT_CUTOFF".to_owned());
+            }
+        }
     }
 
     let mut decision_ids = BTreeSet::new();
@@ -1031,8 +1108,18 @@ pub fn rank_evidence_actions_v0_1(
         as_known_at_unix_ms: input.as_known_at_unix_ms,
         decision_context_sha256: input.decision_context_sha256.clone(),
         assurance_state_sha256: input.assurance_state_sha256.clone(),
+        assurance_state_receipt_sha256: input
+            .assurance_state_receipt
+            .as_ref()
+            .map(|receipt| receipt.receipt_sha256.clone())
+            .unwrap_or_default(),
         unresolved_obligation_manifest_sha256: input.unresolved_obligation_manifest_sha256.clone(),
         action_catalogue_sha256: input.action_catalogue_sha256.clone(),
+        action_catalogue_receipt_sha256: input
+            .action_catalogue_receipt
+            .as_ref()
+            .map(|receipt| receipt.receipt_sha256.clone())
+            .unwrap_or_default(),
         decision_model_sha256: input.decision_model_sha256.clone(),
         outcome_model_sha256: input.outcome_model_sha256.clone(),
         current_best_decision_id: Some(current_best_decision.to_owned()),
