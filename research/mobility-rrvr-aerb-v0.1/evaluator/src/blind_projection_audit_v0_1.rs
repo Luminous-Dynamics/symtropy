@@ -47,6 +47,7 @@ pub enum ProjectionError {
     SequenceRebaseOverflow,
     SerializationFailed,
     InvalidProjectionReceipt(&'static str),
+    InvalidProjectionSecret(&'static str),
     InvalidMetadataAudit(&'static str),
     TooFewGroups,
     TooManyFolds,
@@ -62,6 +63,7 @@ impl std::fmt::Display for ProjectionError {
             Self::SequenceRebaseOverflow => formatter.write_str("sequence rebasing overflow"),
             Self::SerializationFailed => formatter.write_str("blind projection serialization failed"),
             Self::InvalidProjectionReceipt(field) => write!(formatter, "invalid evaluator projection receipt: {field}"),
+            Self::InvalidProjectionSecret(field) => write!(formatter, "invalid evaluator-only projection secret: {field}"),
             Self::InvalidMetadataAudit(field) => write!(formatter, "invalid metadata audit input: {field}"),
             Self::TooFewGroups => formatter.write_str("metadata audit requires at least two independent groups"),
             Self::TooManyFolds => formatter.write_str("metadata audit fold count must be between two and the independent group count"),
@@ -84,6 +86,35 @@ impl std::fmt::Debug for BlindProjectionContext {
     }
 }
 
+/// Serialized only beneath evaluator custody. Never include this object in
+/// candidate inputs, public benchmark manifests or candidate process mounts.
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BlindProjectionSecretV0_1 {
+    pub schema_version: String,
+    pub projection_salt_hex: String,
+}
+
+impl std::fmt::Debug for BlindProjectionSecretV0_1 {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("BlindProjectionSecretV0_1([REDACTED])")
+    }
+}
+
+impl BlindProjectionSecretV0_1 {
+    pub fn validate(&self) -> Result<[u8; 32], ProjectionError> {
+        if self.schema_version != "aerb-blind-projection-secret-v0.1" {
+            return Err(ProjectionError::InvalidProjectionSecret("schema_version"));
+        }
+        let decoded = decode_hex(&self.projection_salt_hex)
+            .ok_or(ProjectionError::InvalidProjectionSecret("projection_salt_hex"))?;
+        let salt: [u8; 32] = decoded
+            .try_into()
+            .map_err(|_| ProjectionError::InvalidProjectionSecret("projection_salt_length"))?;
+        Ok(salt)
+    }
+}
+
 impl BlindProjectionContext {
     pub fn generate() -> Result<Self, ProjectionError> {
         let mut salt = [0u8; 32];
@@ -96,6 +127,23 @@ impl BlindProjectionContext {
     /// normally generate a fresh independent salt and keep it outside candidate custody.
     pub fn from_secret(salt: [u8; 32]) -> Self {
         Self { salt }
+    }
+
+    /// Export the key only for evaluator-only custody and deterministic replay.
+    /// The caller is responsible for writing it with restrictive permissions.
+    pub fn export_evaluator_secret(&self) -> BlindProjectionSecretV0_1 {
+        BlindProjectionSecretV0_1 {
+            schema_version: "aerb-blind-projection-secret-v0.1".to_owned(),
+            projection_salt_hex: encode_hex(&self.salt),
+        }
+    }
+
+    pub fn from_evaluator_secret(
+        secret: &BlindProjectionSecretV0_1,
+    ) -> Result<Self, ProjectionError> {
+        Ok(Self {
+            salt: secret.validate()?,
+        })
     }
 
     fn pseudonym_hex(&self, namespace: &str, raw: &str) -> String {
@@ -167,6 +215,27 @@ fn encode_hex(bytes: &[u8]) -> String {
 fn append_length_prefixed(output: &mut Vec<u8>, bytes: &[u8]) {
     output.extend_from_slice(&(bytes.len() as u64).to_be_bytes());
     output.extend_from_slice(bytes);
+}
+
+fn decode_hex(value: &str) -> Option<Vec<u8>> {
+    if value.len() % 2 != 0 {
+        return None;
+    }
+    let mut output = Vec::with_capacity(value.len() / 2);
+    for pair in value.as_bytes().chunks_exact(2) {
+        let high = hex_nibble(pair[0])?;
+        let low = hex_nibble(pair[1])?;
+        output.push((high << 4) | low);
+    }
+    Some(output)
+}
+
+fn hex_nibble(value: u8) -> Option<u8> {
+    match value {
+        b'0'..=b'9' => Some(value - b'0'),
+        b'a'..=b'f' => Some(value - b'a' + 10),
+        _ => None,
+    }
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -1170,6 +1239,34 @@ mod tests {
                 result_delay_steps: 2,
             }],
         }
+    }
+
+    #[test]
+    fn evaluator_projection_secret_roundtrips_without_debug_disclosure() {
+        let original = BlindProjectionContext::from_secret([0x91; 32]);
+        let secret = original.export_evaluator_secret();
+        assert_eq!(format!("{secret:?}"), "BlindProjectionSecretV0_1([REDACTED])");
+        let serialized = serde_json::to_string(&secret).expect("secret serialization");
+        let decoded: BlindProjectionSecretV0_1 =
+            serde_json::from_str(&serialized).expect("secret deserialization");
+        let restored = BlindProjectionContext::from_evaluator_secret(&decoded)
+            .expect("restored projection context");
+        assert_eq!(
+            original.pseudonym_hex("test-domain", "same-input"),
+            restored.pseudonym_hex("test-domain", "same-input")
+        );
+    }
+
+    #[test]
+    fn malformed_evaluator_projection_secret_fails_closed() {
+        let secret = BlindProjectionSecretV0_1 {
+            schema_version: "aerb-blind-projection-secret-v0.1".to_owned(),
+            projection_salt_hex: "not-hex".to_owned(),
+        };
+        assert_eq!(
+            BlindProjectionContext::from_evaluator_secret(&secret),
+            Err(ProjectionError::InvalidProjectionSecret("projection_salt_hex"))
+        );
     }
 
     #[test]
