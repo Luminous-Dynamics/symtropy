@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "fixture_id": "ROOM-TWIN-01",
+  "visibility": "evaluator-only development metadata; public repository copy is not sealed and cannot support a blind claim",
+  "variant_a": {
+    "evaluator_label": "A",
+    "target_relation": "far chamber remains connected through the far doorway",
+    "geometry_difference": "no panel in the far wall opening",
+    "candidate_environment_variable": "SYMTROPY_ROOM_TWIN_VARIANT=A"
+  },
+  "variant_b": {
+    "evaluator_label": "B",
+    "target_relation": "far doorway is blocked by a structural wall panel",
+    "geometry_difference": "one 0.2m x 3.0m x 3.0m panel at x=9.2m, y=1.5m, z=2.0m",
+    "candidate_environment_variable": "SYMTROPY_ROOM_TWIN_VARIANT=B"
+  },
+  "invariant": {
+    "common_candidate_sensor_profile": "1280x720 rendered RGB perspective",
+    "common_camera_id": "room-twin-camera-v1",
+    "common_capture_times_secs": [
+      1.5,
+      4,
+      7
+    ],
+    "expected_first_distinguishing_observation_secs": 7,
+    "expected_shared_prefix_captures_secs": [
+      1.5,
+      4
+    ],
+    "shadows_enabled": false
+  },
+  "warning": "Do not use this public fixture as a sealed benchmark. A true blind evaluation requires #6754 to generate or inject the hidden variant outside the candidate-visible process and filesystem."
+}
