@@ -186,6 +186,7 @@
         "process_revision_digest",
         "feedstock_input_mass_mg",
         "added_input_mass_mg",
+        "maximum_mass_balance_error_mg",
         "required_output_kinds",
         "required_assays"
       ],
@@ -333,6 +334,10 @@
               }
             }
           ]
+        },
+        "maximum_mass_balance_error_mg": {
+          "type": "number",
+          "minimum": 0
         }
       },
       "additionalProperties": false
