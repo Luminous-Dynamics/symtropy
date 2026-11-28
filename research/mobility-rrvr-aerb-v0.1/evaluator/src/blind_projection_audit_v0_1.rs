@@ -19,7 +19,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use super::{
-    BENCHMARK, CandidateEpisode, OPEN_WORLD_RESIDUAL, Observation, SCHEMA_VERSION, sha256_hex,
+    canonical_sorted_json_sha256, BENCHMARK, CandidateEpisode, CandidateSubmission,
+    OPEN_WORLD_RESIDUAL, Observation, SCHEMA_VERSION, sha256_hex,
 };
 
 #[cfg(test)]
@@ -552,6 +553,58 @@ pub fn project_candidate_episode(
     receipt.projection_receipt_sha256 = receipt_commitment(&receipt)?;
 
     Ok((projected, receipt))
+}
+
+/// Project the candidate submission alongside its episode.
+///
+/// Observation references are remapped with the same campaign-scoped HMAC
+/// namespace used for the projected episode. The candidate snapshot digest is
+/// resealed over projected bytes; model and observer profile hashes remain
+/// unchanged because they describe the candidate system, not the source case.
+pub fn project_candidate_submission(
+    context: &BlindProjectionContext,
+    original_submission: &CandidateSubmission,
+    original_episode: &CandidateEpisode,
+    projected_episode: &CandidateEpisode,
+    receipt: &BlindProjectionReceipt,
+) -> Result<CandidateSubmission, ProjectionError> {
+    verify_projected_episode(projected_episode, receipt)?;
+    if original_submission.episode_id != original_episode.episode_id
+        || receipt.original_episode_id != original_episode.episode_id
+    {
+        return Err(ProjectionError::InvalidProjectionReceipt("submission source identity"));
+    }
+    if projected_episode.episode_id != receipt.candidate_episode_id {
+        return Err(ProjectionError::InvalidProjectionReceipt("submission projected identity"));
+    }
+
+    let available_observation_ids = original_episode
+        .observations
+        .iter()
+        .map(|observation| observation.observation_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if original_submission
+        .explanation_observation_ids
+        .iter()
+        .any(|observation_id| !available_observation_ids.contains(observation_id.as_str()))
+    {
+        return Err(ProjectionError::InvalidProjectionReceipt("submission explanation reference"));
+    }
+
+    let episode_json = serde_json::to_string(projected_episode)
+        .map_err(|_| ProjectionError::SerializationFailed)?;
+    let mut projected_submission = original_submission.clone();
+    projected_submission.episode_id = projected_episode.episode_id.clone();
+    projected_submission.candidate_snapshot_sha256 =
+        canonical_sorted_json_sha256(&episode_json)
+            .map_err(|_| ProjectionError::SerializationFailed)?;
+    projected_submission.explanation_observation_ids = original_submission
+        .explanation_observation_ids
+        .iter()
+        .map(|observation_id| context.pseudonym_id("obs", "observation-id", observation_id))
+        .collect();
+
+    Ok(projected_submission)
 }
 
 pub fn projection_profile_sha256() -> String {
@@ -1637,6 +1690,63 @@ mod tests {
         assert_eq!(projected.observations[0].ingest_sequence, 0);
         assert_eq!(projected.observations[1].ingest_sequence, 4);
         verify_projected_episode(&projected, &receipt).expect("receipt verifies");
+    }
+
+    #[test]
+    fn candidate_submission_references_are_projected_and_snapshot_resealed() {
+        let context = BlindProjectionContext::from_secret([0x61; 32]);
+        let original = episode(5);
+        let original_submission = CandidateSubmission {
+            schema_version: SCHEMA_VERSION.to_owned(),
+            benchmark: BENCHMARK.to_owned(),
+            episode_id: original.episode_id.clone(),
+            candidate_snapshot_sha256: sha256_hex(b"old-snapshot"),
+            model_sha256: sha256_hex(b"model"),
+            observer_profile_sha256: sha256_hex(b"observer"),
+            possible_world_support_ids: vec![
+                "not_dispatched".to_owned(),
+                OPEN_WORLD_RESIDUAL.to_owned(),
+            ],
+            disposition: Disposition::Abstain,
+            requested_probe_id: None,
+            reason_codes: vec!["ABSTAIN_UNKNOWN".to_owned()],
+            explanation_observation_ids: original
+                .observations
+                .iter()
+                .map(|observation| observation.observation_id.clone())
+                .collect(),
+        };
+        let (projected_episode, receipt) =
+            project_candidate_episode(&context, &original, "ep_55555555555555555555555555555555")
+                .expect("episode projection");
+        let submission = project_candidate_submission(
+            &context,
+            &original_submission,
+            &original,
+            &projected_episode,
+            &receipt,
+        )
+        .expect("submission projection");
+
+        assert_eq!(submission.episode_id, projected_episode.episode_id);
+        assert_eq!(submission.explanation_observation_ids.len(), 2);
+        assert_eq!(
+            submission.explanation_observation_ids,
+            projected_episode
+                .observations
+                .iter()
+                .map(|observation| observation.observation_id.clone())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            submission.candidate_snapshot_sha256,
+            canonical_sorted_json_sha256(&serde_json::to_string(&projected_episode).unwrap())
+                .unwrap()
+        );
+        assert_eq!(
+            submission.possible_world_support_ids,
+            original_submission.possible_world_support_ids
+        );
     }
 
     #[test]
