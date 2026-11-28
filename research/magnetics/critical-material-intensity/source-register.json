@@ -1,0 +1,77 @@
+[
+  {
+    "source_id": "TRACTION-TOPOLOGY-REVIEW-2026",
+    "citation": "Devito et al., Design and Optimization of Electric Traction Motors with Reduced Dependence on Rare Earth Materials",
+    "year": 2026,
+    "journal": "Energies",
+    "volume": 19,
+    "issue": 18,
+    "article": 4316,
+    "doi": "10.3390/en19184316",
+    "url": "https://doi.org/10.3390/en19184316",
+    "evidence_class": "peer_reviewed_review_of_application_specific_studies",
+    "reported_findings": [
+      "A specific equal-rated 60 kW light-vehicle comparison reports IPM/WFSM/SynRM drive-cycle consumption of 93.70/94.24/94.86 Wh/km, approximately 1.3% spread at the study boundary.",
+      "A specific PM-assisted SynRM retrofit study is reported to reduce rare-earth magnet volume by 26% without loss of reported performance.",
+      "A hypercar design/FEA comparison is reported to reduce magnet volume by approximately 45% with a small drive-cycle penalty.",
+      "A separate heavy-duty long-haul comparison reports a different WFSM/IPM drive-cycle efficiency ranking under its own mission and assumptions."
+    ],
+    "limitations": [
+      "Values are from different applications and source studies; not one matched tournament.",
+      "Some inverter/system adjustments are calculated under stated assumptions rather than directly measured complete-drive tests.",
+      "Magnet volume is not elemental mass; no universal critical-element intensity follows.",
+      "Preserve original duty, boundary, evidence class, optimizer and measurement method."
+    ]
+  },
+  {
+    "source_id": "HPMS-PEM-2025",
+    "citation": "Rathfelder et al., Process optimization to produce anisotropic NdFeB permanent magnets from recycled powder via powder extrusion",
+    "year": 2025,
+    "published": "2025-10-09",
+    "journal": "Scientific Reports",
+    "volume": 15,
+    "article": 35284,
+    "doi": "10.1038/s41598-025-19111-6",
+    "url": "https://www.nature.com/articles/s41598-025-19111-6",
+    "evidence_class": "peer_reviewed_experimental_materials_process_study",
+    "reported_findings": {
+      "br_to_js_alignment_ratio": 0.96,
+      "carbon_wt_percent_approx": 0.045,
+      "oxygen_change": "approximately 0.4 wt% increase from HPMS powder to sintered part, study-specific"
+    },
+    "limitations": [
+      "Br/Js is alignment ratio, not absolute Br.",
+      "No universal Nd/Pr/Dy/Tb composition or critical-element intensity follows from these figures.",
+      "Study-specific feedstock and process; no Luminous physical result."
+    ]
+  },
+  {
+    "source_id": "NDFEB-AM-REVIEW-2026",
+    "citation": "State-of-the-art additive manufacturing of NdFeB permanent magnets: challenges and pathways toward high performance",
+    "year": 2026,
+    "published": "2026-09",
+    "journal": "Journal of Science: Advanced Materials and Devices",
+    "volume": 11,
+    "issue": 3,
+    "article": 101226,
+    "doi": "10.1016/j.jsamd.2026.101226",
+    "url": "https://doi.org/10.1016/j.jsamd.2026.101226",
+    "evidence_class": "peer_reviewed_review",
+    "limitations": [
+      "Aggregated printed-route data are not a matched motor or element-inventory comparison.",
+      "Route-specific MEX and LPBF results cannot be pooled into a single AM value."
+    ]
+  },
+  {
+    "source_id": "IEC-60034-2-3-2024",
+    "citation": "IEC 60034-2-3:2024, Rotating electrical machines - Specific test methods for determining losses and efficiency of converter-fed AC motors",
+    "year": 2024,
+    "standard": "IEC 60034-2-3:2024",
+    "url": "https://webstore.iec.ch/en/publication/71977",
+    "evidence_class": "standardized_motor_efficiency_test_method",
+    "limitations": [
+      "Efficiency test method is not a complete lifetime material-inventory or critical-element accounting method.",
+      "Does not replace application-specific mission and service-horizon matching."
+    ]
+  }
+]
