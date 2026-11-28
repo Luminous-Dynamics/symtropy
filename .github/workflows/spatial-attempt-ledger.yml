@@ -84,4 +84,21 @@ jobs:
               if not list(validator.iter_errors(candidate)):
                   raise SystemExit("negative control unexpectedly accepted: " + label)
               print("PASS: rejected negative control — " + label)
+
+          # A correct abstention is a response disposition, not a process crash.
+          # A denied optional probe is an acquisition outcome, not a terminal failure.
+          safe_abstention = copy.deepcopy(example)
+          safe_abstention["attempts"][3]["answer_disposition"] = "abstained"
+          safe_abstention["attempts"][3]["acquisition_dispositions"] = [
+              {"action_id": "probe-1", "disposition": "permission_denied"}
+          ]
+          if list(validator.iter_errors(safe_abstention)):
+              raise SystemExit("safe abstention / denied probe must remain a valid completed attempt")
+          print("PASS: abstention and permission denial remain separate from execution failure")
+
+          bad = copy.deepcopy(example)
+          bad["attempts"][0]["terminal_disposition"] = "abstained"
+          if not list(validator.iter_errors(bad)):
+              raise SystemExit("abstention must not be accepted as terminal execution disposition")
+          print("PASS: abstention rejected as a terminal execution disposition")
           PY
