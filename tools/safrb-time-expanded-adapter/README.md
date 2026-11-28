@@ -125,6 +125,40 @@ Portable schemas:
 
 Guaranteed means guaranteed across the *supplied finite synthetic scenario set*, assuming scenario observation before allocation. It does not establish that the set is complete, that scenarios are authenticated or physically exhaustive, that probabilities are known, or that source authority, legal rights, physical qualification, dispatch authorization or actual service exists. It never splices capacity maxima from different scenarios.
 
+## Evidence-bound dynamic capacity schedule v0.1
+
+The separate `capacity_admission` module validates a versioned schedule of externally pre-admitted capacity records over the modeled discrete-time horizon. It is a structural admission layer; it does not yet compile the schedule into the flow graph.
+
+### Schedule contract
+
+- Each record binds a canonical physical resource reference, one modeled subject and capacity role (`storage`, `handling`, `service_issue`, `route`), an exact unit/boundary/timebase, source-byte digest, admission-receipt digest, issuer and authority references.
+- Capacity records are half-open intervals `[effective_from_period, effective_until_period_exclusive)`.
+- Every required subject must be covered exactly once over `[0, horizon_last_period + 1)`. Gaps and overlaps are rejected; values are never interpolated or carried forward.
+- The evidence must remain fresh through the entire effective interval.
+- Only `conservative_operational_bound` records with externally supplied `admitted` status are accepted. Demonstrated/nameplate/hypothetical, stale/revoked/unknown/conflicted records are not silently promoted.
+- Within the same capacity role, one canonical physical resource cannot be represented as multiple graph subjects. Such alias splitting is rejected as `unsupported` pending a dedicated shared-resource gate compiler.
+- Input array order does not affect the canonical schedule digest; any content mutation does.
+- Each report window retains the accepted `conservative_operational_bound` class and `admitted` status alongside the source/admission digests; consumers do not need to infer why the record passed structural admission.
+
+### Independent verification and tests
+
+`verify_capacity_schedule` reconstructs required-subject coverage, half-open continuity, evidence-class/status, freshness and window receipts without calling `validate_capacity_schedule`. Tests include adjacent windows, exact boundary handoff, overlap, gap, staleness, revoked/unknown/conflicted evidence, unit/boundary/timebase mismatch, alias splitting, changing physical identity, report digest/window tampering, strict JSON round-trip and a 200-seed contiguous-window oracle.
+
+### Trust and claim boundary
+
+The `admission_status`, issuer/authority and admission-receipt digest are externally supplied claims. This crate does not verify signatures, trust roots, revocation registries, source bytes, calibration or physical measurements. A structurally valid report proves only that the supplied records form a complete, non-overlapping, freshness-compatible schedule under the declared input. It does not prove the capacities are physically true or that the upstream authority correctly admitted them.
+
+The v0.1 module also does not compile dynamic capacity values into the time-expanded flow graph, does not enforce cross-role shared-asset constraints, and does not model one common resource shared across multiple distinct graph subjects. Those remain follow-on model/compiler work; no dynamic-capacity service guarantee is claimed.
+
+Portable schemas:
+
+- `schemas/capacity-schedule-input-v0.1.schema.json`
+- `schemas/capacity-schedule-report-v0.1.schema.json`
+
+Related issue: [#7751](https://github.com/Luminous-Dynamics/symtropy/issues/7751).
+
+The next mobility-policy work [#7876](https://github.com/Luminous-Dynamics/symtropy/issues/7876) is a separate consumer of admitted route/time windows; this v0.1 schedule module remains structural admission only and does not compile dynamic capacities into a movement or service graph.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
