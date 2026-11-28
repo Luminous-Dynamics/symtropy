@@ -263,7 +263,7 @@ def expected_disposition(source: dict[str, Any]) -> tuple[list[str], str]:
             or entry["requirement_source_ref"] != obligation["requirement_source_ref"]
             or entry["population_manifest_sha256"] != spec["population"]["population_manifest_sha256"]
             or entry["metric_id"] not in {metric for metric, _ in required_model_pairs}
-            or not expected_scope
+            or obligation["scoped_subject_ref"] != expected_scope
         ):
             errors.append("model stratum mapping does not preserve the exact derived claim scope")
         else:
