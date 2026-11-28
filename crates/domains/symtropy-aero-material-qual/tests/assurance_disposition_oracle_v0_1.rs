@@ -242,7 +242,6 @@ fn independent_json_oracle_matches_all_published_state_vectors() {
             source["case_id"]
         );
         assert_eq!(
-        assert_eq!(
             production.disposition.as_str(),
             oracle,
             "production/oracle disagreement for {}",
