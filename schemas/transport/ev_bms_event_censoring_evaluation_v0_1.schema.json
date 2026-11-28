@@ -132,7 +132,9 @@
           "asset_id",
           "onset_type",
           "onset_lower_unix_ms",
+          "onset_lower_semantics",
           "onset_upper_unix_ms",
+          "onset_upper_semantics",
           "event_time_semantics",
           "onset_evidence_refs",
           "adjudication_revision"
@@ -157,9 +159,24 @@
             "type": ["integer", "null"],
             "minimum": 0
           },
+          "onset_lower_semantics": {
+            "enum": [
+              "exact_reported_instant",
+              "earliest_possible_instant_after_last_verified_normal",
+              "other_adjudicated_lower_bound",
+              "not_available_left_censored"
+            ]
+          },
           "onset_upper_unix_ms": {
             "type": "integer",
             "minimum": 1
+          },
+          "onset_upper_semantics": {
+            "enum": [
+              "exact_reported_instant",
+              "first_verified_abnormal_sample",
+              "other_adjudicated_upper_bound"
+            ]
           },
           "event_time_semantics": {
             "enum": [
