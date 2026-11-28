@@ -36,7 +36,14 @@
     ],
     "dataset_url": "https://huggingface.co/datasets/hongxingli/SpaceCast-Bench",
     "dataset_card_license_field_present": false,
-    "dataset_asset_rights_status": "unverified_source_dataset_terms"
+    "dataset_asset_rights_status": "terms_reviewed_access_not_granted",
+    "source_asset_terms": {
+      "scannet": "non_commercial_only",
+      "scannetpp": "non_commercial_only",
+      "commercial_use_permitted": false,
+      "access_granted": false,
+      "reviewed_on": "2026-11-28"
+    }
   },
   "capability_levels": [
     {
@@ -106,7 +113,10 @@
     "Human performance is a reference comparator, not a guaranteed upper bound for every task or scoring condition.",
     "Benchmark-native macro averages must be reproduced exactly; do not substitute micro accuracy or pool L1/L2/L3 without preserving the native protocol.",
     "The six listed spatial-specialized models report 25.7–29.1 percent overall; this is a range across models, not a single model score.",
-    "The official evaluation client automatically downloads/caches the Hugging Face test split on first execution; the visible dataset card does not expose a license field. The repository code LICENSE is Apache-2.0, but that does not license ScanNet/ScanNet++ source imagery embedded in the dataset. Rights must be reviewed separately before running or redistributing media."
+    "The official evaluation client automatically downloads/caches the Hugging Face test split on first execution; the visible dataset card does not expose a license field. The repository code LICENSE is Apache-2.0, but that does not license ScanNet/ScanNet++ source imagery embedded in the dataset. Rights must be reviewed separately before running or redistributing media.",
+    "Official ScanNet terms restrict database use to non-commercial research and education (clause 1) and bind a for-profit commercial employer where applicable (clause 6); access requires an approved agreement.",
+    "Official ScanNet++ terms restrict use to non-commercial research and education and expressly prohibit commercial use (clause 1); sharing is limited to colleagues who also sign (clause 4); the for-profit employer must also be bound (clause 7); handwritten signatures are required.",
+    "No dataset access has been requested or granted. No source media has been downloaded. This benchmark protocol may be used as a paper-level crosswalk only until the dataset owners authorize the exact proposed use."
   ],
   "reproduction_status": "metadata_only_no_media_downloaded"
 }
