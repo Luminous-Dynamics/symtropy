@@ -213,6 +213,11 @@ def validate_input(source: dict[str, Any]) -> None:
 
 def calculate(source: dict[str, Any]) -> dict[str, Any]:
     validate_input(source)
+    # Keep the exact upstream receipt objects available for the result envelope.
+    # validate_input checks their scope and chronology but deliberately does not
+    # mutate or normalize them.
+    state_receipt = source["assurance_state_receipt"]
+    catalogue_receipt = source["action_catalogue_receipt"]
     decisions = sorted(item["decision_id"] for item in source["decision_alternatives"])
     states = {item["state_id"]: item["prior_probability_ppm"] for item in source["world_states"]}
     utilities = {
