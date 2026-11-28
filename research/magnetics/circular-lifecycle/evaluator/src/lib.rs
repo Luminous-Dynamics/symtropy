@@ -1601,7 +1601,7 @@ mod tests {
             Family::ConventionalMechanicallyRetainedSegmentedPmRotor,
             Role::RequiredBaseline,
             [199.0, 0.949, 1.75, 2.75, 11.0, 0.001],
-            [10.0, 8.0, 0.0, 1.0, 1.0],
+            [10.0, 6.0, 3.0, 0.0, 1.0],
         );
         segmented.disassembly.elapsed_minutes = 10.0;
         segmented.disassembly.energy_wh = 10.0;
