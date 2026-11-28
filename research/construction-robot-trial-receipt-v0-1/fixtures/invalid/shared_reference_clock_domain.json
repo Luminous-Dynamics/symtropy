@@ -1,0 +1,225 @@
+{
+  "schema_version": "construction-robot-physical-trial/0.1",
+  "trial_id": "trial-shared-reference-clock-0001",
+  "trial": {
+    "started_at_unix_ns": 1000,
+    "ended_at_unix_ns": 2000,
+    "protocol_id": "construction-stop-protocol-v0.1",
+    "protocol_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "test_site_id": "isolated-bench-a",
+    "clock_domain": "robot-event-timebase-01",
+    "operator_role": "test-operator",
+    "supervisor_role": "independent-test-supervisor"
+  },
+  "claim": {
+    "claim_id": "stopping-distance-envelope",
+    "criterion_id": "max-stop-distance-v0.1",
+    "criterion_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "evidence_class": "bench_measured",
+    "claim_ceiling": "bench_measured",
+    "scope_statement": "Synthetic fixture example of a bench-measured stopping-distance claim",
+    "excluded_claims": [
+      "field-safety",
+      "certification",
+      "autonomous-work-authorization"
+    ]
+  },
+  "subject": {
+    "platform": {
+      "platform_id": "tracked-mobile-platform-01",
+      "manufacturer": "Fixture Manufacturer",
+      "model": "Synthetic Platform",
+      "as_built_revision": "as-built-rev-7",
+      "asset_token": "asset-token-001"
+    },
+    "tool": {
+      "tool_id": "measurement-fixture",
+      "tool_revision": "tool-rev-2",
+      "end_effector_revision": null
+    },
+    "payload": {
+      "mass_kg": 100,
+      "configuration_id": "ballast-profile-100kg",
+      "centre_of_mass_reference": "declared-fixture-centre-of-mass"
+    },
+    "software": {
+      "firmware_revision": "firmware-fixture-1",
+      "controller_revision": "controller-fixture-1",
+      "safety_configuration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "policy_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "sensors": [
+      {
+        "sensor_id": "lidar-front",
+        "modality": "lidar",
+        "firmware_revision": "lidar-fw-1",
+        "calibration_id": "lidar-cal-1",
+        "calibration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "fault_domain": "robot-range-power"
+      },
+      {
+        "sensor_id": "camera-front",
+        "modality": "camera",
+        "firmware_revision": "camera-fw-1",
+        "calibration_id": "camera-cal-1",
+        "calibration_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "fault_domain": "robot-vision-power"
+      }
+    ]
+  },
+  "task": {
+    "task_id": "surrogate-stopping-test",
+    "task_revision": "task-rev-1",
+    "scenario_id": "construction-safety-surrogate-stop-v0.1",
+    "work_package_id": "bench-work-package-01",
+    "work_package_revision": "wp-rev-1",
+    "task_family": "mobile_navigation"
+  },
+  "site": {
+    "site_id": "isolated-test-bay-01",
+    "site_snapshot_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "privacy_preserving_location_ref": "test-facility-token",
+    "coordinate_frame": {
+      "frame_id": "local-enu-test-bay",
+      "horizontal_crs_or_definition": "local ENU, origin fixed control point",
+      "vertical_datum_or_definition": "local slab datum v1",
+      "coordinate_epoch": null,
+      "axis_order": "east,north,up",
+      "units": "metre",
+      "handedness": "right",
+      "transform_bundle_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "odd": {
+    "profile_id": "surrogate-bench-odd",
+    "profile_revision": "odd-rev-1",
+    "strata": [
+      {
+        "condition_id": "surface-type",
+        "value": "sealed-concrete",
+        "unit": "category",
+        "measured_at_unix_ns": 1000,
+        "evidence_artifact_ids": [
+          "raw-reference-trajectory"
+        ]
+      },
+      {
+        "condition_id": "slope",
+        "value": 0.5,
+        "unit": "degree",
+        "measured_at_unix_ns": 1000,
+        "evidence_artifact_ids": [
+          "raw-reference-trajectory"
+        ]
+      },
+      {
+        "condition_id": "ambient-illuminance",
+        "value": 5000,
+        "unit": "lux",
+        "measured_at_unix_ns": 1000,
+        "evidence_artifact_ids": [
+          "raw-reference-trajectory"
+        ]
+      }
+    ]
+  },
+  "evidence": {
+    "raw_artifacts": [
+      {
+        "artifact_id": "raw-reference-trajectory",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "media_type": "application/octet-stream",
+        "byte_length": 4096,
+        "captured_at_unix_ns": 1500,
+        "custody_reference": "custody-record-01",
+        "privacy_class": "restricted"
+      },
+      {
+        "artifact_id": "robot-event-log",
+        "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "media_type": "application/json",
+        "byte_length": 2048,
+        "captured_at_unix_ns": 1500,
+        "custody_reference": "custody-record-02",
+        "privacy_class": "restricted"
+      }
+    ],
+    "source_records": [
+      {
+        "source_id": "robot-controller-log",
+        "source_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "role": "evaluated controller event log",
+        "issuer_reference": null
+      }
+    ]
+  },
+  "reference": {
+    "independence": {
+      "status": "independent",
+      "assessment_reference": "fault-domain-assessment-01",
+      "shared_fault_domains": [],
+      "rationale": "Fixture declaration: reference laser tracker has separate power, clock, network and data path."
+    },
+    "instruments": [
+      {
+        "instrument_id": "reference-laser-tracker",
+        "role": "independent robot and surrogate pose reference",
+        "manufacturer": "Fixture Metrology",
+        "model": "Reference Tracker",
+        "serial_token": "instrument-token-01",
+        "calibration_id": "calibration-cert-01",
+        "calibration_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "calibration_valid_from_unix_ns": 900,
+        "calibration_valid_until_unix_ns": 2100,
+        "fault_domain": "independent-metrology-lab"
+      }
+    ],
+    "time_synchronization": {
+      "method": "hardware trigger plus independently checked clock offset",
+      "reference_clock_domain": "robot-event-timebase-01",
+      "maximum_error_ns": 1000,
+      "synchronization_record_sha256": "7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  },
+  "sample_plan": {
+    "total_encounters": 30,
+    "valid_encounters": 30,
+    "excluded_encounters": 0,
+    "independent_encounters": 30,
+    "distinct_sites": 1,
+    "distinct_configurations": 1,
+    "independence_unit": "encounter",
+    "clustering_note": "Fixture assumes each mannequin crossing is an independently reset encounter.",
+    "exclusion_policy_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  "measurements": [
+    {
+      "measurement_id": "stopping-distance-p95",
+      "quantity": "stopping_distance",
+      "statistic": "p95",
+      "value": 1.2,
+      "unit": "m",
+      "expanded_uncertainty_u95": 0.02,
+      "decision_margin": 0.12,
+      "reference_instrument_ids": [
+        "reference-laser-tracker"
+      ],
+      "sample_count": 30,
+      "raw_artifact_ids": [
+        "raw-reference-trajectory"
+      ]
+    }
+  ],
+  "challenge": {
+    "visibility": "public_held_out_by_generation",
+    "challenge_set_commitment_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "custodian_reference": null,
+    "producer_output_commitment_sha256": null,
+    "revealed_at_unix_ns": null
+  },
+  "result": {
+    "status": "measured_within_declared_criterion",
+    "reason_codes": [],
+    "summary": "Synthetic fixture only; not a real measurement or robot result."
+  }
+}
