@@ -478,3 +478,75 @@ There are three distinct claims and they need three distinct scoreboards:
 3. **Assurance under operations:** on matched cross-owner cases, show that evidence admission, independent proof reconstruction and current-authority checks reduce decision regret/service failures without unacceptable latency or loss of usable coverage. This is the plausible SAFRB differentiation.
 
 A legitimate research claim must report negative controls, all failed/timeout outcomes, external-oracle dependencies, confidence intervals, and the exact data/model/solver hashes. No headline "beats SOTA" result should combine performance on one benchmark with assurance on a different one.
+
+## 15. FSRE decision-grade monitoring alignment and cross-layer benchmark
+
+The mobility-recourse programme should reuse the existing Mycelix FSRE decision-grade monitoring framework rather than inventing a second, incompatible evidence-quality taxonomy. FSRE already treats the objective as decisions enabled by evidence, with source freshness, actor-availability time, sequential EVSI, service outcomes, equity, operations and independent as-of replay. SAFRB contributes a complementary physical service/policy model: it asks whether the proposed mobility/infrastructure action can physically satisfy declared service floors and whether its evidence basis is valid for the actor and decision cutoff.
+
+### 15.1 Shared metric vocabulary
+
+| FSRE metric family | SAFRB mobility extension | Required denominator / split |
+| --- | --- | --- |
+| Observation-to-availability latency | Source observation → admission/verification → actor-eligibility → decision cutoff | Report each latency separately; actor-eligible before deadline |
+| Freshness and data quality | Capacity/route evidence valid for the entire service decision interval | Evidence records by role, resource and scenario |
+| Sequential EVSI | Evidence acquisition that changes the admissible feasible-policy set or decision regret | Total acquisition, laboratory, travel, analyst and verification cost |
+| Decision regret | Difference between chosen admissible policy and matched information/decision oracle | Same world model, budget, authority and operator action constraints |
+| Service outcome | Safe service-hours preserved, floor-deficit hours, cumulative deficit, recovery and relapse | Each beneficiary/service cohort and geography; preserve unresolved denominators |
+| Independence/common cause | Shared issuer, calibration, upstream dataset, sensor, or derived source lineage | Count independent source roots, not record IDs |
+| Operations | Decision latency, dispatch workload, route feasibility, evidence turnaround, maintenance | P50/P95/P99, failures and timeouts included |
+| Reproducibility | World-state, knowledge-state, evidence-basis and authority-basis replay | Exact hashes, as-known-at-cutoff evidence, independent verifier |
+
+A record arriving before a decision cutoff is not necessarily usable: it may fail admission, be outside the actor's permission or have an effective revocation. A valid observation is not equivalent to a valid evidence basis. Keep the four timing facts (observed, admitted, actor eligible, decision cutoff) and source effective/freshness intervals distinct.
+
+### 15.2 Matched layered ablation
+
+Evaluate the same operator/case distribution under these arms:
+
+| Arm | System | What it isolates |
+| --- | --- | --- |
+| F0 | Existing operator practice and owner-native monitors | Real-world baseline |
+| F1 | Strong route/flow/microgrid planner only | Optimization contribution |
+| F2 | Planner + structurally admitted time-varying capacity | Model/evidence-window contribution |
+| F3 | F2 + independent physical model/certificate replay | False-feasibility reduction from independent verification |
+| F4 | F3 + actor-specific reveal/expiry history | Pre-reveal, pre-admission and pre-eligibility leakage |
+| F5 | F4 + current issuer authority/revocation checkpoint | Decision-specific evidence-basis validity |
+| F6 | F5 + sequential EVSI acquisition policy | Net information value and evidence-acquisition efficiency |
+| F7 | Perfect-information world-state oracle | Non-operational upper bound only |
+
+Use the same physical planner, scenarios, service floors, solver budget, evidence-acquisition budget and action authority across arms. Only add the stated assurance layer. Do not attribute optimizer improvements to the assurance layer or call the oracle deployable.
+
+### 15.3 Operational hard gates and proposed targets
+
+Hard gates:
+- Zero service guarantees based on evidence not actor-eligible at the decision cutoff.
+- Zero decisions relying on evidence whose authority was already effectively revoked.
+- Zero physical-capacity violations, even when the outage is not yet observed.
+- Zero unauthorized purpose/resource/scope/actor uses.
+- Zero false beneficiary-floor satisfaction claims.
+- 100% independent rejection of altered model, plan, source receipt, actor history, evidence basis, permission, revocation or provenance checkpoint.
+- 100% retention of UNSUPPORTED / INDETERMINATE where current authority/completeness cannot be established, without translating that uncertainty into physical zero capacity.
+
+Comparative hypotheses (not current results):
+- At least 10% lower decision regret than the strongest matched operator/planner baseline at equal lifecycle spend and action authority; 20% is a stretch target for controlled, fully frozen synthetic suites.
+- Or at least 10% lower lifecycle cost per independently verified safe service-hour preserved, without worsening any protected cohort floor.
+- No critical-event detection sensitivity regression beyond a pre-registered non-inferiority margin.
+- P95 evidence-basis and proof-verification overhead remains within 10% of the relevant decision-time budget, with admission, authority lookup and replay costs measured separately.
+
+Use held-out catchments/utilities, event families and time periods where available. Do not use random row splits as the only generalization test. Publish confidence intervals, base-case independence, failed/timeout outcomes and exact source/model/solver hashes.
+
+### 15.4 Mycelix checkpoint contract is a dependency, not a local shortcut
+
+Mycelix PR #6834 fixes local effective-time interpretation and differentiates RecordObserved from NoRecordObserved. It does not establish DHT-wide completeness or that a record-backed query is the newest globally committed issuer state. The follow-on [Mycelix #6840](https://github.com/Luminous-Dynamics/mycelix/issues/6840) specifies versioned issuer revocation checkpoints with scope, monotonic sequence, event digest/root, supersession and freshness.
+
+Until a current checkpoint covering the evidence issuer/scope and decision cutoff can be independently verified, SAFRB must not report that evidence basis as QUALIFIED. Missing, stale, out-of-scope, forked or incomplete checkpoint state yields UNSUPPORTED or INDETERMINATE; it does not imply revoked physical capacity, a route closure or mathematical infeasibility.
+
+### 15.5 Integration boundary and evaluation order
+
+- Mycelix: actor/issuer identity, signed authority, revocation checkpoints, provenance dependency closure and permission/purpose basis.
+- Symtropy: physical state, temporal capacity, mobility policy, service obligations, independent reconstruction and decision-proof binding.
+- Symthaea: hypotheses, policy proposals and evidence-acquisition candidates under EVSI; it cannot self-certify its observations or permissions.
+- Sol-Atlas: spatial/resource/beneficiary identity and access boundaries.
+- FSRE: monitoring deployment, operational workflows, service outcomes and equity measurement.
+- Operators/lawful authorities: retain procurement, sampling, dispatch and actuation authority.
+
+The order for a decision is: establish a bounded physical model; verify physical capacity and service policy; reconstruct actor-eligible knowledge at the decision cutoff; verify current authority/checkpoint coverage; verify the action and claim scope; then compare expected service outcome, regret and lifecycle cost. A failure at a later evidence/authority stage must not rewrite the earlier physical model.
