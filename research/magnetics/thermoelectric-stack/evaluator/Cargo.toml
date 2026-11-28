@@ -8,3 +8,6 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies]
+
+# Keep this standalone research evaluator out of the repository root workspace.
+[workspace]
