@@ -671,7 +671,7 @@ pub fn validate_bundle_v1(bundle: &AgentObservationBundleV1) -> Result<(), Contr
                     .ok_or(ContractError::MissingObservationReference)?;
                 if *sensor_id != event.sensor_id.as_str()
                     || *source_sequence != event.source_sequence
-                    || *clock_domain != &event.clock_domain
+                    || *clock_domain != event.clock_domain
                 {
                     return Err(ContractError::ObservationReferenceMismatch);
                 }
