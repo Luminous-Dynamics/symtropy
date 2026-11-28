@@ -255,6 +255,7 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
         ranked.append({
             "action_id": action["action_id"],
             "owner_namespace": action["owner_namespace"],
+            "outcome_model_owner_namespace": action["outcome_model_owner_namespace"],
             "target_obligation_ids": action["target_obligation_ids"],
             "action_catalogue_entry_sha256": action["action_catalogue_entry_sha256"],
             "authorization_receipt_sha256": authorization["receipt_sha256"],
@@ -296,6 +297,9 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
         "ranked_actions": ranked,
         "excluded_actions": excluded,
         "frozen_claim_disposition": source["frozen_claim_disposition"],
+        "configuration_ref": source["configuration_ref"],
+        "as_known_at_unix_ms": source["as_known_at_unix_ms"],
+        "unresolved_obligation_manifest_sha256": source["unresolved_obligation_manifest_sha256"],
         "assurance_state_mutated": False,
         "physical_work_authorized": False,
         "engineering_acceptance_granted": False,
