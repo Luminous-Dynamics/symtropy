@@ -62,7 +62,9 @@
       "asset_id": "asset-event",
       "onset_type": "exact_reported",
       "onset_lower_unix_ms": 360000000,
+      "onset_lower_semantics": "exact_reported_instant",
       "onset_upper_unix_ms": 360000000,
+      "onset_upper_semantics": "exact_reported_instant",
       "event_time_semantics": "first_positive_sample",
       "onset_evidence_refs": ["synthetic-onset-ref-001"],
       "adjudication_revision": "synthetic-fixture-v0.1"
@@ -72,7 +74,9 @@
       "asset_id": "asset-event",
       "onset_type": "interval_censored",
       "onset_lower_unix_ms": 720000000,
+      "onset_lower_semantics": "earliest_possible_instant_after_last_verified_normal",
       "onset_upper_unix_ms": 727200000,
+      "onset_upper_semantics": "first_verified_abnormal_sample",
       "event_time_semantics": "last_normal_first_abnormal_bracket",
       "onset_evidence_refs": ["synthetic-onset-ref-002a", "synthetic-onset-ref-002b"],
       "adjudication_revision": "synthetic-fixture-v0.1"
@@ -82,7 +86,9 @@
       "asset_id": "asset-event",
       "onset_type": "interval_censored",
       "onset_lower_unix_ms": 1080000000,
+      "onset_lower_semantics": "earliest_possible_instant_after_last_verified_normal",
       "onset_upper_unix_ms": 1224000000,
+      "onset_upper_semantics": "first_verified_abnormal_sample",
       "event_time_semantics": "last_normal_first_abnormal_bracket",
       "onset_evidence_refs": ["synthetic-onset-ref-003a", "synthetic-onset-ref-003b"],
       "adjudication_revision": "synthetic-fixture-v0.1"
@@ -92,7 +98,9 @@
       "asset_id": "asset-event",
       "onset_type": "left_censored",
       "onset_lower_unix_ms": null,
+      "onset_lower_semantics": "not_available_left_censored",
       "onset_upper_unix_ms": 1440000000,
+      "onset_upper_semantics": "first_verified_abnormal_sample",
       "event_time_semantics": "first_positive_sample",
       "onset_evidence_refs": ["synthetic-onset-ref-004"],
       "adjudication_revision": "synthetic-fixture-v0.1"
