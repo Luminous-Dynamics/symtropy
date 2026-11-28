@@ -1356,6 +1356,38 @@ mod tests {
                 .expect("exclusion reason")
         );
         assert_eq!(result.frozen_claim_disposition, "INCOMPLETE");
+        assert_eq!(
+            result.configuration_ref,
+            expected["configuration_ref"].as_str().expect("configuration")
+        );
+        assert_eq!(
+            result.as_known_at_unix_ms,
+            expected["as_known_at_unix_ms"].as_u64().expect("as-known cutoff")
+        );
+        assert_eq!(
+            result.unresolved_obligation_manifest_sha256,
+            expected["unresolved_obligation_manifest_sha256"]
+                .as_str()
+                .expect("unresolved obligation manifest")
+        );
+        assert_eq!(
+            result.ranked_actions[0].outcome_model_owner_namespace,
+            expected["ranked_actions"][0]["outcome_model_owner_namespace"]
+                .as_str()
+                .expect("outcome model owner")
+        );
+        assert_eq!(
+            result.ranked_actions[0].authorization_receipt_sha256,
+            expected["ranked_actions"][0]["authorization_receipt_sha256"]
+                .as_str()
+                .expect("authorization receipt")
+        );
+        assert_eq!(
+            result.ranked_actions[0].calibration_receipt_sha256,
+            expected["ranked_actions"][0]["calibration_receipt_sha256"]
+                .as_str()
+                .expect("calibration receipt")
+        );
         assert!(!result.assurance_state_mutated);
         assert!(!result.physical_work_authorized);
         assert!(!result.engineering_acceptance_granted);
