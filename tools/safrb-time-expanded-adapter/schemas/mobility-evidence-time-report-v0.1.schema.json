@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/mobility-evidence-time-report-v0.1.schema.json",
+  "title": "SAFRB Actor-Specific Mobility Evidence-Time Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "actor_ref",
+    "source_capacity_report",
+    "evidence_timings_sha256",
+    "revocation_notice_gaps",
+    "mobility_instance_sha256",
+    "mobility_instance",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-mobility-evidence-time-report-v0.1"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_capacity_report": {
+      "$ref": "mobility-capacity-report-v0.1.schema.json"
+    },
+    "evidence_timings_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "mobility_instance_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "mobility_instance": {
+      "$ref": "mobility-instance-v0.1.schema.json"
+    },
+    "claim_ceiling": {
+      "const": "Structurally derives actor-scoped observation visibility from externally supplied observation, admission, eligibility and revocation timing. Physical route capacities remain independently constrained by the scenario model. This does not authenticate actors, prove legal authority, establish source truth, prove that external timestamps are accurate, or authorize operational dispatch."
+    },
+    "revocation_notice_gaps": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scenario_id",
+          "evidence_id",
+          "actor_ref",
+          "revoked_effective_at_period",
+          "notice_eligible_at_period"
+        ],
+        "properties": {
+          "scenario_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actor_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revoked_effective_at_period": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "notice_eligible_at_period": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4
+          }
+        }
+      }
+    }
+  },
+  "description": "Contains the actor-specific observation timeline plus explicit intervals where source revocation is already effective but the actor's admissible revocation notice is not yet eligible. Those gaps are not dispatch authorization; consumers must reject or mark unsupported any affected decision until a separate evidence-basis gate is satisfied."
+}

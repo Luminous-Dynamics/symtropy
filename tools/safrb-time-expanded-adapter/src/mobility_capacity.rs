@@ -5,12 +5,12 @@
 //! authority and physical truth remain upstream responsibilities.
 
 use crate::capacity_admission::{
-    validate_capacity_schedule, verify_capacity_schedule, CapacityRole, CapacityScheduleInput,
-    CapacityScheduleReport,
+    CapacityRole, CapacityScheduleInput, CapacityScheduleReport, validate_capacity_schedule,
+    verify_capacity_schedule,
 };
 use crate::mobility_oracle::{
-    mobility_instance_digest, validate_mobility_instance,
-    validate_mobility_instance_for_verification, MobilityInstance, RouteCapacityOverride,
+    MobilityInstance, RouteCapacityOverride, mobility_instance_digest, validate_mobility_instance,
+    validate_mobility_instance_for_verification,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -63,12 +63,19 @@ fn binding_digest(bindings: &[MobilityCapacityBinding]) -> Result<String, String
     canonical.sort_by(|left, right| {
         left.arc_id
             .cmp(&right.arc_id)
-            .then_with(|| left.arc_capacity_subject_id.cmp(&right.arc_capacity_subject_id))
+            .then_with(|| {
+                left.arc_capacity_subject_id
+                    .cmp(&right.arc_capacity_subject_id)
+            })
             .then_with(|| left.arc_resource_ref.cmp(&right.arc_resource_ref))
-            .then_with(|| left.corridor_capacity_subject_id.cmp(&right.corridor_capacity_subject_id))
+            .then_with(|| {
+                left.corridor_capacity_subject_id
+                    .cmp(&right.corridor_capacity_subject_id)
+            })
     });
-    let encoded = serde_json::to_vec(&canonical)
-        .map_err(|error| format!("could not encode canonical mobility-capacity bindings: {error}"))?;
+    let encoded = serde_json::to_vec(&canonical).map_err(|error| {
+        format!("could not encode canonical mobility-capacity bindings: {error}")
+    })?;
     let mut bytes = b"LUMINOUS-SAFRB-MOBILITY-CAPACITY-BINDINGS-V1\0".to_vec();
     bytes.extend_from_slice(&(encoded.len() as u64).to_be_bytes());
     bytes.extend_from_slice(&encoded);
@@ -80,7 +87,9 @@ fn expected_binding_resources(
     bindings: &[MobilityCapacityBinding],
 ) -> Result<BTreeMap<String, String>, String> {
     if bindings.len() != instance.arcs.len() {
-        return Err("every mobility arc must have exactly one explicit capacity binding".to_string());
+        return Err(
+            "every mobility arc must have exactly one explicit capacity binding".to_string(),
+        );
     }
     let arcs = instance
         .arcs
@@ -105,7 +114,10 @@ fn expected_binding_resources(
             .get(binding.arc_id.as_str())
             .ok_or_else(|| format!("capacity binding references unknown arc {}", binding.arc_id))?;
         if !seen_arcs.insert(binding.arc_id.as_str()) {
-            return Err(format!("duplicate capacity binding for arc {}", binding.arc_id));
+            return Err(format!(
+                "duplicate capacity binding for arc {}",
+                binding.arc_id
+            ));
         }
         if !arc_subjects.insert(binding.arc_capacity_subject_id.as_str()) {
             return Err("each directed arc must have a distinct arc-capacity subject".to_string());
@@ -144,7 +156,9 @@ fn expected_binding_resources(
         }
         match corridor_ref_by_subject.get(&binding.corridor_capacity_subject_id) {
             Some(existing) if existing != &arc.corridor_ref => {
-                return Err("corridor-capacity subject maps to multiple physical corridors".to_string());
+                return Err(
+                    "corridor-capacity subject maps to multiple physical corridors".to_string(),
+                );
             }
             Some(_) => {}
             None => {
@@ -171,7 +185,10 @@ fn expected_binding_resources(
     if seen_arcs.len() != arcs.len() {
         return Err("one or more mobility arcs have no capacity binding".to_string());
     }
-    if arc_subjects.iter().any(|subject| corridor_ref_by_subject.contains_key(*subject)) {
+    if arc_subjects
+        .iter()
+        .any(|subject| corridor_ref_by_subject.contains_key(*subject))
+    {
         return Err("arc and corridor subject identities must not overlap".to_string());
     }
     Ok(resources)
@@ -185,10 +202,15 @@ fn validate_schedule_bundle(
         || input.unit_ref.trim().is_empty()
         || input.quantity_boundary_ref.trim().is_empty()
     {
-        return Err("mobility capacity envelope must declare timebase, unit and quantity boundary".to_string());
+        return Err(
+            "mobility capacity envelope must declare timebase, unit and quantity boundary"
+                .to_string(),
+        );
     }
     if input.capacity_schedules.len() != input.mobility_instance.scenarios.len() {
-        return Err("capacity schedules must cover every mobility scenario exactly once".to_string());
+        return Err(
+            "capacity schedules must cover every mobility scenario exactly once".to_string(),
+        );
     }
     let expected_subjects = expected_resources
         .keys()
@@ -223,13 +245,19 @@ fn validate_schedule_bundle(
             ));
         }
         if result.contains_key(&schedule.scenario_id) {
-            return Err(format!("duplicate capacity schedule for scenario {}", schedule.scenario_id));
+            return Err(format!(
+                "duplicate capacity schedule for scenario {}",
+                schedule.scenario_id
+            ));
         }
         if common_timebase.is_some_and(|value| value != schedule.timebase_ref.as_str())
             || common_unit.is_some_and(|value| value != schedule.unit_ref.as_str())
             || common_boundary.is_some_and(|value| value != schedule.quantity_boundary_ref.as_str())
         {
-            return Err("capacity schedules use incomparable timebases, units or quantity boundaries".to_string());
+            return Err(
+                "capacity schedules use incomparable timebases, units or quantity boundaries"
+                    .to_string(),
+            );
         }
         common_timebase = Some(&schedule.timebase_ref);
         common_unit = Some(&schedule.unit_ref);
@@ -242,7 +270,10 @@ fn validate_schedule_bundle(
             .collect::<BTreeSet<_>>();
         if supplied_subjects.len() != schedule.required_subjects.len()
             || supplied_subjects != expected_subjects
-            || schedule.required_subjects.iter().any(|subject| subject.role != CapacityRole::Route)
+            || schedule
+                .required_subjects
+                .iter()
+                .any(|subject| subject.role != CapacityRole::Route)
         {
             return Err(format!(
                 "scenario {} required subjects do not exactly match the explicit mobility bindings",
@@ -250,10 +281,16 @@ fn validate_schedule_bundle(
             ));
         }
         for record in &schedule.records {
-            let expected_resource = expected_resources
-                .get(&record.subject_id)
-                .ok_or_else(|| format!("capacity record {} targets an unmapped subject", record.evidence_id))?;
-            if record.role != CapacityRole::Route || record.canonical_resource_ref != *expected_resource {
+            let expected_resource =
+                expected_resources.get(&record.subject_id).ok_or_else(|| {
+                    format!(
+                        "capacity record {} targets an unmapped subject",
+                        record.evidence_id
+                    )
+                })?;
+            if record.role != CapacityRole::Route
+                || record.canonical_resource_ref != *expected_resource
+            {
                 return Err(format!(
                     "capacity record {} has a route role or physical-resource binding mismatch",
                     record.evidence_id
@@ -335,18 +372,16 @@ pub fn compile_mobility_capacity_envelope(
                 .arcs
                 .iter()
                 .find(|arc| arc.arc_id == binding.arc_id)
-                .ok_or_else(|| format!("bound arc {} disappeared during compilation", binding.arc_id))?;
+                .ok_or_else(|| {
+                    format!(
+                        "bound arc {} disappeared during compilation",
+                        binding.arc_id
+                    )
+                })?;
             for period in 0..compiled.horizon_last_period {
-                let arc_capacity = capacity_at(
-                    schedule,
-                    &binding.arc_capacity_subject_id,
-                    period,
-                )?;
-                let corridor_capacity = capacity_at(
-                    schedule,
-                    &binding.corridor_capacity_subject_id,
-                    period,
-                )?;
+                let arc_capacity = capacity_at(schedule, &binding.arc_capacity_subject_id, period)?;
+                let corridor_capacity =
+                    capacity_at(schedule, &binding.corridor_capacity_subject_id, period)?;
                 if arc_capacity > arc.arc_capacity_per_departure
                     || corridor_capacity > arc.corridor_capacity_per_departure
                 {
@@ -390,13 +425,18 @@ pub fn compile_mobility_capacity_envelope(
 fn verifier_binding_digest(bindings: &[MobilityCapacityBinding]) -> Result<String, String> {
     let mut rows = bindings.to_vec();
     rows.sort_by(|a, b| {
-        a.arc_id.cmp(&b.arc_id)
+        a.arc_id
+            .cmp(&b.arc_id)
             .then(a.arc_capacity_subject_id.cmp(&b.arc_capacity_subject_id))
             .then(a.arc_resource_ref.cmp(&b.arc_resource_ref))
-            .then(a.corridor_capacity_subject_id.cmp(&b.corridor_capacity_subject_id))
+            .then(
+                a.corridor_capacity_subject_id
+                    .cmp(&b.corridor_capacity_subject_id),
+            )
     });
-    let encoded = serde_json::to_vec(&rows)
-        .map_err(|error| format!("mobility-capacity verifier could not encode bindings: {error}"))?;
+    let encoded = serde_json::to_vec(&rows).map_err(|error| {
+        format!("mobility-capacity verifier could not encode bindings: {error}")
+    })?;
     let mut digest_input = Vec::new();
     digest_input.extend_from_slice(b"LUMINOUS-SAFRB-MOBILITY-CAPACITY-BINDINGS-V1\0");
     digest_input.extend_from_slice(&(encoded.len() as u64).to_be_bytes());
@@ -417,11 +457,14 @@ fn independent_capacity_at(
             && period < row.effective_until_period_exclusive
         {
             if value.replace(row.capacity).is_some() {
-                return Err("mobility-capacity verifier found overlapping route evidence".to_string());
+                return Err(
+                    "mobility-capacity verifier found overlapping route evidence".to_string(),
+                );
             }
         }
     }
-    value.ok_or_else(|| "mobility-capacity verifier found an uncovered departure period".to_string())
+    value
+        .ok_or_else(|| "mobility-capacity verifier found an uncovered departure period".to_string())
 }
 
 /// Independently re-admit source and schedules, reconstruct every override
@@ -448,12 +491,16 @@ pub fn verify_mobility_capacity_envelope(
         .iter()
         .any(|scenario| !scenario.route_capacity_overrides.is_empty())
     {
-        return Err("mobility-capacity verifier requires an uncompiled source instance".to_string());
+        return Err(
+            "mobility-capacity verifier requires an uncompiled source instance".to_string(),
+        );
     }
     if input.bindings.len() != input.mobility_instance.arcs.len()
         || input.capacity_schedules.len() != input.mobility_instance.scenarios.len()
     {
-        return Err("mobility-capacity verifier found incomplete binding or schedule inventory".to_string());
+        return Err(
+            "mobility-capacity verifier found incomplete binding or schedule inventory".to_string(),
+        );
     }
 
     let mut arc_ids = BTreeSet::new();
@@ -462,9 +509,14 @@ pub fn verify_mobility_capacity_envelope(
     let mut corridor_subject_by_ref = BTreeMap::<String, String>::new();
     let mut corridor_ref_by_subject = BTreeMap::<String, String>::new();
     for binding in &input.bindings {
-        let arc = input.mobility_instance.arcs.iter()
+        let arc = input
+            .mobility_instance
+            .arcs
+            .iter()
             .find(|candidate| candidate.arc_id.as_str() == binding.arc_id.as_str())
-            .ok_or_else(|| "mobility-capacity verifier found a binding for an unknown arc".to_string())?;
+            .ok_or_else(|| {
+                "mobility-capacity verifier found a binding for an unknown arc".to_string()
+            })?;
         if binding.arc_id.trim().is_empty()
             || binding.arc_resource_ref.trim().is_empty()
             || binding.arc_capacity_subject_id.trim().is_empty()
@@ -473,17 +525,26 @@ pub fn verify_mobility_capacity_envelope(
             || !route_subjects.insert(binding.arc_capacity_subject_id.as_str())
             || binding.arc_capacity_subject_id == binding.corridor_capacity_subject_id
         {
-            return Err("mobility-capacity verifier rejected duplicate or empty binding identity".to_string());
+            return Err(
+                "mobility-capacity verifier rejected duplicate or empty binding identity"
+                    .to_string(),
+            );
         }
-        if resource_by_subject.insert(
-            binding.arc_capacity_subject_id.clone(),
-            binding.arc_resource_ref.clone(),
-        ).is_some() {
+        if resource_by_subject
+            .insert(
+                binding.arc_capacity_subject_id.clone(),
+                binding.arc_resource_ref.clone(),
+            )
+            .is_some()
+        {
             return Err("mobility-capacity verifier found reused arc subject".to_string());
         }
         match corridor_subject_by_ref.get(&arc.corridor_ref) {
             Some(existing) if existing != &binding.corridor_capacity_subject_id => {
-                return Err("mobility-capacity verifier found split aliases for a physical corridor".to_string());
+                return Err(
+                    "mobility-capacity verifier found split aliases for a physical corridor"
+                        .to_string(),
+                );
             }
             Some(_) => {}
             None => {
@@ -507,7 +568,10 @@ pub fn verify_mobility_capacity_envelope(
         }
         match resource_by_subject.get(&binding.corridor_capacity_subject_id) {
             Some(existing) if existing != &arc.corridor_ref => {
-                return Err("mobility-capacity verifier found conflicting corridor resource identity".to_string());
+                return Err(
+                    "mobility-capacity verifier found conflicting corridor resource identity"
+                        .to_string(),
+                );
             }
             Some(_) => {}
             None => {
@@ -521,8 +585,14 @@ pub fn verify_mobility_capacity_envelope(
     if arc_ids.len() != input.mobility_instance.arcs.len() {
         return Err("mobility-capacity verifier found an unbound movement arc".to_string());
     }
-    if route_subjects.iter().any(|subject| corridor_ref_by_subject.contains_key(*subject)) {
-        return Err("mobility-capacity verifier found overlapping arc and corridor subject identities".to_string());
+    if route_subjects
+        .iter()
+        .any(|subject| corridor_ref_by_subject.contains_key(*subject))
+    {
+        return Err(
+            "mobility-capacity verifier found overlapping arc and corridor subject identities"
+                .to_string(),
+        );
     }
 
     let expected_subjects = resource_by_subject.keys().cloned().collect::<BTreeSet<_>>();
@@ -530,7 +600,10 @@ pub fn verify_mobility_capacity_envelope(
     let mut common_timebase: Option<&str> = None;
     let mut common_unit: Option<&str> = None;
     let mut common_boundary: Option<&str> = None;
-    let scenario_ids = input.mobility_instance.scenarios.iter()
+    let scenario_ids = input
+        .mobility_instance
+        .scenarios
+        .iter()
         .map(|scenario| scenario.scenario_id.as_str())
         .collect::<BTreeSet<_>>();
     for schedule in &input.capacity_schedules {
@@ -544,29 +617,41 @@ pub fn verify_mobility_capacity_envelope(
             || common_unit.is_some_and(|value| value != schedule.unit_ref.as_str())
             || common_boundary.is_some_and(|value| value != schedule.quantity_boundary_ref.as_str())
         {
-            return Err("mobility-capacity verifier found case, scenario, horizon or dimensional mismatch".to_string());
+            return Err(
+                "mobility-capacity verifier found case, scenario, horizon or dimensional mismatch"
+                    .to_string(),
+            );
         }
-        if schedules.insert(schedule.scenario_id.clone(), schedule).is_some() {
+        if schedules
+            .insert(schedule.scenario_id.clone(), schedule)
+            .is_some()
+        {
             return Err("mobility-capacity verifier found duplicate scenario schedule".to_string());
         }
         common_timebase = Some(&schedule.timebase_ref);
         common_unit = Some(&schedule.unit_ref);
         common_boundary = Some(&schedule.quantity_boundary_ref);
 
-        let subjects = schedule.required_subjects.iter()
+        let subjects = schedule
+            .required_subjects
+            .iter()
             .filter(|subject| subject.role == CapacityRole::Route)
             .map(|subject| subject.subject_id.clone())
             .collect::<BTreeSet<_>>();
-        if subjects != expected_subjects
-            || subjects.len() != schedule.required_subjects.len()
-        {
-            return Err("mobility-capacity verifier found route subjects that differ from the binding map".to_string());
+        if subjects != expected_subjects || subjects.len() != schedule.required_subjects.len() {
+            return Err(
+                "mobility-capacity verifier found route subjects that differ from the binding map"
+                    .to_string(),
+            );
         }
         for row in &schedule.records {
-            let expected_ref = resource_by_subject.get(&row.subject_id)
-                .ok_or_else(|| "mobility-capacity verifier found an undeclared evidence subject".to_string())?;
+            let expected_ref = resource_by_subject.get(&row.subject_id).ok_or_else(|| {
+                "mobility-capacity verifier found an undeclared evidence subject".to_string()
+            })?;
             if row.role != CapacityRole::Route || row.canonical_resource_ref != *expected_ref {
-                return Err("mobility-capacity verifier found a resource-binding mismatch".to_string());
+                return Err(
+                    "mobility-capacity verifier found a resource-binding mismatch".to_string(),
+                );
             }
         }
     }
@@ -579,30 +664,36 @@ pub fn verify_mobility_capacity_envelope(
     }
     let mut reports_by_scenario = BTreeMap::new();
     for schedule_report in &report.schedule_reports {
-        if reports_by_scenario.insert(schedule_report.scenario_id.as_str(), schedule_report).is_some() {
+        if reports_by_scenario
+            .insert(schedule_report.scenario_id.as_str(), schedule_report)
+            .is_some()
+        {
             return Err("mobility-capacity report repeats a scenario receipt".to_string());
         }
     }
 
     let mut expected_instance = input.mobility_instance.clone();
     for scenario in &mut expected_instance.scenarios {
-        let schedule = schedules.get(&scenario.scenario_id)
-            .ok_or_else(|| "mobility-capacity verifier cannot find scenario's source schedule".to_string())?;
-        let schedule_report = reports_by_scenario.get(scenario.scenario_id.as_str())
-            .ok_or_else(|| "mobility-capacity report omits a scenario schedule receipt".to_string())?;
+        let schedule = schedules.get(&scenario.scenario_id).ok_or_else(|| {
+            "mobility-capacity verifier cannot find scenario's source schedule".to_string()
+        })?;
+        let schedule_report = reports_by_scenario
+            .get(scenario.scenario_id.as_str())
+            .ok_or_else(|| {
+                "mobility-capacity report omits a scenario schedule receipt".to_string()
+            })?;
         verify_capacity_schedule(schedule, schedule_report)?;
 
         let mut overrides = Vec::new();
         for binding in &input.bindings {
-            let arc = expected_instance.arcs.iter()
+            let arc = expected_instance
+                .arcs
+                .iter()
                 .find(|candidate| candidate.arc_id == binding.arc_id)
                 .ok_or_else(|| "mobility-capacity verifier lost a bound arc".to_string())?;
             for period in 0..expected_instance.horizon_last_period {
-                let route_cap = independent_capacity_at(
-                    schedule,
-                    &binding.arc_capacity_subject_id,
-                    period,
-                )?;
+                let route_cap =
+                    independent_capacity_at(schedule, &binding.arc_capacity_subject_id, period)?;
                 let corridor_cap = independent_capacity_at(
                     schedule,
                     &binding.corridor_capacity_subject_id,
@@ -622,7 +713,9 @@ pub fn verify_mobility_capacity_envelope(
             }
         }
         overrides.sort_by(|a, b| {
-            a.departure_period.cmp(&b.departure_period).then(a.arc_id.cmp(&b.arc_id))
+            a.departure_period
+                .cmp(&b.departure_period)
+                .then(a.arc_id.cmp(&b.arc_id))
         });
         scenario.route_capacity_overrides = overrides;
     }
@@ -635,7 +728,9 @@ pub fn verify_mobility_capacity_envelope(
         || report.compiled_mobility_instance_sha256 != expected_compiled_digest
         || report.compiled_mobility_instance != expected_instance
     {
-        return Err("mobility-capacity report does not match independently reconstructed model".to_string());
+        return Err(
+            "mobility-capacity report does not match independently reconstructed model".to_string(),
+        );
     }
     Ok(())
 }
@@ -647,29 +742,50 @@ mod tests {
         CapacityAdmissionStatus, CapacityEvidenceClass, CapacityEvidenceRecord, CapacitySubject,
     };
     use crate::mobility_oracle::{
-        solve_mobility_policy, verify_mobility_report, MobilityDisposition, MobilityScenario,
-        MobilityUnit, MovementArc, ServiceFloor, MOBILITY_INSTANCE_SCHEMA,
+        MOBILITY_INSTANCE_SCHEMA, MobilityDisposition, MobilityScenario, MobilityUnit, MovementArc,
+        ServiceFloor, solve_mobility_policy, verify_mobility_report,
     };
 
     fn base_instance(scenario_ids: &[&str]) -> MobilityInstance {
-        let scenarios = scenario_ids.iter().map(|id| MobilityScenario {
-            scenario_id: (*id).to_string(),
-            observations: Vec::new(),
-            route_closures: Vec::new(),
-            service_floors: vec![
-                ServiceFloor { site_id: "site-a".to_string(), period: 1, minimum_units: 1 },
-                ServiceFloor { site_id: "site-b".to_string(), period: 1, minimum_units: 1 },
-            ],
-            route_capacity_overrides: Vec::new(),
-        }).collect();
+        let scenarios = scenario_ids
+            .iter()
+            .map(|id| MobilityScenario {
+                scenario_id: (*id).to_string(),
+                observations: Vec::new(),
+                route_closures: Vec::new(),
+                service_floors: vec![
+                    ServiceFloor {
+                        site_id: "site-a".to_string(),
+                        period: 1,
+                        minimum_units: 1,
+                    },
+                    ServiceFloor {
+                        site_id: "site-b".to_string(),
+                        period: 1,
+                        minimum_units: 1,
+                    },
+                ],
+                route_capacity_overrides: Vec::new(),
+            })
+            .collect();
         MobilityInstance {
             schema_version: MOBILITY_INSTANCE_SCHEMA.to_string(),
             case_id: "mobility-capacity-known-answer".to_string(),
             horizon_last_period: 2,
-            sites: vec!["depot".to_string(), "site-a".to_string(), "site-b".to_string()],
+            sites: vec![
+                "depot".to_string(),
+                "site-a".to_string(),
+                "site-b".to_string(),
+            ],
             units: vec![
-                MobilityUnit { unit_id: "unit-1".to_string(), initial_site_id: "depot".to_string() },
-                MobilityUnit { unit_id: "unit-2".to_string(), initial_site_id: "depot".to_string() },
+                MobilityUnit {
+                    unit_id: "unit-1".to_string(),
+                    initial_site_id: "depot".to_string(),
+                },
+                MobilityUnit {
+                    unit_id: "unit-2".to_string(),
+                    initial_site_id: "depot".to_string(),
+                },
             ],
             arcs: vec![
                 MovementArc {
@@ -764,15 +880,27 @@ mod tests {
             quantity_boundary_ref: "departure-count".to_string(),
             horizon_last_period: 2,
             required_subjects: vec![
-                CapacitySubject { subject_id: "arc:route-a".to_string(), role: CapacityRole::Route },
-                CapacitySubject { subject_id: "arc:route-b".to_string(), role: CapacityRole::Route },
-                CapacitySubject { subject_id: "corridor:main".to_string(), role: CapacityRole::Route },
+                CapacitySubject {
+                    subject_id: "arc:route-a".to_string(),
+                    role: CapacityRole::Route,
+                },
+                CapacitySubject {
+                    subject_id: "arc:route-b".to_string(),
+                    role: CapacityRole::Route,
+                },
+                CapacitySubject {
+                    subject_id: "corridor:main".to_string(),
+                    role: CapacityRole::Route,
+                },
             ],
             records,
         }
     }
 
-    fn input(scenario_ids: &[&str], capacities: &[(&str, u64, u64)]) -> MobilityCapacityEnvelopeInput {
+    fn input(
+        scenario_ids: &[&str],
+        capacities: &[(&str, u64, u64)],
+    ) -> MobilityCapacityEnvelopeInput {
         MobilityCapacityEnvelopeInput {
             schema_version: MOBILITY_CAPACITY_INPUT_SCHEMA.to_string(),
             timebase_ref: "synthetic:periods".to_string(),
@@ -796,34 +924,43 @@ mod tests {
         let scenario = &compiled.scenarios[0];
         assert_eq!(scenario.route_capacity_overrides.len(), 4);
         assert_eq!(
-            scenario.route_capacity_overrides.iter()
+            scenario
+                .route_capacity_overrides
+                .iter()
                 .find(|row| row.arc_id == "route-a" && row.departure_period == 0)
-                .unwrap().arc_capacity,
+                .unwrap()
+                .arc_capacity,
             2
         );
         assert_eq!(
-            scenario.route_capacity_overrides.iter()
+            scenario
+                .route_capacity_overrides
+                .iter()
                 .find(|row| row.arc_id == "route-a" && row.departure_period == 1)
-                .unwrap().arc_capacity,
+                .unwrap()
+                .arc_capacity,
             1
         );
         assert_eq!(
-            scenario.route_capacity_overrides.iter()
+            scenario
+                .route_capacity_overrides
+                .iter()
                 .find(|row| row.arc_id == "route-b" && row.departure_period == 1)
-                .unwrap().corridor_capacity,
+                .unwrap()
+                .corridor_capacity,
             1
         );
         let mobility_report = solve_mobility_policy(compiled).unwrap();
-        assert_eq!(mobility_report.disposition, MobilityDisposition::HereAndNowFeasible);
+        assert_eq!(
+            mobility_report.disposition,
+            MobilityDisposition::HereAndNowFeasible
+        );
         verify_mobility_report(compiled, &mobility_report).unwrap();
     }
 
     #[test]
     fn low_capacity_in_one_scenario_cannot_be_spliced_with_another_scenarios_high_capacity() {
-        let source = input(
-            &["low", "high"],
-            &[("low", 1, 1), ("high", 2, 2)],
-        );
+        let source = input(&["low", "high"], &[("low", 1, 1), ("high", 2, 2)]);
         let report = compile_mobility_capacity_envelope(&source).unwrap();
         verify_mobility_capacity_envelope(&source, &report).unwrap();
         let mobility_report = solve_mobility_policy(&report.compiled_mobility_instance).unwrap();
@@ -864,8 +1001,7 @@ mod tests {
         assert!(compile_mobility_capacity_envelope(&source).is_err());
 
         let mut source = input(&["normal"], &[("normal", 2, 1)]);
-        source.capacity_schedules[0].records[0].admission_status =
-            CapacityAdmissionStatus::Revoked;
+        source.capacity_schedules[0].records[0].admission_status = CapacityAdmissionStatus::Revoked;
         assert!(compile_mobility_capacity_envelope(&source).is_err());
     }
 
@@ -907,12 +1043,18 @@ mod tests {
         let source = input(&["outage"], &[("outage", 0, 1)]);
         let report = compile_mobility_capacity_envelope(&source).unwrap();
         verify_mobility_capacity_envelope(&source, &report).unwrap();
-        assert!(report.compiled_mobility_instance.scenarios[0]
-            .route_capacity_overrides.iter()
-            .filter(|row| row.departure_period == 0)
-            .all(|row| row.arc_capacity == 0 && row.corridor_capacity == 0));
+        assert!(
+            report.compiled_mobility_instance.scenarios[0]
+                .route_capacity_overrides
+                .iter()
+                .filter(|row| row.departure_period == 0)
+                .all(|row| row.arc_capacity == 0 && row.corridor_capacity == 0)
+        );
         let solved = solve_mobility_policy(&report.compiled_mobility_instance).unwrap();
-        assert_eq!(solved.disposition, MobilityDisposition::InformationRelaxationOnly);
+        assert_eq!(
+            solved.disposition,
+            MobilityDisposition::InformationRelaxationOnly
+        );
         verify_mobility_report(&report.compiled_mobility_instance, &solved).unwrap();
     }
 

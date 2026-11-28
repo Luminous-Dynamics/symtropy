@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/mobility-evidence-time-input-v0.1.schema.json",
+  "title": "SAFRB Actor-Specific Mobility Evidence-Time Input v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "actor_ref",
+    "capacity_envelope",
+    "evidence_timings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-mobility-evidence-time-input-v0.1"
+    },
+    "actor_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capacity_envelope": {
+      "$ref": "mobility-capacity-envelope-input-v0.1.schema.json"
+    },
+    "evidence_timings": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "$ref": "#/$defs/evidenceTiming"
+      }
+    }
+  },
+  "$defs": {
+    "evidenceTiming": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "evidence_id",
+        "actor_ref",
+        "observed_at_period",
+        "admitted_at_period",
+        "actor_eligible_at_period",
+        "revoked_effective_at_period",
+        "revocation_observed_at_period",
+        "revocation_admitted_at_period",
+        "revocation_actor_eligible_at_period"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "admitted_at_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "actor_eligible_at_period": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "revoked_effective_at_period": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 5
+        },
+        "revocation_observed_at_period": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4
+        },
+        "revocation_admitted_at_period": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4
+        },
+        "revocation_actor_eligible_at_period": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 4
+        }
+      }
+    }
+  },
+  "description": "One actor-specific lifecycle row is required per source capacity evidence record. The effective period, observation time, admission time, actor eligibility time and revocation timelines remain separate."
+}
