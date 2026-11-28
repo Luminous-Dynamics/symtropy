@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ACN-Data-style charging session export",
+  "description": "Compatibility shape only; unknown provider fields are preserved as source data but ignored by the audit.",
+  "oneOf": [
+    {"type":"array","items":{"$ref":"#/$defs/session"}},
+    {
+      "type":"object",
+      "properties": {
+        "_items":{"type":"array","items":{"$ref":"#/$defs/session"}},
+        "sessions":{"type":"array","items":{"$ref":"#/$defs/session"}},
+        "items":{"type":"array","items":{"$ref":"#/$defs/session"}},
+        "data":{"type":"array","items":{"$ref":"#/$defs/session"}}
+      },
+      "anyOf":[{"required":["_items"]},{"required":["sessions"]},{"required":["items"]},{"required":["data"]}],
+      "additionalProperties":true
+    }
+  ],
+  "$defs": {
+    "nullableString":{"type":["string","null"]},
+    "nullableNumber":{"type":["number","null"]},
+    "session":{
+      "type":"object",
+      "properties":{
+        "siteID":{"type":["string","null"]},
+        "connectionTime":{"$ref":"#/$defs/nullableString"},
+        "disconnectTime":{"$ref":"#/$defs/nullableString"},
+        "doneChargingTime":{"$ref":"#/$defs/nullableString"},
+        "kWhDelivered":{"$ref":"#/$defs/nullableNumber"}
+      },
+      "required":["connectionTime","disconnectTime","kWhDelivered"],
+      "additionalProperties":true
+    }
+  }
+}
