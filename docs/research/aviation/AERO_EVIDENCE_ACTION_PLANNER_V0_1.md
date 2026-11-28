@@ -61,7 +61,7 @@ Denied or unknown permission, unverified/out-of-domain/non-estimable outcome mod
 
 These fields are inputs from source-owner evaluators. This prototype does not authenticate their signatures, verify the authorization receipt, validate the probability model or create authority. Production integration must consume owner-verified outputs and preserve their exact receipts.
 
-Each action names target obligation IDs and an expected artifact-contract digest. This prevents a recommendation from becoming an unconstrained prompt such as “run a test and see what happens.” The owner still controls the acquisition method, prerequisites, safety envelope, approvals and execution.
+Each action names target obligation IDs and an expected artifact-contract digest. This prevents a recommendation from becoming an unconstrained prompt such as “run a test and see what happens.” The owner still controls the acquisition method, prerequisites, safety envelope, approvals and execution. The permission receipt is bound to the claim, decision-context digest, configuration, action ID, action-catalogue entry digest, effective interval and receiver-first-seen time. The outcome-model calibration receipt is separately bound to the same claim/context/configuration/action, the exact outcome-model digest, calibration profile/report, effective interval and receiver-first-seen time. A receipt for another aircraft, action or model is excluded; a receipt first seen after the selected as-known cutoff cannot authorize a historical recommendation.
 
 ## 4. Authority and non-mutation contract
 
