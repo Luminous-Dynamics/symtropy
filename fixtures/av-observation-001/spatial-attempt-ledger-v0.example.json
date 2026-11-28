@@ -10,7 +10,9 @@
     "configuration_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
     "sensor_profile_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "split_id": "development-only-not-blind",
-    "input_modalities": ["video"],
+    "input_modalities": [
+      "video"
+    ],
     "hardware_profile": {
       "host_class": "CI synthetic fixture",
       "cpu": "not measured",
@@ -42,7 +44,8 @@
       "conditional_rpe_m": 0.02,
       "joint_success": true,
       "tracking_loss_ns": 800000000,
-      "longest_tracking_loss_ns": 300000000
+      "longest_tracking_loss_ns": 300000000,
+      "answer_disposition": "answered"
     },
     {
       "attempt_id": "attempt-0002",
@@ -60,7 +63,8 @@
       "conditional_rpe_m": 0.015,
       "joint_success": false,
       "tracking_loss_ns": 6000000000,
-      "longest_tracking_loss_ns": 4000000000
+      "longest_tracking_loss_ns": 4000000000,
+      "answer_disposition": "no_response"
     },
     {
       "attempt_id": "attempt-0003",
@@ -72,14 +76,40 @@
       "terminal_disposition": "timeout",
       "expected_pose_opportunities": 1000,
       "valid_on_time_pose_opportunities": 0,
-      "pose_coverage": 0.0,
+      "pose_coverage": 0,
       "pose_metric_status": "not_evaluated",
       "conditional_ate_m": null,
       "conditional_rpe_m": null,
       "joint_success": false,
       "not_evaluated_reason": "No valid on-time pose was produced before timeout.",
       "tracking_loss_ns": 10000000000,
-      "longest_tracking_loss_ns": 10000000000
+      "longest_tracking_loss_ns": 10000000000,
+      "answer_disposition": "no_response"
+    },
+    {
+      "attempt_id": "attempt-0004",
+      "trial_id": "trial-safe-abstention-after-denied-probe",
+      "scene_cluster_id": "scene-room-d",
+      "session_cluster_id": "session-d1",
+      "world_pair_cluster_id": "pair-door-d",
+      "episode_cluster_id": "episode-4",
+      "terminal_disposition": "completed",
+      "answer_disposition": "abstained",
+      "acquisition_dispositions": [
+        {
+          "action_id": "probe-1",
+          "disposition": "permission_denied"
+        }
+      ],
+      "expected_pose_opportunities": 1000,
+      "valid_on_time_pose_opportunities": 950,
+      "pose_coverage": 0.95,
+      "pose_metric_status": "evaluated",
+      "conditional_ate_m": 0.06,
+      "conditional_rpe_m": 0.016,
+      "joint_success": true,
+      "tracking_loss_ns": 250000000,
+      "longest_tracking_loss_ns": 100000000
     }
   ],
   "claim_ceiling": "Illustrative attempt-ledger schema example only; not rendered data, a candidate result, blind evaluation or an SOTA claim."
