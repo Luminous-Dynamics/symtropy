@@ -1,0 +1,116 @@
+{
+  "schema": "AeroAssuranceDeltaImpactV0_1",
+  "claim_id": "claim:wing-panel-strength",
+  "configuration_ref": "configuration:wing-r17",
+  "as_known_at_unix_ms": 1800000000000,
+  "graph_snapshot_sha256": "cffdae3d91c6844354e0e62406ed9dd9caf461d4fa00c62554419bc5bc5f902c",
+  "graph": {
+    "schema": "AeroAssuranceDependencyGraphV0_1",
+    "snapshot_id": "graph:snapshot-r1",
+    "claim_id": "claim:wing-panel-strength",
+    "configuration_ref": "configuration:wing-r17",
+    "coverage_status": "COMPLETE",
+    "nodes": [
+      {
+        "node_id": "claim:wing-panel-strength",
+        "owner_namespace": "owner:engineering-evidence",
+        "kind": "CLAIM",
+        "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "dependency_manifest_complete": true
+      },
+      {
+        "node_id": "obligation:material-lot",
+        "owner_namespace": "owner:engineering-evidence",
+        "kind": "OBLIGATION",
+        "content_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "dependency_manifest_complete": true
+      },
+      {
+        "node_id": "evidence:material-certificate",
+        "owner_namespace": "owner:engineering-evidence",
+        "kind": "EVIDENCE",
+        "content_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "dependency_manifest_complete": true
+      },
+      {
+        "node_id": "source:material-lot-record",
+        "owner_namespace": "owner:materials-authority",
+        "kind": "SOURCE_RECORD",
+        "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "dependency_manifest_complete": true
+      },
+      {
+        "node_id": "obligation:solver-validation",
+        "owner_namespace": "owner:engineering-evidence",
+        "kind": "OBLIGATION",
+        "content_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+        "dependency_manifest_complete": true
+      },
+      {
+        "node_id": "evidence:solver-report",
+        "owner_namespace": "owner:engineering-evidence",
+        "kind": "EVIDENCE",
+        "content_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "dependency_manifest_complete": true
+      },
+      {
+        "node_id": "source:solver-validation-record",
+        "owner_namespace": "owner:engineering-evidence",
+        "kind": "SOURCE_RECORD",
+        "content_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "dependency_manifest_complete": true
+      }
+    ],
+    "edges": [
+      {
+        "dependent_node_id": "claim:wing-panel-strength",
+        "dependency_node_id": "obligation:material-lot"
+      },
+      {
+        "dependent_node_id": "obligation:material-lot",
+        "dependency_node_id": "evidence:material-certificate"
+      },
+      {
+        "dependent_node_id": "evidence:material-certificate",
+        "dependency_node_id": "source:material-lot-record"
+      },
+      {
+        "dependent_node_id": "claim:wing-panel-strength",
+        "dependency_node_id": "obligation:solver-validation"
+      },
+      {
+        "dependent_node_id": "obligation:solver-validation",
+        "dependency_node_id": "evidence:solver-report"
+      },
+      {
+        "dependent_node_id": "evidence:solver-report",
+        "dependency_node_id": "source:solver-validation-record"
+      }
+    ]
+  },
+  "graph_approval_receipt": {
+    "verification_status": "VERIFIED",
+    "owner_namespace": "owner:assurance-graph-authority",
+    "claim_id": "claim:wing-panel-strength",
+    "configuration_ref": "configuration:wing-r17",
+    "graph_snapshot_sha256": "cffdae3d91c6844354e0e62406ed9dd9caf461d4fa00c62554419bc5bc5f902c",
+    "receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "receiver_first_seen_at_unix_ms": 1799999970000,
+    "effective_from_unix_ms": 1799999960000,
+    "effective_until_unix_ms": 1800000040000
+  },
+  "change_receipt": {
+    "verification_status": "VERIFIED",
+    "owner_namespace": "owner:materials-authority",
+    "claim_id": "claim:wing-panel-strength",
+    "configuration_ref": "configuration:wing-r17",
+    "change_id": "change:material-lot-correction",
+    "target_node_id": "source:material-lot-record",
+    "previous_content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "replacement_content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "receiver_first_seen_at_unix_ms": 1799999990000,
+    "effective_from_unix_ms": 1799999980000,
+    "effective_until_unix_ms": 1800000020000
+  }
+}
