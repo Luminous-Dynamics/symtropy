@@ -236,7 +236,9 @@ fn evaluate_candidate(
             if result.null_rejection_probability.upper > spec.maximum_type1_error_upper_bound {
                 type_i_uncontrolled = true;
             }
-            if result.alternative_power.lower < spec.minimum_power_lower_bound {
+            if result.alternative_power.estimate < spec.target_power
+                || result.alternative_power.lower < spec.minimum_power_lower_bound
+            {
                 underpowered = true;
             }
             if result.probability_below_minimum_lot_pairs > 0.05 {
@@ -348,20 +350,24 @@ fn simulate_lot_means(
     for _ in 0..candidate.independent_lot_pairs {
         let lot_effect = mean_effect + between_sd * rng.standard_normal();
         let mut build_differences = Vec::new();
+        let mut complete_lot_pair = true;
         for _ in 0..candidate.paired_build_blocks_per_lot {
             if rng.uniform() >= missing_probability {
                 build_differences.push(lot_effect + within_sd * rng.standard_normal());
+            } else {
+                complete_lot_pair = false;
             }
         }
-        if !build_differences.is_empty() {
+        // Complete-case lot-pair analysis preserves equal within-lot precision;
+        // incomplete lot pairs remain missing in the planning denominator.
+        if complete_lot_pair
+            && build_differences.len() == candidate.paired_build_blocks_per_lot as usize
+        {
             means.push(build_differences.iter().sum::<f64>() / build_differences.len() as f64);
         }
     }
-    if means.len() < minimum_analyzable_lots as usize {
-        Vec::new()
-    } else {
-        means
-    }
+    let _ = minimum_analyzable_lots;
+    means
 }
 
 fn one_sample_t_statistic(values: &[f64], null_boundary: f64) -> Option<f64> {
@@ -371,8 +377,17 @@ fn one_sample_t_statistic(values: &[f64], null_boundary: f64) -> Option<f64> {
     let n = values.len() as f64;
     let mean = values.iter().sum::<f64>() / n;
     let variance = values.iter().map(|value| (value - mean).powi(2)).sum::<f64>() / (n - 1.0);
-    if !variance.is_finite() || variance <= 0.0 {
+    if !variance.is_finite() {
         return None;
+    }
+    if variance <= f64::EPSILON {
+        return Some(if mean > null_boundary {
+            f64::INFINITY
+        } else if mean < null_boundary {
+            f64::NEG_INFINITY
+        } else {
+            0.0
+        });
     }
     let se = (variance / n).sqrt();
     (se.is_finite() && se > 0.0).then_some((mean - null_boundary) / se)
@@ -635,7 +650,7 @@ fn model_assumptions() -> Vec<String> {
         "Independent source-lot pairs are the top-level inferential units.".to_string(),
         "Build-pair observations are nested within source-lot pairs and do not create additional independent clusters.".to_string(),
         "Lot-pair effects and within-lot build errors are Gaussian with standard deviations varied over the preregistered pilot bounds.".to_string(),
-        "Build-pair missingness is independent and at random at the declared probability; informative missingness is not modelled.".to_string(),
+        "Build-pair missingness is independent and at random at the declared probability; the primary inferential analysis uses complete lot pairs so each retained lot mean has equal nested precision.".to_string(),
         "The one-sided paired t test uses source-lot-pair means and n_lot_pairs - 1 degrees of freedom.".to_string(),
         "Familywise alpha is controlled with Bonferroni division across the preregistered endpoint count.".to_string(),
         "Monte Carlo Wilson intervals quantify simulation error, not uncertainty in the assumed variance model.".to_string(),
@@ -871,6 +886,27 @@ mod tests {
         let result = evaluate_power_design(&spec());
         assert!(result.assumptions.iter().any(|value| value.contains("top-level inferential units")));
         assert!(result.assumptions.iter().any(|value| value.contains("Gaussian")));
+    }
+
+    #[test]
+    fn incomplete_nested_builds_drop_the_whole_lot_pair_from_primary_inference() {
+        let mut design = spec();
+        design.candidates = vec![DesignCandidate {
+            candidate_id: "COMPLETE-CASE".to_string(),
+            independent_lot_pairs: 12,
+            paired_build_blocks_per_lot: 3,
+        }];
+        design.build_pair_missing_probability = 0.5;
+        let result = evaluate_power_design(&design);
+        let scenario = &result.candidates[0].scenario_results[0];
+        assert!(scenario.mean_analyzable_lot_pairs < 12.0);
+        assert!(scenario.probability_below_minimum_lot_pairs > 0.0);
+    }
+
+    #[test]
+    fn degenerate_zero_variance_samples_have_defined_boundary_behavior() {
+        assert_eq!(one_sample_t_statistic(&[0.1, 0.1, 0.1], 0.0), Some(f64::INFINITY));
+        assert_eq!(one_sample_t_statistic(&[-0.05, -0.05, -0.05], -0.05), Some(0.0));
     }
 
     #[test]
