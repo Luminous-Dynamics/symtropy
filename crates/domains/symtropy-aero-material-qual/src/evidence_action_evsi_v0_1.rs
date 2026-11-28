@@ -9,6 +9,7 @@
 //! engineering / physical truth.
 
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const EVSI_PROBABILITY_SCALE_PPM_V0_1: u32 = 1_000_000;
@@ -60,6 +61,7 @@ pub struct OutcomeModelCalibrationReceiptV0_1 {
     pub configuration_ref: String,
     pub action_id: String,
     pub outcome_model_sha256: String,
+    pub outcome_likelihoods_sha256: String,
     pub calibration_profile_sha256: String,
     pub calibration_report_sha256: String,
     pub receiver_first_seen_at_unix_ms: u64,
@@ -141,6 +143,9 @@ pub struct EvidenceActionPlannerInputV0_1 {
     pub frozen_claim_disposition: String,
     pub configuration_ref: String,
     pub as_known_at_unix_ms: u64,
+    /// Exact unresolved obligation identities exposed by the source-bound state.
+    pub unresolved_obligation_ids: Vec<String>,
+    pub unresolved_obligation_manifest_sha256: String,
     pub decision_context_sha256: String,
     pub assurance_state_sha256: String,
     pub action_catalogue_sha256: String,
@@ -253,6 +258,137 @@ fn utility_map(
         .collect()
 }
 
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join("")
+}
+
+#[derive(Serialize)]
+struct DecisionModelCommitmentV0_1<'a> {
+    schema: &'static str,
+    canonicalization_profile: &'static str,
+    decision_alternatives: Vec<&'a DecisionAlternativeV0_1>,
+    world_states: Vec<&'a WorldStateV0_1>,
+    utilities: Vec<&'a StateUtilityV0_1>,
+}
+
+fn compute_decision_model_sha256(
+    input: &EvidenceActionPlannerInputV0_1,
+) -> Result<String, String> {
+    let mut decisions = input.decision_alternatives.iter().collect::<Vec<_>>();
+    decisions.sort_by(|left, right| left.decision_id.cmp(&right.decision_id));
+    let mut states = input.world_states.iter().collect::<Vec<_>>();
+    states.sort_by(|left, right| left.state_id.cmp(&right.state_id));
+    let mut utilities = input.utilities.iter().collect::<Vec<_>>();
+    utilities.sort_by(|left, right| {
+        (&left.decision_id, &left.state_id).cmp(&(&right.decision_id, &right.state_id))
+    });
+    let envelope = DecisionModelCommitmentV0_1 {
+        schema: "AeroEvidenceDecisionModelV0_1",
+        canonicalization_profile: "rust-serde-json-struct-order-v1",
+        decision_alternatives: decisions,
+        world_states: states,
+        utilities,
+    };
+    serde_json::to_vec(&envelope)
+        .map(|bytes| sha256_hex(&bytes))
+        .map_err(|_| "EVSI_DECISION_MODEL_SERIALIZATION_FAILED".to_owned())
+}
+
+#[derive(Serialize)]
+struct ActionCatalogueCutEntryV0_1<'a> {
+    action_id: &'a str,
+    owner_namespace: &'a str,
+    outcome_model_owner_namespace: &'a str,
+    action_catalogue_entry_sha256: &'a str,
+}
+
+#[derive(Serialize)]
+struct ActionCatalogueCutEnvelopeV0_1<'a> {
+    schema: &'static str,
+    canonicalization_profile: &'static str,
+    entries: Vec<ActionCatalogueCutEntryV0_1<'a>>,
+}
+
+fn compute_action_catalogue_cut_sha256(
+    input: &EvidenceActionPlannerInputV0_1,
+) -> Result<String, String> {
+    let mut actions = input.actions.iter().collect::<Vec<_>>();
+    actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+    let entries = actions
+        .iter()
+        .map(|action| ActionCatalogueCutEntryV0_1 {
+            action_id: &action.action_id,
+            owner_namespace: &action.owner_namespace,
+            outcome_model_owner_namespace: &action.outcome_model_owner_namespace,
+            action_catalogue_entry_sha256: &action.action_catalogue_entry_sha256,
+        })
+        .collect();
+    let envelope = ActionCatalogueCutEnvelopeV0_1 {
+        schema: "AeroEvidenceActionCatalogueCutV0_1",
+        canonicalization_profile: "rust-serde-json-struct-order-v1",
+        entries,
+    };
+    serde_json::to_vec(&envelope)
+        .map(|bytes| sha256_hex(&bytes))
+        .map_err(|_| "EVSI_ACTION_CATALOGUE_SERIALIZATION_FAILED".to_owned())
+}
+
+#[derive(Serialize)]
+struct OutcomeLikelihoodCommitmentV0_1<'a> {
+    schema: &'static str,
+    canonicalization_profile: &'static str,
+    action_id: &'a str,
+    outcome_model_sha256: &'a str,
+    likelihoods: Vec<&'a OutcomeLikelihoodV0_1>,
+}
+
+fn compute_outcome_likelihoods_sha256(
+    action: &EvidenceAcquisitionActionV0_1,
+    outcome_model_sha256: &str,
+) -> Result<String, String> {
+    let mut likelihoods = action.outcome_likelihoods.iter().collect::<Vec<_>>();
+    likelihoods.sort_by(|left, right| {
+        (&left.state_id, &left.outcome_id).cmp(&(&right.state_id, &right.outcome_id))
+    });
+    let envelope = OutcomeLikelihoodCommitmentV0_1 {
+        schema: "AeroOutcomeLikelihoodTableV0_1",
+        canonicalization_profile: "rust-serde-json-struct-order-v1",
+        action_id: &action.action_id,
+        outcome_model_sha256,
+        likelihoods,
+    };
+    serde_json::to_vec(&envelope)
+        .map(|bytes| sha256_hex(&bytes))
+        .map_err(|_| "EVSI_OUTCOME_LIKELIHOOD_SERIALIZATION_FAILED".to_owned())
+}
+
+#[derive(Serialize)]
+struct UnresolvedObligationManifestV0_1<'a> {
+    schema: &'static str,
+    canonicalization_profile: &'static str,
+    obligation_ids: Vec<&'a str>,
+}
+
+fn compute_unresolved_obligation_manifest_sha256(
+    obligation_ids: &[String],
+) -> Result<String, String> {
+    let mut ids = obligation_ids.iter().map(String::as_str).collect::<Vec<_>>();
+    ids.sort_unstable();
+    let envelope = UnresolvedObligationManifestV0_1 {
+        schema: "AeroUnresolvedObligationManifestV0_1",
+        canonicalization_profile: "sorted-unique-identifiers-v1",
+        obligation_ids: ids,
+    };
+    serde_json::to_vec(&envelope)
+        .map(|bytes| sha256_hex(&bytes))
+        .map_err(|_| "EVSI_UNRESOLVED_OBLIGATION_SERIALIZATION_FAILED".to_owned())
+}
+
 fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
     let mut errors = BTreeSet::new();
     for (code, value) in [
@@ -267,6 +403,7 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
     for (code, value) in [
         ("DECISION_CONTEXT", input.decision_context_sha256.as_str()),
         ("ASSURANCE_STATE", input.assurance_state_sha256.as_str()),
+        ("UNRESOLVED_OBLIGATION_MANIFEST", input.unresolved_obligation_manifest_sha256.as_str()),
         ("ACTION_CATALOGUE", input.action_catalogue_sha256.as_str()),
         ("DECISION_MODEL", input.decision_model_sha256.as_str()),
         ("OUTCOME_MODEL", input.outcome_model_sha256.as_str()),
@@ -281,6 +418,31 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
     }
     if input.world_states.is_empty() {
         errors.insert("EVSI_WORLD_STATE_SET_EMPTY".to_owned());
+    }
+    let mut unresolved_ids = BTreeSet::new();
+    for id in &input.unresolved_obligation_ids {
+        if !valid_identifier(id) || !unresolved_ids.insert(id.as_str()) {
+            errors.insert("EVSI_UNRESOLVED_OBLIGATION_ID_INVALID_OR_DUPLICATE".to_owned());
+        }
+    }
+    if unresolved_ids.is_empty() {
+        errors.insert("EVSI_UNRESOLVED_OBLIGATION_SET_EMPTY".to_owned());
+    }
+    if compute_unresolved_obligation_manifest_sha256(&input.unresolved_obligation_ids)
+        .as_deref()
+        != Ok(input.unresolved_obligation_manifest_sha256.as_str())
+    {
+        errors.insert("EVSI_UNRESOLVED_OBLIGATION_MANIFEST_MISMATCH".to_owned());
+    }
+    if compute_decision_model_sha256(input).as_deref()
+        != Ok(input.decision_model_sha256.as_str())
+    {
+        errors.insert("EVSI_DECISION_MODEL_COMMITMENT_MISMATCH".to_owned());
+    }
+    if compute_action_catalogue_cut_sha256(input).as_deref()
+        != Ok(input.action_catalogue_sha256.as_str())
+    {
+        errors.insert("EVSI_ACTION_CATALOGUE_COMMITMENT_MISMATCH".to_owned());
     }
 
     let mut decision_ids = BTreeSet::new();
@@ -349,6 +511,8 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
         for id in &action.target_obligation_ids {
             if !valid_identifier(id) || !target_ids.insert(id.as_str()) {
                 errors.insert("EVSI_ACTION_TARGET_OBLIGATION_INVALID_OR_DUPLICATE".to_owned());
+            } else if !unresolved_ids.contains(id.as_str()) {
+                errors.insert("EVSI_ACTION_TARGET_IS_NOT_A_DECLARED_UNRESOLVED_OBLIGATION".to_owned());
             }
         }
         if action.authorization_status == ActionAuthorizationStatusV0_1::VerifiedPermitted
@@ -384,6 +548,7 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
                 || !valid_identifier(&receipt.action_id)
                 || !valid_sha256(&receipt.decision_context_sha256)
                 || !valid_sha256(&receipt.outcome_model_sha256)
+                || !valid_sha256(&receipt.outcome_likelihoods_sha256)
                 || !valid_sha256(&receipt.calibration_profile_sha256)
                 || !valid_sha256(&receipt.calibration_report_sha256)
             {
@@ -549,6 +714,9 @@ pub fn rank_evidence_actions_v0_1(
                     || receipt.configuration_ref != input.configuration_ref
                     || receipt.action_id != action.action_id
                     || receipt.outcome_model_sha256 != input.outcome_model_sha256
+                    || compute_outcome_likelihoods_sha256(action, &input.outcome_model_sha256)
+                        .as_deref()
+                        != Ok(receipt.outcome_likelihoods_sha256.as_str())
                 {
                     Some("ACTION_CALIBRATION_SCOPE_MISMATCH")
                 } else if receipt.receiver_first_seen_at_unix_ms > input.as_known_at_unix_ms {
@@ -805,6 +973,7 @@ mod tests {
                 configuration_ref: "configuration:wing-r17".to_owned(),
                 action_id: "action:request-calibration-report".to_owned(),
                 outcome_model_sha256: digest('e'),
+                outcome_likelihoods_sha256: "PLACEHOLDER_LIKELIHOOD_DIGEST".to_owned(),
                 calibration_profile_sha256: digest('6'),
                 calibration_report_sha256: digest('7'),
                 receiver_first_seen_at_unix_ms: 1_795_516_000_000,
@@ -848,6 +1017,8 @@ mod tests {
             action_catalogue_sha256: digest('c'),
             decision_model_sha256: digest('d'),
             outcome_model_sha256: digest('e'),
+            unresolved_obligation_ids: vec!["obligation:calibration".to_owned()],
+            unresolved_obligation_manifest_sha256: digest('f'),
             decision_alternatives: vec![
                 DecisionAlternativeV0_1 {
                     decision_id: "decision:hold".to_owned(),
