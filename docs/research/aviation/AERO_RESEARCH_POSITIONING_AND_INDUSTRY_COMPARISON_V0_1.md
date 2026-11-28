@@ -109,7 +109,7 @@ The research opportunity is the composition across two different provenance laye
 AERO's novelty hypothesis must remain at the boundary between these layers: whether a third party can independently replay the exact claim decision across owner boundaries and historical time cuts, while retaining source-owner and regulatory authority. Provenance attestations themselves are established technology, not an AERO novelty claim.
 
 References:
-- [SLSA Build Provenance specification](https://slsa.dev/spec/v1.1/provenance).
+- [SLSA Build Provenance specification](https://slsa.dev/spec/v1.2/build-provenance).
 - [in-toto Attestation Framework](https://github.com/in-toto/attestation).
 
 ### EASA VIRTUA: lifecycle authenticity and revocation
