@@ -130,6 +130,8 @@ pub struct FaultCaseSpec {
     pub minimum_exposure_duration_ms: f64,
     pub maximum_exposure_duration_ms: f64,
     pub minimum_degraded_mission_energy_kwh: f64,
+    pub minimum_degraded_torque_margin_percent: f64,
+    pub maximum_degraded_mission_temperature_c: f64,
     pub maximum_allowed_mechanical_stress_mpa: f64,
     pub minimum_mechanical_safety_factor: f64,
     pub required_magnet_zones: Vec<String>,
@@ -280,6 +282,10 @@ pub enum Blocker {
     InvalidDegradedMission,
     DegradedMissionHardFailure,
     DegradedMissionUnresolved,
+    DegradedTorqueMarginHardFailure,
+    DegradedTorqueMarginUnresolved,
+    DegradedTemperatureHardFailure,
+    DegradedTemperatureUnresolved,
     MissingMissionMethod,
     InvalidMissionLineage,
 }
@@ -430,6 +436,8 @@ fn validate_spec(spec: &QualificationSpec) -> Vec<Blocker> {
             || case.minimum_exposure_duration_ms > case.maximum_exposure_duration_ms
             || !case.minimum_degraded_mission_energy_kwh.is_finite()
             || case.minimum_degraded_mission_energy_kwh < 0.0
+            || !case.minimum_degraded_torque_margin_percent.is_finite()
+            || !case.maximum_degraded_mission_temperature_c.is_finite()
             || !case.maximum_allowed_mechanical_stress_mpa.is_finite()
             || case.maximum_allowed_mechanical_stress_mpa <= 0.0
             || !case.minimum_mechanical_safety_factor.is_finite()
@@ -747,6 +755,28 @@ fn evaluate_fault_case(
         blockers.push(Blocker::DegradedMissionUnresolved);
         unresolved = true;
     }
+    if mission.minimum_torque_margin_percent.upper
+        < case_spec.minimum_degraded_torque_margin_percent
+    {
+        blockers.push(Blocker::DegradedTorqueMarginHardFailure);
+        hard_failure = true;
+    } else if mission.minimum_torque_margin_percent.lower
+        < case_spec.minimum_degraded_torque_margin_percent
+    {
+        blockers.push(Blocker::DegradedTorqueMarginUnresolved);
+        unresolved = true;
+    }
+    if mission.maximum_temperature_c.lower
+        > case_spec.maximum_degraded_mission_temperature_c
+    {
+        blockers.push(Blocker::DegradedTemperatureHardFailure);
+        hard_failure = true;
+    } else if mission.maximum_temperature_c.upper
+        > case_spec.maximum_degraded_mission_temperature_c
+    {
+        blockers.push(Blocker::DegradedTemperatureUnresolved);
+        unresolved = true;
+    }
     if !valid_digest(&mission.calibration_digest)
         || !valid_digest(&mission.uncertainty_record_digest)
     {
@@ -850,6 +880,8 @@ mod tests {
                     minimum_exposure_duration_ms: 100.0,
                     maximum_exposure_duration_ms: 500.0,
                     minimum_degraded_mission_energy_kwh: 10.0,
+                    minimum_degraded_torque_margin_percent: 5.0,
+                    maximum_degraded_mission_temperature_c: 180.0,
                     maximum_allowed_mechanical_stress_mpa: 500.0,
                     minimum_mechanical_safety_factor: 1.5,
                     required_magnet_zones: vec!["north-pole".to_string(), "south-pole".to_string()],
@@ -1057,6 +1089,8 @@ mod tests {
             minimum_exposure_duration_ms: 50.0,
             maximum_exposure_duration_ms: 100.0,
             minimum_degraded_mission_energy_kwh: 1.0,
+            minimum_degraded_torque_margin_percent: 5.0,
+            maximum_degraded_mission_temperature_c: 180.0,
             maximum_allowed_mechanical_stress_mpa: 500.0,
             minimum_mechanical_safety_factor: 1.5,
             required_magnet_zones: vec!["north-pole".to_string()],
@@ -1135,6 +1169,42 @@ mod tests {
         let result = run(test);
         assert_eq!(result.decision, Decision::Indeterminate);
         assert!(result.blockers.contains(&Blocker::NonPhysicalFluxEvidence));
+    }
+
+    #[test]
+    fn degraded_torque_margin_below_declared_floor_is_a_hard_failure() {
+        let mut test = test_case();
+        test.degraded_mission.minimum_torque_margin_percent = Interval::new(-2.0, 0.0);
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Fail);
+        assert!(result.blockers.contains(&Blocker::DegradedTorqueMarginHardFailure));
+    }
+
+    #[test]
+    fn degraded_temperature_interval_crossing_limit_is_indeterminate() {
+        let mut test = test_case();
+        test.degraded_mission.maximum_temperature_c = Interval::new(175.0, 185.0);
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::DegradedTemperatureUnresolved));
+    }
+
+    #[test]
+    fn fault_kind_must_match_preregistered_scenario() {
+        let mut test = test_case();
+        test.exposure_steps[1].fault_kind = Some(FaultKind::CoolingLoss);
+        let result = run(test);
+        assert_eq!(result.decision, Decision::NotComparable);
+        assert!(result.blockers.contains(&Blocker::FaultKindMismatch));
+    }
+
+    #[test]
+    fn uncertain_fault_envelope_intersection_is_indeterminate() {
+        let mut test = test_case();
+        test.exposure_steps[1].phase_current_peak_a = Interval::new(850.0, 950.0);
+        let result = run(test);
+        assert_eq!(result.decision, Decision::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::ExposureEnvelopeUnresolved));
     }
 
     #[test]
