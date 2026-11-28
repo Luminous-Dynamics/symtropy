@@ -81,7 +81,8 @@
         "laboratory_method_scope_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "minimum": 1
       }
-    ]
+    ],
+    "maximum_mass_balance_error_mg": 10
   },
   "route_eligibility": {
     "receipt_id": "ELIGIBILITY-SYNTHETIC-001",
