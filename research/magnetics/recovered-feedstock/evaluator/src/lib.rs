@@ -33,6 +33,17 @@ pub enum ProcessRoute {
     DirectReuse,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum AssayRole {
+    AbsoluteRemanence,
+    Coercivity,
+    MaximumEnergyProduct,
+    MagneticAlignment,
+    Chemistry,
+    Microstructure,
+    DensityOrPorosity,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EvidenceClass {
     PhysicalMeasurement,
@@ -97,6 +108,7 @@ impl Interval {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssaySpec {
     pub assay_id: String,
+    pub role: AssayRole,
     pub unit: String,
     pub laboratory_method_scope_digest: String,
     pub minimum: Option<f64>,
@@ -154,6 +166,7 @@ pub struct MassOutput {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssayObservation {
     pub assay_id: String,
+    pub role: AssayRole,
     pub unit: String,
     pub value: Interval,
     pub product_lot_id: String,
@@ -231,7 +244,7 @@ pub enum Blocker {
 #[derive(Clone, Debug, PartialEq)]
 pub struct AssayResult {
     pub assay_id: String,
-    pub interval: Interval,
+    pub interval: Option<Interval>,
     pub disposition: Disposition,
     pub blockers: Vec<Blocker>,
 }
@@ -262,7 +275,7 @@ pub fn evaluate_route(
     process: &ProcessEvidence,
 ) -> FeedstockRouteEvaluation {
     let mut blockers = validate_spec(spec);
-    let mut not_comparable = false;
+    let mut not_comparable = blockers.contains(&Blocker::InvalidSpec);
     let mut hard_failure = false;
     let mut unresolved = false;
 
@@ -467,16 +480,15 @@ pub fn evaluate_route(
     }
 
     for required in &spec.required_assays {
-        let matching = process
+        let Some(observation) = process
             .assays
             .iter()
-            .filter(|observation| observation.assay_id == required.assay_id)
-            .collect::<Vec<_>>();
-        let Some(observation) = matching.first().copied() else {
+            .find(|observation| observation.assay_id == required.assay_id)
+        else {
             blockers.push(Blocker::MissingAssay);
             assay_results.push(AssayResult {
                 assay_id: required.assay_id.clone(),
-                interval: Interval::new(f64::NAN, f64::NAN),
+                interval: None,
                 disposition: Disposition::Indeterminate,
                 blockers: vec![Blocker::MissingAssay],
             });
@@ -487,6 +499,10 @@ pub fn evaluate_route(
         let mut assay_blockers = Vec::new();
         let mut assay_hard_failure = false;
         let mut assay_unresolved = false;
+        if observation.role != required.role {
+            assay_blockers.push(Blocker::AssayScopeMismatch);
+            not_comparable = true;
+        }
         if observation.unit != required.unit {
             assay_blockers.push(Blocker::AssayUnitMismatch);
             not_comparable = true;
@@ -563,7 +579,7 @@ pub fn evaluate_route(
         unresolved |= assay_unresolved;
         assay_results.push(AssayResult {
             assay_id: required.assay_id.clone(),
-            interval: observation.value,
+            interval: Some(observation.value),
             disposition: assay_disposition,
             blockers: dedupe(assay_blockers),
         });
@@ -643,6 +659,17 @@ fn validate_spec(spec: &RouteSpec) -> Vec<Blocker> {
             blockers.push(Blocker::InvalidSpec);
         }
     }
+    let present_roles = spec
+        .required_assays
+        .iter()
+        .map(|assay| assay.role)
+        .collect::<BTreeSet<_>>();
+    if required_assay_roles_for_route(spec.route)
+        .iter()
+        .any(|role| !present_roles.contains(role))
+    {
+        blockers.push(Blocker::InvalidSpec);
+    }
     let mut assays = BTreeSet::new();
     for assay in &spec.required_assays {
         if assay.assay_id.trim().is_empty()
@@ -696,6 +723,27 @@ pub fn supported_family_form_route(
     )
 }
 
+/// Minimum material evidence roles for each admitted magnetic feedstock route.
+/// Absolute Br, coercivity and (BH)max are distinct from Br/Js alignment;
+/// chemistry, microstructure, and density/porosity cannot be omitted by a caller.
+pub fn required_assay_roles_for_route(route: ProcessRoute) -> &'static [AssayRole] {
+    const REQUIRED: &[AssayRole] = &[
+        AssayRole::AbsoluteRemanence,
+        AssayRole::Coercivity,
+        AssayRole::MaximumEnergyProduct,
+        AssayRole::MagneticAlignment,
+        AssayRole::Chemistry,
+        AssayRole::Microstructure,
+        AssayRole::DensityOrPorosity,
+    ];
+    match route {
+        ProcessRoute::PowderExtrusionMouldingSintering
+        | ProcessRoute::MaterialExtrusionBonded
+        | ProcessRoute::LaserPowderBedFusion => REQUIRED,
+        ProcessRoute::DirectReuse => &[],
+    }
+}
+
 fn is_scope_blocker(blocker: &Blocker) -> bool {
     matches!(
         blocker,
@@ -744,6 +792,7 @@ mod tests {
             required_assays: vec![
                 AssaySpec {
                     assay_id: "carbon_wt_percent".to_string(),
+                    role: AssayRole::Chemistry,
                     unit: "wt%".to_string(),
                     laboratory_method_scope_digest: digest('4'),
                     minimum: None,
@@ -751,6 +800,7 @@ mod tests {
                 },
                 AssaySpec {
                     assay_id: "oxygen_increase_wt_percent_points".to_string(),
+                    role: AssayRole::Chemistry,
                     unit: "wt%-points".to_string(),
                     laboratory_method_scope_digest: digest('4'),
                     minimum: None,
@@ -758,10 +808,51 @@ mod tests {
                 },
                 AssaySpec {
                     assay_id: "remanence_to_saturation_ratio".to_string(),
+                    role: AssayRole::MagneticAlignment,
                     unit: "ratio".to_string(),
                     laboratory_method_scope_digest: digest('4'),
                     minimum: Some(0.90),
                     maximum: Some(1.00),
+                },
+                AssaySpec {
+                    assay_id: "absolute_remanence_br".to_string(),
+                    role: AssayRole::AbsoluteRemanence,
+                    unit: "T".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
+                    minimum: Some(0.1),
+                    maximum: None,
+                },
+                AssaySpec {
+                    assay_id: "intrinsic_coercivity_hcj".to_string(),
+                    role: AssayRole::Coercivity,
+                    unit: "kA_per_m".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
+                    minimum: Some(1.0),
+                    maximum: None,
+                },
+                AssaySpec {
+                    assay_id: "maximum_energy_product_bhmax".to_string(),
+                    role: AssayRole::MaximumEnergyProduct,
+                    unit: "kJ_per_m3".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
+                    minimum: Some(1.0),
+                    maximum: None,
+                },
+                AssaySpec {
+                    assay_id: "porosity_volume_percent".to_string(),
+                    role: AssayRole::Microstructure,
+                    unit: "vol%".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
+                    minimum: None,
+                    maximum: Some(10.0),
+                },
+                AssaySpec {
+                    assay_id: "density_g_per_cm3".to_string(),
+                    role: AssayRole::DensityOrPorosity,
+                    unit: "g_per_cm3".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
+                    minimum: Some(1.0),
+                    maximum: None,
                 },
             ],
         }
@@ -808,6 +899,7 @@ mod tests {
 
     fn assay(
         assay_id: &str,
+        role: AssayRole,
         unit: &str,
         value: Interval,
         product_lot_id: &str,
@@ -816,6 +908,7 @@ mod tests {
     ) -> AssayObservation {
         AssayObservation {
             assay_id: assay_id.to_string(),
+            role,
             unit: unit.to_string(),
             value,
             product_lot_id: product_lot_id.to_string(),
@@ -866,6 +959,7 @@ mod tests {
             assays: vec![
                 assay(
                     "carbon_wt_percent",
+                    AssayRole::Chemistry,
                     "wt%",
                     Interval::new(0.042, 0.048),
                     &specification.product_lot_id,
@@ -874,6 +968,7 @@ mod tests {
                 ),
                 assay(
                     "oxygen_increase_wt_percent_points",
+                    AssayRole::Chemistry,
                     "wt%-points",
                     Interval::new(0.35, 0.45),
                     &specification.product_lot_id,
@@ -882,11 +977,57 @@ mod tests {
                 ),
                 assay(
                     "remanence_to_saturation_ratio",
+                    AssayRole::MagneticAlignment,
                     "ratio",
                     Interval::new(0.95, 0.97),
                     &specification.product_lot_id,
                     specification.route,
                     '9',
+                ),
+                assay(
+                    "absolute_remanence_br",
+                    AssayRole::AbsoluteRemanence,
+                    "T",
+                    Interval::new(1.0, 1.1),
+                    &specification.product_lot_id,
+                    specification.route,
+                    'a',
+                ),
+                assay(
+                    "intrinsic_coercivity_hcj",
+                    AssayRole::Coercivity,
+                    "kA_per_m",
+                    Interval::new(100.0, 120.0),
+                    &specification.product_lot_id,
+                    specification.route,
+                    'b',
+                ),
+                assay(
+                    "maximum_energy_product_bhmax",
+                    AssayRole::MaximumEnergyProduct,
+                    "kJ_per_m3",
+                    Interval::new(10.0, 12.0),
+                    &specification.product_lot_id,
+                    specification.route,
+                    'c',
+                ),
+                assay(
+                    "porosity_volume_percent",
+                    AssayRole::Microstructure,
+                    "vol%",
+                    Interval::new(1.0, 2.0),
+                    &specification.product_lot_id,
+                    specification.route,
+                    'd',
+                ),
+                assay(
+                    "density_g_per_cm3",
+                    AssayRole::DensityOrPorosity,
+                    "g_per_cm3",
+                    Interval::new(5.0, 6.0),
+                    &specification.product_lot_id,
+                    specification.route,
+                    'e',
                 ),
             ],
         }
@@ -913,6 +1054,26 @@ mod tests {
         assert_eq!(result.observed_output_streams, 2);
         assert_eq!(result.assay_results.len(), 3);
         assert!(result.input_mass_mg.unwrap().overlaps(result.output_mass_mg.unwrap()));
+    }
+
+    #[test]
+    fn route_cannot_qualify_without_absolute_magnetic_and_structure_roles() {
+        let mut specification = spec();
+        specification.required_assays.retain(|assay| {
+            assay.role != AssayRole::AbsoluteRemanence
+                && assay.role != AssayRole::Coercivity
+                && assay.role != AssayRole::MaximumEnergyProduct
+                && assay.role != AssayRole::Microstructure
+                && assay.role != AssayRole::DensityOrPorosity
+        });
+        let process_evidence = process(&specification);
+        let result = evaluate(
+            &specification,
+            &process_evidence,
+            &eligibility(&specification),
+        );
+        assert_eq!(result.disposition, Disposition::NotComparable);
+        assert!(result.blockers.contains(&Blocker::InvalidSpec));
     }
 
     #[test]
@@ -1168,7 +1329,7 @@ mod tests {
             .iter()
             .find(|item| item.assay_id == "remanence_to_saturation_ratio")
             .unwrap();
-        assert_eq!(alignment.interval, Interval::new(0.95, 0.97));
+        assert_eq!(alignment.interval, Some(Interval::new(0.95, 0.97)));
         assert_eq!(result.disposition, Disposition::QualifiedFeedstockRoute);
     }
 
