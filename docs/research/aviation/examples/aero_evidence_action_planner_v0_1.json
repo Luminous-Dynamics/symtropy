@@ -170,7 +170,33 @@
     "unresolved_obligation_ids": [
       "obligation:calibration"
     ],
-    "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309"
+    "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309",
+    "assurance_state_receipt": {
+      "verification_status": "VERIFIED",
+      "owner_namespace": "owner:aero-assurance-adapter",
+      "claim_id": "claim:wing-panel-proof-load",
+      "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "assurance_state_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "frozen_claim_disposition": "INCOMPLETE",
+      "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309",
+      "receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "receiver_first_seen_at_unix_ms": 1795516000000,
+      "effective_from_unix_ms": 1795500000000,
+      "effective_until_unix_ms": 1798000000000
+    },
+    "action_catalogue_receipt": {
+      "verification_status": "VERIFIED",
+      "owner_namespace": "owner:action-catalogue",
+      "claim_id": "claim:wing-panel-proof-load",
+      "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "configuration_ref": "configuration:wing-r17",
+      "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
+      "action_count": 2,
+      "receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "receiver_first_seen_at_unix_ms": 1795516000000,
+      "effective_from_unix_ms": 1795500000000,
+      "effective_until_unix_ms": 1798000000000
+    }
   },
   "expected": {
     "disposition": "RANKED_ACTIONS",
@@ -217,6 +243,8 @@
     "action_catalogue_sha256": "3d19d5b272e7bd35b6d1a07d52751442335cdd5b4bbbc678c691f5d3c451a1b2",
     "decision_model_sha256": "58a6677f4b6ce980ef34d29a5d6d4239dd96b213fe1f417573f664310d7f654d",
     "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    "reason_codes": []
+    "reason_codes": [],
+    "assurance_state_receipt_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "action_catalogue_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999"
   }
 }
