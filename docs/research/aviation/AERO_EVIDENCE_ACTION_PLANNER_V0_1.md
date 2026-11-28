@@ -65,10 +65,10 @@ Each action names target obligation IDs and an expected artifact-contract digest
 
 ## 3A. Exact decision and acquisition commitments
 
-The planner recomputes three source commitments before ranking:
+The planner recomputes four source commitments before ranking:
 
 1. **Decision-model commitment:** sorted decision alternatives, sorted world states with exact prior PPM, and the complete decision × state integer utility matrix. A caller cannot change a prior or utility while retaining the old decision-model digest.
-2. **Action-catalogue cut commitment:** the exact candidate action IDs, acquisition-owner namespaces, outcome-model-owner namespaces and owner-issued catalogue-entry digests. A caller cannot omit or substitute a candidate while retaining the previous cut digest.
+2. **Action-catalogue entry and cut commitments:** each entry digest is recomputed over the exact action ID, acquisition owner, outcome-model owner, expected artifact-contract digest, target-obligation set, direct cost and delay cost. The catalogue-cut digest then binds the exact candidate IDs, owners and entry digests. A caller cannot change cost, delay, target or output contract while reusing the old owner entry commitment, nor omit or substitute a candidate while retaining the previous cut digest.
 3. **Unresolved-obligation manifest:** the unique, sorted obligation IDs supplied by the source-bound assurance state. Every action target must be a member of this unresolved set.
 
 Each model-calibration receipt additionally commits to a deterministic, sorted likelihood-table envelope containing the exact action ID, outcome-model SHA-256 and every (P(\text{outcome}\mid\text{state},\text{action})) PPM cell. The receipt must match the declared outcome-model owner, claim, decision context, configuration, action, model digest, likelihood-table digest, receiver-first-seen cutoff and effective interval. Changing the likelihood table while retaining the old receipt excludes the action.
