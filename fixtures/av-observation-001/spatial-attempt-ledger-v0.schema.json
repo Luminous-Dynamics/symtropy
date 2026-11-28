@@ -50,7 +50,12 @@
         "split_id",
         "input_modalities",
         "hardware_profile",
-        "declared_budgets"
+        "declared_budgets",
+        "scorer_sha256",
+        "reference_profile_sha256",
+        "reference_source_kind",
+        "reference_source_independence",
+        "qualification_criteria"
       ],
       "properties": {
         "benchmark_id": {
@@ -159,6 +164,81 @@
             },
             "max_memory_bytes": {
               "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "scorer_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reference_profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reference_source_kind": {
+          "type": "string",
+          "enum": [
+            "motion_capture",
+            "surveyed_control",
+            "lidar_slam_derived",
+            "simulator",
+            "benchmark_annotation",
+            "no_reference",
+            "other"
+          ],
+          "description": "Provenance class of the reference used by the evaluator; do not pool different source classes without a separate protocol."
+        },
+        "reference_source_independence": {
+          "type": "string",
+          "enum": [
+            "independent",
+            "shared_source",
+            "derived",
+            "unknown",
+            "not_applicable"
+          ],
+          "description": "Whether the reference is independent of the candidate's sensor/source roots."
+        },
+        "qualification_criteria": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "criteria_id",
+            "status",
+            "criteria_sha256",
+            "minimum_pose_coverage",
+            "maximum_conditional_ate_m",
+            "maximum_conditional_rpe_m"
+          ],
+          "properties": {
+            "criteria_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "preregistered",
+                "development_only"
+              ]
+            },
+            "criteria_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "minimum_pose_coverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "maximum_conditional_ate_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "maximum_conditional_rpe_m": {
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             }
           }
