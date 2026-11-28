@@ -183,7 +183,16 @@
         "evsi_scaled_numerator": "40000000000000",
         "expected_cost_units": 1,
         "expected_delay_cost_units": 2,
-        "net_benefit_scaled_numerator": "37000000000000"
+        "net_benefit_scaled_numerator": "37000000000000",
+        "owner_namespace": "owner:metrology-lab",
+        "target_obligation_ids": [
+          "obligation:calibration"
+        ],
+        "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+        "authorization_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+        "calibration_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+        "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
       }
     ],
     "excluded_actions": [
