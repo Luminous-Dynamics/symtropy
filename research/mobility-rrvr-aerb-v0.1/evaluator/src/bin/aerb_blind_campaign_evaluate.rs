@@ -1011,6 +1011,51 @@ mod tests {
     use super::*;
 
     #[test]
+    fn output_inventory_keeps_extras_and_rejects_symlink_entries() {
+        use std::{
+            os::unix::fs::symlink,
+            time::{SystemTime, UNIX_EPOCH},
+        };
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "aerb-output-inventory-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("temporary output root");
+        let expected_name = "submission-ep_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json";
+        fs::write(root.join(expected_name), b"{}").expect("candidate output");
+        fs::write(root.join("extra.txt"), b"extra").expect("unexpected output");
+        symlink(root.join(expected_name), root.join("linked-output.json"))
+            .expect("symlink output");
+
+        let expected = BTreeSet::from([expected_name.to_owned()]);
+        let (actual, errors) =
+            inspect_output_directory(&root, &expected).expect("inspect output directory");
+
+        assert_eq!(
+            actual,
+            BTreeSet::from([expected_name.to_owned(), "extra.txt".to_owned()])
+        );
+        assert_eq!(errors, vec!["linked-output.json:NOT_REGULAR_FILE".to_owned()]);
+        fs::remove_dir_all(root).expect("remove temporary output root");
+    }
+
+    #[test]
+    fn non_successful_runner_outcomes_never_qualify() {
+        assert!(run_outcome_succeeded(&RunnerOutcome::Completed { exit_code: 0 }));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::ExitedNonzero { exit_code: 1 }));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::TimedOutUnknown { exit_code: 124 }));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::TerminatedWithoutExitCode));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::LaunchFailedUnknown {
+            reason: "fixture".to_owned()
+        }));
+    }
+
+    #[test]
     fn evaluator_leaf_names_reject_path_traversal() {
         assert!(safe_leaf_name("episode-ep_00000000000000000000000000000000.json").is_ok());
         assert!(safe_leaf_name("../projection-secret.json").is_err());
