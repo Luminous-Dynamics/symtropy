@@ -58,6 +58,22 @@ def decision_model_sha256(source: dict[str, Any]) -> str:
     return digest_json(envelope)
 
 
+def action_catalogue_entry_sha256(action: dict[str, Any]) -> str:
+    targets = sorted(action["target_obligation_ids"])
+    envelope = {
+        "schema": "AeroEvidenceActionCatalogueEntryV0_1",
+        "canonicalization_profile": "rust-serde-json-struct-order-v1",
+        "action_id": action["action_id"],
+        "owner_namespace": action["owner_namespace"],
+        "outcome_model_owner_namespace": action["outcome_model_owner_namespace"],
+        "expected_artifact_contract_sha256": action["expected_artifact_contract_sha256"],
+        "target_obligation_ids": targets,
+        "expected_cost_units": action["expected_cost_units"],
+        "expected_delay_cost_units": action["expected_delay_cost_units"],
+    }
+    return digest_json(envelope)
+
+
 def action_catalogue_cut_sha256(source: dict[str, Any]) -> str:
     entries = [
         {
@@ -131,6 +147,8 @@ def validate_input(source: dict[str, Any]) -> None:
             raise ValueError(f"{action['action_id']}: malformed permission receipt interval")
         if not action["outcome_model_owner_namespace"].strip():
             raise ValueError(f"{action['action_id']}: outcome model owner namespace is empty")
+        if action_catalogue_entry_sha256(action) != action["action_catalogue_entry_sha256"]:
+            raise ValueError(f"{action['action_id']}: action catalogue entry commitment mismatch")
         targets = action["target_obligation_ids"]
         if not targets or len(targets) != len(set(targets)) or not set(targets).issubset(set(unresolved_ids)):
             raise ValueError(f"{action['action_id']}: target obligations are not a unique subset of unresolved obligations")
@@ -403,7 +421,27 @@ def main() -> int:
     else:
         raise SystemExit("FAIL: utility mutation retained an old decision-model commitment")
 
-    # Mutation control 6: a changed candidate action set requires a new catalogue cut.
+    # Mutation control 6: changing action cost without a new entry receipt is rejected.
+    changed_action_cost = copy.deepcopy(source)
+    changed_action_cost["actions"][0]["expected_cost_units"] += 1
+    try:
+        calculate(changed_action_cost)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: action cost mutation retained an old action-entry commitment")
+
+    # Mutation control 7: changing the artifact contract without a new entry receipt is rejected.
+    changed_artifact_contract = copy.deepcopy(source)
+    changed_artifact_contract["actions"][0]["expected_artifact_contract_sha256"] = "8" * 64
+    try:
+        calculate(changed_artifact_contract)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: artifact-contract mutation retained an old action-entry commitment")
+
+    # Mutation control 8: a changed candidate action set requires a new catalogue cut.
     changed_catalogue = copy.deepcopy(source)
     changed_catalogue["actions"].pop()
     try:
@@ -413,7 +451,7 @@ def main() -> int:
     else:
         raise SystemExit("FAIL: candidate action-set mutation retained an old catalogue commitment")
 
-    # Mutation control 7: probability mass is never silently normalized.
+    # Mutation control 9: probability mass is never silently normalized.
     malformed = copy.deepcopy(source)
     malformed["world_states"][0]["prior_probability_ppm"] -= 1
     malformed["decision_model_sha256"] = decision_model_sha256(malformed)
@@ -427,7 +465,7 @@ def main() -> int:
     print(
         "PASS: AERO EVSI v0.1 schema and independent integer oracle "
         "(2 states, 2 decisions, 1 permitted action, 1 excluded action, "
-        "7 mutation controls)."
+        "9 mutation controls)."
     )
     print("NOTE: synthetic decision arithmetic is not physical evidence or action authorization.")
     return 0
