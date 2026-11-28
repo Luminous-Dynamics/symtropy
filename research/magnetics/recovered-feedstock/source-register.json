@@ -45,5 +45,82 @@
       "Aggregated studies are not a matched process comparison.",
       "No universal route ranking or production-performance value is implied."
     ]
+  },
+  {
+    "source_id": "HDD-FDM-2026",
+    "citation": "Gallichi-Nottiani et al., Fused Deposition Modeling of Polymer-Based Magnetic Composites from Recycled Permanent Magnets of Discarded Hard Drives",
+    "year": 2026,
+    "published": "2026-06-02",
+    "journal": "Materials (Basel)",
+    "volume": "19",
+    "issue": "11",
+    "article": "2356",
+    "doi": "10.3390/ma19112356",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13257755/",
+    "evidence_class": "peer_reviewed_experimental_materials_and_AM_study",
+    "feedstock_family": "Recycled NdFeB from discarded hard drives",
+    "route": "Demagnetize and grind under controlled atmosphere, sieve below 50 micrometres, compound with PBAT by twin-screw extrusion, pelletize, make calibrated filament, FDM print; printing field aligns particles",
+    "reported_results": {
+      "max_powder_loading_wt_percent": 50,
+      "remanence_emu_per_g_no_field": 11,
+      "remanence_emu_per_g_field_aligned": 28,
+      "reduced_remanence_no_field": 0.21,
+      "reduced_remanence_field_aligned": 0.49,
+      "coercivity_oe_no_field": 1852,
+      "coercivity_oe_field_aligned": 1310,
+      "estimated_relative_bhmax_gain": "Approximately 4x, inferred from Mr and Hc; direct BHmax was not reliably measurable for the small specimens"
+    },
+    "limitations": [
+      "Feedstock was a mixed powder batch made by grinding magnets from multiple hard drives; source-lot heterogeneity was not isolated as independent material-lot statistics.",
+      "Results are polymer-bonded composite measurements, not sintered magnet Br, Hcj or motor-component performance.",
+      "The reported fourfold BHmax change is an estimate; authors state direct BHmax measurement was unreliable because density and demagnetization factor were not sufficiently known.",
+      "Magnetic-field alignment raised remanence but reduced coercivity in the reported 50 wt% comparison; the trade-off must remain visible.",
+      "Not Luminous physical evidence and not production qualification."
+    ]
+  },
+  {
+    "source_id": "HDDR-DLP-4D-2026",
+    "citation": "Vieira et al., Assessment of 4D magnetic printing capability of UV composite resin containing recycled Nd-Fe-B nanocrystalline particles",
+    "year": 2026,
+    "published": "2026-11-09",
+    "journal": "Progress in Additive Manufacturing",
+    "doi": "10.1007/s40964-026-02049-0",
+    "url": "https://link.springer.com/article/10.1007/s40964-026-02049-0",
+    "evidence_class": "peer_reviewed_experimental_4d_magnetic_printing_study",
+    "feedstock_family": "HDDR and dynamic-HDDR recycled NdFeB powders",
+    "route": "DLP photopolymerization with magnetic-field programming during fabrication and post-magnetization",
+    "reported_results": {
+      "minimum_domain_size_mm_commercial_powder": 0.69,
+      "minimum_domain_size_mm_recycled_hddr": 1.08,
+      "minimum_domain_size_mm_recycled_dynamic_hddr": 1.28,
+      "functional_demonstration": "Printed single-domain rectangles actuated under external magnetic fields; post-magnetization improved stray-field magnitude and locomotion performance"
+    },
+    "limitations": [
+      "The application is magnetically actuated soft devices and robotics, not traction motors.",
+      "Higher remanence and anisotropy in the dynamic-HDDR powder did not directly produce the highest stray field or locomotion speed.",
+      "Particle distribution, magnetization route, coercivity and composite microstructure all affected function.",
+      "Adjacent exploratory route; not admitted to the motor-magnet PEM/MEX evaluator v0.1.",
+      "Not Luminous physical evidence."
+    ]
+  },
+  {
+    "source_id": "HPMS-PEM-2024",
+    "citation": "Rathfelder et al., Production of Permanent Magnets from Recycled NdFeB Powder with Powder Extrusion Moulding",
+    "year": 2024,
+    "published": "2024-04-18",
+    "journal": "Journal of Manufacturing and Materials Processing",
+    "volume": "8",
+    "issue": "2",
+    "article": "81",
+    "doi": "10.3390/jmmp8020081",
+    "url": "https://www.mdpi.com/2504-4494/8/2/81",
+    "evidence_class": "peer_reviewed_experimental_materials_process_study",
+    "feedstock_family": "HPMS-recycled NdFeB powder",
+    "route": "Tailored powder processing, binder-based mouldable feedstock, powder extrusion moulding, debinding and sintering",
+    "limitations": [
+      "Study-specific recycled material and process conditions.",
+      "Not matched head-to-head against MEX or LPBF.",
+      "No universal property threshold or production capability claim."
+    ]
   }
 ]
