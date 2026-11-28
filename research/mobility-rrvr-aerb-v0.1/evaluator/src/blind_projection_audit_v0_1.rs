@@ -1192,12 +1192,30 @@ pub struct MetadataLeakageReport {
     pub interpretation: String,
 }
 
-fn stable_fold(campaign_id: &str, cluster_id: &str, folds: usize) -> usize {
+fn stable_group_key(campaign_id: &str, cluster_id: &str) -> u64 {
     let mut preimage = b"AERB-METADATA-GROUP-FOLD-V0.1\0".to_vec();
     append_length_prefixed(&mut preimage, campaign_id.as_bytes());
     append_length_prefixed(&mut preimage, cluster_id.as_bytes());
     let digest = sha256_hex(&preimage);
-    usize::from_str_radix(&digest[..8], 16).unwrap_or(0) % folds
+    u64::from_str_radix(&digest[..16], 16).unwrap_or(0)
+}
+
+fn balanced_group_folds<'a>(
+    campaign_id: &str,
+    clusters: &BTreeSet<&'a str>,
+    folds: usize,
+) -> BTreeMap<&'a str, usize> {
+    let mut ordered = clusters.iter().copied().collect::<Vec<_>>();
+    ordered.sort_by(|left, right| {
+        stable_group_key(campaign_id, left)
+            .cmp(&stable_group_key(campaign_id, right))
+            .then_with(|| left.cmp(right))
+    });
+    ordered
+        .into_iter()
+        .enumerate()
+        .map(|(index, cluster)| (cluster, index % folds))
+        .collect()
 }
 
 fn majority_world<'a, I>(rows: I) -> Option<&'a str>
@@ -1427,15 +1445,7 @@ pub fn audit_metadata_leakage(
         return Err(ProjectionError::TooManyFolds);
     }
     let campaign_id = rows[0].campaign_id.clone();
-    let fold_by_cluster = clusters
-        .iter()
-        .map(|cluster| {
-            (
-                *cluster,
-                stable_fold(&campaign_id, cluster, requested_folds),
-            )
-        })
-        .collect::<BTreeMap<_, _>>();
+    let fold_by_cluster = balanced_group_folds(&campaign_id, &clusters, requested_folds);
     let used_folds = fold_by_cluster.values().copied().collect::<BTreeSet<_>>();
     if used_folds.len() < 2 {
         return Err(ProjectionError::TooFewGroups);
@@ -1877,10 +1887,9 @@ mod tests {
             .iter()
             .map(|row| row.evaluator_cluster_id.as_str())
             .collect::<BTreeSet<_>>();
-        let assignments = clusters
-            .iter()
-            .map(|cluster| (*cluster, stable_fold("camp_grouped", cluster, 5)))
-            .collect::<BTreeMap<_, _>>();
+        let assignments = balanced_group_folds("camp_grouped", &clusters, 5);
+        let distinct_folds = assignments.values().copied().collect::<BTreeSet<_>>();
+        assert_eq!(distinct_folds.len(), 5);
         for cluster in clusters {
             let members = rows
                 .iter()
