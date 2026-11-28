@@ -451,7 +451,7 @@ fn materialize(
         serialize_pretty(&projection_secret, "PROJECTION_SECRET")?;
 
     let mut candidate_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len() * 2);
-    let mut evaluator_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len() * 2 + 2);
+    let mut evaluator_artifacts = Vec::with_capacity(generated.evaluator_manifest.assignments.len() * 4 + 2);
     let mut metadata_rows = Vec::with_capacity(generated.evaluator_manifest.assignments.len());
     let mut candidate_output_bytes = 0_u64;
     let mut evaluator_output_bytes = 0_u64;
@@ -519,11 +519,37 @@ fn materialize(
         let submission_name = format!("submission-{}.json", assignment.episode_id);
         let world_pack_name = format!("world-pack-{}.json", assignment.episode_id);
         let receipt_name = format!("projection-receipt-{}.json", assignment.episode_id);
+        let source_episode_name = format!("source-episode-{}.json", assignment.episode_id);
+        let source_submission_name = format!("source-submission-{}.json", assignment.episode_id);
 
         let episode_output_bytes = serialize_pretty(&projected_episode, "PROJECTED_EPISODE")?;
         let submission_output_bytes = serialize_pretty(&projected_submission, "PROJECTED_SUBMISSION")?;
         let world_pack_output_bytes = serialize_pretty(&world_pack, "EVALUATOR_WORLD_PACK")?;
         let receipt_output_bytes = serialize_pretty(&receipt, "PROJECTION_RECEIPT")?;
+        let source_episode_output_bytes = serialize_pretty(&original_episode, "SOURCE_EPISODE_ARCHIVE")?;
+        let source_submission_output_bytes =
+            serialize_pretty(&original_submission, "SOURCE_SUBMISSION_ARCHIVE")?;
+
+        let source_episode_sha256 = write_private_file(
+            &evaluator_root,
+            &source_episode_name,
+            &source_episode_output_bytes,
+            &mut evaluator_output_bytes,
+        )?;
+        let source_submission_sha256 = write_private_file(
+            &evaluator_root,
+            &source_submission_name,
+            &source_submission_output_bytes,
+            &mut evaluator_output_bytes,
+        )?;
+        evaluator_artifacts.push(EvaluatorArtifactSeal {
+            relative_file_name: source_episode_name,
+            sha256: source_episode_sha256,
+        });
+        evaluator_artifacts.push(EvaluatorArtifactSeal {
+            relative_file_name: source_submission_name,
+            sha256: source_submission_sha256,
+        });
 
         let episode_sha256 = write_private_file(
             &candidate_root,
