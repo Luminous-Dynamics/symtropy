@@ -707,6 +707,7 @@ pub struct CandidateSurfaceFinding {
 pub struct CandidateSurfaceAudit {
     pub schema_version: String,
     pub candidate_episode_n: usize,
+    pub candidate_submission_n: usize,
     pub projection_receipt_n: usize,
     pub finding_n: usize,
     pub passed: bool,
@@ -750,13 +751,17 @@ fn forbidden_field_names() -> [&'static str; 9] {
 pub fn audit_candidate_surface(
     candidate_manifest_json: &str,
     candidate_episode_jsons: &[String],
+    candidate_submission_jsons: &[String],
     receipts: &[BlindProjectionReceipt],
     hidden_world_ids: &[String],
     evaluator_secret_tokens: &[String],
-    candidate_file_names: &[String],
+    candidate_episode_file_names: &[String],
+    candidate_submission_file_names: &[String],
 ) -> Result<CandidateSurfaceAudit, ProjectionError> {
     if candidate_episode_jsons.len() != receipts.len()
-        || candidate_file_names.len() != receipts.len()
+        || candidate_submission_jsons.len() != receipts.len()
+        || candidate_episode_file_names.len() != receipts.len()
+        || candidate_submission_file_names.len() != receipts.len()
     {
         return Err(ProjectionError::InvalidMetadataAudit(
             "candidate file/receipt count mismatch",
@@ -819,8 +824,16 @@ pub fn audit_candidate_surface(
             .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate episode JSON"))?;
         json_string_leaves(&value, &format!("$episode[{index}]"), &mut leaves);
     }
-    for file_name in candidate_file_names {
-        leaves.push(("$candidate_file_name".to_owned(), file_name.clone()));
+    for (index, raw) in candidate_submission_jsons.iter().enumerate() {
+        let value: serde_json::Value = serde_json::from_str(raw)
+            .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate submission JSON"))?;
+        json_string_leaves(&value, &format!("$submission[{index}]"), &mut leaves);
+    }
+    for file_name in candidate_episode_file_names {
+        leaves.push(("$candidate_episode_file_name".to_owned(), file_name.clone()));
+    }
+    for file_name in candidate_submission_file_names {
+        leaves.push(("$candidate_submission_file_name".to_owned(), file_name.clone()));
     }
 
     // Field-name checks include nested objects and arrays.
@@ -867,6 +880,16 @@ pub fn audit_candidate_surface(
             &mut findings,
         );
     }
+    for (index, raw) in candidate_submission_jsons.iter().enumerate() {
+        let value: serde_json::Value = serde_json::from_str(raw)
+            .map_err(|_| ProjectionError::InvalidMetadataAudit("candidate submission JSON"))?;
+        scan_keys(
+            &value,
+            &format!("$submission[{index}]"),
+            &forbidden_field_names(),
+            &mut findings,
+        );
+    }
 
     let forbidden_values = receipts
         .iter()
@@ -898,6 +921,7 @@ pub fn audit_candidate_surface(
     Ok(CandidateSurfaceAudit {
         schema_version: "aerb-candidate-surface-audit-v0.1".to_owned(),
         candidate_episode_n: candidate_episode_jsons.len(),
+        candidate_submission_n: candidate_submission_jsons.len(),
         projection_receipt_n: receipts.len(),
         finding_n: findings.len(),
         passed: findings.is_empty(),
@@ -1939,10 +1963,12 @@ mod tests {
         let safe = audit_candidate_surface(
             &raw_manifest,
             &[projected_json.clone()],
+            &[serde_json::json!({"episode_id": "ep_11111111111111111111111111111111", "reason_codes": []}).to_string()],
             std::slice::from_ref(&receipt),
             &[],
             &["private-evaluator-salt-should-not-appear".to_owned()],
             &["ep_11111111111111111111111111111111.json".to_owned()],
+            &["submission-ep_11111111111111111111111111111111.json".to_owned()],
         )
         .expect("safe surface audit");
         assert!(safe.passed, "{safe:?}");
@@ -1951,10 +1977,12 @@ mod tests {
         let unsafe_audit = audit_candidate_surface(
             &raw_manifest,
             &[leaked_json],
+            &[serde_json::json!({"episode_id": "ep_11111111111111111111111111111111", "reason_codes": []}).to_string()],
             std::slice::from_ref(&receipt),
             &[VALID_WORLD_IDS[4].to_owned()],
             &["private-evaluator-salt-should-not-appear".to_owned()],
             &["raw-episode-0011.json".to_owned()],
+            &["submission-ep_11111111111111111111111111111111.json".to_owned()],
         )
         .expect("unsafe surface audit is reportable");
         assert!(!unsafe_audit.passed);
@@ -1977,10 +2005,12 @@ mod tests {
         let report = audit_candidate_surface(
             &serde_json::to_string(&manifest).unwrap(),
             &[raw],
+            &[serde_json::json!({"episode_id": "ep_33333333333333333333333333333333", "reason_codes": []}).to_string()],
             std::slice::from_ref(&receipt),
             &[],
             &["evaluator-secret-token-opaque-abcdef".to_owned()],
             &["ep_33333333333333333333333333333333.json".to_owned()],
+            &["submission-ep_33333333333333333333333333333333.json".to_owned()],
         )
         .expect("audit");
         assert!(!report.passed);
