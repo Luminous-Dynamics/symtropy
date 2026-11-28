@@ -102,8 +102,8 @@
         "lot_pair_id": "LOT-PAIR-0",
         "randomized_order": "VirginFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-0-0",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "seed_commitment_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "virgin_build_id": "V-0-0",
         "recovered_build_id": "R-0-0"
       },
@@ -112,8 +112,8 @@
         "lot_pair_id": "LOT-PAIR-0",
         "randomized_order": "RecoveredFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-0-1",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "seed_commitment_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "virgin_build_id": "V-0-1",
         "recovered_build_id": "R-0-1"
       },
@@ -122,8 +122,8 @@
         "lot_pair_id": "LOT-PAIR-0",
         "randomized_order": "VirginFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-0-2",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "seed_commitment_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "virgin_build_id": "V-0-2",
         "recovered_build_id": "R-0-2"
       },
@@ -132,8 +132,8 @@
         "lot_pair_id": "LOT-PAIR-1",
         "randomized_order": "VirginFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-1-0",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "seed_commitment_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "virgin_build_id": "V-1-0",
         "recovered_build_id": "R-1-0"
       },
@@ -142,8 +142,8 @@
         "lot_pair_id": "LOT-PAIR-1",
         "randomized_order": "RecoveredFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-1-1",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "seed_commitment_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         "virgin_build_id": "V-1-1",
         "recovered_build_id": "R-1-1"
       },
@@ -152,8 +152,8 @@
         "lot_pair_id": "LOT-PAIR-1",
         "randomized_order": "VirginFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-1-2",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "seed_commitment_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
         "virgin_build_id": "V-1-2",
         "recovered_build_id": "R-1-2"
       },
@@ -163,7 +163,7 @@
         "randomized_order": "VirginFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-2-0",
         "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "seed_commitment_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "virgin_build_id": "V-2-0",
         "recovered_build_id": "R-2-0"
       },
@@ -172,8 +172,8 @@
         "lot_pair_id": "LOT-PAIR-2",
         "randomized_order": "RecoveredFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-2-1",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "seed_commitment_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "virgin_build_id": "V-2-1",
         "recovered_build_id": "R-2-1"
       },
@@ -182,8 +182,8 @@
         "lot_pair_id": "LOT-PAIR-2",
         "randomized_order": "VirginFirst",
         "randomization_receipt_id": "SYNTHETIC-RANDOM-BLOCK-2-2",
-        "randomization_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
-        "seed_commitment_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "randomization_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "seed_commitment_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
         "virgin_build_id": "V-2-2",
         "recovered_build_id": "R-2-2"
       }
