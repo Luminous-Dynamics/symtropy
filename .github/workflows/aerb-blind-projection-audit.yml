@@ -94,5 +94,8 @@ jobs:
           test "$(stat -c '%a' "$WORK/evaluator")" = "700"
           test "$(stat -c '%a' "$WORK/evaluator/candidate-run-receipt.json")" = "600"
           test "$(stat -c '%a' "$WORK/evaluator/blind-evaluator-report.json")" = "600"
-          test "$(stat -c '%a' "$WORK/candidate-output/submission-$(jq -r '.campaign_id' "$WORK/evaluator/candidate-run-receipt.json" | sed 's/^camp_/ep_')0000000000000000000000000000000.json" 2>/dev/null || true)" != "0000"
+          test "$(find "$WORK/candidate-input" -maxdepth 1 -type f | wc -l)" -eq 34
+          while IFS= read -r output_file; do
+            test "$(stat -c '%a' "$output_file")" = "600"
+          done < <(find "$WORK/candidate-output" -maxdepth 1 -type f -name 'submission-*.json')
           sha256sum "$WORK/candidate-input/candidate_manifest.json" "$WORK/evaluator/evaluator_manifest.json" "$WORK/evaluator/campaign-custody-seal.json" "$WORK/evaluator/candidate-run-receipt.json" "$WORK/evaluator/blind-evaluator-report.json"
