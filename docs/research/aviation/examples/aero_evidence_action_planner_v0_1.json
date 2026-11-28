@@ -192,7 +192,8 @@
         "authorization_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
         "calibration_receipt_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
         "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
-        "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        "expected_artifact_contract_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "outcome_model_owner_namespace": "owner:forecast-model-team"
       }
     ],
     "excluded_actions": [
@@ -205,6 +206,9 @@
     "assurance_state_mutated": false,
     "physical_work_authorized": false,
     "engineering_acceptance_granted": false,
-    "evsi_numerator_scale": 1000000000000
+    "evsi_numerator_scale": 1000000000000,
+    "configuration_ref": "configuration:wing-r17",
+    "as_known_at_unix_ms": 1795517000000,
+    "unresolved_obligation_manifest_sha256": "6782060301d9e43cb51a2d710cece3cb036200a3ec2fe48181232c20cf6d6309"
   }
 }
