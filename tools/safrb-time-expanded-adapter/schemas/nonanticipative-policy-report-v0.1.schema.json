@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/nonanticipative-policy-report-v0.1.schema.json",
+  "title": "SAFRB Non-anticipative Policy Report v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tree_id",
+    "tree_sha256",
+    "disposition",
+    "here_and_now_feasible",
+    "full_recourse_feasible",
+    "full_recourse_assumption",
+    "minimum_common_preposition_units",
+    "minimum_full_recourse_units",
+    "resource_units_saved_by_recourse",
+    "preposition_allocation_space_size",
+    "policy_sha256",
+    "plan",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-nonanticipative-preposition-policy-v0.1"
+    },
+    "tree_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tree_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "disposition": {
+      "enum": [
+        "here_and_now_feasible",
+        "full_recourse_only",
+        "not_feasible_within_supplied_tree"
+      ]
+    },
+    "here_and_now_feasible": {
+      "type": "boolean"
+    },
+    "full_recourse_feasible": {
+      "type": "boolean"
+    },
+    "preposition_allocation_space_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "policy_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "plan": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/plan"
+        }
+      ]
+    },
+    "claim_ceiling": {
+      "const": "Exact finite two-site, one-resource, two-stage non-anticipative pre-positioning result for the supplied synthetic scenario tree only; no scenario-set completeness, evidence authority, probabilities, physical asset qualification, dispatch authorization or actual beneficiary-service claim."
+    },
+    "minimum_common_preposition_units": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Exact minimum resource count required by one common pre-observation allocation across all scenario leaves."
+    },
+    "minimum_full_recourse_units": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Exact minimum resource count required when each scenario may allocate after its distinguishing observation."
+    },
+    "full_recourse_assumption": {
+      "type": "string",
+      "const": "scenario_observed_before_zero_time_repositioning",
+      "description": "Full recourse is an information relaxation assuming the scenario is observed before repositioning and ignoring travel time, relocation cost and movement constraints."
+    },
+    "resource_units_saved_by_recourse": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Difference between the minimum common pre-positioning units and minimum full-recourse units. This is a physical-unit recourse premium, not money or monetary value of information."
+    }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_node_id",
+        "preposition_site_a",
+        "preposition_site_b",
+        "deliver_site_a",
+        "deliver_site_b"
+      ],
+      "properties": {
+        "decision_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preposition_site_a": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "preposition_site_b": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deliver_site_a": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deliver_site_b": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actions"
+      ],
+      "properties": {
+        "actions": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        }
+      }
+    }
+  },
+  "description": "Here-and-now feasibility requires one pre-positioning allocation shared across all indistinguishable pre-observation histories. Full-recourse feasibility is reported separately and permits scenario-specific allocation after the event is observed. Full-recourse feasibility is an idealized zero-time repositioning information bound, not a physical dispatch feasibility claim."
+}

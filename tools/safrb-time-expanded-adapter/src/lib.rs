@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub mod beneficiary_floors;
 pub mod robust_floor_scenarios;
+pub mod nonanticipative_policy;
 pub mod temporal_profile;
 pub mod temporal_verify;
 
