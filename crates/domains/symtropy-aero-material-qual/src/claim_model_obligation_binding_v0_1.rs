@@ -11,7 +11,7 @@
 use super::assurance_disposition_v0_1::ObligationKindV0_1;
 use super::claim_obligation_evidence_binding_v0_1::{
     bind_claim_obligation_evidence_v0_1, ClaimObligationEvidenceBindingDispositionV0_1,
-    ClaimObligationEvidenceBindingInputV0_1, EvidenceBindingEffectivityStateV0_1,
+    ClaimObligationEvidenceBindingInputV0_1, EvidenceEffectivityStateV0_1,
     EvidenceBindingIntegrityStateV0_1, EvidenceProducerAuthorityStateV0_1,
     EvidenceTemporalStateV0_1,
 };
@@ -523,6 +523,14 @@ pub fn bind_claim_model_obligations_v0_1(
         Err(_) => return reject("MODEL_OBLIGATION_MODEL_CUT_INVALID"),
     };
     let mut reasons = BTreeSet::new();
+    if model.package_status == ModelPackageStatus::Rejected {
+        reasons.insert("MODEL_CREDIBILITY_PACKAGE_REJECTED".to_owned());
+    }
+    if model.split_integrity_status == SplitIntegrityStatus::LeakageDetected {
+        reasons.insert("MODEL_CREDIBILITY_CONFIRMATORY_SPLIT_LEAKAGE_REJECTED".to_owned());
+    } else if model.split_integrity_status == SplitIntegrityStatus::Unverified {
+        reasons.insert("MODEL_CREDIBILITY_CONFIRMATORY_SPLIT_UNVERIFIED".to_owned());
+    }
     for (code, condition) in [
         ("MODEL_OBLIGATION_CLAIM_ID_MISMATCH", model.claim_id != spec.claim_id),
         ("MODEL_OBLIGATION_CONFIGURATION_MISMATCH", model.configuration_ref != context.configuration_ref),
@@ -551,7 +559,7 @@ pub fn bind_claim_model_obligations_v0_1(
             != EvidenceProducerAuthorityStateV0_1::Authorized
         || evidence_record.temporal_state != EvidenceTemporalStateV0_1::KnownAtCutoff
         || evidence_record.effectivity_state
-            != EvidenceBindingEffectivityStateV0_1::CoversAcquisitionInterval
+            != EvidenceEffectivityStateV0_1::CoversAcquisitionInterval
         || !evidence_record.reason_codes.is_empty()
     {
         reasons.insert("MODEL_OBLIGATION_SOURCE_RECORD_NOT_ADMITTED".to_owned());
