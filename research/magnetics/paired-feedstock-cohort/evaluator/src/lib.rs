@@ -287,8 +287,8 @@ pub fn evaluate_paired_cohort(
         .collect::<BTreeMap<_, _>>();
 
     let mut pair_evaluations = Vec::new();
-    let mut hard_recovered_failure = false;
-    let mut hard_virgin_failure = false;
+    let mut observed_yield_inferior = false;
+    let mut definitely_inferior = false;
     let mut unresolved_pair = false;
     let mut all_pairs_noninferior = !cohort.pair_blocks.is_empty();
     let mut improvement_intersection: Option<BTreeSet<String>> = None;
@@ -372,6 +372,7 @@ pub fn evaluate_paired_cohort(
                     }
                 };
                 if definitely_worse {
+                    definitely_inferior = true;
                     pair_blockers.push(Blocker::NoninferiorityViolation);
                 } else {
                     unresolved_pair = true;
@@ -427,7 +428,7 @@ pub fn evaluate_paired_cohort(
             + spec.first_pass_yield_noninferiority_margin
             < summary.virgin_first_pass_yield
         {
-            hard_recovered_failure = true;
+            observed_yield_inferior = true;
             global_blockers.push(Blocker::FirstPassYieldInferior);
         }
     }
@@ -442,10 +443,8 @@ pub fn evaluate_paired_cohort(
         Decision::NotComparable
     } else if global_blockers.contains(&Blocker::RecoveredHardFailure) {
         Decision::Fail
-    } else if hard_recovered_failure {
+    } else if observed_yield_inferior || definitely_inferior {
         Decision::InferiorToVirgin
-    } else if hard_virgin_failure {
-        Decision::Indeterminate
     } else if unresolved_pair
         || !all_pairs_noninferior
         || global_blockers.iter().any(is_evidence_blocker)
@@ -483,7 +482,7 @@ fn validate_spec(spec: &CohortSpec) -> Vec<Blocker> {
         || spec.scope.feedstock_form_id.trim().is_empty()
         || spec.metrics.is_empty()
         || spec.minimum_independent_lot_pairs < 3
-        || spec.minimum_build_pairs_per_lot < 1
+        || spec.minimum_build_pairs_per_lot < 3
         || !spec.first_pass_yield_noninferiority_margin.is_finite()
         || spec.first_pass_yield_noninferiority_margin < 0.0
     {
@@ -637,11 +636,13 @@ fn validate_build(
     blockers: &mut Vec<Blocker>,
 ) {
     if build.build_id.trim().is_empty()
-        || build.pair_block_id != block.pair_block_id
         || build.specimen_id.trim().is_empty()
         || build.blind_sample_id.trim().is_empty()
     {
         blockers.push(Blocker::MissingIdentity);
+    }
+    if build.pair_block_id != block.pair_block_id {
+        blockers.push(Blocker::PairBlockBuildMismatch);
     }
     if build.scope != spec.scope {
         blockers.push(Blocker::ScopeMismatch);
@@ -801,6 +802,7 @@ fn is_not_comparable_blocker(blocker: &Blocker) -> bool {
         blocker,
         Blocker::InvalidSpec
             | Blocker::InvalidDigest
+            | Blocker::MissingIdentity
             | Blocker::DuplicateMetricSpec
             | Blocker::DuplicateLotPair
             | Blocker::DuplicateSourceLot
