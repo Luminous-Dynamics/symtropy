@@ -184,7 +184,7 @@ Compose rather than duplicate:
 - #7831 owns the tiny two-site, one-resource pre-positioning reference and its zero-time information-relaxation boundary.
 - #7795 owns robust beneficiary floors under explicit recourse.
 - #7761 owns coherent joint capacity scenarios.
-- #7837 owns structural admission of evidence-bound dynamic capacity schedules.
+- #7837 owns structural admission of evidence-bound dynamic capacity schedules; [#7894](https://github.com/Luminous-Dynamics/symtropy/issues/7894) owns the mobility consumer integration.
 - #7764 owns benchmark preregistration and run identity.
 - Mycelix remains the owner of issuer identity, rights, provenance and source-independence.
 
@@ -275,7 +275,7 @@ The draft implementation is now present on the stacked branch:
 - `tools/safrb-time-expanded-adapter/README.md` records the model ceiling and claim boundary.
 - The Rust exact-head workflow has been added to the mobility branch's push qualification list and is triggered by the PR's source changes.
 
-The test suite includes frozen cases for (a) zero-time feasibility with physically late arrival, (b) observation available before departure, (c) observation available only after the departure decision, (d) in-transit resource unavailability, (e) parallel logical routes sharing a physical corridor, (f) route closure with late observation, (g) insufficient total mobile units, and (h) mutated policy/history digests. It also contains 250 deterministic tiny instances verified through a separate scenario-trajectory enumeration and non-anticipativity join.
+The test suite includes frozen cases for (a) zero-time feasibility with physically late arrival, (b) observation available before departure, (c) observation available only after the departure decision, (d) in-transit resource unavailability, (e) parallel logical routes sharing a physical corridor, (f) route closure with late observation, (g) insufficient total mobile units, and (h) mutated policy/history digests, (i) arrival exactly on a service boundary, and (j) directed-route non-reciprocity. It also contains 250 deterministic tiny instances verified through a separate scenario-trajectory enumeration and non-anticipativity join.
 
 **Qualification remains pending.** The latest commit is not yet reported as passing exact-head formatting, Clippy, Rust tests or independent portable certificate conformance. No runtime, scale, SOTA, field or operational result is claimed. A failed or queued runner is not a pass.
 
