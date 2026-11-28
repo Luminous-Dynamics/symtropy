@@ -1,0 +1,114 @@
+[
+  {
+    "source_id": "SILVA-FERRITE-SPOKE-2025",
+    "citation": "Silva et al., Experimental Validation of a Spoke Type Ferrite Permanent Magnet Machine Design for Heavy-Duty Traction Applications",
+    "year": 2025,
+    "published": "2025-12-06",
+    "journal": "IET Electric Power Applications",
+    "volume": 19,
+    "issue": 1,
+    "article": "e70133",
+    "doi": "10.1049/elp2.70133",
+    "url": "https://doi.org/10.1049/elp2.70133",
+    "evidence_class": "physical_prototype_normal_operation_plus_fault_FEM_design",
+    "reported_findings": {
+      "application": "18-ton heavy-duty vehicle",
+      "peak_power_kw": 260,
+      "demagnetization_safety_factor_design_constraint": 1.3,
+      "mechanical_safety_factor_design_constraint": 2,
+      "normal_efficiency_map_points": 115,
+      "maximum_back_emf_change_during_normal_map_percent": 0.14,
+      "fault_design_method": "Optimize torque after symmetric short-circuit event; demagnetization safety factor is minimum temperature-dependent Hcj divided by bulk PM field magnitude."
+    },
+    "limitations": [
+      "Prototype physically tested across normal operating points; short-circuit demagnetization and post-fault torque were evaluated in FEM/design workflow, not by an executed physical fault campaign described in the paper.",
+      "The 1.3 demagnetization and 2.0 mechanical safety factors are study-specific design constraints, not universal limits.",
+      "A few efficiency operating points are not a matched whole-mission-cycle result.",
+      "External evidence, not Luminous physical evidence."
+    ]
+  },
+  {
+    "source_id": "REDUCED-REE-STRUCTURAL-REVIEW-2026",
+    "citation": "Liu et al., A review of structural design for reduced-rare-earth permanent magnet motors in new energy vehicles",
+    "year": 2026,
+    "published": "2026-09-23",
+    "journal": "Frontiers in Mechanical Engineering",
+    "volume": 12,
+    "doi": "10.3389/fmech.2026.1957624",
+    "url": "https://doi.org/10.3389/fmech.2026.1957624",
+    "evidence_class": "peer_reviewed_review",
+    "reported_findings": [
+      "Compares SynRM, SRM, EESM, induction and ferrite-assisted architectures.",
+      "Identifies irreversible demagnetization of low-coercivity magnets and mechanical deformation of flux-barrier rotors as persistent challenges.",
+      "Discusses optimized flux barriers, spoke topology, direct oil cooling, temperature-aware control, grain-boundary diffusion and iron nitride magnets."
+    ],
+    "limitations": [
+      "Review-level synthesis; qualitative topology ranking is not a matched experimental result."
+    ]
+  },
+  {
+    "source_id": "TB-GRAIN-BOUNDARY-DIFFUSION-2025",
+    "citation": "Li et al., Enhancing coercivity and thermal stability in high-remanence Nd-Fe-B magnets via TbF3 grain boundary diffusion",
+    "year": 2025,
+    "published": "2025-12-01",
+    "journal": "Acta Materialia",
+    "volume": 301,
+    "article": 121176,
+    "doi": "10.1016/j.actamat.2025.121176",
+    "url": "https://doi.org/10.1016/j.actamat.2025.121176",
+    "evidence_class": "peer_reviewed_materials_experiment",
+    "reported_findings": {
+      "initial_remanence_kGs": 14.92,
+      "initial_coercivity_kOe": 9.92,
+      "room_temperature_coercivity_gain_percent": 84,
+      "post_diffusion_coercivity_kOe": 18.25,
+      "remanence_reduction_kGs": 0.31,
+      "elevated_temperature_coercivity_kOe_at_150C": 5.3
+    },
+    "limitations": [
+      "Tb is a heavy rare earth; this route is not rare-earth-free or automatically lower-critical-element.",
+      "Material-level coercivity/thermal stability does not establish motor post-fault service.",
+      "Study-specific material and diffusion process; not Luminous evidence."
+    ]
+  },
+  {
+    "source_id": "IRON-BASED-MAGNETS-REVIEW-2025",
+    "citation": "Park et al., Rare-Earth-Free Iron-Based Permanent Magnets: Progress, Challenges, and Perspectives",
+    "year": 2025,
+    "published": "2025-10-25",
+    "journal": "MetalMat",
+    "volume": 2,
+    "issue": 4,
+    "article": "e70022",
+    "doi": "10.1002/metm.70022",
+    "url": "https://doi.org/10.1002/metm.70022",
+    "evidence_class": "peer_reviewed_review",
+    "reported_findings": [
+      "Reviews Fe-Co, ordered Fe-Ni/tetrataenite, alpha-double-prime Fe16N2, iron phosphides and borides.",
+      "Experimental translation remains constrained by phase stability, grain size and processing.",
+      "Fe16N2 phase control and elevated-temperature stability remain key commercialization barriers."
+    ],
+    "limitations": [
+      "Theoretical or thin-film magnetic values are not equivalent to stable bulk traction magnet components."
+    ]
+  },
+  {
+    "source_id": "FE16N2-ALLOYING-2026",
+    "citation": "Zhao et al., Optimizing alpha-double-prime Fe16N2 as a permanent magnet via alloying",
+    "year": 2026,
+    "published": "2026-01-15",
+    "journal": "Acta Materialia",
+    "volume": 303,
+    "article": 121721,
+    "doi": "10.1016/j.actamat.2025.121721",
+    "url": "https://doi.org/10.1016/j.actamat.2025.121721",
+    "evidence_class": "high_throughput_DFT_computational_study",
+    "reported_findings": {
+      "alloying_elements_screened": 27,
+      "Co_Mo_W_predicted_magnetocrystalline_anisotropy_MJ_per_m3": "1.9–2.4 at room temperature"
+    },
+    "limitations": [
+      "Computational screening, not bulk magnet or motor experiment; stability and manufacturability are not established."
+    ]
+  }
+]
