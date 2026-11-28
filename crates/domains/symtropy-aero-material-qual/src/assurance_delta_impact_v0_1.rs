@@ -622,6 +622,11 @@ pub fn evaluate_assurance_delta_impact_v0_1(
     for obligation in obligations {
         let reachable_from_claim = claim_root_closure.contains(&obligation.node_id);
         let closure = dependency_closure(&obligation.node_id, &graph_adjacency);
+        if !reachable_from_claim {
+            incomplete.push(obligation.node_id.clone());
+            reason_codes.insert("AERO_DELTA_OBLIGATION_NOT_REACHABLE_FROM_CLAIM_ROOT".to_owned());
+            continue;
+        }
         if let Some(path) =
             dependency_path(&obligation.node_id, changed_node_id, &graph_adjacency)
         {
@@ -632,8 +637,7 @@ pub fn evaluate_assurance_delta_impact_v0_1(
             continue;
         }
 
-        let closure_complete = reachable_from_claim
-            && claim_root_complete
+        let closure_complete = claim_root_complete
             && graph.coverage_status == DependencyCoverageStatusV0_1::Complete
             && closure.iter().all(|node_id| {
                 node_map
@@ -861,6 +865,24 @@ mod tests {
         assert!(!assessment.engineering_change_approved);
         assert!(!assessment.physical_work_authorized);
         assert!(!assessment.engineering_acceptance_granted);
+    }
+
+    #[test]
+    fn orphan_obligation_is_incomplete_even_when_it_has_a_path_to_the_change() {
+        let mut graph = graph();
+        graph.edges.retain(|edge| {
+            !(edge.dependent_node_id == "claim:wing-panel-strength"
+                && edge.dependency_node_id == "obligation:material-lot")
+        });
+        let assessment = evaluate_assurance_delta_impact_v0_1(&input(graph));
+        assert_eq!(assessment.disposition, AssuranceDeltaDispositionV0_1::IncompleteImpact);
+        assert!(assessment.affected_obligations.is_empty());
+        assert!(assessment
+            .incomplete_obligation_ids
+            .contains(&"obligation:material-lot".to_owned()));
+        assert!(assessment.reason_codes.contains(
+            &"AERO_DELTA_OBLIGATION_NOT_REACHABLE_FROM_CLAIM_ROOT".to_owned()
+        ));
     }
 
     #[test]
