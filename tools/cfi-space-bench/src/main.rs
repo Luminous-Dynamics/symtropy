@@ -696,7 +696,7 @@ fn summarize_pose_metrics(metrics: &[PoseMetric]) -> Option<PoseSummary> {
 }
 
 fn validate_ledger(ledger: &EvaluatorLedger) -> Result<(), String> {
-    if ledger.schema_version != 1 {
+    if ledger.schema_version != 2 {
         return Err(format!(
             "unsupported evaluator ledger schema_version {}",
             ledger.schema_version
@@ -1255,6 +1255,73 @@ mod tests {
         let common = score.pose_metrics.iter().find(|row| row.episode_id == "episode-a-common").unwrap();
         assert!((common.translation_error_m - 0.5).abs() < 1e-9);
         assert!((common.rotation_error_deg - 45.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn antipodal_quaternions_have_zero_rotation_error() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        let score =
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).unwrap();
+
+        assert_eq!(score.pose_metrics.len(), 2);
+        assert!(score.pose_metrics.iter().all(|row| row.rotation_error_rad.abs() < 1e-12));
+    }
+
+    #[test]
+    fn qualified_pose_with_non_unit_quaternion_is_rejected() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[0].pose.as_mut().unwrap().orientation_xyzw = [0.0, 0.0, 0.0, 2.0];
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn pose_coordinate_frame_substitution_is_rejected() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[0].pose.as_mut().unwrap().coordinate_frame =
+            "world_inertial".to_string();
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn qualified_output_must_include_pose_and_region_and_abstention_must_not() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let ledger: EvaluatorLedger = parse(LEDGER);
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[0].uncertainty_region = None;
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+
+        let mut predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+        predictions.predictions[1].pose = Some(predictions.predictions[0].pose.clone().unwrap());
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
+    }
+
+    #[test]
+    fn invalid_ground_truth_annotation_digest_is_rejected() {
+        let manifest: CandidateManifest = parse(MANIFEST);
+        let mut ledger: EvaluatorLedger = parse(LEDGER);
+        ledger.episodes[0].ground_truth_pose.annotation_sha256 = "not-a-digest".to_string();
+        let predictions: PredictionFile = parse(SAFE_PREDICTIONS);
+
+        assert!(
+            validate_and_score(&manifest, &ledger, &predictions, Path::new(REPO_ROOT)).is_err()
+        );
     }
 
     #[test]
