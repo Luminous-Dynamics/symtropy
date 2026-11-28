@@ -1,0 +1,652 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "SyntheticControl fixture only; no physical inventory or accepted service claim.",
+  "spec": {
+    "benchmark_id": "CRITICAL-MATERIAL-001",
+    "scope": {
+      "application_id": "TRACTION-50KW-001",
+      "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "inverter_control_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "cooling_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "objective_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "required_elements": [
+      {
+        "element_id": "Nd",
+        "unit": "g",
+        "no_worse_margin_g_per_mwh": 1,
+        "improvement_margin_g_per_mwh": 0.1
+      },
+      {
+        "element_id": "Dy",
+        "unit": "g",
+        "no_worse_margin_g_per_mwh": 0.2,
+        "improvement_margin_g_per_mwh": 0.1
+      },
+      {
+        "element_id": "Cu",
+        "unit": "g",
+        "no_worse_margin_g_per_mwh": 10,
+        "improvement_margin_g_per_mwh": 1
+      }
+    ],
+    "required_baseline_families": [
+      "ConventionalSinteredPm",
+      "PmAssistedSynrm"
+    ],
+    "minimum_optimization_evaluations": 100,
+    "minimum_independent_restarts": 3,
+    "optimization_budget_tier": "B1",
+    "minimum_completed_missions": 10,
+    "service_noninferiority_margin_kwh": 35
+  },
+  "trials": [
+    {
+      "architecture_id": "AM-HYBRID",
+      "family": "AmHybridArchitecture",
+      "role": "Candidate",
+      "scope": {
+        "application_id": "TRACTION-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "inverter_control_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "cooling_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "objective_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "acceptance": {
+        "component_id": "AM-HYBRID",
+        "specimen_id": "SPEC-AM-HYBRID",
+        "receipt_id": "SYNTHETIC-ACCEPT-AM-HYBRID",
+        "receipt_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "evidence_class": "SyntheticControl",
+        "physical_evidence_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "service": {
+        "receipt_id": "SYNTHETIC-SERVICE-AM-HYBRID",
+        "receipt_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "component_id": "AM-HYBRID",
+        "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "evidence_class": "SyntheticControl",
+        "service_basis": "DurabilityTestedService",
+        "useful_shaft_energy_per_mission_kwh": {
+          "lower": 49.9,
+          "upper": 50.1
+        },
+        "completed_mission_count": {
+          "lower": 99.9,
+          "upper": 100.1
+        },
+        "durability_receipt_id": "SYNTHETIC-DURABILITY-AM-HYBRID",
+        "durability_receipt_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "method_id": "SYNTHETIC-SHAFT-ENERGY",
+        "calibration_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "instrument_id": "SYNTHETIC-DYNAMOMETER"
+      },
+      "optimization": {
+        "receipt_id": "SYNTHETIC-OPT-AM-HYBRID",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "optimizer_id": "SYNTHETIC-OPTIMIZER",
+        "search_space_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "constraint_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "protocol_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluations": 500,
+        "independent_restarts": 5,
+        "budget_tier": "B1",
+        "frozen_before_unseal": true
+      },
+      "material_lots": [
+        {
+          "material_lot_id": "MAG-AM-HYBRID",
+          "component_id": "AM-HYBRID",
+          "material_family_id": "NdFeB-magnet",
+          "origin": "Virgin",
+          "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "material_mass_g": {
+            "lower": 649.99,
+            "upper": 650.01
+          },
+          "mass_evidence_id": "SYNTHETIC-MASS-MAG-AM-HYBRID",
+          "mass_evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "mass_method_id": "SYNTHETIC-SCALE",
+          "mass_calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "mass_uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "mass_laboratory_id": "SYNTHETIC-METROLOGY-LAB",
+          "mass_laboratory_method_scope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mass_evidence_class": "SyntheticControl",
+          "element_assays": [
+            {
+              "element_id": "Nd",
+              "mass_fraction": {
+                "lower": 0.27990000000000004,
+                "upper": 0.2801
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Nd-2",
+              "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Dy",
+              "mass_fraction": {
+                "lower": 0.0214,
+                "upper": 0.021599999999999998
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Dy-3",
+              "evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Cu",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Cu-4",
+              "evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            }
+          ]
+        },
+        {
+          "material_lot_id": "CU-AM-HYBRID",
+          "component_id": "AM-HYBRID",
+          "material_family_id": "Copper-winding",
+          "origin": "Virgin",
+          "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "material_mass_g": {
+            "lower": 499.99,
+            "upper": 500.01
+          },
+          "mass_evidence_id": "SYNTHETIC-MASS-CU-AM-HYBRID",
+          "mass_evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "mass_method_id": "SYNTHETIC-SCALE",
+          "mass_calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "mass_uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "mass_laboratory_id": "SYNTHETIC-METROLOGY-LAB",
+          "mass_laboratory_method_scope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mass_evidence_class": "SyntheticControl",
+          "element_assays": [
+            {
+              "element_id": "Nd",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Nd-3",
+              "evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Dy",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Dy-4",
+              "evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Cu",
+              "mass_fraction": {
+                "lower": 0.6999,
+                "upper": 0.7001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Cu-5",
+              "evidence_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "architecture_id": "SINTERED-IPM",
+      "family": "ConventionalSinteredPm",
+      "role": "RequiredBaseline",
+      "scope": {
+        "application_id": "TRACTION-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "inverter_control_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "cooling_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "objective_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "acceptance": {
+        "component_id": "SINTERED-IPM",
+        "specimen_id": "SPEC-SINTERED-IPM",
+        "receipt_id": "SYNTHETIC-ACCEPT-SINTERED-IPM",
+        "receipt_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "evidence_class": "SyntheticControl",
+        "physical_evidence_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "service": {
+        "receipt_id": "SYNTHETIC-SERVICE-SINTERED-IPM",
+        "receipt_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "component_id": "SINTERED-IPM",
+        "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "evidence_class": "SyntheticControl",
+        "service_basis": "DurabilityTestedService",
+        "useful_shaft_energy_per_mission_kwh": {
+          "lower": 49.9,
+          "upper": 50.1
+        },
+        "completed_mission_count": {
+          "lower": 99.9,
+          "upper": 100.1
+        },
+        "durability_receipt_id": "SYNTHETIC-DURABILITY-SINTERED-IPM",
+        "durability_receipt_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "method_id": "SYNTHETIC-SHAFT-ENERGY",
+        "calibration_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "instrument_id": "SYNTHETIC-DYNAMOMETER"
+      },
+      "optimization": {
+        "receipt_id": "SYNTHETIC-OPT-SINTERED-IPM",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "optimizer_id": "SYNTHETIC-OPTIMIZER",
+        "search_space_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "constraint_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "protocol_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluations": 500,
+        "independent_restarts": 5,
+        "budget_tier": "B1",
+        "frozen_before_unseal": true
+      },
+      "material_lots": [
+        {
+          "material_lot_id": "MAG-SINTERED-IPM",
+          "component_id": "SINTERED-IPM",
+          "material_family_id": "NdFeB-magnet",
+          "origin": "Virgin",
+          "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "material_mass_g": {
+            "lower": 999.99,
+            "upper": 1000.01
+          },
+          "mass_evidence_id": "SYNTHETIC-MASS-MAG-SINTERED-IPM",
+          "mass_evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "mass_method_id": "SYNTHETIC-SCALE",
+          "mass_calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "mass_uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "mass_laboratory_id": "SYNTHETIC-METROLOGY-LAB",
+          "mass_laboratory_method_scope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mass_evidence_class": "SyntheticControl",
+          "element_assays": [
+            {
+              "element_id": "Nd",
+              "mass_fraction": {
+                "lower": 0.27990000000000004,
+                "upper": 0.2801
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Nd-2",
+              "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Dy",
+              "mass_fraction": {
+                "lower": 0.0199,
+                "upper": 0.0201
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Dy-3",
+              "evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Cu",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Cu-4",
+              "evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            }
+          ]
+        },
+        {
+          "material_lot_id": "CU-SINTERED-IPM",
+          "component_id": "SINTERED-IPM",
+          "material_family_id": "Copper-winding",
+          "origin": "Virgin",
+          "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "material_mass_g": {
+            "lower": 499.99,
+            "upper": 500.01
+          },
+          "mass_evidence_id": "SYNTHETIC-MASS-CU-SINTERED-IPM",
+          "mass_evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "mass_method_id": "SYNTHETIC-SCALE",
+          "mass_calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "mass_uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "mass_laboratory_id": "SYNTHETIC-METROLOGY-LAB",
+          "mass_laboratory_method_scope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mass_evidence_class": "SyntheticControl",
+          "element_assays": [
+            {
+              "element_id": "Nd",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Nd-3",
+              "evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Dy",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Dy-4",
+              "evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Cu",
+              "mass_fraction": {
+                "lower": 0.6999,
+                "upper": 0.7001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Cu-5",
+              "evidence_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "architecture_id": "PMASS-SYNRM",
+      "family": "PmAssistedSynrm",
+      "role": "RequiredBaseline",
+      "scope": {
+        "application_id": "TRACTION-50KW-001",
+        "target_function_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "inverter_control_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "cooling_boundary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "objective_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "acceptance": {
+        "component_id": "PMASS-SYNRM",
+        "specimen_id": "SPEC-PMASS-SYNRM",
+        "receipt_id": "SYNTHETIC-ACCEPT-PMASS-SYNRM",
+        "receipt_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "maturity": "M4",
+        "disposition": "Qualified",
+        "evidence_class": "SyntheticControl",
+        "physical_evidence_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "service": {
+        "receipt_id": "SYNTHETIC-SERVICE-PMASS-SYNRM",
+        "receipt_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "component_id": "PMASS-SYNRM",
+        "duty_profile_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "system_boundary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "evidence_class": "SyntheticControl",
+        "service_basis": "DurabilityTestedService",
+        "useful_shaft_energy_per_mission_kwh": {
+          "lower": 49.9,
+          "upper": 50.1
+        },
+        "completed_mission_count": {
+          "lower": 99.9,
+          "upper": 100.1
+        },
+        "durability_receipt_id": "SYNTHETIC-DURABILITY-PMASS-SYNRM",
+        "durability_receipt_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "method_id": "SYNTHETIC-SHAFT-ENERGY",
+        "calibration_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "instrument_id": "SYNTHETIC-DYNAMOMETER"
+      },
+      "optimization": {
+        "receipt_id": "SYNTHETIC-OPT-PMASS-SYNRM",
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "optimizer_id": "SYNTHETIC-OPTIMIZER",
+        "search_space_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "constraint_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "protocol_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evaluations": 500,
+        "independent_restarts": 5,
+        "budget_tier": "B1",
+        "frozen_before_unseal": true
+      },
+      "material_lots": [
+        {
+          "material_lot_id": "MAG-PMASS-SYNRM",
+          "component_id": "PMASS-SYNRM",
+          "material_family_id": "NdFeB-magnet",
+          "origin": "Virgin",
+          "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "material_mass_g": {
+            "lower": 699.99,
+            "upper": 700.01
+          },
+          "mass_evidence_id": "SYNTHETIC-MASS-MAG-PMASS-SYNRM",
+          "mass_evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "mass_method_id": "SYNTHETIC-SCALE",
+          "mass_calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "mass_uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "mass_laboratory_id": "SYNTHETIC-METROLOGY-LAB",
+          "mass_laboratory_method_scope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mass_evidence_class": "SyntheticControl",
+          "element_assays": [
+            {
+              "element_id": "Nd",
+              "mass_fraction": {
+                "lower": 0.27990000000000004,
+                "upper": 0.2801
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Nd-2",
+              "evidence_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Dy",
+              "mass_fraction": {
+                "lower": 0.0199,
+                "upper": 0.0201
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Dy-3",
+              "evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Cu",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Cu-4",
+              "evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            }
+          ]
+        },
+        {
+          "material_lot_id": "CU-PMASS-SYNRM",
+          "component_id": "PMASS-SYNRM",
+          "material_family_id": "Copper-winding",
+          "origin": "Virgin",
+          "scope_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "material_mass_g": {
+            "lower": 499.99,
+            "upper": 500.01
+          },
+          "mass_evidence_id": "SYNTHETIC-MASS-CU-PMASS-SYNRM",
+          "mass_evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "mass_method_id": "SYNTHETIC-SCALE",
+          "mass_calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "mass_uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "mass_laboratory_id": "SYNTHETIC-METROLOGY-LAB",
+          "mass_laboratory_method_scope_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "mass_evidence_class": "SyntheticControl",
+          "element_assays": [
+            {
+              "element_id": "Nd",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Nd-3",
+              "evidence_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Dy",
+              "mass_fraction": {
+                "lower": 0,
+                "upper": 0.0001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Dy-4",
+              "evidence_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            },
+            {
+              "element_id": "Cu",
+              "mass_fraction": {
+                "lower": 0.6999,
+                "upper": 0.7001
+              },
+              "evidence_id": "SYNTHETIC-ASSAY-Cu-5",
+              "evidence_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+              "method_id": "SYNTHETIC-ICP-MS",
+              "calibration_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uncertainty_record_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+              "laboratory_id": "SYNTHETIC-LAB",
+              "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "evidence_class": "SyntheticControl"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "expected": {
+    "candidate_decisions": {
+      "AM-HYBRID": "Indeterminate"
+    }
+  }
+}
