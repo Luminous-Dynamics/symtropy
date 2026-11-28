@@ -98,6 +98,7 @@ impl Interval {
 pub struct AssaySpec {
     pub assay_id: String,
     pub unit: String,
+    pub laboratory_method_scope_digest: String,
     pub minimum: Option<f64>,
     pub maximum: Option<f64>,
 }
@@ -115,6 +116,7 @@ pub struct RouteSpec {
     pub process_revision_digest: String,
     pub feedstock_input_mass_mg: Interval,
     pub added_input_mass_mg: Interval,
+    pub required_output_kinds: Vec<OutputKind>,
     pub required_assays: Vec<AssaySpec>,
 }
 
@@ -161,6 +163,7 @@ pub struct AssayObservation {
     pub method_id: String,
     pub calibration_digest: String,
     pub uncertainty_record_digest: String,
+    pub laboratory_method_scope_digest: String,
     pub laboratory_id: String,
     pub evidence_class: EvidenceClass,
 }
@@ -197,6 +200,7 @@ pub enum Blocker {
     ProcessReceiptScopeMismatch,
     NonProductionProcessEvidence,
     MissingOutputStream,
+    MissingOutputKind,
     MissingMagnetProduct,
     DuplicateOutputStream,
     DuplicateOutputLot,
@@ -213,6 +217,7 @@ pub enum Blocker {
     ExtraAssay,
     AssayScopeMismatch,
     AssayUnitMismatch,
+    AssayMethodScopeMismatch,
     InvalidAssayInterval,
     InadmissibleAssayEvidence,
     MissingAssayMethod,
@@ -414,6 +419,12 @@ pub fn evaluate_route(
         blockers.push(Blocker::MissingMagnetProduct);
         unresolved = true;
     }
+    for required_kind in &spec.required_output_kinds {
+        if !process.outputs.iter().any(|output| output.kind == *required_kind) {
+            blockers.push(Blocker::MissingOutputKind);
+            unresolved = true;
+        }
+    }
 
     if input_mass.is_nonnegative() && output_mass.is_nonnegative() {
         if !input_mass.overlaps(output_mass) {
@@ -462,6 +473,12 @@ pub fn evaluate_route(
         let mut assay_unresolved = false;
         if observation.unit != required.unit {
             assay_blockers.push(Blocker::AssayUnitMismatch);
+            not_comparable = true;
+        }
+        if observation.laboratory_method_scope_digest
+            != required.laboratory_method_scope_digest
+        {
+            assay_blockers.push(Blocker::AssayMethodScopeMismatch);
             not_comparable = true;
         }
         if !observation.value.is_valid() {
@@ -570,7 +587,7 @@ pub fn evaluate_route(
         source_lot_id: spec.source_lot_id.clone(),
         product_lot_id: spec.product_lot_id.clone(),
         route: spec.route,
-        expected_output_streams: 2,
+        expected_output_streams: spec.required_output_kinds.len(),
         observed_output_streams: process.outputs.len(),
         input_mass_mg: input_mass.is_valid().then_some(input_mass),
         output_mass_mg: output_mass.is_valid().then_some(output_mass),
@@ -601,13 +618,21 @@ fn validate_spec(spec: &RouteSpec) -> Vec<Blocker> {
     {
         blockers.push(Blocker::InvalidInputMass);
     }
-    if spec.required_assays.is_empty() {
+    if spec.required_assays.is_empty() || spec.required_output_kinds.is_empty() {
         blockers.push(Blocker::InvalidSpec);
+    }
+    let mut required_kinds = BTreeSet::new();
+    for kind in &spec.required_output_kinds {
+        if !required_kinds.insert(*kind) {
+            blockers.push(Blocker::InvalidSpec);
+        }
     }
     let mut assays = BTreeSet::new();
     for assay in &spec.required_assays {
         if assay.assay_id.trim().is_empty()
             || assay.unit.trim().is_empty()
+            || !valid_digest(&assay.laboratory_method_scope_digest)
+            || (assay.minimum.is_none() && assay.maximum.is_none())
             || !assays.insert(assay.assay_id.as_str())
             || assay.minimum.is_some_and(|value| !value.is_finite())
             || assay.maximum.is_some_and(|value| !value.is_finite())
@@ -696,22 +721,29 @@ mod tests {
             process_revision_digest: digest('c'),
             feedstock_input_mass_mg: Interval::new(999.0, 1001.0),
             added_input_mass_mg: Interval::new(99.0, 101.0),
+            required_output_kinds: vec![
+                OutputKind::MagnetProduct,
+                OutputKind::BinderOrLubricantResidue,
+            ],
             required_assays: vec![
                 AssaySpec {
                     assay_id: "carbon_wt_percent".to_string(),
                     unit: "wt%".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
                     minimum: None,
                     maximum: Some(0.06),
                 },
                 AssaySpec {
                     assay_id: "oxygen_increase_wt_percent_points".to_string(),
                     unit: "wt%-points".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
                     minimum: None,
                     maximum: Some(0.50),
                 },
                 AssaySpec {
                     assay_id: "remanence_to_saturation_ratio".to_string(),
                     unit: "ratio".to_string(),
+                    laboratory_method_scope_digest: digest('4'),
                     minimum: Some(0.90),
                     maximum: Some(1.00),
                 },
@@ -776,6 +808,7 @@ mod tests {
             method_id: format!("METHOD-{assay_id}"),
             calibration_digest: digest('2'),
             uncertainty_record_digest: digest('3'),
+            laboratory_method_scope_digest: digest('4'),
             laboratory_id: "LAB-METHOD-SCOPE-001".to_string(),
             evidence_class: EvidenceClass::PhysicalMeasurement,
         }
@@ -1092,6 +1125,35 @@ mod tests {
             .unwrap();
         assert_eq!(alignment.interval, Interval::new(0.95, 0.97));
         assert_eq!(result.disposition, Disposition::QualifiedFeedstockRoute);
+    }
+
+    #[test]
+    fn required_output_stream_kinds_are_explicit_not_assumed() {
+        let specification = spec();
+        let mut process_evidence = process(&specification);
+        process_evidence.outputs.retain(|item| item.kind != OutputKind::BinderOrLubricantResidue);
+        let result = evaluate(
+            &specification,
+            &process_evidence,
+            &eligibility(&specification),
+        );
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result.blockers.contains(&Blocker::MissingOutputKind));
+        assert_eq!(result.expected_output_streams, 2);
+    }
+
+    #[test]
+    fn assay_method_scope_must_match_the_declared_laboratory_scope() {
+        let specification = spec();
+        let mut process_evidence = process(&specification);
+        process_evidence.assays[1].laboratory_method_scope_digest = digest('0');
+        let result = evaluate(
+            &specification,
+            &process_evidence,
+            &eligibility(&specification),
+        );
+        assert_eq!(result.disposition, Disposition::NotComparable);
+        assert!(result.blockers.contains(&Blocker::AssayMethodScopeMismatch));
     }
 
     #[test]
