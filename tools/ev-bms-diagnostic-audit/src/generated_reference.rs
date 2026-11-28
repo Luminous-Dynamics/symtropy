@@ -142,7 +142,10 @@ fn canonicalize(value: &mut Value) {
     if let Some(classes) = value.get_mut("fault_classes").and_then(Value::as_array_mut) {
         classes.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
     }
-    if let Some(levels) = value.get_mut("severity_levels").and_then(Value::as_array_mut) {
+    if let Some(levels) = value
+        .get_mut("severity_levels")
+        .and_then(Value::as_array_mut)
+    {
         levels.sort_by(|left, right| left.as_str().cmp(&right.as_str()));
     }
 }
@@ -155,11 +158,20 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         ("dataset_id", manifest.dataset_id.as_str()),
         ("title", manifest.title.as_str()),
         ("paper_url", manifest.paper_url.as_str()),
-        ("source_repository_url", manifest.source_repository_url.as_str()),
+        (
+            "source_repository_url",
+            manifest.source_repository_url.as_str(),
+        ),
         ("release_url", manifest.release_url.as_str()),
         ("release_tag", manifest.release_tag.as_str()),
-        ("release_published_on", manifest.release_published_on.as_str()),
-        ("metadata_retrieved_on", manifest.metadata_retrieved_on.as_str()),
+        (
+            "release_published_on",
+            manifest.release_published_on.as_str(),
+        ),
+        (
+            "metadata_retrieved_on",
+            manifest.metadata_retrieved_on.as_str(),
+        ),
         ("claim_ceiling", manifest.claim_ceiling.as_str()),
     ] {
         if !nonempty(value) {
@@ -176,7 +188,8 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         || manifest.release_published_on != "2025-09-15"
     {
         return Err(
-            "CH-BatteryGen source identity does not match the pinned ICLR/GitHub release".to_owned(),
+            "CH-BatteryGen source identity does not match the pinned ICLR/GitHub release"
+                .to_owned(),
         );
     }
     if manifest.license_spdx != "CC-BY-NC-SA-4.0"
@@ -224,9 +237,7 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         }
         chemistry_total += chemistry.generated_pack_instance_count;
     }
-    if chemistry_total != manifest.generated_pack_instance_count
-        || chemistries.len() != 2
-    {
+    if chemistry_total != manifest.generated_pack_instance_count || chemistries.len() != 2 {
         return Err("chemistry counts do not reconcile to generated pack total".to_owned());
     }
     let expected_classes = [
@@ -241,14 +252,24 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
     if classes.len() != 4
-        || expected_classes.iter().any(|class| !classes.contains(class))
-        || manifest.severity_levels.iter().map(String::as_str).collect::<BTreeSet<_>>()
+        || expected_classes
+            .iter()
+            .any(|class| !classes.contains(class))
+        || manifest
+            .severity_levels
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>()
             != ["mild", "moderate", "severe"].into_iter().collect()
         || manifest.severity_levels.len() != 3
     {
         return Err("fault taxonomy or severity levels do not match the paper".to_owned());
     }
-    if manifest.pack_topologies_cell_count.iter().copied().collect::<BTreeSet<_>>()
+    if manifest
+        .pack_topologies_cell_count
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
         != [28, 92, 96, 124].into_iter().collect()
         || manifest.pack_topologies_cell_count.len() != 4
     {
@@ -288,9 +309,7 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
     ];
     let mut assets = BTreeSet::new();
     for asset in &manifest.assets {
-        if !assets.insert(asset.name.as_str())
-            || !is_sha256(&asset.publisher_sha256)
-        {
+        if !assets.insert(asset.name.as_str()) || !is_sha256(&asset.publisher_sha256) {
             return Err("asset names must be unique and publisher hashes valid".to_owned());
         }
         if asset
@@ -303,22 +322,34 @@ fn validate_manifest(manifest: &GeneratedReferenceManifest) -> Result<(), String
     }
     for (name, size, digest) in expected_assets {
         if !manifest.assets.iter().any(|asset| {
-            asset.name == name
-                && asset.size_bytes == size
-                && asset.publisher_sha256 == digest
+            asset.name == name && asset.size_bytes == size && asset.publisher_sha256 == digest
         }) {
-            return Err(format!("CH-BatteryGen release asset metadata mismatch for {name}"));
+            return Err(format!(
+                "CH-BatteryGen release asset metadata mismatch for {name}"
+            ));
         }
     }
-    let total_bytes = manifest.assets.iter().map(|asset| asset.size_bytes).sum::<u64>();
+    let total_bytes = manifest
+        .assets
+        .iter()
+        .map(|asset| asset.size_bytes)
+        .sum::<u64>();
     if manifest.admission_state == "metadata_only" {
-        if manifest.assets.iter().any(|asset| asset.local_sha256.is_some()) {
+        if manifest
+            .assets
+            .iter()
+            .any(|asset| asset.local_sha256.is_some())
+        {
             return Err(
                 "metadata_only manifest cannot claim locally verified release files".to_owned(),
             );
         }
     } else if manifest.admission_state == "snapshot_admitted" {
-        if manifest.assets.iter().any(|asset| asset.local_sha256.is_none()) {
+        if manifest
+            .assets
+            .iter()
+            .any(|asset| asset.local_sha256.is_none())
+        {
             return Err(
                 "snapshot_admitted requires local SHA-256 for every release asset".to_owned(),
             );
@@ -356,8 +387,8 @@ pub fn audit_generated_reference(
         .build(&schema)
         .map_err(|error| format!("generated-reference schema compilation: {error}"))?;
 
-    let mut value: Value =
-        serde_json::from_slice(manifest_bytes).map_err(|error| format!("manifest JSON: {error}"))?;
+    let mut value: Value = serde_json::from_slice(manifest_bytes)
+        .map_err(|error| format!("manifest JSON: {error}"))?;
     canonicalize(&mut value);
     if let Err(error) = validator.validate(&value) {
         return Err(format!("generated-reference schema validation: {error}"));
@@ -485,7 +516,10 @@ mod tests {
         value["assets"].as_array_mut().unwrap().reverse();
         let bytes = serde_json::to_vec(&value).expect("permuted manifest");
         let second = audit_generated_reference(SCHEMA, &bytes).expect("permuted manifest");
-        assert_eq!(first.canonical_manifest_sha256, second.canonical_manifest_sha256);
+        assert_eq!(
+            first.canonical_manifest_sha256,
+            second.canonical_manifest_sha256
+        );
         assert_eq!(first.report_sha256, second.report_sha256);
     }
 }
