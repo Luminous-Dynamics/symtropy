@@ -603,7 +603,7 @@ fn campaign_report(
     if expected_actual_files != actual_output_files {
         return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_INVENTORY_MISMATCH".to_owned());
     }
-    let candidate_outputs_verified_n = output_seals.len();
+    let mut candidate_outputs_verified_n = 0_usize;
     let global_output_integrity_failure =
         !run_completed || !output_entry_errors.is_empty() || !extra_output_files.is_empty();
     let global_output_failure_reason = if !run_completed {
@@ -709,6 +709,9 @@ fn campaign_report(
             if submission_bytes.len() as u64 != *submission_byte_length {
                 return Err("CANDIDATE_SUBMISSION_OUTPUT_LENGTH_MISMATCH".to_owned());
             }
+            // Count only after evaluator-side digest and byte-length verification,
+            // not merely because the supervisor listed the artifact in its receipt.
+            candidate_outputs_verified_n += 1;
             let world_pack_sha = evaluator_seals
                 .get(&world_pack_name)
                 .ok_or_else(|| "EVALUATOR_WORLD_PACK_SEAL_MISSING".to_owned())?;
