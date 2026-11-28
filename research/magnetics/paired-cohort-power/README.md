@@ -33,10 +33,13 @@ This conservative rule preserves equal nested precision for the simple cluster-l
 For every candidate design, the evaluator simulates the null at the non-inferiority boundary and the alternative at the preregistered expected effect. It evaluates all four corners of the between-lot and within-lot standard-deviation intervals, so the design is not approved from a single optimistic plug-in variance.
 
 It reports:
-- null rejection probability and 95% Wilson interval (type-I error);
-- alternative rejection probability and 95% Wilson interval (power);
+- type-I rejection probability and 95% Wilson interval conditional on a null simulation having enough complete lot pairs to run the test;
+- operational alternative power and 95% Wilson interval across all planned simulations, where a simulation with insufficient complete pairs counts as no successful conclusion;
+- null and alternative analysis coverage;
 - mean analyzable source-lot pairs;
 - probability of falling below the minimum analyzable lot-pair count.
+
+This avoids making type-I control look better merely because many simulations could not run the inferential test, while still penalizing attrition in operational power.
 
 Familywise alpha is divided by the preregistered endpoint count using Bonferroni. Candidate seeds and Monte Carlo replication counts are part of the design record.
 
