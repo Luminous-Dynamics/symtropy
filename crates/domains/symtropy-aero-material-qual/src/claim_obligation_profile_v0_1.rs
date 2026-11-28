@@ -557,7 +557,8 @@ mod tests {
         .profile
         .expect("baseline profile")
         .obligation_manifest_sha256;
-        specification.population.required_strata.pop();
+        specification.population.required_strata[0].level_ref =
+            "level:changed-load-case".to_owned();
         let after = derive_claim_obligation_profile_v0_1(
             &specification,
             RegisteredClaimRequirementProfileV0_1::AeroScalarEngineeringClaimV0_1,
