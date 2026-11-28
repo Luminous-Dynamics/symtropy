@@ -13,10 +13,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub mod assurance_disposition_v0_1;
 pub mod claim_assurance_gate_v0_1;
-pub mod claim_specification_v0_1;
-pub mod claim_specification_binding_v0_1;
-pub mod claim_obligation_profile_v0_1;
 pub mod claim_gate_disposition_crosswalk_v0_1;
+pub mod claim_obligation_profile_v0_1;
+pub mod claim_specification_binding_v0_1;
+pub mod claim_specification_v0_1;
 pub mod decision_context_v0_1;
 pub mod effectivity_interval_v0_1;
 pub mod evidence_binding_v0_2;
