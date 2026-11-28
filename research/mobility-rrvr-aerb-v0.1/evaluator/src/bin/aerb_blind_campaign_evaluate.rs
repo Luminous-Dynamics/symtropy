@@ -991,6 +991,7 @@ fn run() -> Result<(), String> {
         || report.unexpected_output_entry_n > 0
         || report.structurally_invalid_n > 0
         || report.candidate_contract_valid_n != report.scheduled_n
+        || report.disposition_admissible_n != report.scheduled_n
         || report.unsafe_fresh_attempt_n > 0
         || !report.candidate_surface_audit.passed
     {
