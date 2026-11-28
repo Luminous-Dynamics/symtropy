@@ -94,6 +94,8 @@ pub struct EventCensoringReport {
     pub unobservable_event_count: usize,
     pub definite_warning_count: usize,
     pub possible_only_warning_count: usize,
+    pub possible_pre_onset_only_warning_count: usize,
+    pub ambiguous_ordering_warning_count: usize,
     pub possible_warning_count: usize,
     pub event_miss_count: usize,
     pub definite_warning_coverage_fraction: Option<f64>,
@@ -461,6 +463,8 @@ fn validate_and_evaluate(
     let mut unobservable_events = 0usize;
     let mut definite_warnings = 0usize;
     let mut possible_only_warnings = 0usize;
+    let mut possible_pre_onset_only_warnings = 0usize;
+    let mut ambiguous_ordering_warnings = 0usize;
     let mut misses = 0usize;
     let mut actionable_warnings = 0usize;
     let mut primary_alarms = 0usize;
@@ -473,13 +477,14 @@ fn validate_and_evaluate(
 
     for event in &manifest.events {
         let Some(lower) = event.onset_lower_unix_ms else {
-            left_ambiguous_alarm_count += alarm_refs
-                .iter()
-                .filter(|alarm| {
-                    alarm.asset_id == event.asset_id
-                        && alarm.alarm_time_unix_ms < event.onset_upper_unix_ms
-                })
-                .count();
+            for alarm in alarm_refs.iter().filter(|alarm| {
+                alarm.asset_id == event.asset_id
+                    && alarm.alarm_time_unix_ms < event.onset_upper_unix_ms
+                    && !assigned_alarm_ids.contains(&alarm.alarm_id)
+            }) {
+                assigned_alarm_ids.insert(alarm.alarm_id.clone());
+                left_ambiguous_alarm_count += 1;
+            }
             continue;
         };
 
@@ -518,6 +523,9 @@ fn validate_and_evaluate(
         if !complete {
             unobservable_events += 1;
             unobservable_event_alarm_count += matching.len();
+            for alarm in &matching {
+                assigned_alarm_ids.insert(alarm.alarm_id.clone());
+            }
         } else {
             eligible_events += 1;
             if let Some(primary) = matching.first() {
@@ -534,14 +542,19 @@ fn validate_and_evaluate(
                             actionable_warnings += 1;
                         }
                     }
-                    if primary.alarm_time_unix_ms < lower {
-                        let lead_low = (lower - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
-                        let lead_high = (event.onset_upper_unix_ms - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
-                        lead_lower_hours.push(lead_low);
-                        lead_upper_hours.push(lead_high);
-                    }
                 } else {
                     possible_only_warnings += 1;
+                    if primary.alarm_time_unix_ms < lower {
+                        possible_pre_onset_only_warnings += 1;
+                    } else {
+                        ambiguous_ordering_warnings += 1;
+                    }
+                }
+                if primary.alarm_time_unix_ms < lower {
+                    let lead_low = (lower - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
+                    let lead_high = (event.onset_upper_unix_ms - primary.alarm_time_unix_ms) as f64 / HOUR_MS;
+                    lead_lower_hours.push(lead_low);
+                    lead_upper_hours.push(lead_high);
                 }
             } else {
                 misses += 1;
@@ -622,6 +635,8 @@ fn validate_and_evaluate(
         unobservable_event_count: unobservable_events,
         definite_warning_count: definite_warnings,
         possible_only_warning_count: possible_only_warnings,
+        possible_pre_onset_only_warning_count: possible_pre_onset_only_warnings,
+        ambiguous_ordering_warning_count: ambiguous_ordering_warnings,
         possible_warning_count: definite_warnings + possible_only_warnings,
         event_miss_count: misses,
         definite_warning_coverage_fraction: definite_coverage,
@@ -729,6 +744,8 @@ mod tests {
         assert_eq!(report.unobservable_event_count, 0);
         assert_eq!(report.definite_warning_count, 1);
         assert_eq!(report.possible_only_warning_count, 1);
+        assert_eq!(report.possible_pre_onset_only_warning_count, 0);
+        assert_eq!(report.ambiguous_ordering_warning_count, 1);
         assert_eq!(report.event_miss_count, 1);
         assert!((report.definite_warning_coverage_fraction.unwrap() - (1.0 / 3.0)).abs() < 1e-12);
         assert!((report.possible_warning_coverage_fraction.unwrap() - (2.0 / 3.0)).abs() < 1e-12);
@@ -764,10 +781,22 @@ mod tests {
     fn incomplete_possible_warning_coverage_is_unobservable_not_a_miss() {
         let mut value: Value = serde_json::from_slice(FIXTURE).expect("fixture JSON");
         let exposures = value["exposures"].as_array_mut().unwrap();
-        exposures.retain(|exposure| {
-            !(exposure["asset_id"] == "asset-event"
-                && exposure["window_start_unix_ms"] == Value::from(276_u64 * 3_600_000))
-        });
+        let intervals = exposures;
+        let third = intervals
+            .iter_mut()
+            .find(|exposure| {
+                exposure["asset_id"] == "asset-event"
+                    && exposure["window_start_unix_ms"] == Value::from(276_u64 * 3_600_000)
+            })
+            .expect("third event monitoring interval");
+        third["window_end_unix_ms"] = Value::from(300_u64 * 3_600_000);
+        intervals.push(serde_json::json!({
+            "exposure_id": "exp-event-003b",
+            "asset_id": "asset-event",
+            "role": "event_monitoring",
+            "window_start_unix_ms": 310_u64 * 3_600_000,
+            "window_end_unix_ms": 341_u64 * 3_600_000
+        }));
         let bytes = serde_json::to_vec(&value).expect("coverage gap manifest");
         let report = audit_event_censoring_evaluation(SCHEMA, &bytes).expect("gapped evaluation");
         assert_eq!(report.unobservable_event_count, 1);
