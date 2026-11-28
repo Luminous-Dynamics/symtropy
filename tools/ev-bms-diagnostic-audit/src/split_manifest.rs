@@ -7,6 +7,9 @@ use std::collections::{BTreeMap, BTreeSet};
 const MANIFEST_VERSION: &str = "ev-bms-split-manifest/v0.1";
 const SCHEMA_ID: &str = "https://luminousdynamics.io/schemas/transport/ev-bms-split-manifest/0.1";
 
+type TemporalWindow = (u64, u64, String);
+type TemporalWindowIndex = BTreeMap<(String, String), Vec<TemporalWindow>>;
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SplitManifest {
@@ -258,7 +261,7 @@ fn validate_manifest(manifest: &SplitManifest) -> Result<SplitAuditReport, Strin
     let mut record_digests = BTreeSet::new();
     let mut primary_group_owners: BTreeMap<String, String> = BTreeMap::new();
     let mut leakage_owners: BTreeMap<(String, String), String> = BTreeMap::new();
-    let mut temporal_windows: BTreeMap<(String, String), Vec<(u64, u64, String)>> = BTreeMap::new();
+    let mut temporal_windows: TemporalWindowIndex = BTreeMap::new();
     let mut partition_summaries = Vec::new();
     let mut total_records = 0usize;
     let mut all_primary_groups = BTreeSet::new();
