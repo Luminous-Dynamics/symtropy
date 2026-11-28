@@ -8,24 +8,22 @@
 //! the public truth crosswalk and emits no variant/world label into the bundle.
 
 use av_observation_replay_v0::{
-    AgentObservationBundleV1, AgentObservationV1, ArtifactRefV1, BoundedTimeV1,
-    CaptureIntervalV1, ClockDomainV1, ColorRangeV1, ColorSpaceV1, PixelFormatV1,
-    ReplayCursorV1, SCHEMA_VERSION_V1, TransportDispositionV1, TransportEventV1,
-    VideoFrameObservationV1, read_verified_artifact_under_root_v1, sha256_hex_v1,
-    validate_bundle_v1, verify_artifact_bytes_v1,
+    AgentObservationBundleV1, AgentObservationV1, ArtifactRefV1, BoundedTimeV1, CaptureIntervalV1,
+    ClockDomainV1, ColorRangeV1, ColorSpaceV1, PixelFormatV1, ReplayCursorV1, SCHEMA_VERSION_V1,
+    TransportDispositionV1, TransportEventV1, VideoFrameObservationV1,
+    read_verified_artifact_under_root_v1, sha256_hex_v1, validate_bundle_v1,
+    verify_artifact_bytes_v1,
 };
 use serde_json::{Value, json};
 use std::{
-    env, error::Error, fs,
+    env,
+    error::Error,
+    fs,
     path::{Path, PathBuf},
 };
 
 const EXPECTED_CAPTURE_SECS: [f64; 3] = [1.5, 4.0, 7.0];
-const EXPECTED_NAMES: [&str; 3] = [
-    "frame-0001.rgba8",
-    "frame-0002.rgba8",
-    "frame-0003.rgba8",
-];
+const EXPECTED_NAMES: [&str; 3] = ["frame-0001.rgba8", "frame-0002.rgba8", "frame-0003.rgba8"];
 const MAX_PROFILE_BYTES: u64 = 1024 * 1024;
 const MAX_FRAME_BYTES: u64 = 128 * 1024 * 1024;
 const STREAM_ID: &str = "room-twin-01-agent-observation-stream-v1";
@@ -33,7 +31,9 @@ const STREAM_ID: &str = "room-twin-01-agent-observation-stream-v1";
 fn read_json_limited(path: &Path, max_bytes: u64) -> Result<(Vec<u8>, Value), Box<dyn Error>> {
     let metadata = fs::metadata(path)?;
     if !metadata.is_file() || metadata.len() > max_bytes {
-        return Err(format!("input JSON is not a regular file or exceeds {max_bytes} bytes").into());
+        return Err(
+            format!("input JSON is not a regular file or exceeds {max_bytes} bytes").into(),
+        );
     }
     let bytes = fs::read(path)?;
     if u64::try_from(bytes.len())? != metadata.len() {
@@ -72,7 +72,9 @@ fn read_input_frame(root: &Path, name: &str, expected_len: u64) -> Result<Vec<u8
     Ok(bytes)
 }
 
-fn validate_camera_profile(profile: &Value) -> Result<(u32, u32, u64, ClockDomainV1), Box<dyn Error>> {
+fn validate_camera_profile(
+    profile: &Value,
+) -> Result<(u32, u32, u64, ClockDomainV1), Box<dyn Error>> {
     if profile["schema_version"] != 1
         || profile["fixture_id"] != "ROOM-TWIN-01"
         || profile["camera_profile_id"] != "room-twin-camera-v1"
@@ -144,9 +146,10 @@ fn validate_camera_profile(profile: &Value) -> Result<(u32, u32, u64, ClockDomai
         .as_array()
         .ok_or("camera profile lacks availability ticks")?;
     if ticks.len() != EXPECTED_CAPTURE_SECS.len()
-        || ticks.iter().enumerate().any(|(index, value)| {
-            value.as_u64() != Some((index + 1) as u64)
-        })
+        || ticks
+            .iter()
+            .enumerate()
+            .any(|(index, value)| value.as_u64() != Some((index + 1) as u64))
         || profile["transport"]["prefix_decision_cutoff_tick"] != 2
         || profile["transport"]["first_distinguishing_observation_tick"] != 3
     {
@@ -187,7 +190,11 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
 
     if output_dir.exists() {
-        return Err(format!("refusing to overwrite output directory {}", output_dir.display()).into());
+        return Err(format!(
+            "refusing to overwrite output directory {}",
+            output_dir.display()
+        )
+        .into());
     }
     let output_parent = output_dir
         .parent()
@@ -220,7 +227,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         fs::write(output_dir.join(&relative_path), &bytes)?;
         let reloaded = read_verified_artifact_under_root_v1(&output_dir, &artifact)?;
         if reloaded != bytes {
-            return Err(format!("exported artifact failed root-confined verification: {relative_path}").into());
+            return Err(format!(
+                "exported artifact failed root-confined verification: {relative_path}"
+            )
+            .into());
         }
 
         let capture_ns = seconds_to_ns(EXPECTED_CAPTURE_SECS[index])?;
@@ -297,7 +307,9 @@ fn run() -> Result<(), Box<dyn Error>> {
         || prefix_ticks != [1, 2]
         || cursor.pending_event_count() != 1
     {
-        return Err("prefix replay did not release only observations 1 and 2 at ticks 1 and 2".into());
+        return Err(
+            "prefix replay did not release only observations 1 and 2 at ticks 1 and 2".into(),
+        );
     }
     let reveal = cursor.advance_to(3)?;
     let reveal_ids: Vec<&str> = reveal
@@ -320,7 +332,10 @@ fn run() -> Result<(), Box<dyn Error>> {
         "reveal_observation_count_at_tick_3": reveal.len(),
         "claim_ceiling": "typed raw-frame agent observation bundle and deterministic #6201 replay-cursor semantics; not blind custody, physical calibration, candidate model correctness or spatial SOTA"
     });
-    fs::write(output_dir.join("import-report.json"), serde_json::to_vec_pretty(&report)?)?;
+    fs::write(
+        output_dir.join("import-report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
     println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(())
 }
@@ -335,7 +350,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     fn room_twin_rgb_profile() -> Value {
         json!({
