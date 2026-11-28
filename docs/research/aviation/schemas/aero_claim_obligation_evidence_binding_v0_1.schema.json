@@ -363,11 +363,11 @@
               },
               "lifecycle": {
                 "enum": [
-                  "Active",
-                  "Superseded",
-                  "Disputed",
-                  "Revoked",
-                  "Withdrawn"
+                  "active",
+                  "superseded",
+                  "disputed",
+                  "revoked",
+                  "withdrawn"
                 ]
               },
               "predecessor_ref": {
