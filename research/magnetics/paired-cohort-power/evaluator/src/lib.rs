@@ -124,7 +124,7 @@ pub struct PowerEvaluation {
 }
 
 pub fn evaluate_power_design(spec: &PowerSpec) -> PowerEvaluation {
-    let mut global_blockers = validate_spec(spec);
+    let global_blockers = validate_spec(spec);
     let alpha_per_endpoint = spec.familywise_alpha / f64::from(spec.multiplicity_endpoints);
     if !global_blockers.is_empty() {
         return PowerEvaluation {
@@ -173,7 +173,6 @@ pub fn evaluate_power_design(spec: &PowerSpec) -> PowerEvaluation {
         DesignDecision::Underpowered
     };
 
-    global_blockers.clear();
     PowerEvaluation {
         campaign_id: spec.campaign_id.clone(),
         endpoint_id: spec.endpoint_id.clone(),
@@ -295,7 +294,6 @@ fn simulate_scenario(
             within_sd,
             spec.build_pair_missing_probability,
             null_effect,
-            spec.minimum_independent_lot_pairs,
         );
         analyzable_total += u64::from(null_sample.len() as u32);
         if null_sample.len() < spec.minimum_independent_lot_pairs as usize {
@@ -311,7 +309,6 @@ fn simulate_scenario(
             within_sd,
             spec.build_pair_missing_probability,
             alternative_effect,
-            spec.minimum_independent_lot_pairs,
         );
         analyzable_total += u64::from(alternative_sample.len() as u32);
         if alternative_sample.len() < spec.minimum_independent_lot_pairs as usize {
@@ -344,7 +341,6 @@ fn simulate_lot_means(
     within_sd: f64,
     missing_probability: f64,
     mean_effect: f64,
-    minimum_analyzable_lots: u32,
 ) -> Vec<f64> {
     let mut means = Vec::with_capacity(candidate.independent_lot_pairs as usize);
     for _ in 0..candidate.independent_lot_pairs {
@@ -366,7 +362,6 @@ fn simulate_lot_means(
             means.push(build_differences.iter().sum::<f64>() / build_differences.len() as f64);
         }
     }
-    let _ = minimum_analyzable_lots;
     means
 }
 
