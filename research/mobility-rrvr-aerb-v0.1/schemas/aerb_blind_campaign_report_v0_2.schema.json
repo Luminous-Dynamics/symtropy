@@ -1,0 +1,429 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-blind-campaign-report-v0.2.schema.json",
+  "title": "AERB Blind Campaign Execution Report v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark",
+    "campaign_id",
+    "candidate_manifest_sha256",
+    "evaluator_manifest_sha256",
+    "custody_seal_sha256",
+    "scheduled_n",
+    "evaluated_n",
+    "structurally_invalid_n",
+    "candidate_contract_valid_n",
+    "candidate_contract_invalid_n",
+    "candidate_contract_valid_rate_of_scheduled",
+    "hidden_truth_covered_n",
+    "hidden_truth_support_coverage_rate_of_scheduled",
+    "open_world_residual_retained_n",
+    "open_world_residual_retention_rate_of_scheduled",
+    "disposition_admissible_n",
+    "disposition_admissibility_rate_of_scheduled",
+    "unsafe_fresh_attempt_n",
+    "mean_selected_worst_case_loss",
+    "mean_evaluator_truth_loss",
+    "world_strata",
+    "source_cluster_strata",
+    "metadata_leakage",
+    "invalid_episodes",
+    "statistical_interpretation",
+    "claim_ceiling",
+    "candidate_surface_audit",
+    "candidate_run_receipt_sha256",
+    "candidate_executable_sha256",
+    "runtime_bundle_sha256",
+    "sandbox_profile_sha256",
+    "candidate_run_completed",
+    "candidate_outputs_verified_n",
+    "unexpected_output_entry_n"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-blind-campaign-report-v0.2"
+    },
+    "benchmark": {
+      "const": "AERB"
+    },
+    "campaign_id": {
+      "type": "string",
+      "pattern": "^camp_[a-f0-9]{32}$"
+    },
+    "candidate_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "evaluator_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "custody_seal_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "scheduled_n": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "evaluated_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "structurally_invalid_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_contract_valid_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_contract_invalid_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "candidate_contract_valid_rate_of_scheduled": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "hidden_truth_covered_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hidden_truth_support_coverage_rate_of_scheduled": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "open_world_residual_retained_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "open_world_residual_retention_rate_of_scheduled": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "disposition_admissible_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "disposition_admissibility_rate_of_scheduled": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "unsafe_fresh_attempt_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "mean_selected_worst_case_loss": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "mean_evaluator_truth_loss": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "world_strata": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/stratum"
+      }
+    },
+    "source_cluster_strata": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/stratum"
+      }
+    },
+    "metadata_leakage": {
+      "$ref": "#/$defs/metadataLeakage"
+    },
+    "invalid_episodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/invalidEpisode"
+      }
+    },
+    "statistical_interpretation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidate_surface_audit": {
+      "$ref": "#/$defs/candidateSurfaceAudit"
+    },
+    "candidate_run_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_executable_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "runtime_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sandbox_profile_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_run_completed": {
+      "type": "boolean"
+    },
+    "candidate_outputs_verified_n": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unexpected_output_entry_n": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "stratum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_n",
+        "candidate_contract_valid_n",
+        "hidden_truth_covered_n",
+        "open_world_residual_retained_n",
+        "disposition_admissible_n",
+        "unsafe_fresh_attempt_n",
+        "support_size_sum",
+        "worst_case_loss_sum",
+        "evaluator_truth_loss_sum"
+      ],
+      "properties": {
+        "scenario_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_contract_valid_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hidden_truth_covered_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "open_world_residual_retained_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "disposition_admissible_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsafe_fresh_attempt_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "support_size_sum": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "worst_case_loss_sum": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evaluator_truth_loss_sum": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "invalidEpisode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode_id",
+        "reason"
+      ],
+      "properties": {
+        "episode_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "metadataLeakage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "campaign_id",
+        "sample_n",
+        "world_class_n",
+        "independent_cluster_n",
+        "fold_n",
+        "majority_baseline_accuracy",
+        "combined_metadata_only_accuracy",
+        "combined_metadata_only_balanced_accuracy",
+        "per_feature_scores",
+        "interpretation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "aerb-metadata-leakage-audit-v0.1"
+        },
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sample_n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "world_class_n": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "independent_cluster_n": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "fold_n": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "majority_baseline_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "combined_metadata_only_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "combined_metadata_only_balanced_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "per_feature_scores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "feature_name",
+              "sample_n",
+              "heldout_accuracy",
+              "majority_baseline_accuracy"
+            ],
+            "properties": {
+              "feature_name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sample_n": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "heldout_accuracy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "majority_baseline_accuracy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "candidateSurfaceAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "candidate_episode_n",
+        "candidate_submission_n",
+        "projection_receipt_n",
+        "finding_n",
+        "passed",
+        "findings",
+        "interpretation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "aerb-candidate-surface-audit-v0.1"
+        },
+        "candidate_episode_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_submission_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projection_receipt_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finding_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "location",
+              "finding_kind",
+              "token_sha256"
+            ],
+            "properties": {
+              "location": {
+                "type": "string",
+                "minLength": 1
+              },
+              "finding_kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "token_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/rrvr/aerb-candidate-run-receipt-v0.2.schema.json",
+  "title": "AERB Candidate Run Receipt v0.2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "candidate_manifest_sha256",
+    "candidate_executable_sha256",
+    "runtime_bundle_sha256",
+    "sandbox_profile_sha256",
+    "wall_timeout_seconds",
+    "outcome",
+    "output_artifacts",
+    "missing_episode_ids",
+    "unexpected_output_entries"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "aerb-candidate-run-receipt-v0.2"
+    },
+    "campaign_id": {
+      "type": "string",
+      "pattern": "^camp_[a-f0-9]{32}$"
+    },
+    "candidate_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "candidate_executable_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "runtime_bundle_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sandbox_profile_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "wall_timeout_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "outcome": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "exit_code"
+          ],
+          "properties": {
+            "state": {
+              "const": "completed"
+            },
+            "exit_code": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "exit_code"
+          ],
+          "properties": {
+            "state": {
+              "const": "exited_nonzero"
+            },
+            "exit_code": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "exit_code"
+          ],
+          "properties": {
+            "state": {
+              "const": "timed_out_unknown"
+            },
+            "exit_code": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "const": "terminated_without_exit_code"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason"
+          ],
+          "properties": {
+            "state": {
+              "const": "build_rejected"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason"
+          ],
+          "properties": {
+            "state": {
+              "const": "launch_failed_unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "output_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "episode_id",
+          "relative_file_name",
+          "sha256",
+          "byte_length"
+        ],
+        "properties": {
+          "episode_id": {
+            "type": "string",
+            "pattern": "^ep_[a-f0-9]{32}$"
+          },
+          "relative_file_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "missing_episode_ids": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^ep_[a-f0-9]{32}$"
+      }
+    },
+    "unexpected_output_entries": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  }
+}

@@ -21,8 +21,7 @@ use mobility_rrvr_aerb_evaluator::{
         BlindProjectionContext, BlindProjectionReceipt, MetadataAttackRow,
         CandidateSurfaceAudit, CandidateSurfaceFinding, MetadataLeakageReport,
         BlindProjectionSecretV0_1, audit_candidate_surface, audit_metadata_leakage,
-        candidate_metadata_features, project_candidate_episode,
-        project_candidate_submission, verify_projected_episode,
+        candidate_metadata_features, project_candidate_episode, verify_projected_episode,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -73,6 +72,42 @@ struct ReadyMarker {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(tag = "state", rename_all = "snake_case")]
+enum RunnerOutcome {
+    Completed { exit_code: i32 },
+    ExitedNonzero { exit_code: i32 },
+    TimedOutUnknown { exit_code: i32 },
+    TerminatedWithoutExitCode,
+    BuildRejected { reason: String },
+    LaunchFailedUnknown { reason: String },
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OutputArtifact {
+    episode_id: String,
+    relative_file_name: String,
+    sha256: String,
+    byte_length: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateRunReceipt {
+    schema_version: String,
+    campaign_id: String,
+    candidate_manifest_sha256: String,
+    candidate_executable_sha256: String,
+    runtime_bundle_sha256: String,
+    sandbox_profile_sha256: String,
+    wall_timeout_seconds: u64,
+    outcome: RunnerOutcome,
+    output_artifacts: Vec<OutputArtifact>,
+    missing_episode_ids: Vec<String>,
+    unexpected_output_entries: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct MetadataAuditInput {
     schema_version: String,
@@ -108,6 +143,13 @@ struct BlindCampaignReport {
     candidate_manifest_sha256: String,
     evaluator_manifest_sha256: String,
     custody_seal_sha256: String,
+    candidate_run_receipt_sha256: String,
+    candidate_executable_sha256: String,
+    runtime_bundle_sha256: String,
+    sandbox_profile_sha256: String,
+    candidate_run_completed: bool,
+    candidate_outputs_verified_n: usize,
+    unexpected_output_entry_n: usize,
     scheduled_n: usize,
     evaluated_n: usize,
     structurally_invalid_n: usize,
@@ -188,6 +230,69 @@ fn verify_directory_entries(root: &Path, expected: &BTreeSet<String>) -> Result<
         ));
     }
     Ok(())
+}
+
+fn inspect_output_directory(
+    root: &Path,
+    expected_submission_files: &BTreeSet<String>,
+) -> Result<(BTreeSet<String>, Vec<String>), String> {
+    let mut regular_files = BTreeSet::new();
+    let mut errors = Vec::new();
+    let entries = fs::read_dir(root)
+        .map_err(|error| format!("OUTPUT_DIRECTORY_READ_FAILED: {error}"))?;
+    for entry in entries {
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(_) => {
+                errors.push("UNREADABLE_DIRECTORY_ENTRY".to_owned());
+                continue;
+            }
+        };
+        let name = match entry.file_name().into_string() {
+            Ok(name) => name,
+            Err(_) => {
+                errors.push("NON_UTF8_OUTPUT_NAME".to_owned());
+                continue;
+            }
+        };
+        let metadata = match fs::symlink_metadata(entry.path()) {
+            Ok(metadata) => metadata,
+            Err(_) => {
+                errors.push(format!("{name}:METADATA_UNAVAILABLE"));
+                continue;
+            }
+        };
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            errors.push(format!("{name}:NOT_REGULAR_FILE"));
+            continue;
+        }
+        if metadata.len() > MAX_ARTIFACT_BYTES {
+            errors.push(format!("{name}:ARTIFACT_TOO_LARGE"));
+            continue;
+        }
+        if expected_submission_files.contains(&name) && fs::read(entry.path()).is_err() {
+            errors.push(format!("{name}:ARTIFACT_READ_FAILED"));
+            continue;
+        }
+        regular_files.insert(name);
+    }
+    errors.sort();
+    Ok((regular_files, errors))
+}
+
+fn run_outcome_succeeded(outcome: &RunnerOutcome) -> bool {
+    matches!(outcome, RunnerOutcome::Completed { exit_code: 0 })
+}
+
+fn run_outcome_label(outcome: &RunnerOutcome) -> String {
+    match outcome {
+        RunnerOutcome::Completed { exit_code } => format!("completed:{exit_code}"),
+        RunnerOutcome::ExitedNonzero { exit_code } => format!("nonzero_exit:{exit_code}"),
+        RunnerOutcome::TimedOutUnknown { exit_code } => format!("timeout_unknown:{exit_code}"),
+        RunnerOutcome::TerminatedWithoutExitCode => "terminated_without_exit_code".to_owned(),
+        RunnerOutcome::BuildRejected { reason } => format!("build_rejected:{reason}"),
+        RunnerOutcome::LaunchFailedUnknown { reason } => format!("launch_failed_unknown:{reason}"),
+    }
 }
 
 fn custody_commitment(seal: &CampaignCustodySeal) -> Result<String, String> {
@@ -314,20 +419,26 @@ fn write_report(root: &Path, path: &Path, report: &BlindCampaignReport) -> Resul
 }
 
 fn campaign_report(
-    candidate_root: &Path,
+    candidate_input_root: &Path,
+    candidate_output_root: &Path,
     evaluator_root: &Path,
 ) -> Result<BlindCampaignReport, String> {
-    let candidate_root = candidate_root
+    let candidate_root = candidate_input_root
         .canonicalize()
-        .map_err(|error| format!("CANDIDATE_ROOT_UNAVAILABLE: {error}"))?;
+        .map_err(|error| format!("CANDIDATE_INPUT_ROOT_UNAVAILABLE: {error}"))?;
+    let candidate_output_root = candidate_output_root
+        .canonicalize()
+        .map_err(|error| format!("CANDIDATE_OUTPUT_ROOT_UNAVAILABLE: {error}"))?;
     let evaluator_root = evaluator_root
         .canonicalize()
         .map_err(|error| format!("EVALUATOR_ROOT_UNAVAILABLE: {error}"))?;
-    if candidate_root == evaluator_root
-        || candidate_root.starts_with(&evaluator_root)
-        || evaluator_root.starts_with(&candidate_root)
-    {
-        return Err("CANDIDATE_AND_EVALUATOR_ROOTS_MUST_BE_DISJOINT".to_owned());
+    let roots = [&candidate_root, &candidate_output_root, &evaluator_root];
+    for (index, root) in roots.iter().enumerate() {
+        for other in roots.iter().skip(index + 1) {
+            if root == other || root.starts_with(other) || other.starts_with(root) {
+                return Err("CANDIDATE_INPUT_OUTPUT_AND_EVALUATOR_ROOTS_MUST_BE_PAIRWISE_DISJOINT".to_owned());
+            }
+        }
     }
 
     let candidate_manifest_bytes =
@@ -342,12 +453,28 @@ fn campaign_report(
         parse_json(&evaluator_manifest_bytes, "EVALUATOR_MANIFEST")?;
     let custody_seal: CampaignCustodySeal =
         parse_json(&custody_seal_bytes, "CAMPAIGN_CUSTODY_SEAL")?;
+    let run_receipt_bytes =
+        read_confined(&evaluator_root, "candidate-run-receipt.json")?;
+    let run_receipt: CandidateRunReceipt =
+        parse_json(&run_receipt_bytes, "CANDIDATE_RUN_RECEIPT")?;
 
     verify_post_run_reveal(&candidate_manifest, &evaluator_manifest)
         .map_err(|error| format!("BLIND_REVEAL_VERIFICATION_FAILED: {error}"))?;
     let candidate_manifest_sha256 = sha256_hex(&candidate_manifest_bytes);
     let evaluator_manifest_sha256 = sha256_hex(&evaluator_manifest_bytes);
     let custody_seal_sha256 = sha256_hex(&custody_seal_bytes);
+    let candidate_run_receipt_sha256 = sha256_hex(&run_receipt_bytes);
+    let run_completed = run_outcome_succeeded(&run_receipt.outcome);
+    if run_receipt.schema_version != "aerb-candidate-run-receipt-v0.2"
+        || run_receipt.campaign_id != candidate_manifest.campaign_id
+        || run_receipt.candidate_manifest_sha256 != candidate_manifest_sha256
+        || run_receipt.wall_timeout_seconds == 0
+        || !valid_sha256(&run_receipt.candidate_executable_sha256)
+        || !valid_sha256(&run_receipt.runtime_bundle_sha256)
+        || !valid_sha256(&run_receipt.sandbox_profile_sha256)
+    {
+        return Err("CANDIDATE_RUN_RECEIPT_BINDING_FAILED".to_owned());
+    }
     if custody_seal.schema_version != "aerb-blind-campaign-custody-v0.1"
         || custody_seal.campaign_id != candidate_manifest.campaign_id
         || custody_seal.candidate_manifest_sha256 != candidate_manifest_sha256
@@ -389,7 +516,7 @@ fn campaign_report(
 
     let candidate_seals = candidate_artifact_map(&custody_seal.candidate_artifacts)?;
     let evaluator_seals = artifact_map(&custody_seal.evaluator_artifacts)?;
-    if candidate_seals.len() != scenario_count * 2
+    if candidate_seals.len() != scenario_count
         || evaluator_seals.len() != scenario_count * 4 + 2
     {
         return Err("CAMPAIGN_CUSTODY_ARTIFACT_COUNT_MISMATCH".to_owned());
@@ -405,10 +532,12 @@ fn campaign_report(
         "metadata_attack_input.json".to_owned(),
         "campaign-custody-seal.json".to_owned(),
         "READY.json".to_owned(),
+        "candidate-run-receipt.json".to_owned(),
     ]);
+    let mut expected_output_files = BTreeSet::new();
     for assignment in &evaluator_manifest.assignments {
         expected_candidate_files.insert(format!("episode-{}.json", assignment.episode_id));
-        expected_candidate_files.insert(format!("submission-{}.json", assignment.episode_id));
+        expected_output_files.insert(format!("submission-{}.json", assignment.episode_id));
         expected_evaluator_files.insert(format!("world-pack-{}.json", assignment.episode_id));
         expected_evaluator_files.insert(format!("projection-receipt-{}.json", assignment.episode_id));
         expected_evaluator_files.insert(format!("source-episode-{}.json", assignment.episode_id));
@@ -416,6 +545,76 @@ fn campaign_report(
     }
     verify_directory_entries(&candidate_root, &expected_candidate_files)?;
     verify_directory_entries(&evaluator_root, &expected_evaluator_files)?;
+    let (actual_output_files, output_entry_errors) =
+        inspect_output_directory(&candidate_output_root, &expected_output_files)?;
+    let missing_output_files = expected_output_files
+        .difference(&actual_output_files)
+        .cloned()
+        .collect::<Vec<_>>();
+    let extra_output_files = actual_output_files
+        .difference(&expected_output_files)
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut receipt_output_ids = BTreeSet::new();
+    let mut output_seals = BTreeMap::<String, (String, u64)>::new();
+    for artifact in &run_receipt.output_artifacts {
+        if !valid_sha256(&artifact.sha256)
+            || artifact.byte_length > MAX_ARTIFACT_BYTES
+            || artifact.relative_file_name != format!("submission-{}.json", artifact.episode_id)
+            || !expected_output_files.contains(&artifact.relative_file_name)
+            || !receipt_output_ids.insert(artifact.episode_id.clone())
+        {
+            return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_ARTIFACT_INVALID".to_owned());
+        }
+        output_seals.insert(
+            artifact.relative_file_name.clone(),
+            (artifact.sha256.clone(), artifact.byte_length),
+        );
+    }
+    if output_seals.len() != run_receipt.output_artifacts.len() {
+        return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_DUPLICATE".to_owned());
+    }
+
+    let mut expected_missing_ids = expected_output_files
+        .iter()
+        .filter_map(|name| {
+            name.strip_prefix("submission-")
+                .and_then(|name| name.strip_suffix(".json"))
+                .map(str::to_owned)
+        })
+        .filter(|episode_id| !receipt_output_ids.contains(episode_id))
+        .collect::<Vec<_>>();
+    expected_missing_ids.sort();
+
+    let mut expected_unexpected = output_entry_errors.clone();
+    expected_unexpected.extend(extra_output_files.iter().cloned());
+    expected_unexpected.sort();
+    if run_receipt.missing_episode_ids != expected_missing_ids
+        || run_receipt.unexpected_output_entries != expected_unexpected
+    {
+        return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_INVENTORY_MISMATCH".to_owned());
+    }
+
+    let expected_actual_files = output_seals
+        .keys()
+        .cloned()
+        .chain(extra_output_files.iter().cloned())
+        .collect::<BTreeSet<_>>();
+    if expected_actual_files != actual_output_files {
+        return Err("CANDIDATE_RUN_RECEIPT_OUTPUT_INVENTORY_MISMATCH".to_owned());
+    }
+    let mut candidate_outputs_verified_n = 0_usize;
+    let global_output_integrity_failure =
+        !run_completed || !output_entry_errors.is_empty() || !extra_output_files.is_empty();
+    let global_output_failure_reason = if !run_completed {
+        format!("CANDIDATE_RUN_NOT_COMPLETED: {}", run_outcome_label(&run_receipt.outcome))
+    } else if !output_entry_errors.is_empty() {
+        format!("CANDIDATE_OUTPUT_ENTRY_ERROR: {}", output_entry_errors.join(","))
+    } else if !extra_output_files.is_empty() {
+        format!("UNEXPECTED_CANDIDATE_OUTPUTS: {}", extra_output_files.join(","))
+    } else {
+        String::new()
+    };
 
     let projection_secret_bytes = read_hash_sealed(
         &evaluator_root,
@@ -476,6 +675,21 @@ fn campaign_report(
         let source_episode_name = format!("source-episode-{episode_id}.json");
         let source_submission_name = format!("source-submission-{episode_id}.json");
 
+        if global_output_integrity_failure {
+            invalid.push(InvalidEpisode {
+                episode_id: episode_id.clone(),
+                reason: global_output_failure_reason.clone(),
+            });
+            continue;
+        }
+        if expected_missing_ids.binary_search(episode_id).is_ok() {
+            invalid.push(InvalidEpisode {
+                episode_id: episode_id.clone(),
+                reason: "CANDIDATE_SUBMISSION_MISSING".to_owned(),
+            });
+            continue;
+        }
+
         let episode_result = (|| -> Result<
             (EvaluatorReport, bool, String, String, String, BlindProjectionReceipt),
             String,
@@ -483,15 +697,21 @@ fn campaign_report(
             let episode_seal = candidate_seals
                 .get(&episode_name)
                 .ok_or_else(|| "CANDIDATE_EPISODE_SEAL_MISSING".to_owned())?;
-            let submission_seal = candidate_seals
-                .get(&submission_name)
-                .ok_or_else(|| "CANDIDATE_SUBMISSION_SEAL_MISSING".to_owned())?;
-            if episode_seal.0.as_str() != episode_id.as_str() || submission_seal.0.as_str() != episode_id.as_str() {
-                return Err("CANDIDATE_ARTIFACT_EPISODE_ID_MISMATCH".to_owned());
+            if episode_seal.0.as_str() != episode_id.as_str() {
+                return Err("CANDIDATE_EPISODE_ARTIFACT_ID_MISMATCH".to_owned());
             }
             let episode_bytes = read_hash_sealed(&candidate_root, &episode_name, &episode_seal.1)?;
+            let (submission_sha256, submission_byte_length) = output_seals
+                .get(&submission_name)
+                .ok_or_else(|| "CANDIDATE_SUBMISSION_OUTPUT_MISSING".to_owned())?;
             let submission_bytes =
-                read_hash_sealed(&candidate_root, &submission_name, &submission_seal.1)?;
+                read_hash_sealed(&candidate_output_root, &submission_name, submission_sha256)?;
+            if submission_bytes.len() as u64 != *submission_byte_length {
+                return Err("CANDIDATE_SUBMISSION_OUTPUT_LENGTH_MISMATCH".to_owned());
+            }
+            // Count only after evaluator-side digest and byte-length verification,
+            // not merely because the supervisor listed the artifact in its receipt.
+            candidate_outputs_verified_n += 1;
             let world_pack_sha = evaluator_seals
                 .get(&world_pack_name)
                 .ok_or_else(|| "EVALUATOR_WORLD_PACK_SEAL_MISSING".to_owned())?;
@@ -566,25 +786,13 @@ fn campaign_report(
                 return Err("PROJECTION_REPLAY_MISMATCH".to_owned());
             }
 
-            let recomputed_submission = project_candidate_submission(
-                &projection_context,
-                &original_submission,
-                &original_episode,
-                &recomputed_episode,
-                &recomputed_receipt,
-            )
-            .map_err(|error| format!("SUBMISSION_PROJECTION_REPLAY_FAILED: {error}"))?;
-            let recomputed_submission_json = serde_json::to_string(&recomputed_submission)
-                .map_err(|error| format!("SUBMISSION_REPLAY_SERIALIZATION_FAILED: {error}"))?;
-            let projected_submission_sha = canonical_sorted_json_sha256(&submission_json)
-                .map_err(|error| format!("PROJECTED_SUBMISSION_DIGEST_FAILED: {error}"))?;
-            let recomputed_submission_sha =
-                canonical_sorted_json_sha256(&recomputed_submission_json)
-                    .map_err(|error| format!("RECOMPUTED_SUBMISSION_DIGEST_FAILED: {error}"))?;
-            if projected_submission_sha != recomputed_submission_sha
-                || projected_submission.episode_id != *episode_id
-            {
-                return Err("SUBMISSION_PROJECTION_REPLAY_MISMATCH".to_owned());
+            if projected_submission.episode_id != *episode_id {
+                return Err("CANDIDATE_SUBMISSION_EPISODE_ID_MISMATCH".to_owned());
+            }
+            let projected_episode_snapshot = canonical_sorted_json_sha256(&episode_json)
+                .map_err(|error| format!("CANDIDATE_EPISODE_DIGEST_FAILED: {error}"))?;
+            if projected_submission.candidate_snapshot_sha256 != projected_episode_snapshot {
+                return Err("CANDIDATE_SUBMISSION_SNAPSHOT_DIGEST_MISMATCH".to_owned());
             }
 
             let metadata_row = metadata_by_episode
@@ -705,12 +913,19 @@ fn campaign_report(
     let scheduled = scenario_count as f64;
     let evaluated_denominator = evaluated_n.max(1) as f64;
     Ok(BlindCampaignReport {
-        schema_version: "aerb-blind-campaign-report-v0.1".to_owned(),
+        schema_version: "aerb-blind-campaign-report-v0.2".to_owned(),
         benchmark: "AERB".to_owned(),
         campaign_id: candidate_manifest.campaign_id,
         candidate_manifest_sha256,
         evaluator_manifest_sha256,
         custody_seal_sha256,
+        candidate_run_receipt_sha256,
+        candidate_executable_sha256: run_receipt.candidate_executable_sha256.clone(),
+        runtime_bundle_sha256: run_receipt.runtime_bundle_sha256.clone(),
+        sandbox_profile_sha256: run_receipt.sandbox_profile_sha256.clone(),
+        candidate_run_completed: run_completed,
+        candidate_outputs_verified_n,
+        unexpected_output_entry_n: run_receipt.unexpected_output_entries.len(),
         scheduled_n: scenario_count,
         evaluated_n,
         structurally_invalid_n: invalid.len(),
@@ -738,15 +953,16 @@ fn campaign_report(
 
 fn run() -> Result<(), String> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    if args.len() != 3 {
+    if args.len() != 4 {
         return Err(
-            "usage: aerb_blind_campaign_evaluate <candidate-directory> <evaluator-directory> <evaluator-report.json>"
+            "usage: aerb_blind_campaign_evaluate <candidate-input-directory> <candidate-output-directory> <evaluator-directory> <evaluator-report.json>"
                 .to_owned(),
         );
     }
-    let candidate_root = PathBuf::from(&args[0]);
-    let evaluator_root = PathBuf::from(&args[1]);
-    let report_path = PathBuf::from(&args[2]);
+    let candidate_input_root = PathBuf::from(&args[0]);
+    let candidate_output_root = PathBuf::from(&args[1]);
+    let evaluator_root = PathBuf::from(&args[2]);
+    let report_path = PathBuf::from(&args[3]);
     let report_parent = report_path
         .parent()
         .ok_or_else(|| "REPORT_PARENT_MISSING".to_owned())?
@@ -758,7 +974,7 @@ fn run() -> Result<(), String> {
     if report_parent != canonical_evaluator {
         return Err("EVALUATOR_REPORT_MUST_REMAIN_INSIDE_EVALUATOR_CUSTODY_ROOT".to_owned());
     }
-    let report = campaign_report(&candidate_root, &evaluator_root)?;
+    let report = campaign_report(&candidate_input_root, &candidate_output_root, &evaluator_root)?;
     write_report(&canonical_evaluator, &report_path, &report)?;
     println!(
         "AERB blind evaluator: scheduled={} evaluated={} structurally_invalid={} contract_valid={} unsafe_fresh={} metadata_only_balanced_accuracy={:.4}",
@@ -770,8 +986,12 @@ fn run() -> Result<(), String> {
         report.metadata_leakage.combined_metadata_only_balanced_accuracy
     );
     println!("Evaluator-only report is sealed to the campaign custody root; no physical qualification claimed.");
-    if report.structurally_invalid_n > 0
+    if !report.candidate_run_completed
+        || report.candidate_outputs_verified_n != report.scheduled_n
+        || report.unexpected_output_entry_n > 0
+        || report.structurally_invalid_n > 0
         || report.candidate_contract_valid_n != report.scheduled_n
+        || report.disposition_admissible_n != report.scheduled_n
         || report.unsafe_fresh_attempt_n > 0
         || !report.candidate_surface_audit.passed
     {
@@ -793,6 +1013,51 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn output_inventory_keeps_extras_and_rejects_symlink_entries() {
+        use std::{
+            os::unix::fs::symlink,
+            time::{SystemTime, UNIX_EPOCH},
+        };
+
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "aerb-output-inventory-{}-{nonce}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).expect("temporary output root");
+        let expected_name = "submission-ep_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json";
+        fs::write(root.join(expected_name), b"{}").expect("candidate output");
+        fs::write(root.join("extra.txt"), b"extra").expect("unexpected output");
+        symlink(root.join(expected_name), root.join("linked-output.json"))
+            .expect("symlink output");
+
+        let expected = BTreeSet::from([expected_name.to_owned()]);
+        let (actual, errors) =
+            inspect_output_directory(&root, &expected).expect("inspect output directory");
+
+        assert_eq!(
+            actual,
+            BTreeSet::from([expected_name.to_owned(), "extra.txt".to_owned()])
+        );
+        assert_eq!(errors, vec!["linked-output.json:NOT_REGULAR_FILE".to_owned()]);
+        fs::remove_dir_all(root).expect("remove temporary output root");
+    }
+
+    #[test]
+    fn non_successful_runner_outcomes_never_qualify() {
+        assert!(run_outcome_succeeded(&RunnerOutcome::Completed { exit_code: 0 }));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::ExitedNonzero { exit_code: 1 }));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::TimedOutUnknown { exit_code: 124 }));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::TerminatedWithoutExitCode));
+        assert!(!run_outcome_succeeded(&RunnerOutcome::LaunchFailedUnknown {
+            reason: "fixture".to_owned()
+        }));
+    }
 
     #[test]
     fn evaluator_leaf_names_reject_path_traversal() {

@@ -1,4 +1,4 @@
-name: AERB blind projection and metadata leakage audit
+name: AERB blind execution and projection qualification
 
 on:
   pull_request:
@@ -7,6 +7,8 @@ on:
       - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_metadata_*"
       - "research/mobility-rrvr-aerb-v0.1/fixtures/evaluator_only/metadata_attack_*"
       - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_blind_campaign_report_*"
+      - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_candidate_run_receipt_*"
+      - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_candidate_run_receipt_*"
       - ".github/workflows/aerb-blind-projection-audit.yml"
   workflow_dispatch:
 
@@ -21,8 +23,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.96.0
         with:
           components: rustfmt, clippy
-      - name: Install JSON schema and report tooling
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install schema and sandbox tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq bubblewrap util-linux musl-tools
+          rustup target add x86_64-unknown-linux-musl
       - name: Validate audit schemas and frozen attack fixture
         shell: bash
         run: |
@@ -31,6 +36,10 @@ jobs:
           jq empty "$ROOT/schemas/aerb_metadata_attack_input_v0_1.schema.json"
           jq empty "$ROOT/schemas/aerb_metadata_audit_output_v0_1.schema.json"
           jq empty "$ROOT/schemas/aerb_blind_campaign_report_v0_1.schema.json"
+          jq empty "$ROOT/schemas/aerb_blind_campaign_report_v0_2.schema.json"
+          jq empty "$ROOT/schemas/aerb_candidate_run_receipt_v0_2.schema.json"
+          jq empty "$ROOT/schemas/aerb_blind_campaign_report_v0_2.schema.json"
+          jq empty "$ROOT/schemas/aerb_candidate_run_receipt_v0_2.schema.json"
           jq -e '.schema_version == "aerb-metadata-attack-input-v0.1" and .requested_folds == 4 and (.rows | length == 128) and ([.rows[].evaluator_cluster_id] | unique | length == 64)' "$ROOT/fixtures/evaluator_only/metadata_attack_leak_canary_v0_1.json"
       - name: Rust format check
         run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml -- --check
@@ -51,21 +60,48 @@ jobs:
           jq -e '.report.sample_n == 128 and .report.independent_cluster_n == 64 and .report.combined_metadata_only_accuracy >= 0.95 and .report.combined_metadata_only_balanced_accuracy >= 0.95' "$WORK/report.json"
           test "$(stat -c '%a' "$WORK/report.json")" = "600"
           sha256sum "$WORK/input.json" "$WORK/report.json"
-      - name: Reference-policy projection/replay conformance test (not candidate execution)
+      - name: Build isolated conservative reference candidate
         shell: bash
         run: |
           set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          cargo build --locked --release --target x86_64-unknown-linux-musl --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_reference_candidate
+      - name: Generate, blind, sandbox-execute and score a three-root campaign
+        shell: bash
+        timeout-minutes: 10
+        run: |
           set -euo pipefail
-          # This v0.1 lane replays a projected reference submission to qualify custody/projection only.
-          # It is not a blind candidate run; see Symtropy issue #7886 for the separate input/output-root runtime.
           ROOT="research/mobility-rrvr-aerb-v0.1"
           WORK="$(mktemp -d)"
           trap 'rm -rf "$WORK"' EXIT
+          mkdir -p "$WORK/runtime/bin"
+          cp "$ROOT/evaluator/target/x86_64-unknown-linux-musl/release/aerb_reference_candidate" "$WORK/runtime/bin/aerb_reference_candidate"
+          chmod 755 "$WORK/runtime/bin/aerb_reference_candidate"
+
+          # Deterministic source corpus is a public process-model fixture.
           cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_generate -- 42 32 "$WORK/source-candidate" "$WORK/source-evaluator"
-          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_materialize -- "$WORK/source-candidate" "$WORK/source-evaluator" "$WORK/blind-candidate" "$WORK/blind-evaluator"
-          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_campaign_evaluate -- "$WORK/blind-candidate" "$WORK/blind-evaluator" "$WORK/blind-evaluator/blind-evaluator-report.json"
-          jq -e '.scheduled_n == 32 and .evaluated_n == 32 and .structurally_invalid_n == 0 and .candidate_contract_valid_n == 32 and .unsafe_fresh_attempt_n == 0 and (.candidate_contract_valid_rate_of_scheduled == 1)' "$WORK/blind-evaluator/blind-evaluator-report.json"
-          test "$(stat -c '%a' "$WORK/blind-candidate")" = "700"
-          test "$(stat -c '%a' "$WORK/blind-evaluator")" = "700"
-          test "$(stat -c '%a' "$WORK/blind-evaluator/blind-evaluator-report.json")" = "600"
-          sha256sum "$WORK/blind-candidate/candidate_manifest.json" "$WORK/blind-evaluator/evaluator_manifest.json" "$WORK/blind-evaluator/campaign-custody-seal.json" "$WORK/blind-evaluator/blind-evaluator-report.json"
+
+          # Blind materializer writes inputs, empty output root, and evaluator custody separately.
+          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_materialize -- "$WORK/source-candidate" "$WORK/source-evaluator" "$WORK/candidate-input" "$WORK/candidate-output" "$WORK/evaluator"
+
+          test -z "$(find "$WORK/candidate-input" -maxdepth 1 -type f -name 'submission-*' -print -quit)"
+          test -z "$(find "$WORK/candidate-output" -mindepth 1 -print -quit)"
+
+          # Host runner mounts only candidate input (RO), runtime (RO), and output (RW).
+          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_sandbox_launch -- "$WORK/candidate-input" "$WORK/runtime" "$WORK/candidate-output" "$WORK/evaluator" "$WORK/runtime/bin/aerb_reference_candidate"
+
+          # Evaluator consumes outputs only from the output root; truth/key/receipts remain in evaluator custody.
+          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_campaign_evaluate -- "$WORK/candidate-input" "$WORK/candidate-output" "$WORK/evaluator" "$WORK/evaluator/blind-evaluator-report.json"
+
+          jq -e '.scheduled_n == 32 and .evaluated_n == 32 and .structurally_invalid_n == 0 and .candidate_run_completed == true and .candidate_outputs_verified_n == 32 and .unexpected_output_entry_n == 0 and .candidate_contract_valid_n == 32 and .disposition_admissible_n == 32 and .disposition_admissibility_rate_of_scheduled == 1 and .unsafe_fresh_attempt_n == 0 and (.candidate_contract_valid_rate_of_scheduled == 1)' "$WORK/evaluator/blind-evaluator-report.json"
+          test "$(find "$WORK/candidate-output" -maxdepth 1 -type f -name 'submission-*.json' | wc -l)" -eq 32
+          test "$(stat -c '%a' "$WORK/candidate-input")" = "700"
+          test "$(stat -c '%a' "$WORK/candidate-output")" = "700"
+          test "$(stat -c '%a' "$WORK/evaluator")" = "700"
+          test "$(stat -c '%a' "$WORK/evaluator/candidate-run-receipt.json")" = "600"
+          test "$(stat -c '%a' "$WORK/evaluator/blind-evaluator-report.json")" = "600"
+          test "$(find "$WORK/candidate-input" -maxdepth 1 -type f | wc -l)" -eq 34
+          while IFS= read -r output_file; do
+            test "$(stat -c '%a' "$output_file")" = "600"
+          done < <(find "$WORK/candidate-output" -maxdepth 1 -type f -name 'submission-*.json')
+          sha256sum "$WORK/candidate-input/candidate_manifest.json" "$WORK/evaluator/evaluator_manifest.json" "$WORK/evaluator/campaign-custody-seal.json" "$WORK/evaluator/candidate-run-receipt.json" "$WORK/evaluator/blind-evaluator-report.json"

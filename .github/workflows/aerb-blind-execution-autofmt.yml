@@ -1,0 +1,45 @@
+name: AERB blind execution formatter repair
+
+on:
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_materialize.rs"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_blind_campaign_evaluate.rs"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_reference_candidate.rs"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_sandbox_launch.rs"
+      - ".github/workflows/aerb-blind-execution-autofmt.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format-owned-branch:
+    if: github.actor == 'Tristan-Stoltz-ERC' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/aerb-blind-execution-v0-2'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Format evaluator crate
+        run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml
+      - name: Commit only execution-path Rust sources
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          # cargo fmt formats the complete evaluator crate. Commit every Rust
+          # source it changed, including inherited v0.1 modules, so --check
+          # can pass on the resulting exact head.
+          git add -- research/mobility-rrvr-aerb-v0.1/evaluator/src
+          if git diff --cached --quiet; then
+            echo "Execution-path Rust sources already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style(rrvr): format blind execution sources"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
