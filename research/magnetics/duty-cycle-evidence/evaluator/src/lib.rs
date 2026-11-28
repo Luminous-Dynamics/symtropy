@@ -178,6 +178,7 @@ pub enum Blocker {
     NonPositiveEnergyDenominator,
     EnergyEfficiencyPhysicallyInconsistent,
     EnergyEfficiencyUnresolved,
+    OverflowInEnergyArithmetic,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -266,13 +267,31 @@ impl EnergyAccumulator {
     }
 
     fn summarize(self, blockers: &mut Vec<Blocker>) -> EnergySummary {
-        let motoring_efficiency = if self.has_motoring {
+        let totals_valid = [
+            self.motoring_dc_input,
+            self.motoring_shaft_output,
+            self.regenerative_shaft_input,
+            self.regenerative_dc_output,
+            self.auxiliary_dc_input,
+        ]
+        .into_iter()
+        .all(Interval::is_valid);
+        if !totals_valid {
+            blockers.push(Blocker::OverflowInEnergyArithmetic);
+        }
+
+        let motoring_inputs_valid =
+            self.motoring_dc_input.is_valid() && self.motoring_shaft_output.is_valid();
+        let regenerative_inputs_valid =
+            self.regenerative_shaft_input.is_valid() && self.regenerative_dc_output.is_valid();
+
+        let motoring_efficiency = if self.has_motoring && motoring_inputs_valid {
             self.motoring_shaft_output
                 .divide_positive(self.motoring_dc_input)
         } else {
             None
         };
-        let regenerative_efficiency = if self.has_regeneration {
+        let regenerative_efficiency = if self.has_regeneration && regenerative_inputs_valid {
             self.regenerative_dc_output
                 .divide_positive(self.regenerative_shaft_input)
         } else {
@@ -283,15 +302,23 @@ impl EnergyAccumulator {
             .into_iter()
             .flatten()
         {
-            if efficiency.lower > 1.0 {
+            if !efficiency.is_valid() {
+                blockers.push(Blocker::OverflowInEnergyArithmetic);
+            } else if efficiency.lower > 1.0 {
                 blockers.push(Blocker::EnergyEfficiencyPhysicallyInconsistent);
             } else if efficiency.upper > 1.0 {
                 blockers.push(Blocker::EnergyEfficiencyUnresolved);
             }
         }
 
-        if (self.has_motoring && motoring_efficiency.is_none())
-            || (self.has_regeneration && regenerative_efficiency.is_none())
+        if (self.has_motoring
+            && self.motoring_dc_input.is_valid()
+            && self.motoring_shaft_output.is_valid()
+            && motoring_efficiency.is_none())
+            || (self.has_regeneration
+                && self.regenerative_shaft_input.is_valid()
+                && self.regenerative_dc_output.is_valid()
+                && regenerative_efficiency.is_none())
         {
             blockers.push(Blocker::NonPositiveEnergyDenominator);
         }
@@ -300,6 +327,9 @@ impl EnergyAccumulator {
             .motoring_dc_input
             .add(self.auxiliary_dc_input)
             .subtract(self.regenerative_dc_output);
+        if !net_dc_input_j.is_valid() {
+            blockers.push(Blocker::OverflowInEnergyArithmetic);
+        }
 
         EnergySummary {
             motoring_dc_input_j: self.has_motoring.then_some(self.motoring_dc_input),
@@ -1083,6 +1113,20 @@ mod tests {
         assert!(result.segment_evaluations[1]
             .blockers
             .contains(&Blocker::TorqueShortfall));
+    }
+
+    #[test]
+    fn aggregate_energy_overflow_is_indeterminate() {
+        let mut records = evidence();
+        for record in records.iter_mut().take(2) {
+            record.energy.dc_input_j = Some(Interval::new(1.0e308, 1.0e308));
+            record.energy.shaft_output_j = Some(Interval::new(5.0e307, 5.0e307));
+        }
+        let result = evaluate_duty_cycle(&spec(), &records);
+        assert_eq!(result.disposition, Disposition::Indeterminate);
+        assert!(result
+            .blockers
+            .contains(&Blocker::OverflowInEnergyArithmetic));
     }
 
     #[test]
