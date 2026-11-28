@@ -600,6 +600,15 @@
         "reject_uncertainty_kg": {
           "type": "number",
           "minimum": 0
+        },
+        "reuse_acceptance_receipt": {
+          "$ref": "#/$defs/recoveryPathReceipt"
+        },
+        "remanufacture_acceptance_receipt": {
+          "$ref": "#/$defs/recoveryPathReceipt"
+        },
+        "recycling_intake_receipt": {
+          "$ref": "#/$defs/recoveryPathReceipt"
         }
       },
       "additionalProperties": false
@@ -663,6 +672,28 @@
         },
         "recovery": {
           "$ref": "#/$defs/recovery"
+        }
+      },
+      "additionalProperties": false
+    },
+    "recoveryPathReceipt": {
+      "type": "object",
+      "required": [
+        "evidence_id",
+        "evidence_digest",
+        "output_lot_id"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "output_lot_id": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "additionalProperties": false
