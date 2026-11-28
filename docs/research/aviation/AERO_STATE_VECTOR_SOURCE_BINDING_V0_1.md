@@ -39,6 +39,23 @@ This is intentionally **not the full source adapter**. It does not derive eviden
 
 The v0.1 meaning of `claim_specification_sha256` is made explicit here as the typed semantic commitment. If a future profile needs a composite digest of claim specification plus obligations, that must be a separately named, versioned field—not a silent reinterpretation of this one.
 
+## 1B. Implemented second adapter increment: derive the obligation profile
+
+The additive Rust module `claim_obligation_profile_v0_1.rs` implements `derive_claim_obligation_profile_v0_1`. It consumes a formally assessed `ClaimSpecificationV0_1` and one closed, registered requirement profile:
+
+`AeroScalarEngineeringClaimV0_1`.
+
+The returned profile contains source-referenced requirements—not evidence states. It derives:
+- identity, semantic validity, producer authority, model applicability, temporal knowledge and dependency observation obligations;
+- one mandatory evidence-integrity obligation per required evidence class;
+- one mandatory model-credibility obligation per declared required population stratum;
+- one mandatory model-credibility obligation for the declared uncertainty treatment/method;
+- advisory, non-blocking defeater-resolution obligations for each declared assumption and exclusion.
+
+Mandatory requirements are hard gates and are assigned by the closed code-level profile, never by caller booleans. The profile has its own SHA-256 commitment and an order-independent obligation manifest bound to the claim-specification semantic digest. Reordering does not alter the derived result; removing or changing a stratum changes the manifest. The tests also verify that incomplete specifications produce no profile and that no physical truth, engineering acceptance or execution authority is granted.
+
+**Boundary:** this is a derived requirement profile, not a normalized assurance state. It does not fill proposition support/rebuttal, authority, temporal, observer, verification or evidence-reference states; it does not authenticate owner receipts; and it does not change `evaluate_claim_gate`. The profile digest/manifest are returned separately and are not silently folded into the existing v0.1 `DecisionContextV0_1` hash. A future context version must bind the exact registered requirement-profile and obligation-manifest digests explicitly.
+
 ## 2. Normative adapter rule
 
 **No caller-authored obligation policy.** The adapter receives exact typed specifications and upstream assessments, validates their commitments and produces the state vector. It never accepts an unbound mandatory or hard-gate boolean from an external request.
