@@ -75,6 +75,17 @@ Each model-calibration receipt additionally commits to a deterministic, sorted l
 
 These commitments use domain-separated, schema-versioned Serde JSON envelopes in the frozen v0.1 profile. This improves reconstruction and substitution detection but remains an implementation-specific serialization contract. Cross-language JCS / deterministic-CBOR alternatives are a separate versioned interoperability study; v0.1 commitments must not be silently reinterpreted.
 
+## 3B. Complete upstream snapshot receipts
+
+A locally recomputed digest over a supplied list is not proof that the list is complete. The planner therefore also requires two separate upstream-verified receipts:
+
+- **Source-bound assurance-state receipt:** binds claim ID, decision-context digest, assurance-state digest, frozen disposition and unresolved-obligation manifest. It has its own receiver-first-seen time and effective interval. If a caller removes or substitutes an unresolved blocker and recomputes the local manifest, the old source receipt no longer matches.
+- **Action-catalogue snapshot receipt:** binds claim ID, decision-context digest, configuration, the complete action-catalogue-cut digest and candidate count. It also carries receiver-first-seen time and an effective interval. Omitting a candidate and recomputing a new local cut does not produce a valid snapshot receipt.
+
+The enum `VERIFIED` in these input receipts is an upstream disposition from the appropriate owner/trust verifier. This pure EVSI kernel checks the receipt's exact scope and chronology but does **not** authenticate the underlying signature or trust root itself. Production integration must pass only receipts that have already been authenticated under the selected trust-policy snapshot. A caller-authored `VERIFIED` label or digest is not sufficient.
+
+Both receipt digests are preserved in the planner result for audit and replay. A missing, unverified, mismatched, late-known or ineffective snapshot makes the planner input invalid; it cannot be converted into an empty action set or an apparently safe result.
+
 ## 4. Authority and non-mutation contract
 
 The planner copies the following through unchanged:
