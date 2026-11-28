@@ -1,0 +1,111 @@
+{
+  "schema_version": "spacecast-crosswalk-v0",
+  "source": {
+    "title": "SpaceCast-Bench: Evaluating Predictive Spatial Reasoning in Vision-Language Models",
+    "authors": [
+      "Hongxing Li",
+      "Jinyue Su",
+      "Dingming Li",
+      "Wenqi Zhang",
+      "Weiming Lu",
+      "Jun Xiao",
+      "Yueting Zhuang",
+      "Yongliang Shen"
+    ],
+    "arxiv_id": "2610.12402",
+    "publication_date": "2026-10-08",
+    "url": "https://arxiv.org/abs/2610.12402"
+  },
+  "dataset": {
+    "question_count": 3862,
+    "scene_count": 182,
+    "task_type_count": 16,
+    "source_datasets": [
+      "ScanNet",
+      "ScanNet++"
+    ],
+    "split_description": "The benchmark is constructed from validation splits of ScanNet (134 scenes, 718 questions) and ScanNet++ (48 scenes, 3,144 questions). The training data used in the paper's post-training experiment is generated from 54 scenes disjoint from the benchmark scenes. Verify current upstream split manifests and rights before reproduction.",
+    "transform_families": [
+      "identity/static",
+      "local translation",
+      "local orbit/rotation",
+      "local removal",
+      "global rigid yaw rotation"
+    ]
+  },
+  "capability_levels": [
+    {
+      "id": "L1",
+      "name": "Static Perception",
+      "question_count": 1368,
+      "description": "Spatial relations in the unmodified observed scene."
+    },
+    {
+      "id": "L2",
+      "name": "Local Prediction",
+      "question_count": 1709,
+      "description": "Predict relation changes after a localized object intervention."
+    },
+    {
+      "id": "L3",
+      "name": "Global Prediction",
+      "question_count": 785,
+      "description": "Predict relation changes after a rigid transformation of the complete layout."
+    }
+  ],
+  "reported_baselines": [
+    {
+      "system": "Gemini 3.5 Flash",
+      "system_class": "proprietary",
+      "overall_accuracy_percent": 58,
+      "role": "Highest-scoring tested base model in the paper."
+    },
+    {
+      "system": "Qwen3.7-Plus",
+      "system_class": "proprietary",
+      "overall_accuracy_percent": 55.3,
+      "role": "Second listed proprietary model."
+    },
+    {
+      "system": "Qwen3.5-27B",
+      "system_class": "open_weight_general",
+      "overall_accuracy_percent": 39.3,
+      "role": "Highest-scoring listed open-weight general model."
+    },
+    {
+      "system": "Spatial-specialized model range",
+      "system_class": "spatial_specialized",
+      "overall_accuracy_percent": 27,
+      "role": "Reported range 25.7–29.1 percent across six evaluated specialized models; midpoint is recorded here only as an approximate index, not a model score."
+    },
+    {
+      "system": "Human Level",
+      "system_class": "human",
+      "overall_accuracy_percent": 87.2,
+      "role": "Paper's human benchmark baseline."
+    },
+    {
+      "system": "Random Level",
+      "system_class": "random",
+      "overall_accuracy_percent": 25.9,
+      "role": "Paper's random baseline."
+    }
+  ],
+  "training_arm": {
+    "system": "Qwen3-VL-4B",
+    "method": "Staged supervised fine-tuning (L1 first, then L2/L3 with L1 replay)",
+    "in_domain_accuracy_percent": 65.7,
+    "ood_macro_accuracy_percent": 38.1,
+    "base_in_domain_accuracy_percent": 34,
+    "interpretation": "This is a benchmark-aligned trained arm, not a zero-shot baseline. The paper describes training examples generated from scenes disjoint from the evaluation benchmark. The training recipe, exact data, model revision and compute must be reproduced before direct comparison."
+  },
+  "known_limits": [
+    "Indoor ScanNet/ScanNet++ scenes do not establish outdoor, industrial or unrestricted real-world spatial generalization.",
+    "Local/global transformations are programmatic geometric interventions, not a physical dynamics model; friction, collision, deformation and manipulation safety are outside this crosswalk.",
+    "Ground-truth geometry derives from reconstructed scene assets and their annotation quality; it is not a universal physical ground-truth guarantee.",
+    "The paper reports bridge-view and explicit 3D evidence benefits; generated future images can fail through object deformation, missing objects, scale or perspective mismatch.",
+    "Human performance is a reference comparator, not a guaranteed upper bound for every task or scoring condition.",
+    "Benchmark-native macro averages must be reproduced exactly; do not substitute micro accuracy or pool L1/L2/L3 without preserving the native protocol."
+  ],
+  "reproduction_status": "metadata_only_no_media_downloaded"
+}
