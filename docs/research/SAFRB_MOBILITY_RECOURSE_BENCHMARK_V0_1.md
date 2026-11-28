@@ -189,3 +189,18 @@ Compose rather than duplicate:
 - Mycelix remains the owner of issuer identity, rights, provenance and source-independence.
 
 The intended advancement is not a faster route planner. It is a policy result that proves exactly what can be moved, when the decision-maker could know the relevant event, whether the resource arrives before service is due, and which assumption separates physical feasibility from an optimistic upper bound.
+
+## 10. Reference implementation status — 28 November 2026
+
+The draft implementation is now present on the stacked branch:
+
+- `tools/safrb-time-expanded-adapter/src/mobility_oracle.rs` contains the bounded Rust producer, policy report, independent admission/replay path and per-scenario trajectory enumerator.
+- `src/lib.rs` exports `mobility_oracle`.
+- `schemas/mobility-instance-v0.1.schema.json` and `schemas/mobility-report-v0.1.schema.json` define strict portable input/report shapes.
+- `tools/safrb-time-expanded-adapter/README.md` records the model ceiling and claim boundary.
+- The Rust exact-head workflow has been added to the mobility branch's push qualification list and is triggered by the PR's source changes.
+
+The test suite includes frozen cases for (a) zero-time feasibility with physically late arrival, (b) observation available before departure, (c) observation available only after the departure decision, (d) in-transit resource unavailability, (e) parallel logical routes sharing a physical corridor, (f) route closure with late observation, (g) insufficient total mobile units, and (h) mutated policy/history digests. It also contains 250 deterministic tiny instances verified through a separate scenario-trajectory enumeration and non-anticipativity join.
+
+**Qualification remains pending.** The latest commit is not yet reported as passing exact-head formatting, Clippy, Rust tests or independent portable certificate conformance. No runtime, scale, SOTA, field or operational result is claimed. A failed or queued runner is not a pass.
+
