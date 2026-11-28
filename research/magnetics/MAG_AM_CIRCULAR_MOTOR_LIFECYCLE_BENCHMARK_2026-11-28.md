@@ -58,10 +58,12 @@ Each teardown must confirm safe state before disassembly and component integrity
 Each physical trial records component/specimen/build/material-lot identity, teardown method, tool IDs, elapsed time and energy, safety confirmation, component integrity disposition, initial magnet mass and measurement uncertainty.
 
 Output streams are mutually exclusive:
-- reuse-grade magnets;
-- remanufactured magnets that passed functional acceptance;
-- recycling feedstock;
+- reuse-grade magnets, each backed by a distinct post-recovery magnetic-property acceptance receipt and output-lot identity;
+- remanufactured magnets, each backed by a distinct post-remanufacture functional acceptance receipt and output-lot identity;
+- recycling feedstock, backed by a distinct downstream intake/transfer receipt and output-lot identity;
 - reject/waste.
+
+The top-level mass-balance receipt is not a substitute for these path-specific receipts. Each path receipt must be separately digest-bound into the M4 component acceptance evidence graph. The evaluator checks receipt presence, identity fields, and digests; it does not authenticate the issuer or independently adjudicate the technical acceptance method.
 
 The mass balance must close conservatively. Let input mass interval be I and sum of output stream intervals be O. The full difference interval O-I must fit inside the predeclared absolute-plus-relative tolerance; overlap at one point is insufficient. An unclosed balance is Indeterminate, not an optimistic recovery percentage.
 
