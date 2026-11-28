@@ -16,6 +16,8 @@ A spatial system is not qualified by low geometric error conditional on a small 
 5. it makes a correct, calibrated decision or abstains when the evidence is insufficient; and
 6. it accounts for every assigned sequence, trial, query and failure.
 
+Execution disposition, individual acquisition outcomes and answer disposition MUST be separate fields. A correct abstention is not a crash; a denied probe is not automatically a failed trial if the system safely selects an admissible alternative or abstains. Conversely, an always-abstain policy MUST be penalized through false-abstention cost and answer coverage. A completed process with a correct abstention may still have a successful geometric trajectory; task-level answer/decision success is a separate score plane.
+
 Every report MUST include both the benchmark's native metric and a failure-inclusive companion scorecard. Native metrics are retained for comparability; the companion scorecard prevents selective survival from being mistaken for system performance.
 
 ## 2. Units, denominators and run identity
@@ -189,7 +191,9 @@ A failure at any hard gate returns NOT_QUALIFIED or NOT_EVALUATED; it is not con
 
 The companion [spatial-attempt-ledger-v0.schema.json](./spatial-attempt-ledger-v0.schema.json) and [example](./spatial-attempt-ledger-v0.example.json) define a one-record-per-attempt contract. Each attempt preserves scene/session/world-pair/episode cluster identity, terminal disposition, expected and valid pose opportunities, coverage, conditional ATE/RPE or explicit NOT_EVALUATED, and a joint-success flag. The schema is checked by [.github/workflows/spatial-attempt-ledger.yml](../../.github/workflows/spatial-attempt-ledger.yml) against the repository-pinned JSON Schema validator, including negative controls for zero-pose ATE, missing NOT_EVALUATED reason, failure-as-success and hidden evaluator fields.
 
-The schema does not recompute aggregate statistics or prove that a candidate's reported coverage and metrics are truthful. The evaluator MUST recompute counts and metrics from source attempt receipts, compare valid counts with expected opportunities, verify metric/frame identity, and derive joint success using preregistered C_min/E_max. The example is illustrative only and contains no candidate performance result.
+The schema separates three types of outcome: `terminal_disposition` (execution completed/crashed/timed out/tracking-lost/invalid/not-evaluated), `acquisition_dispositions` (delivered/dropped/stale/late/permission-denied/duplicate/reordered actions), and `answer_disposition` (answered/abstained/deferred/no-response/not-applicable). Abstention is not a terminal execution failure, and permission denial is a per-action outcome. The example includes a completed, high-coverage trajectory with an abstained answer after a denied optional probe to test this separation.
+
+The schema does not recompute aggregate statistics or prove that a candidate's reported coverage and metrics are truthful. The evaluator MUST recompute counts and metrics from source attempt receipts, compare valid counts with expected opportunities, verify metric/frame identity, and derive geometric joint success using preregistered C_min/E_max. Task-level decision correctness, correct/false abstention and selective risk/coverage remain independently scored. The example is illustrative only and contains no candidate performance result.
 
 ## 11. Composition
 
