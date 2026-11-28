@@ -11,6 +11,7 @@
   "evidence_class": "synthetic_fixture",
   "time_basis_id": "utc-unix-ms",
   "time_alignment_id": "synthetic-shared-clock-zero-error",
+  "time_alignment_artifact_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
   "time_alignment_method": "synthetic_shared_clock",
   "max_relative_clock_error_ms": 0,
   "alignment_uncertainty_preapplied": true,
