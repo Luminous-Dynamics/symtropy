@@ -778,7 +778,7 @@ fn calculate_yield_summary(cohort: &PairedCohort) -> Option<YieldSummary> {
         .iter()
         .filter(|id| {
             builds_by_id
-                .get(**id)
+                .get(*id)
                 .is_some_and(|build| build.first_pass_disposition == BuildDisposition::Qualified)
         })
         .count() as u32;
@@ -786,7 +786,7 @@ fn calculate_yield_summary(cohort: &PairedCohort) -> Option<YieldSummary> {
         .iter()
         .filter(|id| {
             builds_by_id
-                .get(**id)
+                .get(*id)
                 .is_some_and(|build| build.first_pass_disposition == BuildDisposition::Qualified)
         })
         .count() as u32;
@@ -794,7 +794,7 @@ fn calculate_yield_summary(cohort: &PairedCohort) -> Option<YieldSummary> {
         .iter()
         .filter(|id| {
             builds_by_id
-                .get(**id)
+                .get(*id)
                 .is_some_and(|build| build.final_disposition == BuildDisposition::Qualified)
         })
         .count() as u32;
@@ -802,7 +802,7 @@ fn calculate_yield_summary(cohort: &PairedCohort) -> Option<YieldSummary> {
         .iter()
         .filter(|id| {
             builds_by_id
-                .get(**id)
+                .get(*id)
                 .is_some_and(|build| build.final_disposition == BuildDisposition::Qualified)
         })
         .count() as u32;
