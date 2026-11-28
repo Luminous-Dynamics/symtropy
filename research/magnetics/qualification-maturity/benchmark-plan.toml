@@ -1,0 +1,64 @@
+schema_version = "0.1"
+program_id = "MAG-AM-QUALIFICATION-MATURITY-001"
+revision = "0.1-draft"
+status = "synthetic_evidence_graph"
+date = "2026-11-27"
+issue = 7792
+parents = [7757, 7770, 7774, 7778]
+
+[maturity]
+levels = ["M1_CONCEPTUAL", "M2_COUPON", "M3_CONTROLLED_PSPP", "M4_FUNCTIONAL_COMPONENT", "M5_REPRODUCIBLE_QUALIFICATION_RELEVANT"]
+caller_supplied_maturity_is_trusted = false
+derived_from_typed_receipts = true
+lower_level_evidence_is_preserved_when_higher_level_missing = true
+
+[standards_crosswalk]
+iso_astm_52920_2023 = "production site and industrial AM process quality assurance"
+iso_astm_ts_52930_2021 = "PBF-LB equipment IQ/OQ/PQ; excludes feedstock qualification and most post-processing"
+iec_60404_5_2015 = "permanent magnet flux density, polarization, field strength, demagnetization and recoil methods"
+iec_60404_18_2025 = "open-circuit DC hard-magnet property measurement using superconducting magnet and self-demag correction"
+iso_iec_17025_2017 = "laboratory competence and method scope"
+moem_2026 = "research maturity heuristic, not a formal standard"
+formal_conformity_claimed = false
+
+[claim_gates]
+machine_qualification_substitutes_for_feedstock = false
+lab_scope_substitutes_for_process_capability = false
+coupon_substitutes_for_component_function = false
+m4_implies_m5 = false
+published_or_synthetic_evidence_promotes_m2_to_m5 = false
+duplicate_ids_add_support = false
+
+[implementation]
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+fixture_schema = "evaluator/qualification-maturity-v0.1.schema.json"
+fixture = "evaluator/fixtures/synthetic-qualification-maturity-v0.1.json"
+source_register = "fixtures/qualification-maturity-source-register-v0.1.json"
+workflow = ".github/workflows/magnetic-qualification-maturity.yml"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 27
+unit_tests_executed = false
+exact_head_ci_pass = false
+
+[benchmark_targets]
+false_maturity_promotions_on_sealed_controls = 0
+evidence_to_level_traceability_fraction = 1.0
+frozen_input_receipt_determinism = true
+invalid_or_mismatched_evidence_can_raise_level = false
+
+
+[measurands]
+m2_required = ["remanence_br", "intrinsic_coercivity_hcj"]
+m3_required = ["phase", "texture_orientation", "porosity_defects"]
+measurement_evidence_requires_matching_laboratory_method_scope = true
+laboratory_scope_standard_reference = "ISO/IEC 17025:2017"
+
+[identity]
+component_binds_to_exact_candidate = true
+site_quality_receipt_binds_to_production_site_id = true
+pbf_lb_equipment_receipts_bind_to_machine_id = true
+variability_receipt_binds_to_same_cohort_summary = true
+pspp_link_requires_same_specimen_lot_and_build = true
+empty_evidence_returns = "Unestablished"

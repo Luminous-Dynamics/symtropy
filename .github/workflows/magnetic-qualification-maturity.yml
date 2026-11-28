@@ -1,0 +1,42 @@
+name: Magnetic Qualification Maturity
+
+on:
+  pull_request:
+    paths:
+      - "research/magnetics/qualification-maturity/**"
+      - "research/magnetics/MAG_AM_QUALIFICATION_MATURITY_2026-11-27.md"
+      - ".github/workflows/magnetic-qualification-maturity.yml"
+  push:
+    paths:
+      - "research/magnetics/qualification-maturity/**"
+      - ".github/workflows/magnetic-qualification-maturity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: magnetic-qualification-maturity-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluator:
+    name: qualification maturity (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/magnetics/qualification-maturity/evaluator/Cargo.toml -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path research/magnetics/qualification-maturity/evaluator/Cargo.toml --all-targets -- -D warnings
+      - name: Run evaluator tests
+        run: cargo test --manifest-path research/magnetics/qualification-maturity/evaluator/Cargo.toml
