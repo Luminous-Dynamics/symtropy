@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent standard-library challenger for the CFI-Space v0.1 Rust scorer.
+"""Independent standard-library challenger for the CFI-Space v0.2 Rust scorer.
 
 This is test-only research tooling, not production benchmark infrastructure.
 It intentionally reimplements the contract joins and count metrics in Python.
@@ -72,6 +72,55 @@ def is_string(value: Any) -> bool:
 
 def is_int(value: Any) -> bool:
     return isinstance(value, int) and not isinstance(value, bool)
+
+
+def is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def validate_vec3(value: Any, where: str) -> list[float]:
+    require(isinstance(value, list) and len(value) == 3
+            and all(is_number(x) for x in value),
+            f"{where} must contain three finite numbers")
+    result = [float(x) for x in value]
+    require(all(__import__("math").isfinite(x) for x in result),
+            f"{where} contains a non-finite number")
+    return result
+
+
+def validate_quaternion(value: Any, where: str) -> list[float]:
+    import math
+    require(isinstance(value, list) and len(value) == 4
+            and all(is_number(x) for x in value),
+            f"{where} must contain four finite numbers")
+    result = [float(x) for x in value]
+    require(all(math.isfinite(x) for x in result),
+            f"{where} contains a non-finite number")
+    norm = math.sqrt(sum(x * x for x in result))
+    require(math.isfinite(norm) and abs(norm - 1.0) <= 1e-3,
+            f"{where} must be a unit quaternion (norm tolerance 1e-3)")
+    return result
+
+
+def quaternion_distance(left: list[float], right: list[float]) -> float:
+    import math
+    left_norm = math.sqrt(sum(x * x for x in left))
+    right_norm = math.sqrt(sum(x * x for x in right))
+    dot = sum(a * b for a, b in zip(left, right, strict=True)) / (left_norm * right_norm)
+    return 2.0 * math.acos(max(0.0, min(1.0, abs(dot))))
+
+
+def quantile(values: list[float], probability: float) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = probability * (len(ordered) - 1)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = position - lower
+    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
 
 
 def validate_candidate(doc: dict[str, Any], bundle_root: Path) -> dict[str, dict[str, Any]]:
@@ -201,6 +250,7 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
             "episode_id", "parent_episode_id", "counterfactual_group_id",
             "variant_kind", "split", "generalization", "independent_unit",
             "fault_ids", "fault_families", "critical", "expected_disposition",
+            "ground_truth_pose",
         }, "ledger episode")
         eid = row["episode_id"]
         require(is_string(eid) and eid not in by_id,
@@ -214,6 +264,19 @@ def validate_ledger(doc: dict[str, Any]) -> dict[str, dict[str, Any]]:
         require(row["expected_disposition"] in DISPOSITIONS,
                 f"unknown expected disposition for {eid}")
         require(type(row["critical"]) is bool, f"critical must be boolean for {eid}")
+        pose = row["ground_truth_pose"]
+        exact_keys(pose, {
+            "coordinate_frame", "transform_direction", "translation_m",
+            "orientation_xyzw", "annotation_sha256", "label_audit_sha256",
+        }, f"ground-truth pose {eid}")
+        require(is_string(pose["coordinate_frame"])
+                and is_string(pose["transform_direction"]),
+                f"ground-truth pose convention fields are empty for {eid}")
+        validate_vec3(pose["translation_m"], f"ground-truth translation {eid}")
+        validate_quaternion(pose["orientation_xyzw"], f"ground-truth quaternion {eid}")
+        require(HEX64.fullmatch(pose["annotation_sha256"]) is not None
+                and HEX64.fullmatch(pose["label_audit_sha256"]) is not None,
+                f"ground-truth annotation digest malformed for {eid}")
         unit = row["independent_unit"]
         exact_keys(unit, {"target_id", "session_id", "trajectory_id", "sensor_rig_id"},
                    "independent unit")
@@ -270,7 +333,7 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     exact_keys(prediction_doc, {"schema_version", "benchmark_id", "predictions"},
                "predictions")
     require(is_int(prediction_doc["schema_version"])
-            and prediction_doc["schema_version"] == 1,
+            and prediction_doc["schema_version"] == 2,
             "unsupported predictions schema version")
     benchmark_id = manifest["benchmark_id"]
     require(benchmark_id == ledger["benchmark_id"] == prediction_doc["benchmark_id"],
@@ -283,7 +346,8 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     for row in rows:
         exact_keys(row, {
             "episode_id", "input_bundle_sha256", "disposition",
-            "detected_fault_families",
+            "detected_fault_families", "pose", "uncertainty_region",
+            "orientation_method", "translation_method",
         }, "prediction")
         eid = row["episode_id"]
         require(is_string(eid) and eid not in prediction_by_id,
@@ -294,6 +358,42 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
                 and all(family in FAULT_FAMILIES for family in detected)
                 and len(detected) == len(set(detected)),
                 f"duplicate or unknown predicted family for {eid}")
+        if row["disposition"] == "qualified":
+            require(row["pose"] is not None and row["uncertainty_region"] is not None
+                    and is_string(row["orientation_method"])
+                    and is_string(row["translation_method"]),
+                    f"qualified prediction {eid} requires pose, region and component method IDs")
+            pose = row["pose"]
+            region = row["uncertainty_region"]
+            exact_keys(pose, {
+                "coordinate_frame", "transform_direction", "translation_m", "orientation_xyzw",
+            }, f"pose {eid}")
+            exact_keys(region, {
+                "coordinate_frame", "transform_direction", "translation_lower_m",
+                "translation_upper_m", "orientation_center_xyzw", "orientation_half_angle_rad",
+            }, f"pose region {eid}")
+            truth = truth_by_id.get(eid)
+            require(truth is not None, f"prediction {eid} has no evaluator truth")
+            truth_pose = truth["ground_truth_pose"]
+            for obj, where in ((pose, "pose"), (region, "region")):
+                require(obj["coordinate_frame"] == truth_pose["coordinate_frame"]
+                        and obj["transform_direction"] == truth_pose["transform_direction"],
+                        f"{where} coordinate frame / transform direction mismatch for {eid}")
+            translation = validate_vec3(pose["translation_m"], f"pose translation {eid}")
+            validate_quaternion(pose["orientation_xyzw"], f"pose quaternion {eid}")
+            lower = validate_vec3(region["translation_lower_m"], f"region lower {eid}")
+            upper = validate_vec3(region["translation_upper_m"], f"region upper {eid}")
+            require(all(a <= b for a, b in zip(lower, upper, strict=True)),
+                    f"region lower bound exceeds upper bound for {eid}")
+            validate_quaternion(region["orientation_center_xyzw"], f"region quaternion {eid}")
+            half_angle = region["orientation_half_angle_rad"]
+            require(is_number(half_angle) and 0.0 <= float(half_angle) <= 3.141592653589793,
+                    f"region orientation half-angle invalid for {eid}")
+        else:
+            require(row["pose"] is None and row["uncertainty_region"] is None
+                    and row["orientation_method"] is None
+                    and row["translation_method"] is None,
+                    f"non-qualified prediction {eid} must not emit a pose")
         prediction_by_id[eid] = row
 
     ids = set(candidate_by_id)
@@ -306,6 +406,7 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
     clean_qualified = false_abstentions = correctly_contained_faults = 0
     unsafe_accepts = exact_disposition_matches = false_positive_family_labels = 0
     family_counts = {family: [0, 0] for family in FAULT_FAMILIES}
+    pose_metrics: list[dict[str, Any]] = []
     generalization_counts = {
         stratum: [0, 0, 0, 0, 0, 0, 0] for stratum in GENERALIZATION
     }
@@ -327,6 +428,41 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
         expected = truth["expected_disposition"]
         actual = prediction["disposition"]
         exact_disposition_matches += expected == actual
+        if actual == "qualified":
+            import math
+            gt = truth["ground_truth_pose"]
+            pred = prediction["pose"]
+            region = prediction["uncertainty_region"]
+            gt_translation = validate_vec3(gt["translation_m"], f"truth translation {eid}")
+            pred_translation = validate_vec3(pred["translation_m"], f"predicted translation {eid}")
+            gt_quaternion = validate_quaternion(gt["orientation_xyzw"], f"truth quaternion {eid}")
+            pred_quaternion = validate_quaternion(pred["orientation_xyzw"], f"predicted quaternion {eid}")
+            translation_error = math.sqrt(sum(
+                (a - b) ** 2 for a, b in zip(gt_translation, pred_translation, strict=True)
+            ))
+            truth_range = math.sqrt(sum(x * x for x in gt_translation))
+            relative_error = translation_error / truth_range if truth_range > 1e-9 else None
+            rotation_error = quaternion_distance(pred_quaternion, gt_quaternion)
+            lower = validate_vec3(region["translation_lower_m"], f"region lower {eid}")
+            upper = validate_vec3(region["translation_upper_m"], f"region upper {eid}")
+            translation_inside = all(
+                low <= value <= high
+                for value, low, high in zip(gt_translation, lower, upper, strict=True)
+            )
+            region_orientation = validate_quaternion(
+                region["orientation_center_xyzw"], f"region quaternion {eid}"
+            )
+            orientation_inside = quaternion_distance(
+                region_orientation, gt_quaternion
+            ) <= float(region["orientation_half_angle_rad"]) + 1e-12
+            pose_metrics.append({
+                "episode_id": eid,
+                "translation_error_m": translation_error,
+                "relative_translation_error": relative_error,
+                "rotation_error_rad": rotation_error,
+                "rotation_error_deg": math.degrees(rotation_error),
+                "uncertainty_region_covered": translation_inside and orientation_inside,
+            })
         stratum_counts = generalization_counts[truth["generalization"]]
         stratum_counts[0] += 1
         if expected == "qualified":
@@ -376,6 +512,29 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
         for stratum in GENERALIZATION_ORDER
         if generalization_counts[stratum][0] > 0
     ]
+    pose_estimates = len(pose_metrics)
+    region_covered = sum(row["uncertainty_region_covered"] for row in pose_metrics)
+    pose_summary = None
+    if pose_metrics:
+        pose_summary = {
+            "estimates": pose_estimates,
+            "region_coverage_denominator": pose_estimates,
+            "region_covered": region_covered,
+            "silent_misses": pose_estimates - region_covered,
+            "median_translation_error_m": quantile([row["translation_error_m"] for row in pose_metrics], 0.5),
+            "p95_translation_error_m": quantile([row["translation_error_m"] for row in pose_metrics], 0.95),
+            "median_relative_translation_error": quantile(
+                [row["relative_translation_error"] for row in pose_metrics if row["relative_translation_error"] is not None], 0.5
+            ),
+            "p95_relative_translation_error": quantile(
+                [row["relative_translation_error"] for row in pose_metrics if row["relative_translation_error"] is not None], 0.95
+            ),
+            "median_rotation_error_rad": quantile([row["rotation_error_rad"] for row in pose_metrics], 0.5),
+            "p95_rotation_error_rad": quantile([row["rotation_error_rad"] for row in pose_metrics], 0.95),
+            "median_rotation_error_deg": quantile([row["rotation_error_deg"] for row in pose_metrics], 0.5),
+            "p95_rotation_error_deg": quantile([row["rotation_error_deg"] for row in pose_metrics], 0.95),
+        }
+
     return {
         "benchmark_id": benchmark_id,
         "episodes": len(candidate_by_id),
@@ -394,6 +553,11 @@ def score(manifest: dict[str, Any], ledger: dict[str, Any],
         "false_positive_family_labels": false_positive_family_labels,
         "family_detection": family_detection,
         "generalization": generalization,
+        "pose_estimates": pose_estimates,
+        "pose_region_covered": region_covered,
+        "pose_silent_misses": pose_estimates - region_covered,
+        "pose_metrics": pose_metrics,
+        "pose_summary": pose_summary,
     }
 
 
