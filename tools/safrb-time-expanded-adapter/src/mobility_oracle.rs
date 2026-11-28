@@ -1490,13 +1490,25 @@ fn validate_mobility_instance_for_verification(
     {
         return Err("independent verifier rejected mobility instance envelope".to_string());
     }
-    let site_set = instance.sites.iter().collect::<BTreeSet<_>>();
-    let unit_set = instance.units.iter().map(|unit| &unit.unit_id).collect::<BTreeSet<_>>();
-    let arc_set = instance.arcs.iter().map(|arc| &arc.arc_id).collect::<BTreeSet<_>>();
+    let site_set = instance
+        .sites
+        .iter()
+        .map(String::as_str)
+        .collect::<BTreeSet<_>>();
+    let unit_set = instance
+        .units
+        .iter()
+        .map(|unit| unit.unit_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let arc_set = instance
+        .arcs
+        .iter()
+        .map(|arc| arc.arc_id.as_str())
+        .collect::<BTreeSet<_>>();
     let scenario_set = instance
         .scenarios
         .iter()
-        .map(|scenario| &scenario.scenario_id)
+        .map(|scenario| scenario.scenario_id.as_str())
         .collect::<BTreeSet<_>>();
     if site_set.len() != instance.sites.len()
         || unit_set.len() != instance.units.len()
@@ -1506,7 +1518,7 @@ fn validate_mobility_instance_for_verification(
         return Err("independent verifier found duplicate identities".to_string());
     }
     for unit in &instance.units {
-        if unit.unit_id.trim().is_empty() || !site_set.contains(&unit.initial_site_id) {
+        if unit.unit_id.trim().is_empty() || !site_set.contains(unit.initial_site_id.as_str()) {
             return Err("independent verifier rejected mobile-unit identity".to_string());
         }
     }
@@ -1525,7 +1537,7 @@ fn validate_mobility_instance_for_verification(
     }
     for scenario in &instance.scenarios {
         for closure in &scenario.route_closures {
-            if !arc_set.contains(&closure.arc_id)
+            if !arc_set.contains(closure.arc_id.as_str())
                 || closure.departure_period >= instance.horizon_last_period
                 || closure.observed_at_period > instance.horizon_last_period
             {
@@ -1533,7 +1545,7 @@ fn validate_mobility_instance_for_verification(
             }
         }
         for floor in &scenario.service_floors {
-            if !site_set.contains(&floor.site_id)
+            if !site_set.contains(floor.site_id.as_str())
                 || floor.period > instance.horizon_last_period
                 || floor.minimum_units == 0
                 || floor.minimum_units > instance.units.len() as u64
@@ -1551,6 +1563,7 @@ fn validate_mobility_instance_for_verification(
             }
         }
     }
+    validate_mobility_instance(instance)?;
     Ok(())
 }
 
@@ -1717,6 +1730,25 @@ mod tests {
             )],
         );
         let report = solve_mobility_policy(&model).unwrap();
+        assert!(report.zero_time_information_relaxation_feasible);
+        assert_eq!(report.disposition, MobilityDisposition::InformationRelaxationOnly);
+        verify_mobility_report(&model, &report).unwrap();
+    }
+
+    #[test]
+    fn total_service_floors_above_the_unit_count_fail_even_under_relaxation() {
+        let model = instance(
+            1,
+            &["site-a", "site-b"],
+            vec![unit("pump-1", "site-a")],
+            Vec::new(),
+            vec![scenario(
+                "world",
+                vec![floor("site-a", 1, 1), floor("site-b", 1, 1)],
+            )],
+        );
+        let report = solve_mobility_policy(&model).unwrap();
+        assert!(!report.zero_time_information_relaxation_feasible);
         assert_eq!(report.disposition, MobilityDisposition::NotFeasibleWithinSuppliedTree);
         verify_mobility_report(&model, &report).unwrap();
     }
