@@ -179,15 +179,36 @@ mod tests {
             let original = assessment(source);
             let result = crosswalk_claim_gate_assessment_v0_1(&original);
             assert_eq!(result.claim_gate_status, source);
-            assert_eq!(result.assurance_disposition, map_claim_gate_status_v0_1(source));
+            assert_eq!(
+                result.assurance_disposition,
+                map_claim_gate_status_v0_1(source)
+            );
             assert_eq!(result.reason_codes, original.reason_codes);
-            assert_eq!(result.decision_context_sha256, original.decision_context_sha256);
-            assert_eq!(result.owner_evidence_cut_sha256, original.owner_evidence_cut_sha256);
-            assert_eq!(result.owner_trust_policy_sha256, original.owner_trust_policy_sha256);
-            assert_eq!(result.model_credibility_sha256, original.model_credibility_sha256);
-            assert_eq!(result.component_report_sha256, original.component_report_sha256);
+            assert_eq!(
+                result.decision_context_sha256,
+                original.decision_context_sha256
+            );
+            assert_eq!(
+                result.owner_evidence_cut_sha256,
+                original.owner_evidence_cut_sha256
+            );
+            assert_eq!(
+                result.owner_trust_policy_sha256,
+                original.owner_trust_policy_sha256
+            );
+            assert_eq!(
+                result.model_credibility_sha256,
+                original.model_credibility_sha256
+            );
+            assert_eq!(
+                result.component_report_sha256,
+                original.component_report_sha256
+            );
             assert!(!result.authority_granted);
-            assert_eq!(result.physical_qualification_status, "OUT_OF_SCOPE_NOT_CLAIMED");
+            assert_eq!(
+                result.physical_qualification_status,
+                "OUT_OF_SCOPE_NOT_CLAIMED"
+            );
             assert!(!result.absence_inference_granted);
         }
     }
