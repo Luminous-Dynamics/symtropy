@@ -8,9 +8,7 @@
 //! vector, authenticate owner receipts, evaluate producer authority, or grant
 //! engineering / physical-work authority.
 
-use super::claim_specification_v0_1::{
-    ClaimSpecificationDispositionV0_1, ClaimSpecificationV0_1,
-};
+use super::claim_specification_v0_1::{ClaimSpecificationDispositionV0_1, ClaimSpecificationV0_1};
 use super::decision_context_v0_1::DecisionContextV0_1;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -249,23 +247,18 @@ pub fn bind_claim_specification_v0_1(
     if input.specification.configuration_ref != input.decision_context.configuration_ref {
         reasons.insert("CLAIM_SPECIFICATION_CONTEXT_CONFIGURATION_MISMATCH".to_owned());
     }
-    if input.specification.operating_envelope_ref
-        != input.decision_context.operating_envelope_ref
-    {
+    if input.specification.operating_envelope_ref != input.decision_context.operating_envelope_ref {
         reasons.insert("CLAIM_SPECIFICATION_CONTEXT_OPERATING_ENVELOPE_MISMATCH".to_owned());
     }
     if input.decision_context.claim_specification_sha256 != semantic_sha256 {
         reasons.insert("CLAIM_SPECIFICATION_CONTEXT_SEMANTIC_DIGEST_MISMATCH".to_owned());
     }
 
-    let acquisition_is_within_specification = input
-        .decision_context
-        .acquisition_time_earliest_unix_ms
-        >= input.specification.validity.effective_from_unix_ms
-        && input
-            .decision_context
-            .acquisition_time_latest_unix_ms
-            < input.specification.validity.effective_until_unix_ms;
+    let acquisition_is_within_specification =
+        input.decision_context.acquisition_time_earliest_unix_ms
+            >= input.specification.validity.effective_from_unix_ms
+            && input.decision_context.acquisition_time_latest_unix_ms
+                < input.specification.validity.effective_until_unix_ms;
     if !acquisition_is_within_specification {
         reasons.insert("CLAIM_SPECIFICATION_VALIDITY_DOES_NOT_COVER_ACQUISITION".to_owned());
     }
@@ -364,9 +357,12 @@ mod tests {
             result.disposition,
             ClaimSpecificationBindingDispositionV0_1::Rejected
         );
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH"
-        }));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "CLAIM_SPECIFICATION_RAW_PAYLOAD_DIGEST_MISMATCH" })
+        );
     }
 
     #[test]
@@ -389,9 +385,12 @@ mod tests {
             result.disposition,
             ClaimSpecificationBindingDispositionV0_1::Rejected
         );
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "CLAIM_SPECIFICATION_TYPED_OBJECT_PAYLOAD_MISMATCH"
-        }));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "CLAIM_SPECIFICATION_TYPED_OBJECT_PAYLOAD_MISMATCH" })
+        );
     }
 
     #[test]
@@ -409,9 +408,12 @@ mod tests {
             result.disposition,
             ClaimSpecificationBindingDispositionV0_1::Rejected
         );
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "CLAIM_SPECIFICATION_CONTEXT_SUBJECT_MISMATCH"
-        }));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "CLAIM_SPECIFICATION_CONTEXT_SUBJECT_MISMATCH" })
+        );
     }
 
     #[test]
@@ -429,9 +431,12 @@ mod tests {
             result.disposition,
             ClaimSpecificationBindingDispositionV0_1::Rejected
         );
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "CLAIM_SPECIFICATION_CONTEXT_SEMANTIC_DIGEST_MISMATCH"
-        }));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "CLAIM_SPECIFICATION_CONTEXT_SEMANTIC_DIGEST_MISMATCH" })
+        );
     }
 
     #[test]
@@ -439,8 +444,7 @@ mod tests {
         let (raw_payload, specification, mut decision_context) = fixture();
         decision_context.acquisition_time_latest_unix_ms =
             specification.validity.effective_until_unix_ms;
-        decision_context.as_known_at_unix_ms =
-            specification.validity.effective_until_unix_ms + 1;
+        decision_context.as_known_at_unix_ms = specification.validity.effective_until_unix_ms + 1;
         let expected_raw_payload_sha256 = raw_digest(&raw_payload);
         let result = bind_claim_specification_v0_1(ClaimSpecificationBindingInputV0_1 {
             raw_payload: &raw_payload,
