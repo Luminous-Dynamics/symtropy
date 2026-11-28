@@ -298,7 +298,7 @@ fn host_mode() -> Result<(), String> {
         max_file_bytes: 4_194_304,
         tmpfs_bytes: 16_777_216,
     };
-    let candidate_arguments = vec![
+    let candidate_arguments = [
         "--candidate".to_owned(),
         format!("--network-port={network_port}"),
         format!("--host-pid-ns={host_pid_namespace}"),
