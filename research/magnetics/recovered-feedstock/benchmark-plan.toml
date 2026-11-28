@@ -35,7 +35,9 @@ bind_product_lot_route_method_calibration_uncertainty_lab_method_scope = true
 br_js_is_absolute_br = false
 route_specific_acceptance_limits_required = true
 universal_carbon_oxygen_br_hcj_thresholds = false
-required_assay_families = ["chemistry", "particle_size_morphology", "phase_texture_orientation", "porosity_defects", "Br", "Hcj", "BHmax", "temperature_recoil"]
+required_assay_roles = ["AbsoluteRemanence", "Coercivity", "MaximumEnergyProduct", "MagneticAlignment", "Chemistry", "Microstructure", "DensityOrPorosity"]
+absolute_br_is_distinct_from_br_js_alignment = true
+per_route_required_roles_cannot_be_removed_by_caller = true
 
 [comparators]
 matched_virgin_feedstock_same_route_recipe = true
@@ -53,7 +55,7 @@ schema = "evaluator/route-evidence-v0.1.schema.json"
 fixture = "evaluator/fixtures/recovered-feedstock-synthetic-v0.1.json"
 source_register = "source-register.json"
 workflow = ".github/workflows/magnetic-recovered-feedstock.yml"
-authored_unit_tests = 21
+authored_unit_tests = 23
 tests_executed = false
 exact_head_ci_pass = false
 
