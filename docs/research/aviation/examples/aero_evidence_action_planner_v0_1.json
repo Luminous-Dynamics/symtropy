@@ -85,7 +85,32 @@
             "outcome_id": "outcome:negative",
             "likelihood_ppm": 100000
           }
-        ]
+        ],
+        "authorization_receipt": {
+          "owner_namespace": "owner:metrology-lab",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "configuration_ref": "configuration:wing-r17",
+          "action_id": "action:request-calibration-report",
+          "action_catalogue_entry_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000000
+        },
+        "calibration_receipt": {
+          "owner_namespace": "owner:forecast-model-team",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "configuration_ref": "configuration:wing-r17",
+          "action_id": "action:request-calibration-report",
+          "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000
+        }
       },
       {
         "action_id": "action:unauthorized-bench-test",
@@ -121,9 +146,25 @@
             "outcome_id": "outcome:negative",
             "likelihood_ppm": 100000
           }
-        ]
+        ],
+        "authorization_receipt": null,
+        "calibration_receipt": {
+          "owner_namespace": "owner:forecast-model-team",
+          "claim_id": "claim:wing-panel-proof-load",
+          "decision_context_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "configuration_ref": "configuration:wing-r17",
+          "action_id": "action:unauthorized-bench-test",
+          "outcome_model_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "calibration_profile_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "calibration_report_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+          "receiver_first_seen_at_unix_ms": 1795516000000,
+          "effective_from_unix_ms": 1795500000000,
+          "effective_until_unix_ms": 1798000000
+        }
       }
-    ]
+    ],
+    "configuration_ref": "configuration:wing-r17",
+    "as_known_at_unix_ms": 1795517000000
   },
   "expected": {
     "disposition": "RANKED_ACTIONS",
