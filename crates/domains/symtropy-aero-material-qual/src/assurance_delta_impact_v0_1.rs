@@ -190,7 +190,7 @@ pub struct AssuranceDeltaImpactAssessmentV0_1 {
 
 #[derive(Serialize)]
 struct GraphManifestV0_1<'a> {
-    schema: &'static str,
+    schema: &'a str,
     canonicalization_profile: &'static str,
     snapshot_id: &'a str,
     claim_id: &'a str,
@@ -771,7 +771,7 @@ mod tests {
         }
     }
 
-    fn input(mut graph: AssuranceDependencyGraphV0_1) -> AssuranceDeltaImpactInputV0_1 {
+    fn input(graph: AssuranceDependencyGraphV0_1) -> AssuranceDeltaImpactInputV0_1 {
         let graph_sha = compute_dependency_graph_sha256_v0_1(&graph).expect("graph hash");
         let change = DeltaChangeReceiptV0_1 {
             verification_status: DeltaReceiptStatusV0_1::Verified,
