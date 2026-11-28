@@ -31,7 +31,8 @@
     "metadata_leakage",
     "invalid_episodes",
     "statistical_interpretation",
-    "claim_ceiling"
+    "claim_ceiling",
+    "candidate_surface_audit"
   ],
   "properties": {
     "schema_version": {
@@ -147,6 +148,9 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "candidate_surface_audit": {
+      "$ref": "#/$defs/candidateSurfaceAudit"
     }
   },
   "$defs": {
@@ -309,6 +313,74 @@
                 "type": "number",
                 "minimum": 0,
                 "maximum": 1
+              }
+            }
+          }
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "candidateSurfaceAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "candidate_episode_n",
+        "candidate_submission_n",
+        "projection_receipt_n",
+        "finding_n",
+        "passed",
+        "findings",
+        "interpretation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "aerb-candidate-surface-audit-v0.1"
+        },
+        "candidate_episode_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_submission_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "projection_receipt_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finding_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "location",
+              "finding_kind",
+              "token_sha256"
+            ],
+            "properties": {
+              "location": {
+                "type": "string",
+                "minLength": 1
+              },
+              "finding_kind": {
+                "type": "string",
+                "minLength": 1
+              },
+              "token_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
               }
             }
           }
