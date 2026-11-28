@@ -1,0 +1,40 @@
+name: AERB blind projection formatter repair
+
+on:
+  pull_request:
+    paths:
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_projection_audit_v0_1.rs"
+      - "research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_metadata_audit.rs"
+      - ".github/workflows/aerb-blind-projection-autofmt.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format-owned-branch:
+    if: github.actor == 'Tristan-Stoltz-ERC' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'research/aerb-blind-projection-audit-v0-1'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+      - uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt
+      - name: Format evaluator crate
+        run: cargo fmt --manifest-path research/mobility-rrvr-aerb-v0.1/evaluator/Cargo.toml
+      - name: Commit only projection and audit sources
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git add -- research/mobility-rrvr-aerb-v0.1/evaluator/src/blind_projection_audit_v0_1.rs research/mobility-rrvr-aerb-v0.1/evaluator/src/bin/aerb_metadata_audit.rs
+          if git diff --cached --quiet; then
+            echo "Projection sources already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style(rrvr): format blind projection and audit sources"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
