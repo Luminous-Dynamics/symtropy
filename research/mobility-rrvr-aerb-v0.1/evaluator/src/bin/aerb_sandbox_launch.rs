@@ -149,23 +149,22 @@ fn capture_outputs(
     let mut artifacts = Vec::new();
     let mut seen_ids = BTreeSet::new();
     let mut unexpected = Vec::new();
-    let mut missing = Vec::new();
 
     let entries = match fs::read_dir(output_root) {
         Ok(entries) => entries,
-        Err(error) => {
+        Err(_) => {
             return (
                 artifacts,
                 expected_ids.iter().cloned().collect(),
-                vec![format!("OUTPUT_DIRECTORY_READ_FAILED:{error}")],
+                vec!["OUTPUT_DIRECTORY_READ_FAILED".to_owned()],
             );
         }
     };
     for entry in entries {
         let entry = match entry {
             Ok(entry) => entry,
-            Err(error) => {
-                unexpected.push(format!("UNREADABLE_DIRECTORY_ENTRY:{error}"));
+            Err(_) => {
+                unexpected.push("UNREADABLE_DIRECTORY_ENTRY".to_owned());
                 continue;
             }
         };
@@ -176,6 +175,21 @@ fn capture_outputs(
                 continue;
             }
         };
+        let metadata = match fs::symlink_metadata(entry.path()) {
+            Ok(metadata) => metadata,
+            Err(_) => {
+                unexpected.push(format!("{name}:METADATA_UNAVAILABLE"));
+                continue;
+            }
+        };
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            unexpected.push(format!("{name}:NOT_REGULAR_FILE"));
+            continue;
+        }
+        if metadata.len() > MAX_ARTIFACT_BYTES {
+            unexpected.push(format!("{name}:ARTIFACT_TOO_LARGE"));
+            continue;
+        }
         let Some(episode_id) = name
             .strip_prefix("submission-")
             .and_then(|value| value.strip_suffix(".json"))
@@ -183,27 +197,28 @@ fn capture_outputs(
             unexpected.push(name);
             continue;
         };
-        if !expected_ids.contains(episode_id) || !seen_ids.insert(episode_id.to_owned()) {
+        if !expected_ids.contains(episode_id) {
             unexpected.push(name);
             continue;
         }
         match read_regular_file(&entry.path(), MAX_ARTIFACT_BYTES) {
-            Ok(bytes) => artifacts.push(OutputArtifact {
-                episode_id: episode_id.to_owned(),
-                relative_file_name: name,
-                sha256: sha256_hex(&bytes),
-                byte_length: bytes.len() as u64,
-            }),
-            Err(error) => unexpected.push(format!("{name}:{error}")),
+            Ok(bytes) => {
+                seen_ids.insert(episode_id.to_owned());
+                artifacts.push(OutputArtifact {
+                    episode_id: episode_id.to_owned(),
+                    relative_file_name: name,
+                    sha256: sha256_hex(&bytes),
+                    byte_length: bytes.len() as u64,
+                });
+            }
+            Err(_) => unexpected.push(format!("{name}:ARTIFACT_READ_FAILED")),
         }
     }
-    for episode_id in expected_ids {
-        if !seen_ids.contains(episode_id) {
-            missing.push(episode_id.clone());
-        }
-    }
+    let missing = expected_ids
+        .difference(&seen_ids)
+        .cloned()
+        .collect::<Vec<_>>();
     artifacts.sort_by(|left, right| left.episode_id.cmp(&right.episode_id));
-    missing.sort();
     unexpected.sort();
     (artifacts, missing, unexpected)
 }
@@ -372,10 +387,14 @@ fn run() -> Result<RunnerOutcome, String> {
 
 fn main() -> ExitCode {
     match run() {
-        Ok(RunnerOutcome::Completed { exit_code: 0 }) => ExitCode::SUCCESS,
+        // A receipt is the outcome. Nonzero, timeout and unknown candidate
+        // outcomes must still reach the evaluator so scheduled denominators
+        // are preserved and the evaluator can issue the final failing verdict.
         Ok(outcome) => {
-            eprintln!("AERB_SANDBOX_RUN_NOT_QUALIFIED: {outcome:?}");
-            ExitCode::FAILURE
+            if !matches!(outcome, RunnerOutcome::Completed { exit_code: 0 }) {
+                eprintln!("AERB_SANDBOX_RUN_NOT_QUALIFIED: {outcome:?}");
+            }
+            ExitCode::SUCCESS
         }
         Err(error) => {
             eprintln!("AERB_SANDBOX_LAUNCH_FAILED: {error}");
