@@ -13,7 +13,8 @@
       "measurement_setup_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "acceptance_policy_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "service_horizon_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-      "objective_set_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      "objective_set_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "element_inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
     },
     "required_elements": [
       {
@@ -92,14 +93,18 @@
         "method_id": "SYNTHETIC-SHAFT-ENERGY",
         "calibration_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
         "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
-        "instrument_id": "SYNTHETIC-DYNAMOMETER"
+        "instrument_id": "SYNTHETIC-DYNAMOMETER",
+        "durability_evidence_class": "SyntheticControl",
+        "durability_method_id": "SYNTHETIC-DURABILITY-METHOD",
+        "durability_calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "durability_uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "optimization": {
         "receipt_id": "SYNTHETIC-OPT-AM-HYBRID",
         "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "optimizer_id": "SYNTHETIC-OPTIMIZER",
         "search_space_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "constraint_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "protocol_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "evaluations": 500,
@@ -172,7 +177,8 @@
               "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "evidence_class": "SyntheticControl"
             }
-          ]
+          ],
+          "inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "material_lot_id": "CU-AM-HYBRID",
@@ -238,7 +244,8 @@
               "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "evidence_class": "SyntheticControl"
             }
-          ]
+          ],
+          "inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
         }
       ]
     },
@@ -288,14 +295,18 @@
         "method_id": "SYNTHETIC-SHAFT-ENERGY",
         "calibration_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
         "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
-        "instrument_id": "SYNTHETIC-DYNAMOMETER"
+        "instrument_id": "SYNTHETIC-DYNAMOMETER",
+        "durability_evidence_class": "SyntheticControl",
+        "durability_method_id": "SYNTHETIC-DURABILITY-METHOD",
+        "durability_calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "durability_uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "optimization": {
         "receipt_id": "SYNTHETIC-OPT-SINTERED-IPM",
         "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "optimizer_id": "SYNTHETIC-OPTIMIZER",
         "search_space_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "constraint_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "protocol_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "evaluations": 500,
@@ -368,7 +379,8 @@
               "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "evidence_class": "SyntheticControl"
             }
-          ]
+          ],
+          "inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "material_lot_id": "CU-SINTERED-IPM",
@@ -434,7 +446,8 @@
               "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "evidence_class": "SyntheticControl"
             }
-          ]
+          ],
+          "inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
         }
       ]
     },
@@ -484,14 +497,18 @@
         "method_id": "SYNTHETIC-SHAFT-ENERGY",
         "calibration_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
         "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
-        "instrument_id": "SYNTHETIC-DYNAMOMETER"
+        "instrument_id": "SYNTHETIC-DYNAMOMETER",
+        "durability_evidence_class": "SyntheticControl",
+        "durability_method_id": "SYNTHETIC-DURABILITY-METHOD",
+        "durability_calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "durability_uncertainty_record_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "optimization": {
         "receipt_id": "SYNTHETIC-OPT-PMASS-SYNRM",
         "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "optimizer_id": "SYNTHETIC-OPTIMIZER",
         "search_space_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "objective_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "objective_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "constraint_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "protocol_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "evaluations": 500,
@@ -564,7 +581,8 @@
               "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "evidence_class": "SyntheticControl"
             }
-          ]
+          ],
+          "inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
         },
         {
           "material_lot_id": "CU-PMASS-SYNRM",
@@ -630,7 +648,8 @@
               "laboratory_method_scope_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
               "evidence_class": "SyntheticControl"
             }
-          ]
+          ],
+          "inventory_scope_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
         }
       ]
     }
