@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/transport/ev-bms-generated-reference/0.1",
+  "title": "EV BMS generated benchmark reference manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "dataset_id",
+    "title",
+    "paper_url",
+    "source_repository_url",
+    "release_url",
+    "release_tag",
+    "release_published_on",
+    "metadata_retrieved_on",
+    "license_spdx",
+    "permitted_use",
+    "redistribution_allowed",
+    "commercial_use_allowed",
+    "evidence_class",
+    "generation_method",
+    "raw_fault_labelled_field_telemetry_released",
+    "generated_pack_instance_count",
+    "chemistry_counts",
+    "charge_segments_per_pack",
+    "discharge_segments_per_pack",
+    "sample_interval_seconds",
+    "segment_duration_minutes_min",
+    "segment_duration_minutes_max",
+    "pack_topologies_cell_count",
+    "ambient_temperature_c_min",
+    "ambient_temperature_c_max",
+    "fault_classes",
+    "severity_levels",
+    "fault_counts_by_chemistry",
+    "assets",
+    "admission_state",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "manifest_version": {
+      "const": "ev-bms-generated-reference/v0.1"
+    },
+    "dataset_id": {
+      "const": "ch-batterygen-iclr-2026-v1"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "paper_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "source_repository_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "release_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "release_tag": {
+      "type": "string",
+      "minLength": 1
+    },
+    "release_published_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "metadata_retrieved_on": {
+      "type": "string",
+      "format": "date"
+    },
+    "license_spdx": {
+      "const": "CC-BY-NC-SA-4.0"
+    },
+    "permitted_use": {
+      "const": "academic_research_non_commercial_only"
+    },
+    "redistribution_allowed": {
+      "const": false
+    },
+    "commercial_use_allowed": {
+      "const": false
+    },
+    "evidence_class": {
+      "const": "mechanism_constrained_generated"
+    },
+    "generation_method": {
+      "const": "mechanism_constrained_generated_from_real_fleet_distribution"
+    },
+    "raw_fault_labelled_field_telemetry_released": {
+      "const": false
+    },
+    "generated_pack_instance_count": {
+      "const": 1000
+    },
+    "chemistry_counts": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "chemistry",
+          "generated_pack_instance_count"
+        ],
+        "properties": {
+          "chemistry": {
+            "enum": [
+              "LFP",
+              "NCM"
+            ]
+          },
+          "generated_pack_instance_count": {
+            "const": 500
+          }
+        }
+      }
+    },
+    "charge_segments_per_pack": {
+      "const": 10
+    },
+    "discharge_segments_per_pack": {
+      "const": 10
+    },
+    "sample_interval_seconds": {
+      "const": 10
+    },
+    "segment_duration_minutes_min": {
+      "const": 30
+    },
+    "segment_duration_minutes_max": {
+      "const": 60
+    },
+    "pack_topologies_cell_count": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          28,
+          92,
+          96,
+          124
+        ]
+      }
+    },
+    "ambient_temperature_c_min": {
+      "const": -10
+    },
+    "ambient_temperature_c_max": {
+      "const": 45
+    },
+    "fault_classes": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "normal",
+          "high_resistance",
+          "low_capacity",
+          "self_discharge"
+        ]
+      }
+    },
+    "severity_levels": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "mild",
+          "moderate",
+          "severe"
+        ]
+      }
+    },
+    "fault_counts_by_chemistry": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "chemistry",
+          "normal",
+          "high_resistance",
+          "low_capacity",
+          "self_discharge"
+        ],
+        "properties": {
+          "chemistry": {
+            "enum": [
+              "LFP",
+              "NCM"
+            ]
+          },
+          "normal": {
+            "const": 400
+          },
+          "high_resistance": {
+            "const": 30
+          },
+          "low_capacity": {
+            "const": 30
+          },
+          "self_discharge": {
+            "const": 40
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "size_bytes",
+          "publisher_sha256",
+          "local_sha256"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "publisher_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "local_sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "admission_state": {
+      "enum": [
+        "metadata_only",
+        "snapshot_admitted"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
