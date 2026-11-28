@@ -611,7 +611,51 @@
           "$ref": "#/$defs/recoveryPathReceipt"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reuse_grade_mass_kg": {
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reuse_acceptance_receipt"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "remanufactured_accepted_mass_kg": {
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "remanufacture_acceptance_receipt"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "recycling_feedstock_mass_kg": {
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "recycling_intake_receipt"
+            ]
+          }
+        }
+      ]
     },
     "trial": {
       "type": "object",
