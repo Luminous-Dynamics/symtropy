@@ -1,0 +1,72 @@
+schema_version = "0.1"
+program_id = "MAG-DUTY-CYCLE-EVIDENCE-001"
+revision = "0.1-draft"
+status = "synthetic_semantic_evaluator"
+date = "2026-11-28"
+issue = 7887
+parents = [7773, 7776, 7792, 7798, 7802, 7824, 7870]
+
+[scope]
+exact_profile_digest = true
+exact_component_identity = true
+exact_system_boundary_digest = true
+exact_measurement_setup_digest = true
+ordered_segments_required = true
+thermal_state_continuity_required = true
+extra_or_duplicate_segments_rejected = true
+
+[evidence]
+qualification_evidence_class = "PhysicalMeasurement"
+synthetic_literature_and_simulation_cannot_promote = true
+method_id_required = true
+calibration_digest_required = true
+uncertainty_record_digest_required = true
+receipt_and_evidence_digests_required = true
+issuer_authentication_in_scope = false
+
+[energy]
+unit = "J"
+motoring_dc_input_and_shaft_output_separate = true
+regenerative_shaft_input_and_dc_output_separate = true
+auxiliary_dc_input_separate = true
+net_dc_energy = "motoring_dc_input + auxiliary_dc_input - regenerative_dc_output"
+efficiency_aggregation = "ratio_of_summed_energy"
+unweighted_mean_of_segment_efficiencies = false
+bounded_interval_arithmetic = true
+assume_statistical_independence = false
+zero_or_nonpositive_denominator = "indeterminate"
+efficiency_interval_above_unity = "indeterminate"
+
+[hard_gates]
+per_segment_torque_tracking = true
+per_segment_speed_tracking = true
+per_segment_winding_temperature = true
+per_segment_magnet_temperature = true
+per_segment_demagnetization_margin = true
+per_segment_retention_margin = true
+average_cannot_compensate_for_segment_failure = true
+overlapping_limit_interval = "indeterminate"
+
+[standards]
+iec_60034_2_3_2024 = "converter_fed_motor_loss_efficiency_methods_and_seven_standardized_load_points"
+iso_21782_1_2023 = "electric_propulsion_component_general_test_conditions"
+iec_60404_5_2015 = "permanent_magnet_properties_measurement"
+iec_60404_18_2025 = "open_circuit_superconducting_magnet_measurement_method"
+
+[implementation]
+language = "Rust 2024"
+dependencies = []
+manifest = "evaluator/Cargo.toml"
+source = "evaluator/src/lib.rs"
+schema = "evaluator/duty-cycle-evidence-v0.1.schema.json"
+fixture = "evaluator/fixtures/duty-cycle-evidence-synthetic-v0.1.json"
+workflow = ".github/workflows/magnetic-duty-cycle-evidence.yml"
+authored_unit_tests = 20
+tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+synthetic_fixture_is_physical_result = false
+standards_reference_is_conformity_claim = false
+duty_cycle_aggregation_is_motor_solver = false
+duty_cycle_aggregation_is_architecture_advantage = false
