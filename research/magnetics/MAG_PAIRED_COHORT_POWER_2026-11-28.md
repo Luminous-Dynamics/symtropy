@@ -43,8 +43,11 @@ For each candidate sample size and each between-/within-lot variance corner:
 - simulate data under the null at the non-inferiority boundary;
 - simulate data under the alternative at the preregistered expected effect;
 - apply one-sided t testing using actual analyzable lot-pair count and degrees of freedom;
-- calculate Wilson intervals for type-I error and power;
-- report the probability that attrition leaves fewer than the minimum lot pairs.
+- calculate type-I error conditional on null simulations with enough complete lots to run the test;
+- calculate operational alternative power across every planned simulation, counting insufficient-lot outcomes as unsuccessful conclusions;
+- report null/alternative analysis coverage and the probability that attrition leaves fewer than the minimum lot pairs.
+
+Type-I error and operational power therefore have different explicit denominators. A low analysis-coverage scenario cannot produce an artificially reassuring type-I estimate.
 
 For multiple primary endpoints, apply a preregistered multiplicity policy; v0.1 uses Bonferroni familywise control.
 
