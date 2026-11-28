@@ -57,6 +57,8 @@ jobs:
             .exact_reported_event_count == 1 and
             .interval_censored_event_count == 2 and
             .left_censored_event_count == 1 and
+            .alignment_uncertainty_preapplied == true and
+            .max_relative_clock_error_ms == 0 and
             .eligible_event_count == 3 and
             .definite_warning_count == 1 and
             .possible_only_warning_count == 1 and
