@@ -1,0 +1,13 @@
+[package]
+name = "magnetic-circular-lifecycle-evaluator"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+
+# This evaluator is a standalone research crate, not a root-workspace member.
+[workspace]
