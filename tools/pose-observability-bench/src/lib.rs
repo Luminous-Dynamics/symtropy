@@ -85,6 +85,8 @@ pub struct ObservabilityResult {
     pub observation_count: usize,
     pub effective_observation_count: usize,
     pub translation_scale_m: f64,
+    pub rank_relative_tolerance: f64,
+    pub rank_absolute_tolerance: f64,
     pub fim_6x6: [[f64; 6]; 6],
     /// Sorted ascending; each eigenvalue uses the declared dimensionless twist scaling.
     pub eigenvalues_ascending: [f64; 6],
@@ -497,6 +499,8 @@ pub fn evaluate(request: &ObservabilityRequest) -> Result<ObservabilityResult, S
         observation_count: request.observations.len(),
         effective_observation_count,
         translation_scale_m: request.translation_scale_m,
+        rank_relative_tolerance: request.rank_relative_tolerance,
+        rank_absolute_tolerance: request.rank_absolute_tolerance,
         fim_6x6: fim,
         eigenvalues_ascending: eigenvalues,
         numerical_rank,
@@ -625,6 +629,8 @@ mod tests {
         assert!(result.log_determinant.unwrap().is_finite());
         assert_eq!(result.linearization_pose_sha256, sha('4'));
         assert_eq!(result.camera_intrinsics_sha256, sha('1'));
+        assert_eq!(result.rank_relative_tolerance, 1e-9);
+        assert_eq!(result.rank_absolute_tolerance, 1e-12);
         assert_eq!(
             result.measurement_model,
             "ideal_pinhole_independent_isotropic_pixel_noise"
