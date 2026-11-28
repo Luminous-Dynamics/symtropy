@@ -488,6 +488,9 @@ pub fn bind_claim_model_obligations_v0_1(
     if input.schema != CLAIM_MODEL_OBLIGATION_BINDING_SCHEMA_V0_1 {
         return reject("MODEL_OBLIGATION_BINDING_SCHEMA_INVALID");
     }
+    if input.requirement_profile != input.evidence_binding_input.requirement_profile {
+        return reject("MODEL_OBLIGATION_REQUIREMENT_PROFILE_MISMATCH");
+    }
 
     let evidence_binding = bind_claim_obligation_evidence_v0_1(
         input.evidence_binding_input.clone(),
