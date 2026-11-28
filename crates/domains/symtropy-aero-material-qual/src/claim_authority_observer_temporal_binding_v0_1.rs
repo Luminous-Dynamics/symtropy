@@ -87,6 +87,7 @@ pub struct ClaimObserverCoverageReceiptV0_1 {
     pub acquisition_time_earliest_unix_ms: u64,
     pub acquisition_time_latest_unix_ms: u64,
     pub observer_coverage_profile_id: String,
+    pub owner_observer_coverage_status: OwnerObserverCoverageStatus,
     pub owner_observer_coverage_receipt_sha256: String,
     pub coverage_report_sha256: String,
     pub coverage_status: CoverageStatus,
@@ -301,7 +302,12 @@ fn validate_observer_receipt(
         || receipt.acquisition_time_earliest_unix_ms != context.acquisition_time_earliest_unix_ms
         || receipt.acquisition_time_latest_unix_ms != context.acquisition_time_latest_unix_ms
         || receipt.observer_coverage_profile_id != owner_cut.observer_coverage_profile_id
+        || receipt.owner_observer_coverage_status != owner_cut.observer_coverage_status
         || receipt.owner_observer_coverage_receipt_sha256 != owner_cut.observer_coverage_receipt_sha256
+        || (assessment.status == CoverageStatus::QualifiedCompleteForScope
+            && owner_cut.observer_coverage_status != OwnerObserverCoverageStatus::QualifiedCompleteForScope)
+        || (assessment.status != CoverageStatus::QualifiedCompleteForScope
+            && owner_cut.observer_coverage_status == OwnerObserverCoverageStatus::QualifiedCompleteForScope)
         || receipt.coverage_report_sha256 != binding.report_sha256
         || receipt.coverage_status != assessment.status
         || receipt.replay_consequence != assessment.replay_consequence
@@ -325,12 +331,20 @@ fn validate_observer_receipt(
     } else if reason.is_some() {
         ClaimSourceObligationDispositionV0_1::Unverified
     } else {
-        match assessment.status {
-            CoverageStatus::QualifiedCompleteForScope => ClaimSourceObligationDispositionV0_1::Bound,
-            CoverageStatus::Incomplete => ClaimSourceObligationDispositionV0_1::Incomplete,
-            CoverageStatus::Unverified => ClaimSourceObligationDispositionV0_1::Unverified,
-            CoverageStatus::Invalid => ClaimSourceObligationDispositionV0_1::Rejected,
-            CoverageStatus::OutOfScope => ClaimSourceObligationDispositionV0_1::OutOfScope,
+        match receipt.verification_status {
+            EvidenceBindingReceiptStatusV0_1::Failed => {
+                ClaimSourceObligationDispositionV0_1::Rejected
+            }
+            EvidenceBindingReceiptStatusV0_1::Unverified => {
+                ClaimSourceObligationDispositionV0_1::Unverified
+            }
+            EvidenceBindingReceiptStatusV0_1::Verified => match assessment.status {
+                CoverageStatus::QualifiedCompleteForScope => ClaimSourceObligationDispositionV0_1::Bound,
+                CoverageStatus::Incomplete => ClaimSourceObligationDispositionV0_1::Incomplete,
+                CoverageStatus::Unverified => ClaimSourceObligationDispositionV0_1::Unverified,
+                CoverageStatus::Invalid => ClaimSourceObligationDispositionV0_1::Rejected,
+                CoverageStatus::OutOfScope => ClaimSourceObligationDispositionV0_1::OutOfScope,
+            },
         }
     };
     (disposition, receipt.receipt_sha256.clone(), reason)
@@ -449,21 +463,29 @@ pub fn bind_claim_authority_observer_temporal_v0_1(
         )
         .unwrap_or_default();
 
+    let upstream_claim_disposition = match evidence.disposition {
+        ClaimObligationEvidenceBindingDispositionV0_1::Bound => ClaimSourceObligationDispositionV0_1::Bound,
+        ClaimObligationEvidenceBindingDispositionV0_1::Incomplete => ClaimSourceObligationDispositionV0_1::Incomplete,
+        ClaimObligationEvidenceBindingDispositionV0_1::Unverified => ClaimSourceObligationDispositionV0_1::Unverified,
+        ClaimObligationEvidenceBindingDispositionV0_1::Rejected => ClaimSourceObligationDispositionV0_1::Rejected,
+    };
+    let upstream_claim_reason = (upstream_claim_disposition != ClaimSourceObligationDispositionV0_1::Bound)
+        .then(|| "CLAIM_SPECIFICATION_OR_EVIDENCE_BINDING_NOT_BOUND".to_owned());
     let claim_identity = obligation(&profile, "claim-identity")
         .map(|item| make_obligation(
             &item.obligation_id,
             "CLAIM_IDENTITY",
-            ClaimSourceObligationDispositionV0_1::Bound,
+            upstream_claim_disposition,
             semantic_sha.clone(),
-            None,
+            upstream_claim_reason.clone(),
         ));
     let semantic_validity = obligation(&profile, "semantic-validity")
         .map(|item| make_obligation(
             &item.obligation_id,
             "SEMANTIC_VALIDITY",
-            ClaimSourceObligationDispositionV0_1::Bound,
+            upstream_claim_disposition,
             semantic_sha.clone(),
-            None,
+            upstream_claim_reason.clone(),
         ));
 
     let authority = validate_authority_receipt(
@@ -597,9 +619,7 @@ pub fn bind_claim_authority_observer_temporal_v0_1(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::claim_assurance_gate_v0_1::AssessmentBinding;
-    use crate::claim_obligation_evidence_binding_v0_1::tests::build_case;
-    use super::super::observer_coverage::{CoverageStatus, ReplayConsequence};
+    use crate::claim_obligation_evidence_binding_v0_1::tests::build_case as build_evidence_case;
 
     const CUTOFF: u64 = 1_795_516_800_000;
 
@@ -625,7 +645,7 @@ mod tests {
 
     fn build_case() -> Case {
         let (raw, spec, context, owner_cut, admissions, evidence_entries, evidence_approval, source_receipts) =
-            build_case();
+            build_evidence_case();
         let context_sha = context.compute_sha256().expect("context SHA");
         let owner_cut_sha = owner_cut.compute_sha256().expect("owner cut SHA");
         let source_manifest_sha = compute_owner_evidence_source_receipt_manifest_sha256_v0_1(&source_receipts)
@@ -669,6 +689,7 @@ mod tests {
             acquisition_time_earliest_unix_ms: context.acquisition_time_earliest_unix_ms,
             acquisition_time_latest_unix_ms: context.acquisition_time_latest_unix_ms,
             observer_coverage_profile_id: owner_cut.observer_coverage_profile_id.clone(),
+            owner_observer_coverage_status: owner_cut.observer_coverage_status,
             owner_observer_coverage_receipt_sha256: owner_cut.observer_coverage_receipt_sha256.clone(),
             coverage_report_sha256: observer_binding.report_sha256.clone(),
             coverage_status: CoverageStatus::QualifiedCompleteForScope,
