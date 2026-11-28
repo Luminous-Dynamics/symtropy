@@ -408,7 +408,10 @@
         "assurance_state_mutated",
         "physical_work_authorized",
         "engineering_acceptance_granted",
-        "evsi_numerator_scale"
+        "evsi_numerator_scale",
+        "configuration_ref",
+        "as_known_at_unix_ms",
+        "unresolved_obligation_manifest_sha256"
       ],
       "properties": {
         "disposition": {
@@ -449,7 +452,8 @@
               "authorization_receipt_sha256",
               "calibration_receipt_sha256",
               "calibration_profile_sha256",
-              "expected_artifact_contract_sha256"
+              "expected_artifact_contract_sha256",
+              "outcome_model_owner_namespace"
             ],
             "properties": {
               "rank": {
@@ -505,6 +509,10 @@
               "expected_artifact_contract_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              },
+              "outcome_model_owner_namespace": {
+                "type": "string",
+                "minLength": 1
               }
             }
           }
@@ -542,6 +550,18 @@
         },
         "evsi_numerator_scale": {
           "const": 1000000000000
+        },
+        "configuration_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_known_at_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_obligation_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       }
     }
