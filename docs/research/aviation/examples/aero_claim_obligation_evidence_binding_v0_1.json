@@ -82,14 +82,14 @@
     "acquisition_time_latest_unix_ms": 1795514399910,
     "as_known_at_unix_ms": 1795516800000,
     "source_scope_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
-    "evidence_knowledge_cut_sha256": "a44bb6cc00b9ba2beffc953414c3691606b9cd65709a4d808d60847b161fe038",
+    "evidence_knowledge_cut_sha256": "f6eded0532f249a2143d47dbd85150f3022fb9b0c13c49a88c3f12d9af5d9d3a",
     "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     "claim_specification_sha256": "f285772a5a87cb958799a78ee0150a51afd41079153c23ec4ebdf56c0b1d8095",
     "required_evidence_manifest_sha256": "8f9bfefe5e01b5e02f7cc9730f43678cc5b7c8d9eacc4612cd26b9bb9772ad48",
     "risk_classification_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
     "model_applicability_profile_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
   },
-  "decision_context_sha256": "75463bf6206b03bf3d9a754407334572bdc553c8dcd525183284da2946a0a2af",
+  "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
   "requirement_profile": "AERO_SCALAR_ENGINEERING_CLAIM_V0_1",
   "derived_profile_commitments": {
     "profile_id": "aero-scalar-engineering-claim-v0.1",
@@ -129,7 +129,7 @@
         "record_sha256": "a8b858774407e328f4a284ee0348dd5b74d4056d145543f813fe1e9df2cc0c7c",
         "subject_ref": "part:wing-panel-synthetic-001",
         "configuration_ref": "configuration:wing-r17-synthetic",
-        "lifecycle": "Active",
+        "lifecycle": "active",
         "predecessor_ref": null,
         "freshness": "fresh",
         "dependency_coverage": "complete",
@@ -142,7 +142,7 @@
         "record_sha256": "f662d325abcd5586c77238cf0f5d53303cd33ef2a55055db9c243cfc4963d6ca",
         "subject_ref": "part:wing-panel-synthetic-001",
         "configuration_ref": "configuration:wing-r17-synthetic",
-        "lifecycle": "Active",
+        "lifecycle": "active",
         "predecessor_ref": null,
         "freshness": "fresh",
         "dependency_coverage": "complete",
@@ -155,7 +155,7 @@
         "record_sha256": "fcc7f48654ff570467c3b235ae5cc6e9a2e816df22850aab777fb4dfc85c3850",
         "subject_ref": "part:wing-panel-synthetic-001",
         "configuration_ref": "configuration:wing-r17-synthetic",
-        "lifecycle": "Active",
+        "lifecycle": "active",
         "predecessor_ref": null,
         "freshness": "fresh",
         "dependency_coverage": "complete",
@@ -181,17 +181,17 @@
   "required_evidence_admissions": [
     {
       "evidence_ref": "evidence:evidence-class-material-characterization",
-      "decision_context_sha256": "75463bf6206b03bf3d9a754407334572bdc553c8dcd525183284da2946a0a2af",
+      "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
       "state": "ADMITTED"
     },
     {
       "evidence_ref": "evidence:evidence-class-structural-test",
-      "decision_context_sha256": "75463bf6206b03bf3d9a754407334572bdc553c8dcd525183284da2946a0a2af",
+      "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
       "state": "ADMITTED"
     },
     {
       "evidence_ref": "evidence:evidence-class-model-validation",
-      "decision_context_sha256": "75463bf6206b03bf3d9a754407334572bdc553c8dcd525183284da2946a0a2af",
+      "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
       "state": "ADMITTED"
     }
   ],
@@ -225,15 +225,15 @@
     "verification_status": "VERIFIED",
     "owner_namespace": "owner:materials-authority",
     "claim_id": "aero:claim:wing-panel-strength-001",
-    "decision_context_sha256": "75463bf6206b03bf3d9a754407334572bdc553c8dcd525183284da2946a0a2af",
+    "decision_context_sha256": "3d1e026c1c12750787bf22230f986db34a8f98034b1b02f61e11fba3ac47d5b9",
     "configuration_ref": "configuration:wing-r17-synthetic",
     "claim_specification_semantic_sha256": "f285772a5a87cb958799a78ee0150a51afd41079153c23ec4ebdf56c0b1d8095",
     "obligation_profile_sha256": "cdbaf5a44783de557a59e7b9b64ae77fe5b020c418459e10f0eefb662371fb60",
     "obligation_manifest_sha256": "7c9567afddc06889183ad31428c61ab4114917e571568c2fb2c63a34fe016ea0",
     "required_evidence_manifest_sha256": "8f9bfefe5e01b5e02f7cc9730f43678cc5b7c8d9eacc4612cd26b9bb9772ad48",
-    "owner_evidence_cut_sha256": "a44bb6cc00b9ba2beffc953414c3691606b9cd65709a4d808d60847b161fe038",
+    "owner_evidence_cut_sha256": "f6eded0532f249a2143d47dbd85150f3022fb9b0c13c49a88c3f12d9af5d9d3a",
     "trust_policy_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-    "mapping_manifest_sha256": "81bafeacabc1c598cf676d51f19fe5bb8d7e4d2ff14a6e3521d5c806a7f04c24",
+    "mapping_manifest_sha256": "52667625eee94991ca6afa9335202e7801984baae846ea1b54c8f8b908d7e156",
     "receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
     "receiver_first_seen_at_unix_ms": 1795516799800,
     "effective_from_unix_ms": 1795516799700,
