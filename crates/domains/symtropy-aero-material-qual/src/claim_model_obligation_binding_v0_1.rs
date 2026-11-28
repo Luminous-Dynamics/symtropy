@@ -11,7 +11,9 @@
 use super::assurance_disposition_v0_1::ObligationKindV0_1;
 use super::claim_obligation_evidence_binding_v0_1::{
     bind_claim_obligation_evidence_v0_1, ClaimObligationEvidenceBindingDispositionV0_1,
-    ClaimObligationEvidenceBindingInputV0_1, EvidenceBindingReceiptStatusV0_1,
+    ClaimObligationEvidenceBindingInputV0_1, EvidenceBindingEffectivityStateV0_1,
+    EvidenceBindingIntegrityStateV0_1, EvidenceProducerAuthorityStateV0_1,
+    EvidenceTemporalStateV0_1,
 };
 use super::claim_obligation_profile_v0_1::{
     derive_claim_obligation_profile_v0_1, DerivedClaimObligationProfileV0_1,
@@ -26,7 +28,7 @@ use super::model_credibility_cut_v0_1::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 pub const CLAIM_MODEL_OBLIGATION_BINDING_SCHEMA_V0_1: &str =
     "AeroClaimModelObligationBindingV0_1";
@@ -372,6 +374,68 @@ pub fn compute_model_uncertainty_mapping_sha256_v0_1(
         .map_err(|_| "MODEL_UNCERTAINTY_MAPPING_SERIALIZATION_FAILED".to_owned())
 }
 
+fn validate_model_receipt(
+    receipt: Option<&ClaimModelObligationMappingReceiptV0_1>,
+    owner_namespace: &str,
+    spec: &ClaimSpecificationV0_1,
+    profile: &DerivedClaimObligationProfileV0_1,
+    model_cut: &ModelCredibilityCutV0_1,
+    model_cut_sha: &str,
+    context_sha: &str,
+    semantic_sha: &str,
+    applicability_sha: &str,
+    metric_sha: &str,
+    uncertainty_sha: &str,
+    cutoff: u64,
+) -> BTreeSet<String> {
+    let mut errors = BTreeSet::new();
+    let Some(receipt) = receipt else {
+        errors.insert("MODEL_OBLIGATION_MAPPING_RECEIPT_MISSING".to_owned());
+        return errors;
+    };
+    match receipt.verification_status {
+        ModelObligationReceiptStatusV0_1::Verified => {}
+        ModelObligationReceiptStatusV0_1::Unverified => {
+            errors.insert("MODEL_OBLIGATION_MAPPING_RECEIPT_NOT_UPSTREAM_VERIFIED".to_owned());
+        }
+        ModelObligationReceiptStatusV0_1::Failed => {
+            errors.insert("MODEL_OBLIGATION_MAPPING_RECEIPT_VERIFICATION_FAILED".to_owned());
+        }
+    }
+    if !valid_identifier(&receipt.owner_namespace)
+        || !valid_sha256(&receipt.receipt_sha256)
+        || receipt.owner_namespace != owner_namespace
+        || receipt.claim_id != spec.claim_id
+        || receipt.configuration_ref != spec.configuration_ref
+        || receipt.decision_context_sha256 != context_sha
+        || receipt.claim_specification_semantic_sha256 != semantic_sha
+        || receipt.obligation_profile_sha256 != profile.profile_sha256
+        || receipt.obligation_manifest_sha256 != profile.obligation_manifest_sha256
+        || receipt.model_evidence_ref != model_cut.evidence_ref
+        || receipt.model_evidence_record_sha256 != model_cut_sha
+        || receipt.model_credibility_cut_sha256 != model_cut_sha
+        || receipt.applicability_mapping_sha256 != applicability_sha
+        || receipt.metric_strata_mapping_sha256 != metric_sha
+        || receipt.uncertainty_mapping_sha256 != uncertainty_sha
+        || receipt.uncertainty_treatment != format!("{:?}", spec.uncertainty.treatment)
+        || receipt.uncertainty_method_ref != spec.uncertainty.method_ref
+        || receipt.uncertainty_confidence_level_ppm != spec.uncertainty.confidence_level_ppm
+    {
+        errors.insert("MODEL_OBLIGATION_MAPPING_RECEIPT_SCOPE_OR_COMMITMENT_MISMATCH".to_owned());
+    }
+    if receipt.receiver_first_seen_at_unix_ms > cutoff {
+        errors.insert("MODEL_OBLIGATION_MAPPING_RECEIPT_NOT_KNOWN_AT_CUTOFF".to_owned());
+    }
+    if !interval_contains_instant(
+        receipt.effective_from_unix_ms,
+        receipt.effective_until_unix_ms,
+        cutoff,
+    ) {
+        errors.insert("MODEL_OBLIGATION_MAPPING_RECEIPT_NOT_EFFECTIVE_AT_CUTOFF".to_owned());
+    }
+    errors
+}
+
 fn classify_metric_status(status: MetricStratumStatus) -> (ModelObligationDispositionV0_1, &'static str) {
     match status {
         MetricStratumStatus::WithinDeclaredProfile => (ModelObligationDispositionV0_1::Bound, "METRIC_STRATUM_WITHIN_DECLARED_PROFILE"),
@@ -432,7 +496,6 @@ pub fn bind_claim_model_obligations_v0_1(
         return reject("MODEL_OBLIGATION_UPSTREAM_EVIDENCE_BINDING_NOT_BOUND");
     }
 
-    let binding_input = input.evidence_binding_input;
     let semantic_sha = match spec.compute_semantic_sha256() {
         Ok(value) => value,
         Err(_) => return reject("MODEL_OBLIGATION_CLAIM_SPECIFICATION_INVALID"),
@@ -482,7 +545,15 @@ pub fn bind_claim_model_obligations_v0_1(
     if evidence_record.evidence_record_sha256 != model_cut_sha {
         reasons.insert("MODEL_OBLIGATION_MODEL_CUT_DIGEST_DIFFERS_FROM_SOURCE_RECORD".to_owned());
     }
-    if evidence_record.disposition_not_bound() {
+    if evidence_record.admission_state != "ADMITTED"
+        || evidence_record.integrity_state != EvidenceBindingIntegrityStateV0_1::Verified
+        || evidence_record.producer_authority_state
+            != EvidenceProducerAuthorityStateV0_1::Authorized
+        || evidence_record.temporal_state != EvidenceTemporalStateV0_1::KnownAtCutoff
+        || evidence_record.effectivity_state
+            != EvidenceBindingEffectivityStateV0_1::CoversAcquisitionInterval
+        || !evidence_record.reason_codes.is_empty()
+    {
         reasons.insert("MODEL_OBLIGATION_SOURCE_RECORD_NOT_ADMITTED".to_owned());
     }
 
@@ -664,18 +735,28 @@ pub fn bind_claim_model_obligations_v0_1(
     reasons_from_model.sort();
     reasons.extend(reasons_from_model);
 
+    let applicability_sha = compute_model_applicability_mapping_sha256_v0_1(
+        &spec.claim_id,
+        &context_sha,
+        &semantic_sha,
+        &profile,
+        &model_cut_sha,
+        applicability_entry,
+    )
+    .unwrap_or_default();
     let receipt_errors = validate_model_receipt(
         input.mapping_receipt,
         evidence_record.owner_namespace.as_str(),
         spec,
-        context,
         &profile,
+        model,
         &model_cut_sha,
         &context_sha,
         &semantic_sha,
-        &applicability_entry,
+        &applicability_sha,
         &metric_sha,
         &uncertainty_sha,
+        context.as_known_at_unix_ms,
     );
     reasons.extend(receipt_errors.iter().cloned());
 
