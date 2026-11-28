@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/safrb/nonanticipative-policy-tree-v0.1.schema.json",
+  "title": "SAFRB Non-anticipative Two-stage Resource Policy Tree v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "tree_id",
+    "resource_ref",
+    "resource_unit_ref",
+    "site_a_ref",
+    "site_b_ref",
+    "available_resource_units",
+    "nodes",
+    "paths"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "safrb-two-stage-resource-tree-v0.1"
+    },
+    "tree_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resource_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resource_unit_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_a_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "site_b_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "available_resource_units": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 512
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/decisionNode"
+      }
+    },
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/path"
+      }
+    }
+  },
+  "$defs": {
+    "decisionNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_node_id",
+        "scenario_id",
+        "stage",
+        "information_set_id",
+        "observed_history_sha256",
+        "required_site",
+        "minimum_service_quantity"
+      ],
+      "properties": {
+        "decision_node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stage": {
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "information_set_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_history_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-fA-F0-9]{64}$"
+        },
+        "required_site": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "site_a",
+            "site_b",
+            null
+          ]
+        },
+        "minimum_service_quantity": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "const": 0
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "required_site": {
+                "type": "null"
+              },
+              "minimum_service_quantity": {
+                "const": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "required_site": {
+                "enum": [
+                  "site_a",
+                  "site_b"
+                ]
+              },
+              "minimum_service_quantity": {
+                "minimum": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario_id",
+        "decision_node_ids"
+      ],
+      "properties": {
+        "scenario_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_node_ids": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "description": "v0.1 models one pre-observation commitment stage and one post-observation service stage. Shared information sets require identical actions. This is a synthetic two-site single-resource exact reference, not a general network-flow model."
+}

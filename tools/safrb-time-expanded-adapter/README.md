@@ -125,6 +125,47 @@ Portable schemas:
 
 Guaranteed means guaranteed across the *supplied finite synthetic scenario set*, assuming scenario observation before allocation. It does not establish that the set is complete, that scenarios are authenticated or physically exhaustive, that probabilities are known, or that source authority, legal rights, physical qualification, dispatch authorization or actual service exists. It never splices capacity maxima from different scenarios.
 
+## Non-anticipative resource pre-positioning policy v0.1
+
+The separate `nonanticipative_policy` module is a tiny exact reference for the decision-timing boundary identified in #7796. It models one homogeneous resource, two service sites, one pre-observation commitment stage and one post-observation delivery stage.
+
+### Decision and information-set semantics
+
+- Every scenario path has a pre-event decision node and a post-event delivery node.
+- Scenario copies of the pre-event decision share one canonical information set and one observable-history digest.
+- Every policy action in one information set must be identical, even when the hidden scenario IDs differ.
+- Once the event is observed, the post-event nodes may use separate information sets and scenario-specific recourse deliveries.
+- Identical observable histories cannot be split into different information sets; one information set cannot combine different stages or observation histories.
+
+### Dispositions
+
+- `HereAndNowFeasible`: one common pre-positioning allocation satisfies every scenario path.
+- `FullRecourseOnly`: every scenario is feasible if the resource may be positioned after the scenario is observed, but no common pre-observation allocation covers all paths.
+- `NotFeasibleWithinSuppliedTree`: at least one scenario cannot be served even with the declared full-recourse resource quantity.
+
+The `FullRecourseOnly` and full-recourse threshold are information-relaxation results that assume scenario observation before free repositioning; this v0.1 does not model travel time, relocation cost or movement feasibility. A resource that cannot physically reach the post-event site is not made feasible by this benchmark.
+
+The producer enumerates every integer two-site pre-positioning split up to the declared resource count. The report exposes two exact thresholds: the common pre-positioning requirement (maximum A requirement plus maximum B requirement across all leaves) and the full-recourse requirement (maximum single-leaf requirement). Their difference is reported as `resource_units_saved_by_recourse`, a physical-unit recourse premium only; it is not monetized and is not a market or social value-of-information estimate. The independent verifier does not reuse the producer's enumeration or tree validator: it independently rebuilds information sets, derives both thresholds analytically, recounts the finite allocation space, and validates every policy action against its information set and path constraints.
+
+### Frozen counterexample and tests
+
+With one mobile unit and two indistinguishable pre-event histories, scenario A requires the unit at site A and scenario B requires it at site B. Each scenario is feasible with full recourse, but no common pre-positioning decision can satisfy both. The report must be `FullRecourseOnly`; a policy that pre-positions at A in one scenario copy and B in the other is rejected as a non-anticipativity violation. With two units, a common one-at-each-site policy is feasible.
+
+The adversarial suite also proves that renaming hidden scenario labels changes the tree receipt but leaves the root policy action unchanged, and that recomputing a forged policy digest does not make a clairvoyant root action valid.
+
+A 250-seed tiny-tree corpus varies two to four scenario leaves, site requirements and resource totals. It compares the enumerated policy solver with an independent closed-form oracle (`max requirement at A + max requirement at B <= available units`) and independently re-verifies each result. Tests also cover hidden-history identity splits, forged clairvoyant actions, tree/policy digest mutation, ordering invariance and strict JSON round trips.
+
+### Portable contracts and claim boundary
+
+- `schemas/nonanticipative-policy-tree-v0.1.schema.json` defines the two-stage tree input.
+- `schemas/nonanticipative-policy-report-v0.1.schema.json` defines the full-recourse versus here-and-now result.
+
+This is a synthetic two-site, one-resource, two-stage reference only. It does not model multiple resource classes, route travel or conversion networks, general multi-stage policy trees, stochastic probabilities, dynamic resource state, legal/physical evidence admission or dispatch authority. It must not be read as a general solution to stochastic programming; it is a falsifiable reference for non-anticipativity and the distinction between recourse classes.
+
+Related issue: [#7796](https://github.com/Luminous-Dynamics/symtropy/issues/7796).
+
+Mobility-constrained recourse, including non-zero travel time and in-transit resource conservation, is specified separately in [#7876](https://github.com/Luminous-Dynamics/symtropy/issues/7876). This v0.1 two-site reference intentionally retains its zero-time information-relaxation ceiling.
+
 ## Next research increments
 
 - [#7735](https://github.com/Luminous-Dynamics/symtropy/issues/7735): temporal semantics and the distinction between carried inventory and throughput.
