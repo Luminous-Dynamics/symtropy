@@ -1,0 +1,30 @@
+name: Magnetic duty-cycle evidence evaluator
+
+on:
+  pull_request:
+    paths:
+      - "research/magnetics/duty-cycle-evidence/**"
+      - ".github/workflows/magnetic-duty-cycle-evidence.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  duty-cycle-evaluator:
+    name: duty-cycle evaluator / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pinned Rust
+        uses: dtolnay/rust-toolchain@1.96.0
+      - name: Formatting
+        run: cargo fmt --manifest-path research/magnetics/duty-cycle-evidence/evaluator/Cargo.toml --all -- --check
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/magnetics/duty-cycle-evidence/evaluator/Cargo.toml --all-targets -- -D warnings
+      - name: Unit tests
+        run: cargo test --manifest-path research/magnetics/duty-cycle-evidence/evaluator/Cargo.toml --all-targets
