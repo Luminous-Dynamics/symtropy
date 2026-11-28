@@ -331,7 +331,7 @@ def main() -> int:
 
     print(
         "PASS: AERO assurance delta v0.1 schema, temporal/source binding, graph commitment, "
-        "impact closure, retained-closure digest, and 6 mutation/permutation controls."
+        "impact closure, retained-closure digest, and 8 mutation/permutation controls."
     )
     print(
         "NOTE: synthetic receipts are placeholders; VERIFIED is an upstream disposition. "
