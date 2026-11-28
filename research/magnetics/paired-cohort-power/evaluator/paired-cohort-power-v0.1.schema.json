@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Paired virgin/recovered cohort power design v0.1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "spec"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "spec": {
+      "$ref": "#/$defs/spec"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "interval": {
+      "type": "object",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number",
+          "minimum": 0
+        },
+        "upper": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "direction": {
+      "enum": [
+        "Maximize",
+        "Minimize"
+      ]
+    },
+    "candidate": {
+      "type": "object",
+      "required": [
+        "candidate_id",
+        "independent_lot_pairs",
+        "paired_build_blocks_per_lot"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_lot_pairs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "paired_build_blocks_per_lot": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "variance_bounds": {
+      "type": "object",
+      "required": [
+        "between_lot_sd",
+        "within_lot_build_sd"
+      ],
+      "properties": {
+        "between_lot_sd": {
+          "$ref": "#/$defs/interval"
+        },
+        "within_lot_build_sd": {
+          "$ref": "#/$defs/interval"
+        }
+      },
+      "additionalProperties": false
+    },
+    "spec": {
+      "type": "object",
+      "required": [
+        "campaign_id",
+        "endpoint_id",
+        "unit",
+        "direction",
+        "noninferiority_margin",
+        "target_effect",
+        "familywise_alpha",
+        "multiplicity_endpoints",
+        "target_power",
+        "maximum_type1_error_upper_bound",
+        "minimum_power_lower_bound",
+        "minimum_independent_lot_pairs",
+        "minimum_build_pairs_per_lot",
+        "build_pair_missing_probability",
+        "variance_bounds",
+        "monte_carlo_replicates",
+        "random_seed",
+        "candidates"
+      ],
+      "properties": {
+        "campaign_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoint_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "direction": {
+          "$ref": "#/$defs/direction"
+        },
+        "noninferiority_margin": {
+          "type": "number",
+          "minimum": 0
+        },
+        "target_effect": {
+          "type": "number"
+        },
+        "familywise_alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 0.5
+        },
+        "multiplicity_endpoints": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target_power": {
+          "type": "number",
+          "exclusiveMinimum": 0.5,
+          "exclusiveMaximum": 1
+        },
+        "maximum_type1_error_upper_bound": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "minimum_power_lower_bound": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "minimum_independent_lot_pairs": {
+          "type": "integer",
+          "minimum": 6
+        },
+        "minimum_build_pairs_per_lot": {
+          "type": "integer",
+          "minimum": 3
+        },
+        "build_pair_missing_probability": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMaximum": 1
+        },
+        "variance_bounds": {
+          "$ref": "#/$defs/variance_bounds"
+        },
+        "monte_carlo_replicates": {
+          "type": "integer",
+          "minimum": 500
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/candidate"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
