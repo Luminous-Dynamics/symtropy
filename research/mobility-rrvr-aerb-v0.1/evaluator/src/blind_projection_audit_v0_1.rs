@@ -10,7 +10,8 @@
 //!
 //! The metadata auditor performs grouped held-out categorical attacks. It is a
 //! diagnostic baseline, not a proof against arbitrary learned classifiers or
-//! adaptive stateful candidates.
+//! adaptive stateful candidates. A custodian must review the generated surface
+//! and retain raw projection receipts outside candidate-visible custody.
 
 use std::collections::{BTreeMap, BTreeSet};
 
