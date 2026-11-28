@@ -169,6 +169,22 @@ Every evaluation release should freeze identical source data, splits, weather/ta
 
 A learned policy should be compared against deterministic, physics-based and optimization baselines before its complexity is justified.
 
+### 2026 fleet-scale learned-control reference: PC-M3
+
+Tang, Zhou & Yan (Electronics 15(11), 2380, 1 June 2026) provide a timely high-performance comparator: their physics-constrained Mamba-3 MIMO cluster aggregator reports 0.34 s inference for 10,000 EVs over a 24-hour / 96-step horizon on one NVIDIA A100, 3.4% normalized envelope Hausdorff distance on ACN-Data versus 9.7% for PowerMamba, 4.1% on zero-shot ElaadNL, closed-loop cluster tracking RMSE 0.82 MW versus 1.45 MW for MPC, and zero observed violations against the specified or imputed per-vehicle polytopes in its evaluated sessions.
+
+Important measurement boundary:
+- ACN-Data has 114,503 real charging sessions, but does not natively provide battery capacity, true SOC or per-session voltage. The paper imputes capacity/SOC bounds and initial SOC to build each session's vehicle polytope. Its feasibility result is therefore relative to the specified/imputed polytope, not direct BMS verification.
+- ElaadNL is used as a zero-shot regional-transfer set, but per-vehicle battery parameters are imputed there too.
+- The 10,000-vehicle dsgrid-TEMPO cluster is bootstrapped from ACN-conditioned session parameters and reweighted to match a county-level hourly profile; V2G share is an imposed scenario. Public ACN and ElaadNL records are charge-only, so the bidirectional V2G result is in the synthetic stress test.
+- Exact Minkowski envelope references are reported for clusters up to N≤1024; the 10,000-EV envelope is evaluated against a certified inner/outer sandwich, not an exact reference. Keep those numerical lanes separate.
+
+This is a strong algorithmic scale/control reference. It is not proof of physical pack SOC, OEM-verified battery reserve, live V2G availability, or South African grid feasibility. Our comparative benchmark should therefore report two feasibility scores: (1) model-relative feasibility against an identical declared/imputed polytope, for fair algorithm comparison; and (2) evidence-qualified physical feasibility against authenticated, sufficiently fresh pack/vehicle/EVSE/site measurements, for operational claims. Never let a zero violation rate in lane (1) substitute for lane (2).
+
+The opportunity to improve is to combine the paper's amortized fast dispatch with a separately qualified feasible set, interval uncertainty on departure energy and pack acceptance, and a hard independent post-inference projection/qualification step. Benchmark the cost of that qualification too: end-to-end latency, fraction of plans narrowed/rejected, abstention, reserve shortfalls, and service cost.
+
+Paper: Tang, Zhou & Yan (2026), https://doi.org/10.3390/electronics15112380.
+
 ## 5. Required metric families
 
 ### Prediction accuracy
