@@ -12,6 +12,8 @@ on:
       - main
     paths:
       - "tools/pose-observability-bench/**"
+      - "scripts/pose-observability-challenger.py"
+      - "research/spacecraft/pose-observability/fixtures/**"
       - ".github/workflows/pose-observability-fim.yml"
   workflow_dispatch:
 
