@@ -238,16 +238,19 @@ fn evaluate_candidate(
                 (tau_index * 2 + sigma_index) as u64,
             );
             let result = simulate_scenario(spec, candidate, tau, sigma, alpha, scenario_seed);
-            if result.null_rejection_probability.upper > spec.maximum_type1_error_upper_bound {
+            if result.probability_below_minimum_lot_pairs > 0.05
+                || result.null_analysis_coverage.lower < 0.95
+            {
+                indeterminate = true;
+            } else if result.null_rejection_probability.upper
+                > spec.maximum_type1_error_upper_bound
+            {
                 type_i_uncontrolled = true;
             }
             if result.alternative_power.estimate < spec.target_power
                 || result.alternative_power.lower < spec.minimum_power_lower_bound
             {
                 underpowered = true;
-            }
-            if result.probability_below_minimum_lot_pairs > 0.05 {
-                indeterminate = true;
             }
             scenario_results.push(result);
         }
