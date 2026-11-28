@@ -17,6 +17,7 @@
     "evidence_class",
     "time_basis_id",
     "time_alignment_id",
+    "time_alignment_method",
     "max_relative_clock_error_ms",
     "alignment_uncertainty_preapplied",
     "warning_horizon_ms",
@@ -81,6 +82,15 @@
     "time_alignment_id": {
       "type": "string",
       "minLength": 1
+    },
+    "time_alignment_method": {
+      "enum": [
+        "synthetic_shared_clock",
+        "shared_hardware_clock",
+        "ptp_ntp_verified",
+        "reference_event_alignment",
+        "operator_adjudicated_alignment"
+      ]
     },
     "max_relative_clock_error_ms": {
       "type": "integer",
