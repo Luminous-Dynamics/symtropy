@@ -28,3 +28,7 @@ path = "src/bin/aerb_generate.rs"
 [[bin]]
 name = "aerb_campaign_evaluate"
 path = "src/bin/aerb_campaign_evaluate.rs"
+
+[[bin]]
+name = "aerb_sandbox_canary"
+path = "src/bin/aerb_sandbox_canary.rs"
