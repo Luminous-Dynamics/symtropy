@@ -290,8 +290,8 @@ impl EnergyAccumulator {
             }
         }
 
-        if self.has_motoring && motoring_efficiency.is_none()
-            || self.has_regeneration && regenerative_efficiency.is_none()
+        if (self.has_motoring && motoring_efficiency.is_none())
+            || (self.has_regeneration && regenerative_efficiency.is_none())
         {
             blockers.push(Blocker::NonPositiveEnergyDenominator);
         }
@@ -1045,6 +1045,8 @@ mod tests {
         let mut records = evidence();
         records[0].energy.dc_input_j = Some(Interval::new(0.0, 0.1));
         records[0].energy.shaft_output_j = Some(Interval::new(0.0, 0.05));
+        records[1].energy.dc_input_j = Some(Interval::new(0.0, 0.1));
+        records[1].energy.shaft_output_j = Some(Interval::new(0.0, 0.05));
         let result = evaluate_duty_cycle(&spec(), &records);
         let energy = result.energy.expect("energy record is still present");
         assert!(energy.motoring_efficiency.is_none());
@@ -1086,7 +1088,7 @@ mod tests {
     #[test]
     fn energy_ratio_above_unity_is_not_reported_as_superior_efficiency() {
         let mut records = evidence();
-        records[0].energy.shaft_output_j = Some(Interval::new(110.0, 111.0));
+        records[0].energy.shaft_output_j = Some(Interval::new(1_200.0, 1_201.0));
         let result = evaluate_duty_cycle(&spec(), &records);
         assert_eq!(result.disposition, Disposition::Indeterminate);
         assert!(result.blockers.contains(&Blocker::EnergyEfficiencyPhysicallyInconsistent));
