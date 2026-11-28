@@ -37,7 +37,75 @@ def best_decision(scores: dict[str, int]) -> tuple[str, int]:
     return decision_id, scores[decision_id]
 
 
+def digest_json(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return __import__("hashlib").sha256(payload).hexdigest()
+
+
+def decision_model_sha256(source: dict[str, Any]) -> str:
+    envelope = {
+        "schema": "AeroEvidenceDecisionModelV0_1",
+        "canonicalization_profile": "rust-serde-json-struct-order-v1",
+        "decision_alternatives": sorted(
+            source["decision_alternatives"], key=lambda item: item["decision_id"]
+        ),
+        "world_states": sorted(source["world_states"], key=lambda item: item["state_id"]),
+        "utilities": sorted(
+            source["utilities"],
+            key=lambda item: (item["decision_id"], item["state_id"]),
+        ),
+    }
+    return digest_json(envelope)
+
+
+def action_catalogue_cut_sha256(source: dict[str, Any]) -> str:
+    entries = [
+        {
+            "action_id": action["action_id"],
+            "owner_namespace": action["owner_namespace"],
+            "outcome_model_owner_namespace": action["outcome_model_owner_namespace"],
+            "action_catalogue_entry_sha256": action["action_catalogue_entry_sha256"],
+        }
+        for action in sorted(source["actions"], key=lambda item: item["action_id"])
+    ]
+    return digest_json({
+        "schema": "AeroEvidenceActionCatalogueCutV0_1",
+        "canonicalization_profile": "rust-serde-json-struct-order-v1",
+        "entries": entries,
+    })
+
+
+def unresolved_obligation_manifest_sha256(source: dict[str, Any]) -> str:
+    return digest_json({
+        "schema": "AeroUnresolvedObligationManifestV0_1",
+        "canonicalization_profile": "sorted-unique-identifiers-v1",
+        "obligation_ids": sorted(source["unresolved_obligation_ids"]),
+    })
+
+
+def outcome_likelihoods_sha256(action: dict[str, Any], outcome_model_sha256_value: str) -> str:
+    return digest_json({
+        "schema": "AeroOutcomeLikelihoodTableV0_1",
+        "canonicalization_profile": "rust-serde-json-struct-order-v1",
+        "action_id": action["action_id"],
+        "outcome_model_sha256": outcome_model_sha256_value,
+        "likelihoods": sorted(
+            action["outcome_likelihoods"],
+            key=lambda item: (item["state_id"], item["outcome_id"]),
+        ),
+    })
+
+
 def validate_input(source: dict[str, Any]) -> None:
+    unresolved_ids = source["unresolved_obligation_ids"]
+    if not unresolved_ids or len(unresolved_ids) != len(set(unresolved_ids)):
+        raise ValueError("unresolved obligation manifest is empty or duplicated")
+    if unresolved_obligation_manifest_sha256(source) != source["unresolved_obligation_manifest_sha256"]:
+        raise ValueError("unresolved obligation manifest digest mismatch")
+    if decision_model_sha256(source) != source["decision_model_sha256"]:
+        raise ValueError("decision model commitment mismatch")
+    if action_catalogue_cut_sha256(source) != source["action_catalogue_sha256"]:
+        raise ValueError("action catalogue cut commitment mismatch")
     if sum(state["prior_probability_ppm"] for state in source["world_states"]) != PPM:
         raise ValueError("prior probabilities do not sum to one")
     decisions = [item["decision_id"] for item in source["decision_alternatives"]]
@@ -63,6 +131,9 @@ def validate_input(source: dict[str, Any]) -> None:
             raise ValueError(f"{action['action_id']}: malformed permission receipt interval")
         if not action["outcome_model_owner_namespace"].strip():
             raise ValueError(f"{action['action_id']}: outcome model owner namespace is empty")
+        targets = action["target_obligation_ids"]
+        if not targets or len(targets) != len(set(targets)) or not set(targets).issubset(set(unresolved_ids)):
+            raise ValueError(f"{action['action_id']}: target obligations are not a unique subset of unresolved obligations")
         calibration = action["calibration_receipt"]
         if action["calibration_status"] == "QUALIFIED_FOR_DECLARED_PURPOSE" and calibration is None:
             raise ValueError(f"{action['action_id']}: qualified outcome model is missing its receipt")
@@ -143,6 +214,8 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
             or calibration_receipt["configuration_ref"] != source["configuration_ref"]
             or calibration_receipt["action_id"] != action["action_id"]
             or calibration_receipt["outcome_model_sha256"] != source["outcome_model_sha256"]
+            or calibration_receipt["outcome_likelihoods_sha256"]
+                != outcome_likelihoods_sha256(action, source["outcome_model_sha256"])
         ):
             calibration_reason = "ACTION_CALIBRATION_SCOPE_MISMATCH"
         elif calibration_receipt["receiver_first_seen_at_unix_ms"] > source["as_known_at_unix_ms"]:
@@ -184,7 +257,9 @@ def calculate(source: dict[str, Any]) -> dict[str, Any]:
             "owner_namespace": action["owner_namespace"],
             "target_obligation_ids": action["target_obligation_ids"],
             "action_catalogue_entry_sha256": action["action_catalogue_entry_sha256"],
-            "authorization_receipt_sha256": action["authorization_receipt_sha256"],
+            "authorization_receipt_sha256": authorization["receipt_sha256"],
+            "calibration_receipt_sha256": calibration_receipt["calibration_report_sha256"],
+            "calibration_profile_sha256": calibration_receipt["calibration_profile_sha256"],
             "expected_artifact_contract_sha256": action["expected_artifact_contract_sha256"],
             "evsi_scaled_numerator": str(evsi_scaled),
             "expected_cost_units": action["expected_cost_units"],
@@ -264,6 +339,7 @@ def main() -> int:
     irrelevant = copy.deepcopy(source)
     for utility in irrelevant["utilities"]:
         utility["utility_units"] = 0
+    irrelevant["decision_model_sha256"] = decision_model_sha256(irrelevant)
     irrelevant_result = calculate(irrelevant)
     if irrelevant_result["ranked_actions"][0]["evsi_scaled_numerator"] != "0":
         raise SystemExit("FAIL: information with no decision utility was assigned positive EVSI")
@@ -288,9 +364,40 @@ def main() -> int:
     if owner_result["excluded_actions"][0]["reason_code"] != "ACTION_CALIBRATION_SCOPE_MISMATCH":
         raise SystemExit("FAIL: wrong model owner did not produce the expected exclusion")
 
-    # Mutation control 3: probability mass is never silently normalized.
+    # Mutation control 4: changing an outcome table invalidates its owner receipt.
+    changed_likelihoods = copy.deepcopy(source)
+    changed_likelihoods["actions"][0]["outcome_likelihoods"][0]["likelihood_ppm"] -= 1
+    changed_likelihoods["actions"][0]["outcome_likelihoods"][1]["likelihood_ppm"] += 1
+    likelihood_result = calculate(changed_likelihoods)
+    if likelihood_result["ranked_actions"]:
+        raise SystemExit("FAIL: changed likelihood table reused an old calibration receipt")
+    if likelihood_result["excluded_actions"][0]["reason_code"] != "ACTION_CALIBRATION_SCOPE_MISMATCH":
+        raise SystemExit("FAIL: changed likelihood table did not invalidate calibration")
+
+    # Mutation control 5: changing decision utility without a new commitment is rejected.
+    changed_utility = copy.deepcopy(source)
+    changed_utility["utilities"][0]["utility_units"] = 1
+    try:
+        calculate(changed_utility)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: utility mutation retained an old decision-model commitment")
+
+    # Mutation control 6: a changed candidate action set requires a new catalogue cut.
+    changed_catalogue = copy.deepcopy(source)
+    changed_catalogue["actions"].pop()
+    try:
+        calculate(changed_catalogue)
+    except ValueError:
+        pass
+    else:
+        raise SystemExit("FAIL: candidate action-set mutation retained an old catalogue commitment")
+
+    # Mutation control 7: probability mass is never silently normalized.
     malformed = copy.deepcopy(source)
     malformed["world_states"][0]["prior_probability_ppm"] -= 1
+    malformed["decision_model_sha256"] = decision_model_sha256(malformed)
     try:
         calculate(malformed)
     except ValueError:
@@ -301,7 +408,7 @@ def main() -> int:
     print(
         "PASS: AERO EVSI v0.1 schema and independent integer oracle "
         "(2 states, 2 decisions, 1 permitted action, 1 excluded action, "
-        "4 mutation controls)."
+        "7 mutation controls)."
     )
     print("NOTE: synthetic decision arithmetic is not physical evidence or action authorization.")
     return 0
