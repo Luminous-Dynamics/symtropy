@@ -1,0 +1,73 @@
+schema_version = "0.1"
+program_id = "MAG-PAIRED-COHORT-POWER-001"
+revision = "0.1-draft"
+status = "synthetic_small_sample_power_simulator"
+date = "2026-11-28"
+issue = 7920
+parents = [7917, 7918, 7798, 7776, 7792, 7911]
+
+[estimand]
+primary_unit = "independent_source_lot_pair"
+nested_unit = "paired_build_block_within_source_lot_pair"
+endpoint = "one_preregistered_continuous_paired_difference"
+direction_oriented_positive_is_better = true
+noninferiority_boundary = "-noninferiority_margin"
+one_sided_cluster_level_t_test = true
+degrees_of_freedom = "number_of_analyzable_lot_pairs_minus_one"
+
+[variance_model]
+between_lot_pair_random_effect = "Gaussian"
+within_lot_build_pair_error = "Gaussian"
+variance_uncertainty = "evaluate_all_preregistered_interval_corners"
+build_pair_missingness = "independent_at_random_assumption"
+primary_analysis = "complete_lot_pair_case_analysis"
+incomplete_lot_pair_contributes_to_denominator_but_not_primary_inference = true
+
+[multiplicity]
+familywise_alpha = 0.05
+endpoint_adjustment = "Bonferroni"
+alpha_per_endpoint = "familywise_alpha / multiplicity_endpoints"
+
+[simulation]
+method = "deterministic_nested_random_effects_Monte_Carlo"
+monte_carlo_replicates_minimum = 500
+interval = "Wilson_95_percent_for_simulated_proportions"
+report_null_type1_error = true
+report_alternative_power = true
+report_probability_of_fewer_than_minimum_lot_pairs = true
+seed_recorded = true
+
+[minimum_design_floor]
+independent_lot_pairs = 6
+paired_build_blocks_per_lot = 3
+floor_is_universal_sample_size = false
+three_by_three_pilot_is_inferentially_adequate = false
+
+[decision]
+design_qualified_requires_all_variance_corners = true
+type1_upper_bound_must_not_exceed_preregistered_limit = true
+power_estimate_must_meet_target = true
+power_lower_bound_must_meet_minimum = true
+probability_of_under_minimum_analyzable_lots_must_be_at_most_5_percent = true
+recommended_design_preference = "minimum_total_paired_build_blocks_then_maximum_independent_lot_pairs"
+
+[implementation]
+language = "Rust 2024"
+dependencies = []
+manifest = "evaluator/Cargo.toml"
+source = "evaluator/src/lib.rs"
+schema = "evaluator/paired-cohort-power-v0.1.schema.json"
+fixture = "evaluator/fixtures/paired-cohort-power-synthetic-v0.1.json"
+source_register = "source-register.json"
+workflow = ".github/workflows/magnetic-paired-cohort-power.yml"
+authored_unit_tests = 22
+tests_executed = false
+exact_head_ci_pass = false
+
+[claim_policy]
+conditional_model_power_equals_empirical_physical_power = false
+power_design_qualification_equals_manufacturing_M5 = false
+source_lot_pairs_are_independent_if_same_parent_lot = false
+more_nested_builds_substitute_for_independent_lot_pairs = false
+randomized_run_order_randomizes_feedstock_origin = false
+mixed_effects_or_population_transportability_claimed = false
