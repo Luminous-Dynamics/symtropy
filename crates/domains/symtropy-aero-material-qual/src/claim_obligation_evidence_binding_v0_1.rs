@@ -634,8 +634,10 @@ fn evaluate_source_record(
                 OwnerEvidenceLifecycle::Revoked | OwnerEvidenceLifecycle::Withdrawn
             ) {
                 reasons.insert("OWNER_EVIDENCE_RECORD_REVOKED_OR_WITHDRAWN".to_owned());
+            } else if record.lifecycle == OwnerEvidenceLifecycle::Disputed {
+                reasons.insert("OWNER_EVIDENCE_RECORD_DISPUTED".to_owned());
             } else if record.lifecycle != OwnerEvidenceLifecycle::Active {
-                reasons.insert("OWNER_EVIDENCE_RECORD_NOT_ACTIVE".to_owned());
+                reasons.insert("OWNER_EVIDENCE_RECORD_SUPERSEDED".to_owned());
             }
             if record.freshness != OwnerEvidenceFreshness::Fresh {
                 reasons.insert("OWNER_EVIDENCE_RECORD_STALE".to_owned());
@@ -693,6 +695,11 @@ fn evaluate_source_record(
                 if receipt.evidence_record_sha256 != record.record_sha256 {
                     reasons.insert("OWNER_EVIDENCE_SOURCE_RECEIPT_RECORD_DIGEST_MISMATCH".to_owned());
                 }
+            }
+            if receipt.receiver_first_seen_at_unix_ms
+                > owner_cut.receiver_receipt_watermark_unix_ms
+            {
+                reasons.insert("OWNER_EVIDENCE_RECEIPT_AFTER_OWNER_CUT_WATERMARK".to_owned());
             }
             temporal = if receipt.receiver_first_seen_at_unix_ms <= decision_context.as_known_at_unix_ms {
                 EvidenceTemporalStateV0_1::KnownAtCutoff
@@ -804,6 +811,7 @@ fn disposition_for_reasons(
         record.reason_codes.iter().any(|reason| {
             reason.contains("UNVERIFIED")
                 || reason.contains("NOT_KNOWN")
+                || reason.contains("DISPUTED")
                 || reason.contains("AUTHORITY_UNKNOWN")
         })
     }) {
