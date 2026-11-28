@@ -44,7 +44,6 @@ impl SubjectTimeEffectivityV0_1 {
     }
 }
 
-
 impl From<super::effectivity_interval_v0_1::EffectivityRelation> for SubjectTimeEffectivityV0_1 {
     fn from(relation: super::effectivity_interval_v0_1::EffectivityRelation) -> Self {
         match relation {
@@ -801,9 +800,11 @@ mod tests {
             Kind::EvidenceIntegrity,
             Kind::ProducerAuthority,
         ] {
-            assert!(case.obligations.iter().any(|item| {
-                item.kind == required_kind && item.mandatory && item.hard_gate
-            }));
+            assert!(
+                case.obligations
+                    .iter()
+                    .any(|item| { item.kind == required_kind && item.mandatory && item.hard_gate })
+            );
         }
     }
 
@@ -947,7 +948,10 @@ mod tests {
             .push("OPTIONAL_REPLAY_NOT_RUN".to_owned());
         case.obligations.push(optional);
         let result = evaluate_assurance_state_case_v0_1(&case);
-        assert_eq!(result.disposition, Disposition::ReviewableForIndependentDecision);
+        assert_eq!(
+            result.disposition,
+            Disposition::ReviewableForIndependentDecision
+        );
         assert!(
             result
                 .reason_codes
