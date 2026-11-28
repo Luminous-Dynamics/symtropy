@@ -690,6 +690,8 @@ mod tests {
         EvidenceActionPlannerInputV0_1 {
             claim_id: "claim:wing-panel-proof-load".to_owned(),
             frozen_claim_disposition: "INCOMPLETE".to_owned(),
+            configuration_ref: "configuration:wing-r17".to_owned(),
+            as_known_at_unix_ms: 1_795_517_000_000,
             decision_context_sha256: digest('a'),
             assurance_state_sha256: digest('b'),
             action_catalogue_sha256: digest('c'),
