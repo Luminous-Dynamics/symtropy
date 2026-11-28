@@ -76,6 +76,14 @@ For each common eligible action, the result preserves:
 
 Scenario-specific exclusions are retained with their scenario ID and reason. No action excluded or uncalibrated in even one approved scenario is promoted into the robust common set.
 
+## 4A. Uncertainty sources covered and deliberately excluded
+
+This v0.1 finite scenario set varies the declared prior/decision-model commitment and action-conditioned outcome likelihood/calibration commitments. It holds the exact action catalogue fixed across scenarios. Consequently, the exact action-entry commitment—and therefore direct acquisition cost, delay cost, expected artifact contract, owner and target obligation set—remains common across the ambiguity set.
+
+The reported lower/upper net-benefit interval therefore captures **prior and outcome-model sensitivity with fixed declared action costs**. It does not yet capture uncertainty in acquisition price, schedule delay, resource availability, owner response, evidence admissibility probability, correlated multi-action costs or sequential acquisition dependencies. Those require a later versioned catalogue/scenario model that can vary cost and delivery assumptions under separately approved commitments without allowing stale authorization reuse.
+
+A scenario count is not a substitute for calibration quality or independent episode count. Several plausible model variants derived from one calibration defect remain one root-cause family for benchmark statistics.
+
 ## 5. Benchmark and hostile cases
 
 The Rust test corpus includes:
