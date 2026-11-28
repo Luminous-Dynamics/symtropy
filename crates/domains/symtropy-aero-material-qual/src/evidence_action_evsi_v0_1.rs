@@ -36,6 +36,37 @@ pub enum OutcomeModelCalibrationStatusV0_1 {
     NotEstimable,
 }
 
+/// Owner-issued permission receipt bound to one exact claim/action context.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ActionAuthorizationReceiptV0_1 {
+    pub owner_namespace: String,
+    pub claim_id: String,
+    pub decision_context_sha256: String,
+    pub configuration_ref: String,
+    pub action_id: String,
+    pub action_catalogue_entry_sha256: String,
+    pub receipt_sha256: String,
+    pub receiver_first_seen_at_unix_ms: u64,
+    pub effective_from_unix_ms: u64,
+    pub effective_until_unix_ms: u64,
+}
+
+/// Owner-issued calibration receipt for the exact action outcome model/use.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct OutcomeModelCalibrationReceiptV0_1 {
+    pub owner_namespace: String,
+    pub claim_id: String,
+    pub decision_context_sha256: String,
+    pub configuration_ref: String,
+    pub action_id: String,
+    pub outcome_model_sha256: String,
+    pub calibration_profile_sha256: String,
+    pub calibration_report_sha256: String,
+    pub receiver_first_seen_at_unix_ms: u64,
+    pub effective_from_unix_ms: u64,
+    pub effective_until_unix_ms: u64,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum EvidenceActionPlannerDispositionV0_1 {
     #[serde(rename = "RANKED_ACTIONS")]
@@ -88,8 +119,9 @@ pub struct EvidenceAcquisitionActionV0_1 {
     pub owner_namespace: String,
     pub action_catalogue_entry_sha256: String,
     pub authorization_status: ActionAuthorizationStatusV0_1,
-    pub authorization_receipt_sha256: Option<String>,
+    pub authorization_receipt: Option<ActionAuthorizationReceiptV0_1>,
     pub calibration_status: OutcomeModelCalibrationStatusV0_1,
+    pub calibration_receipt: Option<OutcomeModelCalibrationReceiptV0_1>,
     pub expected_artifact_contract_sha256: String,
     pub target_obligation_ids: Vec<String>,
     /// Direct acquisition cost in the declared decision-utility unit.
@@ -131,6 +163,8 @@ pub struct RankedEvidenceActionV0_1 {
     pub target_obligation_ids: Vec<String>,
     pub action_catalogue_entry_sha256: String,
     pub authorization_receipt_sha256: String,
+    pub calibration_receipt_sha256: String,
+    pub calibration_profile_sha256: String,
     pub expected_artifact_contract_sha256: String,
     /// Exact numerator; divide by EVSI_NUMERATOR_SCALE_V0_1 for utility units.
     pub evsi_scaled_numerator: String,
@@ -311,17 +345,46 @@ fn validate_input(input: &EvidenceActionPlannerInputV0_1) -> BTreeSet<String> {
             }
         }
         if action.authorization_status == ActionAuthorizationStatusV0_1::VerifiedPermitted
-            && !action
-                .authorization_receipt_sha256
-                .as_deref()
-                .is_some_and(valid_sha256)
+            && action.authorization_receipt.is_none()
         {
             errors.insert("EVSI_VERIFIED_ACTION_MISSING_AUTHORIZATION_RECEIPT".to_owned());
         }
-        if let Some(digest) = action.authorization_receipt_sha256.as_deref()
-            && !valid_sha256(digest)
+        if let Some(receipt) = &action.authorization_receipt {
+            if !valid_identifier(&receipt.owner_namespace)
+                || !valid_identifier(&receipt.claim_id)
+                || !valid_identifier(&receipt.configuration_ref)
+                || !valid_identifier(&receipt.action_id)
+                || !valid_sha256(&receipt.decision_context_sha256)
+                || !valid_sha256(&receipt.action_catalogue_entry_sha256)
+                || !valid_sha256(&receipt.receipt_sha256)
+            {
+                errors.insert("EVSI_ACTION_AUTHORIZATION_RECEIPT_INVALID".to_owned());
+            }
+            if receipt.effective_from_unix_ms >= receipt.effective_until_unix_ms {
+                errors.insert("EVSI_ACTION_AUTHORIZATION_INTERVAL_INVALID".to_owned());
+            }
+        }
+        if action.calibration_status
+            == OutcomeModelCalibrationStatusV0_1::QualifiedForDeclaredPurpose
+            && action.calibration_receipt.is_none()
         {
-            errors.insert("EVSI_ACTION_AUTHORIZATION_RECEIPT_DIGEST_INVALID".to_owned());
+            errors.insert("EVSI_QUALIFIED_OUTCOME_MODEL_MISSING_CALIBRATION_RECEIPT".to_owned());
+        }
+        if let Some(receipt) = &action.calibration_receipt {
+            if !valid_identifier(&receipt.owner_namespace)
+                || !valid_identifier(&receipt.claim_id)
+                || !valid_identifier(&receipt.configuration_ref)
+                || !valid_identifier(&receipt.action_id)
+                || !valid_sha256(&receipt.decision_context_sha256)
+                || !valid_sha256(&receipt.outcome_model_sha256)
+                || !valid_sha256(&receipt.calibration_profile_sha256)
+                || !valid_sha256(&receipt.calibration_report_sha256)
+            {
+                errors.insert("EVSI_ACTION_CALIBRATION_RECEIPT_INVALID".to_owned());
+            }
+            if receipt.effective_from_unix_ms >= receipt.effective_until_unix_ms {
+                errors.insert("EVSI_ACTION_CALIBRATION_INTERVAL_INVALID".to_owned());
+            }
         }
 
         let mut outcomes = BTreeSet::new();
@@ -441,22 +504,66 @@ pub fn rank_evidence_actions_v0_1(
         Vec::new();
 
     for action in &input.actions {
-        let exclusion_reason = match action.authorization_status {
+        let authorization_reason = match action.authorization_status {
             ActionAuthorizationStatusV0_1::Denied => Some("ACTION_AUTHORITY_DENIED"),
             ActionAuthorizationStatusV0_1::Unknown => Some("ACTION_AUTHORITY_UNKNOWN"),
-            ActionAuthorizationStatusV0_1::VerifiedPermitted => match action.calibration_status {
-                OutcomeModelCalibrationStatusV0_1::QualifiedForDeclaredPurpose => None,
-                OutcomeModelCalibrationStatusV0_1::Unverified => {
-                    Some("ACTION_OUTCOME_MODEL_UNVERIFIED")
+            ActionAuthorizationStatusV0_1::VerifiedPermitted => {
+                let receipt = action.authorization_receipt.as_ref().expect(
+                    "verified-permitted action receipt was checked during input validation",
+                );
+                if receipt.owner_namespace != action.owner_namespace
+                    || receipt.claim_id != input.claim_id
+                    || receipt.decision_context_sha256 != input.decision_context_sha256
+                    || receipt.configuration_ref != input.configuration_ref
+                    || receipt.action_id != action.action_id
+                    || receipt.action_catalogue_entry_sha256
+                        != action.action_catalogue_entry_sha256
+                {
+                    Some("ACTION_AUTHORIZATION_SCOPE_MISMATCH")
+                } else if receipt.receiver_first_seen_at_unix_ms > input.as_known_at_unix_ms {
+                    Some("ACTION_AUTHORIZATION_NOT_KNOWN_AT_CUTOFF")
+                } else if receipt.effective_from_unix_ms > input.as_known_at_unix_ms
+                    || receipt.effective_until_unix_ms <= input.as_known_at_unix_ms
+                {
+                    Some("ACTION_AUTHORIZATION_NOT_EFFECTIVE_AT_CUTOFF")
+                } else {
+                    None
                 }
-                OutcomeModelCalibrationStatusV0_1::OutOfDomain => {
-                    Some("ACTION_OUTCOME_MODEL_OUT_OF_DOMAIN")
-                }
-                OutcomeModelCalibrationStatusV0_1::NotEstimable => {
-                    Some("ACTION_OUTCOME_MODEL_NOT_ESTIMABLE")
-                }
-            },
+            }
         };
+        let calibration_reason = match action.calibration_status {
+            OutcomeModelCalibrationStatusV0_1::QualifiedForDeclaredPurpose => {
+                let receipt = action.calibration_receipt.as_ref().expect(
+                    "qualified outcome-model receipt was checked during input validation",
+                );
+                if receipt.claim_id != input.claim_id
+                    || receipt.decision_context_sha256 != input.decision_context_sha256
+                    || receipt.configuration_ref != input.configuration_ref
+                    || receipt.action_id != action.action_id
+                    || receipt.outcome_model_sha256 != input.outcome_model_sha256
+                {
+                    Some("ACTION_CALIBRATION_SCOPE_MISMATCH")
+                } else if receipt.receiver_first_seen_at_unix_ms > input.as_known_at_unix_ms {
+                    Some("ACTION_CALIBRATION_NOT_KNOWN_AT_CUTOFF")
+                } else if receipt.effective_from_unix_ms > input.as_known_at_unix_ms
+                    || receipt.effective_until_unix_ms <= input.as_known_at_unix_ms
+                {
+                    Some("ACTION_CALIBRATION_NOT_EFFECTIVE_AT_CUTOFF")
+                } else {
+                    None
+                }
+            }
+            OutcomeModelCalibrationStatusV0_1::Unverified => {
+                Some("ACTION_OUTCOME_MODEL_UNVERIFIED")
+            }
+            OutcomeModelCalibrationStatusV0_1::OutOfDomain => {
+                Some("ACTION_OUTCOME_MODEL_OUT_OF_DOMAIN")
+            }
+            OutcomeModelCalibrationStatusV0_1::NotEstimable => {
+                Some("ACTION_OUTCOME_MODEL_NOT_ESTIMABLE")
+            }
+        };
+        let exclusion_reason = authorization_reason.or(calibration_reason);
         if let Some(reason_code) = exclusion_reason {
             excluded_actions.push(ExcludedEvidenceActionV0_1 {
                 action_id: action.action_id.clone(),
@@ -585,8 +692,19 @@ pub fn rank_evidence_actions_v0_1(
             target_obligation_ids: action.target_obligation_ids.clone(),
             action_catalogue_entry_sha256: action.action_catalogue_entry_sha256.clone(),
             authorization_receipt_sha256: action
-                .authorization_receipt_sha256
-                .clone()
+                .authorization_receipt
+                .as_ref()
+                .map(|receipt| receipt.receipt_sha256.clone())
+                .unwrap_or_default(),
+            calibration_receipt_sha256: action
+                .calibration_receipt
+                .as_ref()
+                .map(|receipt| receipt.calibration_report_sha256.clone())
+                .unwrap_or_default(),
+            calibration_profile_sha256: action
+                .calibration_receipt
+                .as_ref()
+                .map(|receipt| receipt.calibration_profile_sha256.clone())
                 .unwrap_or_default(),
             expected_artifact_contract_sha256: action.expected_artifact_contract_sha256.clone(),
             evsi_scaled_numerator: evsi.to_string(),
@@ -658,8 +776,32 @@ mod tests {
             owner_namespace: "owner:metrology-lab".to_owned(),
             action_catalogue_entry_sha256: digest('1'),
             authorization_status: ActionAuthorizationStatusV0_1::VerifiedPermitted,
-            authorization_receipt_sha256: Some(digest('2')),
+            authorization_receipt: Some(ActionAuthorizationReceiptV0_1 {
+                owner_namespace: "owner:metrology-lab".to_owned(),
+                claim_id: "claim:wing-panel-proof-load".to_owned(),
+                decision_context_sha256: digest('a'),
+                configuration_ref: "configuration:wing-r17".to_owned(),
+                action_id: "action:request-calibration-report".to_owned(),
+                action_catalogue_entry_sha256: digest('1'),
+                receipt_sha256: digest('2'),
+                receiver_first_seen_at_unix_ms: 1_795_516_000_000,
+                effective_from_unix_ms: 1_795_500_000_000,
+                effective_until_unix_ms: 1_798_000_000_000,
+            }),
             calibration_status: OutcomeModelCalibrationStatusV0_1::QualifiedForDeclaredPurpose,
+            calibration_receipt: Some(OutcomeModelCalibrationReceiptV0_1 {
+                owner_namespace: "owner:forecast-model-team".to_owned(),
+                claim_id: "claim:wing-panel-proof-load".to_owned(),
+                decision_context_sha256: digest('a'),
+                configuration_ref: "configuration:wing-r17".to_owned(),
+                action_id: "action:request-calibration-report".to_owned(),
+                outcome_model_sha256: digest('e'),
+                calibration_profile_sha256: digest('6'),
+                calibration_report_sha256: digest('7'),
+                receiver_first_seen_at_unix_ms: 1_795_516_000_000,
+                effective_from_unix_ms: 1_795_500_000_000,
+                effective_until_unix_ms: 1_798_000_000_000,
+            }),
             expected_artifact_contract_sha256: digest('3'),
             target_obligation_ids: vec!["obligation:calibration".to_owned()],
             expected_cost_units: 1,
