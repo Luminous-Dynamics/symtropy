@@ -8,6 +8,7 @@ on:
       - "research/mobility-rrvr-aerb-v0.1/fixtures/evaluator_only/metadata_attack_*"
       - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_blind_campaign_report_*"
       - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_candidate_run_receipt_*"
+      - "research/mobility-rrvr-aerb-v0.1/schemas/aerb_candidate_run_receipt_*"
       - ".github/workflows/aerb-blind-projection-audit.yml"
   workflow_dispatch:
 
@@ -35,6 +36,8 @@ jobs:
           jq empty "$ROOT/schemas/aerb_metadata_attack_input_v0_1.schema.json"
           jq empty "$ROOT/schemas/aerb_metadata_audit_output_v0_1.schema.json"
           jq empty "$ROOT/schemas/aerb_blind_campaign_report_v0_1.schema.json"
+          jq empty "$ROOT/schemas/aerb_blind_campaign_report_v0_2.schema.json"
+          jq empty "$ROOT/schemas/aerb_candidate_run_receipt_v0_2.schema.json"
           jq empty "$ROOT/schemas/aerb_blind_campaign_report_v0_2.schema.json"
           jq empty "$ROOT/schemas/aerb_candidate_run_receipt_v0_2.schema.json"
           jq -e '.schema_version == "aerb-metadata-attack-input-v0.1" and .requested_folds == 4 and (.rows | length == 128) and ([.rows[].evaluator_cluster_id] | unique | length == 64)' "$ROOT/fixtures/evaluator_only/metadata_attack_leak_canary_v0_1.json"
