@@ -569,8 +569,22 @@ pub fn audit_candidate_surface(
     if manifest_ids.len() != receipts.len() {
         return Err(ProjectionError::InvalidMetadataAudit("manifest/receipt count mismatch"));
     }
+    for receipt in receipts {
+        receipt.verify()?;
+    }
     let mut findings = Vec::new();
     let mut expected_ids = receipts.iter().map(|receipt| receipt.candidate_episode_id.as_str()).collect::<Vec<_>>();
+    let unique_receipt_ids = expected_ids.iter().copied().collect::<BTreeSet<_>>();
+    let unique_manifest_ids = manifest_ids.iter().copied().collect::<BTreeSet<_>>();
+    if unique_receipt_ids.len() != expected_ids.len()
+        || unique_manifest_ids.len() != manifest_ids.len()
+    {
+        findings.push(CandidateSurfaceFinding {
+            location: "candidate_manifest.episode_ids".to_owned(),
+            finding_kind: "duplicate_projection_identity".to_owned(),
+            token_sha256: sha256_hex(b"duplicate-projection-identity"),
+        });
+    }
     expected_ids.sort_unstable();
     let mut observed_ids = manifest_ids.clone();
     observed_ids.sort_unstable();
@@ -1166,6 +1180,22 @@ mod tests {
     }
 
     #[test]
+    fn projection_preserves_within_clock_intervals_and_ingest_order() {
+        let context = BlindProjectionContext::from_secret([0x51; 32]);
+        let original = episode(3);
+        let (projected, _) =
+            project_candidate_episode(&context, &original, "ep_44444444444444444444444444444444")
+                .expect("projection");
+        let original_interval = original.observations[0].acquired_time.ticks_ns
+            - original.observations[0].event_time.ticks_ns;
+        let projected_interval = projected.observations[0].acquired_time.ticks_ns
+            - projected.observations[0].event_time.ticks_ns;
+        assert_eq!(projected_interval, original_interval);
+        assert!(projected.observations[0].ingest_sequence < projected.observations[1].ingest_sequence);
+        assert_eq!(projected.decision_cut_sequence, projected.ledger_frontier_sequence);
+    }
+
+    #[test]
     fn projection_receipt_detects_candidate_episode_tampering() {
         let context = BlindProjectionContext::from_secret([0x12; 32]);
         let (mut projected, receipt) =
@@ -1299,8 +1329,10 @@ mod tests {
         let (projected, receipt) =
             project_candidate_episode(&context, &episode(1), "ep_33333333333333333333333333333333")
                 .expect("projection");
-        let mut raw = serde_json::to_string(&projected).expect("episode");
-        raw.push_str("evaluator-secret-token-opaque-abcdef");
+        let mut raw_value = serde_json::to_value(&projected).expect("episode value");
+        raw_value["diagnostic_extension"] =
+            serde_json::json!("evaluator-secret-token-opaque-abcdef");
+        let raw = serde_json::to_string(&raw_value).expect("episode JSON");
         let manifest = serde_json::json!({
             "episode_ids": ["ep_33333333333333333333333333333333"]
         });
