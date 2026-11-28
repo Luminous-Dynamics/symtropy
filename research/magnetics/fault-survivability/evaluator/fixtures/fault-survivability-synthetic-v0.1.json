@@ -1,0 +1,301 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "SyntheticControl fixture only; no physical fault-survivability or safety claim.",
+  "spec": {
+    "campaign_id": "FAULT-SURVIVABILITY-001",
+    "scope": {
+      "application_id": "HEAVY-TRACTION-260KW",
+      "component_id": "ROTOR-ASSEMBLY-001",
+      "assembly_revision_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "magnet_material_lot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "rotor_geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "magnetization_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "duty_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "degraded_mission_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "fault_protocol_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "safety_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "required_fault_cases": [
+      {
+        "case_id": "HOT-THREE-PHASE-SHORT",
+        "fault_kind": "ThreePhaseShortCircuit",
+        "minimum_peak_current_a": 900,
+        "maximum_peak_current_a": 1400,
+        "minimum_rotor_speed_rpm": 1000,
+        "maximum_rotor_speed_rpm": 6000,
+        "minimum_magnet_temperature_c": 100,
+        "maximum_magnet_temperature_c": 180,
+        "minimum_exposure_duration_ms": 100,
+        "maximum_exposure_duration_ms": 500,
+        "minimum_degraded_mission_energy_kwh": 10,
+        "maximum_allowed_mechanical_stress_mpa": 500,
+        "minimum_mechanical_safety_factor": 1.5,
+        "required_magnet_zones": [
+          "north-pole",
+          "south-pole"
+        ]
+      }
+    ],
+    "minimum_post_fault_mission_completion": 0.8
+  },
+  "tests": [
+    {
+      "case_id": "HOT-THREE-PHASE-SHORT",
+      "scope": {
+        "application_id": "HEAVY-TRACTION-260KW",
+        "component_id": "ROTOR-ASSEMBLY-001",
+        "assembly_revision_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "magnet_material_lot_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "rotor_geometry_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "magnetization_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "duty_profile_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "degraded_mission_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "fault_protocol_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "measurement_setup_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "safety_policy_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "build_id": "SYNTHETIC-BUILD-001",
+      "specimen_id": "SYNTHETIC-SPECIMEN-001",
+      "source_material_lot_id": "SYNTHETIC-MAGNET-LOT-001",
+      "exposure_steps": [
+        {
+          "sequence": 0,
+          "timestamp_ms": 0,
+          "duration_ms": 50,
+          "phase_current_peak_a": {
+            "lower": 1000,
+            "upper": 1100
+          },
+          "rotor_speed_rpm": {
+            "lower": 2500,
+            "upper": 2600
+          },
+          "magnet_temperature_c": {
+            "lower": 125,
+            "upper": 135
+          },
+          "dc_bus_voltage_v": {
+            "lower": 600,
+            "upper": 620
+          },
+          "cooling_flow_l_per_min": {
+            "lower": 5,
+            "upper": 6
+          },
+          "fault_active": false,
+          "fault_kind": null,
+          "event_receipt_id": "SYNTHETIC-EVENT-0",
+          "event_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "sensor_method_id": "SYNTHETIC-CURRENT-TEMP-SPEED",
+          "calibration_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "uncertainty_record_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "evidence_class": "SyntheticControl"
+        },
+        {
+          "sequence": 1,
+          "timestamp_ms": 50,
+          "duration_ms": 200,
+          "phase_current_peak_a": {
+            "lower": 1000,
+            "upper": 1100
+          },
+          "rotor_speed_rpm": {
+            "lower": 2500,
+            "upper": 2600
+          },
+          "magnet_temperature_c": {
+            "lower": 125,
+            "upper": 135
+          },
+          "dc_bus_voltage_v": {
+            "lower": 600,
+            "upper": 620
+          },
+          "cooling_flow_l_per_min": {
+            "lower": 5,
+            "upper": 6
+          },
+          "fault_active": true,
+          "fault_kind": "ThreePhaseShortCircuit",
+          "event_receipt_id": "SYNTHETIC-EVENT-1",
+          "event_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "sensor_method_id": "SYNTHETIC-CURRENT-TEMP-SPEED",
+          "calibration_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "uncertainty_record_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "evidence_class": "SyntheticControl"
+        },
+        {
+          "sequence": 2,
+          "timestamp_ms": 250,
+          "duration_ms": 50,
+          "phase_current_peak_a": {
+            "lower": 1000,
+            "upper": 1100
+          },
+          "rotor_speed_rpm": {
+            "lower": 2500,
+            "upper": 2600
+          },
+          "magnet_temperature_c": {
+            "lower": 125,
+            "upper": 135
+          },
+          "dc_bus_voltage_v": {
+            "lower": 600,
+            "upper": 620
+          },
+          "cooling_flow_l_per_min": {
+            "lower": 5,
+            "upper": 6
+          },
+          "fault_active": false,
+          "fault_kind": null,
+          "event_receipt_id": "SYNTHETIC-EVENT-2",
+          "event_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "sensor_method_id": "SYNTHETIC-CURRENT-TEMP-SPEED",
+          "calibration_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "uncertainty_record_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "evidence_class": "SyntheticControl"
+        }
+      ],
+      "bulk_flux_measurement": {
+        "pre_fault_flux_density_t": {
+          "lower": 1.2,
+          "upper": 1.22
+        },
+        "post_fault_flux_density_t": {
+          "lower": 1.1,
+          "upper": 1.12
+        },
+        "pre_fault_temperature_c": {
+          "lower": 25,
+          "upper": 27
+        },
+        "post_fault_temperature_c": {
+          "lower": 25,
+          "upper": 27
+        },
+        "method_id": "SYNTHETIC-BULK-FLUX",
+        "instrument_id": "SYNTHETIC-FLUXMETER",
+        "calibration_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "uncertainty_record_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "evidence_class": "SyntheticControl"
+      },
+      "flux_measurements": [
+        {
+          "measurement_id": "SYNTHETIC-FLUX-north-pole",
+          "zone_id": "north-pole",
+          "pre_fault_flux_density_t": {
+            "lower": 1.19,
+            "upper": 1.21
+          },
+          "post_fault_flux_density_t": {
+            "lower": 1.09,
+            "upper": 1.11
+          },
+          "pre_fault_temperature_c": {
+            "lower": 25,
+            "upper": 27
+          },
+          "post_fault_temperature_c": {
+            "lower": 25,
+            "upper": 27
+          },
+          "method_id": "SYNTHETIC-HALL-MAP",
+          "instrument_id": "SYNTHETIC-HALL-PROBE",
+          "calibration_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "evidence_class": "SyntheticControl"
+        },
+        {
+          "measurement_id": "SYNTHETIC-FLUX-south-pole",
+          "zone_id": "south-pole",
+          "pre_fault_flux_density_t": {
+            "lower": 1.19,
+            "upper": 1.21
+          },
+          "post_fault_flux_density_t": {
+            "lower": 1.14,
+            "upper": 1.16
+          },
+          "pre_fault_temperature_c": {
+            "lower": 25,
+            "upper": 27
+          },
+          "post_fault_temperature_c": {
+            "lower": 25,
+            "upper": 27
+          },
+          "method_id": "SYNTHETIC-HALL-MAP",
+          "instrument_id": "SYNTHETIC-HALL-PROBE",
+          "calibration_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "uncertainty_record_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+          "evidence_class": "SyntheticControl"
+        }
+      ],
+      "structural": {
+        "inspection_receipt_id": "SYNTHETIC-INSPECTION-001",
+        "inspection_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "evidence_class": "SyntheticControl",
+        "maximum_measured_stress_mpa": {
+          "lower": 300,
+          "upper": 350
+        },
+        "minimum_measured_safety_factor": {
+          "lower": 1.8,
+          "upper": 2
+        },
+        "retention_intact": true,
+        "containment_intact": true,
+        "crack_or_deformation_detected": false,
+        "vibration_rms_mm_s": {
+          "lower": 1,
+          "upper": 1.5
+        },
+        "method_id": "SYNTHETIC-STRUCTURAL",
+        "calibration_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "uncertainty_record_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "degraded_mission": {
+        "receipt_id": "SYNTHETIC-DEGRADED-MISSION",
+        "receipt_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "evidence_class": "SyntheticControl",
+        "mission_profile_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "completed_mission_energy_kwh": {
+          "lower": 11,
+          "upper": 12
+        },
+        "required_mission_energy_kwh": {
+          "lower": 10,
+          "upper": 10
+        },
+        "mission_completion_fraction": {
+          "lower": 0.85,
+          "upper": 0.9
+        },
+        "minimum_torque_margin_percent": {
+          "lower": 8,
+          "upper": 10
+        },
+        "maximum_temperature_c": {
+          "lower": 150,
+          "upper": 160
+        },
+        "method_id": "SYNTHETIC-SHAFT-ENERGY",
+        "instrument_id": "SYNTHETIC-DYNAMOMETER",
+        "calibration_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "uncertainty_record_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      "test_receipt_id": "SYNTHETIC-FAULT-TEST",
+      "test_receipt_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "evidence_class": "SyntheticControl"
+    }
+  ],
+  "expected": {
+    "decision": "Indeterminate",
+    "fault_case_count": 1,
+    "exposure_step_count": 3,
+    "required_zone_count": 2
+  }
+}
