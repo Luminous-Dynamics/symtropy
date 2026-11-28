@@ -1,0 +1,75 @@
+schema_version = "0.1"
+program_id = "MAG-REPM-RECOVERY-PASSPORT-001"
+revision = "0.1-draft"
+status = "synthetic_evidence_contract"
+date = "2026-11-27"
+issue = 7778
+parents = [13506, 7757, 7774, 7745, 2933]
+
+[feedstock_strata]
+values = ["NDFEB_POLYMER_BONDED", "NDFEB_SINTERED", "NDFEB_POWDER", "SMCO", "SMFEN", "FERRITE", "HYBRID_ASSEMBLY", "UNKNOWN"]
+families_may_be_silently_pooled = false
+
+[recovery_route_families]
+values = ["POLYMER_HYDROLYSIS", "HYDROGEN_SHORT_LOOP", "MECHANICAL_LIBERATION", "HYDROMETALLURGY", "PYROMETALLURGY", "ELECTROCHEMICAL", "OTHER"]
+eligibility_requires_exact_feedstock_lot_scope = true
+generic_material_label_proves_route_eligibility = false
+
+[mass_balance]
+unit = "mg"
+input_output_intervals_required = true
+source_lot_mass_requires_digest_record = true
+stage_input_mass_requires_digest_record = true
+source_stage_intervals_must_overlap = true
+unknown_loss_may_be_counted_as_recovered = false
+mass_balance_may_be_forced_closed_by_normalization = false
+elemental_balance_requires_method_scoped_assay = true
+unresolved_mass_is_reported_separately = true
+
+[product_quality]
+magnet_feedstock_requires = ["composition_evidence", "impurity_or_phase_quality_evidence", "magnetic_characterization_evidence"]
+elemental_product_requires = ["composition_evidence", "purity_evidence"]
+waste_residue_requires = ["classification_evidence", "disposition_evidence"]
+
+[closed_loop]
+requires = ["recovered_product_identity", "exact_source_lot_and_input_mass_binding", "positive_consumed_mass_measurement", "consumption_not_exceeding_recovered_output", "new_material_lot_identity", "downstream_build_genealogy", "reusable_product_form", "as_built_functional_acceptance_receipt"]
+recovered_mass_alone_proves_closed_loop = false
+
+[claim_policy]
+synthetic_mass_flow_is_physical_recovery = false
+route_eligibility_can_be_inferred_from_family_label = false
+recovered_product_quality_can_be_inferred_from_name = false
+closed_loop_claim_without_component_acceptance = false
+lca_ranking_without_matched_system_boundary = false
+process_authority_granted = false
+
+[implementation]
+evaluator_manifest = "evaluator/Cargo.toml"
+evaluator_source = "evaluator/src/lib.rs"
+fixture_schema = "evaluator/recovery-passport-v0.1.schema.json"
+synthetic_fixture = "evaluator/fixtures/synthetic-recovery-passport-v0.1.json"
+source_register = "fixtures/recovery-route-source-register-v0.1.json"
+language = "Rust 2024"
+dependencies = []
+unit_tests_authored = 28
+unit_tests_executed = false
+exact_head_ci_pass = false
+
+[elemental_balance]
+computed_by_v0_1 = false
+requires_method_scoped_composition_assay = true
+element_balance_claim_without_assay = false
+
+[route_eligibility]
+bound_to_exact_feedstock_family_form_and_lot = true
+polymer_hydrolysis_evidence_scope = "NDFeB_POLYMER_BONDED_ONLY"
+hydrogen_short_loop_evidence_scope = "NDFEB_SINTERED_OR_POWDER_ONLY"
+cross_family_transfer_without_new_receipt = false
+
+
+[mass_measurement_evidence]
+source_mass_measurement_has_unique_record = true
+recovery_stage_input_mass_has_unique_record = true
+source_and_stage_mass_intervals_must_overlap = true
+point_value_equality_is_not_required_when_intervals_overlap = true
+disjoint_intervals_are_indeterminate = true

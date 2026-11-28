@@ -1,0 +1,11 @@
+[package]
+name = "magnetic-recovery-passport"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Evidence-gated recovery route and mass-balance passport for rare-earth permanent magnets"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]

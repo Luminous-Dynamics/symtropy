@@ -1,0 +1,73 @@
+{
+  "schema_version": "0.1",
+  "program_id": "MAG-REPM-RECOVERY-PASSPORT-001",
+  "evidence_class": "literature_source_register",
+  "claim_ceiling": "This register identifies route families and literature evidence. It is not measured recovery data from Symtropy, a matched route tournament, a validated LCA, or proof of route eligibility for any specific feedstock lot.",
+  "sources": [
+    {
+      "source_id": "LEE-POLYMER-BONDED-HYDROLYSIS-2026",
+      "route_family": "POLYMER_HYDROLYSIS",
+      "doi": "10.1016/j.jclepro.2026.149829",
+      "publication_date": "2026-11-15",
+      "evidence_class": "published_paper",
+      "claim": "Continuous hydrolysis is reported as a route to separate NdFeB magnetic particles from polymer-bonded magnets.",
+      "limits": [
+        "specific polymer/binder/feedstock scope; cannot be transferred to unrelated binder systems without evidence",
+        "paper result does not qualify any local feedstock lot or recovered-product quality",
+        "mass and element balances, impurity carryover and downstream magnetic performance require matched records"
+      ]
+    },
+    {
+      "source_id": "HPMS-GRAIN-BOUNDARY-SEPARATION-2025",
+      "route_family": "HYDROGEN_SHORT_LOOP",
+      "doi": "10.1016/j.susmat.2025.e01744",
+      "publication_date": "2025",
+      "evidence_class": "published_paper",
+      "claim": "Hydrogen processing and subsequent grain-boundary-phase separation are reported to improve oxygen condition in recycled NdFeB powder and widen the range of recycled magnet grades.",
+      "limits": [
+        "sintered NdFeB feedstock route; do not transfer to SmCo, SmFeN or polymer-bonded material",
+        "requires exact original magnet chemistry, coating, oxygen, grain-boundary phase and recovered powder characterization",
+        "literature result is not an operational hydrogen-processing instruction or local reproduction"
+      ]
+    },
+    {
+      "source_id": "BAI-REPM-RECYCLABILITY-REVIEW-2026",
+      "route_family": "CROSS_ROUTE_RECOVERY_DESIGN",
+      "doi": "10.1016/j.rser.2026.117244",
+      "publication_date": "2026-11",
+      "evidence_class": "review_synthesis",
+      "claim": "Recovery feasibility is linked to feedstock provenance, service history and microstructure/property modifications; recyclability should be considered during initial magnet design.",
+      "limits": [
+        "review-level, evidence-graded design/recovery framework rather than a validated predictive model",
+        "route-specific yields, purity, energy and environmental impacts need primary data",
+        "does not establish eligibility of any particular material lot"
+      ]
+    },
+    {
+      "source_id": "ADVANCED-NDFEB-RECOVERY-REVIEW-2026",
+      "route_family": "HYDRO_PYRO_ELECTRO_RECOVERY",
+      "doi": "10.1016/j.jre.2026.04.026",
+      "publication_date": "2026",
+      "evidence_class": "review_synthesis",
+      "claim": "Reviews pretreatment, hydrometallurgical, pyrometallurgical and electrochemical routes for rare-earth recovery from NdFeB waste.",
+      "limits": [
+        "routes produce different intermediate/product forms; an oxide/salt is not equivalent to qualified magnet feedstock",
+        "compare with identical functional unit, system boundary, feedstock and target product specification",
+        "review synthesis is not a matched head-to-head plant comparison"
+      ]
+    },
+    {
+      "source_id": "EOL-PERMANENT-MAGNET-LCA-2026",
+      "route_family": "CROSS_ROUTE_LIFECYCLE",
+      "doi": "10.1016/j.jece.2025.120928",
+      "publication_date": "2026",
+      "evidence_class": "review_and_material_flow_analysis",
+      "claim": "Compares end-of-life permanent-magnet recycling pathways and material-flow/environmental implications under a defined study scope.",
+      "limits": [
+        "environmental ranking is specific to the source study's assumptions and system boundary",
+        "not directly transferable to all regional energy mixes, collection systems or feedstock qualities",
+        "use as a methodological comparator; construct matched local LCA/TEA before superiority claims"
+      ]
+    }
+  ]
+}
