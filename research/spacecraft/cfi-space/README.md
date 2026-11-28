@@ -193,3 +193,21 @@ The scorecard reports raw counts and per-family detection counts. It intentional
 ### Next P1 increment
 
 Add canonical manifest receipts and broader malformed/incomplete episode variants. After that, integrate the Symthaea observer witness as an additional candidate output without changing the pose/authority gates.
+
+## P1 exact-head scorer qualification (2026-11-28)
+
+Dedicated workflow run [46122592113](https://github.com/Luminous-Dynamics/symtropy/actions/runs/46122592113) passed on exact head `d872e59fa11ad66d2aed9926d19820070358b2a7`:
+
+- Rust formatting check passed.
+- 11 Rust unit/adversarial tests passed.
+- Strict Clippy with warnings denied passed.
+- Positive-control Rust scorer and independent Python challenger passed with identical canonical score receipts.
+- Negative-control Rust scorer and independent Python challenger passed with identical receipts, deliberately counting one unsafe acceptance.
+
+Synthetic known-answer counts:
+- 10 episodes, 2 independent target/session/trajectory/rig units, 2 counterfactual groups.
+- 2 clean and 8 fault episodes.
+- Safe control: 0 unsafe accepts, 0 false abstentions, 8/8 fault episodes contained, 10/10 exact disposition matches.
+- Unsafe control: common-cause-corrupted episode incorrectly labelled qualified; scorer counts exactly 1 unsafe acceptance and 9/10 exact disposition matches.
+
+This qualifies the P1 scorer/fixture semantics only. Two independent units and ten synthetic episodes are intentionally far too few for generalization, rare-event safety-rate, or statistical confidence claims. The candidate bundles are synthetic non-image payloads; this run does not execute Symthaea or evaluate spacecraft imagery.
