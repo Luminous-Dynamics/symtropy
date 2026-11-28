@@ -1015,12 +1015,18 @@ mod tests {
         }
         let result = evaluate_assurance_state_case_v0_1(&case);
         assert_eq!(result.disposition, Disposition::Unverified);
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "ASSURANCE_STATE_VECTOR_INPUT_INCOMPLETE"
-        }));
-        assert!(result.reason_codes.iter().any(|code| {
-            code == "INTRINSIC_HARD_GATE_POLICY_MISSING_OR_DOWNGRADED"
-        }));
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "ASSURANCE_STATE_VECTOR_INPUT_INCOMPLETE" })
+        );
+        assert!(
+            result
+                .reason_codes
+                .iter()
+                .any(|code| { code == "INTRINSIC_HARD_GATE_POLICY_MISSING_OR_DOWNGRADED" })
+        );
     }
 
     #[test]
