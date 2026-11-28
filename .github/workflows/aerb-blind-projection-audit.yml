@@ -49,3 +49,18 @@ jobs:
           jq -e '.report.sample_n == 128 and .report.independent_cluster_n == 64 and .report.combined_metadata_only_accuracy >= 0.95 and .report.combined_metadata_only_balanced_accuracy >= 0.95' "$WORK/report.json"
           test "$(stat -c '%a' "$WORK/report.json")" = "600"
           sha256sum "$WORK/input.json" "$WORK/report.json"
+      - name: Generate, blind, replay and score a complete process-model campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="research/mobility-rrvr-aerb-v0.1"
+          WORK="$(mktemp -d)"
+          trap 'rm -rf "$WORK"' EXIT
+          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_generate -- 42 32 "$WORK/source-candidate" "$WORK/source-evaluator"
+          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_materialize -- "$WORK/source-candidate" "$WORK/source-evaluator" "$WORK/blind-candidate" "$WORK/blind-evaluator"
+          cargo run --locked --manifest-path "$ROOT/evaluator/Cargo.toml" --bin aerb_blind_campaign_evaluate -- "$WORK/blind-candidate" "$WORK/blind-evaluator" "$WORK/blind-evaluator/blind-evaluator-report.json"
+          jq -e '.scheduled_n == 32 and .evaluated_n == 32 and .structurally_invalid_n == 0 and .candidate_contract_valid_n == 32 and .unsafe_fresh_attempt_n == 0 and (.candidate_contract_valid_rate_of_scheduled == 1)' "$WORK/blind-evaluator/blind-evaluator-report.json"
+          test "$(stat -c '%a' "$WORK/blind-candidate")" = "700"
+          test "$(stat -c '%a' "$WORK/blind-evaluator")" = "700"
+          test "$(stat -c '%a' "$WORK/blind-evaluator/blind-evaluator-report.json")" = "600"
+          sha256sum "$WORK/blind-candidate/candidate_manifest.json" "$WORK/blind-evaluator/evaluator_manifest.json" "$WORK/blind-evaluator/campaign-custody-seal.json" "$WORK/blind-evaluator/blind-evaluator-report.json"
