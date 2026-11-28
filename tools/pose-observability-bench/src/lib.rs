@@ -215,7 +215,7 @@ fn validate_request(request: &ObservabilityRequest) -> Result<(), String> {
                 observation.landmark_id
             ));
         }
-            if observation.sigma_px <= 0.0 {
+        if observation.sigma_px <= 0.0 {
             return Err(format!("landmark {} sigma_px must be positive", observation.landmark_id));
         }
         let variance = observation.sigma_px * observation.sigma_px;
@@ -541,6 +541,40 @@ mod tests {
                 .enumerate()
                 .map(|(index, point)| observation(index, *point, &camera))
                 .collect(),
+        }
+    }
+
+    #[test]
+    fn analytic_se3_projection_jacobian_matches_finite_differences() {
+        let camera = camera();
+        let point = [0.4, -0.25, 4.5];
+        let translation_scale_m = 0.7;
+        let point_j = point_jacobian(point, translation_scale_m);
+        let projection_j = projection_jacobian(&camera, point);
+        let analytic = multiply_2x3_3x6(projection_j, point_j);
+        let baseline = project(&camera, point);
+        let epsilon = 1e-7;
+
+        for column in 0..6 {
+            let perturbed = [
+                point[0] + epsilon * point_j[0][column],
+                point[1] + epsilon * point_j[1][column],
+                point[2] + epsilon * point_j[2][column],
+            ];
+            let observed = project(&camera, perturbed);
+            let numeric = [
+                (observed[0] - baseline[0]) / epsilon,
+                (observed[1] - baseline[1]) / epsilon,
+            ];
+            for row in 0..2 {
+                let error = (numeric[row] - analytic[row][column]).abs();
+                assert!(
+                    error <= 2e-4 * analytic[row][column].abs().max(1.0),
+                    "Jacobian mismatch at image row {row}, twist column {column}: numeric={}, analytic={}",
+                    numeric[row],
+                    analytic[row][column]
+                );
+            }
         }
     }
 
