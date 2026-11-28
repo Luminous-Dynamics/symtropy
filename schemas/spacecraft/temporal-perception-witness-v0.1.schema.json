@@ -228,7 +228,7 @@
           "minimum": 1
         },
         "modality": {
-          "const": "visible"
+          "const": "Visible"
         },
         "clock_profile_sha256": {
           "$ref": "#/$defs/sha256"
