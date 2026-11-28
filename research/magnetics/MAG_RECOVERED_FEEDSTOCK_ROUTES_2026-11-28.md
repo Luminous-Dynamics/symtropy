@@ -20,7 +20,7 @@ That is a significant near-net-shape manufacturing comparator for recovered NdFe
 - MEX is material extrusion of a polymer-bonded magnetic composite.
 - The two routes have different material forms, binder functions, thermal histories, phase/texture evolution, defect modes and acceptance methods.
 
-The 2026 NdFeB AM review, DOI 10.1016/j.jsamd.2026.101226, independently treats MEX and LPBF as distinct routes and identifies magnetic texture and Nd2Fe14B phase retention as performance issues. Its cross-study literature comparisons are not a matched PEM-vs-MEX experiment.
+The June 2026 FDM study (DOI 10.3390/ma19112356) shows a second, distinct recovered-powder-to-MEX route using recycled hard-drive magnets and PBAT, with printing-field alignment. The November 2026 DLP study (DOI 10.1007/s40964-026-02049-0) demonstrates 4D magnetic printing with HDDR/d-HDDR powders for externally actuated soft devices. The 2026 NdFeB AM review, DOI 10.1016/j.jsamd.2026.101226, independently treats MEX and LPBF as distinct routes and identifies magnetic texture and Nd2Fe14B phase retention as performance issues. Its cross-study literature comparisons are not a matched PEM-vs-MEX experiment.
 
 ## Route and feedstock strata
 
